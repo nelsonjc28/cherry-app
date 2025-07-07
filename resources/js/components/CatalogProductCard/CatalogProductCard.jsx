@@ -1,0 +1,111 @@
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import FavoriteButton from '../FavoriteButton/FavoriteButton';
+import './CatalogProductCard.css';
+import { getIconPath } from '../../utils/assetPaths';
+
+const CatalogProductCard = ({ product, onFavoriteToggle }) => {
+  // Destructure product properties
+  const { id, title, images = {}, image, price, colors = [], isNew = false } = product;
+  
+  // State for selected color
+  const [selectedColor, setSelectedColor] = useState(colors[0] || null);
+
+  // Get current image based on selected color
+  const getCurrentImage = () => {
+    if (selectedColor && images[selectedColor]) {
+      return images[selectedColor];
+    }
+    return image || Object.values(images)[0] || '';
+  };
+
+  // Color mapping for display
+  const colorMap = {
+    red: '#e74c3c',
+    blue: '#3498db', 
+    green: '#27ae60',
+    yellow: '#f1c40f',
+    black: '#373737',
+    white: '#ecf0f1',
+    pink: '#e91e63',
+    purple: '#9b59b6',
+    orange: '#f39c12',
+    gray: '#95a5a6'
+  };
+
+  // Handle color selection
+  const handleColorSelect = (color) => {
+    setSelectedColor(color);
+  };
+
+  // Handle favorite toggle
+  const handleFavoriteToggle = () => {
+    if (onFavoriteToggle) {
+      onFavoriteToggle(id);
+    }
+  };
+
+  return (
+    <div className="catalog-product-card">
+      {/* Product image container */}
+      <div className="catalog-product-image-container">
+        <Link to={`/producto/${id}`} className="catalog-product-link">
+          <img 
+            src={getCurrentImage()} 
+            alt={title} 
+            className="catalog-product-image" 
+            loading="lazy" 
+          />
+        </Link>
+        
+        {/* Favorite button positioned in top right */}
+        <FavoriteButton 
+          productId={id}
+          onToggle={handleFavoriteToggle}
+          size="small"
+          className="catalog-favorite-btn"
+        />
+
+        {/* New badge if product is new */}
+        {isNew && (
+          <span className="new-badge">Nuevo</span>
+        )}
+      </div>
+      
+      {/* Product information */}
+      <div className="catalog-product-info">
+        {/* Product ID */}
+        <div className="catalog-product-id-icon">
+          <div className="catalog-product-id">{id}</div>
+          <img src={getIconPath('Share Alt.svg')} />
+        </div>
+        
+        {/* Product title */}
+        <Link to={`/producto/${id}`} className="catalog-product-title-link">
+          <h3 className="catalog-product-title">{title}</h3>
+        </Link>
+        
+        {/* Price */}
+        <div className="catalog-product-price">${price}</div>
+        
+        {/* Color selector */}
+        {colors.length > 0 && (
+          <div className="catalog-color-selector">
+            {colors.map((color, index) => (
+              <button
+                key={index}
+                className={`color-option ${selectedColor === color ? 'selected' : ''}`}
+                style={{ backgroundColor: colorMap[color] || color }}
+                onClick={() => handleColorSelect(color)}
+                aria-label={`Seleccionar color ${color}`}
+                title={color}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default CatalogProductCard; 

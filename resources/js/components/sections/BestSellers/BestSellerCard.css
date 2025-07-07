@@ -1,0 +1,164 @@
+/* Best Seller Card Styles */
+.best-seller-card {
+  background: #fff;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  transition: all 0.4s ease;
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.best-seller-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+}
+
+/* Image Container */
+.best-seller-image-container {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.best-seller-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.best-seller-card:hover .best-seller-image {
+  transform: scale(1.05);
+}
+
+
+
+/* Product Info Section */
+.best-seller-info {
+  padding: 24px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Description */
+.best-seller-description {
+  font-size: 0.9rem;
+  color: #888;
+  line-height: 1.4;
+  margin: 0;
+  font-style: italic;
+}
+
+/* Title */
+.best-seller-title {
+  font-size: 1.1rem;
+  font-weight: 400;
+  color: #333;
+  line-height: 1.3;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Rating */
+.best-seller-rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stars {
+  color: #ffb22d;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+}
+
+/* Price Section */
+.best-seller-price {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.price-label {
+  font-size: 10px;
+  color: #7B7B7B;
+  font-weight: 400;
+}
+
+.price-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #333;
+}
+
+/* Responsive Design for Cards */
+@media (max-width: 992px) {
+  .best-seller-image-container {
+    height: 280px;
+  }
+  
+  .best-seller-info {
+    padding: 20px;
+    gap: 10px;
+  }
+  
+  .best-seller-title {
+    font-size: 1.05rem;
+  }
+  
+  .price-value {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .best-seller-image-container {
+    height: 250px;
+  }
+  
+  .best-seller-info {
+    padding: 18px;
+  }
+  
+  .best-seller-title {
+    font-size: 1rem;
+  }
+  
+  .best-seller-description {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .best-seller-card {
+    border-radius: 16px;
+  }
+  
+  .best-seller-image-container {
+    height: 220px;
+  }
+  
+  .best-seller-info {
+    padding: 16px;
+    gap: 8px;
+  }
+  
+  .best-seller-title {
+    font-size: 0.95rem;
+  }
+  
+  .price-value {
+    font-size: 1.1rem;
+  }
+} 

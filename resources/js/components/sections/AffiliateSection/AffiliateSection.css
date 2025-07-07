@@ -1,0 +1,124 @@
+.affiliate-banner {
+  background: #5e171e;
+  background: linear-gradient(90deg, rgba(94, 23, 30, 1) 0%, rgba(247, 56, 89, 1) 50%, rgba(247, 56, 89, 1) 100%);
+  color: white;
+  display: flex;
+  flex-direction: column-reverse;
+  overflow: hidden;
+  height: 700px;
+}
+
+.affiliateDecorative {
+  height: 100%;
+}
+
+.affiliateDecorative img[alt="Affiliate Girl"] {
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  position: relative;
+}
+
+.affiliateTitle {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 30px;
+  margin-top: 10px;
+  line-height: 52px;
+}
+
+.affiliateContent {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  grid-column: 2;
+  z-index: 1;
+  padding: 35px 17px 0;
+}
+
+.btn-explore {
+  width: 100%;
+  background: white;
+  color: var(--color-primary);
+}
+
+/* DECORATIVE */
+
+.affiliateDecorative {
+  position: relative;
+}
+
+.affiliateDecorative .flotantGlobes {
+  position: absolute;
+  top: 40%;
+  left: 40%;
+  transform: translate(-50%, -50%);
+}
+
+.affiliateDecorative .flotantGlobes .bigGlobe {
+  width: 364px;
+  aspect-ratio: 1;
+  background-color: #F73859;
+  border-radius: 100%;
+  z-index: 1;
+  position: absolute;
+  top: -160px;
+  transform: translateX(-50%);
+}
+
+.affiliateDecorative .flotantGlobes .smallGlobe {
+  width: 100px;
+  aspect-ratio: 1;
+  background-color: #F9738A;
+  border-radius: 100%;
+  z-index: 2;
+  position: absolute;
+  left: 150px;
+}
+
+
+@media (min-width: 768px) {
+  .affiliate-banner {
+    flex-direction: row;
+    height: 356px;
+  }
+
+  .affiliateContent {
+    padding: 0;
+  }
+
+  .affiliateDecorative .flotantGlobes {
+    top: 30%;
+    left: 30%;
+  }
+
+  .affiliateDecorative .flotantGlobes .bigGlobe {
+    width: 364px;
+    aspect-ratio: 1;
+    background-color: #F73859;
+    border-radius: 100%;
+    z-index: 1;
+    position: absolute;
+    top: -150px;
+    transform: unset;
+  }
+
+  .affiliateDecorative img[alt="Affiliate Girl"] {
+    height: 100%;
+    margin-top: 0;
+  }
+
+  .affiliateDecorative .flotantGlobes .smallGlobe {
+    width: 160px;
+    aspect-ratio: 1;
+    background-color: #F9738A;
+    border-radius: 100%;
+    z-index: 2;
+    position: absolute;
+    left: 270px;
+  }
+
+  .btn-explore {
+    width: fit-content;
+  }
+}

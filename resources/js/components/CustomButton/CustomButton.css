@@ -1,0 +1,93 @@
+/* CustomButton base styles */
+.custom-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  border-radius: 8px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border 0.2s, box-shadow 0.2s;
+  outline: none;
+  border: 1px solid transparent;
+  user-select: none;
+  text-decoration: none;
+  position: relative;
+}
+
+/* Variants */
+.custom-btn--outlined {
+  background: none;
+  color: var(--color-primary);
+  border: 1.5px solid var(--color-primary);
+}
+.custom-btn--outlined:hover:not(:disabled) {
+  background: #fff;
+}
+
+.custom-btn--filled {
+  background: var(--color-primary);
+  color: #fff;
+  border: 1.5px solid var(--color-primary);
+}
+.custom-btn--filled:hover:not(:disabled) {
+  background: var(--color-primary);
+  border-color: #c21828;
+}
+
+.custom-btn--text {
+  background: none;
+  color: var(--color-primary);
+  border: none;
+}
+.custom-btn--text:hover:not(:disabled) {
+  background: #fbeaec;
+}
+
+/* Sizes */
+.custom-btn--small {
+  font-size: 12px;
+  padding: 6px 14px;
+  min-height: 32px;
+}
+
+.custom-btn--medium {
+  font-size: 16px;
+  padding: 8px 18px;
+  font-weight: 400;
+}
+
+.custom-btn--large {
+  font-size: 18px;
+  padding: 14px 28px;
+  min-height: 48px;
+  font-weight: 500;
+}
+
+/* Icon styles */
+.custom-btn__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.custom-btn__icon--left {
+  margin-right: 0.5em;
+}
+.custom-btn__icon--right {
+  margin-left: 0.5em;
+}
+
+/* Content */
+.custom-btn__content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Disabled state */
+.custom-btn:disabled,
+.custom-btn[aria-disabled="true"] {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+} 
