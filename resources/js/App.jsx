@@ -14,7 +14,9 @@ import CarritoPage from './pages/CarritoPage';
 import NuevosPage from './pages/NuevosPage';
 import DestacadosPage from './pages/DestacadosPage';
 import CategoriasPage from './pages/CategoriasPage';
+import CatalogosPage from './pages/CatalogosPage';
 import PromocionesPage from './pages/PromocionesPage';
+import BuscarPage from './pages/BuscarPage';
 import ContactoPage from './pages/ContactoPage';
 import PrivacidadPage from './pages/PrivacidadPage';
 import TerminosPage from './pages/TerminosPage';
@@ -48,9 +50,16 @@ function App() {
               <Route path="/notificaciones" element={<NotificacionesPage />} />
               <Route path="/carrito" element={<CarritoPage />} />
               <Route path="/nuevos" element={<NuevosPage />} />
+              <Route path="/nuevos/:type" element={<NuevosPage />} />
               <Route path="/destacados" element={<DestacadosPage />} />
+              <Route path="/destacados/:type" element={<DestacadosPage />} />
               <Route path="/categorias" element={<CategoriasPage />} />
+              <Route path="/categorias/:category" element={<CategoriasPage />} />
+              <Route path="/catalogos" element={<CatalogosPage />} />
+              <Route path="/catalogos/:catalog" element={<CatalogosPage />} />
               <Route path="/promociones" element={<PromocionesPage />} />
+              <Route path="/promociones/:type" element={<PromocionesPage />} />
+              <Route path="/buscar" element={<BuscarPage />} />
               <Route path="/contacto" element={<ContactoPage />} />
               <Route path="/privacidad" element={<PrivacidadPage />} />
               <Route path="/terminos" element={<TerminosPage />} />

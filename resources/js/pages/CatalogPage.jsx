@@ -7,7 +7,7 @@ import Pagination from '../components/Pagination/Pagination';
 import { getIconPath } from '../utils/assetPaths';
 import CustomButton from '../components/CustomButton';
 import './CatalogPage.css';
-import { getProductsByCategory, getAllProducts, getAvailableCategories } from '../api/cherryApi';
+import { getProductsByCategory, getAllProducts, getAvailableCategories, mapApiProductToAppProduct, getProductsByAvailability } from '../api/cherryApi';
 
 const CatalogPage = () => {
   const [searchParams] = useSearchParams();
@@ -17,53 +17,163 @@ const CatalogPage = () => {
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState('más recientes');
-  const [products, setProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState([]); // Store all products
+  const [filteredProducts, setFilteredProducts] = useState([]); // Store filtered products
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     catalog: 'Cherry 2025 - 2026',
     availability: 'todos',
-    category: 'all',
-    department: 'all',
-    sector: 'all',
+    category: 'Todas las categorías',
+    department: 'Todos los departamentos',
+    sector: 'Todos los sectores',
     sizes: [],
     colors: [],
     priceRange: { min: 0, max: 0 }
   });
 
-  // Load products based on category
+  // Function to get available colors from products
+  const getAvailableColors = (products) => {
+    const colorSet = new Set();
+    products.forEach(product => {
+      if (product.colors && product.colors.length > 0) {
+        product.colors.forEach(color => {
+          if (color && color.trim()) {
+            colorSet.add(color.trim());
+          }
+        });
+      }
+    });
+    return Array.from(colorSet).sort();
+  };
+
+  // Function to filter products based on current filters
+  const filterProducts = (products, currentFilters) => {
+    if (!products || products.length === 0) return [];
+
+    let filtered = [...products];
+
+    // Filter by category (if not "Todas las categorías")
+    if (currentFilters.category && currentFilters.category !== 'Todas las categorías') {
+      const categoryLower = currentFilters.category.toLowerCase();
+      filtered = filtered.filter(product => {
+        const productCategory = product.category?.toLowerCase() || '';
+        return productCategory.includes(categoryLower) || 
+               product.title?.toLowerCase().includes(categoryLower);
+      });
+    }
+
+    // Filter by price range
+    if (currentFilters.priceRange.min > 0 || currentFilters.priceRange.max > 0) {
+      filtered = filtered.filter(product => {
+        const price = product.price || 0;
+        const minPrice = currentFilters.priceRange.min || 0;
+        const maxPrice = currentFilters.priceRange.max || Infinity;
+        
+        if (maxPrice > 0) {
+          return price >= minPrice && price <= maxPrice;
+        } else {
+          return price >= minPrice;
+        }
+      });
+    }
+
+    // Filter by colors
+    if (currentFilters.colors && currentFilters.colors.length > 0) {
+      filtered = filtered.filter(product => {
+        if (!product.colors || product.colors.length === 0) return false;
+        
+        return currentFilters.colors.some(filterColor => {
+          const filterColorLower = filterColor.toLowerCase();
+          return product.colors.some(productColor => {
+            const productColorLower = productColor.toLowerCase();
+            // Check for exact match or partial match
+            return productColorLower === filterColorLower || 
+                   productColorLower.includes(filterColorLower) ||
+                   filterColorLower.includes(productColorLower);
+          });
+        });
+      });
+    }
+
+    // Filter by sizes (if product has size information)
+    if (currentFilters.sizes && currentFilters.sizes.length > 0) {
+      filtered = filtered.filter(product => {
+        // For now, we'll keep all products since size info might not be available
+        // This can be enhanced when size data is available in the API
+        return true;
+      });
+    }
+
+    return filtered;
+  };
+
+  // Function to sort products
+  const sortProducts = (products, sortOption) => {
+    const sorted = [...products];
+    
+    switch (sortOption) {
+      case 'precio-menor':
+        return sorted.sort((a, b) => (a.price || 0) - (b.price || 0));
+      case 'precio-mayor':
+        return sorted.sort((a, b) => (b.price || 0) - (a.price || 0));
+      case 'nombre-az':
+        return sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+      case 'nombre-za':
+        return sorted.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
+      case 'más recientes':
+      default:
+        return sorted; // Keep original order for "más recientes"
+    }
+  };
+
+  // Load products based on category, catalog and availability
   useEffect(() => {
     const loadProducts = async () => {
       setLoading(true);
       try {
-        console.log('Cargando productos para categoría:', category);
-        
-        // Debug: obtener categorías disponibles
-        if (category !== 'all') {
-          await getAvailableCategories();
-        }
         
         let productsData;
         if (category === 'all') {
-          productsData = await getAllProducts();
-          console.log('Todos los productos cargados:', productsData.length);
+          const rawProducts = await getProductsByAvailability(filters.availability, filters.catalog);
+          productsData = rawProducts.map(mapApiProductToAppProduct);
         } else {
-          productsData = await getProductsByCategory(category);
-          console.log('Productos filtrados cargados:', productsData.length);
+          // Para categorías específicas, primero obtener por categoría y luego filtrar por disponibilidad
+          const rawProducts = await getProductsByCategory(category, filters.catalog);
+          if (filters.availability === 'con-existencia') {
+            const filteredByAvailability = rawProducts.filter(product => product.stock > 0);
+            productsData = filteredByAvailability;
+          } else {
+            productsData = rawProducts;
+          }
         }
         
-        setProducts(productsData);
+        setAllProducts(productsData);
+        setFilteredProducts(productsData);
       } catch (error) {
         console.error('Error loading products:', error);
-        setProducts([]);
+        setAllProducts([]);
+        setFilteredProducts([]);
       } finally {
         setLoading(false);
       }
     };
 
     loadProducts();
-  }, [category]);
+  }, [category, filters.catalog, filters.availability]); // Agregar filters.availability como dependencia
 
-  const totalResults = products.length;
+  // Apply filters and sorting when filters or sortBy changes
+  useEffect(() => {
+    if (allProducts.length > 0) {
+      
+      let filtered = filterProducts(allProducts, filters);
+      filtered = sortProducts(filtered, sortBy);
+      setFilteredProducts(filtered);
+      setCurrentPage(1); // Reset to first page when filters change
+      
+    }
+  }, [filters.category, filters.priceRange, filters.colors, filters.sizes, sortBy, allProducts]); // Excluir filters.availability y filters.catalog
+
+  const totalResults = filteredProducts.length;
   const productsPerPage = 12;
   const totalPages = Math.ceil(totalResults / productsPerPage);
 
@@ -71,7 +181,7 @@ const CatalogPage = () => {
   const getCurrentPageProducts = () => {
     const startIndex = (currentPage - 1) * productsPerPage;
     const endIndex = startIndex + productsPerPage;
-    return products.slice(startIndex, endIndex);
+    return filteredProducts.slice(startIndex, endIndex);
   };
 
   // Handle filter modal
@@ -87,7 +197,6 @@ const CatalogPage = () => {
   // Handle filter changes
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
-    setCurrentPage(1); // Reset to first page when filters change
   };
 
   // Handle clear filters
@@ -95,19 +204,17 @@ const CatalogPage = () => {
     setFilters({
       catalog: 'Cherry 2025 - 2026',
       availability: 'todos',
-      category: 'all',
-      department: 'all',
-      sector: 'all',
+      category: 'Todas las categorías',
+      department: 'Todos los departamentos',
+      sector: 'Todos los sectores',
       sizes: [],
       colors: [],
       priceRange: { min: 0, max: 0 }
     });
-    setCurrentPage(1);
   };
 
   // Handle favorite toggle
   const handleFavoriteToggle = (productId) => {
-    console.log('Toggle favorite for product:', productId);
     // Implement favorite functionality here
   };
 
@@ -132,17 +239,15 @@ const CatalogPage = () => {
 
       <div className="catalog-page">
         <div className="container">
-          {/* Debug info */}
-          {category !== 'all' && (
-            <div style={{ background: '#f0f0f0', padding: '10px', margin: '10px 0', borderRadius: '4px' }}>
-              <p><strong>Debug:</strong> Categoría: {category} | Productos encontrados: {totalResults}</p>
-            </div>
-          )}
-
           {/* Header section with title and filters  -  MOBILE */}
           <div className="catalog-page__header-mobile">
             <div className="catalog-page__title-section">
-              <h1 className="catalog-page__title">Catálogo de productos</h1>
+              <h1 className="catalog-page__title">
+                Catálogo de productos
+                <span style={{ fontSize: '12px', color: '#7f8c8d', display: 'block', marginTop: '4px' }}>
+                  {filters.catalog}
+                </span>
+              </h1>
               <div className='catalog-page__content-texts'>
                 <span className="catalog-page__results-count">
                   ({totalResults})
@@ -168,6 +273,7 @@ const CatalogPage = () => {
                     onClick={toggleFilterModal}
                   >
                     <img src={getIconPath('Filter.svg')} alt="Filtros" />
+                    <span style={{ fontSize: '12px', marginLeft: '4px' }}>Filtros</span>
                     <img src={getIconPath('Chevron Down.svg')} alt="Expandir" />
                   </button>
                 </div>
@@ -191,7 +297,12 @@ const CatalogPage = () => {
           {/* Header section with title and filters  -  DESKTOP */}
           <div className="catalog-page__header-desktop">
             <div className="catalog-page__title-section">
-              <h1 className="catalog-page__title">Catálogo de productos</h1>
+              <h1 className="catalog-page__title">
+                Catálogo de productos
+                <span style={{ fontSize: '12px', color: '#7f8c8d', display: 'block', marginTop: '4px' }}>
+                  {filters.catalog}
+                </span>
+              </h1>
               <div className='catalog-page__content-texts'>
                 <span className="catalog-page__results-count">
                   ({totalResults})
@@ -278,10 +389,12 @@ const CatalogPage = () => {
                   onFilterChange={handleFilterChange}
                   onClearFilters={handleClearFilters}
                   isMobile={true}
+                  onClose={toggleFilterModal}
                 />
               </div>
             </div>
           )}
+          
         </div>
       </div>
     </>

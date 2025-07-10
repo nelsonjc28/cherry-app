@@ -1,19 +1,21 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getImagePath, getIconPath } from '../../utils/assetPaths';
-import './Header.css';
-import { CartModal } from '../';
-import useCartStore from '../../store/cartStore';
+import { getIconPath, getImagePath } from '../../utils/assetPaths';
 import useUserStore from '../../store/userStore';
+import useCartStore from '../../store/cartStore';
+import CartModal from '../CartModal/CartModal';
+import './Header.css';
 
 const Header = () => {
+  const navigate = useNavigate();
+  const { user, fetchUser, logout } = useUserStore();
+  const { items: cartItems, totalItems, totalPrice } = useCartStore();
   const [activeMenu, setActiveMenu] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openMobileSubMenu, setOpenMobileSubMenu] = useState(null);
-  const [cartModalOpen, setCartModalOpen] = useState(false);
-  const { items: cartItems, totalItems, totalPrice } = useCartStore();
-  const { user, fetchUser, logout } = useUserStore();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [cartModalOpen, setCartModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const userMenuRef = useRef(null);
 
   // Submenu data for each category
@@ -190,6 +192,25 @@ const Header = () => {
     setOpenMobileSubMenu(openMobileSubMenu === key ? null : key);
   };
 
+  // Search functionality
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      navigate(`/buscar?q=${encodeURIComponent(searchTerm.trim())}`);
+      setSearchTerm('');
+    }
+  };
+
+  const handleSearchInputChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const handleSearchKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch(e);
+    }
+  };
+
   // Adapt the data for CartItemCard
   const cartItemCards = cartItems.map((item) => ({
     id: item.id,
@@ -210,7 +231,7 @@ const Header = () => {
       toggleSubMenu(menuKey);
       if (menuKey === 'catalogos') {
         setMobileMenuOpen(false);
-        navigate('/catalogo');
+        navigate('/catalogos');
       }
     };
     return (
@@ -287,16 +308,19 @@ const Header = () => {
           </Link>
 
           {/* Search Bar */}
-          <div className="search-container">
+          <form className="search-container" onSubmit={handleSearch}>
             <input 
               type="text" 
               placeholder="Buscar producto" 
-              className="search-input" 
+              className="search-input"
+              value={searchTerm}
+              onChange={handleSearchInputChange}
+              onKeyPress={handleSearchKeyPress}
             />
-            <button className="search-button">
+            <button type="submit" className="search-button">
               <img src={getIconPath('Search.svg')} alt="Buscar" />
             </button>
-          </div>
+          </form>
 
           {/* User Actions */}
           <div className="user-actions">
@@ -363,7 +387,7 @@ const Header = () => {
             </li>
             <li className="nav-item nav-divider"></li>
             <li className={`nav-item ${activeMenu === 'catalogos' ? 'active' : ''}`} onMouseEnter={() => handleMouseEnter('catalogos')}>
-              <Link to="/catalogo" className="nav-link">
+              <Link to="/catalogos" className="nav-link">
                 <img src={getIconPath('File Alt.svg')} alt="Catálogos" />
                 Catálogos
                 <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
@@ -457,14 +481,19 @@ const Header = () => {
             </div>
             
             <div className="mobile-search">
-              <input 
-                type="text" 
-                placeholder="Buscar producto" 
-                className="mobile-search-input" 
-              />
-              <button className="mobile-search-button">
-                <img src={getIconPath('Search.svg')} alt="Buscar" />
-              </button>
+              <form onSubmit={handleSearch}>
+                <input 
+                  type="text" 
+                  placeholder="Buscar producto" 
+                  className="mobile-search-input"
+                  value={searchTerm}
+                  onChange={handleSearchInputChange}
+                  onKeyPress={handleSearchKeyPress}
+                />
+                <button type="submit" className="mobile-search-button">
+                  <img src={getIconPath('Search.svg')} alt="Buscar" />
+                </button>
+              </form>
             </div>
 
             <ul className="mobile-menu-list">

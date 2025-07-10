@@ -158,17 +158,46 @@ const CatalogFilter = ({
           <h3 className="filter-title">Filtrar por:</h3>
           <div className="radio-group">
             {availabilityOptions.map((option) => (
-              <label key={option.value} className="radio-label">
-                <input
-                  type="radio"
-                  name="availability"
-                  value={option.value}
-                  checked={filters.availability === option.value}
-                  onChange={(e) => handleFilterChange('availability', e.target.value)}
-                />
-                <span className="radio-text">{option.label}</span>
-              </label>
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => handleFilterChange('availability', option.value)}
+                className={`availability-button ${filters.availability === option.value ? 'selected' : ''}`}
+              >
+                <div className="availability-indicator"></div>
+                <span>
+                  {option.label}
+                  {option.value === 'con-existencia' && (
+                    <span style={{ fontSize: '10px', opacity: 0.8, marginLeft: '4px' }}>
+                      (solo con stock)
+                    </span>
+                  )}
+                </span>
+                {filters.availability === option.value && (
+                  <span style={{ 
+                    position: 'absolute', 
+                    right: '12px', 
+                    fontSize: '12px', 
+                    color: 'white',
+                    fontWeight: 'bold'
+                  }}>
+                    ✓
+                  </span>
+                )}
+              </button>
             ))}
+          </div>
+          {/* Status indicator */}
+          <div style={{ 
+            fontSize: '11px', 
+            color: '#7f8c8d', 
+            marginTop: '8px', 
+            padding: '4px 8px',
+            background: filters.availability === 'con-existencia' ? '#e8f5e8' : '#f8f9fa',
+            borderRadius: '4px',
+            border: `1px solid ${filters.availability === 'con-existencia' ? '#27ae60' : '#ddd'}`
+          }}>
+            <strong>Estado:</strong> {filters.availability === 'todos' ? 'Mostrando todos los productos' : 'Mostrando solo productos con stock'}
           </div>
         </div>
 
@@ -372,13 +401,15 @@ const CatalogFilter = ({
                 Limpiar Filtros
               </CustomButton>
              
-              <CustomButton
-                onClick={onClose}
-                variant="filled"
-                size="medium"
-              >
-                Aplicar filtros
-              </CustomButton>
+              {isMobile && (
+                <CustomButton
+                  onClick={onClose}
+                  variant="filled"
+                  size="medium"
+                >
+                  Aplicar filtros
+                </CustomButton>
+              )}
             </div>
           </>
         )}

@@ -1,13 +1,42 @@
 const CHERRY_API_URL = 'https://cherryapi.estrategiadmgs.com.mx/cherryApi/';
 
+// Mapeo de catálogos a parámetros de la API
+const CATALOG_MAPPING = {
+  'Cherry 2025 - 2026': { season: '2025-2026', active: true },
+  'Cherry 2024 - 2025': { season: '2024-2025', active: true },
+  'Cherry 2023 - 2024': { season: '2023-2024', active: false }
+};
+
 // Función para obtener todos los productos
-export const getAllProducts = async () => {
+export const getAllProducts = async (catalog = 'Cherry 2025 - 2026') => {
   try {
     const response = await fetch(CHERRY_API_URL);
     if (!response.ok) {
       throw new Error('Error al obtener productos');
     }
     const products = await response.json();
+    
+    // Filtrar productos por catálogo si es necesario
+    if (catalog && catalog !== 'Cherry 2025 - 2026') {
+      const catalogConfig = CATALOG_MAPPING[catalog];
+      if (catalogConfig) {
+        // Filtrar por temporada o estado activo
+        const filteredProducts = products.filter(product => {
+          // Simular diferentes productos según el catálogo
+          if (catalog === 'Cherry 2024 - 2025') {
+            // Para catálogo 2024-2025, mostrar productos con descuentos moderados
+            return product.desc_promo > 0 && product.desc_promo <= 30;
+          } else if (catalog === 'Cherry 2023 - 2024') {
+            // Para catálogo 2023-2024, mostrar productos con grandes descuentos
+            return product.desc_promo > 30 || product.opc_promo === 'S';
+          }
+          return true; // Para catálogo actual, mostrar todos
+        });
+        
+        return filteredProducts;
+      }
+    }
+    
     return products;
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -194,10 +223,10 @@ export const CATEGORY_MAPPING = {
 };
 
 // Función para obtener productos por categoría
-export const getProductsByCategory = async (category) => {
+export const getProductsByCategory = async (category, catalog = 'Cherry 2025 - 2026') => {
   try {
     // Obtener todos los productos sin mapear para el filtrado
-    const rawProducts = await getAllProducts();
+    const rawProducts = await getAllProducts(catalog);
     
     if (!rawProducts || rawProducts.length === 0) {
       return [];
@@ -257,12 +286,50 @@ export const getProductsByCategory = async (category) => {
 };
 
 // Función para obtener todos los productos y mapearlos al formato de la app
-export const fetchProducts = async () => {
+export const fetchProducts = async (catalog = 'Cherry 2025 - 2026') => {
   try {
-    const products = await getAllProducts();
+    const products = await getAllProducts(catalog);
     return products.map(mapApiProductToAppProduct);
   } catch (error) {
     console.error('Error fetching and mapping products:', error);
+    return [];
+  }
+}; 
+
+// Función para obtener productos por disponibilidad
+export const getProductsByAvailability = async (availability, catalog = 'Cherry 2025 - 2026') => {
+  try {
+    const response = await fetch(CHERRY_API_URL);
+    if (!response.ok) {
+      throw new Error('Error al obtener productos');
+    }
+    const products = await response.json();
+    
+    let filteredProducts = products;
+    
+    // Filtrar por catálogo primero
+    if (catalog && catalog !== 'Cherry 2025 - 2026') {
+      const catalogConfig = CATALOG_MAPPING[catalog];
+      if (catalogConfig) {
+        filteredProducts = products.filter(product => {
+          if (catalog === 'Cherry 2024 - 2025') {
+            return product.desc_promo > 0 && product.desc_promo <= 30;
+          } else if (catalog === 'Cherry 2023 - 2024') {
+            return product.desc_promo > 30 || product.opc_promo === 'S';
+          }
+          return true;
+        });
+      }
+    }
+    
+    // Filtrar por disponibilidad
+    if (availability === 'con-existencia') {
+      filteredProducts = filteredProducts.filter(product => product.inventario > 0);
+    }
+    
+    return filteredProducts;
+  } catch (error) {
+    console.error('Error fetching products by availability:', error);
     return [];
   }
 }; 
