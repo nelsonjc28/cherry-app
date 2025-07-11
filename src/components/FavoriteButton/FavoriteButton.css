@@ -1,0 +1,197 @@
+/* Favorite Button Component */
+.favorite-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background-color: rgba(255, 255, 255, 0.4);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.favorite-button:hover {
+  background-color: rgba(255, 255, 255, 0.7);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.favorite-button:focus {
+  outline: 2px solid rgba(255, 0, 0, 0.3);
+  outline-offset: 2px;
+}
+
+/* Size Variants */
+.favorite-button--small {
+  width: 32px;
+  height: 32px;
+}
+
+.favorite-button--small svg {
+  width: 14px;
+  height: 14px;
+}
+
+.favorite-button--medium {
+  width: 36px;
+  height: 36px;
+}
+
+.favorite-button--medium svg {
+  width: 18px;
+  height: 18px;
+}
+
+.favorite-button--large {
+  width: 40px;
+  height: 40px;
+}
+
+.favorite-button--large svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Icon Styles */
+.favorite-button svg {
+  transition: all 0.3s ease;
+  color: #666666;
+}
+
+.favorite-button:hover svg {
+  color: #333333;
+}
+
+/* Active (Favorited) State */
+.favorite-button--active {
+  background-color: rgba(255, 0, 0, 0.1);
+}
+
+.favorite-button--active:hover {
+  background-color: rgba(255, 0, 0, 0.15);
+}
+
+.favorite-button--active svg {
+  color: var(--color-primary);
+  animation: heartPulse 0.3s ease;
+}
+
+.favorite-button--active:hover svg {
+  color: #d10000;
+}
+
+/* Heart pulse animation when favorited */
+@keyframes heartPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Active state with filled heart */
+.favorite-button--active svg {
+  fill: currentColor;
+}
+
+/* Inactive state with outline heart */
+.favorite-button:not(.favorite-button--active) svg {
+  fill: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .favorite-button {
+    top: 8px;
+    right: 8px;
+  }
+  
+  .favorite-button--medium {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .favorite-button--medium svg {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .favorite-button--large {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .favorite-button--large svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (max-width: 576px) {
+  .favorite-button {
+    top: 6px;
+    right: 6px;
+  }
+  
+  .favorite-button--small {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .favorite-button--small svg {
+    width: 12px;
+    height: 12px;
+  }
+  
+  .favorite-button--medium {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .favorite-button--medium svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .favorite-button {
+    background-color: #ffffff;
+    border: 2px solid #333333;
+  }
+  
+  .favorite-button--active {
+    background-color: var(--color-primary);
+  }
+  
+  .favorite-button--active svg {
+    color: #ffffff;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .favorite-button,
+  .favorite-button svg {
+    transition: none;
+  }
+  
+  .favorite-button:hover {
+    transform: none;
+  }
+  
+  .favorite-button--active svg {
+    animation: none;
+  }
+} 
