@@ -1,162 +1,234 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { getProductsByCategory } from '../api/cherryApi';
-import ProductGrid from '../components/ProductGrid/ProductGrid';
+import { Helmet } from 'react-helmet-async';
+import { Link } from 'react-router-dom';
+import ProductCard from '../components/ProductCard/ProductCard';
+import CherryButton from '../components/CherryButton/CherryButton';
+import { getIconPath } from '../utils/assetPaths';
+import { getAllProducts, mapApiProductToAppProduct } from '../api/cherryApi';
 import './NuevosPage.css';
 
 const NuevosPage = () => {
-  const { type } = useParams();
-  const [products, setProducts] = useState([]);
+  const [newProducts, setNewProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [totalResults, setTotalResults] = useState(0);
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
-  // Obtener el tipo de productos nuevos desde la URL
-  const productType = type || 'primavera';
+  const categories = [
+    { id: 'all', name: 'Todos los nuevos', icon: 'Bell.svg' },
+    { id: 'vestidos', name: 'Vestidos', icon: 'category/vestido-de-novio 1.svg' },
+    { id: 'blusas', name: 'Blusas', icon: 'category/blusa 1.svg' },
+    { id: 'pantalones', name: 'Pantalones', icon: 'category/pantalones-ajustados 1.svg' },
+    { id: 'accesorios', name: 'Accesorios', icon: 'category/vestir 1.svg' }
+  ];
 
   useEffect(() => {
-    const fetchNewProducts = async () => {
+    const loadNewProducts = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        setError(null);
+        const allProducts = await getAllProducts();
+        const mappedProducts = allProducts.map(mapApiProductToAppProduct);
         
-        // Mapear tipos a categorías específicas para productos nuevos
-        const categoryMap = {
-          'primavera': 'vestidos',
-          'tendencias': 'blusas',
-          'mas-vendido': 'pantalones',
-          'accesorios': 'accesorios',
-          'maquillaje': 'maquillaje',
-          'cuidado-personal': 'cuidado-personal',
-          'coleccion-limitada': 'vestidos',
-          'edicion-especial': 'blusas'
-        };
-
-        const category = categoryMap[productType] || 'vestidos';
-        const response = await getProductsByCategory(category);
+        // Filtrar productos nuevos
+        const newProducts = mappedProducts.filter(product => 
+          product.isNew || (product.createdAt && isRecentlyCreated(product.createdAt))
+        );
         
-        if (response && response.length > 0) {
-          setProducts(response);
-          setTotalResults(response.length);
-        } else {
-          setError('No se pudieron cargar los productos nuevos');
-        }
-      } catch (err) {
-        setError('Error al cargar los productos nuevos');
-        console.error('Error fetching new products:', err);
+        setNewProducts(newProducts);
+      } catch (error) {
+        console.error('Error loading new products:', error);
+        setNewProducts([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchNewProducts();
-  }, [productType]);
+    loadNewProducts();
+  }, []);
 
-  const getPageTitle = () => {
-    const titles = {
-      'primavera': 'Colección Primavera',
-      'tendencias': 'Últimas Tendencias',
-      'mas-vendido': 'Lo Más Vendido',
-      'accesorios': 'Nuevos Accesorios',
-      'maquillaje': 'Nuevo Maquillaje',
-      'cuidado-personal': 'Nuevo Cuidado Personal',
-      'coleccion-limitada': 'Colección Limitada',
-      'edicion-especial': 'Edición Especial'
-    };
-    return titles[productType] || 'Productos Nuevos';
+  const isRecentlyCreated = (createdAt) => {
+    const productDate = new Date(createdAt);
+    const now = new Date();
+    const daysDiff = (now - productDate) / (1000 * 60 * 60 * 24);
+    return daysDiff <= 30; // Productos de los últimos 30 días
   };
 
-  const getPageDescription = () => {
-    const descriptions = {
-      'primavera': 'Descubre nuestra nueva colección de primavera con los diseños más frescos y elegantes.',
-      'tendencias': 'Las últimas tendencias en moda femenina, siempre a la vanguardia del estilo.',
-      'mas-vendido': 'Los productos más populares y solicitados por nuestras clientes.',
-      'accesorios': 'Nuevos accesorios que complementan perfectamente tu estilo.',
-      'maquillaje': 'Los productos de maquillaje más innovadores para realzar tu belleza.',
-      'cuidado-personal': 'Nuevos productos para el cuidado personal que cuidan tu belleza natural.',
-      'coleccion-limitada': 'Una colección exclusiva y limitada con diseños únicos.',
-      'edicion-especial': 'Ediciones especiales con diseños únicos y exclusivos.'
-    };
-    return descriptions[productType] || 'Descubre los productos más nuevos y frescos de nuestra tienda.';
+  const getFilteredProducts = () => {
+    if (selectedCategory === 'all') {
+      return newProducts;
+    }
+
+    return newProducts.filter(product => {
+      const productCategory = product.category?.toLowerCase() || '';
+      return productCategory.includes(selectedCategory);
+    });
   };
+
+  const handleCategoryClick = (categoryId) => {
+    setSelectedCategory(categoryId);
+  };
+
+  const handleFavoriteToggle = (productId) => {
+    };
+
+  const filteredProducts = getFilteredProducts();
 
   if (loading) {
     return (
-      <div className="nuevos-page">
-        <div className="container">
-          <div className="loading-container">
-            <svg className="loading-spinner-svg" width="40" height="40" viewBox="0 0 40 40">
-              <circle
-                cx="20"
-                cy="20"
-                r="18"
-                fill="none"
-                stroke="#f3f3f3"
-                strokeWidth="4"
-              />
-              <circle
-                cx="20"
-                cy="20"
-                r="18"
-                fill="none"
-                stroke="var(--color-primary)"
-                strokeWidth="4"
-                strokeDasharray="113"
-                strokeDashoffset="113"
-                strokeLinecap="round"
-                className="spinner-circle"
-              />
-            </svg>
-            <p>Cargando productos nuevos...</p>
+      <>
+        <Helmet>
+          <title>Nuevos Productos - Cherry Central</title>
+        </Helmet>
+        
+        <main className="nuevos-page">
+          <div className="container">
+            <div className="nuevos-loading">
+              <div className="loading-spinner"></div>
+              <p>Cargando nuevos productos...</p>
+            </div>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="nuevos-page">
-        <div className="container">
-          <div className="error-container">
-            <h2>Error</h2>
-            <p>{error}</p>
-            <button onClick={() => window.location.reload()}>Intentar de nuevo</button>
-          </div>
-        </div>
-      </div>
+        </main>
+      </>
     );
   }
 
   return (
-    <div className="nuevos-page">
-      <div className="container">
-        {/* Header Section */}
-        <div className="nuevos-page__header">
-          <div className="nuevos-page__title-section">
-            <h1 className="nuevos-page__title">{getPageTitle()}</h1>
-            <p className="nuevos-page__description">{getPageDescription()}</p>
-            <div className="nuevos-page__results">
-              <span className="nuevos-page__results-count">
-                {totalResults} productos encontrados
-              </span>
+    <>
+      <Helmet>
+        <title>Nuevos Productos - Cherry Central</title>
+        <meta name="description" content="Descubre los productos más nuevos de Cherry Central. Las últimas novedades en moda femenina." />
+      </Helmet>
+
+      <main className="nuevos-page">
+        <div className="container">
+          {/* Header */}
+          <div className="nuevos-header">
+            <h1>Nuevos Productos</h1>
+            <p>Descubre las últimas novedades de la temporada</p>
+          </div>
+
+          {/* Banner de novedades */}
+          <div className="nuevos-banner">
+            <div className="banner-content">
+              <h2>¡Novedades Llegando!</h2>
+              <p>Los productos más recientes de nuestra colección</p>
+              <div className="banner-stats">
+                <div className="stat-item">
+                  <span className="stat-number">{newProducts.length}</span>
+                  <span className="stat-label">Nuevos productos</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-number">30</span>
+                  <span className="stat-label">Días de novedad</span>
+                </div>
+              </div>
+            </div>
+            <div className="banner-image">
+              <img src={getIconPath('Bell.svg')} alt="Nuevos productos" />
+            </div>
+          </div>
+
+          {/* Filtros por categoría */}
+          <div className="nuevos-filtros">
+            <div className="filtros-grid">
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  className={`filtro-btn ${selectedCategory === category.id ? 'active' : ''}`}
+                  onClick={() => handleCategoryClick(category.id)}
+                >
+                  <div className="filtro-icon">
+                    <img src={getIconPath(category.icon)} alt={category.name} />
+                  </div>
+                  <span>{category.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Productos nuevos */}
+          <div className="nuevos-content">
+            <div className="nuevos-header-section">
+              <h2>
+                {categories.find(c => c.id === selectedCategory)?.name}
+              </h2>
+              <p>{filteredProducts.length} productos nuevos</p>
+            </div>
+
+            {filteredProducts.length === 0 ? (
+              <div className="nuevos-empty">
+                <div className="empty-icon">
+                  <img src={getIconPath('Bell.svg')} alt="Sin nuevos productos" />
+                </div>
+                <h3>No hay productos nuevos</h3>
+                <p>
+                  {selectedCategory === 'all' 
+                    ? 'No hay productos nuevos en este momento'
+                    : `No hay productos nuevos en la categoría "${categories.find(c => c.id === selectedCategory)?.name}"`
+                  }
+                </p>
+                <Link to="/catalogo">
+                  <CherryButton variant="outline" size="medium">
+                    Ver catálogo completo
+                  </CherryButton>
+                </Link>
+              </div>
+            ) : (
+              <div className="nuevos-products-grid">
+                {filteredProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onFavoriteToggle={handleFavoriteToggle}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Información adicional */}
+          <div className="nuevos-info">
+            <div className="info-section">
+              <h3>¿Qué hace que un producto sea "nuevo"?</h3>
+              <div className="info-grid">
+                <div className="info-item">
+                  <div className="info-icon">
+                    <img src={getIconPath('Bell.svg')} alt="Reciente" />
+                  </div>
+                  <h4>Recién llegados</h4>
+                  <p>Productos que han llegado en los últimos 30 días</p>
+                </div>
+                
+                <div className="info-item">
+                  <div className="info-icon">
+                    <img src={getIconPath('Award.svg')} alt="Calidad" />
+                  </div>
+                  <h4>Alta calidad</h4>
+                  <p>Productos seleccionados con los mejores materiales</p>
+                </div>
+                
+                <div className="info-item">
+                  <div className="info-icon">
+                    <img src={getIconPath('Bullhorn.svg')} alt="Tendencias" />
+                  </div>
+                  <h4>Últimas tendencias</h4>
+                  <p>Diseños actuales y estilos de moda</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA Section */}
+          <div className="nuevos-cta">
+            <div className="cta-content">
+              <h2>¿Quieres estar al día?</h2>
+              <p>Suscríbete para recibir notificaciones de nuevos productos</p>
+              <CherryButton variant="red" size="large">
+                Suscribirse
+              </CherryButton>
             </div>
           </div>
         </div>
-
-        {/* Products Grid */}
-        {products.length > 0 ? (
-          <div className="nuevos-page__content">
-            <ProductGrid products={products} />
-          </div>
-        ) : (
-          <div className="nuevos-page__empty">
-            <h3>No se encontraron productos nuevos</h3>
-            <p>Pronto tendremos nuevos productos disponibles.</p>
-          </div>
-        )}
-      </div>
-    </div>
+      </main>
+    </>
   );
 };
 

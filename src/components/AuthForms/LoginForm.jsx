@@ -1,30 +1,32 @@
 import { useState } from 'react';
 import CherryButton from '../CherryButton/CherryButton';
 import './LoginForm.css';
+import useUserStore from '../../store/userStore';
 
 const LoginForm = ({ onSuccess }) => {
   const [form, setForm] = useState({ email: '', password: '' });
-  const [error, setError] = useState('');
+  const { login, loading, error, clearError } = useUserStore();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-    setError('');
+    if (error) clearError();
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.email || !form.password) {
-      setError('Please fill in all fields.');
       return;
     }
-    // Here would go the real authentication logic
-    if (onSuccess) onSuccess(form);
-    else alert('Simulated login');
+    
+    const user = await login(form.email, form.password);
+    if (user) {
+      if (onSuccess) onSuccess(user);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} className="login-form">
-      <label htmlFor="email" className="login-label">Email</label>
+      <label htmlFor="email" className="login-label">Correo Electrónico</label>
       <input
         id="email"
         name="email"
@@ -35,7 +37,7 @@ const LoginForm = ({ onSuccess }) => {
         className="login-input"
         required
       />
-      <label htmlFor="password" className="login-label">Password</label>
+      <label htmlFor="password" className="login-label">Contraseña</label>
       <input
         id="password"
         name="password"
@@ -47,7 +49,9 @@ const LoginForm = ({ onSuccess }) => {
         required
       />
       {error && <div className="login-error">{error}</div>}
-      <CherryButton type="submit" variant="red" fullWidth>Login</CherryButton>
+      <CherryButton type="submit" variant="red" fullWidth disabled={loading}>
+        {loading ? 'Iniciando...' : 'Login'}
+      </CherryButton>
     </form>
   );
 };

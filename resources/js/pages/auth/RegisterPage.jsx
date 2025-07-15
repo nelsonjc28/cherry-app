@@ -1,7 +1,7 @@
 import { Helmet } from 'react-helmet-async';
 import Footer from '../../components/Footer/Footer';
 import RegisterForm from '../../components/AuthForms/RegisterForm';
-import './LoginPage.css';
+import './RegisterPage.css';
 import '../../index.css';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -24,7 +24,7 @@ const RegisterPage = () => {
   return (
     <>
       <Helmet>
-        <title>Registro | Cherry Central</title>
+        <title>Registrarse | Cherry Central</title>
       </Helmet>
       <main className="home-page centered-page">
         <section className="container form-section">

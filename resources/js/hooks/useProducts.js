@@ -4,7 +4,10 @@ import {
   getFeaturedProducts, 
   getProductsByCategory, 
   getAllProducts,
-  mapApiProductToAppProduct 
+  mapApiProductToAppProduct,
+  searchProductsAdvanced,
+  getAvailableColors,
+  getAvailableCategoriesFromAPI
 } from '../api/cherryApi';
 
 /**
@@ -32,6 +35,47 @@ export const useProductsByCategory = (categoryId, page = 1, limit = 12) => {
     // Only fetch if we have a categoryId
     enabled: !!categoryId,
     keepPreviousData: true, // Keep previous data while fetching new data for smoother pagination
+  });
+};
+
+/**
+ * Custom hook for advanced product search
+ * @param {string} query - Search term
+ * @param {object} filters - Search filters
+ * @param {string} catalog - Catalog to search in
+ */
+export const useAdvancedProductSearch = (query, filters = {}, catalog = 'Cherry 2025 - 2026') => {
+  return useQuery({
+    queryKey: ['advancedProductSearch', query, filters, catalog],
+    queryFn: () => searchProductsAdvanced(query, filters, catalog),
+    // Only fetch if we have a search query with at least 2 characters
+    enabled: !!query && query.length >= 2,
+    keepPreviousData: true,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+/**
+ * Custom hook for fetching available colors from API
+ * @param {string} catalog - Catalog to get colors from
+ */
+export const useAvailableColors = (catalog = 'Cherry 2025 - 2026') => {
+  return useQuery({
+    queryKey: ['availableColors', catalog],
+    queryFn: () => getAvailableColors(catalog),
+    staleTime: 30 * 60 * 1000, // 30 minutes
+  });
+};
+
+/**
+ * Custom hook for fetching available categories from API
+ * @param {string} catalog - Catalog to get categories from
+ */
+export const useAvailableCategories = (catalog = 'Cherry 2025 - 2026') => {
+  return useQuery({
+    queryKey: ['availableCategories', catalog],
+    queryFn: () => getAvailableCategoriesFromAPI(catalog),
+    staleTime: 30 * 60 * 1000, // 30 minutes
   });
 };
 

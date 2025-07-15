@@ -11,41 +11,6 @@ import BestSellers from '../components/sections/BestSellers/BestSellers';
 import AffiliateSection from '../components/sections/AffiliateSection';
 
 const HomePage = () => {
-  const featuredProducts = [
-    {
-      id: 1,
-      title: 'Complementa tu look con nuestra elegante colección de vestidos',
-      image: '/images/FeaturedProducts/example_image_card.png',
-      price: 29,
-      rating: 5,
-      description: 'Un toque clásico que nunca pasa de moda. Perfecto para ocasiones especiales.'
-    },
-    {
-      id: 2,
-      title: 'Blusas modernas para el día a día',
-      image: '/images/RecentCatalogs/image_example_2.png',
-      price: 29,
-      rating: 5,
-      description: 'Comodidad y estilo en cada diseño. Ideal para el uso diario.'
-    },
-    {
-      id: 3,
-      title: 'Pantalones que resaltan tu figura',
-      image: '/images/RecentCatalogs/image_example_1.png',
-      price: 29,
-      rating: 5,
-      description: 'Cortes modernos que se adaptan a tu silueta perfectamente.'
-    },
-    {
-      id: 4,
-      title: 'Accesorios únicos para completar tu outfit',
-      image: '/images/HeroBanner/hero-slider1-girl.png',
-      price: 29,
-      rating: 5,
-      description: 'Detalles que marcan la diferencia en tu estilo personal.'
-    }
-  ];
-
   return (
     <>
       <Helmet>
@@ -115,9 +80,9 @@ const HomePage = () => {
           <h2 id="featured-products-heading" className="sr-only">Productos Destacados</h2>
       <FeaturedProducts 
         title="Productos diseñados para reflejar tu estilo y personalidad."
-        products={featuredProducts}
-        viewAllLink="/productos"
+        viewAllLink="/catalogo"
         viewAllText="Ver Más"
+        useApi={true}
       />
         </section>
 
@@ -142,9 +107,9 @@ const HomePage = () => {
         <section aria-labelledby="best-sellers-heading">
           <h2 id="best-sellers-heading" className="sr-only">Productos Más Vendidos</h2>
           <BestSellers 
-            products={featuredProducts}
             title="Productos más vendidos"
             description="Perfectos para ocasiones especiales, con diseños que realzan la figura"
+            useApi={true}
           />
       </section>
       </main>

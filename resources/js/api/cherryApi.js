@@ -127,11 +127,13 @@ export const mapApiProductToAppProduct = (apiProduct) => {
     stock: apiProduct.inventario || 0,
     isActive: apiProduct.activo === 1,
     isNew: apiProduct.opc_nuevo === 'S',
-    isPromo: apiProduct.opc_promo === 'S'
+    isPromo: apiProduct.opc_promo === 'S',
+    codigo: apiProduct.id_articulo,
+    dtu: apiProduct.DTU || apiProduct.dtu
   };
 };
 
-// Función para obtener productos destacados (activos y con stock)
+// Función para obtener productos destacados
 export const getFeaturedProducts = async (limit = 8) => {
   try {
     const products = await getAllProducts();
@@ -294,7 +296,7 @@ export const fetchProducts = async (catalog = 'Cherry 2025 - 2026') => {
     console.error('Error fetching and mapping products:', error);
     return [];
   }
-}; 
+};
 
 // Función para obtener productos por disponibilidad
 export const getProductsByAvailability = async (availability, catalog = 'Cherry 2025 - 2026') => {
@@ -330,6 +332,168 @@ export const getProductsByAvailability = async (availability, catalog = 'Cherry 
     return filteredProducts;
   } catch (error) {
     console.error('Error fetching products by availability:', error);
+    return [];
+  }
+}; 
+
+// Función para búsqueda avanzada de productos
+export const searchProductsAdvanced = async (query, filters = {}, catalog = 'Cherry 2025 - 2026') => {
+  try {
+    const products = await getAllProducts(catalog);
+    if (!products || products.length === 0) {
+      return [];
+    }
+
+    const queryLower = query.toLowerCase().trim();
+    const searchTerms = queryLower.split(' ').filter(term => term.length > 0);
+
+    // Filtrar productos que coincidan con la búsqueda
+    const filteredProducts = products.filter(product => {
+      // Crear un texto de búsqueda que incluya todos los campos relevantes
+      const searchText = [
+        product.descripcion || '',
+        product.marca || '',
+        product.linea?.descripcion || '',
+        product.DTU || product.dtu || '',
+        product.id_articulo?.toString() || '',
+        // Incluir colores de los detalles
+        ...(product.detalles?.map(d => d.nombreColor) || []),
+        // Incluir códigos de color
+        ...(product.detalles?.map(d => d.codigoColor) || [])
+      ].join(' ').toLowerCase();
+
+      // Verificar si todos los términos de búsqueda están presentes
+      const allTermsMatch = searchTerms.every(term => {
+        return searchText.includes(term) || 
+               product.descripcion?.toLowerCase().includes(term) ||
+               product.marca?.toLowerCase().includes(term) ||
+               product.linea?.descripcion?.toLowerCase().includes(term) ||
+               (product.DTU && product.DTU.toLowerCase().includes(term)) ||
+               (product.dtu && product.dtu.toLowerCase().includes(term)) ||
+               (product.id_articulo && product.id_articulo.toString().includes(term));
+      });
+
+      return allTermsMatch;
+    });
+
+    // Aplicar filtros adicionales si se proporcionan
+    let finalProducts = filteredProducts;
+
+    // Filtrar por disponibilidad
+    if (filters.availability === 'con-existencia') {
+      finalProducts = finalProducts.filter(product => product.inventario > 0);
+    }
+
+    // Filtrar por categoría
+    if (filters.category && filters.category !== 'Todas las categorías') {
+      const categoryLower = filters.category.toLowerCase();
+      finalProducts = finalProducts.filter(product => {
+        const productCategory = product.linea?.descripcion?.toLowerCase() || '';
+        return productCategory.includes(categoryLower) || 
+               product.descripcion?.toLowerCase().includes(categoryLower);
+      });
+    }
+
+    // Filtrar por rango de precio
+    if (filters.priceRange && (filters.priceRange.min > 0 || filters.priceRange.max > 0)) {
+      finalProducts = finalProducts.filter(product => {
+        const price = product.precio1 || 0;
+        const minPrice = filters.priceRange.min || 0;
+        const maxPrice = filters.priceRange.max || Infinity;
+        
+        if (maxPrice > 0) {
+          return price >= minPrice && price <= maxPrice;
+        } else {
+          return price >= minPrice;
+        }
+      });
+    }
+
+    // Filtrar por colores
+    if (filters.colors && filters.colors.length > 0) {
+      finalProducts = finalProducts.filter(product => {
+        const productColors = product.detalles?.map(d => d.nombreColor?.toLowerCase()) || [];
+        return filters.colors.some(filterColor => {
+          const filterColorLower = filterColor.toLowerCase();
+          return productColors.some(productColor => 
+            productColor && (
+              productColor === filterColorLower || 
+              productColor.includes(filterColorLower) ||
+              filterColorLower.includes(productColor)
+            )
+          );
+        });
+      });
+    }
+
+    // Filtrar por código específico
+    if (filters.codigo && filters.codigo.trim() !== '') {
+      const codigoLower = filters.codigo.trim().toLowerCase();
+      finalProducts = finalProducts.filter(product => {
+        return (
+          (product.id_articulo && product.id_articulo.toString().toLowerCase().includes(codigoLower)) ||
+          (product.descripcion && product.descripcion.toLowerCase().includes(codigoLower))
+        );
+      });
+    }
+
+    // Filtrar por DTU específico
+    if (filters.dtu && filters.dtu.trim() !== '') {
+      const dtuLower = filters.dtu.trim().toLowerCase();
+      finalProducts = finalProducts.filter(product => {
+        return (
+          (product.DTU && product.DTU.toLowerCase().includes(dtuLower)) ||
+          (product.dtu && product.dtu.toLowerCase().includes(dtuLower))
+        );
+      });
+    }
+
+    // Mapear los productos al formato de la app
+    return finalProducts.map(mapApiProductToAppProduct);
+  } catch (error) {
+    console.error('Error en búsqueda avanzada:', error);
+    return [];
+  }
+};
+
+// Función para obtener colores únicos disponibles
+export const getAvailableColors = async (catalog = 'Cherry 2025 - 2026') => {
+  try {
+    const products = await getAllProducts(catalog);
+    const colorSet = new Set();
+    
+    products.forEach(product => {
+      if (product.detalles && product.detalles.length > 0) {
+        product.detalles.forEach(detalle => {
+          if (detalle.nombreColor && detalle.nombreColor.trim()) {
+            colorSet.add(detalle.nombreColor.trim());
+          }
+        });
+      }
+    });
+    
+    return Array.from(colorSet).sort();
+  } catch (error) {
+    console.error('Error obteniendo colores disponibles:', error);
+    return [];
+  }
+};
+
+// Función para obtener categorías únicas disponibles
+export const getAvailableCategoriesFromAPI = async (catalog = 'Cherry 2025 - 2026') => {
+  try {
+    const products = await getAllProducts(catalog);
+    const categorySet = new Set();
+    
+    products.forEach(product => {
+      if (product.linea?.descripcion && product.linea.descripcion.trim()) {
+        categorySet.add(product.linea.descripcion.trim());
+      }
+    });
+    
+    return Array.from(categorySet).sort();
+  } catch (error) {
+    console.error('Error obteniendo categorías disponibles:', error);
     return [];
   }
 }; 

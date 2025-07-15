@@ -7,18 +7,15 @@ import './ProductPage.css';
 import CherryButton from '../components/CherryButton/CherryButton';
 import FavoriteButton from '../components/FavoriteButton/FavoriteButton';
 import FeaturedProducts from '../components/sections/FeaturedProducts/FeaturedProducts';
+import { toast } from 'react-toastify';
 
 // API and Store
-import { productsApi } from '../api';
+// Eliminar: import { productsApi } from '../api';
 import { useCartStore } from '../store';
-
-// Temporary mock data for testing
-import { getMockProductById, getMockRelatedProducts } from '../api/mockData';
 
 // Utils
 import { formatPrice } from '../utils/formatters';
 import useHorizontalDragScroll from '../hooks/useHorizontalDragScroll';
-import { getIconPath } from '../utils/assetPaths';
 
 const ProductPage = () => {
   const { productId } = useParams();
@@ -37,47 +34,31 @@ const ProductPage = () => {
   // Cart store
   const { addToCart, isLoading: isAddingToCart } = useCartStore();
 
-  // Load product data
+  // Load product data from external API
   useEffect(() => {
-    loadProduct();
-  }, [productId]);
-
-  const loadProduct = async () => {
-    try {
+    if (!productId) return;
+    const fetchProduct = async () => {
       setIsLoading(true);
       setError(null);
-
-      // Load product details using mock data (temporary)
-      const productResponse = await getMockProductById(productId);
-      const productData = productResponse.data;
-
-      setProduct(productData);
-
-      // Set default selections
-      if (productData.colors && productData.colors.length > 0) {
-        setSelectedColor(productData.colors[0].name);
+      try {
+        const response = await fetch(`https://cherryapi.estrategiadmgs.com.mx/cherryApi/?id_articulo=${productId}`);
+        if (!response.ok) throw new Error('No se pudo obtener el producto');
+        const data = await response.json();
+        if (!data || !data[0]) throw new Error('Producto no encontrado');
+        setProduct(data[0]);
+        // Set default color/size if available
+        if (data[0].detalles && data[0].detalles.length > 0) {
+          setSelectedColor(data[0].detalles[0].nombreColor || '');
+          setSelectedSize(data[0].detalles[0].detalle || '');
+        }
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
       }
-      if (productData.sizes && productData.sizes.length > 0) {
-        setSelectedSize(productData.sizes[0]);
-      }
-
-      // Load related products using mock data (temporary)
-      if (productData.categoryId) {
-        const relatedResponse = await getMockRelatedProducts(
-          productData.categoryId,
-          productData.id,
-          4
-        );
-        setRelatedProducts(relatedResponse.data.products || []);
-      }
-
-    } catch (err) {
-      console.error('Error loading product:', err);
-      setError('Error cargando el producto');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
+    fetchProduct();
+  }, [productId]);
 
   // Handle add to cart
   const handleAddToCart = async () => {
@@ -87,17 +68,21 @@ const ProductPage = () => {
     }
 
     try {
+      // Mapear los datos del producto a los campos esperados por el store
       const productToAdd = {
-        ...product,
+        id: product.id_articulo,
+        title: product.descripcion,
+        price: product.precio1,
+        image: product.imagen,
         selectedColor,
         selectedSize,
-        selectedQuantity: quantity
+        selectedQuantity: quantity,
+        colors: [selectedColor]
       };
 
       await addToCart(productToAdd, quantity);
 
-      // Show success message or redirect
-      alert('Producto agregado al carrito');
+      toast.success('Producto agregado al carrito');
     } catch (err) {
       console.error('Error adding to cart:', err);
       alert('Error al agregar al carrito');
@@ -155,11 +140,58 @@ const ProductPage = () => {
     );
   }
 
+  // Extraer detalles relevantes
+  const {
+    descripcion,
+    marca,
+    precio1, precio2, precio3, precio4, precio5, precio6, precio7, precio8, precio9, precio10,
+    costo,
+    imagen,
+    piezas,
+    inventario,
+    especificaciones,
+    detalles = [],
+    linea,
+    sector,
+    genero,
+    notas,
+    id_articulo,
+    art_empresa,
+    id_provedor,
+    tkmov,
+    tipo_venta,
+    iva,
+    stockmin,
+    stockmax,
+    proporcion,
+    sku,
+    ean,
+    fecha_alta,
+    activo,
+    tipoart,
+    url_video,
+    descuento,
+    catalogoId,
+    generoId,
+    sectorId,
+    fechaAct,
+    ...rest
+  } = product;
+
+  // Colores y tallas únicos
+  const colores = [...new Set(detalles.map(d => d.nombreColor).filter(Boolean))];
+  const tallas = [...new Set(detalles.map(d => d.detalle).filter(Boolean))];
+
+  // Precios adicionales
+  const precios = [precio1, precio2, precio3, precio4, precio5, precio6, precio7, precio8, precio9, precio10]
+    .map((p, i) => ({ label: `Precio${i+1}`, value: p }))
+    .filter(p => p.value && p.value > 0);
+
   return (
     <>
       <Helmet>
-        <title>{product.title} - Cherry</title>
-        <meta name="description" content={product.description} />
+        <title>{descripcion} - Cherry</title>
+        <meta name="description" content={descripcion} />
       </Helmet>
 
       <div className="product-page">
@@ -171,59 +203,23 @@ const ProductPage = () => {
             <span className="product-page__breadcrumb-item">+50 vendido</span>
           </div>
 
-          <h1 className="product-page__info-title show-mobile">{product.title}</h1>
+          <h1 className="product-page__info-title show-mobile">{descripcion}</h1>
 
           {/* Product Gallery */}
           <div className="product-page__gallery">
             <div className="product-page__gallery-main">
               <img
-                src={product.images?.[selectedImage] || product.image}
-                alt={product.title}
+                src={imagen}
+                alt={descripcion}
                 className="product-page__gallery-main-image"
+                style={{ maxWidth: 400, maxHeight: 400, objectFit: 'contain' }}
               />
               <FavoriteButton
-                productId={product.id}
+                productId={id_articulo}
                 className="product-page__gallery-favorite"
                 size="large"
               />
             </div>
-
-            {product.images && product.images.length > 1 && (
-              <div className="product-page__gallery-thumbnails-container">
-                <div
-                  className={`product-page__gallery-thumbnails${isDragging ? ' dragging' : ''}`}
-                  ref={thumbnailsRef}
-                  {...eventHandlers}
-                >
-                  {product.images.map((image, index) => (
-                    <button
-                      key={index}
-                      className={`product-page__gallery-thumbnail ${selectedImage === index ? ' product-page__gallery-thumbnail--active' : ''}`}
-                      onClick={() => setSelectedImage(index)}
-                      type="button"
-                    >
-                      <img src={image} alt={`${product.title} - Vista ${index + 1}`} />
-                      {selectedImage === index && (
-                        <div className="product-page__gallery-thumbnail-indicator"></div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Navigation indicators */}
-                <div className="product-page__gallery-indicators">
-                  {product.images.map((_, index) => (
-                    <button
-                      key={`indicator-${index}`}
-                      className={`product-page__gallery-indicator ${selectedImage === index ? 'product-page__gallery-indicator--active' : ''
-                        }`}
-                      onClick={() => setSelectedImage(index)}
-                      aria-label={`Ver imagen ${index + 1}`}
-                    ></button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Product Info */}
@@ -235,33 +231,66 @@ const ProductPage = () => {
               <span className="product-page__breadcrumb-item">+50 vendido</span>
             </div>
 
-            <h1 className="product-page__info-title show-desktop">{product.title}</h1>
+            <h1 className="product-page__info-title show-desktop">{descripcion}</h1>
 
             <div className="product-page__info-rating">
               <div className="product-page__container-info-rating">
                 <div className="product-page__rating-stars">
-                  {renderStars(product.rating || 5)}
+                  {renderStars(5)} {/* Assuming a default rating for now */}
                 </div>
-                <span className="product-page__rating-text">{(product.rating || 5).toFixed(1)} Rating</span>
+                <span className="product-page__rating-text">5.0 Rating</span>
               </div>
               <div className="product-page__info-stock">
-                <img src={getIconPath('Check Circle.svg')} />
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8 0.25C3.71875 0.25 0.25 3.75 0.25 8C0.25 12.2812 3.71875 15.75 8 15.75C12.25 15.75 15.75 12.2812 15.75 8C15.75 3.75 12.25 0.25 8 0.25ZM8 1.75C11.4375 1.75 14.25 4.5625 14.25 8C14.25 11.4688 11.4375 14.25 8 14.25C4.53125 14.25 1.75 11.4688 1.75 8C1.75 4.5625 4.53125 1.75 8 1.75ZM12.375 5.84375L11.6562 5.125C11.5312 4.96875 11.2812 4.96875 11.125 5.125L6.71875 9.5L4.84375 7.625C4.6875 7.46875 4.46875 7.46875 4.3125 7.625L3.59375 8.3125C3.46875 8.46875 3.46875 8.71875 3.59375 8.84375L6.4375 11.7188C6.59375 11.875 6.8125 11.875 6.96875 11.7188L12.375 6.375C12.5 6.21875 12.5 5.96875 12.375 5.84375Z" fill="#1DA534" />
+                </svg>
                 <span className="product-page__stock-status product-page__stock-status--in-stock">In Stock</span>
               </div>
             </div>
 
             <div className="product-page__info-price">
-              {formatPrice(product.price)}
+              {formatPrice(precio1)}
             </div>
 
             <div className="product-page__container-info-details">
               <div className="product-page__info-sku">
-                {product.sku || product.id}
+                <strong>SKU:</strong> {sku || id_articulo}
               </div>
               <div className="product-page__info-details">
                 <span>Descripción del producto</span>
                 <button className="product-page__details-link">Ver Detalles ›</button>
               </div>
+              <div className="product-page__info-meta">
+                {marca && <div><strong>Marca:</strong> {marca}</div>}
+                {linea?.descripcion && <div><strong>Línea:</strong> {linea.descripcion}</div>}
+                {sector?.descripcion && <div><strong>Sector:</strong> {sector.descripcion}</div>}
+                {genero?.descripcion && <div><strong>Género:</strong> {genero.descripcion}</div>}
+                {piezas && <div><strong>Piezas:</strong> {piezas}</div>}
+                {costo && <div><strong>Costo:</strong> ${costo.toFixed(2)}</div>}
+                {inventario !== undefined && <div><strong>Inventario:</strong> {inventario}</div>}
+                {fecha_alta && <div><strong>Fecha alta:</strong> {fecha_alta}</div>}
+                {notas && <div><strong>Notas:</strong> {notas}</div>}
+                {especificaciones && <div><strong>Especificaciones:</strong> {especificaciones}</div>}
+                {activo !== undefined && <div><strong>Activo:</strong> {activo ? 'Sí' : 'No'}</div>}
+                {tipoart && <div><strong>Tipo artículo:</strong> {tipoart}</div>}
+                {url_video && <div><strong>Video:</strong> <a href={url_video} target="_blank" rel="noopener noreferrer">Ver video</a></div>}
+                {descuento && <div><strong>Descuento:</strong> {descuento}%</div>}
+                {catalogoId && <div><strong>ID Catálogo:</strong> {catalogoId}</div>}
+                {generoId && <div><strong>ID Género:</strong> {generoId}</div>}
+                {sectorId && <div><strong>ID Sector:</strong> {sectorId}</div>}
+                {fechaAct && <div><strong>Fecha actualización:</strong> {fechaAct}</div>}
+              </div>
+              {/* Mostrar todos los precios disponibles */}
+              {precios.length > 1 && (
+                <div className="product-page__info-prices">
+                  <strong>Precios adicionales:</strong>
+                  <ul>
+                    {precios.slice(1).map((p, idx) => (
+                      <li key={idx}>{p.label}: ${p.value.toFixed(2)}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
             {/* Product Options */}
@@ -269,7 +298,7 @@ const ProductPage = () => {
               <h3 className="product-page__options-title">Selecciona color y talla</h3>
 
               {/* Color Selection - Step 1 */}
-              {product.colors && product.colors.length > 0 && (
+              {colores.length > 0 && (
                 <div className="product-page__option">
                   <div className="product-page__option-header">
                     <span className="product-page__step-number">Paso 1</span>
@@ -277,16 +306,15 @@ const ProductPage = () => {
                   </div>
                   <div className="product-page__option-label">Color</div>
                   <div className="product-page__color-options">
-                    {product.colors.map((color) => (
+                    {colores.map((color, index) => (
                       <button
-                        key={color.name}
-                        className={`product-page__color-option ${selectedColor === color.name ? 'product-page__color-option--selected' : ''
-                          }`}
-                        style={{ backgroundColor: color.hex }}
-                        onClick={() => setSelectedColor(color.name)}
-                        title={color.name}
+                        key={index}
+                        className={`product-page__color-option ${selectedColor === color ? 'product-page__color-option--selected' : ''}`}
+                        style={{ backgroundColor: '#000' }} // Placeholder for color hex
+                        onClick={() => setSelectedColor(color)}
+                        title={color}
                       >
-                        <span className="product-page__color-option-name">{color.displayName}</span>
+                        <span className="product-page__color-option-name">{color}</span>
                       </button>
                     ))}
                   </div>
@@ -294,7 +322,7 @@ const ProductPage = () => {
               )}
 
               {/* Size Selection - Step 2 */}
-              {product.sizes && product.sizes.length > 0 && (
+              {tallas.length > 0 && (
                 <div className="product-page__option">
                   <div className="product-page__option-header product-page__step-number-border">
                     <span className="product-page__step-number">Paso 2</span>
@@ -303,36 +331,33 @@ const ProductPage = () => {
                   <div className="product-page__option-label">Talla</div>
 
                   <div className="product-page__size-options">
-                    {product.sizes.map((size) => (
-                      <div key={size} className={`product-page__size-item ${selectedSize === size ? 'product-page__size-item--selected' : ''
-                        }`}>
+                    {tallas.map((talla, index) => (
+                      <div key={talla} className={`product-page__size-item ${selectedSize === talla ? 'product-page__size-item--selected' : ''}`}> 
                         <button
                           className={`product-page__size-button`}
-                          onClick={() => setSelectedSize(size)}
+                          onClick={() => setSelectedSize(talla)}
                         >
-                          <span className="product-page__size-number">{size}</span>
+                          <span className="product-page__size-number">{talla}</span>
                           <span className="product-page__size-availability">Disponibles</span>
                         </button>
 
                         <div className="product-page__size-quantity">
                           <button
-                            className={`product-page__quantity-btn ${selectedSize !== size || quantity <= 1 ? 'product-page__quantity-btn--disabled' : ''
-                              }`}
+                            className={`product-page__quantity-btn ${selectedSize !== talla || quantity <= 1 ? 'product-page__quantity-btn--disabled' : ''}`}
                             onClick={() => handleQuantityChange(quantity - 1)}
-                            disabled={selectedSize !== size || quantity <= 1}
+                            disabled={selectedSize !== talla || quantity <= 1}
                           >
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                               <line x1="5" y1="12" x2="19" y2="12"></line>
                             </svg>
                           </button>
                           <span className="product-page__quantity-display">
-                            {selectedSize === size ? quantity : 0}
+                            {selectedSize === talla ? quantity : 0}
                           </span>
                           <button
-                            className={`product-page__quantity-btn ${selectedSize !== size || quantity >= (product.stock || 99) ? 'product-page__quantity-btn--disabled' : ''
-                              }`}
+                            className={`product-page__quantity-btn ${selectedSize !== talla || quantity >= (product.stock || 99) ? 'product-page__quantity-btn--disabled' : ''}`}
                             onClick={() => handleQuantityChange(quantity + 1)}
-                            disabled={selectedSize !== size || quantity >= (product.stock || 99)}
+                            disabled={selectedSize !== talla || quantity >= (product.stock || 99)}
                           >
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                               <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -372,27 +397,27 @@ const ProductPage = () => {
             </div>
 
             {/* Product Description */}
-            {product.description && (
+            {descripcion && (
               <div className="product-page__description">
-                <p className="product-page__description-text">{product.description}</p>
+                <p className="product-page__description-text">{descripcion}</p>
               </div>
             )}
           </div>
         </div>
-
-        {/* Related Products Section */}
-        {relatedProducts.length > 0 && (
-          <FeaturedProducts
-            title="Productos diseñados para reflejar tu estilo y personalidad."
-            products={relatedProducts}
-            viewAllLink="/catalogo"
-            viewAllText="Ver Más"
-            showViewAllButton={true}
-            className="product-page__related-products"
-            alwaysShowTitle={true}
-          />
-        )}
       </div>
+
+      {/* Related Products Section */}
+      {relatedProducts.length > 0 && (
+        <FeaturedProducts
+          title="Productos diseñados para reflejar tu estilo y personalidad."
+          products={relatedProducts}
+          viewAllLink="/catalogo"
+          viewAllText="Ver Más"
+          showViewAllButton={true}
+          className="product-page__related-products"
+          alwaysShowTitle={true}
+        />
+      )}
     </>
   );
 };

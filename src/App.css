@@ -14,23 +14,6 @@ main {
   outline-offset: 2px;
 }
 
-/* Aplicando font-display: swap para mejor rendimiento de carga de fuentes */
-@font-face {
-  font-family: 'Poppins';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
-}
-
-@font-face {
-  font-family: 'Montserrat';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
-}
-
 /* Optimizaciones para imágenes */
 img {
   max-width: 100%;

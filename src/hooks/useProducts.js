@@ -1,5 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { productsApi } from '../api';
+import { 
+  getFeaturedProducts, 
+  getProductsByCategory, 
+  getAllProducts,
+  mapApiProductToAppProduct 
+} from '../api/cherryApi';
 
 /**
  * Custom hook for fetching featured products
@@ -8,8 +14,7 @@ import { productsApi } from '../api';
 export const useFeaturedProducts = (limit = 8) => {
   return useQuery({
     queryKey: ['featuredProducts', limit],
-    queryFn: () => productsApi.getFeaturedProducts(limit)
-      .then(response => response.data),
+    queryFn: () => getFeaturedProducts(limit),
     staleTime: 10 * 60 * 1000, // 10 minutes
   });
 };
@@ -23,8 +28,7 @@ export const useFeaturedProducts = (limit = 8) => {
 export const useProductsByCategory = (categoryId, page = 1, limit = 12) => {
   return useQuery({
     queryKey: ['productsByCategory', categoryId, page, limit],
-    queryFn: () => productsApi.getProductsByCategory(categoryId, page, limit)
-      .then(response => response.data),
+    queryFn: () => getProductsByCategory(categoryId),
     // Only fetch if we have a categoryId
     enabled: !!categoryId,
     keepPreviousData: true, // Keep previous data while fetching new data for smoother pagination

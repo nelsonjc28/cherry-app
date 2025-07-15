@@ -80,8 +80,13 @@ class AuthController extends Controller
 
     public function logout()
     {
-        auth('api')->logout();
-        return response()->json(['message' => 'Sesión cerrada correctamente']);
+        try {
+            auth('api')->logout();
+            return response()->json(['message' => 'Sesión cerrada correctamente']);
+        } catch (\Exception $e) {
+            // Si hay algún error, aún así devolver éxito para que el frontend pueda limpiar su estado
+            return response()->json(['message' => 'Sesión cerrada correctamente']);
+        }
     }
 
     public function me()

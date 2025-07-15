@@ -6,14 +6,32 @@ import './App.css';
 import HomePage from './pages/HomePage';
 import CatalogPage from './pages/CatalogPage';
 import ProductPage from './pages/ProductPage';
+import AfiliatePage from './pages/AfiliatePage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
-import CartDetailsPage from './pages/CartDetailsPage';
-import CheckoutSuccessPage from './pages/CheckoutSuccessPage';
+import NotificacionesPage from './pages/NotificacionesPage';
+import CarritoPage from './pages/CarritoPage';
+import NuevosPage from './pages/NuevosPage';
+import DestacadosPage from './pages/DestacadosPage';
+import CategoriasPage from './pages/CategoriasPage';
+import CatalogosPage from './pages/CatalogosPage';
+import PromocionesPage from './pages/PromocionesPage';
+import BuscarPage from './pages/BuscarPage';
+import ContactoPage from './pages/ContactoPage';
+import PrivacidadPage from './pages/PrivacidadPage';
+import TerminosPage from './pages/TerminosPage';
+import CookiesPage from './pages/CookiesPage';
+import ExplorarPage from './pages/ExplorarPage';
+import DestacadosOfertasPage from './pages/DestacadosOfertasPage';
+import ProductosPage from './pages/ProductosPage';
 
 // Components
 import Header from './components/Header/Header';
 import Footer from './components/Footer/Footer';
+
+function NotFoundPage() {
+  return <div style={{ padding: 40, textAlign: 'center' }}><h2>Página no encontrada</h2></div>;
+}
 
 function App() {
   return (
@@ -26,11 +44,30 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/catalogo" element={<CatalogPage />} />
               <Route path="/producto/:productId" element={<ProductPage />} />
+              <Route path="/afiliate" element={<AfiliatePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/registro" element={<RegisterPage />} />
-              <Route path="/carrito-detalle" element={<CartDetailsPage />} />
-              <Route path="/compra-exitosa" element={<CheckoutSuccessPage />} />
-              {/* Other routes will be added here */}
+              <Route path="/notificaciones" element={<NotificacionesPage />} />
+              <Route path="/carrito" element={<CarritoPage />} />
+              <Route path="/nuevos" element={<NuevosPage />} />
+              <Route path="/nuevos/:type" element={<NuevosPage />} />
+              <Route path="/destacados" element={<DestacadosPage />} />
+              <Route path="/destacados/:type" element={<DestacadosPage />} />
+              <Route path="/categorias" element={<CategoriasPage />} />
+              <Route path="/categorias/:category" element={<CategoriasPage />} />
+              <Route path="/catalogos" element={<CatalogosPage />} />
+              <Route path="/catalogos/:catalog" element={<CatalogosPage />} />
+              <Route path="/promociones" element={<PromocionesPage />} />
+              <Route path="/promociones/:type" element={<PromocionesPage />} />
+              <Route path="/buscar" element={<BuscarPage />} />
+              <Route path="/contacto" element={<ContactoPage />} />
+              <Route path="/privacidad" element={<PrivacidadPage />} />
+              <Route path="/terminos" element={<TerminosPage />} />
+              <Route path="/cookies" element={<CookiesPage />} />
+              <Route path="/explorar" element={<ExplorarPage />} />
+              <Route path="/destacados/ofertas" element={<DestacadosOfertasPage />} />
+              <Route path="/productos" element={<ProductosPage />} />
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </main>
           <Footer />

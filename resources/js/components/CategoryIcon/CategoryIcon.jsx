@@ -1,16 +1,12 @@
 import { Link } from 'react-router-dom';
 import './CategoryIcon.css';
 
-const CategoryIcon = ({ name, icon, to, className = "category-icon" }) => {
+const CategoryIcon = ({ name, icon }) => {
   // Generate URL-friendly slug from category name
   const categorySlug = name.toLowerCase().replace(/\s+/g, '-');
   
-  // If 'to' prop is provided, render as Link, otherwise render as div
-  const Component = to ? Link : 'div';
-  const props = to ? { to, className } : { className };
-  
   return (
-    <Component {...props}>
+    <Link to={`/categoria/${categorySlug}`} className="category-icon">
       <p className="category-name">{name}</p>
       <div className="icon-container">
         <img 
@@ -20,7 +16,7 @@ const CategoryIcon = ({ name, icon, to, className = "category-icon" }) => {
           loading="lazy"
         />
       </div>
-    </Component>
+    </Link>
   );
 };
 

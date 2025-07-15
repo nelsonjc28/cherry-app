@@ -1,15 +1,61 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import BestSellerCard from './BestSellerCard';
 import ProductSlider from '../../ProductSlider/ProductSlider';
 import { getHeroIconPath } from '../../../utils/assetPaths';
+import { getFeaturedProducts } from '../../../api/cherryApi';
 import './BestSellers.css';
 
-const BestSellers = ({ products = [], title = "Productos más vendidos", description = "Perfectos para ocasiones especiales, con diseños que realzan la figura" }) => {
+const BestSellers = ({ 
+  products = [], 
+  title = "Productos más vendidos", 
+  description = "Perfectos para ocasiones especiales, con diseños que realzan la figura",
+  useApi = false
+}) => {
+  const [apiProducts, setApiProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load products from API if useApi is true
+  useEffect(() => {
+    if (useApi) {
+      const loadProducts = async () => {
+        setLoading(true);
+        try {
+          const productsData = await getFeaturedProducts(4);
+          setApiProducts(productsData);
+        } catch (error) {
+          console.error('Error loading best sellers:', error);
+          setApiProducts([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      loadProducts();
+    } else {
+      setLoading(false);
+    }
+  }, [useApi]);
+
+  // Use API products if available, otherwise use passed products
+  const displayProducts = useApi ? apiProducts : products;
+
   // Handle favorite toggle callback
   const handleFavoriteToggle = (productId, isFavorited) => {
     console.log(`Product ${productId} ${isFavorited ? 'added to' : 'removed from'} favorites`);
     // Here you would typically update your favorites state/API
   };
+
+  if (loading) {
+    return (
+      <section className="best-sellers">
+        <div className="container">
+          <div className="loading-spinner">
+            <p>Cargando productos más vendidos...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="best-sellers">
@@ -25,27 +71,27 @@ const BestSellers = ({ products = [], title = "Productos más vendidos", descrip
           <div className="best-sellers-grid">
             {/* First Row: Wide-Narrow layout (2fr 1fr) */}
             <div className="best-sellers-row first-row">
-              {products[0] && (
+              {displayProducts[0] && (
                 <BestSellerCard 
-                  key={products[0].id}
-                  id={products[0].id}
-                  title={products[0].title}
-                  image={products[0].image}
-                  price={products[0].price}
-                  rating={products[0].rating}
-                  description={products[0].description}
+                  key={displayProducts[0].id}
+                  id={displayProducts[0].id}
+                  title={displayProducts[0].title}
+                  image={displayProducts[0].image}
+                  price={displayProducts[0].price}
+                  rating={displayProducts[0].rating}
+                  description={displayProducts[0].description}
                   onFavoriteToggle={handleFavoriteToggle}
                 />
               )}
-              {products[1] && (
+              {displayProducts[1] && (
                 <BestSellerCard 
-                  key={products[1].id}
-                  id={products[1].id}
-                  title={products[1].title}
-                  image={products[1].image}
-                  price={products[1].price}
-                  rating={products[1].rating}
-                  description={products[1].description}
+                  key={displayProducts[1].id}
+                  id={displayProducts[1].id}
+                  title={displayProducts[1].title}
+                  image={displayProducts[1].image}
+                  price={displayProducts[1].price}
+                  rating={displayProducts[1].rating}
+                  description={displayProducts[1].description}
                   onFavoriteToggle={handleFavoriteToggle}
                 />
               )}
@@ -53,27 +99,27 @@ const BestSellers = ({ products = [], title = "Productos más vendidos", descrip
 
             {/* Second Row: Narrow-Wide layout (1fr 2fr) */}
             <div className="best-sellers-row second-row">
-              {products[2] && (
+              {displayProducts[2] && (
                 <BestSellerCard 
-                  key={products[2].id}
-                  id={products[2].id}
-                  title={products[2].title}
-                  image={products[2].image}
-                  price={products[2].price}
-                  rating={products[2].rating}
-                  description={products[2].description}
+                  key={displayProducts[2].id}
+                  id={displayProducts[2].id}
+                  title={displayProducts[2].title}
+                  image={displayProducts[2].image}
+                  price={displayProducts[2].price}
+                  rating={displayProducts[2].rating}
+                  description={displayProducts[2].description}
                   onFavoriteToggle={handleFavoriteToggle}
                 />
               )}
-              {products[3] && (
+              {displayProducts[3] && (
                 <BestSellerCard 
-                  key={products[3].id}
-                  id={products[3].id}
-                  title={products[3].title}
-                  image={products[3].image}
-                  price={products[3].price}
-                  rating={products[3].rating}
-                  description={products[3].description}
+                  key={displayProducts[3].id}
+                  id={displayProducts[3].id}
+                  title={displayProducts[3].title}
+                  image={displayProducts[3].image}
+                  price={displayProducts[3].price}
+                  rating={displayProducts[3].rating}
+                  description={displayProducts[3].description}
                   onFavoriteToggle={handleFavoriteToggle}
                 />
               )}
@@ -84,7 +130,7 @@ const BestSellers = ({ products = [], title = "Productos más vendidos", descrip
         {/* Mobile View - Slider */}
         <div className="mobile-view">
           <ProductSlider 
-            products={products}
+            products={displayProducts}
             onFavoriteToggle={handleFavoriteToggle}
             showTitle={false}
             showViewAll={false}
@@ -94,7 +140,7 @@ const BestSellers = ({ products = [], title = "Productos más vendidos", descrip
 
         {/* View More Link */}
         <div className="best-sellers-footer">
-          <a href="/productos/mas-vendidos" className="view-more-link">
+          <a href="/catalogo" className="view-more-link">
             Ver Más
             <img 
               src={getHeroIconPath('Chevron Right.svg')} 

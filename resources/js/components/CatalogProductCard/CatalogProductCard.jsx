@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import FavoriteButton from '../FavoriteButton/FavoriteButton';
+import { formatPrice } from '../../utils/formatters';
 import './CatalogProductCard.css';
 import { getIconPath } from '../../utils/assetPaths';
 
@@ -86,7 +87,7 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
         </Link>
         
         {/* Price */}
-        <div className="catalog-product-price">${price}</div>
+        <div className="catalog-product-price">{formatPrice(price)}</div>
         
         {/* Color selector */}
         {colors.length > 0 && (

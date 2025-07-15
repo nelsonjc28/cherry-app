@@ -1,162 +1,247 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { getProductsByCategory } from '../api/cherryApi';
-import ProductGrid from '../components/ProductGrid/ProductGrid';
+import { Helmet } from 'react-helmet-async';
+import { Link } from 'react-router-dom';
+import ProductCard from '../components/ProductCard/ProductCard';
+import CherryButton from '../components/CherryButton/CherryButton';
+import { getIconPath } from '../utils/assetPaths';
+import { getAllProducts, mapApiProductToAppProduct } from '../api/cherryApi';
 import './DestacadosPage.css';
 
 const DestacadosPage = () => {
-  const { type } = useParams();
-  const [products, setProducts] = useState([]);
+  const [featuredProducts, setFeaturedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [totalResults, setTotalResults] = useState(0);
+  const [selectedFilter, setSelectedFilter] = useState('all');
 
-  // Obtener el tipo de productos destacados desde la URL
-  const productType = type || 'accesorios-populares';
+  const filters = [
+    { id: 'all', name: 'Todos los destacados', icon: 'Award.svg' },
+    { id: 'new', name: 'Novedades', icon: 'Bell.svg' },
+    { id: 'popular', name: 'Más populares', icon: 'Bullhorn.svg' },
+    { id: 'trending', name: 'Tendencias', icon: 'Shopping Cart.svg' }
+  ];
 
   useEffect(() => {
-    const fetchFeaturedProducts = async () => {
+    const loadFeaturedProducts = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        setError(null);
+        const allProducts = await getAllProducts();
+        const mappedProducts = allProducts.map(mapApiProductToAppProduct);
         
-        // Mapear tipos a categorías específicas para productos destacados
-        const categoryMap = {
-          'accesorios-populares': 'accesorios',
-          'maquillaje-favorito': 'maquillaje',
-          'mas-buscado': 'vestidos',
-          'por-estilo': 'blusas',
-          'por-temporada': 'pantalones',
-          'por-ocasion': 'vestidos',
-          'descuentos': 'blusas',
-          'packs': 'accesorios'
-        };
-
-        const category = categoryMap[productType] || 'vestidos';
-        const response = await getProductsByCategory(category);
+        // Filtrar productos destacados (nuevos, populares, etc.)
+        const featured = mappedProducts.filter(product => 
+          product.isNew || product.isPromo || product.rating >= 4
+        );
         
-        if (response && response.length > 0) {
-          setProducts(response);
-          setTotalResults(response.length);
-        } else {
-          setError('No se pudieron cargar los productos destacados');
-        }
-      } catch (err) {
-        setError('Error al cargar los productos destacados');
-        console.error('Error fetching featured products:', err);
+        setFeaturedProducts(featured);
+      } catch (error) {
+        console.error('Error loading featured products:', error);
+        setFeaturedProducts([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchFeaturedProducts();
-  }, [productType]);
+    loadFeaturedProducts();
+  }, []);
 
-  const getPageTitle = () => {
-    const titles = {
-      'accesorios-populares': 'Accesorios Populares',
-      'maquillaje-favorito': 'Maquillaje Favorito',
-      'mas-buscado': 'Lo Más Buscado',
-      'por-estilo': 'Por Estilo',
-      'por-temporada': 'Por Temporada',
-      'por-ocasion': 'Por Ocasión',
-      'descuentos': 'Productos con Descuento',
-      'packs': 'Packs Especiales'
-    };
-    return titles[productType] || 'Productos Destacados';
+  const getFilteredProducts = () => {
+    if (selectedFilter === 'all') {
+      return featuredProducts;
+    }
+
+    return featuredProducts.filter(product => {
+      switch (selectedFilter) {
+        case 'new':
+          return product.isNew;
+        case 'popular':
+          return product.rating >= 4;
+        case 'trending':
+          return product.isPromo || product.discount > 0;
+        default:
+          return true;
+      }
+    });
   };
 
-  const getPageDescription = () => {
-    const descriptions = {
-      'accesorios-populares': 'Los accesorios más populares y solicitados por nuestras clientes.',
-      'maquillaje-favorito': 'Los productos de maquillaje favoritos de nuestras clientes.',
-      'mas-buscado': 'Los productos más buscados y populares de nuestra tienda.',
-      'por-estilo': 'Productos organizados por estilo para facilitar tu elección.',
-      'por-temporada': 'Productos perfectos para cada temporada del año.',
-      'por-ocasion': 'Productos ideales para diferentes ocasiones y eventos.',
-      'descuentos': 'Productos con descuentos especiales y ofertas únicas.',
-      'packs': 'Packs especiales con productos complementarios.'
-    };
-    return descriptions[productType] || 'Descubre nuestros productos más destacados y populares.';
+  const handleFilterClick = (filterId) => {
+    setSelectedFilter(filterId);
   };
+
+  const handleFavoriteToggle = (productId) => {
+    };
+
+  const filteredProducts = getFilteredProducts();
 
   if (loading) {
     return (
-      <div className="destacados-page">
-        <div className="container">
-          <div className="loading-container">
-            <svg className="loading-spinner-svg" width="40" height="40" viewBox="0 0 40 40">
-              <circle
-                cx="20"
-                cy="20"
-                r="18"
-                fill="none"
-                stroke="#f3f3f3"
-                strokeWidth="4"
-              />
-              <circle
-                cx="20"
-                cy="20"
-                r="18"
-                fill="none"
-                stroke="var(--color-primary)"
-                strokeWidth="4"
-                strokeDasharray="113"
-                strokeDashoffset="113"
-                strokeLinecap="round"
-                className="spinner-circle"
-              />
-            </svg>
-            <p>Cargando productos destacados...</p>
+      <>
+        <Helmet>
+          <title>Destacados - Cherry Central</title>
+        </Helmet>
+        
+        <main className="destacados-page">
+          <div className="container">
+            <div className="destacados-loading">
+              <div className="loading-spinner"></div>
+              <p>Cargando productos destacados...</p>
+            </div>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="destacados-page">
-        <div className="container">
-          <div className="error-container">
-            <h2>Error</h2>
-            <p>{error}</p>
-            <button onClick={() => window.location.reload()}>Intentar de nuevo</button>
-          </div>
-        </div>
-      </div>
+        </main>
+      </>
     );
   }
 
   return (
-    <div className="destacados-page">
-      <div className="container">
-        {/* Header Section */}
-        <div className="destacados-page__header">
-          <div className="destacados-page__title-section">
-            <h1 className="destacados-page__title">{getPageTitle()}</h1>
-            <p className="destacados-page__description">{getPageDescription()}</p>
-            <div className="destacados-page__results">
-              <span className="destacados-page__results-count">
-                {totalResults} productos encontrados
-              </span>
+    <>
+      <Helmet>
+        <title>Destacados - Cherry Central</title>
+        <meta name="description" content="Descubre los productos más destacados de Cherry Central. Novedades, tendencias y los más populares." />
+      </Helmet>
+
+      <main className="destacados-page">
+        <div className="container">
+          {/* Header */}
+          <div className="destacados-header">
+            <h1>Productos Destacados</h1>
+            <p>Descubre las mejores selecciones de moda femenina</p>
+          </div>
+
+          {/* Banner destacado */}
+          <div className="destacados-banner">
+            <div className="banner-content">
+              <h2>Selección Especial</h2>
+              <p>Los productos más populares y novedades de la temporada</p>
+              <div className="banner-stats">
+                <div className="stat-item">
+                  <span className="stat-number">{featuredProducts.length}</span>
+                  <span className="stat-label">Productos destacados</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-number">4.8</span>
+                  <span className="stat-label">Calificación promedio</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-number">1000+</span>
+                  <span className="stat-label">Clientes satisfechos</span>
+                </div>
+              </div>
+            </div>
+            <div className="banner-image">
+              <img src={getIconPath('Award.svg')} alt="Productos destacados" />
+            </div>
+          </div>
+
+          {/* Filtros */}
+          <div className="destacados-filtros">
+            <div className="filtros-grid">
+              {filters.map((filter) => (
+                <button
+                  key={filter.id}
+                  className={`filtro-btn ${selectedFilter === filter.id ? 'active' : ''}`}
+                  onClick={() => handleFilterClick(filter.id)}
+                >
+                  <div className="filtro-icon">
+                    <img src={getIconPath(filter.icon)} alt={filter.name} />
+                  </div>
+                  <span>{filter.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Productos destacados */}
+          <div className="destacados-content">
+            <div className="destacados-header-section">
+              <h2>
+                {filters.find(f => f.id === selectedFilter)?.name}
+              </h2>
+              <p>{filteredProducts.length} productos encontrados</p>
+            </div>
+
+            {filteredProducts.length === 0 ? (
+              <div className="destacados-empty">
+                <div className="empty-icon">
+                  <img src={getIconPath('Award.svg')} alt="Sin destacados" />
+                </div>
+                <h3>No hay productos destacados</h3>
+                <p>
+                  {selectedFilter === 'all' 
+                    ? 'No hay productos destacados en este momento'
+                    : `No hay productos en la categoría "${filters.find(f => f.id === selectedFilter)?.name}"`
+                  }
+                </p>
+                <Link to="/catalogo">
+                  <CherryButton variant="outline" size="medium">
+                    Ver catálogo completo
+                  </CherryButton>
+                </Link>
+              </div>
+            ) : (
+              <div className="destacados-products-grid">
+                {filteredProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onFavoriteToggle={handleFavoriteToggle}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Sección de información */}
+          <div className="destacados-info">
+            <div className="info-section">
+              <h3>¿Por qué estos productos son destacados?</h3>
+              <div className="info-grid">
+                <div className="info-item">
+                  <div className="info-icon">
+                    <img src={getIconPath('Bell.svg')} alt="Novedades" />
+                  </div>
+                  <h4>Novedades</h4>
+                  <p>Productos recién llegados y las últimas tendencias</p>
+                </div>
+                
+                <div className="info-item">
+                  <div className="info-icon">
+                    <img src={getIconPath('Award.svg')} alt="Calidad" />
+                  </div>
+                  <h4>Alta calidad</h4>
+                  <p>Productos con las mejores calificaciones de nuestros clientes</p>
+                </div>
+                
+                <div className="info-item">
+                  <div className="info-icon">
+                    <img src={getIconPath('Bullhorn.svg')} alt="Popularidad" />
+                  </div>
+                  <h4>Más populares</h4>
+                  <p>Los productos más vendidos y solicitados</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA Section */}
+          <div className="destacados-cta">
+            <div className="cta-content">
+              <h2>¿Quieres ver más productos?</h2>
+              <p>Explora nuestro catálogo completo para encontrar todo lo que buscas</p>
+              <div className="cta-actions">
+                <Link to="/catalogo">
+                  <CherryButton variant="red" size="large">
+                    Ver catálogo completo
+                  </CherryButton>
+                </Link>
+                <Link to="/categorias">
+                  <CherryButton variant="outline" size="large">
+                    Explorar categorías
+                  </CherryButton>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
-
-        {/* Products Grid */}
-        {products.length > 0 ? (
-          <div className="destacados-page__content">
-            <ProductGrid products={products} />
-          </div>
-        ) : (
-          <div className="destacados-page__empty">
-            <h3>No se encontraron productos destacados</h3>
-            <p>Pronto tendremos productos destacados disponibles.</p>
-          </div>
-        )}
-      </div>
-    </div>
+      </main>
+    </>
   );
 };
 

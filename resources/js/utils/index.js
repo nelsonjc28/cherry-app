@@ -1,7 +1,3 @@
-import * as formatters from './formatters';
-import * as validators from './validators';
-
-export {
-  formatters,
-  validators
-}; 
+export * from './formatters';
+export * from './validators';
+export * from './assetPaths'; 

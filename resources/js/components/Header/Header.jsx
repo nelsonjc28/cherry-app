@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getIconPath, getImagePath } from '../../utils/assetPaths';
+import { getImagePath, getIconPath } from '../../utils/assetPaths';
+import { formatPrice } from '../../utils/formatters';
 import useUserStore from '../../store/userStore';
 import useCartStore from '../../store/cartStore';
 import CartModal from '../CartModal/CartModal';
@@ -196,7 +197,41 @@ const Header = () => {
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchTerm.trim()) {
-      navigate(`/buscar?q=${encodeURIComponent(searchTerm.trim())}`);
+      // Parse search term for color and DTU filters
+      const searchParts = searchTerm.trim().split(' ');
+      const colorFilters = [];
+      const dtuFilters = [];
+      const generalTerms = [];
+      
+      searchParts.forEach(term => {
+        const lowerTerm = term.toLowerCase();
+        // Check if it's a color (common color names)
+        if (['rojo', 'azul', 'verde', 'amarillo', 'negro', 'blanco', 'rosa', 'morado', 'naranja', 'gris', 'beige', 'cafe', 'marron'].includes(lowerTerm)) {
+          colorFilters.push(term);
+        }
+        // Check if it's a DTU (usually alphanumeric codes)
+        else if (/^[A-Z0-9]{3,}$/.test(term.toUpperCase())) {
+          dtuFilters.push(term);
+        }
+        // Otherwise it's a general search term
+        else {
+          generalTerms.push(term);
+        }
+      });
+      
+      // Build search query with filters
+      const searchParams = new URLSearchParams();
+      if (generalTerms.length > 0) {
+        searchParams.set('q', generalTerms.join(' '));
+      }
+      if (colorFilters.length > 0) {
+        searchParams.set('color', colorFilters.join(','));
+      }
+      if (dtuFilters.length > 0) {
+        searchParams.set('dtu', dtuFilters.join(','));
+      }
+      
+      navigate(`/buscar?${searchParams.toString()}`);
       setSearchTerm('');
     }
   };
@@ -211,6 +246,22 @@ const Header = () => {
     }
   };
 
+  // Cargar usuario al montar si hay token
+  useEffect(() => { 
+    if (!user && localStorage.getItem('token')) fetchUser(); 
+  }, [user, fetchUser]);
+
+  // Cerrar menú al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Adapt the data for CartItemCard
   const cartItemCards = cartItems.map((item) => ({
     id: item.id,
@@ -219,8 +270,8 @@ const Header = () => {
     title: item.name,
     isDiscount: true, // Adjust if there is discount logic
     quantity: item.quantity,
-    priceWithoutDiscount: (item.price * item.quantity).toFixed(2),
-    priceWithDiscount: (item.price * item.quantity).toFixed(2) // Adjust if there is a discount
+    priceWithoutDiscount: formatPrice(item.price * item.quantity),
+    priceWithDiscount: formatPrice(item.price * item.quantity) // Adjust if there is a discount
   }));
 
   // Component for a mobile menu item
@@ -231,7 +282,7 @@ const Header = () => {
       toggleSubMenu(menuKey);
       if (menuKey === 'catalogos') {
         setMobileMenuOpen(false);
-        navigate('/catalogos');
+        navigate('/catalogo');
       }
     };
     return (
@@ -273,20 +324,6 @@ const Header = () => {
     );
   };
 
-  // Cargar usuario al montar si hay token
-  useEffect(() => { if (!user && localStorage.getItem('token')) fetchUser(); }, [user, fetchUser]);
-
-  // Cerrar menú al hacer clic fuera
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
-        setUserMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   return (
     <header className="site-header">
       {/* Top Affiliate Bar */}
@@ -308,47 +345,93 @@ const Header = () => {
           </Link>
 
           {/* Search Bar */}
-          <form className="search-container" onSubmit={handleSearch}>
+          <div className="search-container">
             <input 
               type="text" 
               placeholder="Buscar producto" 
-              className="search-input"
+              className="search-input" 
               value={searchTerm}
               onChange={handleSearchInputChange}
               onKeyPress={handleSearchKeyPress}
             />
-            <button type="submit" className="search-button">
+            <button className="search-button" onClick={handleSearch}>
               <img src={getIconPath('Search.svg')} alt="Buscar" />
             </button>
-          </form>
+          </div>
 
           {/* User Actions */}
           <div className="user-actions">
-            {!user ? (
-              <Link to="/login" className="user-action">
-                <img src={getIconPath('User.svg')} alt="Usuario" />
-                <span>Iniciar sesión</span>
-              </Link>
-            ) : (
-              <div className="user-menu-wrapper" ref={userMenuRef}>
-                <button className="user-action user-menu-btn" onClick={() => setUserMenuOpen(v => !v)}>
-                  <img src={getIconPath('User.svg')} alt="Usuario" />
-                  <span>{user.first_name}</span>
+            {user ? (
+              <div className="user-menu" ref={userMenuRef}>
+                <button className="user-action user-menu-btn" onClick={() => setUserMenuOpen(!userMenuOpen)}>
+                  <img src={user.image || getIconPath('User.svg')} alt="Usuario" />
+                  <span className="user-name">{user.first_name}</span>
                   <img src={getIconPath('Chevron Down.svg')} alt="Menú" className="dropdown-icon" />
                 </button>
                 {userMenuOpen && (
-                  <div className="user-dropdown-menu">
-                    <button className="user-dropdown-item" onClick={logout}>Cerrar sesión</button>
+                  <div className="user-dropdown">
+                    <div className="user-dropdown-header">
+                      <div className="user-info">
+                        <img src={user.image || getIconPath('User.svg')} alt="Usuario" className="user-avatar" />
+                        <div className="user-details">
+                          <span className="user-full-name">{user.first_name} {user.last_name}</span>
+                          <span className="user-email">{user.email}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="user-dropdown-divider"></div>
+                    {/* <Link to="/perfil" className="user-dropdown-item">
+                      <img src={getIconPath('User.svg')} alt="Perfil" />
+                      Mi Perfil
+                    </Link>
+                    <Link to="/ordenes" className="user-dropdown-item">
+                      <img src={getIconPath('Package.svg')} alt="Órdenes" />
+                      Mis Órdenes
+                    </Link>
+                    <Link to="/direcciones" className="user-dropdown-item">
+                      <img src={getIconPath('Map Pin.svg')} alt="Direcciones" />
+                      Mis Direcciones
+                    </Link>
+                    <Link to="/metodos-pago" className="user-dropdown-item">
+                      <img src={getIconPath('Credit Card.svg')} alt="Métodos de Pago" />
+                      Métodos de Pago
+                    </Link>
+                    <Link to="/notificaciones" className="user-dropdown-item">
+                      <img src={getIconPath('Bell.svg')} alt="Notificaciones" />
+                      Notificaciones
+                    </Link>
+                    <Link to="/carrito" className="user-dropdown-item">
+                      <img src={getIconPath('Shopping Cart.svg')} alt="Carrito" />
+                      Mi Carrito
+                    </Link>
+                    <div className="user-dropdown-divider"></div> */}
+                    <button className="user-dropdown-item logout-item" onClick={logout}>
+                      <img src={getIconPath('Log Out.svg')} alt="Cerrar Sesión" />
+                      Cerrar Sesión
+                    </button>
                   </div>
                 )}
               </div>
+            ) : (
+              <>
+                <Link to="/login" className="user-action">
+                  <img src={getIconPath('User.svg')} alt="Usuario" />
+                  <span>Iniciar sesión</span>
+                </Link>
+                <Link to="/registro" className="user-action">
+                  <img src={getIconPath('User Plus.svg')} alt="Registrarse" />
+                  <span>Registrarse</span>
+                </Link>
+              </>
             )}
+            
             <Link to="/notificaciones" className="user-action icon-only">
               <div className="icon-badge">
                 <img src={getIconPath('Bell.svg')} alt="Notificaciones" />
                 <span className="badge notification-badge">1</span>
               </div>
             </Link>
+            
             <button type="button" className="user-action icon-only" onClick={() => setCartModalOpen(true)}>
               <div className="icon-badge">
                 <img src={getIconPath('Shopping Cart.svg')} alt="Carrito" />
@@ -387,7 +470,7 @@ const Header = () => {
             </li>
             <li className="nav-item nav-divider"></li>
             <li className={`nav-item ${activeMenu === 'catalogos' ? 'active' : ''}`} onMouseEnter={() => handleMouseEnter('catalogos')}>
-              <Link to="/catalogos" className="nav-link">
+              <Link to="/catalogo" className="nav-link">
                 <img src={getIconPath('File Alt.svg')} alt="Catálogos" />
                 Catálogos
                 <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
@@ -481,19 +564,17 @@ const Header = () => {
             </div>
             
             <div className="mobile-search">
-              <form onSubmit={handleSearch}>
-                <input 
-                  type="text" 
-                  placeholder="Buscar producto" 
-                  className="mobile-search-input"
-                  value={searchTerm}
-                  onChange={handleSearchInputChange}
-                  onKeyPress={handleSearchKeyPress}
-                />
-                <button type="submit" className="mobile-search-button">
-                  <img src={getIconPath('Search.svg')} alt="Buscar" />
-                </button>
-              </form>
+              <input 
+                type="text" 
+                placeholder="Buscar producto" 
+                className="mobile-search-input" 
+                value={searchTerm}
+                onChange={handleSearchInputChange}
+                onKeyPress={handleSearchKeyPress}
+              />
+              <button className="mobile-search-button" onClick={handleSearch}>
+                <img src={getIconPath('Search.svg')} alt="Buscar" />
+              </button>
             </div>
 
             <ul className="mobile-menu-list">
@@ -537,16 +618,57 @@ const Header = () => {
             </ul>
             
             <div className="mobile-menu-footer">
-              {!user ? (
-                <Link to="/login" className="mobile-menu-account" onClick={() => setMobileMenuOpen(false)}>
-                  <img src={getIconPath('User.svg')} alt="Usuario" />
-                  <span>Iniciar sesión</span>
-                </Link>
-              ) : (
-                <div className="mobile-user-menu">
-                  <span className="mobile-user-name">{user.first_name}</span>
-                  <button className="mobile-logout-btn" onClick={logout}>Cerrar sesión</button>
+              {user ? (
+                <div className="user-menu" ref={userMenuRef}>
+                  <div className="mobile-user-info">
+                    <img src={user.image || getIconPath('User.svg')} alt="Usuario" className="mobile-user-avatar" />
+                    <div className="mobile-user-details">
+                      <span className="mobile-user-name">{user.first_name} {user.last_name}</span>
+                      <span className="mobile-user-email">{user.email}</span>
+                    </div>
+                  </div>
+                  <div className="mobile-user-actions">
+                    {/* <Link to="/perfil" className="mobile-menu-account" onClick={() => setMobileMenuOpen(false)}>
+                      <img src={getIconPath('User.svg')} alt="Perfil" />
+                      <span>Mi Perfil</span>
+                    </Link>
+                    <Link to="/ordenes" className="mobile-menu-account" onClick={() => setMobileMenuOpen(false)}>
+                      <img src={getIconPath('Package.svg')} alt="Órdenes" />
+                      <span>Mis Órdenes</span>
+                    </Link>
+                    <Link to="/direcciones" className="mobile-menu-account" onClick={() => setMobileMenuOpen(false)}>
+                      <img src={getIconPath('Map Pin.svg')} alt="Direcciones" />
+                      <span>Mis Direcciones</span>
+                    </Link>
+                    <Link to="/metodos-pago" className="mobile-menu-account" onClick={() => setMobileMenuOpen(false)}>
+                      <img src={getIconPath('Credit Card.svg')} alt="Métodos de Pago" />
+                      <span>Métodos de Pago</span>
+                    </Link>
+                    <Link to="/notificaciones" className="mobile-menu-account" onClick={() => setMobileMenuOpen(false)}>
+                      <img src={getIconPath('Bell.svg')} alt="Notificaciones" />
+                      <span>Notificaciones</span>
+                    </Link>
+                    <Link to="/carrito" className="mobile-menu-account" onClick={() => setMobileMenuOpen(false)}>
+                      <img src={getIconPath('Shopping Cart.svg')} alt="Carrito" />
+                      <span>Mi Carrito</span>
+                    </Link> */}
+                    <button className="mobile-menu-account mobile-logout-btn" onClick={() => { logout(); setMobileMenuOpen(false); }}>
+                      <img src={getIconPath('Log Out.svg')} alt="Cerrar Sesión" />
+                      <span>Cerrar Sesión</span>
+                    </button>
+                  </div>
                 </div>
+              ) : (
+                <>
+                  <Link to="/login" className="mobile-menu-account" onClick={() => setMobileMenuOpen(false)}>
+                    <img src={getIconPath('User.svg')} alt="Usuario" />
+                    <span>Iniciar sesión</span>
+                  </Link>
+                  <Link to="/registro" className="mobile-menu-account" onClick={() => setMobileMenuOpen(false)}>
+                    <img src={getIconPath('User Plus.svg')} alt="Registrarse" />
+                    <span>Registrarse</span>
+                  </Link>
+                </>
               )}
             </div>
           </div>
@@ -556,9 +678,9 @@ const Header = () => {
         open={cartModalOpen}
         onClose={() => setCartModalOpen(false)}
         cartItems={cartItemCards}
-        subtotal={totalPrice.toFixed(2)}
-        onViewCart={() => { setCartModalOpen(false); window.location.href = '/carrito'; }}
-        onCheckout={() => { setCartModalOpen(false); window.location.href = '/checkout'; }}
+        subtotal={formatPrice(totalPrice)}
+        onViewCart={() => { setCartModalOpen(false); navigate('/carrito-detalle'); }}
+        onCheckout={() => { setCartModalOpen(false); navigate('/compra-exitosa'); }}
       />
     </header>
   );

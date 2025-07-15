@@ -123,4 +123,18 @@
 
 .featured-products--gray-bg {
   background-color: #f9f9f9;
+}
+
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  text-align: center;
+}
+
+.loading-spinner p {
+  font-size: 18px;
+  color: #7B7B7B;
+  margin: 0;
 } 

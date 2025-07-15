@@ -1,17 +1,22 @@
-import { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getImagePath, getIconPath } from '../../utils/assetPaths';
-import './Header.css';
-import { CartModal } from '../';
+import { getIconPath, getImagePath } from '../../utils/assetPaths';
+import useUserStore from '../../store/userStore';
 import useCartStore from '../../store/cartStore';
+import CartModal from '../CartModal/CartModal';
+import './Header.css';
 
 const Header = () => {
+  const navigate = useNavigate();
+  const { user, fetchUser, logout } = useUserStore();
+  const { items: cartItems, totalItems, totalPrice } = useCartStore();
   const [activeMenu, setActiveMenu] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openMobileSubMenu, setOpenMobileSubMenu] = useState(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [cartModalOpen, setCartModalOpen] = useState(false);
-  const { items: cartItems, totalItems, totalPrice } = useCartStore();
-  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
+  const userMenuRef = useRef(null);
 
   // Submenu data for each category
   const menuData = {
@@ -187,6 +192,25 @@ const Header = () => {
     setOpenMobileSubMenu(openMobileSubMenu === key ? null : key);
   };
 
+  // Search functionality
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      navigate(`/buscar?q=${encodeURIComponent(searchTerm.trim())}`);
+      setSearchTerm('');
+    }
+  };
+
+  const handleSearchInputChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const handleSearchKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch(e);
+    }
+  };
+
   // Adapt the data for CartItemCard
   const cartItemCards = cartItems.map((item) => ({
     id: item.id,
@@ -207,7 +231,7 @@ const Header = () => {
       toggleSubMenu(menuKey);
       if (menuKey === 'catalogos') {
         setMobileMenuOpen(false);
-        navigate('/catalogo');
+        navigate('/catalogos');
       }
     };
     return (
@@ -249,15 +273,31 @@ const Header = () => {
     );
   };
 
+  // Cargar usuario al montar si hay token
+  useEffect(() => { if (!user && localStorage.getItem('token')) fetchUser(); }, [user, fetchUser]);
+
+  // Cerrar menú al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <header className="site-header">
       {/* Top Affiliate Bar */}
-      <div className="affiliate-bar">
-        <div className="affiliate-container">
-          <p className="affiliate-text">¡Afiliate ahora mismo y comienza tu propio negocio!</p>
-          <Link to="/afiliate" className="affiliate-button">Afiliate aquí</Link>
+      {!user && (
+        <div className="affiliate-bar">
+          <div className="affiliate-container">
+            <p className="affiliate-text">¡Afiliate ahora mismo y comienza tu propio negocio!</p>
+            <Link to="/afiliate" className="affiliate-button">Afiliate aquí</Link>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Main Header */}
       <div className="main-header">
@@ -268,31 +308,47 @@ const Header = () => {
           </Link>
 
           {/* Search Bar */}
-          <div className="search-container">
+          <form className="search-container" onSubmit={handleSearch}>
             <input 
               type="text" 
               placeholder="Buscar producto" 
-              className="search-input" 
+              className="search-input"
+              value={searchTerm}
+              onChange={handleSearchInputChange}
+              onKeyPress={handleSearchKeyPress}
             />
-            <button className="search-button">
+            <button type="submit" className="search-button">
               <img src={getIconPath('Search.svg')} alt="Buscar" />
             </button>
-          </div>
+          </form>
 
           {/* User Actions */}
           <div className="user-actions">
-            <Link to="/login" className="user-action">
-              <img src={getIconPath('User.svg')} alt="Usuario" />
-              <span>Iniciar sesión</span>
-            </Link>
-            
+            {!user ? (
+              <Link to="/login" className="user-action">
+                <img src={getIconPath('User.svg')} alt="Usuario" />
+                <span>Iniciar sesión</span>
+              </Link>
+            ) : (
+              <div className="user-menu-wrapper" ref={userMenuRef}>
+                <button className="user-action user-menu-btn" onClick={() => setUserMenuOpen(v => !v)}>
+                  <img src={getIconPath('User.svg')} alt="Usuario" />
+                  <span>{user.first_name}</span>
+                  <img src={getIconPath('Chevron Down.svg')} alt="Menú" className="dropdown-icon" />
+                </button>
+                {userMenuOpen && (
+                  <div className="user-dropdown-menu">
+                    <button className="user-dropdown-item" onClick={logout}>Cerrar sesión</button>
+                  </div>
+                )}
+              </div>
+            )}
             <Link to="/notificaciones" className="user-action icon-only">
               <div className="icon-badge">
                 <img src={getIconPath('Bell.svg')} alt="Notificaciones" />
                 <span className="badge notification-badge">1</span>
               </div>
             </Link>
-            
             <button type="button" className="user-action icon-only" onClick={() => setCartModalOpen(true)}>
               <div className="icon-badge">
                 <img src={getIconPath('Shopping Cart.svg')} alt="Carrito" />
@@ -331,7 +387,7 @@ const Header = () => {
             </li>
             <li className="nav-item nav-divider"></li>
             <li className={`nav-item ${activeMenu === 'catalogos' ? 'active' : ''}`} onMouseEnter={() => handleMouseEnter('catalogos')}>
-              <Link to="/catalogo" className="nav-link">
+              <Link to="/catalogos" className="nav-link">
                 <img src={getIconPath('File Alt.svg')} alt="Catálogos" />
                 Catálogos
                 <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
@@ -425,14 +481,19 @@ const Header = () => {
             </div>
             
             <div className="mobile-search">
-              <input 
-                type="text" 
-                placeholder="Buscar producto" 
-                className="mobile-search-input" 
-              />
-              <button className="mobile-search-button">
-                <img src={getIconPath('Search.svg')} alt="Buscar" />
-              </button>
+              <form onSubmit={handleSearch}>
+                <input 
+                  type="text" 
+                  placeholder="Buscar producto" 
+                  className="mobile-search-input"
+                  value={searchTerm}
+                  onChange={handleSearchInputChange}
+                  onKeyPress={handleSearchKeyPress}
+                />
+                <button type="submit" className="mobile-search-button">
+                  <img src={getIconPath('Search.svg')} alt="Buscar" />
+                </button>
+              </form>
             </div>
 
             <ul className="mobile-menu-list">
@@ -476,10 +537,17 @@ const Header = () => {
             </ul>
             
             <div className="mobile-menu-footer">
-              <Link to="/login" className="mobile-menu-account" onClick={() => setMobileMenuOpen(false)}>
-                <img src={getIconPath('User.svg')} alt="Usuario" />
-                <span>Iniciar sesión</span>
-              </Link>
+              {!user ? (
+                <Link to="/login" className="mobile-menu-account" onClick={() => setMobileMenuOpen(false)}>
+                  <img src={getIconPath('User.svg')} alt="Usuario" />
+                  <span>Iniciar sesión</span>
+                </Link>
+              ) : (
+                <div className="mobile-user-menu">
+                  <span className="mobile-user-name">{user.first_name}</span>
+                  <button className="mobile-logout-btn" onClick={logout}>Cerrar sesión</button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -489,8 +557,8 @@ const Header = () => {
         onClose={() => setCartModalOpen(false)}
         cartItems={cartItemCards}
         subtotal={totalPrice.toFixed(2)}
-        onViewCart={() => { setCartModalOpen(false); navigate('/carrito-detalle'); }}
-        onCheckout={() => { setCartModalOpen(false); navigate('/compra-exitosa'); }}
+        onViewCart={() => { setCartModalOpen(false); window.location.href = '/carrito'; }}
+        onCheckout={() => { setCartModalOpen(false); window.location.href = '/checkout'; }}
       />
     </header>
   );

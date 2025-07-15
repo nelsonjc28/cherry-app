@@ -3,23 +3,8 @@ import CartItemCard from '../CartItemCard';
 import CherryButton from '../CherryButton';
 import CustomButton from '../CustomButton';
 import './CartModal.css';
-import { getIconPath } from '../../utils/assetPaths';
-import { useEffect } from 'react';
 
-const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout }) => {   
-  
-  useEffect(() => {
-    if (open) {
-      // This blocks the movement of the body
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [open]);
-
+const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout }) => {
   if (!open) return null;
 
   return (
@@ -51,16 +36,15 @@ const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout 
               variant="outlined"
               size="large"
               onClick={onViewCart}
-              iconLeft={<img className="cart-modal__cart-icon" src={getIconPath('Shopping Cart.svg')} alt="Cart" />}
               className="cart-modal__action-btn"
             >
-              Ver detalle del carrito
+              <span role="img" aria-label="carrito">🛒</span> Ver detalle del carrito
             </CustomButton>
             <CherryButton
               variant="red"
               size="large"
               onClick={onCheckout}
-              className="cart-modal__action-btn order-letter-btn"
+              className="cart-modal__action-btn"
             >
               Generar pedido
             </CherryButton>

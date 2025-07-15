@@ -1,29 +1,4 @@
-import {
-  useFeaturedProducts,
-  useProductsByCategory,
-  useProductDetails,
-  useSearchProducts,
-  useProductReviews
-} from './useProducts';
-
-import {
-  useAllCategories,
-  useCategoryDetails,
-  useFeaturedCategories,
-  useSubcategories
-} from './useCategories';
-
-export {
-  // Product hooks
-  useFeaturedProducts,
-  useProductsByCategory,
-  useProductDetails,
-  useSearchProducts,
-  useProductReviews,
-  
-  // Category hooks
-  useAllCategories,
-  useCategoryDetails,
-  useFeaturedCategories,
-  useSubcategories
-}; 
+export * from './useProducts';
+export * from './useCategories';
+export { default as useHorizontalDragScroll } from './useHorizontalDragScroll';
+export { default as useIsDesktop } from './useIsDesktop'; 

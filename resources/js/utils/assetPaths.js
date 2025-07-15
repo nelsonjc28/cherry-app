@@ -29,66 +29,156 @@ export const getAssetPath = (path) => {
 };
 
 /**
- * Resolve image path from public/images directory
- * @param {string} imageName - Image filename
- * @returns {string} Complete image URL
- */
-export const getImagePath = (imageName) => {
-  return getAssetPath(`images/${imageName}`);
-};
-
-/**
- * Resolve icon path from public/icons directory
- * @param {string} iconName - Icon filename
- * @returns {string} Complete icon URL
+ * Get the path for an icon from the public/icons directory
+ * @param {string} iconName - Name of the icon file (with or without extension)
+ * @returns {string} - Full path to the icon
  */
 export const getIconPath = (iconName) => {
-  return getAssetPath(`icons/${iconName}`);
+  // Remove .svg extension if already present to avoid double extension
+  const cleanIconName = iconName.replace(/\.svg$/i, '');
+  return `/icons/${cleanIconName}.svg`;
 };
 
 /**
- * Resolve category icon path from public/icons/category directory
- * @param {string} iconName - Category icon filename
- * @returns {string} Complete category icon URL
+ * Get the path for an image from the public/images directory
+ * @param {string} imageName - Name of the image file (with extension)
+ * @returns {string} - Full path to the image
  */
-export const getCategoryIconPath = (iconName) => {
-  return getAssetPath(`icons/category/${iconName}`);
+export const getImagePath = (imageName) => {
+  return `/images/${imageName}`;
 };
 
 /**
- * Resolve hero icon path from public/icons/hero directory
- * @param {string} iconName - Hero icon filename
- * @returns {string} Complete hero icon URL
+ * Get the path for a category icon
+ * @param {string} categoryName - Name of the category
+ * @returns {string} - Full path to the category icon
+ */
+export const getCategoryIconPath = (categoryName) => {
+  const normalizedName = categoryName.toLowerCase().replace(/\s+/g, '-');
+  return `/icons/category/${normalizedName}.svg`;
+};
+
+/**
+ * Get the path for a featured category icon
+ * @param {string} categoryName - Name of the featured category
+ * @returns {string} - Full path to the featured category icon
+ */
+export const getFeaturedCategoryIconPath = (categoryName) => {
+  const normalizedName = categoryName.toLowerCase().replace(/\s+/g, '-');
+  return `/icons/featuredCategories/${normalizedName}.svg`;
+};
+
+/**
+ * Get the path for a hero icon
+ * @param {string} iconName - Name of the hero icon
+ * @returns {string} - Full path to the hero icon
  */
 export const getHeroIconPath = (iconName) => {
-  return getAssetPath(`icons/hero/${iconName}`);
+  return `/icons/hero/${iconName}`;
 };
 
 /**
- * Resolve featured category icon path from public/icons/featuredCategories directory
- * @param {string} iconName - Featured category icon filename
- * @returns {string} Complete featured category icon URL
- */
-export const getFeaturedCategoryIconPath = (iconName) => {
-  return getAssetPath(`icons/featuredCategories/${iconName}`);
-};
-
-/**
- * Resolve hero slider image path from public/images/hero_slider directory
- * @param {string} imageName - Hero slider image filename
- * @returns {string} Complete hero slider image URL
+ * Get the path for a hero slider image
+ * @param {string} imageName - Name of the hero slider image
+ * @returns {string} - Full path to the hero slider image
  */
 export const getHeroSliderImagePath = (imageName) => {
-  return getAssetPath(`images/HeroBanner/${imageName}`);
+  return `/images/HeroBanner/${imageName}`;
 };
 
 /**
- * Resolve featured catalogs image path from public/images/destacados directory
- * @param {string} imageName - Featured catalog image filename
- * @returns {string} Complete featured catalog image URL
+ * Get the path for a featured catalog image
+ * @param {string} imageName - Name of the featured catalog image
+ * @returns {string} - Full path to the featured catalog image
  */
 export const getFeaturedCatalogImagePath = (imageName) => {
-  return getAssetPath(`images/RecentCatalogs/${imageName}`);
+  return `/images/RecentCatalogs/${imageName}`;
+};
+
+/**
+ * Get the path for a product image
+ * @param {string} imageName - Name of the product image
+ * @returns {string} - Full path to the product image
+ */
+export const getProductImagePath = (imageName) => {
+  return `/images/catalogProductImages/${imageName}`;
+};
+
+/**
+ * Get the path for a featured product image
+ * @param {string} imageName - Name of the featured product image
+ * @returns {string} - Full path to the featured product image
+ */
+export const getFeaturedProductImagePath = (imageName) => {
+  return `/images/FeaturedProducts/${imageName}`;
+};
+
+/**
+ * Get the path for a hero banner image
+ * @param {string} imageName - Name of the hero banner image
+ * @returns {string} - Full path to the hero banner image
+ */
+export const getHeroBannerImagePath = (imageName) => {
+  return `/images/HeroBanner/${imageName}`;
+};
+
+/**
+ * Get the path for a recent catalog image
+ * @param {string} imageName - Name of the recent catalog image
+ * @returns {string} - Full path to the recent catalog image
+ */
+export const getRecentCatalogImagePath = (imageName) => {
+  return `/images/RecentCatalogs/${imageName}`;
+};
+
+/**
+ * Get the path for an affiliate section image
+ * @param {string} imageName - Name of the affiliate section image
+ * @returns {string} - Full path to the affiliate section image
+ */
+export const getAffiliateImagePath = (imageName) => {
+  return `/images/AffiliateSection/${imageName}`;
+};
+
+/**
+ * Get the path for the logo
+ * @returns {string} - Full path to the logo
+ */
+export const getLogoPath = () => {
+  return `/images/logo.svg`;
+};
+
+/**
+ * Get the path for a placeholder image
+ * @returns {string} - Full path to the placeholder image
+ */
+export const getPlaceholderImagePath = () => {
+  return `/images/placeholder.jpg`;
+};
+
+/**
+ * Check if an image exists at the given path
+ * @param {string} path - Path to check
+ * @returns {Promise<boolean>} - Whether the image exists
+ */
+export const imageExists = async (path) => {
+  try {
+    const response = await fetch(path, { method: 'HEAD' });
+    return response.ok;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Get a fallback image path if the primary image doesn't exist
+ * @param {string} primaryPath - Primary image path
+ * @param {string} fallbackPath - Fallback image path
+ * @returns {Promise<string>} - Path to use (primary or fallback)
+ */
+export const getImageWithFallback = async (primaryPath, fallbackPath) => {
+  const exists = await imageExists(primaryPath);
+  return exists ? primaryPath : fallbackPath;
 };
 
 /**

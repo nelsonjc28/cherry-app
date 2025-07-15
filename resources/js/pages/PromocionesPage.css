@@ -1,184 +1,269 @@
 .promociones-page {
-  padding: 40px 0;
+  padding: 2rem 0;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   min-height: 100vh;
-  background-color: #fafafa;
 }
 
-.promociones-page .container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
-
-.promociones-page__header {
-  margin-bottom: 40px;
+.promociones-header {
   text-align: center;
+  margin-bottom: 2rem;
 }
 
-.promociones-page__title-section {
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.promociones-page__title {
+.promociones-header h1 {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #333;
-  margin-bottom: 16px;
-  line-height: 1.2;
+  color: var(--color-text-primary);
+  margin-bottom: 0.5rem;
 }
 
-.promociones-page__description {
+.promociones-header p {
   font-size: 1.1rem;
-  color: #666;
-  margin-bottom: 24px;
-  line-height: 1.6;
+  color: var(--color-text-secondary);
 }
 
-.promociones-page__results {
-  margin-top: 20px;
-}
-
-.promociones-page__results-count {
-  font-size: 0.9rem;
-  color: #888;
-  background-color: #f0f0f0;
-  padding: 8px 16px;
-  border-radius: 20px;
-  display: inline-block;
-}
-
-.promociones-page__content {
-  margin-top: 40px;
-}
-
-.promociones-page__empty {
-  text-align: center;
-  padding: 60px 20px;
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.promociones-page__empty h3 {
-  font-size: 1.5rem;
-  color: #333;
-  margin-bottom: 12px;
-}
-
-.promociones-page__empty p {
-  color: #666;
-  font-size: 1rem;
-}
-
-.loading-container {
-  text-align: center;
-  padding: 60px 20px;
+.promociones-banner {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  min-height: 200px;
-}
-
-.loading-spinner-svg {
-  margin: 0 auto 20px;
-  display: block;
-}
-
-.spinner-circle {
-  animation: spinner-dash 1.5s ease-in-out infinite;
-  transform-origin: center;
-}
-
-.loading-container p {
-  margin: 0;
-  color: #666;
-  font-size: 1rem;
-  text-align: center;
-}
-
-@keyframes spinner-dash {
-  0% {
-    stroke-dashoffset: 113;
-    transform: rotate(0deg);
-  }
-  50% {
-    stroke-dashoffset: 28;
-    transform: rotate(180deg);
-  }
-  100% {
-    stroke-dashoffset: 113;
-    transform: rotate(360deg);
-  }
-}
-
-.error-container {
-  text-align: center;
-  padding: 60px 20px;
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.error-container h2 {
-  color: #e74c3c;
-  margin-bottom: 16px;
-}
-
-.error-container p {
-  color: #666;
-  margin-bottom: 24px;
-}
-
-.error-container button {
-  background-color: var(--color-primary);
+  gap: 3rem;
+  margin-bottom: 3rem;
+  padding: 2rem;
+  background: linear-gradient(135deg, var(--color-primary) 0%, #d63384 100%);
   color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 6px;
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.banner-content {
+  flex: 1;
+}
+
+.banner-content h2 {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.banner-content p {
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+  opacity: 0.9;
+}
+
+.banner-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.banner-image {
+  flex: 0 0 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.banner-image img {
+  width: 150px;
+  height: 150px;
+  opacity: 0.8;
+}
+
+.promociones-filtros {
+  margin-bottom: 3rem;
+}
+
+.promociones-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.promo-btn {
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: 1rem;
+  padding: 1.5rem;
   cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
+  text-align: left;
 }
 
-.error-container button:hover {
-  background-color: #d63031;
+.promo-btn:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
-/* Responsive Design */
+.promo-btn.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: white;
+}
+
+.promo-content h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.promo-content p {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  margin-bottom: 0.5rem;
+}
+
+.promo-discount {
+  display: inline-block;
+  background: var(--color-primary);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.promociones-content {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+}
+
+.promociones-header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.promociones-header-section h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.promociones-header-section p {
+  color: var(--color-text-secondary);
+}
+
+.promociones-empty {
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.empty-icon {
+  margin-bottom: 2rem;
+}
+
+.empty-icon img {
+  width: 100px;
+  height: 100px;
+  opacity: 0.6;
+}
+
+.promociones-empty h3 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 1rem;
+}
+
+.promociones-empty p {
+  color: var(--color-text-secondary);
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+}
+
+.promociones-products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.promociones-info {
+  margin-top: 3rem;
+}
+
+.info-section {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+}
+
+.info-section h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+}
+
+.info-item {
+  text-align: center;
+}
+
+.info-icon {
+  margin-bottom: 1rem;
+}
+
+.info-icon img {
+  width: 50px;
+  height: 50px;
+  opacity: 0.8;
+}
+
+.info-item h4 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.info-item p {
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
-  .promociones-page {
-    padding: 20px 0;
+  .promociones-banner {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.5rem;
   }
 
-  .promociones-page__title {
+  .promociones-header h1 {
     font-size: 2rem;
   }
 
-  .promociones-page__description {
-    font-size: 1rem;
+  .banner-content h2 {
+    font-size: 1.5rem;
   }
 
-  .promociones-page__header {
-    margin-bottom: 30px;
+  .banner-actions {
+    justify-content: center;
   }
 
-  .promociones-page__content {
-    margin-top: 30px;
-  }
-}
-
-@media (max-width: 480px) {
-  .promociones-page .container {
-    padding: 0 16px;
+  .promociones-grid {
+    grid-template-columns: 1fr;
   }
 
-  .promociones-page__title {
-    font-size: 1.8rem;
+  .promociones-header-section {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
   }
 
-  .promociones-page__description {
-    font-size: 0.9rem;
+  .info-grid {
+    grid-template-columns: 1fr;
   }
 } 

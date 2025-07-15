@@ -1,70 +1,126 @@
-import apiClient from './config/apiConfig';
+const API_BASE_URL = '/api';
 
-/**
- * Service for managing shopping cart operations
- */
-const cartApi = {
-  /**
-   * Get current user's cart
-   * @returns {Promise} - Promise with cart data
-   */
-  getCart: () => {
-    return apiClient.get('/cart');
+// Cart API functions
+export const cartApi = {
+  // Get cart
+  getCart: async () => {
+    const response = await fetch(`${API_BASE_URL}/cart`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error fetching cart');
+    }
+    
+    return response.json();
   },
 
-  /**
-   * Add product to cart
-   * @param {string} productId - Product identifier
-   * @param {number} quantity - Quantity to add (default: 1)
-   * @returns {Promise} - Promise with updated cart data
-   */
-  addToCart: (productId, quantity = 1) => {
-    return apiClient.post('/cart/items', { productId, quantity });
+  // Add item to cart
+  addToCart: async (productId, quantity = 1) => {
+    const response = await fetch(`${API_BASE_URL}/cart/add`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ productId, quantity })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error adding item to cart');
+    }
+    
+    return response.json();
   },
 
-  /**
-   * Update cart item quantity
-   * @param {string} itemId - Cart item identifier
-   * @param {number} quantity - New quantity
-   * @returns {Promise} - Promise with updated cart data
-   */
-  updateCartItem: (itemId, quantity) => {
-    return apiClient.put(`/cart/items/${itemId}`, { quantity });
+  // Update cart item quantity
+  updateCartItem: async (itemId, quantity) => {
+    const response = await fetch(`${API_BASE_URL}/cart/update`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ itemId, quantity })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error updating cart item');
+    }
+    
+    return response.json();
   },
 
-  /**
-   * Remove item from cart
-   * @param {string} itemId - Cart item identifier
-   * @returns {Promise} - Promise with updated cart data
-   */
-  removeCartItem: (itemId) => {
-    return apiClient.delete(`/cart/items/${itemId}`);
+  // Remove item from cart
+  removeCartItem: async (itemId) => {
+    const response = await fetch(`${API_BASE_URL}/cart/remove`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ itemId })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error removing item from cart');
+    }
+    
+    return response.json();
   },
 
-  /**
-   * Clear all items from cart
-   * @returns {Promise} - Promise with empty cart confirmation
-   */
-  clearCart: () => {
-    return apiClient.delete('/cart/items');
+  // Apply coupon
+  applyCoupon: async (code) => {
+    const response = await fetch(`${API_BASE_URL}/cart/coupon`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ code })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Invalid coupon code');
+    }
+    
+    return response.json();
   },
 
-  /**
-   * Apply coupon code to cart
-   * @param {string} couponCode - Coupon code to apply
-   * @returns {Promise} - Promise with updated cart including discounts
-   */
-  applyCoupon: (couponCode) => {
-    return apiClient.post('/cart/coupon', { couponCode });
+  // Remove coupon
+  removeCoupon: async () => {
+    const response = await fetch(`${API_BASE_URL}/cart/coupon`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error removing coupon');
+    }
+    
+    return response.json();
   },
 
-  /**
-   * Remove coupon from cart
-   * @returns {Promise} - Promise with updated cart without discounts
-   */
-  removeCoupon: () => {
-    return apiClient.delete('/cart/coupon');
+  // Clear cart
+  clearCart: async () => {
+    const response = await fetch(`${API_BASE_URL}/cart/clear`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error clearing cart');
+    }
+    
+    return response.json();
   }
-};
-
-export default cartApi; 
+}; 

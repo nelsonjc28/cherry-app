@@ -1,5 +1,5 @@
 /* Product Page Styles - BEM Methodology */
-.product-page {
+.product-page__container {
   padding: 50px 0;
 }
 
@@ -235,7 +235,6 @@
 
 .product-page__info-stock {
   display: flex;
-  align-items: center;
 }
 
 .product-page__stock-status {
@@ -502,10 +501,6 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .product-page {
-    padding: 0;
-  }
-
   .product-page__container {
     grid-template-columns: 1fr;
     gap: 15px;

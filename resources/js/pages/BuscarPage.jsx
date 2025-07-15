@@ -1,181 +1,225 @@
 import React, { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useSearchParams } from 'react-router-dom';
-import { getAllProducts } from '../api/cherryApi';
-import ProductGrid from '../components/ProductGrid/ProductGrid';
+import ProductCard from '../components/ProductCard/ProductCard';
+import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
+import CherryButton from '../components/CherryButton/CherryButton';
+import { getIconPath } from '../utils/assetPaths';
+import { getProductsByCategory, getAllProducts, mapApiProductToAppProduct } from '../api/cherryApi';
 import './BuscarPage.css';
 
 const BuscarPage = () => {
   const [searchParams] = useSearchParams();
+  const query = searchParams.get('q') || '';
+  
   const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [totalResults, setTotalResults] = useState(0);
+  const [filters, setFilters] = useState({
+    catalog: 'Cherry 2025 - 2026',
+    availability: 'todos',
+    category: 'Todas las categorías',
+    department: 'Todos los departamentos',
+    sector: 'Todos los sectores',
+    sizes: [],
+    colors: [],
+    priceRange: { min: 0, max: 0 },
+    codigo: '',
+    dtu: ''
+  });
 
-  // Obtener el término de búsqueda desde la URL
-  const searchTerm = searchParams.get('q') || '';
-
+  // Cargar productos
   useEffect(() => {
-    const searchProducts = async () => {
+    const loadProducts = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        setError(null);
-        
-        if (!searchTerm.trim()) {
-          setProducts([]);
-          setTotalResults(0);
-          setLoading(false);
-          return;
-        }
-
         const allProducts = await getAllProducts();
-        
-        // Filtrar productos por término de búsqueda
-        const filteredProducts = allProducts.filter(product => {
-          const searchLower = searchTerm.toLowerCase();
-          const productName = product.descripcion?.toLowerCase() || '';
-          const productBrand = product.marca?.toLowerCase() || '';
-          const productCategory = product.linea?.descripcion?.toLowerCase() || '';
-          
-          return productName.includes(searchLower) || 
-                 productBrand.includes(searchLower) || 
-                 productCategory.includes(searchLower);
-        });
-
-        // Mapear productos al formato de la app
-        const mappedProducts = filteredProducts.map(product => {
-          let image = product.imagen || '/images/placeholder.jpg';
-          if (image && !image.startsWith('http')) {
-            image = 'https://cherryapi.estrategiadmgs.com.mx/' + image.replace(/^\//, '');
-          }
-          
-          const originalPrice = product.precio1 || 0;
-          const discount = product.desc_promo || 0;
-          const finalPrice = discount > 0 ? originalPrice * (1 - discount / 100) : originalPrice;
-          
-          const colors = [...new Set(product.detalles?.map(d => d.nombreColor) || [])];
-          
-          return {
-            id: product.id_articulo,
-            title: product.descripcion,
-            image: image,
-            price: finalPrice,
-            originalPrice: discount > 0 ? originalPrice : null,
-            discount: discount > 0 ? discount : null,
-            rating: 5,
-            description: product.descripcion,
-            brand: product.marca,
-            category: product.linea?.descripcion || 'Sin categoría',
-            colors: colors,
-            stock: product.inventario || 0,
-            isActive: product.activo === 1,
-            isNew: product.opc_nuevo === 'S',
-            isPromo: product.opc_promo === 'S'
-          };
-        });
-
+        const mappedProducts = allProducts.map(mapApiProductToAppProduct);
         setProducts(mappedProducts);
-        setTotalResults(mappedProducts.length);
-      } catch (err) {
-        setError('Error al buscar productos');
-        console.error('Error searching products:', err);
+        setFilteredProducts(mappedProducts);
+      } catch (error) {
+        console.error('Error loading products:', error);
+        setProducts([]);
+        setFilteredProducts([]);
       } finally {
         setLoading(false);
       }
     };
 
-    searchProducts();
-  }, [searchTerm]);
+    loadProducts();
+  }, []);
 
-  if (loading) {
-    return (
-      <div className="buscar-page">
-        <div className="container">
-          <div className="loading-container">
-            <svg className="loading-spinner-svg" width="40" height="40" viewBox="0 0 40 40">
-              <circle
-                cx="20"
-                cy="20"
-                r="18"
-                fill="none"
-                stroke="#f3f3f3"
-                strokeWidth="4"
-              />
-              <circle
-                cx="20"
-                cy="20"
-                r="18"
-                fill="none"
-                stroke="var(--color-primary)"
-                strokeWidth="4"
-                strokeDasharray="113"
-                strokeDashoffset="113"
-                strokeLinecap="round"
-                className="spinner-circle"
-              />
-            </svg>
-            <p>Buscando productos...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Filtrar productos basado en búsqueda y filtros
+  useEffect(() => {
+    let filtered = [...products];
 
-  if (error) {
-    return (
-      <div className="buscar-page">
-        <div className="container">
-          <div className="error-container">
-            <h2>Error</h2>
-            <p>{error}</p>
-            <button onClick={() => window.location.reload()}>Intentar de nuevo</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+    // Filtrar por término de búsqueda
+    if (query) {
+      const searchTerm = query.toLowerCase();
+      filtered = filtered.filter(product => {
+        return (
+          product.title?.toLowerCase().includes(searchTerm) ||
+          product.description?.toLowerCase().includes(searchTerm) ||
+          product.category?.toLowerCase().includes(searchTerm) ||
+          product.codigo?.toLowerCase().includes(searchTerm) ||
+          product.dtu?.toLowerCase().includes(searchTerm)
+        );
+      });
+    }
+
+    // Aplicar filtros adicionales
+    if (filters.category && filters.category !== 'Todas las categorías') {
+      const categoryLower = filters.category.toLowerCase();
+      filtered = filtered.filter(product => {
+        const productCategory = product.category?.toLowerCase() || '';
+        return productCategory.includes(categoryLower);
+      });
+    }
+
+    // Filtrar por precio
+    if (filters.priceRange.min > 0 || filters.priceRange.max > 0) {
+      filtered = filtered.filter(product => {
+        const price = product.price || 0;
+        const minPrice = filters.priceRange.min || 0;
+        const maxPrice = filters.priceRange.max || Infinity;
+        
+        if (maxPrice > 0) {
+          return price >= minPrice && price <= maxPrice;
+        } else {
+          return price >= minPrice;
+        }
+      });
+    }
+
+    // Filtrar por colores
+    if (filters.colors && filters.colors.length > 0) {
+      filtered = filtered.filter(product => {
+        if (!product.colors || product.colors.length === 0) return false;
+        
+        return filters.colors.some(filterColor => {
+          const filterColorLower = filterColor.toLowerCase();
+          return product.colors.some(productColor => {
+            const productColorLower = productColor.toLowerCase();
+            return productColorLower === filterColorLower || 
+                   productColorLower.includes(filterColorLower);
+          });
+        });
+      });
+    }
+
+    // Filtrar por código
+    if (filters.codigo && filters.codigo.trim() !== '') {
+      const codigoLower = filters.codigo.trim().toLowerCase();
+      filtered = filtered.filter(product => {
+        return (
+          (product.codigo && product.codigo.toLowerCase().includes(codigoLower)) ||
+          (product.id && product.id.toString().toLowerCase().includes(codigoLower))
+        );
+      });
+    }
+
+    // Filtrar por DTU
+    if (filters.dtu && filters.dtu.trim() !== '') {
+      const dtuLower = filters.dtu.trim().toLowerCase();
+      filtered = filtered.filter(product => {
+        return (
+          (product.dtu && product.dtu.toLowerCase().includes(dtuLower)) ||
+          (product.DTU && product.DTU.toLowerCase().includes(dtuLower))
+        );
+      });
+    }
+
+    setFilteredProducts(filtered);
+  }, [query, filters, products]);
+
+  const handleFilterChange = (newFilters) => {
+    setFilters(newFilters);
+  };
+
+  const handleClearFilters = () => {
+    setFilters({
+      catalog: 'Cherry 2025 - 2026',
+      availability: 'todos',
+      category: 'Todas las categorías',
+      department: 'Todos los departamentos',
+      sector: 'Todos los sectores',
+      sizes: [],
+      colors: [],
+      priceRange: { min: 0, max: 0 },
+      codigo: '',
+      dtu: ''
+    });
+  };
+
+  const handleFavoriteToggle = (productId) => {
+    };
 
   return (
-    <div className="buscar-page">
-      <div className="container">
-        {/* Header Section */}
-        <div className="buscar-page__header">
-          <div className="buscar-page__title-section">
-            <h1 className="buscar-page__title">
-              {searchTerm ? `Resultados para "${searchTerm}"` : 'Buscar productos'}
-            </h1>
-            <p className="buscar-page__description">
-              {searchTerm 
-                ? `Encontramos ${totalResults} productos que coinciden con tu búsqueda.`
-                : 'Busca entre nuestra amplia selección de productos.'
-              }
+    <>
+      <Helmet>
+        <title>Búsqueda - Cherry Central</title>
+        <meta name="description" content={`Resultados de búsqueda para "${query}" en Cherry Central. Encuentra los mejores productos de moda femenina.`} />
+      </Helmet>
+
+      <main className="buscar-page">
+        <div className="container">
+          {/* Header de búsqueda */}
+          <div className="buscar-header">
+            <h1>Resultados de búsqueda</h1>
+            {query && (
+              <p className="buscar-query">
+                Buscando: <strong>"{query}"</strong>
+              </p>
+            )}
+            <p className="buscar-results">
+              {filteredProducts.length} productos encontrados
             </p>
-            <div className="buscar-page__results">
-              <span className="buscar-page__results-count">
-                {totalResults} productos encontrados
-              </span>
+          </div>
+
+          <div className="buscar-content">
+            {/* Filtros */}
+            <aside className="buscar-filters">
+              <CatalogFilter
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                onClearFilters={handleClearFilters}
+              />
+            </aside>
+
+            {/* Resultados */}
+            <div className="buscar-results-section">
+              {loading ? (
+                <div className="buscar-loading">
+                  <div className="loading-spinner"></div>
+                  <p>Buscando productos...</p>
+                </div>
+              ) : filteredProducts.length === 0 ? (
+                <div className="buscar-no-results">
+                  <div className="no-results-icon">
+                    <img src={getIconPath('Search.svg')} alt="Sin resultados" />
+                  </div>
+                  <h2>No se encontraron productos</h2>
+                  <p>Intenta con otros términos de búsqueda o ajusta los filtros</p>
+                  <CherryButton variant="outline" size="medium">
+                    Limpiar filtros
+                  </CherryButton>
+                </div>
+              ) : (
+                <div className="buscar-products-grid">
+                  {filteredProducts.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onFavoriteToggle={handleFavoriteToggle}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
-
-        {/* Products Grid */}
-        {products.length > 0 ? (
-          <div className="buscar-page__content">
-            <ProductGrid products={products} />
-          </div>
-        ) : searchTerm ? (
-          <div className="buscar-page__empty">
-            <h3>No se encontraron productos</h3>
-            <p>No encontramos productos que coincidan con "{searchTerm}".</p>
-            <p>Intenta con otros términos de búsqueda.</p>
-          </div>
-        ) : (
-          <div className="buscar-page__empty">
-            <h3>Busca productos</h3>
-            <p>Ingresa un término de búsqueda para encontrar productos.</p>
-          </div>
-        )}
-      </div>
-    </div>
+      </main>
+    </>
   );
 };
 

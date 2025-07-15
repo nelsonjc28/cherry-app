@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams } from 'react-router-dom';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
@@ -7,11 +7,20 @@ import Pagination from '../components/Pagination/Pagination';
 import { getIconPath } from '../utils/assetPaths';
 import CustomButton from '../components/CustomButton';
 import './CatalogPage.css';
-import { getProductsByCategory, getAllProducts, getAvailableCategories, mapApiProductToAppProduct, getProductsByAvailability } from '../api/cherryApi';
+import { 
+  getProductsByCategory, 
+  getAllProducts, 
+  getAvailableCategories, 
+  mapApiProductToAppProduct, 
+  getProductsByAvailability,
+  searchProductsAdvanced
+} from '../api/cherryApi';
 
 const CatalogPage = () => {
   const [searchParams] = useSearchParams();
   const category = searchParams.get('category') || 'all';
+  const colorFilter = searchParams.get('color') || '';
+  const dtuFilter = searchParams.get('dtu') || '';
   
   // State management for filters and products
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
@@ -27,7 +36,6 @@ const CatalogPage = () => {
     department: 'Todos los departamentos',
     sector: 'Todos los sectores',
     sizes: [],
-    colors: [],
     priceRange: { min: 0, max: 0 }
   });
 
@@ -57,8 +65,62 @@ const CatalogPage = () => {
       const categoryLower = currentFilters.category.toLowerCase();
       filtered = filtered.filter(product => {
         const productCategory = product.category?.toLowerCase() || '';
+        const productTitle = product.title?.toLowerCase() || '';
+        const productDescription = product.description?.toLowerCase() || '';
+        
         return productCategory.includes(categoryLower) || 
-               product.title?.toLowerCase().includes(categoryLower);
+               productTitle.includes(categoryLower) ||
+               productDescription.includes(categoryLower);
+      });
+    }
+
+    // Filter by department (if not "Todos los departamentos")
+    if (currentFilters.department && currentFilters.department !== 'Todos los departamentos') {
+      const departmentLower = currentFilters.department.toLowerCase();
+      filtered = filtered.filter(product => {
+        const productCategory = product.category?.toLowerCase() || '';
+        const productTitle = product.title?.toLowerCase() || '';
+        const productDescription = product.description?.toLowerCase() || '';
+        
+        // Map departments to categories
+        const departmentCategoryMap = {
+          'ropa casual': ['blusa', 'camisa', 'pantalon', 'jeans', 'vestido casual'],
+          'ropa formal': ['vestido', 'traje', 'blazer', 'camisa formal'],
+          'ropa deportiva': ['deportivo', 'gym', 'fitness', 'running'],
+          'accesorios': ['accesorio', 'bolsa', 'cartera', 'cinturon', 'collar'],
+          'calzado': ['zapato', 'tenis', 'sandalias', 'botas']
+        };
+        
+        const departmentCategories = departmentCategoryMap[departmentLower] || [];
+        return departmentCategories.some(cat => 
+          productCategory.includes(cat) || 
+          productTitle.includes(cat) || 
+          productDescription.includes(cat)
+        );
+      });
+    }
+
+    // Filter by sector (if not "Todos los sectores")
+    if (currentFilters.sector && currentFilters.sector !== 'Todos los sectores') {
+      const sectorLower = currentFilters.sector.toLowerCase();
+      filtered = filtered.filter(product => {
+        // For now, we'll keep all products since sector info might not be available
+        // This can be enhanced when sector data is available in the API
+        return true;
+      });
+    }
+
+    // Filter by sizes
+    if (currentFilters.sizes && currentFilters.sizes.length > 0) {
+      filtered = filtered.filter(product => {
+        // Check if product has size information
+        if (product.sizes && product.sizes.length > 0) {
+          return currentFilters.sizes.some(filterSize => 
+            product.sizes.includes(filterSize)
+          );
+        }
+        // If no size info available, keep the product
+        return true;
       });
     }
 
@@ -74,33 +136,6 @@ const CatalogPage = () => {
         } else {
           return price >= minPrice;
         }
-      });
-    }
-
-    // Filter by colors
-    if (currentFilters.colors && currentFilters.colors.length > 0) {
-      filtered = filtered.filter(product => {
-        if (!product.colors || product.colors.length === 0) return false;
-        
-        return currentFilters.colors.some(filterColor => {
-          const filterColorLower = filterColor.toLowerCase();
-          return product.colors.some(productColor => {
-            const productColorLower = productColor.toLowerCase();
-            // Check for exact match or partial match
-            return productColorLower === filterColorLower || 
-                   productColorLower.includes(filterColorLower) ||
-                   filterColorLower.includes(productColorLower);
-          });
-        });
-      });
-    }
-
-    // Filter by sizes (if product has size information)
-    if (currentFilters.sizes && currentFilters.sizes.length > 0) {
-      filtered = filtered.filter(product => {
-        // For now, we'll keep all products since size info might not be available
-        // This can be enhanced when size data is available in the API
-        return true;
       });
     }
 
@@ -131,9 +166,10 @@ const CatalogPage = () => {
     const loadProducts = async () => {
       setLoading(true);
       try {
-        
         let productsData;
+        
         if (category === 'all') {
+          // Load all products filtered by availability
           const rawProducts = await getProductsByAvailability(filters.availability, filters.catalog);
           productsData = rawProducts.map(mapApiProductToAppProduct);
         } else {
@@ -159,28 +195,56 @@ const CatalogPage = () => {
     };
 
     loadProducts();
-  }, [category, filters.catalog, filters.availability]); // Agregar filters.availability como dependencia
+  }, [category, filters.catalog, filters.availability]);
 
   // Apply filters and sorting when filters or sortBy changes
   useEffect(() => {
     if (allProducts.length > 0) {
-      
       let filtered = filterProducts(allProducts, filters);
+      
+      // Apply color filter from URL
+      if (colorFilter) {
+        const colorFilters = colorFilter.split(',').map(c => c.trim());
+        filtered = filtered.filter(product => {
+          if (!product.colors || product.colors.length === 0) return false;
+          
+          return colorFilters.some(filterColor => {
+            const filterColorLower = filterColor.toLowerCase();
+            return product.colors.some(productColor => {
+              const productColorLower = productColor.toLowerCase();
+              return productColorLower === filterColorLower || 
+                     productColorLower.includes(filterColorLower) ||
+                     filterColorLower.includes(productColorLower);
+            });
+          });
+        });
+      }
+      
+      // Apply DTU filter from URL
+      if (dtuFilter) {
+        const dtuFilters = dtuFilter.split(',').map(d => d.trim());
+        filtered = filtered.filter(product => {
+          return dtuFilters.some(filterDtu => {
+            const filterDtuLower = filterDtu.toLowerCase();
+            return (
+              (product.dtu && product.dtu.toLowerCase().includes(filterDtuLower)) ||
+              (product.DTU && product.DTU.toLowerCase().includes(filterDtuLower))
+            );
+          });
+        });
+      }
+      
       filtered = sortProducts(filtered, sortBy);
       setFilteredProducts(filtered);
       setCurrentPage(1); // Reset to first page when filters change
-      
     }
-  }, [filters.category, filters.priceRange, filters.colors, filters.sizes, sortBy, allProducts]); // Excluir filters.availability y filters.catalog
-
-  const totalResults = filteredProducts.length;
-  const productsPerPage = 12;
-  const totalPages = Math.ceil(totalResults / productsPerPage);
+  }, [filters.category, filters.department, filters.sector, filters.sizes, filters.priceRange, sortBy, allProducts, colorFilter, dtuFilter]);
 
   // Get current page products
   const getCurrentPageProducts = () => {
-    const startIndex = (currentPage - 1) * productsPerPage;
-    const endIndex = startIndex + productsPerPage;
+    const itemsPerPage = 12;
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
     return filteredProducts.slice(startIndex, endIndex);
   };
 
@@ -208,7 +272,6 @@ const CatalogPage = () => {
       department: 'Todos los departamentos',
       sector: 'Todos los sectores',
       sizes: [],
-      colors: [],
       priceRange: { min: 0, max: 0 }
     });
   };
@@ -218,17 +281,8 @@ const CatalogPage = () => {
     // Implement favorite functionality here
   };
 
-  if (loading) {
-    return (
-      <div className="catalog-page">
-        <div className="container">
-          <div className="loading-spinner">
-            <p>Cargando productos...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const totalResults = filteredProducts.length;
+  const currentProducts = getCurrentPageProducts();
 
   return (
     <>
@@ -242,12 +296,7 @@ const CatalogPage = () => {
           {/* Header section with title and filters  -  MOBILE */}
           <div className="catalog-page__header-mobile">
             <div className="catalog-page__title-section">
-              <h1 className="catalog-page__title">
-                Catálogo de productos
-                <span style={{ fontSize: '12px', color: '#7f8c8d', display: 'block', marginTop: '4px' }}>
-                  {filters.catalog}
-                </span>
-              </h1>
+              <h1 className="catalog-page__title">Catálogo de productos</h1>
               <div className='catalog-page__content-texts'>
                 <span className="catalog-page__results-count">
                   ({totalResults})
@@ -265,7 +314,6 @@ const CatalogPage = () => {
             </div>
 
             <div className="catalog-page__controls">
-              {/* Sort dropdown */}
               <div className="catalog-page__sort-section">
                 <div className="catalog-page__mobile-filter-controls">
                   <button
@@ -273,7 +321,6 @@ const CatalogPage = () => {
                     onClick={toggleFilterModal}
                   >
                     <img src={getIconPath('Filter.svg')} alt="Filtros" />
-                    <span style={{ fontSize: '12px', marginLeft: '4px' }}>Filtros</span>
                     <img src={getIconPath('Chevron Down.svg')} alt="Expandir" />
                   </button>
                 </div>
@@ -297,12 +344,7 @@ const CatalogPage = () => {
           {/* Header section with title and filters  -  DESKTOP */}
           <div className="catalog-page__header-desktop">
             <div className="catalog-page__title-section">
-              <h1 className="catalog-page__title">
-                Catálogo de productos
-                <span style={{ fontSize: '12px', color: '#7f8c8d', display: 'block', marginTop: '4px' }}>
-                  {filters.catalog}
-                </span>
-              </h1>
+              <h1 className="catalog-page__title">Catálogo de productos</h1>
               <div className='catalog-page__content-texts'>
                 <span className="catalog-page__results-count">
                   ({totalResults})
@@ -337,64 +379,66 @@ const CatalogPage = () => {
             </div>
           </div>
 
+          {/* Main content */}
           <div className="catalog-page__content">
-            {/* Sidebar filters - Desktop */}
-            <aside className="catalog-page__sidebar">
+            {/* Filters sidebar - DESKTOP */}
+            <aside className="catalog-page__filters-sidebar">
               <CatalogFilter
                 filters={filters}
                 onFilterChange={handleFilterChange}
                 onClearFilters={handleClearFilters}
-                isMobile={false}
               />
             </aside>
 
-            {/* Main content area */}
-            <main className="catalog-page__main">
-              {/* Products grid */}
-              <div className="catalog-page__products-grid">
-                {getCurrentPageProducts().map((product) => (
-                  <CatalogProductCard
-                    key={product.id}
-                    product={product}
-                    onFavoriteToggle={handleFavoriteToggle}
-                  />
-                ))}
-              </div>
-
-              {/* No products message */}
-              {totalResults === 0 && !loading && (
-                <div className="no-products-message">
-                  <p>No se encontraron productos para esta categoría.</p>
-                  <p>Intenta con otra categoría o revisa los filtros.</p>
+            {/* Products grid */}
+            <main className="catalog-page__products-section">
+              {loading ? (
+                <div className="catalog-page__loading">
+                  <div className="catalog-page__loading-spinner"></div>
+                  <p>Cargando productos...</p>
                 </div>
-              )}
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-              />
+              ) : currentProducts.length === 0 ? (
+                <div className="catalog-page__no-results">
+                  <h3>No se encontraron productos</h3>
+                  <p>Intenta ajustar los filtros de búsqueda</p>
+                </div>
+              ) : (
+                <>
+                  <div className="catalog-page__products-grid">
+                    {currentProducts.map((product) => (
+                      <CatalogProductCard
+                        key={product.id}
+                        product={product}
+                        onFavoriteToggle={handleFavoriteToggle}
+                      />
+                    ))}
+                  </div>
+                  
+                  {/* Pagination */}
+                  {filteredProducts.length > 12 && (
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={Math.ceil(filteredProducts.length / 12)}
+                      onPageChange={setCurrentPage}
+                    />
+                  )}
+                </>
               )}
             </main>
           </div>
 
-          {/* Mobile Filter Modal */}
+          {/* Mobile filter modal */}
           {isFilterModalOpen && (
-            <div className="filter-modal-overlay" onClick={toggleFilterModal}>
-              <div className="filter-modal" onClick={(e) => e.stopPropagation()}>
-                <CatalogFilter
-                  filters={filters}
-                  onFilterChange={handleFilterChange}
-                  onClearFilters={handleClearFilters}
-                  isMobile={true}
-                  onClose={toggleFilterModal}
-                />
-              </div>
+            <div className="catalog-page__filter-modal">
+              <CatalogFilter
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                onClearFilters={handleClearFilters}
+                isMobile={true}
+                onClose={toggleFilterModal}
+              />
             </div>
           )}
-          
         </div>
       </div>
     </>

@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import './CartItemCard.css';
+import OrderSummaryTable from '../OrderSummaryTable/OrderSummaryTable';
 
 const CartItemCard = ({
   image,
@@ -30,20 +31,12 @@ const CartItemCard = ({
           </div>
         </div>
         {/* Resume Table */}
-        <div className="cart-item-card__summary-table">
-          <div className="cart-item-card__summary-header">Resumen del pedido</div>
-          <div className="cart-item-card__summary-row">
-            <span className="cart-item-card__summary-label">Cantidad de piezas:</span>
-            <span className="cart-item-card__summary-value">{quantity}</span>
-          </div>
-          <div className="cart-item-card__summary-row">
-            <span className="cart-item-card__summary-label">Total sin descuento:</span>
-            <span className="cart-item-card__summary-value cart-item-card__summary-value--strike">${priceWithoutDiscount}</span>
-          </div>
-          <div className="cart-item-card__summary-row">
-            <span className="cart-item-card__summary-label">Total con descuento:</span>
-            <span className="cart-item-card__summary-value">${priceWithDiscount}</span>
-          </div>
+        <div className="cart-item-card__order-summary-wrapper">
+          <OrderSummaryTable
+            quantity={quantity}
+            priceWithoutDiscount={priceWithoutDiscount}
+            priceWithDiscount={priceWithDiscount}
+          />
         </div>
       </div>
     </div>

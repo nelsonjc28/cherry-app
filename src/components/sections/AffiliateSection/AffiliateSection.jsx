@@ -20,7 +20,7 @@ const AffiliateSection = () => {
           ¡Afíliate ahora mismo y comienza tu propio negocio!
         </h2>
         <Link 
-          to="/afiliate" 
+          to="/registro" 
           className="btn-explore"
           title="Únete a nuestro programa de afiliados y comienza tu negocio"
           aria-label="Afiliate a Cherry Central y comienza tu negocio"

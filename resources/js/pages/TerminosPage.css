@@ -1,0 +1,83 @@
+.terminos-page {
+  padding: 2rem 0;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  min-height: 100vh;
+}
+
+.terminos-content {
+  max-width: 800px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 3rem;
+}
+
+.terminos-content h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.terminos-date {
+  text-align: center;
+  color: var(--color-text-secondary);
+  margin-bottom: 3rem;
+  font-style: italic;
+}
+
+.terminos-section {
+  margin-bottom: 2rem;
+}
+
+.terminos-section h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 1rem;
+  border-bottom: 2px solid var(--color-primary);
+  padding-bottom: 0.5rem;
+}
+
+.terminos-section p {
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.terminos-section ul {
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin-left: 1.5rem;
+}
+
+.terminos-section li {
+  margin-bottom: 0.5rem;
+}
+
+.terminos-footer {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e9ecef;
+  text-align: center;
+  font-style: italic;
+  color: var(--color-text-secondary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .terminos-content {
+    padding: 2rem;
+    margin: 0 1rem;
+  }
+
+  .terminos-content h1 {
+    font-size: 2rem;
+  }
+
+  .terminos-section h2 {
+    font-size: 1.3rem;
+  }
+} 

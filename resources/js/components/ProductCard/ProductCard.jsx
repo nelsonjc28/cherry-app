@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import FavoriteButton from '../FavoriteButton/FavoriteButton';
+import { formatPrice } from '../../utils/formatters';
 import './ProductCard.css';
 
 const ProductCard = ({ product, onFavoriteToggle }) => {
@@ -54,7 +55,7 @@ const ProductCard = ({ product, onFavoriteToggle }) => {
           <div className="price-container">
             <div className="price-info">
               <span className="price-label">Desde:</span>
-              <span className="price">${price}</span>
+              <span className="price">{formatPrice(price)}</span>
             </div>
           </div>
         </div>
