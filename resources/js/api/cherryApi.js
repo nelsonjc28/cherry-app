@@ -1,5 +1,11 @@
 const CHERRY_API_URL = 'https://cherryapi.estrategiadmgs.com.mx/cherryApi/';
 
+// Cache para productos
+const productCache = new Map();
+
+// Cache for products to avoid multiple API calls
+let productsCache = null;
+
 // Mapeo de catálogos a parámetros de la API
 const CATALOG_MAPPING = {
   'Cherry 2025 - 2026': { season: '2025-2026', active: true },
@@ -495,5 +501,35 @@ export const getAvailableCategoriesFromAPI = async (catalog = 'Cherry 2025 - 202
   } catch (error) {
     console.error('Error obteniendo categorías disponibles:', error);
     return [];
+  }
+}; 
+
+// Función para obtener un producto específico por ID
+export const getProductById = async (productId) => {
+  try {
+    // Make direct API call with specific product ID
+    const response = await fetch(`https://cherryapi.estrategiadmgs.com.mx/cherryApi/?id_articulo=${productId}`);
+    
+    if (!response.ok) {
+      throw new Error('No se pudo obtener el producto');
+    }
+    
+    const data = await response.json();
+    
+    if (!data || data.length === 0) {
+      throw new Error(`Producto con ID ${productId} no encontrado`);
+    }
+    
+    // Since the API parameter doesn't work properly, filter the correct product
+    const product = data.find(p => p.id_articulo === productId);
+    
+    if (!product) {
+      throw new Error(`Producto con ID ${productId} no encontrado en la respuesta`);
+    }
+    
+    return product;
+  } catch (error) {
+    console.error('Error fetching product by ID:', error);
+    throw error;
   }
 }; 

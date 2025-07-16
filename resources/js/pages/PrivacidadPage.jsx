@@ -148,9 +148,9 @@ const PrivacidadPage = () => {
             </div>
           </div>
         </div>
-      </main>
+  </main>
     </>
-  );
+);
 };
 
 export default PrivacidadPage; 

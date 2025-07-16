@@ -150,7 +150,7 @@ const ProductosPage = () => {
               <p>Cargando productos...</p>
             </div>
           </div>
-        </main>
+  </main>
       </>
     );
   }

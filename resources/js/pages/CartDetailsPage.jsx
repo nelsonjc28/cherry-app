@@ -1,126 +1,88 @@
-import { useState, useEffect } from 'react';
-import './CartDetailsPage.css';
-import CartDetailsProductCard from '../components/CartDetailsProductCard';
-import CartOrderSummary from '../components/CartOrderSummary/CartOrderSummary';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import useCartStore from '../store/cartStore';
-import { formatPrice } from '../utils/formatters';
+import CartDetailsProductCard from '../components/CartDetailsProductCard';
+import OrderSummaryTable from '../components/OrderSummaryTable/OrderSummaryTable';
+import './CartDetailsPage.css';
 
 const CartDetailsPage = () => {
-  const navigate = useNavigate();
-  const { items: cartItems, totalItems, totalPrice, removeItem, updateQuantity, initCart, clearCart } = useCartStore();
+  const { items: cartItems, totalItems, totalPrice, removeItem, updateQuantity, initCart } = useCartStore();
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Initialize cart totals when component mounts
   useEffect(() => {
     initCart();
   }, [initCart]);
 
-  // Debug: mostrar datos del carrito en localStorage
-
-  // Mostrar todos los valores de localStorage de forma segura
-  Object.keys(localStorage).forEach(key => {
-    try {
-      const value = localStorage.getItem(key);
-      // Intentar parsear como JSON solo si parece ser JSON
-      if (value && (value.startsWith('{') || value.startsWith('['))) {
-      }
-    } catch (error) {
-    }
-  });
-
-  // Handle remove item
-  const handleRemoveItem = (productId, selectedColor, selectedSize) => {
-    removeItem(productId, selectedColor, selectedSize);
-  };
-
-  // Handle quantity change
-  const handleQuantityChange = (productId, newQuantity, selectedColor, selectedSize) => {
+  const handleUpdateQuantity = (productId, newQuantity, color, size) => {
     if (newQuantity >= 1) {
-      updateQuantity(productId, newQuantity, selectedColor, selectedSize);
+      updateQuantity(productId, newQuantity, color, size);
     }
   };
 
-  const handleRemoveVariant = (productIdx, variantIdx) => {
-    setProducts(prev => prev.map((p, i) =>
-      i === productIdx
-        ? { ...p, variants: p.variants.filter((_, vi) => vi !== variantIdx) }
-        : p
-    ));
+  const handleRemoveItem = (productId, color, size) => {
+    removeItem(productId, color, size);
   };
-  
-  // Handle clear cart
-  const handleClearCart = () => {
-    clearCart();
-    alert('Carrito vaciado');
-  };
-
-  // Datos de resumen de pedido
-  const orderSummary = {
-    responsable: '(SIMCRE) Simón Credi',
-    creditDays: '',
-    discount1: 30,
-    discount2: 0,
-    pieces: totalItems,
-    subtotal: totalPrice,
-    discountTotal: totalPrice * 0.3, // 30% discount
-    total: totalPrice * 0.7, // 70% of total
-    onGenerateOrder: () => navigate('/compra-exitosa'),
-    onClearCart: handleClearCart
-  };
-
-  if (cartItems.length === 0) {
-
-    return (
-      <div className="container cart-details__container">
-
-        <div className="cart-details__empty">
-          <h2>Tu carrito está vacío</h2>
-          <p>No tienes productos en tu carrito de compras.</p>
-          <button
-            className="cart-details__continue-btn"
-            onClick={() => navigate('/catalogo')}
-          >
-            Continuar Comprando
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    
-    <div className="container cart-details__container">
-        {/* <pre>{JSON.stringify(cartItems, null, 2)}</pre> */}
-    
-      <header className="cart-details__header">
-        <h1 className="cart-details__title">Carrito de compras</h1>
-        <div className="cart-details__header-actions">
-          <span className="cart-details__items-count">
-            ({cartItems.length}) <span className="cart-details__items-label">item agregados</span>
-          </span>
-          <button className="cart-details__continue-btn">
-            <span className="cart-details__continue-icon">+</span>
-            <span className="cart-details__continue-text"> Seguir comprando</span>
-          </button>
-        </div>
-      </header>
-      <div className="cart-details__content">
-        <div className="cart-details__products-col">
-          {cartItems.map((product) => (
-            <CartDetailsProductCard
-              key={product.id}
-              {...product}
-              onRemove={variantIdx => handleRemoveVariant(product.id, variantIdx)}
-              onQuantityChange={(variantIdx, newQty) => handleQuantityChange(product.id, variantIdx, newQty)}
-            />
-          ))}
-        </div>
-        <div className="cart-details__summary-col">
-          <CartOrderSummary {...orderSummary} />
+    <div className="cart-details-page">
+      <div className="container">
+        <div className="cart-details-content">
+          <div className="cart-items-section">
+            <div className="cart-header">
+              <h1>Detalles del Carrito</h1>
+            </div>
+            
+            {cartItems.length === 0 ? (
+              <div className="empty-cart">
+                <div className="empty-cart-icon">🛒</div>
+                <h2>Tu carrito está vacío</h2>
+                <p>Agrega algunos productos para comenzar a comprar</p>
+                <a href="/" className="continue-shopping-btn">
+                  Continuar Comprando
+                </a>
+              </div>
+            ) : (
+              <div className="cart-items">
+                {cartItems.map((item, index) => (
+                  <CartDetailsProductCard
+                    key={`${item.id_articulo}-${item.selectedColor}-${item.selectedSize}`}
+                    image={item.image}
+                    sku={item.id_articulo}
+                    title={item.title}
+                    price={item.precio}
+                    variants={[
+                      {
+                        color: item.selectedColor,
+                        size: item.selectedSize,
+                        quantity: item.quantity
+                      }
+                    ]}
+                    summary={{
+                      quantity: item.quantity,
+                      priceWithDiscount: item.precio * item.quantity,
+                      priceWithoutDiscount: item.precio * item.quantity
+                    }}
+                    onQuantityChange={handleUpdateQuantity}
+                    onRemove={handleRemoveItem}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+          
+          {cartItems.length > 0 && (
+            <div className="order-summary-section">
+              <OrderSummaryTable 
+                summary={{
+                  items: cartItems,
+                  totalItems,
+                  totalPrice
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>
-
   );
 };
 

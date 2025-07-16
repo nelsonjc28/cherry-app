@@ -193,9 +193,9 @@ const CookiesPage = () => {
             </div>
           </div>
         </div>
-      </main>
+  </main>
     </>
-  );
+);
 };
 
 export default CookiesPage; 

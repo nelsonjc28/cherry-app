@@ -11,8 +11,7 @@ const FeaturedProducts = ({
   className = ""
 }) => {
   // Handle favorite toggle callback
-  const handleFavoriteToggle = (productId, isFavorited) => {
-    console.log(`Product ${productId} ${isFavorited ? 'added to' : 'removed from'} favorites`);
+  const handleFavoriteToggle = (productId) => {
     // Here you would typically update your favorites state/API
   };
 

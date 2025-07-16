@@ -24,12 +24,12 @@ const MobileView = ({ image, sku, title, price, variants = [], summary, onQuanti
 
   const handleQuantityChange = (newQuantity) => {
     if (newQuantity >= 1) {
-      onQuantityChange(0, newQuantity); // variantIdx = 0 for first variant
+      onQuantityChange(sku, newQuantity); // Pass product ID (sku) instead of variant index
     }
   };
 
   const handleRemove = () => {
-    onRemove(0); // variantIdx = 0 for first variant
+    onRemove(sku); // Pass product ID (sku) instead of variant index
   };
 
   return (
@@ -68,15 +68,15 @@ const MobileView = ({ image, sku, title, price, variants = [], summary, onQuanti
             <span className="cart-details-product-card__quantity-label">Cantidad:</span>
             <div className="cart-details-product-card__quantity-controls">
               <button 
-                onClick={() => handleQuantityChange(summary?.quantity - 1)}
+                onClick={() => handleQuantityChange((summary?.quantity || 1) - 1)}
                 className="cart-details-product-card__quantity-btn"
-                disabled={summary?.quantity <= 1}
+                disabled={(summary?.quantity || 1) <= 1}
               >
                 -
               </button>
-              <span className="cart-details-product-card__quantity-value">{summary?.quantity || 0}</span>
+              <span className="cart-details-product-card__quantity-value">{summary?.quantity || 1}</span>
               <button 
-                onClick={() => handleQuantityChange(summary?.quantity + 1)}
+                onClick={() => handleQuantityChange((summary?.quantity || 1) + 1)}
                 className="cart-details-product-card__quantity-btn"
               >
                 +
@@ -107,7 +107,7 @@ const MobileView = ({ image, sku, title, price, variants = [], summary, onQuanti
           <div className="cart-details-product-card__subtotal">
             <span className="cart-details-product-card__subtotal-label">Subtotal:</span>
             <span className="cart-details-product-card__subtotal-value">
-              {formatPrice(price * (summary?.quantity || 0))}
+              {formatPrice(price * (summary?.quantity || 1))}
             </span>
           </div>
           

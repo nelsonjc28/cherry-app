@@ -139,7 +139,7 @@ const NotificacionesPage = () => {
               <p>Cargando notificaciones...</p>
             </div>
           </div>
-        </main>
+  </main>
       </>
     );
   }

@@ -6,8 +6,7 @@ import './BestSellers.css';
 
 const BestSellers = ({ products = [], title = "Productos más vendidos", description = "Perfectos para ocasiones especiales, con diseños que realzan la figura" }) => {
   // Handle favorite toggle callback
-  const handleFavoriteToggle = (productId, isFavorited) => {
-    console.log(`Product ${productId} ${isFavorited ? 'added to' : 'removed from'} favorites`);
+  const handleFavoriteToggle = (productId) => {
     // Here you would typically update your favorites state/API
   };
 

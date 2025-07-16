@@ -26,55 +26,87 @@ const useCartStore = create(
 
       // Add product to cart (solo local)
       addToCart: (product, quantity = 1) => {
-        set({ isLoading: true, error: null });
         const { items } = get();
-        const existingItem = items.find(item => item.id === product.id && item.selectedColor === product.selectedColor && item.selectedSize === product.selectedSize);
+        
+        // Create a unique key for the item based on product ID, color, and size
+        const itemKey = `${product.id_articulo}-${product.selectedColor}-${product.selectedSize}`;
+        
+        // Check if item already exists in cart
+        const existingItemIndex = items.findIndex(item => 
+          item.id_articulo === product.id_articulo &&
+          item.selectedColor === product.selectedColor &&
+          item.selectedSize === product.selectedSize
+        );
+
         let updatedItems;
-        if (existingItem) {
-          updatedItems = items.map(item =>
-            item.id === product.id && item.selectedColor === product.selectedColor && item.selectedSize === product.selectedSize
+        
+        if (existingItemIndex !== -1) {
+          // Update existing item quantity
+          updatedItems = items.map((item, index) => 
+            index === existingItemIndex 
               ? { ...item, quantity: item.quantity + quantity }
               : item
           );
         } else {
-          updatedItems = [
-            ...items,
-            {
-              ...product,
-              quantity
-            }
-          ];
+          // Add new item to cart
+          const newItem = {
+            ...product,
+            quantity
+          };
+          updatedItems = [...items, newItem];
         }
+
+        // Calculate totals
         const totalItems = updatedItems.reduce((sum, item) => sum + item.quantity, 0);
-        const totalPrice = updatedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        set({ items: updatedItems, totalItems, totalPrice, isLoading: false });
+        const totalPrice = updatedItems.reduce((sum, item) => sum + (item.precio * item.quantity), 0);
+
+        set({
+          items: updatedItems,
+          totalItems,
+          totalPrice
+        });
       },
 
       // Update item quantity (solo local)
-      updateQuantity: (itemId, quantity, selectedColor, selectedSize) => {
-        if (quantity <= 0) {
-          return get().removeItem(itemId, selectedColor, selectedSize);
-        }
-        set({ isLoading: true, error: null });
+      updateQuantity: (productId, newQuantity, color, size) => {
+        if (newQuantity < 1) return;
+
         const { items } = get();
-        const updatedItems = items.map(item =>
-          item.id === itemId && item.selectedColor === selectedColor && item.selectedSize === selectedSize
-            ? { ...item, quantity }
+        const updatedItems = items.map(item => 
+          (item.id_articulo === productId && 
+           item.selectedColor === color && 
+           item.selectedSize === size)
+            ? { ...item, quantity: newQuantity }
             : item
         );
+
         const totalItems = updatedItems.reduce((sum, item) => sum + item.quantity, 0);
-        const totalPrice = updatedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        set({ items: updatedItems, totalItems, totalPrice, isLoading: false });
+        const totalPrice = updatedItems.reduce((sum, item) => sum + (item.precio * item.quantity), 0);
+
+        set({
+          items: updatedItems,
+          totalItems,
+          totalPrice
+        });
       },
 
       // Remove item from cart (solo local)
-      removeItem: (itemId, selectedColor, selectedSize) => {
-        set({ isLoading: true, error: null });
+      removeItem: (productId, color, size) => {
         const { items } = get();
-        const updatedItems = items.filter(item => !(item.id === itemId && item.selectedColor === selectedColor && item.selectedSize === selectedSize));
+        const updatedItems = items.filter(item => 
+          !(item.id_articulo === productId && 
+            item.selectedColor === color && 
+            item.selectedSize === size)
+        );
+
         const totalItems = updatedItems.reduce((sum, item) => sum + item.quantity, 0);
-        const totalPrice = updatedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        set({ items: updatedItems, totalItems, totalPrice, isLoading: false });
+        const totalPrice = updatedItems.reduce((sum, item) => sum + (item.precio * item.quantity), 0);
+
+        set({
+          items: updatedItems,
+          totalItems,
+          totalPrice
+        });
       },
 
       // Clear entire cart (solo local)

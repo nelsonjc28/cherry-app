@@ -10,8 +10,8 @@ import FeaturedProducts from '../components/sections/FeaturedProducts/FeaturedPr
 import { toast } from 'react-toastify';
 
 // API and Store
-// Eliminar: import { productsApi } from '../api';
-import { useCartStore } from '../store';
+import { getProductById } from '../api/cherryApi';
+import useCartStore from '../store/cartStore';
 
 // Utils
 import { formatPrice } from '../utils/formatters';
@@ -41,15 +41,12 @@ const ProductPage = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch(`https://cherryapi.estrategiadmgs.com.mx/cherryApi/?id_articulo=${productId}`);
-        if (!response.ok) throw new Error('No se pudo obtener el producto');
-        const data = await response.json();
-        if (!data || !data[0]) throw new Error('Producto no encontrado');
-        setProduct(data[0]);
+        const productData = await getProductById(productId);
+        setProduct(productData);
         // Set default color/size if available
-        if (data[0].detalles && data[0].detalles.length > 0) {
-          setSelectedColor(data[0].detalles[0].nombreColor || '');
-          setSelectedSize(data[0].detalles[0].detalle || '');
+        if (productData.detalles && productData.detalles.length > 0) {
+          setSelectedColor(productData.detalles[0].nombreColor || '');
+          setSelectedSize(productData.detalles[0].detalle || '');
         }
       } catch (err) {
         setError(err.message);
@@ -63,29 +60,29 @@ const ProductPage = () => {
   // Handle add to cart
   const handleAddToCart = async () => {
     if (!selectedColor || !selectedSize) {
-      alert('Por favor selecciona color y talla');
+      toast.error('Por favor selecciona color y talla');
       return;
     }
 
     try {
       // Mapear los datos del producto a los campos esperados por el store
       const productToAdd = {
-        id: product.id_articulo,
+        id_articulo: product.id_articulo,
         title: product.descripcion,
         price: product.precio1,
+        precio: product.precio1,
         image: product.imagen,
         selectedColor,
         selectedSize,
-        selectedQuantity: quantity,
+        quantity,
         colors: [selectedColor]
       };
 
-      await addToCart(productToAdd, quantity);
-
+      addToCart(productToAdd, quantity);
       toast.success('Producto agregado al carrito');
     } catch (err) {
       console.error('Error adding to cart:', err);
-      alert('Error al agregar al carrito');
+      toast.error('Error al agregar al carrito');
     }
   };
 
@@ -386,7 +383,7 @@ const ProductPage = () => {
                   disabled={!selectedColor || !selectedSize || isAddingToCart}
                   icon={
                     <svg width="15" height="14" viewBox="0 0 15 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M14.349 2.00028H3.75L3.51562 0.854451C3.46354 0.567993 3.20312 0.333618 2.91667 0.333618H0.3125C0.130208 0.333618 0 0.489868 0 0.646118V1.27112C0 1.45341 0.130208 1.58362 0.3125 1.58362H2.39583L4.19271 10.8545C3.90625 11.167 3.75 11.5576 3.75 12.0003C3.75 12.9378 4.47917 13.667 5.41667 13.667C6.32812 13.667 7.08333 12.9378 7.08333 12.0003C7.08333 11.7138 6.97917 11.4274 6.84896 11.167H10.625C10.4948 11.4274 10.4167 11.7138 10.4167 12.0003C10.4167 12.9378 11.1458 13.667 12.0833 13.667C12.9948 13.667 13.75 12.9378 13.75 12.0003C13.75 11.5315 13.5417 11.1149 13.2292 10.8024L13.2552 10.6982C13.3333 10.3076 13.0469 9.91695 12.6302 9.91695H5.28646L5.05208 8.66695H13.1771C13.4896 8.66695 13.724 8.48466 13.8021 8.1982L14.974 2.78153C15.0521 2.39091 14.7656 2.00028 14.349 2.00028ZM5.41667 12.6253C5.05208 12.6253 4.79167 12.3649 4.79167 12.0003C4.79167 11.6617 5.05208 11.3753 5.41667 11.3753C5.75521 11.3753 6.04167 11.6617 6.04167 12.0003C6.04167 12.3649 5.75521 12.6253 5.41667 12.6253ZM12.0833 12.6253C11.7188 12.6253 11.4583 12.3649 11.4583 12.0003C11.4583 11.6617 11.7188 11.3753 12.0833 11.3753C12.4219 11.3753 12.7083 11.6617 12.7083 12.0003C12.7083 12.3649 12.4219 12.6253 12.0833 12.6253ZM12.6823 7.41695H4.79167L3.98438 3.25028H13.5938L12.6823 7.41695Z" fill="white" />
+                      <path d="M14.349 2.00028H3.75L3.51562 0.854451C3.46354 0.567993 3.20312 0.333618 2.91667 0.333618H0.3125C0.130208 0.333618 0 0.489868 0 0.646118V1.27112C0 1.45341 0.130208 1.58362 0.3125 1.58362H2.39583L4.19271 10.8545C3.90625 11.167 3.75 11.5576 3.75 12.0003C3.75 12.9378 4.47917 13.667 5.41667 13.667C6.32812 13.667 7.08333 12.9378 7.08333 12.0003C7.08333 11.7138 6.97917 11.4274 6.84896 11.167H10.625C10.4948 11.4274 10.4167 11.7138 10.4167 12.0003C10.4167 12.9378 11.1458 13.667 12.0833 13.667C12.9948 12.9378 13.75 12.9378 13.75 12.0003C13.75 11.5315 13.5417 11.1149 13.2292 10.8024L13.2552 10.6982C13.3333 10.3076 13.0469 9.91695 12.6302 9.91695H5.28646L5.05208 8.66695H13.1771C13.4896 8.66695 13.724 8.48466 13.8021 8.1982L14.974 2.78153C15.0521 2.39091 14.7656 2.00028 14.349 2.00028ZM5.41667 12.6253C5.05208 12.6253 4.79167 12.3649 4.79167 12.0003C4.79167 11.6617 5.05208 11.3753 5.41667 11.3753C5.75521 11.3753 6.04167 11.6617 6.04167 12.0003C6.04167 12.3649 5.75521 12.6253 5.41667 12.6253ZM12.0833 12.6253C11.7188 12.6253 11.4583 12.3649 11.4583 12.0003C11.4583 11.6617 11.7188 11.3753 12.0833 11.3753C12.4219 11.3753 12.7083 11.6617 12.7083 12.0003C12.7083 12.3649 12.4219 12.6253 12.0833 12.6253ZM12.6823 7.41695H4.79167L3.98438 3.25028H13.5938L12.6823 7.41695Z" fill="white" />
                     </svg>
                   }
                   iconPosition="left"
