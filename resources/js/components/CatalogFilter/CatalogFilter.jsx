@@ -149,140 +149,249 @@ const CatalogFilter = ({
           <h3 className="filter-title">Filtrar por:</h3>
           <div className="radio-group">
             {availabilityOptions.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => handleFilterChange('availability', option.value)}
-                className={`availability-button ${filters.availability === option.value ? 'selected' : ''}`}
-              >
-                <div className="availability-indicator"></div>
-                <span>
-                  {option.label}
-                  {option.value === 'con-existencia' && (
-                    <span style={{ fontSize: '10px', opacity: 0.8, marginLeft: '4px' }}>
-                      (solo con stock)
+              <label key={option.value} className="radio-label">
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => handleFilterChange('availability', option.value)}
+                  className={`availability-button ${filters.availability === option.value ? 'selected' : ''}`}
+                >
+                  <div className="availability-indicator"></div>
+                  <span className="radio-text">
+                    {option.label}
+                    {option.value === 'con-existencia' && (
+                      <span style={{ fontSize: '10px', opacity: 0.8, marginLeft: '4px' }}>
+                        (solo con stock)
+                      </span>
+                    )}
+                  </span>
+                  {filters.availability === option.value && (
+                    <span style={{
+                      position: 'absolute',
+                      right: '12px',
+                      fontSize: '12px',
+                      color: 'white',
+                      fontWeight: 'bold'
+                    }}>
+                      ✓
                     </span>
                   )}
-                </span>
-                {filters.availability === option.value && (
-                  <span style={{ 
-                    position: 'absolute', 
-                    right: '12px', 
-                    fontSize: '12px', 
-                    color: 'white',
-                    fontWeight: 'bold'
-                  }}>
-                    ✓
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Category filter */}
-        <div className="filter-section">
-          <h3 className="filter-title">Categoría</h3>
-          <select
-            value={filters.category}
-            onChange={(e) => handleFilterChange('category', e.target.value)}
-            className="filter-select"
-          >
-            {clothingCategories.map((category) => (
-              <option key={category} value={category}>{category}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Department filter */}
-        <div className="filter-section">
-          <h3 className="filter-title">Departamento</h3>
-          <select
-            value={filters.department}
-            onChange={(e) => handleFilterChange('department', e.target.value)}
-            className="filter-select"
-          >
-            {departments.map((dept) => (
-              <option key={dept} value={dept}>{dept}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Sector filter */}
-        <div className="filter-section">
-          <h3 className="filter-title">Sector</h3>
-          <select
-            value={filters.sector}
-            onChange={(e) => handleFilterChange('sector', e.target.value)}
-            className="filter-select"
-          >
-            {sectors.map((sector) => (
-              <option key={sector} value={sector}>{sector}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Sizes filter */}
-        <div className="filter-section">
-          <h3 className="filter-title">Tallas</h3>
-          <div className="checkbox-group">
-            {sizes.map((size) => (
-              <label key={size} className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={filters.sizes.includes(size)}
-                  onChange={() => handleFilterChange('sizes', size)}
-                  className="checkbox-input"
-                />
-                <span className="checkbox-text">{size}</span>
+                </button>
               </label>
             ))}
           </div>
         </div>
 
-        {/* Price range filter */}
-        <div className="filter-section">
-          <h3 className="filter-title">Rango de Precio</h3>
-          <div className="price-range">
-            <div className="price-input-group">
-              <label>Mínimo:</label>
-              <input
-                type="number"
-                value={filters.priceRange.min || ''}
-                onChange={(e) => handleFilterChange('priceRange', {
-                  ...filters.priceRange,
-                  min: parseFloat(e.target.value) || 0
-                })}
-                placeholder="0"
-                className="price-input"
-              />
-            </div>
-            <div className="price-input-group">
-              <label>Máximo:</label>
-              <input
-                type="number"
-                value={filters.priceRange.max || ''}
-                onChange={(e) => handleFilterChange('priceRange', {
-                  ...filters.priceRange,
-                  max: parseFloat(e.target.value) || 0
-                })}
-                placeholder="∞"
-                className="price-input"
-              />
-            </div>
-          </div>
-        </div>
+        {/* Filter button */}
+        <CustomButton
+          onClick={() => setShowAccordion((prev) => !prev)}
+          iconLeft={<img className="filter-icon" src={getIconPath('Filter.svg')} alt="Comparar clientes" />}
+          iconRight={<img src={getIconPath('Chevron Down.svg')} alt="Chevro" />}
+          variant="outlined"
+          size="medium"
+          className="filters-btn"
+        >
+          Filtros
+        </CustomButton>
 
-        {/* Clear filters button */}
-        <div className="filter-section">
-          <CustomButton
-            onClick={onClearFilters}
-            variant="outline"
-            fullWidth
-          >
-            Limpiar Filtros
-          </CustomButton>
-        </div>
+        {/* Accordion content */}
+        {showAccordion && (
+          <>
+            <div className="accordion-filter-content">
+              {/* Sort by */}
+              <div className="filter-section expandable">
+                <button
+                  className="filter-section-header"
+                  onClick={() => toggleSection('sortBy')}
+                >
+                  <span>Ordenar por</span>
+                  <img src={getIconPath('Chevron Down.svg')} alt="Filter" />
+                </button>
+                {expandedSections.sortBy && (
+                  <div className="filter-section-content">
+                    {/* Sort options would go here */}
+                  </div>
+                )}
+              </div>
+
+              {/* Clothing category */}
+              <div className="filter-section expandable">
+                <button
+                  className="filter-section-header"
+                  onClick={() => toggleSection('clothing')}
+                >
+                  <span>Ropa</span>
+                  <img src={getIconPath('Chevron Down.svg')} alt="Filter" />
+                </button>
+                {expandedSections.clothing && (
+                  <div className="filter-section-content">
+                    <select
+                      value={filters.category}
+                      onChange={(e) => handleFilterChange('category', e.target.value)}
+                      className="filter-select"
+                    >
+                      {clothingCategories.map((category) => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* Department */}
+              <div className="filter-section expandable">
+                <button
+                  className="filter-section-header"
+                  onClick={() => toggleSection('department')}
+                >
+                  <span>Departamento</span>
+                  <img src={getIconPath('Chevron Down.svg')} alt="Filter" />
+                </button>
+                {expandedSections.department && (
+                  <div className="filter-section-content">
+                    <select
+                      value={filters.department}
+                      onChange={(e) => handleFilterChange('department', e.target.value)}
+                      className="filter-select"
+                    >
+                      {departments.map((dept) => (
+                        <option key={dept} value={dept}>{dept}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+              {/* Sector */}
+              <div className="filter-section expandable">
+                <button
+                  className="filter-section-header"
+                  onClick={() => toggleSection('sector')}
+                >
+                  <span>Sector</span>
+                  <img src={getIconPath('Chevron Down.svg')} alt="Filter" />
+                </button>
+                {expandedSections.sector && (
+                  <div className="filter-section-content">
+                    <select
+                      value={filters.sector}
+                      onChange={(e) => handleFilterChange('sector', e.target.value)}
+                      className="filter-select"
+                    >
+                      {sectors.map((sector) => (
+                        <option key={sector} value={sector}>{sector}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* Sizes */}
+              <div className="filter-section expandable">
+                <button
+                  className="filter-section-header"
+                  onClick={() => toggleSection('sizes')}
+                >
+                  <span>Tallas</span>
+                  <img src={getIconPath('Chevron Down.svg')} alt="Filter" />
+                </button>
+                {expandedSections.sizes && (
+                  <div className="filter-section-content">
+                    <div className="size-grid">
+                      {sizes.map((size) => (
+                        <label key={size} className="size-option">
+                          <input
+                            type="checkbox"
+                            checked={filters.sizes.includes(size)}
+                            onChange={() => handleFilterChange('sizes', size)}
+                          />
+                          <span className="size-text">{size}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Colors */}
+              <div className="filter-section expandable">
+                <button
+                  className="filter-section-header"
+                  onClick={() => toggleSection('colors')}
+                >
+                  <span>Colores</span>
+                  <img src={getIconPath('Chevron Down.svg')} alt="Filter" className={`chevron ${expandedSections.clothing ? 'expanded' : ''}`} />
+                </button>
+                {expandedSections.colors && (
+                  <div className="filter-section-content">
+                    <div className="color-grid">
+                      {colors.map((color) => (
+                        <label key={color.value} className="color-option">
+                          <input
+                            type="checkbox"
+                            checked={filters.colors.includes(color.value)}
+                            onChange={() => handleFilterChange('colors', color.value)}
+                          />
+                          <span
+                            className="color-swatch"
+                            style={{ backgroundColor: color.hex }}
+                            title={color.name}
+                          ></span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Price range */}
+            <div className="filter-section">
+              <h3 className="filter-title">Precio | MXN</h3>
+              <div className="price-inputs">
+                <input
+                  type="number"
+                  placeholder="0.0"
+                  value={filters.priceRange.min || ''}
+                  onChange={(e) => handleFilterChange('priceRange', {
+                    ...filters.priceRange,
+                    min: parseFloat(e.target.value) || 0
+                  })}
+                  className="price-input"
+                />
+                <input
+                  type="number"
+                  placeholder="0.0"
+                  value={filters.priceRange.max || ''}
+                  onChange={(e) => handleFilterChange('priceRange', {
+                    ...filters.priceRange,
+                    max: parseFloat(e.target.value) || 0
+                  })}
+                  className="price-input"
+                />
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="filter-actions">
+              <CustomButton
+                onClick={onClearFilters}
+                iconLeft={<img className="filter-icon" src={getIconPath('Filter.svg')} alt="Comparar clientes" />}
+                variant="outlined"
+                size="medium"
+              >
+                Limpiar Filtros
+              </CustomButton>
+             
+              <CustomButton
+                onClick={onClose}
+                variant="filled"
+                size="medium"
+              >
+                Aplicar filtros
+              </CustomButton>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

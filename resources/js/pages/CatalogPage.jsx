@@ -382,11 +382,12 @@ const CatalogPage = () => {
           {/* Main content */}
           <div className="catalog-page__content">
             {/* Filters sidebar - DESKTOP */}
-            <aside className="catalog-page__filters-sidebar">
+            <aside className="catalog-page__sidebar">
               <CatalogFilter
                 filters={filters}
                 onFilterChange={handleFilterChange}
                 onClearFilters={handleClearFilters}
+                isMobile={false}
               />
             </aside>
 
@@ -429,6 +430,7 @@ const CatalogPage = () => {
 
           {/* Mobile filter modal */}
           {isFilterModalOpen && (
+            <div className="catalog-page__filter-modal-overlay" onClick={toggleFilterModal}>
             <div className="catalog-page__filter-modal">
               <CatalogFilter
                 filters={filters}
@@ -437,6 +439,7 @@ const CatalogPage = () => {
                 isMobile={true}
                 onClose={toggleFilterModal}
               />
+            </div>
             </div>
           )}
         </div>
