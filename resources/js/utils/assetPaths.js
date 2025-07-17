@@ -36,7 +36,7 @@ export const getAssetPath = (path) => {
 export const getIconPath = (iconName) => {
   // Remove .svg extension if already present to avoid double extension
   const cleanIconName = iconName.replace(/\.svg$/i, '');
-  return `/icons/${cleanIconName}.svg`;
+  return `${window.location.origin}/icons/${cleanIconName}.svg`;
 };
 
 /**
@@ -45,7 +45,7 @@ export const getIconPath = (iconName) => {
  * @returns {string} - Full path to the image
  */
 export const getImagePath = (imageName) => {
-  return `/images/${imageName}`;
+  return `${window.location.origin}/images/${imageName}`;
 };
 
 /**
@@ -55,7 +55,7 @@ export const getImagePath = (imageName) => {
  */
 export const getCategoryIconPath = (categoryName) => {
   const normalizedName = categoryName.toLowerCase().replace(/\s+/g, '-');
-  return `/icons/category/${normalizedName}.svg`;
+  return `${window.location.origin}/icons/category/${normalizedName}`;
 };
 
 /**
@@ -65,7 +65,7 @@ export const getCategoryIconPath = (categoryName) => {
  */
 export const getFeaturedCategoryIconPath = (categoryName) => {
   const normalizedName = categoryName.toLowerCase().replace(/\s+/g, '-');
-  return `/icons/featuredCategories/${normalizedName}.svg`;
+  return `${window.location.origin}/icons/featuredCategories/${normalizedName}.svg`;
 };
 
 /**
@@ -74,7 +74,7 @@ export const getFeaturedCategoryIconPath = (categoryName) => {
  * @returns {string} - Full path to the hero icon
  */
 export const getHeroIconPath = (iconName) => {
-  return `/icons/hero/${iconName}`;
+  return `${window.location.origin}/icons/hero/${iconName}`;
 };
 
 /**
@@ -83,7 +83,7 @@ export const getHeroIconPath = (iconName) => {
  * @returns {string} - Full path to the hero slider image
  */
 export const getHeroSliderImagePath = (imageName) => {
-  return `/images/HeroBanner/${imageName}`;
+  return `${window.location.origin}/images/HeroBanner/${imageName}`;
 };
 
 /**
@@ -92,7 +92,7 @@ export const getHeroSliderImagePath = (imageName) => {
  * @returns {string} - Full path to the featured catalog image
  */
 export const getFeaturedCatalogImagePath = (imageName) => {
-  return `/images/RecentCatalogs/${imageName}`;
+  return `${window.location.origin}/images/RecentCatalogs/${imageName}`;
 };
 
 /**
@@ -101,7 +101,7 @@ export const getFeaturedCatalogImagePath = (imageName) => {
  * @returns {string} - Full path to the product image
  */
 export const getProductImagePath = (imageName) => {
-  return `/images/catalogProductImages/${imageName}`;
+  return `${window.location.origin}/images/catalogProductImages/${imageName}`;
 };
 
 /**
@@ -110,7 +110,7 @@ export const getProductImagePath = (imageName) => {
  * @returns {string} - Full path to the featured product image
  */
 export const getFeaturedProductImagePath = (imageName) => {
-  return `/images/FeaturedProducts/${imageName}`;
+  return `${window.location.origin}/images/FeaturedProducts/${imageName}`;
 };
 
 /**
@@ -119,7 +119,7 @@ export const getFeaturedProductImagePath = (imageName) => {
  * @returns {string} - Full path to the hero banner image
  */
 export const getHeroBannerImagePath = (imageName) => {
-  return `/images/HeroBanner/${imageName}`;
+  return `${window.location.origin}/images/HeroBanner/${imageName}`;
 };
 
 /**
@@ -128,7 +128,7 @@ export const getHeroBannerImagePath = (imageName) => {
  * @returns {string} - Full path to the recent catalog image
  */
 export const getRecentCatalogImagePath = (imageName) => {
-  return `/images/RecentCatalogs/${imageName}`;
+  return `${window.location.origin}/images/RecentCatalogs/${imageName}`;
 };
 
 /**
@@ -137,7 +137,7 @@ export const getRecentCatalogImagePath = (imageName) => {
  * @returns {string} - Full path to the affiliate section image
  */
 export const getAffiliateImagePath = (imageName) => {
-  return `/images/AffiliateSection/${imageName}`;
+  return `${window.location.origin}/images/AffiliateSection/${imageName}`;
 };
 
 /**
@@ -145,7 +145,7 @@ export const getAffiliateImagePath = (imageName) => {
  * @returns {string} - Full path to the logo
  */
 export const getLogoPath = () => {
-  return `/images/logo.svg`;
+  return `${window.location.origin}/images/logo.svg`;
 };
 
 /**
@@ -153,7 +153,7 @@ export const getLogoPath = () => {
  * @returns {string} - Full path to the placeholder image
  */
 export const getPlaceholderImagePath = () => {
-  return `/images/placeholder.jpg`;
+  return `${window.location.origin}/images/placeholder.jpg`;
 };
 
 /**

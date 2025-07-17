@@ -437,7 +437,7 @@ const Header = () => {
               {activeMenu === 'destacados' && (
                 <div className="mega-menu-featured">
                   <div className="featured-product">
-                    <img src="/images/featured-product.jpg" alt="Producto destacado" />
+                    <img src={`${window.location.origin}/images/featured-product.jpg`} alt="Producto destacado" />
                     <h4>Oferta Especial</h4>
                     <p>Hasta 30% de descuento en productos seleccionados</p>
                     <Link to="/destacados/ofertas" className="featured-link">Ver ahora</Link>

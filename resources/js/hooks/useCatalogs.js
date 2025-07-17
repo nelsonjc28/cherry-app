@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { generateS3ImageUrl } from '../api/cherryApi';
 
 const useCatalogs = () => {
   const [catalogs, setCatalogs] = useState([]);
@@ -78,7 +79,7 @@ const useCatalogs = () => {
         id: product.id_articulo,
         title: product.descripcion,
         price: product.precio1,
-        image: product.imagen,
+        image: generateS3ImageUrl(product.id_articulo),
         rating: 4.5, // Default rating since API doesn't provide it
         description: product.descripcion,
         marca: product.marca,
@@ -182,7 +183,7 @@ const useCatalogs = () => {
         id: product.id_articulo,
         title: product.descripcion,
         price: product.precio1,
-        image: product.imagen,
+        image: generateS3ImageUrl(product.id_articulo),
         rating: 4.5,
         description: product.descripcion,
         marca: product.marca,

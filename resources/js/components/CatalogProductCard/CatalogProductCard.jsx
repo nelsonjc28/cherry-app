@@ -46,6 +46,35 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
     }
   };
 
+  // Handle share functionality
+  const handleShare = () => {
+    const productUrl = `${window.location.origin}/producto/${id}`;
+    
+    if (navigator.share) {
+      // Use native sharing if available
+      navigator.share({
+        title: title,
+        text: `Mira este producto: ${title}`,
+        url: productUrl
+      });
+    } else {
+      // Fallback to clipboard copy
+      navigator.clipboard.writeText(productUrl).then(() => {
+        // You could add a toast notification here
+        alert('Enlace copiado al portapapeles');
+      }).catch(() => {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = productUrl;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('Enlace copiado al portapapeles');
+      });
+    }
+  };
+
   return (
     <div className="catalog-product-card">
       {/* Product image container */}
@@ -78,7 +107,14 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
         {/* Product ID */}
         <div className="catalog-product-id-icon">
           <div className="catalog-product-id">{id}</div>
-          <img src={getIconPath('Share Alt.svg')} />
+          <button 
+            onClick={handleShare}
+            className="share-button"
+            aria-label="Compartir producto"
+            title="Compartir producto"
+          >
+            <img src={getIconPath('Share Alt.svg')} alt="Compartir" />
+          </button>
         </div>
         
         {/* Product title */}

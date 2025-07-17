@@ -197,23 +197,23 @@ const Header = () => {
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchTerm.trim()) {
-      // Parse search term for color and DTU filters
+      // Parse search term for different types of filters
       const searchParts = searchTerm.trim().split(' ');
       const colorFilters = [];
-      const dtuFilters = [];
+      const skuFilters = [];
       const generalTerms = [];
       
       searchParts.forEach(term => {
         const lowerTerm = term.toLowerCase();
-        // Check if it's a color (common color names)
-        if (['rojo', 'azul', 'verde', 'amarillo', 'negro', 'blanco', 'rosa', 'morado', 'naranja', 'gris', 'beige', 'cafe', 'marron'].includes(lowerTerm)) {
+        // Check if it's a color (common color names in Spanish)
+        if (['rojo', 'azul', 'verde', 'amarillo', 'negro', 'blanco', 'rosa', 'morado', 'naranja', 'gris', 'beige', 'cafe', 'marron', 'violeta', 'celeste', 'turquesa', 'coral', 'dorado', 'plateado', 'bronce'].includes(lowerTerm)) {
           colorFilters.push(term);
         }
-        // Check if it's a DTU (usually alphanumeric codes)
-        else if (/^[A-Z0-9]{3,}$/.test(term.toUpperCase())) {
-          dtuFilters.push(term);
+        // Check if it's a SKU (usually alphanumeric codes, 6+ characters)
+        else if (/^[A-Z0-9]{6,}$/.test(term.toUpperCase())) {
+          skuFilters.push(term);
         }
-        // Otherwise it's a general search term
+        // Otherwise it's a general search term (product name, description, etc.)
         else {
           generalTerms.push(term);
         }
@@ -227,8 +227,8 @@ const Header = () => {
       if (colorFilters.length > 0) {
         searchParams.set('color', colorFilters.join(','));
       }
-      if (dtuFilters.length > 0) {
-        searchParams.set('dtu', dtuFilters.join(','));
+      if (skuFilters.length > 0) {
+        searchParams.set('sku', skuFilters.join(','));
       }
       
       navigate(`/buscar?${searchParams.toString()}`);
@@ -520,7 +520,7 @@ const Header = () => {
               {activeMenu === 'destacados' && (
                 <div className="mega-menu-featured">
                   <div className="featured-product">
-                    <img src="/images/featured-product.jpg" alt="Producto destacado" />
+                    <img src={`${window.location.origin}/images/featured-product.jpg`} alt="Producto destacado" />
                     <h4>Oferta Especial</h4>
                     <p>Hasta 30% de descuento en productos seleccionados</p>
                     <Link to="/destacados/ofertas" className="featured-link">Ver ahora</Link>

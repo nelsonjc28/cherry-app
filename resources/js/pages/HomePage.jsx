@@ -15,7 +15,7 @@ const HomePage = () => {
     {
       id: 1,
       title: 'Complementa tu look con nuestra elegante colección de vestidos',
-      image: '/images/FeaturedProducts/example_image_card.png',
+      image: `${window.location.origin}/images/FeaturedProducts/example_image_card.png`,
       price: 29,
       rating: 5,
       description: 'Un toque clásico que nunca pasa de moda. Perfecto para ocasiones especiales.'
@@ -23,7 +23,7 @@ const HomePage = () => {
     {
       id: 2,
       title: 'Blusas modernas para el día a día',
-      image: '/images/RecentCatalogs/image_example_2.png',
+      image: `${window.location.origin}/images/RecentCatalogs/image_example_2.png`,
       price: 29,
       rating: 5,
       description: 'Comodidad y estilo en cada diseño. Ideal para el uso diario.'
@@ -31,7 +31,7 @@ const HomePage = () => {
     {
       id: 3,
       title: 'Pantalones que resaltan tu figura',
-      image: '/images/RecentCatalogs/image_example_1.png',
+      image: `${window.location.origin}/images/RecentCatalogs/image_example_1.png`,
       price: 29,
       rating: 5,
       description: 'Cortes modernos que se adaptan a tu silueta perfectamente.'
@@ -39,7 +39,7 @@ const HomePage = () => {
     {
       id: 4,
       title: 'Accesorios únicos para completar tu outfit',
-      image: '/images/HeroBanner/hero-slider1-girl.png',
+      image: `${window.location.origin}/images/HeroBanner/hero-slider1-girl.png`,
       price: 29,
       rating: 5,
       description: 'Detalles que marcan la diferencia en tu estilo personal.'

@@ -41,7 +41,7 @@ export default function CheckoutSuccessPage() {
         </div>
         <div className="checkout-success-invite">Te invitamos a seguir disfrutando de todos nuestros productos</div>
         <div className="content-checkout-success-logo">
-          <img src="/images/logo.svg" alt="Cherry Logo" className="checkout-success-logo" />
+          <img src={`${window.location.origin}/images/logo.svg`} alt="Cherry Logo" className="checkout-success-logo" />
         </div>
         <div className="checkout-success-actions">
           <CustomButton 

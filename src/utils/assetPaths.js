@@ -8,8 +8,8 @@
  * @returns {string} The base URL
  */
 export const getBaseUrl = () => {
-  // Get base URL from Vite configuration or current location
-  return import.meta.env.BASE_URL || '/';
+  // Use window.location.origin to get the complete base URL
+  return window.location.origin;
 };
 
 /**

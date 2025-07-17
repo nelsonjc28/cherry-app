@@ -57,6 +57,20 @@ const productsApi = {
 
 const CHERRY_API_URL = 'https://cherryapi.estrategiadmgs.com.mx/cherryApi/';
 
+// Función para generar URL de imagen S3
+export const generateS3ImageUrl = (id_articulo) => {
+  return `https://cherry-fotos.s3.amazonaws.com/shopify/${id_articulo}/${id_articulo}_1.jpg`;
+};
+
+// Función para generar múltiples URLs de imagen S3 para un producto
+export const generateS3ImageUrls = (id_articulo, count = 4) => {
+  const urls = [];
+  for (let i = 1; i <= count; i++) {
+    urls.push(`https://cherry-fotos.s3.amazonaws.com/shopify/${id_articulo}/${id_articulo}_${i}.jpg`);
+  }
+  return urls;
+};
+
 // Función para obtener todos los productos
 export const getAllProducts = async () => {
   try {
@@ -98,8 +112,8 @@ export const getProductsByLineDescription = async (lineDescription) => {
 
 // Función para mapear productos de la API al formato de la app
 export const mapApiProductToAppProduct = (apiProduct) => {
-  // Obtener la primera imagen disponible
-  const image = apiProduct.imagen || '/images/placeholder.jpg';
+  // Generar URL de imagen S3 usando el id_articulo
+  const image = generateS3ImageUrl(apiProduct.id_articulo);
   
   // Calcular precio con descuento si aplica
   const originalPrice = apiProduct.precio1 || 0;

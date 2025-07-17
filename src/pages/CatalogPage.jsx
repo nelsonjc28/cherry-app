@@ -173,6 +173,40 @@ const CatalogPage = () => {
     }
   }, [filters.category, filters.priceRange, filters.colors, filters.sizes, sortBy, allProducts]); // Excluir filters.availability y filters.catalog
 
+  // Handle favorite toggle
+  const handleFavoriteToggle = (productId) => {
+    // Implement favorite functionality here
+  };
+
+  // Handle share functionality
+  const handleShareCatalog = () => {
+    const catalogUrl = `${window.location.origin}/catalogo`;
+    
+    if (navigator.share) {
+      // Use native sharing if available
+      navigator.share({
+        title: 'Catálogo de productos Cherry',
+        text: 'Explora nuestro catálogo completo de productos Cherry. Encuentra las últimas tendencias en moda y accesorios.',
+        url: catalogUrl
+      });
+    } else {
+      // Fallback to clipboard copy
+      navigator.clipboard.writeText(catalogUrl).then(() => {
+        // You could add a toast notification here
+        alert('Enlace del catálogo copiado al portapapeles');
+      }).catch(() => {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = catalogUrl;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('Enlace del catálogo copiado al portapapeles');
+      });
+    }
+  };
+
   const totalResults = filteredProducts.length;
   const productsPerPage = 12;
   const totalPages = Math.ceil(totalResults / productsPerPage);
@@ -211,11 +245,6 @@ const CatalogPage = () => {
       colors: [],
       priceRange: { min: 0, max: 0 }
     });
-  };
-
-  // Handle favorite toggle
-  const handleFavoriteToggle = (productId) => {
-    // Implement favorite functionality here
   };
 
   if (loading) {
@@ -258,6 +287,7 @@ const CatalogPage = () => {
                   size="small"
                   className="catalog-page__compare-clients-btn"
                   iconLeft={<img src={getIconPath('Whatsapp.svg')} alt="Comparar clientes" style={{ width: 16, height: 16 }} />}
+                  onClick={handleShareCatalog}
                 >
                   <span className="catalog-page__whatsapp-text">Compartir a clientes</span>
                 </CustomButton>
@@ -331,6 +361,7 @@ const CatalogPage = () => {
                 variant="filled"
                 size="medium"
                 iconLeft={<img src={getIconPath('Whatsapp.svg')} alt="Comparar clientes" style={{ width: 16, height: 16 }} />}
+                onClick={handleShareCatalog}
               >
                 <span className="catalog-page__whatsapp-text">Compartir a clientes</span>
               </CustomButton>

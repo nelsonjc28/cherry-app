@@ -6,7 +6,9 @@ const AffiliateSection = () => {
   return (
     <>
       <div className="affiliateDecorative">
-          <img src='/images/AffiliateSection/affiliate-girl.png' alt="Affiliate Girl" />
+          <div className="affiliate-section__image">
+            <img src={`${window.location.origin}/images/AffiliateSection/affiliate-girl.png`} alt="Affiliate Girl" />
+          </div>
 
           <div className="flotantGlobes">
             <div className="bigGlobe"></div>
@@ -15,7 +17,9 @@ const AffiliateSection = () => {
       </div>
 
       <div className="affiliateContent">
-        <img src='/images/logo.svg' alt="Cherry" width={175}/>
+        <div className="affiliate-section__logo">
+          <img src={`${window.location.origin}/images/logo.svg`} alt="Cherry" width={175}/>
+        </div>
         <h2 id="affiliate-heading" className="affiliateTitle">
           ¡Afíliate ahora mismo y comienza tu propio negocio!
         </h2>

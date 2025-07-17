@@ -5,12 +5,14 @@ import ProductCard from '../components/ProductCard/ProductCard';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import CherryButton from '../components/CherryButton/CherryButton';
 import { getIconPath } from '../utils/assetPaths';
-import { getProductsByCategory, getAllProducts, mapApiProductToAppProduct } from '../api/cherryApi';
+import { searchProductsAdvanced, getAllProducts, mapApiProductToAppProduct } from '../api/cherryApi';
 import './BuscarPage.css';
 
 const BuscarPage = () => {
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
+  const colorFilter = searchParams.get('color') || '';
+  const skuFilter = searchParams.get('sku') || '';
   
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
@@ -33,10 +35,23 @@ const BuscarPage = () => {
     const loadProducts = async () => {
       setLoading(true);
       try {
-        const allProducts = await getAllProducts();
-        const mappedProducts = allProducts.map(mapApiProductToAppProduct);
-        setProducts(mappedProducts);
-        setFilteredProducts(mappedProducts);
+        // Use advanced search if we have search parameters
+        if (query || colorFilter || skuFilter) {
+          const searchFilters = {
+            ...filters,
+            codigo: skuFilter,
+            colors: colorFilter ? colorFilter.split(',').map(c => c.trim()) : []
+          };
+          const searchResults = await searchProductsAdvanced(query, searchFilters);
+          setProducts(searchResults);
+          setFilteredProducts(searchResults);
+        } else {
+          // Load all products if no search parameters
+          const allProducts = await getAllProducts();
+          const mappedProducts = allProducts.map(mapApiProductToAppProduct);
+          setProducts(mappedProducts);
+          setFilteredProducts(mappedProducts);
+        }
       } catch (error) {
         console.error('Error loading products:', error);
         setProducts([]);
@@ -47,25 +62,11 @@ const BuscarPage = () => {
     };
 
     loadProducts();
-  }, []);
+  }, [query, colorFilter, skuFilter]);
 
-  // Filtrar productos basado en búsqueda y filtros
+  // Filtrar productos basado en filtros adicionales
   useEffect(() => {
     let filtered = [...products];
-
-    // Filtrar por término de búsqueda
-    if (query) {
-      const searchTerm = query.toLowerCase();
-      filtered = filtered.filter(product => {
-        return (
-          product.title?.toLowerCase().includes(searchTerm) ||
-          product.description?.toLowerCase().includes(searchTerm) ||
-          product.category?.toLowerCase().includes(searchTerm) ||
-          product.codigo?.toLowerCase().includes(searchTerm) ||
-          product.dtu?.toLowerCase().includes(searchTerm)
-        );
-      });
-    }
 
     // Aplicar filtros adicionales
     if (filters.category && filters.category !== 'Todas las categorías') {
@@ -91,7 +92,7 @@ const BuscarPage = () => {
       });
     }
 
-    // Filtrar por colores
+    // Filtrar por colores adicionales
     if (filters.colors && filters.colors.length > 0) {
       filtered = filtered.filter(product => {
         if (!product.colors || product.colors.length === 0) return false;
@@ -107,7 +108,7 @@ const BuscarPage = () => {
       });
     }
 
-    // Filtrar por código
+    // Filtrar por código adicional
     if (filters.codigo && filters.codigo.trim() !== '') {
       const codigoLower = filters.codigo.trim().toLowerCase();
       filtered = filtered.filter(product => {
@@ -130,7 +131,7 @@ const BuscarPage = () => {
     }
 
     setFilteredProducts(filtered);
-  }, [query, filters, products]);
+  }, [filters, products]);
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
@@ -152,13 +153,23 @@ const BuscarPage = () => {
   };
 
   const handleFavoriteToggle = (productId) => {
-    };
+    // Handle favorite toggle
+  };
+
+  // Build search description
+  const getSearchDescription = () => {
+    const parts = [];
+    if (query) parts.push(`"${query}"`);
+    if (colorFilter) parts.push(`color: ${colorFilter}`);
+    if (skuFilter) parts.push(`SKU: ${skuFilter}`);
+    return parts.join(', ');
+  };
 
   return (
     <>
       <Helmet>
         <title>Búsqueda - Cherry Central</title>
-        <meta name="description" content={`Resultados de búsqueda para "${query}" en Cherry Central. Encuentra los mejores productos de moda femenina.`} />
+        <meta name="description" content={`Resultados de búsqueda para "${getSearchDescription()}" en Cherry Central. Encuentra los mejores productos de moda femenina.`} />
       </Helmet>
 
       <main className="buscar-page">
@@ -166,9 +177,9 @@ const BuscarPage = () => {
           {/* Header de búsqueda */}
           <div className="buscar-header">
             <h1>Resultados de búsqueda</h1>
-            {query && (
+            {(query || colorFilter || skuFilter) && (
               <p className="buscar-query">
-                Buscando: <strong>"{query}"</strong>
+                Buscando: <strong>"{getSearchDescription()}"</strong>
               </p>
             )}
             <p className="buscar-results">
@@ -198,9 +209,13 @@ const BuscarPage = () => {
                   <div className="no-results-icon">
                     <img src={getIconPath('Search.svg')} alt="Sin resultados" />
                   </div>
-                  <h2>No se encontraron productos</h2>
-                  <p>Intenta con otros términos de búsqueda o ajusta los filtros</p>
-                  <CherryButton variant="outline" size="medium">
+                  <h3>No se encontraron productos</h3>
+                  <p>Intenta ajustar los términos de búsqueda o usar filtros diferentes</p>
+                  <CherryButton 
+                    variant="outline" 
+                    size="medium"
+                    onClick={handleClearFilters}
+                  >
                     Limpiar filtros
                   </CherryButton>
                 </div>

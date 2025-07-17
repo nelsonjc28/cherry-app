@@ -10,7 +10,7 @@ import FeaturedProducts from '../components/sections/FeaturedProducts/FeaturedPr
 import { toast } from 'react-toastify';
 
 // API and Store
-import { getProductById } from '../api/cherryApi';
+import { getProductById, generateS3ImageUrl } from '../api/cherryApi';
 import useCartStore from '../store/cartStore';
 
 // Utils
@@ -71,7 +71,7 @@ const ProductPage = () => {
         title: product.descripcion,
         price: product.precio1,
         precio: product.precio1,
-        image: product.imagen,
+        image: generateS3ImageUrl(product.id_articulo),
         selectedColor,
         selectedSize,
         quantity,
@@ -206,7 +206,7 @@ const ProductPage = () => {
           <div className="product-page__gallery">
             <div className="product-page__gallery-main">
               <img
-                src={imagen}
+                src={generateS3ImageUrl(id_articulo)}
                 alt={descripcion}
                 className="product-page__gallery-main-image"
                 style={{ maxWidth: 400, maxHeight: 400, objectFit: 'contain' }}

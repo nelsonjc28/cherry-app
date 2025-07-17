@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getAllProducts } from '../api/cherryApi';
+import { getAllProducts, generateS3ImageUrl } from '../api/cherryApi';
 import ProductGrid from '../components/ProductGrid/ProductGrid';
 import './BuscarPage.css';
 
@@ -43,10 +43,7 @@ const BuscarPage = () => {
 
         // Mapear productos al formato de la app
         const mappedProducts = filteredProducts.map(product => {
-          let image = product.imagen || '/images/placeholder.jpg';
-          if (image && !image.startsWith('http')) {
-            image = 'https://cherryapi.estrategiadmgs.com.mx/' + image.replace(/^\//, '');
-          }
+          const image = generateS3ImageUrl(product.id_articulo);
           
           const originalPrice = product.precio1 || 0;
           const discount = product.desc_promo || 0;

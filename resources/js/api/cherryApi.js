@@ -6,6 +6,20 @@ const productCache = new Map();
 // Cache for products to avoid multiple API calls
 let productsCache = null;
 
+// Función para generar URL de imagen S3
+export const generateS3ImageUrl = (id_articulo) => {
+  return `https://cherry-fotos.s3.amazonaws.com/shopify/${id_articulo}/${id_articulo}_1.jpg`;
+};
+
+// Función para generar múltiples URLs de imagen S3 para un producto
+export const generateS3ImageUrls = (id_articulo, count = 4) => {
+  const urls = [];
+  for (let i = 1; i <= count; i++) {
+    urls.push(`https://cherry-fotos.s3.amazonaws.com/shopify/${id_articulo}/${id_articulo}_${i}.jpg`);
+  }
+  return urls;
+};
+
 // Mapeo de catálogos a parámetros de la API
 const CATALOG_MAPPING = {
   'Cherry 2025 - 2026': { season: '2025-2026', active: true },
@@ -103,12 +117,8 @@ export const getProductsByLineDescription = async (lineDescription) => {
 
 // Función para mapear productos de la API al formato de la app
 export const mapApiProductToAppProduct = (apiProduct) => {
-  // Obtener la primera imagen disponible
-  let image = apiProduct.imagen || '/images/placeholder.jpg';
-  // Si la imagen es relativa, hacerla absoluta
-  if (image && !image.startsWith('http')) {
-    image = 'https://cherryapi.estrategiadmgs.com.mx/' + image.replace(/^\//, '');
-  }
+  // Generar URL de imagen S3 usando el id_articulo
+  const image = generateS3ImageUrl(apiProduct.id_articulo);
   
   // Calcular precio con descuento si aplica
   const originalPrice = apiProduct.precio1 || 0;
@@ -355,31 +365,57 @@ export const searchProductsAdvanced = async (query, filters = {}, catalog = 'Che
 
     // Filtrar productos que coincidan con la búsqueda
     const filteredProducts = products.filter(product => {
+      // Si no hay términos de búsqueda, devolver todos los productos
+      if (searchTerms.length === 0) {
+        return true;
+      }
+
       // Crear un texto de búsqueda que incluya todos los campos relevantes
-      const searchText = [
+      const searchableFields = [
         product.descripcion || '',
         product.marca || '',
         product.linea?.descripcion || '',
+        product.sector?.descripcion || '',
+        product.genero?.descripcion || '',
         product.DTU || product.dtu || '',
         product.id_articulo?.toString() || '',
+        product.sku || '',
+        product.ean || '',
         // Incluir colores de los detalles
         ...(product.detalles?.map(d => d.nombreColor) || []),
         // Incluir códigos de color
-        ...(product.detalles?.map(d => d.codigoColor) || [])
-      ].join(' ').toLowerCase();
+        ...(product.detalles?.map(d => d.codigoColor) || []),
+        // Incluir especificaciones
+        product.especificaciones || '',
+        // Incluir notas
+        product.notas || ''
+      ];
 
-      // Verificar si todos los términos de búsqueda están presentes
-      const allTermsMatch = searchTerms.every(term => {
+      const searchText = searchableFields.join(' ').toLowerCase();
+
+      // Verificar si al menos uno de los términos de búsqueda coincide
+      const anyTermMatches = searchTerms.some(term => {
         return searchText.includes(term) || 
                product.descripcion?.toLowerCase().includes(term) ||
                product.marca?.toLowerCase().includes(term) ||
                product.linea?.descripcion?.toLowerCase().includes(term) ||
+               product.sector?.descripcion?.toLowerCase().includes(term) ||
+               product.genero?.descripcion?.toLowerCase().includes(term) ||
                (product.DTU && product.DTU.toLowerCase().includes(term)) ||
                (product.dtu && product.dtu.toLowerCase().includes(term)) ||
-               (product.id_articulo && product.id_articulo.toString().includes(term));
+               (product.id_articulo && product.id_articulo.toString().includes(term)) ||
+               (product.sku && product.sku.toLowerCase().includes(term)) ||
+               (product.ean && product.ean.toLowerCase().includes(term)) ||
+               (product.especificaciones && product.especificaciones.toLowerCase().includes(term)) ||
+               (product.notas && product.notas.toLowerCase().includes(term)) ||
+               // Buscar en colores
+               product.detalles?.some(d => 
+                 d.nombreColor?.toLowerCase().includes(term) ||
+                 d.codigoColor?.toLowerCase().includes(term)
+               );
       });
 
-      return allTermsMatch;
+      return anyTermMatches;
     });
 
     // Aplicar filtros adicionales si se proporcionan
@@ -395,7 +431,11 @@ export const searchProductsAdvanced = async (query, filters = {}, catalog = 'Che
       const categoryLower = filters.category.toLowerCase();
       finalProducts = finalProducts.filter(product => {
         const productCategory = product.linea?.descripcion?.toLowerCase() || '';
+        const productSector = product.sector?.descripcion?.toLowerCase() || '';
+        const productGenero = product.genero?.descripcion?.toLowerCase() || '';
         return productCategory.includes(categoryLower) || 
+               productSector.includes(categoryLower) ||
+               productGenero.includes(categoryLower) ||
                product.descripcion?.toLowerCase().includes(categoryLower);
       });
     }
@@ -438,6 +478,8 @@ export const searchProductsAdvanced = async (query, filters = {}, catalog = 'Che
       finalProducts = finalProducts.filter(product => {
         return (
           (product.id_articulo && product.id_articulo.toString().toLowerCase().includes(codigoLower)) ||
+          (product.sku && product.sku.toLowerCase().includes(codigoLower)) ||
+          (product.ean && product.ean.toLowerCase().includes(codigoLower)) ||
           (product.descripcion && product.descripcion.toLowerCase().includes(codigoLower))
         );
       });

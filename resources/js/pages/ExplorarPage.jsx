@@ -15,7 +15,7 @@ const ExplorarPage = () => {
 
   const categories = [
     { id: 'all', name: 'Todos los productos', icon: 'Shopping Cart.svg' },
-    { id: 'vestidos', name: 'Vestidos', icon: 'category/vestido-de-novio 1.svg' },
+    { id: 'vestidos', name: 'Vestidos', icon: 'category/vestido-de-novio 1' },
     { id: 'blusas', name: 'Blusas', icon: 'category/blusa 1.svg' },
     { id: 'pantalones', name: 'Pantalones', icon: 'category/pantalones-ajustados 1.svg' },
     { id: 'chaquetas', name: 'Chaquetas', icon: 'category/gabardina 1.svg' },
