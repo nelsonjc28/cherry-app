@@ -1,11 +1,13 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import CherryButton from '../CherryButton/CherryButton';
 import './LoginForm.css';
 import useUserStore from '../../store/userStore';
 
 const LoginForm = ({ onSuccess }) => {
   const [form, setForm] = useState({ email: '', password: '' });
-  const { login, loading, error, clearError } = useUserStore();
+  const { login, loading, error, clearError, getRedirectPath } = useUserStore();
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -20,6 +22,10 @@ const LoginForm = ({ onSuccess }) => {
     
     const user = await login(form.email, form.password);
     if (user) {
+      // Redirigir según el rol del usuario
+      const redirectPath = getRedirectPath();
+      navigate(redirectPath);
+      
       if (onSuccess) onSuccess(user);
     }
   };

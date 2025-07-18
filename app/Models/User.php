@@ -25,6 +25,7 @@ class User extends Authenticatable implements JWTSubject
         'phone',
         'email',
         'password',
+        'role_id',
     ];
 
     /**
@@ -48,6 +49,38 @@ class User extends Authenticatable implements JWTSubject
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Get the role that belongs to this user.
+     */
+    public function role()
+    {
+        return $this->belongsTo(Role::class);
+    }
+
+    /**
+     * Check if the user is an admin
+     */
+    public function isAdmin()
+    {
+        return $this->role && $this->role->name === 'admin';
+    }
+
+    /**
+     * Check if the user is a cliente
+     */
+    public function isCliente()
+    {
+        return $this->role && $this->role->name === 'cliente';
+    }
+
+    /**
+     * Check if the user has a specific role
+     */
+    public function hasRole($roleName)
+    {
+        return $this->role && $this->role->name === $roleName;
     }
 
     // Métodos requeridos por JWTSubject

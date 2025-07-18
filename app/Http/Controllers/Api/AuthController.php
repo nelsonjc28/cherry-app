@@ -43,12 +43,13 @@ class AuthController extends Controller
             'phone'         => $request->phone,
             'email'         => $request->email,
             'password'      => Hash::make($request->password),
+            'role_id'       => 2, // Default to cliente role
         ]);
 
         $token = JWTAuth::fromUser($user);
 
         return response()->json([
-            'user' => $user,
+            'user' => $user->load('role'),
             'token' => $token,
         ], 201);
     }
@@ -73,7 +74,7 @@ class AuthController extends Controller
         $user = JWTAuth::setToken($token)->toUser();
 
         return response()->json([
-            'user' => $user,
+            'user' => $user->load('role'),
             'token' => $token,
         ]);
     }
@@ -91,6 +92,7 @@ class AuthController extends Controller
 
     public function me()
     {
-        return response()->json(auth('api')->user());
+        $user = auth('api')->user();
+        return response()->json($user ? $user->load('role') : null);
     }
 }

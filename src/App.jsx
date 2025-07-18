@@ -1,33 +1,39 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import './App.css';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Pages
 import HomePage from './pages/HomePage';
 import CatalogPage from './pages/CatalogPage';
+import CatalogosPage from './pages/CatalogosPage';
 import ProductPage from './pages/ProductPage';
-import AfiliatePage from './pages/AfiliatePage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
-import NotificacionesPage from './pages/NotificacionesPage';
+import CartDetailsPage from './pages/CartDetailsPage';
+import CheckoutSuccessPage from './pages/CheckoutSuccessPage';
 import CarritoPage from './pages/CarritoPage';
-import NuevosPage from './pages/NuevosPage';
-import DestacadosPage from './pages/DestacadosPage';
-import CategoriasPage from './pages/CategoriasPage';
-import CatalogosPage from './pages/CatalogosPage';
-import PromocionesPage from './pages/PromocionesPage';
 import BuscarPage from './pages/BuscarPage';
+import CategoriasPage from './pages/CategoriasPage';
 import ContactoPage from './pages/ContactoPage';
-import PrivacidadPage from './pages/PrivacidadPage';
+import AfiliatePage from './pages/AfiliatePage';
 import TerminosPage from './pages/TerminosPage';
+import PrivacidadPage from './pages/PrivacidadPage';
 import CookiesPage from './pages/CookiesPage';
+import NotificacionesPage from './pages/NotificacionesPage';
 import ExplorarPage from './pages/ExplorarPage';
-import DestacadosOfertasPage from './pages/DestacadosOfertasPage';
+import PromocionesPage from './pages/PromocionesPage';
+import DestacadosPage from './pages/DestacadosPage';
+import NuevosPage from './pages/NuevosPage';
 import ProductosPage from './pages/ProductosPage';
+import DestacadosOfertasPage from './pages/DestacadosOfertasPage';
+import AdminPanelPage from './pages/AdminPanelPage';
 
 // Components
 import Header from './components/Header/Header';
 import Footer from './components/Footer/Footer';
+import AdminRoute from './components/AdminRoute';
 
 function NotFoundPage() {
   return <div style={{ padding: 40, textAlign: 'center' }}><h2>Página no encontrada</h2></div>;
@@ -43,34 +49,37 @@ function App() {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/catalogo" element={<CatalogPage />} />
+              <Route path="/catalogos" element={<CatalogosPage />} />
               <Route path="/producto/:productId" element={<ProductPage />} />
-              <Route path="/afiliate" element={<AfiliatePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/registro" element={<RegisterPage />} />
-              <Route path="/notificaciones" element={<NotificacionesPage />} />
+              <Route path="/carrito-detalle" element={<CartDetailsPage />} />
+              <Route path="/compra-exitosa" element={<CheckoutSuccessPage />} />
               <Route path="/carrito" element={<CarritoPage />} />
-              <Route path="/nuevos" element={<NuevosPage />} />
-              <Route path="/nuevos/:type" element={<NuevosPage />} />
-              <Route path="/destacados" element={<DestacadosPage />} />
-              <Route path="/destacados/:type" element={<DestacadosPage />} />
-              <Route path="/categorias" element={<CategoriasPage />} />
-              <Route path="/categorias/:category" element={<CategoriasPage />} />
-              <Route path="/catalogos" element={<CatalogosPage />} />
-              <Route path="/catalogos/:catalog" element={<CatalogosPage />} />
-              <Route path="/promociones" element={<PromocionesPage />} />
-              <Route path="/promociones/:type" element={<PromocionesPage />} />
               <Route path="/buscar" element={<BuscarPage />} />
+              <Route path="/categorias" element={<CategoriasPage />} />
               <Route path="/contacto" element={<ContactoPage />} />
-              <Route path="/privacidad" element={<PrivacidadPage />} />
+              <Route path="/afiliate" element={<AfiliatePage />} />
               <Route path="/terminos" element={<TerminosPage />} />
+              <Route path="/privacidad" element={<PrivacidadPage />} />
               <Route path="/cookies" element={<CookiesPage />} />
+              <Route path="/notificaciones" element={<NotificacionesPage />} />
               <Route path="/explorar" element={<ExplorarPage />} />
-              <Route path="/destacados/ofertas" element={<DestacadosOfertasPage />} />
+              <Route path="/promociones" element={<PromocionesPage />} />
+              <Route path="/destacados" element={<DestacadosPage />} />
+              <Route path="/nuevos" element={<NuevosPage />} />
               <Route path="/productos" element={<ProductosPage />} />
+              <Route path="/destacados-ofertas" element={<DestacadosOfertasPage />} />
+              <Route path="/admin" element={
+                <AdminRoute>
+                  <AdminPanelPage />
+                </AdminRoute>
+              } />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </main>
           <Footer />
+          <ToastContainer />
         </div>
       </Router>
     </HelmetProvider>

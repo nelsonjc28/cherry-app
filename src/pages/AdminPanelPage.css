@@ -1,0 +1,93 @@
+/* User info in sidebar */
+.admin-panel__user-info {
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-border, #e0e0e0);
+  margin-bottom: 1rem;
+}
+
+.admin-panel__user-name {
+  display: block;
+  font-weight: 600;
+  color: var(--color-text, #373737);
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.admin-panel__user-role {
+  display: block;
+  color: var(--color-text-secondary, #666);
+  font-size: 0.875rem;
+  text-transform: capitalize;
+}
+
+/* Welcome section */
+.admin-panel__welcome {
+  background: var(--color-background-light, #f5f5f5);
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.admin-panel__welcome h3 {
+  color: var(--color-primary, #EA2630);
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+}
+
+.admin-panel__welcome p {
+  margin-bottom: 0.25rem;
+  color: var(--color-text, #373737);
+}
+
+/* Client content */
+.admin-panel__client-content {
+  padding: 1rem 0;
+}
+
+.admin-panel__stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.admin-panel__stat-card {
+  background: var(--color-background-light, #f5f5f5);
+  padding: 1.5rem;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid var(--color-border, #e0e0e0);
+}
+
+.admin-panel__stat-card h4 {
+  color: var(--color-text, #373737);
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-primary, #EA2630);
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  color: var(--color-text-secondary, #666);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .admin-panel__stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .admin-panel__welcome {
+    padding: 1rem;
+  }
+  
+  .admin-panel__stat-card {
+    padding: 1rem;
+  }
+} 

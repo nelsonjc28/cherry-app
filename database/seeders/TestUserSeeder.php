@@ -14,14 +14,29 @@ class TestUserSeeder extends Seeder
      */
     public function run(): void
     {
+        // Create admin user
         User::updateOrCreate(
-            [ 'email' => 'testuser@example.com' ],
+            [ 'email' => 'admin@cherrycentral.com' ],
             [
-                'first_name' => 'Test',
+                'first_name' => 'Admin',
                 'last_name' => 'User',
-                'middle_name' => 'Example',
+                'middle_name' => 'System',
                 'phone' => '5551234567',
-                'password' => Hash::make('Test1234!'),
+                'password' => Hash::make('Admin1234!'),
+                'role_id' => 1, // admin role
+            ]
+        );
+
+        // Create cliente user
+        User::updateOrCreate(
+            [ 'email' => 'cliente@cherrycentral.com' ],
+            [
+                'first_name' => 'Cliente',
+                'last_name' => 'User',
+                'middle_name' => 'Test',
+                'phone' => '5559876543',
+                'password' => Hash::make('Cliente1234!'),
+                'role_id' => 2, // cliente role
             ]
         );
     }

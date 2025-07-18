@@ -28,10 +28,12 @@ import DestacadosPage from './pages/DestacadosPage';
 import NuevosPage from './pages/NuevosPage';
 import ProductosPage from './pages/ProductosPage';
 import DestacadosOfertasPage from './pages/DestacadosOfertasPage';
+import AdminPanelPage from './pages/AdminPanelPage';
 
 // Components
 import Header from './components/Header/Header';
 import Footer from './components/Footer/Footer';
+import AdminRoute from './components/AdminRoute';
 
 function App() {
   return (
@@ -64,6 +66,11 @@ function App() {
               <Route path="/nuevos" element={<NuevosPage />} />
               <Route path="/productos" element={<ProductosPage />} />
               <Route path="/destacados-ofertas" element={<DestacadosOfertasPage />} />
+              <Route path="/admin" element={
+                <AdminRoute>
+                  <AdminPanelPage />
+                </AdminRoute>
+              } />
             </Routes>
           </main>
           <Footer />

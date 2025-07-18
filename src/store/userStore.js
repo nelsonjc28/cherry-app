@@ -1,9 +1,10 @@
 import { create } from 'zustand';
+import useCartStore from './cartStore';
 
 const getToken = () => localStorage.getItem('token');
 const setToken = (token) => token ? localStorage.setItem('token', token) : localStorage.removeItem('token');
 
-const useUserStore = create((set) => ({
+const useUserStore = create((set, get) => ({
   user: null,
   token: getToken(),
   loading: false,
@@ -15,6 +16,31 @@ const useUserStore = create((set) => ({
   },
   setError: (error) => set({ error }),
   clearError: () => set({ error: null }),
+  
+  // Helper function to get user role
+  getUserRole: () => {
+    const { user } = get();
+    return user?.role?.name || null;
+  },
+  
+  // Helper function to check if user is admin
+  isAdmin: () => {
+    const { user } = get();
+    return user?.role?.name === 'admin';
+  },
+  
+  // Helper function to check if user is cliente
+  isCliente: () => {
+    const { user } = get();
+    return user?.role?.name === 'cliente';
+  },
+  
+  // Function to get redirect path based on user role
+  getRedirectPath: () => {
+    const { user } = get();
+    if (!user) return '/';
+    return user.role?.name === 'admin' ? '/admin' : '/';
+  },
   login: async (email, password) => {
     set({ loading: true, error: null });
     try {

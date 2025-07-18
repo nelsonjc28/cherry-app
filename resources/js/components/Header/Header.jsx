@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { getImagePath, getIconPath } from '../../utils/assetPaths';
 import { formatPrice } from '../../utils/formatters';
 import useUserStore from '../../store/userStore';
@@ -9,6 +9,7 @@ import './Header.css';
 
 const Header = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, fetchUser, logout } = useUserStore();
   const { items: cartItems, totalItems, totalPrice } = useCartStore();
   const [activeMenu, setActiveMenu] = useState(null);
@@ -18,6 +19,9 @@ const Header = () => {
   const [cartModalOpen, setCartModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const userMenuRef = useRef(null);
+
+  // Check if we're on the admin page
+  const isAdminPage = location.pathname === '/admin';
 
   // Submenu data for each category
   const menuData = {
@@ -345,19 +349,21 @@ const Header = () => {
           </Link>
 
           {/* Search Bar */}
-          <div className="search-container">
-            <input 
-              type="text" 
-              placeholder="Buscar producto" 
-              className="search-input" 
-              value={searchTerm}
-              onChange={handleSearchInputChange}
-              onKeyPress={handleSearchKeyPress}
-            />
-            <button className="search-button" onClick={handleSearch}>
-              <img src={getIconPath('Search.svg')} alt="Buscar" />
-            </button>
-          </div>
+          {!isAdminPage && (
+            <div className="search-container">
+              <input 
+                type="text" 
+                placeholder="Buscar producto" 
+                className="search-input" 
+                value={searchTerm}
+                onChange={handleSearchInputChange}
+                onKeyPress={handleSearchKeyPress}
+              />
+              <button className="search-button" onClick={handleSearch}>
+                <img src={getIconPath('Search.svg')} alt="Buscar" />
+              </button>
+            </div>
+          )}
 
           {/* User Actions */}
           <div className="user-actions">
@@ -379,6 +385,11 @@ const Header = () => {
                         </div>
                       </div>
                     </div>
+                    <div className="user-dropdown-divider"></div>
+                    <Link to="/admin" className="user-dropdown-item">
+                      <img src={getIconPath('File Alt.svg')} alt="Dashboard" />
+                      Dashboard
+                    </Link>
                     <div className="user-dropdown-divider"></div>
                     {/* <Link to="/perfil" className="user-dropdown-item">
                       <img src={getIconPath('User.svg')} alt="Perfil" />
@@ -432,125 +443,131 @@ const Header = () => {
               </div>
             </Link>
             
-            <button type="button" className="user-action icon-only" onClick={() => setCartModalOpen(true)}>
-              <div className="icon-badge">
-                <img src={getIconPath('Shopping Cart.svg')} alt="Carrito" />
-                {totalItems > 0 && <span className="badge cart-badge">{totalItems}</span>}
-              </div>
-            </button>
+            {!isAdminPage && (
+              <button type="button" className="user-action icon-only" onClick={() => setCartModalOpen(true)}>
+                <div className="icon-badge">
+                  <img src={getIconPath('Shopping Cart.svg')} alt="Carrito" />
+                  {totalItems > 0 && <span className="badge cart-badge">{totalItems}</span>}
+                </div>
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       {/* Navigation Menu */}
-      <nav className="main-navigation" onMouseLeave={handleMouseLeave}>
-        <div className="nav-container">
-          <ul className="nav-menu">
-            <li className={`nav-item new-items ${activeMenu === 'nuevos' ? 'active' : ''}`} onMouseEnter={() => handleMouseEnter('nuevos')}>
-              <Link to="/nuevos" className="nav-link">
-                <img src={getIconPath('Cart Plus.svg')} alt="Nuevos" />
-                Nuevos
-                <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
-              </Link>
-            </li>
-            <li className="nav-item nav-divider"></li>
-            <li className="nav-item" onMouseEnter={() => setActiveMenu(null)}>
-              <Link to="/destacados" className="nav-link">
-                <img src={getIconPath('Award.svg')} alt="Destacados" />
-                Destacados
-              </Link>
-            </li>
-            <li className="nav-item nav-divider"></li>
-            <li className={`nav-item ${activeMenu === 'categorias' ? 'active' : ''}`} onMouseEnter={() => handleMouseEnter('categorias')}>
-              <Link to="/categorias" className="nav-link">
-                <img src={getIconPath('File Alt.svg')} alt="Categorías" />
-                Categorías
-                <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
-              </Link>
-            </li>
-            <li className="nav-item nav-divider"></li>
-            <li className={`nav-item ${activeMenu === 'catalogos' ? 'active' : ''}`} onMouseEnter={() => handleMouseEnter('catalogos')}>
-              <Link to="/catalogo" className="nav-link">
-                <img src={getIconPath('File Alt.svg')} alt="Catálogos" />
-                Catálogos
-                <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
-              </Link>
-            </li>
-            <li className="nav-item nav-divider"></li>
-            <li className={`nav-item ${activeMenu === 'promociones' ? 'active' : ''}`} onMouseEnter={() => handleMouseEnter('promociones')}>
-              <Link to="/promociones" className="nav-link">
-                <img src={getIconPath('Bullhorn.svg')} alt="Promociones" />
-                Promociones
-                <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
-              </Link>
-            </li>
-            <li className="nav-item nav-divider"></li>
-            <li className="nav-item contact-item" onMouseEnter={() => setActiveMenu(null)}>
-              <Link to="/contacto" className="nav-link">
-                <img src={getIconPath('Phone.svg')} alt="Contacto" />
-                Contacto
-              </Link>
-            </li>
-          </ul>
-        </div>
-        
-        {/* Mega Menu Dropdown */}
-        {activeMenu && (
-          <div className="mega-menu">
-            <div className="mega-menu-content">
-              <div className="mega-menu-header">
-                <h2 className="mega-menu-title">{menuData[activeMenu].title}</h2>
-              </div>
-              <div className="mega-menu-body">
-                <div className="mega-menu-columns">
-                  {menuData[activeMenu].columns.map((column, index) => (
-                    <div className="mega-menu-column" key={index}>
-                      <h3 className="column-title">{column.title}</h3>
-                      <ul className="column-items">
-                        {column.items.map((item, itemIndex) => (
-                          <li key={itemIndex}>
-                            <Link to={item.link}>{item.name}</Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
+      {!isAdminPage && (
+        <nav className="main-navigation" onMouseLeave={handleMouseLeave}>
+          <div className="nav-container">
+            <ul className="nav-menu">
+              <li className={`nav-item new-items ${activeMenu === 'nuevos' ? 'active' : ''}`} onMouseEnter={() => handleMouseEnter('nuevos')}>
+                <Link to="/nuevos" className="nav-link">
+                  <img src={getIconPath('Cart Plus.svg')} alt="Nuevos" />
+                  Nuevos
+                  <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
+                </Link>
+              </li>
+              <li className="nav-item nav-divider"></li>
+              <li className="nav-item" onMouseEnter={() => setActiveMenu(null)}>
+                <Link to="/destacados" className="nav-link">
+                  <img src={getIconPath('Award.svg')} alt="Destacados" />
+                  Destacados
+                </Link>
+              </li>
+              <li className="nav-item nav-divider"></li>
+              <li className={`nav-item ${activeMenu === 'categorias' ? 'active' : ''}`} onMouseEnter={() => handleMouseEnter('categorias')}>
+                <Link to="/categorias" className="nav-link">
+                  <img src={getIconPath('File Alt.svg')} alt="Categorías" />
+                  Categorías
+                  <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
+                </Link>
+              </li>
+              <li className="nav-item nav-divider"></li>
+              <li className={`nav-item ${activeMenu === 'catalogos' ? 'active' : ''}`} onMouseEnter={() => handleMouseEnter('catalogos')}>
+                <Link to="/catalogo" className="nav-link">
+                  <img src={getIconPath('File Alt.svg')} alt="Catálogos" />
+                  Catálogos
+                  <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
+                </Link>
+              </li>
+              <li className="nav-item nav-divider"></li>
+              <li className={`nav-item ${activeMenu === 'promociones' ? 'active' : ''}`} onMouseEnter={() => handleMouseEnter('promociones')}>
+                <Link to="/promociones" className="nav-link">
+                  <img src={getIconPath('Bullhorn.svg')} alt="Promociones" />
+                  Promociones
+                  <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
+                </Link>
+              </li>
+              <li className="nav-item nav-divider"></li>
+              <li className="nav-item contact-item" onMouseEnter={() => setActiveMenu(null)}>
+                <Link to="/contacto" className="nav-link">
+                  <img src={getIconPath('Phone.svg')} alt="Contacto" />
+                  Contacto
+                </Link>
+              </li>
+            </ul>
+          </div>
+          
+          {/* Mega Menu Dropdown */}
+          {activeMenu && (
+            <div className="mega-menu">
+              <div className="mega-menu-content">
+                <div className="mega-menu-header">
+                  <h2 className="mega-menu-title">{menuData[activeMenu].title}</h2>
                 </div>
-              </div>
-              {activeMenu === 'destacados' && (
-                <div className="mega-menu-featured">
-                  <div className="featured-product">
-                    <img src={`${window.location.origin}/images/featured-product.jpg`} alt="Producto destacado" />
-                    <h4>Oferta Especial</h4>
-                    <p>Hasta 30% de descuento en productos seleccionados</p>
-                    <Link to="/destacados/ofertas" className="featured-link">Ver ahora</Link>
+                <div className="mega-menu-body">
+                  <div className="mega-menu-columns">
+                    {menuData[activeMenu].columns.map((column, index) => (
+                      <div className="mega-menu-column" key={index}>
+                        <h3 className="column-title">{column.title}</h3>
+                        <ul className="column-items">
+                          {column.items.map((item, itemIndex) => (
+                            <li key={itemIndex}>
+                              <Link to={item.link}>{item.name}</Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              )}
+                {activeMenu === 'destacados' && (
+                  <div className="mega-menu-featured">
+                    <div className="featured-product">
+                      <img src={`${window.location.origin}/images/featured-product.jpg`} alt="Producto destacado" />
+                      <h4>Oferta Especial</h4>
+                      <p>Hasta 30% de descuento en productos seleccionados</p>
+                      <Link to="/destacados/ofertas" className="featured-link">Ver ahora</Link>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
-      </nav>
+          )}
+        </nav>
+      )}
 
       {/* Mobile Menu Button */}
-      <div className="mobile-navigation">
-        <button className="menu-button" onClick={toggleMobileMenu}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="3" y1="12" x2="21" y2="12"></line>
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
-          </svg>
-          <span>Menú</span>
-        </button>
-        
-        <Link to="/contacto" className="mobile-contact">
-          <img src={getIconPath('Phone.svg')} alt="Contacto" />
-          <span>Contacto</span>
-        </Link>
-      </div>
+      {!isAdminPage && (
+        <div className="mobile-navigation">
+          <button className="menu-button" onClick={toggleMobileMenu}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+            <span>Menú</span>
+          </button>
+          
+          <Link to="/contacto" className="mobile-contact">
+            <img src={getIconPath('Phone.svg')} alt="Contacto" />
+            <span>Contacto</span>
+          </Link>
+        </div>
+      )}
 
       {/* Mobile Menu Overlay */}
-      {mobileMenuOpen && (
+      {mobileMenuOpen && !isAdminPage && (
         <div className="mobile-menu-overlay">
           <div className="mobile-menu">
             <div className="mobile-menu-header-bar">
@@ -564,17 +581,21 @@ const Header = () => {
             </div>
             
             <div className="mobile-search">
-              <input 
-                type="text" 
-                placeholder="Buscar producto" 
-                className="mobile-search-input" 
-                value={searchTerm}
-                onChange={handleSearchInputChange}
-                onKeyPress={handleSearchKeyPress}
-              />
-              <button className="mobile-search-button" onClick={handleSearch}>
-                <img src={getIconPath('Search.svg')} alt="Buscar" />
-              </button>
+              {!isAdminPage && (
+                <>
+                  <input 
+                    type="text" 
+                    placeholder="Buscar producto" 
+                    className="mobile-search-input" 
+                    value={searchTerm}
+                    onChange={handleSearchInputChange}
+                    onKeyPress={handleSearchKeyPress}
+                  />
+                  <button className="mobile-search-button" onClick={handleSearch}>
+                    <img src={getIconPath('Search.svg')} alt="Buscar" />
+                  </button>
+                </>
+              )}
             </div>
 
             <ul className="mobile-menu-list">
