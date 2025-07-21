@@ -92,7 +92,23 @@ class AuthController extends Controller
 
     public function me()
     {
-        $user = auth('api')->user();
-        return response()->json($user ? $user->load('role') : null);
+        try {
+            $user = auth('api')->user();
+            if (!$user) {
+                return response()->json(['error' => 'No autenticado'], 401);
+            }
+            return response()->json($user ? $user->load('role') : null);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error de autenticación: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function debug()
+    {
+        return response()->json([
+            'message' => 'Debug endpoint working',
+            'timestamp' => now(),
+            'user' => auth('api')->user()
+        ]);
     }
 }

@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CherryButton from '../components/CherryButton/CherryButton';
+import AdminUserManager from '../components/AdminUserManager/AdminUserManager';
+import ClientManager from '../components/ClientManager/ClientManager';
+import CategoryManager from '../components/CategoryManager/CategoryManager';
+import CategoryOrderManager from '../components/CategoryOrderManager/CategoryOrderManager';
+import AuthTest from '../components/AuthTest';
 import useUserStore from '../store/userStore';
 import '../index.css';
 import './AdminPanelPage.css';
@@ -54,6 +59,12 @@ function AdminPanelPage() {
             <span className="admin-panel__user-name">{user?.first_name} {user?.last_name}</span>
             <span className="admin-panel__user-role">{user?.role?.name === 'admin' ? 'Administrador' : 'Cliente'}</span>
           </div>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='home'?' active':''}`} onClick={()=>{setSelectedMenu('home'); setSidebarOpen(false);}}>Dashboard</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='users'?' active':''}`} onClick={()=>{setSelectedMenu('users'); setSidebarOpen(false);}}>Gestionar Administradores</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='clients'?' active':''}`} onClick={()=>{setSelectedMenu('clients'); setSidebarOpen(false);}}>Gestionar Clientes</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='categories'?' active':''}`} onClick={()=>{setSelectedMenu('categories'); setSidebarOpen(false);}}>Gestionar Categorías</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='category-order'?' active':''}`} onClick={()=>{setSelectedMenu('category-order'); setSidebarOpen(false);}}>Ordenar Categorías</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='auth-test'?' active':''}`} onClick={()=>{setSelectedMenu('auth-test'); setSidebarOpen(false);}}>Test Auth</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='other'?' active':''}`} onClick={()=>{setSelectedMenu('other'); setSidebarOpen(false);}}>Otra sección</button>
           <button className="admin-panel__sidebar-link" onClick={handleLogout}>Volver al sitio</button>
         </nav>
@@ -121,6 +132,37 @@ function AdminPanelPage() {
             )}
           </section>
         )}
+        
+        {selectedMenu === 'users' && isAdmin() && (
+          <section>
+            <AdminUserManager />
+          </section>
+        )}
+        
+        {selectedMenu === 'clients' && isAdmin() && (
+          <section>
+            <ClientManager />
+          </section>
+        )}
+        
+        {selectedMenu === 'categories' && isAdmin() && (
+          <section>
+            <CategoryManager />
+          </section>
+        )}
+        
+        {selectedMenu === 'category-order' && isAdmin() && (
+          <section>
+            <CategoryOrderManager />
+          </section>
+        )}
+        
+        {selectedMenu === 'auth-test' && (
+          <section>
+            <AuthTest />
+          </section>
+        )}
+        
         {selectedMenu === 'other' && (
           <section>
             <h2 className="section-title mb-3">Otra sección</h2>

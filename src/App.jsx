@@ -1,8 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import './App.css';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -28,12 +26,13 @@ import DestacadosPage from './pages/DestacadosPage';
 import NuevosPage from './pages/NuevosPage';
 import ProductosPage from './pages/ProductosPage';
 import DestacadosOfertasPage from './pages/DestacadosOfertasPage';
-import AdminPanelPage from './pages/AdminPanelPage';
+import AdminPanelPage from './pages/SimpleTest';
 
 // Components
 import Header from './components/Header/Header';
 import Footer from './components/Footer/Footer';
 import AdminRoute from './components/AdminRoute';
+import CustomToastContainer from './components/Toast/ToastContainer';
 
 function NotFoundPage() {
   return <div style={{ padding: 40, textAlign: 'center' }}><h2>Página no encontrada</h2></div>;
@@ -43,7 +42,7 @@ function App() {
   return (
     <HelmetProvider>
       <Router>
-        <div className="app-container">
+        <div className="App">
           <Header />
           <main>
             <Routes>
@@ -78,8 +77,7 @@ function App() {
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </main>
-          <Footer />
-          <ToastContainer />
+          <CustomToastContainer />
         </div>
       </Router>
     </HelmetProvider>

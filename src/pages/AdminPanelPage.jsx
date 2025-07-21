@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CherryButton from '../components/CherryButton/CherryButton';
+import AdminUserManager from '../components/AdminUserManager/AdminUserManager';
+import ClientManager from '../components/ClientManager/ClientManager';
+import CategoryManager from '../components/CategoryManager/CategoryManager';
 import useUserStore from '../store/userStore';
 import '../index.css';
 import './AdminPanelPage.css';
@@ -33,7 +36,6 @@ function AdminPanelPage() {
   }, [sidebarOpen]);
 
   const handleLogout = () => {
-    // Implementar logout si es necesario
     navigate('/');
   };
 
@@ -54,6 +56,11 @@ function AdminPanelPage() {
             <span className="admin-panel__user-name">{user?.first_name} {user?.last_name}</span>
             <span className="admin-panel__user-role">{user?.role?.name === 'admin' ? 'Administrador' : 'Cliente'}</span>
           </div>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='home'?' active':''}`} onClick={()=>{setSelectedMenu('home'); setSidebarOpen(false);}}>Dashboard</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='users'?' active':''}`} onClick={()=>{setSelectedMenu('users'); setSidebarOpen(false);}}>Gestionar Administradores</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='clients'?' active':''}`} onClick={()=>{setSelectedMenu('clients'); setSidebarOpen(false);}}>Gestionar Clientes</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='categories'?' active':''}`} onClick={()=>{setSelectedMenu('categories'); setSidebarOpen(false);}} style={{backgroundColor: 'yellow', color: 'black'}}>Gestionar Categorías</button>
+          <button className="admin-panel__sidebar-link" style={{backgroundColor: 'red', color: 'white'}} onClick={()=>alert('TEST BUTTON')}>TEST BUTTON</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='other'?' active':''}`} onClick={()=>{setSelectedMenu('other'); setSidebarOpen(false);}}>Otra sección</button>
           <button className="admin-panel__sidebar-link" onClick={handleLogout}>Volver al sitio</button>
         </nav>
@@ -71,7 +78,6 @@ function AdminPanelPage() {
             </div>
             
             {isAdmin() ? (
-              // Contenido para administradores
               <>
                 <div className="admin-panel__crud-list">
                   {homeData.map(item => (
@@ -93,7 +99,6 @@ function AdminPanelPage() {
                 </div>
               </>
             ) : (
-              // Contenido para clientes
               <div className="admin-panel__client-content">
                 <div className="admin-panel__stats-grid">
                   <div className="admin-panel__stat-card">
@@ -121,6 +126,25 @@ function AdminPanelPage() {
             )}
           </section>
         )}
+        
+        {selectedMenu === 'users' && isAdmin() && (
+          <section>
+            <AdminUserManager />
+          </section>
+        )}
+        
+        {selectedMenu === 'clients' && isAdmin() && (
+          <section>
+            <ClientManager />
+          </section>
+        )}
+        
+        {selectedMenu === 'categories' && (
+          <section>
+            <CategoryManager />
+          </section>
+        )}
+        
         {selectedMenu === 'other' && (
           <section>
             <h2 className="section-title mb-3">Otra sección</h2>

@@ -9,6 +9,7 @@ const useUserStore = create((set, get) => ({
   token: getToken(),
   loading: false,
   error: null,
+  initialized: false,
   setUser: (user) => set({ user }),
   setToken: (token) => {
     set({ token });
@@ -129,24 +130,43 @@ const useUserStore = create((set, get) => ({
     }
   },
   fetchUser: async () => {
+    const token = getToken();
+    if (!token) {
+      set({ loading: false, initialized: true });
+      return null;
+    }
+
     set({ loading: true, error: null });
     try {
       const res = await fetch('/api/me', {
-        headers: { 'Authorization': `Bearer ${getToken()}` }
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
+      
       if (!res.ok) {
         if (res.status === 401) {
-          // Token expirado o inválido, hacer logout automático
-          await get().logout();
+          // Token expirado o inválido, limpiar estado local
+          set({ user: null, token: null, loading: false, initialized: true });
+          setToken(null);
           return null;
         }
-        throw new Error('No autenticado');
+        throw new Error(`Error ${res.status}: ${res.statusText}`);
       }
+      
       const user = await res.json();
-      set({ user, loading: false });
+      if (!user) {
+        set({ user: null, token: null, loading: false, initialized: true });
+        setToken(null);
+        return null;
+      }
+      
+      set({ user, loading: false, initialized: true });
       return user;
     } catch (err) {
-      set({ user: null, error: err.message, loading: false });
+      console.error('Error fetching user:', err);
+      set({ user: null, error: err.message, loading: false, initialized: true });
       setToken(null);
       return null;
     }
