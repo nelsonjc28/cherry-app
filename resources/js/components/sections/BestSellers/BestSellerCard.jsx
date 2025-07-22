@@ -22,6 +22,9 @@ const BestSellerCard = ({ id, title, image, price, rating, description, onFavori
         {/* Favorite Button */}
         <FavoriteButton 
           productId={id}
+          productTitle={title}
+          productImage={image}
+          productPrice={price}
           onToggle={onFavoriteToggle}
           size="medium"
         />

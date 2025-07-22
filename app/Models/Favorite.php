@@ -45,6 +45,7 @@ class Favorite extends Model
     public static function getUserFavorites($userId)
     {
         return self::where('user_id', $userId)
+                   ->select(['id', 'product_id', 'product_title', 'product_image', 'product_price', 'created_at'])
                    ->orderBy('created_at', 'desc')
                    ->get();
     }

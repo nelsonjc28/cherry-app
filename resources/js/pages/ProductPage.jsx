@@ -310,6 +310,9 @@ const ProductPage = () => {
             />
             <FavoriteButton
               productId={id_articulo}
+              productTitle={descripcion}
+              productImage={generateS3ImageUrl(id_articulo)}
+              productPrice={precio1}
               className="product-page__gallery-favorite"
               size="large"
             />

@@ -92,6 +92,9 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
         {/* Favorite button positioned in top right */}
         <FavoriteButton 
           productId={id}
+          productTitle={title}
+          productImage={getCurrentImage()}
+          productPrice={price}
           onToggle={handleFavoriteToggle}
           size="small"
           className="catalog-favorite-btn"

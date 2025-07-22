@@ -33,6 +33,9 @@ const ProductCard = ({ product, onFavoriteToggle }) => {
         {/* Favorite button */}
         <FavoriteButton 
           productId={id}
+          productTitle={title}
+          productImage={image}
+          productPrice={price}
           onToggle={onFavoriteToggle}
           size="medium"
         />

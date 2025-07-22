@@ -82,7 +82,13 @@ class FavoriteController extends Controller
                 'product_id' => 'required|string'
             ]);
 
-            $isFavorited = Favorite::isFavorited($user->id, $request->product_id);
+            // Usar caché para mejorar velocidad
+            $cacheKey = "favorite_check_{$user->id}_{$request->product_id}";
+            $isFavorited = cache()->remember($cacheKey, 60, function () use ($user, $request) {
+                return Favorite::where('user_id', $user->id)
+                               ->where('product_id', $request->product_id)
+                               ->exists();
+            });
 
             return response()->json([
                 'success' => true,
@@ -144,25 +150,43 @@ class FavoriteController extends Controller
                 'product_price' => 'nullable|numeric'
             ]);
 
-            $isFavorited = Favorite::isFavorited($user->id, $request->product_id);
+            // Usar updateOrCreate para hacer una sola operación
+            $favorite = Favorite::updateOrCreate(
+                [
+                    'user_id' => $user->id,
+                    'product_id' => $request->product_id
+                ],
+                [
+                    'product_title' => $request->product_title ?? null,
+                    'product_image' => $request->product_image ?? null,
+                    'product_price' => $request->product_price ?? null
+                ]
+            );
 
-            if ($isFavorited) {
-                // Remover de favoritos
-                Favorite::removeFromFavorites($user->id, $request->product_id);
-                $message = 'Producto removido de favoritos';
-                $action = 'removed';
-            } else {
-                // Agregar a favoritos
-                Favorite::addToFavorites($user->id, $request->all());
+            // Verificar si se creó o actualizó
+            $wasRecentlyCreated = $favorite->wasRecentlyCreated;
+            
+            if ($wasRecentlyCreated) {
                 $message = 'Producto agregado a favoritos';
                 $action = 'added';
+                $isFavorited = true;
+            } else {
+                // Si ya existía, lo removemos
+                $favorite->delete();
+                $message = 'Producto removido de favoritos';
+                $action = 'removed';
+                $isFavorited = false;
             }
+
+            // Limpiar caché relacionado
+            $cacheKey = "favorite_check_{$user->id}_{$request->product_id}";
+            cache()->forget($cacheKey);
 
             return response()->json([
                 'success' => true,
                 'message' => $message,
                 'action' => $action,
-                'is_favorited' => !$isFavorited
+                'is_favorited' => $isFavorited
             ]);
         } catch (\Exception $e) {
             return response()->json([
