@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\AdminCategoryController;
 use App\Http\Controllers\Api\AdminOrderedCategoryController;
+use App\Http\Controllers\Api\FavoriteController;
+use App\Http\Controllers\Api\RatingController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -41,4 +43,20 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('/admin/ordered-categories/update-order', [AdminOrderedCategoryController::class, 'updateOrder']);
     Route::delete('/admin/ordered-categories/clear', [AdminOrderedCategoryController::class, 'clearOrder']);
     Route::get('/home-categories', [AdminOrderedCategoryController::class, 'getHomeCategories']);
-}); 
+    
+    // Favorites routes
+    Route::get('/favorites', [FavoriteController::class, 'index']);
+    Route::post('/favorites', [FavoriteController::class, 'store']);
+    Route::post('/favorites/check', [FavoriteController::class, 'check']);
+    Route::post('/favorites/toggle', [FavoriteController::class, 'toggle']);
+    Route::delete('/favorites', [FavoriteController::class, 'destroy']);
+    
+    // Ratings routes
+    Route::get('/ratings/user', [RatingController::class, 'getUserRating']);
+    Route::post('/ratings', [RatingController::class, 'store']);
+    Route::post('/ratings/check', [RatingController::class, 'checkUserRating']);
+});
+
+// Public ratings routes (no authentication required)
+Route::get('/ratings/product', [RatingController::class, 'getProductRatings']);
+Route::post('/ratings/bulk', [RatingController::class, 'getBulkRatings']); 

@@ -34,7 +34,6 @@ const NuevosPage = () => {
         
         setNewProducts(newProducts);
       } catch (error) {
-        console.error('Error loading new products:', error);
         setNewProducts([]);
       } finally {
         setLoading(false);

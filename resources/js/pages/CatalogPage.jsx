@@ -3,7 +3,6 @@ import { Helmet } from 'react-helmet-async';
 import { useSearchParams } from 'react-router-dom';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import CatalogProductCard from '../components/CatalogProductCard/CatalogProductCard';
-import Pagination from '../components/Pagination/Pagination';
 import { getIconPath } from '../utils/assetPaths';
 import CustomButton from '../components/CustomButton';
 import './CatalogPage.css';
@@ -24,7 +23,6 @@ const CatalogPage = () => {
   
   // State management for filters and products
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState('más recientes');
   const [allProducts, setAllProducts] = useState([]); // Store all products
   const [filteredProducts, setFilteredProducts] = useState([]); // Store filtered products
@@ -186,7 +184,7 @@ const CatalogPage = () => {
         setAllProducts(productsData);
         setFilteredProducts(productsData);
       } catch (error) {
-        console.error('Error loading products:', error);
+
         setAllProducts([]);
         setFilteredProducts([]);
       } finally {
@@ -236,17 +234,8 @@ const CatalogPage = () => {
       
       filtered = sortProducts(filtered, sortBy);
       setFilteredProducts(filtered);
-      setCurrentPage(1); // Reset to first page when filters change
     }
   }, [filters.category, filters.department, filters.sector, filters.sizes, filters.priceRange, sortBy, allProducts, colorFilter, dtuFilter]);
-
-  // Get current page products
-  const getCurrentPageProducts = () => {
-    const itemsPerPage = 12;
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filteredProducts.slice(startIndex, endIndex);
-  };
 
   // Handle filter modal
   const toggleFilterModal = () => {
@@ -311,7 +300,7 @@ const CatalogPage = () => {
   };
 
   const totalResults = filteredProducts.length;
-  const currentProducts = getCurrentPageProducts();
+  const currentProducts = filteredProducts;
 
   return (
     <>
@@ -446,14 +435,6 @@ const CatalogPage = () => {
                     ))}
                   </div>
                   
-                  {/* Pagination */}
-                  {filteredProducts.length > 12 && (
-                    <Pagination
-                      currentPage={currentPage}
-                      totalPages={Math.ceil(filteredProducts.length / 12)}
-                      onPageChange={setCurrentPage}
-                    />
-                  )}
                 </>
               )}
             </main>

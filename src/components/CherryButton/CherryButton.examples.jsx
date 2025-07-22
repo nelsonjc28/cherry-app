@@ -108,7 +108,7 @@ const CherryButtonExamples = () => {
           
           <CherryButton 
             variant="outline" 
-            onClick={() => console.log('Logged to console')}
+            onClick={() => {}}
           >
             Log to Console
           </CherryButton>

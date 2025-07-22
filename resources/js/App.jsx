@@ -26,6 +26,7 @@ import DestacadosPage from './pages/DestacadosPage';
 import NuevosPage from './pages/NuevosPage';
 import ProductosPage from './pages/ProductosPage';
 import DestacadosOfertasPage from './pages/DestacadosOfertasPage';
+import FavoritosPage from './pages/FavoritosPage';
 import AdminPanelPage from './pages/AdminPanelPage';
 
 // Components
@@ -69,6 +70,7 @@ function App() {
                   <Route path="/nuevos" element={<NuevosPage />} />
                   <Route path="/productos" element={<ProductosPage />} />
                   <Route path="/destacados-ofertas" element={<DestacadosOfertasPage />} />
+                  <Route path="/favoritos" element={<FavoritosPage />} />
                   <Route path="/admin" element={
                     <AdminRoute>
                       <AdminPanelPage />

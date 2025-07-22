@@ -43,7 +43,7 @@ const NuevosPage = () => {
         }
       } catch (err) {
         setError('Error al cargar los productos nuevos');
-        console.error('Error fetching new products:', err);
+
       } finally {
         setLoading(false);
       }

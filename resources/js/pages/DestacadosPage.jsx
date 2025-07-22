@@ -33,7 +33,7 @@ const DestacadosPage = () => {
         
         setFeaturedProducts(featured);
       } catch (error) {
-        console.error('Error loading featured products:', error);
+
         setFeaturedProducts([]);
       } finally {
         setLoading(false);

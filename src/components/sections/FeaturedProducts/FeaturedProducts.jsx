@@ -25,7 +25,7 @@ const FeaturedProducts = ({
           const productsData = await getFeaturedProducts(8);
           setApiProducts(productsData);
         } catch (error) {
-          console.error('Error loading featured products:', error);
+  
           setApiProducts([]);
         } finally {
           setLoading(false);
@@ -43,7 +43,7 @@ const FeaturedProducts = ({
 
   // Handle favorite toggle callback
   const handleFavoriteToggle = (productId, isFavorited) => {
-    console.log(`Product ${productId} ${isFavorited ? 'added to' : 'removed from'} favorites`);
+
     // Here you would typically update your favorites state/API
   };
 

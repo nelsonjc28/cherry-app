@@ -49,7 +49,6 @@ const useCatalogs = () => {
       
     } catch (err) {
       setError(err.message);
-      console.error('Error fetching catalogs from external API:', err);
     } finally {
       setLoading(false);
     }
@@ -96,7 +95,6 @@ const useCatalogs = () => {
       
     } catch (err) {
       setError(err.message);
-      console.error('Error fetching products by catalog:', err);
       return [];
     } finally {
       setLoading(false);
@@ -140,7 +138,6 @@ const useCatalogs = () => {
       
     } catch (err) {
       setError(err.message);
-      console.error('Error fetching catalog details:', err);
       return null;
     } finally {
       setLoading(false);
@@ -200,7 +197,6 @@ const useCatalogs = () => {
       
     } catch (err) {
       setError(err.message);
-      console.error('Error fetching products by seasonal catalog:', err);
       return [];
     } finally {
       setLoading(false);

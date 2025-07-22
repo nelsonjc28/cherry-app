@@ -23,17 +23,14 @@ const AdminRoute = ({ children }) => {
 
   // Verificaciones de seguridad (redundantes con SmartRedirect pero por seguridad)
   if (!user) {
-    console.log('AdminRoute: No hay usuario');
     return null; // SmartRedirect se encargará de la redirección
   }
 
   if (!isAdmin()) {
-    console.log('AdminRoute: Usuario no es admin');
     return null; // SmartRedirect se encargará de la redirección
   }
 
   // Si es admin, mostrar el contenido
-  console.log('AdminRoute: Usuario es admin, mostrando contenido');
   return children;
 };
 

@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import FavoriteButton from '../FavoriteButton/FavoriteButton';
+import StarRating from '../StarRating/StarRating';
 import { formatPrice } from '../../utils/formatters';
 import './CatalogProductCard.css';
 import { getIconPath } from '../../utils/assetPaths';
 
 const CatalogProductCard = ({ product, onFavoriteToggle }) => {
   // Destructure product properties
-  const { id, title, images = {}, image, price, colors = [], isNew = false } = product;
+  const { id, title, images = {}, image, price, colors = [], isNew = false, rating = 0, ratingCount = 0 } = product;
   
   // State for selected color
   const [selectedColor, setSelectedColor] = useState(colors[0] || null);
@@ -121,6 +122,21 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
         <Link to={`/producto/${id}`} className="catalog-product-title-link">
           <h3 className="catalog-product-title">{title}</h3>
         </Link>
+        
+        {/* Rating */}
+        <div className="catalog-product-rating">
+          <StarRating
+            rating={rating}
+            size="small"
+            readonly={true}
+            showAverage={false}
+          />
+          {ratingCount > 0 && (
+            <span className="catalog-product-rating-count">
+              ({ratingCount})
+            </span>
+          )}
+        </div>
         
         {/* Price */}
         <div className="catalog-product-price">{formatPrice(price)}</div>

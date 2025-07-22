@@ -69,7 +69,7 @@ const useCartStore = create(
             error: error.message || 'Error loading cart',
             isLoading: false
           });
-          console.error('Error loading cart:', error);
+
         }
       },
       
@@ -125,7 +125,7 @@ const useCartStore = create(
             error: error.message || 'Error adding to cart',
             isLoading: false
           });
-          console.error('Error adding to cart:', error);
+
         }
       },
       
@@ -163,7 +163,7 @@ const useCartStore = create(
             error: error.message || 'Error updating quantity',
             isLoading: false
           });
-          console.error('Error updating quantity:', error);
+
         }
       },
       
@@ -194,7 +194,7 @@ const useCartStore = create(
             error: error.message || 'Error removing item',
             isLoading: false
           });
-          console.error('Error removing item:', error);
+
         }
       },
       
@@ -220,7 +220,7 @@ const useCartStore = create(
             error: error.message || 'Error clearing cart',
             isLoading: false
           });
-          console.error('Error clearing cart:', error);
+
         }
       },
       
@@ -243,7 +243,7 @@ const useCartStore = create(
             error: error.message || 'Invalid coupon code',
             isLoading: false
           });
-          console.error('Error applying coupon:', error);
+
         }
       },
       
@@ -265,7 +265,7 @@ const useCartStore = create(
             error: error.message || 'Error removing coupon',
             isLoading: false
           });
-          console.error('Error removing coupon:', error);
+
         }
       }
     }),

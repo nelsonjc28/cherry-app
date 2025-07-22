@@ -7,11 +7,14 @@ import './ProductPage.css';
 import CherryButton from '../components/CherryButton/CherryButton';
 import FavoriteButton from '../components/FavoriteButton/FavoriteButton';
 import FeaturedProducts from '../components/sections/FeaturedProducts/FeaturedProducts';
+import ProductGallery from '../components/ProductGallery/ProductGallery';
+import StarRating from '../components/StarRating/StarRating';
 import { toast } from 'react-toastify';
 
 // API and Store
 import { getProductById, generateS3ImageUrl } from '../api/cherryApi';
 import useCartStore from '../store/cartStore';
+import useUserStore from '../store/userStore';
 
 // Utils
 import { formatPrice } from '../utils/formatters';
@@ -20,6 +23,7 @@ import useHorizontalDragScroll from '../hooks/useHorizontalDragScroll';
 const ProductPage = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
+  const { user } = useUserStore();
 
   // State management
   const [product, setProduct] = useState(null);
@@ -30,6 +34,16 @@ const ProductPage = () => {
   const [quantity, setQuantity] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Rating states
+  const [ratingData, setRatingData] = useState({
+    average: 0,
+    count: 0,
+    distribution: [0, 0, 0, 0, 0]
+  });
+  const [userRating, setUserRating] = useState(0);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [ratingComment, setRatingComment] = useState('');
 
   // Cart store
   const { addToCart, isLoading: isAddingToCart } = useCartStore();
@@ -48,6 +62,12 @@ const ProductPage = () => {
           setSelectedColor(productData.detalles[0].nombreColor || '');
           setSelectedSize(productData.detalles[0].detalle || '');
         }
+        
+        // Fetch rating data
+        fetchRatingData();
+        if (user) {
+          fetchUserRating();
+        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -55,7 +75,84 @@ const ProductPage = () => {
       }
     };
     fetchProduct();
-  }, [productId]);
+  }, [productId, user]);
+
+  // Fetch rating data for the product
+  const fetchRatingData = async () => {
+    try {
+      const response = await fetch(`/api/ratings/product?product_id=${productId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setRatingData(data.average_rating);
+      }
+    } catch (error) {
+      // Error fetching rating data
+    }
+  };
+
+  // Fetch user's rating for the product
+  const fetchUserRating = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        return;
+      }
+
+      const response = await fetch(`/api/ratings/user?product_id=${productId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.rating) {
+          setUserRating(data.rating.rating);
+        }
+      }
+    } catch (error) {
+      // Error fetching user rating
+    }
+  };
+
+  // Handle rating submission
+  const handleRatingSubmit = async (rating) => {
+    if (!user) {
+      toast.error('Debes iniciar sesión para calificar productos');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/ratings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          product_id: productId,
+          rating: rating,
+          comment: ratingComment
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUserRating(rating);
+        setRatingData(data.average_rating);
+        setRatingComment('');
+        setShowRatingModal(false);
+        toast.success('Calificación enviada exitosamente');
+      } else {
+        throw new Error('Error al enviar calificación');
+      }
+    } catch (error) {
+      toast.error('Error al enviar calificación');
+    }
+  };
 
   // Handle add to cart
   const handleAddToCart = async () => {
@@ -81,7 +178,7 @@ const ProductPage = () => {
       addToCart(productToAdd, quantity);
       toast.success('Producto agregado al carrito');
     } catch (err) {
-      console.error('Error adding to cart:', err);
+      
       toast.error('Error al agregar al carrito');
     }
   };
@@ -204,19 +301,18 @@ const ProductPage = () => {
 
           {/* Product Gallery */}
           <div className="product-page__gallery">
-            <div className="product-page__gallery-main">
-              <img
-                src={generateS3ImageUrl(id_articulo)}
-                alt={descripcion}
-                className="product-page__gallery-main-image"
-                style={{ maxWidth: 400, maxHeight: 400, objectFit: 'contain' }}
-              />
-              <FavoriteButton
-                productId={id_articulo}
-                className="product-page__gallery-favorite"
-                size="large"
-              />
-            </div>
+            <ProductGallery 
+              productId={id_articulo}
+              productTitle={descripcion}
+              onImageChange={(index) => {
+                // Callback para cuando cambia la imagen
+              }}
+            />
+            <FavoriteButton
+              productId={id_articulo}
+              className="product-page__gallery-favorite"
+              size="large"
+            />
           </div>
 
           {/* Product Info */}
@@ -232,10 +328,15 @@ const ProductPage = () => {
 
             <div className="product-page__info-rating">
               <div className="product-page__container-info-rating">
-                <div className="product-page__rating-stars">
-                  {renderStars(5)} {/* Assuming a default rating for now */}
-                </div>
-                <span className="product-page__rating-text">5.0 Rating</span>
+                <StarRating
+                  rating={ratingData.average}
+                  size="medium"
+                  readonly={false}
+                  showAverage={true}
+                  averageRating={ratingData.average}
+                  totalRatings={ratingData.count}
+                  onRatingChange={handleRatingSubmit}
+                />
               </div>
               <div className="product-page__info-stock">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">

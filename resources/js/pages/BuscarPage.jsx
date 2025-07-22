@@ -53,7 +53,6 @@ const BuscarPage = () => {
           setFilteredProducts(mappedProducts);
         }
       } catch (error) {
-        console.error('Error loading products:', error);
         setProducts([]);
         setFilteredProducts([]);
       } finally {

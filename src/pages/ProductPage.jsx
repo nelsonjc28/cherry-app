@@ -72,7 +72,7 @@ const ProductPage = () => {
       }
 
     } catch (err) {
-      console.error('Error loading product:', err);
+      
       setError('Error cargando el producto');
     } finally {
       setIsLoading(false);
@@ -99,7 +99,7 @@ const ProductPage = () => {
       // Show success message or redirect
       alert('Producto agregado al carrito');
     } catch (err) {
-      console.error('Error adding to cart:', err);
+      
       alert('Error al agregar al carrito');
     }
   };

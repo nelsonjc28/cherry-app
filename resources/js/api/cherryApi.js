@@ -59,7 +59,6 @@ export const getAllProducts = async (catalog = 'Cherry 2025 - 2026') => {
     
     return products;
   } catch (error) {
-    console.error('Error fetching products:', error);
     return [];
   }
 };
@@ -86,7 +85,6 @@ export const getAvailableCategories = async () => {
     
     return categories;
   } catch (error) {
-    console.error('Error getting categories:', error);
     return [];
   }
 };
@@ -97,7 +95,6 @@ export const getProductsByLine = async (lineId) => {
     const products = await getAllProducts();
     return products.filter(product => product.linea?.id_linea === lineId);
   } catch (error) {
-    console.error('Error fetching products by line:', error);
     return [];
   }
 };
@@ -110,7 +107,6 @@ export const getProductsByLineDescription = async (lineDescription) => {
       product.linea?.descripcion?.toLowerCase().includes(lineDescription.toLowerCase())
     );
   } catch (error) {
-    console.error('Error fetching products by line description:', error);
     return [];
   }
 };
@@ -159,7 +155,6 @@ export const getFeaturedProducts = async (limit = 8) => {
       .map(mapApiProductToAppProduct);
     return featured;
   } catch (error) {
-    console.error('Error fetching featured products:', error);
     return [];
   }
 };
@@ -174,7 +169,6 @@ export const getNewProducts = async (limit = 8) => {
       .map(mapApiProductToAppProduct);
     return newProducts;
   } catch (error) {
-    console.error('Error fetching new products:', error);
     return [];
   }
 };
@@ -189,7 +183,6 @@ export const getPromoProducts = async (limit = 8) => {
       .map(mapApiProductToAppProduct);
     return promoProducts;
   } catch (error) {
-    console.error('Error fetching promo products:', error);
     return [];
   }
 };
@@ -298,7 +291,6 @@ export const getProductsByCategory = async (category, catalog = 'Cherry 2025 - 2
     
     return mappedProducts;
   } catch (error) {
-    console.error('❌ Error al obtener productos por categoría:', error);
     return [];
   }
 };
@@ -309,7 +301,6 @@ export const fetchProducts = async (catalog = 'Cherry 2025 - 2026') => {
     const products = await getAllProducts(catalog);
     return products.map(mapApiProductToAppProduct);
   } catch (error) {
-    console.error('Error fetching and mapping products:', error);
     return [];
   }
 };
@@ -347,7 +338,6 @@ export const getProductsByAvailability = async (availability, catalog = 'Cherry 
     
     return filteredProducts;
   } catch (error) {
-    console.error('Error fetching products by availability:', error);
     return [];
   }
 }; 
@@ -499,7 +489,6 @@ export const searchProductsAdvanced = async (query, filters = {}, catalog = 'Che
     // Mapear los productos al formato de la app
     return finalProducts.map(mapApiProductToAppProduct);
   } catch (error) {
-    console.error('Error en búsqueda avanzada:', error);
     return [];
   }
 };
@@ -522,7 +511,6 @@ export const getAvailableColors = async (catalog = 'Cherry 2025 - 2026') => {
     
     return Array.from(colorSet).sort();
   } catch (error) {
-    console.error('Error obteniendo colores disponibles:', error);
     return [];
   }
 };
@@ -541,7 +529,6 @@ export const getAvailableCategoriesFromAPI = async (catalog = 'Cherry 2025 - 202
     
     return Array.from(categorySet).sort();
   } catch (error) {
-    console.error('Error obteniendo categorías disponibles:', error);
     return [];
   }
 }; 
@@ -571,7 +558,6 @@ export const getProductById = async (productId) => {
     
     return product;
   } catch (error) {
-    console.error('Error fetching product by ID:', error);
     throw error;
   }
 }; 

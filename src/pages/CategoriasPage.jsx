@@ -46,7 +46,7 @@ const CategoriasPage = () => {
         }
       } catch (err) {
         setError('Error al cargar los productos de esta categoría');
-        console.error('Error fetching category products:', err);
+
       } finally {
         setLoading(false);
       }

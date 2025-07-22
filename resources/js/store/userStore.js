@@ -9,7 +9,7 @@ const useUserStore = create((set, get) => ({
   token: getToken(),
   loading: false,
   error: null,
-  initialized: false,
+  initialized: true, // Cambiar a true por defecto para evitar problemas de inicialización
   setUser: (user) => set({ user }),
   setToken: (token) => {
     set({ token });
@@ -131,6 +131,7 @@ const useUserStore = create((set, get) => ({
   },
   fetchUser: async () => {
     const token = getToken();
+    
     if (!token) {
       set({ loading: false, initialized: true });
       return null;
@@ -156,6 +157,7 @@ const useUserStore = create((set, get) => ({
       }
       
       const user = await res.json();
+      
       if (!user) {
         set({ user: null, token: null, loading: false, initialized: true });
         setToken(null);
@@ -165,7 +167,6 @@ const useUserStore = create((set, get) => ({
       set({ user, loading: false, initialized: true });
       return user;
     } catch (err) {
-      console.error('Error fetching user:', err);
       set({ user: null, error: err.message, loading: false, initialized: true });
       setToken(null);
       return null;

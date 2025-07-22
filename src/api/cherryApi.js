@@ -55,10 +55,9 @@ export const getAllProducts = async (catalog = 'Cherry 2025 - 2026') => {
     }
     
     return products;
-  } catch (error) {
-    console.error('Error fetching products:', error);
-    return [];
-  }
+      } catch (error) {
+      return [];
+    }
 };
 
 // Función para debug - obtener todas las categorías disponibles
@@ -82,10 +81,9 @@ export const getAvailableCategories = async () => {
     });
     
     return categories;
-  } catch (error) {
-    console.error('Error getting categories:', error);
-    return [];
-  }
+      } catch (error) {
+      return [];
+    }
 };
 
 // Función para obtener productos por línea/categoría
@@ -93,10 +91,9 @@ export const getProductsByLine = async (lineId) => {
   try {
     const products = await getAllProducts();
     return products.filter(product => product.linea?.id_linea === lineId);
-  } catch (error) {
-    console.error('Error fetching products by line:', error);
-    return [];
-  }
+      } catch (error) {
+      return [];
+    }
 };
 
 // Función para obtener productos por descripción de línea
@@ -106,10 +103,9 @@ export const getProductsByLineDescription = async (lineDescription) => {
     return products.filter(product => 
       product.linea?.descripcion?.toLowerCase().includes(lineDescription.toLowerCase())
     );
-  } catch (error) {
-    console.error('Error fetching products by line description:', error);
-    return [];
-  }
+      } catch (error) {
+      return [];
+    }
 };
 
 // Función para mapear productos de la API al formato de la app
@@ -153,10 +149,9 @@ export const getFeaturedProducts = async (limit = 8) => {
       .slice(0, limit)
       .map(mapApiProductToAppProduct);
     return featured;
-  } catch (error) {
-    console.error('Error fetching featured products:', error);
-    return [];
-  }
+      } catch (error) {
+      return [];
+    }
 };
 
 // Función para obtener productos nuevos
@@ -168,10 +163,9 @@ export const getNewProducts = async (limit = 8) => {
       .slice(0, limit)
       .map(mapApiProductToAppProduct);
     return newProducts;
-  } catch (error) {
-    console.error('Error fetching new products:', error);
-    return [];
-  }
+      } catch (error) {
+      return [];
+    }
 };
 
 // Función para obtener productos en promoción
@@ -183,10 +177,9 @@ export const getPromoProducts = async (limit = 8) => {
       .slice(0, limit)
       .map(mapApiProductToAppProduct);
     return promoProducts;
-  } catch (error) {
-    console.error('Error fetching promo products:', error);
-    return [];
-  }
+      } catch (error) {
+      return [];
+    }
 };
 
 // Mapeo de categorías comunes a términos de búsqueda
@@ -292,10 +285,9 @@ export const getProductsByCategory = async (category, catalog = 'Cherry 2025 - 2
     const mappedProducts = filteredRawProducts.map(mapApiProductToAppProduct);
     
     return mappedProducts;
-  } catch (error) {
-    console.error('❌ Error al obtener productos por categoría:', error);
-    return [];
-  }
+      } catch (error) {
+      return [];
+    }
 };
 
 // Función para obtener todos los productos y mapearlos al formato de la app
@@ -303,10 +295,9 @@ export const fetchProducts = async (catalog = 'Cherry 2025 - 2026') => {
   try {
     const products = await getAllProducts(catalog);
     return products.map(mapApiProductToAppProduct);
-  } catch (error) {
-    console.error('Error fetching and mapping products:', error);
-    return [];
-  }
+      } catch (error) {
+      return [];
+    }
 }; 
 
 // Función para obtener productos por disponibilidad
@@ -341,8 +332,7 @@ export const getProductsByAvailability = async (availability, catalog = 'Cherry 
     }
     
     return filteredProducts;
-  } catch (error) {
-    console.error('Error fetching products by availability:', error);
-    return [];
-  }
+      } catch (error) {
+      return [];
+    }
 }; 

@@ -43,7 +43,7 @@ const DestacadosPage = () => {
         }
       } catch (err) {
         setError('Error al cargar los productos destacados');
-        console.error('Error fetching featured products:', err);
+
       } finally {
         setLoading(false);
       }

@@ -1,0 +1,232 @@
+.favoritos-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.favoritos-page__header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.favoritos-page__header h1 {
+  font-size: 2.5rem;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.favoritos-page__header p {
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.favoritos-page__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 20px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #ff4757;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.favoritos-page__error {
+  text-align: center;
+  padding: 40px;
+}
+
+.favoritos-page__error h2 {
+  color: #ff4757;
+  margin-bottom: 10px;
+}
+
+.favoritos-page__error button {
+  background-color: #ff4757;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  margin-top: 20px;
+}
+
+.favoritos-page__empty {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.favoritos-page__empty-icon {
+  color: #ddd;
+  margin-bottom: 20px;
+}
+
+.favoritos-page__empty h3 {
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.favoritos-page__empty p {
+  color: #666;
+  margin-bottom: 30px;
+}
+
+.favoritos-page__empty button {
+  background-color: #ff4757;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.favoritos-page__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 30px;
+}
+
+.favoritos-page__item {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.favoritos-page__item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.favoritos-page__item-image {
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.favoritos-page__item-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.favoritos-page__item:hover .favoritos-page__item-image img {
+  transform: scale(1.05);
+}
+
+.favoritos-page__item-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.favoritos-page__item:hover .favoritos-page__item-overlay {
+  opacity: 1;
+}
+
+.favoritos-page__item-overlay span {
+  color: white;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.favoritos-page__item-content {
+  padding: 20px;
+}
+
+.favoritos-page__item-content h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.2rem;
+  color: #333;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.favoritos-page__item-content h3:hover {
+  color: #ff4757;
+}
+
+.favoritos-page__item-price {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #ff4757;
+  margin: 10px 0;
+}
+
+.favoritos-page__item-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 15px;
+}
+
+.favoritos-page__item-view {
+  background-color: #ff4757;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.3s ease;
+}
+
+.favoritos-page__item-view:hover {
+  background-color: #ff3742;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .favoritos-page {
+    padding: 15px;
+  }
+  
+  .favoritos-page__header h1 {
+    font-size: 2rem;
+  }
+  
+  .favoritos-page__grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .favoritos-page__header h1 {
+    font-size: 1.8rem;
+  }
+  
+  .favoritos-page__grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .favoritos-page__item-content {
+    padding: 15px;
+  }
+} 

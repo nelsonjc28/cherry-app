@@ -181,6 +181,29 @@
   opacity: 1;
 }
 
+.catalog-product-rating {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 5px 0;
+}
+
+.catalog-product-rating-count {
+  font-size: 12px;
+  color: #666;
+}
+
+/* Responsive adjustments for rating */
+@media (max-width: 768px) {
+  .catalog-product-rating {
+    margin: 3px 0;
+  }
+  
+  .catalog-product-rating-count {
+    font-size: 11px;
+  }
+}
+
 /* Tablet styles */
 @media (min-width: 768px) {
   .catalog-product-info {

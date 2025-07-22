@@ -3,7 +3,6 @@ import { Helmet } from 'react-helmet-async';
 import { useSearchParams } from 'react-router-dom';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import CatalogProductCard from '../components/CatalogProductCard/CatalogProductCard';
-import Pagination from '../components/Pagination/Pagination';
 import { getIconPath } from '../utils/assetPaths';
 import CustomButton from '../components/CustomButton';
 import './CatalogPage.css';
@@ -15,7 +14,6 @@ const CatalogPage = () => {
   
   // State management for filters and products
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState('más recientes');
   const [allProducts, setAllProducts] = useState([]); // Store all products
   const [filteredProducts, setFilteredProducts] = useState([]); // Store filtered products
@@ -150,7 +148,7 @@ const CatalogPage = () => {
         setAllProducts(productsData);
         setFilteredProducts(productsData);
       } catch (error) {
-        console.error('Error loading products:', error);
+
         setAllProducts([]);
         setFilteredProducts([]);
       } finally {
@@ -168,7 +166,6 @@ const CatalogPage = () => {
       let filtered = filterProducts(allProducts, filters);
       filtered = sortProducts(filtered, sortBy);
       setFilteredProducts(filtered);
-      setCurrentPage(1); // Reset to first page when filters change
       
     }
   }, [filters.category, filters.priceRange, filters.colors, filters.sizes, sortBy, allProducts]); // Excluir filters.availability y filters.catalog
@@ -208,15 +205,6 @@ const CatalogPage = () => {
   };
 
   const totalResults = filteredProducts.length;
-  const productsPerPage = 12;
-  const totalPages = Math.ceil(totalResults / productsPerPage);
-
-  // Get current page products
-  const getCurrentPageProducts = () => {
-    const startIndex = (currentPage - 1) * productsPerPage;
-    const endIndex = startIndex + productsPerPage;
-    return filteredProducts.slice(startIndex, endIndex);
-  };
 
   // Handle filter modal
   const toggleFilterModal = () => {
@@ -383,7 +371,7 @@ const CatalogPage = () => {
             <main className="catalog-page__main">
               {/* Products grid */}
               <div className="catalog-page__products-grid">
-                {getCurrentPageProducts().map((product) => (
+                {filteredProducts.map((product) => (
                   <CatalogProductCard
                     key={product.id}
                     product={product}
@@ -398,15 +386,6 @@ const CatalogPage = () => {
                   <p>No se encontraron productos para esta categoría.</p>
                   <p>Intenta con otra categoría o revisa los filtros.</p>
                 </div>
-              )}
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-              />
               )}
             </main>
           </div>

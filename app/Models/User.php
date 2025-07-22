@@ -83,6 +83,21 @@ class User extends Authenticatable implements JWTSubject
         return $this->role && $this->role->name === $roleName;
     }
 
+    /**
+     * Get the user's full name
+     */
+    public function getFullNameAttribute()
+    {
+        $name = $this->first_name;
+        if ($this->middle_name) {
+            $name .= ' ' . $this->middle_name;
+        }
+        if ($this->last_name) {
+            $name .= ' ' . $this->last_name;
+        }
+        return $name;
+    }
+
     // Métodos requeridos por JWTSubject
     public function getJWTIdentifier(): mixed
     {

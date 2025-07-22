@@ -53,7 +53,7 @@ const PromocionesPage = () => {
         
         setPromotionalProducts(promotional);
       } catch (error) {
-        console.error('Error loading promotional products:', error);
+
         setPromotionalProducts([]);
       } finally {
         setLoading(false);

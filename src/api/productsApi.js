@@ -81,7 +81,6 @@ export const getAllProducts = async () => {
     const products = await response.json();
     return products;
   } catch (error) {
-    console.error('Error fetching products:', error);
     return [];
   }
 };
@@ -92,7 +91,6 @@ export const getProductsByLine = async (lineId) => {
     const products = await getAllProducts();
     return products.filter(product => product.linea?.id_linea === lineId);
   } catch (error) {
-    console.error('Error fetching products by line:', error);
     return [];
   }
 };
@@ -105,7 +103,6 @@ export const getProductsByLineDescription = async (lineDescription) => {
       product.linea?.descripcion?.toLowerCase().includes(lineDescription.toLowerCase())
     );
   } catch (error) {
-    console.error('Error fetching products by line description:', error);
     return [];
   }
 };
@@ -152,7 +149,6 @@ export const getFeaturedProducts = async (limit = 8) => {
       .map(mapApiProductToAppProduct);
     return featured;
   } catch (error) {
-    console.error('Error fetching featured products:', error);
     return [];
   }
 };
@@ -167,7 +163,6 @@ export const getNewProducts = async (limit = 8) => {
       .map(mapApiProductToAppProduct);
     return newProducts;
   } catch (error) {
-    console.error('Error fetching new products:', error);
     return [];
   }
 };
@@ -182,7 +177,6 @@ export const getPromoProducts = async (limit = 8) => {
       .map(mapApiProductToAppProduct);
     return promoProducts;
   } catch (error) {
-    console.error('Error fetching promo products:', error);
     return [];
   }
 };

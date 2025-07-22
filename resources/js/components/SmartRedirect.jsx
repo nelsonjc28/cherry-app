@@ -15,35 +15,25 @@ const SmartRedirect = ({ children }) => {
 
     // Si estamos en /admin pero no hay usuario, ir a login
     if (currentPath === '/admin' && !user) {
-      console.log('SmartRedirect: En /admin sin usuario, redirigiendo a login');
       navigate('/login', { replace: true });
       return;
     }
 
     // Si estamos en /admin pero el usuario no es admin, ir a home
     if (currentPath === '/admin' && user && !isAdmin()) {
-      console.log('SmartRedirect: En /admin pero usuario no es admin, redirigiendo a home');
       navigate('/', { replace: true });
       return;
     }
 
     // Si estamos en /login pero ya hay usuario autenticado
     if (currentPath === '/login' && user) {
-      console.log('SmartRedirect: En /login con usuario autenticado, redirigiendo según rol');
-      if (isAdmin()) {
-        navigate('/admin', { replace: true });
-      } else {
-        navigate('/', { replace: true });
-      }
+      // Los admins pueden ir a admin o home, por defecto van a home
+      navigate('/', { replace: true });
       return;
     }
 
-    // Si estamos en / pero hay usuario admin, ir a admin
-    if (currentPath === '/' && user && isAdmin()) {
-      console.log('SmartRedirect: En / con usuario admin, redirigiendo a admin');
-      navigate('/admin', { replace: true });
-      return;
-    }
+    // NO redirigir automáticamente desde / si el usuario es admin
+    // Los admins pueden acceder libremente a las vistas de clientes
 
   }, [user, isAdmin, initialized, location.pathname, navigate]);
 

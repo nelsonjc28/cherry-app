@@ -54,7 +54,6 @@ const CatalogosPage = () => {
         setProducts([]);
         setFilteredProducts([]);
         setTotalResults(0);
-        console.error('Error fetching catalog products:', err);
       } finally {
         setLoading(false);
       }

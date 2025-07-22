@@ -33,7 +33,7 @@ const DestacadosOfertasPage = () => {
         
         setOffers(productsWithOffers);
       } catch (error) {
-        console.error('Error loading offers:', error);
+
         setOffers([]);
       } finally {
         setLoading(false);

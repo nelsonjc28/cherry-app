@@ -30,7 +30,7 @@ const ExplorarPage = () => {
         const mappedProducts = allProducts.map(mapApiProductToAppProduct);
         setProducts(mappedProducts);
       } catch (error) {
-        console.error('Error loading products:', error);
+
         setProducts([]);
       } finally {
         setLoading(false);

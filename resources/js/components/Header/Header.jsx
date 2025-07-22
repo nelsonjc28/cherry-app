@@ -443,6 +443,14 @@ const Header = () => {
               </div>
             </Link>
             
+            {user && (
+              <Link to="/favoritos" className="user-action icon-only">
+                <div className="icon-badge">
+                  <img src={getIconPath('Heart.svg')} alt="Favoritos" />
+                </div>
+              </Link>
+            )}
+            
             {!isAdminPage && (
               <button type="button" className="user-action icon-only" onClick={() => setCartModalOpen(true)}>
                 <div className="icon-badge">

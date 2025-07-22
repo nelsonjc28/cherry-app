@@ -42,7 +42,7 @@ const CatalogosPage = () => {
         }
       } catch (err) {
         setError('Error al cargar los productos del catálogo');
-        console.error('Error fetching catalog products:', err);
+
       } finally {
         setLoading(false);
       }

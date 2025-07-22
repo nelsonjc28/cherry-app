@@ -46,8 +46,8 @@ apiClient.interceptors.response.use(
     
     // Handle 500 server errors with user-friendly message
     if (error.response && error.response.status >= 500) {
-      console.error('Server error occurred:', error);
-      // Show error notification or toast
+      // Server error occurred
+      return Promise.reject(error);
     }
     
     return Promise.reject(error);

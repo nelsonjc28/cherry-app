@@ -6,14 +6,12 @@ const AuthInitializer = ({ children }) => {
 
   useEffect(() => {
     const initializeAuth = async () => {
-      // Verificar si hay un token almacenado
-      const token = localStorage.getItem('token');
-      if (token && !initialized) {
+      // Solo intentar inicializar si no está ya inicializado
+      if (!initialized) {
         try {
-          // Intentar cargar el usuario
           await fetchUser();
         } catch (err) {
-          console.error('Error initializing auth:', err);
+          // Error initializing auth
         }
       }
     };
@@ -21,22 +19,7 @@ const AuthInitializer = ({ children }) => {
     initializeAuth();
   }, [fetchUser, initialized]);
 
-  // Mostrar loading mientras se inicializa la autenticación
-  if (!initialized || loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        fontSize: '1.2rem',
-        color: '#666'
-      }}>
-        Inicializando aplicación...
-      </div>
-    );
-  }
-
+  // Temporalmente, siempre mostrar la aplicación
   return children;
 };
 

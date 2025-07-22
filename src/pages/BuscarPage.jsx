@@ -74,7 +74,7 @@ const BuscarPage = () => {
         setTotalResults(mappedProducts.length);
       } catch (err) {
         setError('Error al buscar productos');
-        console.error('Error searching products:', err);
+
       } finally {
         setLoading(false);
       }
