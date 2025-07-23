@@ -49,11 +49,18 @@ class OrderedCategory extends Model
      */
     public static function getOrderedCategories()
     {
-        return self::with('category')
+        $orderedCategories = self::with('category')
             ->active()
             ->ordered()
-            ->get()
-            ->pluck('category')
-            ->filter(); // Filtrar categorías que puedan haber sido eliminadas
+            ->get();
+
+        $categories = [];
+        foreach ($orderedCategories as $orderedCategory) {
+            if ($orderedCategory->category && $orderedCategory->category->is_active) {
+                $categories[] = $orderedCategory->category;
+            }
+        }
+
+        return collect($categories);
     }
 }

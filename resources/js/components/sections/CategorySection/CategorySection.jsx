@@ -1,30 +1,46 @@
 import { Link } from 'react-router-dom';
 import CategoryIcon from '../../CategoryIcon/CategoryIcon';
 import { getCategoryIconPath, getHeroIconPath } from '../../../utils/assetPaths';
+import useHomeCategories from '../../../hooks/useHomeCategories';
 import './CategorySection.css';
 
 const CategorySection = () => {
-  // Categories data with their icons using robust asset paths
-  const categories = [
-    { name: 'Vestidos', icon: getCategoryIconPath('vestido-de-novio 1.svg') },
-    { name: 'Blusas', icon: getCategoryIconPath('blusa 1.svg') },
-    { name: 'Pantalones', icon: getCategoryIconPath('pantalones-ajustados 1.svg') },
-    { name: 'Sacos', icon: getCategoryIconPath('vestir 1.svg') },
-    { name: 'Conjuntos', icon: getCategoryIconPath('moda 2 1.svg') },
-    { name: 'Gabardinas', icon: getCategoryIconPath('gabardina 1.svg') }
-  ];
+  const { categories, loading, error } = useHomeCategories();
+
+  if (loading) {
+    return (
+      <section className="category-section">
+        <div className="container">
+          <div className="category-loading">
+            <div className="loading-spinner"></div>
+            <p>Cargando categorías...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    console.error('Error loading categories:', error);
+  }
 
   return (
     <section className="category-section">
       <div className="container">
         <div className="category-grid">
-          {categories.map((category, index) => (
-            <CategoryIcon 
-              key={index}
-              name={category.name}
-              icon={category.icon}
-            />
-          ))}
+          {categories && categories.length > 0 ? (
+            categories.map((category, index) => (
+              <CategoryIcon 
+                key={category.id || index}
+                name={category.name}
+                icon={category.icon}
+              />
+            ))
+          ) : (
+            <div className="no-categories">
+              <p>No hay categorías disponibles</p>
+            </div>
+          )}
         </div>
         
         <div className="category-description">

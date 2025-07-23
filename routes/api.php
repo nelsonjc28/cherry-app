@@ -45,7 +45,6 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/admin/ordered-categories', [AdminOrderedCategoryController::class, 'index']);
     Route::post('/admin/ordered-categories/update-order', [AdminOrderedCategoryController::class, 'updateOrder']);
     Route::delete('/admin/ordered-categories/clear', [AdminOrderedCategoryController::class, 'clearOrder']);
-    Route::get('/home-categories', [AdminOrderedCategoryController::class, 'getHomeCategories']);
     
     // Welcome Sections routes - require authentication and admin role
     Route::middleware(['auth:api', 'admin'])->group(function () {
@@ -80,4 +79,7 @@ Route::get('/categories/{slug}', [CategoryController::class, 'show']);
 
 // Public welcome sections routes (no authentication required)
 Route::get('/welcome-sections/active', [WelcomeSectionController::class, 'getActiveSection']);
-Route::get('/welcome-sections', [WelcomeSectionController::class, 'getActiveSections']); 
+Route::get('/welcome-sections', [WelcomeSectionController::class, 'getActiveSections']);
+
+// Public home categories route (no authentication required)
+Route::get('/home-categories', [AdminOrderedCategoryController::class, 'getHomeCategories']); 

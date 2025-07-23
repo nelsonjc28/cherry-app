@@ -15,11 +15,63 @@
   padding: 0 20px;
 }
 
+.category-loading {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #e74c3c;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 .category-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 20px;
   margin-bottom: 30px;
+  justify-content: center;
+  justify-items: center;
+  align-items: center;
+  place-items: center;
+}
+
+/* Asegurar que cada categoría esté centrada */
+.category-grid .category-icon {
+  width: 100%;
+  max-width: 150px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Enfoque alternativo con flexbox para mejor centrado */
+.category-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.category-grid .category-icon {
+  flex: 0 0 auto;
+  width: calc(16.666% - 17px); /* 6 items por fila */
+  max-width: 150px;
+  min-width: 120px;
 }
 
 .category-description {
@@ -90,9 +142,10 @@
 
 /* Responsive styles */
 @media (max-width: 1024px) {
-  .category-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
+  .category-grid .category-icon {
+    width: calc(33.333% - 14px); /* 3 items por fila */
+    max-width: 120px;
+    min-width: 100px;
   }
   
   .category-section .icon-container {
@@ -106,9 +159,10 @@
     padding: 10px 0;
   }
   
-  .category-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
+  .category-grid .category-icon {
+    width: calc(50% - 10px); /* 2 items por fila */
+    max-width: 100px;
+    min-width: 80px;
   }
   
   .category-section .icon-container {
@@ -122,9 +176,10 @@
 }
 
 @media (max-width: 576px) {
-  .category-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+  .category-grid .category-icon {
+    width: calc(50% - 5px); /* 2 items por fila */
+    max-width: 90px;
+    min-width: 70px;
   }
   
   .category-section .icon-container {
