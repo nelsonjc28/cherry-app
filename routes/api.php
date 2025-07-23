@@ -8,6 +8,9 @@ use App\Http\Controllers\Api\AdminCategoryController;
 use App\Http\Controllers\Api\AdminOrderedCategoryController;
 use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\RatingController;
+use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\WelcomeSectionController;
+use App\Http\Controllers\Api\AdminWelcomeSectionController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -44,6 +47,16 @@ Route::middleware(['auth:api'])->group(function () {
     Route::delete('/admin/ordered-categories/clear', [AdminOrderedCategoryController::class, 'clearOrder']);
     Route::get('/home-categories', [AdminOrderedCategoryController::class, 'getHomeCategories']);
     
+    // Welcome Sections routes - require authentication and admin role
+    Route::middleware(['auth:api', 'admin'])->group(function () {
+        Route::get('/admin/welcome-sections', [AdminWelcomeSectionController::class, 'index']);
+        Route::get('/admin/welcome-sections/{id}', [AdminWelcomeSectionController::class, 'show']);
+        Route::post('/admin/welcome-sections', [AdminWelcomeSectionController::class, 'store']);
+        Route::post('/admin/welcome-sections/{id}', [AdminWelcomeSectionController::class, 'update']);
+        Route::delete('/admin/welcome-sections/{id}', [AdminWelcomeSectionController::class, 'destroy']);
+        Route::patch('/admin/welcome-sections/{id}/toggle', [AdminWelcomeSectionController::class, 'toggleStatus']);
+    });
+    
     // Favorites routes
     Route::get('/favorites', [FavoriteController::class, 'index']);
     Route::post('/favorites', [FavoriteController::class, 'store']);
@@ -59,4 +72,12 @@ Route::middleware(['auth:api'])->group(function () {
 
 // Public ratings routes (no authentication required)
 Route::get('/ratings/product', [RatingController::class, 'getProductRatings']);
-Route::post('/ratings/bulk', [RatingController::class, 'getBulkRatings']); 
+Route::post('/ratings/bulk', [RatingController::class, 'getBulkRatings']);
+
+// Public categories routes (no authentication required)
+Route::get('/categories', [CategoryController::class, 'index']);
+Route::get('/categories/{slug}', [CategoryController::class, 'show']);
+
+// Public welcome sections routes (no authentication required)
+Route::get('/welcome-sections/active', [WelcomeSectionController::class, 'getActiveSection']);
+Route::get('/welcome-sections', [WelcomeSectionController::class, 'getActiveSections']); 

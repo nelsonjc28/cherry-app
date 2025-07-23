@@ -98,33 +98,33 @@ const HomePage = () => {
 
       <main id="main-content" className="home-page" role="main">
         {/* Hero Section - Contains H1 */}
-      <HeroBanner />
+        <HeroBanner />
 
         {/* Navigation Section */}
         <nav aria-label="Categorías de productos">
-      <CategorySection />
+          <CategorySection />
         </nav>
 
         {/* Recent Collections */}
         <section aria-labelledby="recent-catalogs-heading">
-      <RecentCatalogs />
+          <RecentCatalogs />
         </section>
 
         {/* Featured Products Section */}
         <section aria-labelledby="featured-products-heading">
           <h2 id="featured-products-heading" className="sr-only">Productos Destacados</h2>
-      <FeaturedProducts 
-        title="Productos diseñados para reflejar tu estilo y personalidad."
-        products={featuredProducts}
-        viewAllLink="/productos"
-        viewAllText="Ver Más"
-      />
+          <FeaturedProducts 
+            title="Productos diseñados para reflejar tu estilo y personalidad."
+            products={featuredProducts}
+            viewAllLink="/productos"
+            viewAllText="Ver Más"
+          />
         </section>
 
-      {/* Featured Categories */}
+        {/* Featured Categories */}
         <section aria-labelledby="featured-categories-heading">
           <h2 id="featured-categories-heading" className="sr-only">Categorías Destacadas</h2>
-      <FeaturedCategories />
+          <FeaturedCategories />
         </section>
 
         {/* Affiliate Call-to-Action */}
@@ -136,7 +136,7 @@ const HomePage = () => {
         <section aria-labelledby="reviews-heading">
           <h2 id="reviews-heading" className="sr-only">Opiniones de Nuestros Clientes</h2>
           <CustomerReviews />
-      </section>
+        </section>
 
         {/* Best Selling Products */}
         <section aria-labelledby="best-sellers-heading">
@@ -146,7 +146,7 @@ const HomePage = () => {
             title="Productos más vendidos"
             description="Perfectos para ocasiones especiales, con diseños que realzan la figura"
           />
-      </section>
+        </section>
       </main>
     </>
   );

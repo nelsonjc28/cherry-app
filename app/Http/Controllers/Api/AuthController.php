@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -49,34 +50,41 @@ class AuthController extends Controller
         $token = JWTAuth::fromUser($user);
 
         return response()->json([
-            'user' => $user->load('role'),
+            'user' => $user,
             'token' => $token,
         ], 201);
     }
 
     public function login(Request $request)
     {
-        $credentials = $request->only(['email', 'password']);
+        try {
+            $credentials = $request->only(['email', 'password']);
 
-        $validator = Validator::make($credentials, [
-            'email'    => 'required|email',
-            'password' => 'required|string',
-        ]);
+            $validator = Validator::make($credentials, [
+                'email'    => 'required|email',
+                'password' => 'required|string',
+            ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            if ($validator->fails()) {
+                return response()->json(['errors' => $validator->errors()], 422);
+            }
+
+            if (!$token = JWTAuth::attempt($credentials)) {
+                return response()->json(['error' => 'Credenciales inválidas'], 401);
+            }
+
+            $user = JWTAuth::setToken($token)->toUser();
+            
+            // Cargar la relación role
+            $userWithRole = User::with('role')->find($user->id);
+
+            return response()->json([
+                'user' => $userWithRole,
+                'token' => $token,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error interno del servidor'], 500);
         }
-
-        if (!$token = JWTAuth::attempt($credentials)) {
-            return response()->json(['error' => 'Credenciales inválidas'], 401);
-        }
-
-        $user = JWTAuth::setToken($token)->toUser();
-
-        return response()->json([
-            'user' => $user->load('role'),
-            'token' => $token,
-        ]);
     }
 
     public function logout()
@@ -97,7 +105,11 @@ class AuthController extends Controller
             if (!$user) {
                 return response()->json(['error' => 'No autenticado'], 401);
             }
-            return response()->json($user ? $user->load('role') : null);
+            
+            // Cargar la relación role usando fresh
+            $userWithRole = User::with('role')->find($user->id);
+            
+            return response()->json($userWithRole);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Error de autenticación: ' . $e->getMessage()], 500);
         }

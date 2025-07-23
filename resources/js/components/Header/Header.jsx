@@ -5,6 +5,7 @@ import { formatPrice } from '../../utils/formatters';
 import useUserStore from '../../store/userStore';
 import useCartStore from '../../store/cartStore';
 import CartModal from '../CartModal/CartModal';
+import useCategories from '../../hooks/useCategories';
 import './Header.css';
 
 const Header = () => {
@@ -12,6 +13,7 @@ const Header = () => {
   const location = useLocation();
   const { user, fetchUser, logout } = useUserStore();
   const { items: cartItems, totalItems, totalPrice } = useCartStore();
+  const { categories, loading: categoriesLoading } = useCategories();
   const [activeMenu, setActiveMenu] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openMobileSubMenu, setOpenMobileSubMenu] = useState(null);
@@ -20,102 +22,82 @@ const Header = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const userMenuRef = useRef(null);
 
-  // Check if we're on the admin page
-  const isAdminPage = location.pathname === '/admin';
+  // Check if current page is admin
+  const isAdminPage = location.pathname.startsWith('/admin');
 
-  // Submenu data for each category
-  const menuData = {
-    nuevos: {
-      title: 'Nuevos',
-      columns: [
+  // Organizar categorías en grupos para el menú
+  const getCategoryGroups = () => {
+    if (categoriesLoading || !categories.length) {
+      // Devolver estructura por defecto mientras carga
+      return [
         {
-          title: 'Recién llegados',
+          title: 'Cargando...',
           items: [
-            { name: 'Colección primavera', link: '/nuevos/primavera' },
-            { name: 'Últimas tendencias', link: '/nuevos/tendencias' },
-            { name: 'Lo más vendido', link: '/nuevos/mas-vendido' }
-          ]
-        },
-        {
-          title: 'Categorías nuevas',
-          items: [
-            { name: 'Accesorios', link: '/nuevos/accesorios' },
-            { name: 'Maquillaje', link: '/nuevos/maquillaje' },
-            { name: 'Cuidado personal', link: '/nuevos/cuidado-personal' }
-          ]
-        },
-        {
-          title: 'Destacados',
-          items: [
-            { name: 'Colección limitada', link: '/nuevos/coleccion-limitada' },
-            { name: 'Edición especial', link: '/nuevos/edicion-especial' }
+            { name: 'Cargando categorías...', link: '/categorias' }
           ]
         }
+      ];
+    }
+
+    // Dividir las categorías en grupos de 6 para mejor organización
+    const groups = [];
+    const itemsPerGroup = 6;
+    
+    for (let i = 0; i < categories.length; i += itemsPerGroup) {
+      const group = categories.slice(i, i + itemsPerGroup);
+      groups.push({
+        title: `Categorías ${Math.floor(i / itemsPerGroup) + 1}`,
+        items: group.map(cat => ({
+          name: cat.name,
+          link: `/categorias/${cat.slug}`
+        }))
+      });
+    }
+
+    // Agregar grupo "Ver todas" al final
+    groups.push({
+      title: 'Ver todas',
+      items: [
+        { name: 'Todas las categorías', link: '/categorias' }
       ]
-    },
+    });
+
+    return groups;
+  };
+
+  const menuData = {
     destacados: {
       title: 'Destacados',
       columns: [
         {
-          title: 'Top ventas',
+          title: 'Productos populares',
           items: [
-            { name: 'Accesorios populares', link: '/destacados/accesorios-populares' },
-            { name: 'Maquillaje favorito', link: '/destacados/maquillaje-favorito' },
-            { name: 'Lo más buscado', link: '/destacados/mas-buscado' }
+            { name: 'Más vendidos', link: '/destacados/mas-vendidos' },
+            { name: 'Nuevos productos', link: '/destacados/nuevos' },
+            { name: 'Ofertas especiales', link: '/destacados/ofertas' }
           ]
         },
         {
-          title: 'Recomendados',
+          title: 'Colecciones',
           items: [
-            { name: 'Por estilo', link: '/destacados/por-estilo' },
-            { name: 'Por temporada', link: '/destacados/por-temporada' },
-            { name: 'Por ocasión', link: '/destacados/por-ocasion' }
+            { name: 'Primavera 2024', link: '/destacados/primavera-2024' },
+            { name: 'Verano 2024', link: '/destacados/verano-2024' },
+            { name: 'Edición limitada', link: '/destacados/edicion-limitada' }
           ]
         },
         {
-          title: 'Promociones',
+          title: 'Tendencias',
           items: [
-            { name: 'Descuentos', link: '/destacados/descuentos' },
-            { name: 'Packs especiales', link: '/destacados/packs' }
+            { name: 'Estilos del momento', link: '/destacados/tendencias' },
+            { name: 'Colores de temporada', link: '/destacados/colores' },
+            { name: 'Looks completos', link: '/destacados/looks' }
           ]
         }
       ]
     },
     categorias: {
       title: 'Categorías',
-      columns: [
-        {
-          title: 'Accesorios',
-          items: [
-            { name: 'Collares', link: '/categorias/collares' },
-            { name: 'Pulseras', link: '/categorias/pulseras' },
-            { name: 'Aretes', link: '/categorias/aretes' },
-            { name: 'Anillos', link: '/categorias/anillos' }
-          ]
-        },
-        {
-          title: 'Belleza',
-          items: [
-            { name: 'Labiales', link: '/categorias/labiales' },
-            { name: 'Sombras', link: '/categorias/sombras' },
-            { name: 'Bases', link: '/categorias/bases' }
-          ]
-        },
-        {
-          title: 'Cuidado personal',
-          items: [
-            { name: 'Cremas', link: '/categorias/cremas' },
-            { name: 'Tratamientos', link: '/categorias/tratamientos' },
-            { name: 'Mascarillas', link: '/categorias/mascarillas' }
-          ]
-        },
-        {
-          title: 'Ver todas',
-          items: [
-            { name: 'Todas las categorías', link: '/categorias/todas' }
-          ]
-        }
-      ]
+      columns: getCategoryGroups()
     },
     catalogos: {
       title: 'Catálogos',
@@ -517,7 +499,7 @@ const Header = () => {
           </div>
           
           {/* Mega Menu Dropdown */}
-          {activeMenu && (
+          {activeMenu && menuData[activeMenu] && (
             <div className="mega-menu">
               <div className="mega-menu-content">
                 <div className="mega-menu-header">

@@ -5,6 +5,7 @@ import AdminUserManager from '../components/AdminUserManager/AdminUserManager';
 import ClientManager from '../components/ClientManager/ClientManager';
 import CategoryManager from '../components/CategoryManager/CategoryManager';
 import CategoryOrderManager from '../components/CategoryOrderManager/CategoryOrderManager';
+import AdminWelcomeSectionManager from '../components/AdminWelcomeSectionManager/AdminWelcomeSectionManager';
 import AuthTest from '../components/AuthTest';
 import useUserStore from '../store/userStore';
 import '../index.css';
@@ -64,6 +65,7 @@ function AdminPanelPage() {
           <button className={`admin-panel__sidebar-link${selectedMenu==='clients'?' active':''}`} onClick={()=>{setSelectedMenu('clients'); setSidebarOpen(false);}}>Gestionar Clientes</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='categories'?' active':''}`} onClick={()=>{setSelectedMenu('categories'); setSidebarOpen(false);}}>Gestionar Categorías</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='category-order'?' active':''}`} onClick={()=>{setSelectedMenu('category-order'); setSidebarOpen(false);}}>Ordenar Categorías</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='welcome-sections'?' active':''}`} onClick={()=>{setSelectedMenu('welcome-sections'); setSidebarOpen(false);}}>Secciones de Bienvenida</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='auth-test'?' active':''}`} onClick={()=>{setSelectedMenu('auth-test'); setSidebarOpen(false);}}>Test Auth</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='other'?' active':''}`} onClick={()=>{setSelectedMenu('other'); setSidebarOpen(false);}}>Otra sección</button>
           <button className="admin-panel__sidebar-link" onClick={handleLogout}>Volver al sitio</button>
@@ -157,6 +159,12 @@ function AdminPanelPage() {
           </section>
         )}
         
+        {selectedMenu === 'welcome-sections' && isAdmin() && (
+          <section>
+            <AdminWelcomeSectionManager />
+          </section>
+        )}
+
         {selectedMenu === 'auth-test' && (
           <section>
             <AuthTest />

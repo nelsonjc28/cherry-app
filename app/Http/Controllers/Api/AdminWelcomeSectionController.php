@@ -1,0 +1,362 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\WelcomeSection;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
+
+class AdminWelcomeSectionController extends Controller
+{
+    /**
+     * Obtener todas las secciones de bienvenida
+     */
+    public function index(Request $request): JsonResponse
+    {
+        try {
+            $sections = WelcomeSection::ordered()->get();
+
+            return response()->json([
+                'success' => true,
+                'sections' => $sections
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al obtener secciones: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener una sección específica
+     */
+    public function show(Request $request, $id): JsonResponse
+    {
+        try {
+            $section = WelcomeSection::find($id);
+
+            if (!$section) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Sección no encontrada'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'section' => $section
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al obtener sección: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Crear una nueva sección
+     */
+    public function store(Request $request): JsonResponse
+    {
+        try {
+            // Verificar autenticación
+            $user = $request->user();
+            if (!$user || !$user->isAdmin()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Acceso no autorizado'
+                ], 401);
+            }
+
+            // Validar datos requeridos
+            $request->validate([
+                'title' => 'required|string|max:255',
+                'subtitle' => 'required|string',
+                'button_text' => 'required|string|max:255',
+                'button_url' => 'required|string|max:500',
+                'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'is_active' => 'boolean',
+                'display_order' => 'integer|min:0'
+            ]);
+
+            // Procesar imagen
+            $imagePath = null;
+            if ($request->hasFile('image')) {
+                $image = $request->file('image');
+                
+                // Crear directorio si no existe
+                $uploadPath = public_path('images/welcome-sections');
+                if (!file_exists($uploadPath)) {
+                    mkdir($uploadPath, 0755, true);
+                }
+                
+                // Generar nombre único para la imagen
+                $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+                $imagePath = 'images/welcome-sections/' . $imageName;
+                
+                // Mover imagen a public/images/welcome-sections
+                if (!$image->move($uploadPath, $imageName)) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Error al guardar la imagen'
+                    ], 500);
+                }
+            }
+
+            // Crear sección
+            $section = WelcomeSection::create([
+                'title' => $request->input('title'),
+                'subtitle' => $request->input('subtitle'),
+                'button_text' => $request->input('button_text'),
+                'button_url' => $request->input('button_url'),
+                'image_path' => $imagePath,
+                'is_active' => $request->boolean('is_active', true),
+                'display_order' => $request->input('display_order', 0)
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Sección creada exitosamente',
+                'section' => $section
+            ], 201);
+            
+        } catch (\Exception $e) {
+            Log::error('Error al crear sección:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al crear sección: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Actualizar una sección
+     */
+    public function update(Request $request, $id): JsonResponse
+    {
+        try {
+            // Logs temporales para debugging
+            Log::info('=== DEBUG UPDATE ===');
+            Log::info('Request method:', ['method' => $request->method()]);
+            Log::info('Content-Type:', ['content_type' => $request->header('Content-Type')]);
+            Log::info('All request data:', ['all_data' => $request->all()]);
+            Log::info('Request input:', ['input' => $request->input()]);
+            Log::info('Request files:', ['files' => $request->allFiles()]);
+            Log::info('Has image file:', ['has_image' => $request->hasFile('image')]);
+            Log::info('Request body:', ['body' => $request->getContent()]);
+            Log::info('_method:', ['_method' => $request->input('_method')]);
+            
+            // Verificar si es una petición PUT simulada
+            if ($request->input('_method') === 'PUT') {
+                Log::info('Detected PUT method via _method');
+            }
+            
+            // Verificar autenticación
+            $user = $request->user();
+            if (!$user || !$user->isAdmin()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Acceso no autorizado'
+                ], 401);
+            }
+
+            // Buscar la sección
+            $section = WelcomeSection::find($id);
+            if (!$section) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Sección no encontrada'
+                ], 404);
+            }
+
+            // Preparar datos para actualización
+            $updateData = [];
+            
+            // Procesar campos de texto
+            $textFields = ['title', 'subtitle', 'button_text', 'button_url'];
+            foreach ($textFields as $field) {
+                if ($request->has($field) && $request->input($field) !== null) {
+                    $updateData[$field] = $request->input($field);
+                    Log::info("Campo {$field}:", ['value' => $request->input($field)]);
+                }
+            }
+            
+            // Procesar campos booleanos y numéricos
+            if ($request->has('is_active')) {
+                $updateData['is_active'] = $request->boolean('is_active');
+                Log::info('Campo is_active:', ['value' => $updateData['is_active']]);
+            }
+            
+            if ($request->has('display_order')) {
+                $updateData['display_order'] = (int) $request->input('display_order');
+                Log::info('Campo display_order:', ['value' => $updateData['display_order']]);
+            }
+
+            // Procesar imagen si se proporciona
+            if ($request->hasFile('image')) {
+                $image = $request->file('image');
+                Log::info('Imagen recibida:', [
+                    'name' => $image->getClientOriginalName(),
+                    'size' => $image->getSize(),
+                    'type' => $image->getMimeType()
+                ]);
+                
+                // Validar imagen
+                $request->validate([
+                    'image' => 'image|mimes:jpeg,png,jpg,gif|max:2048'
+                ]);
+                
+                // Crear directorio si no existe
+                $uploadPath = public_path('images/welcome-sections');
+                if (!file_exists($uploadPath)) {
+                    mkdir($uploadPath, 0755, true);
+                }
+                
+                // Generar nombre único para la imagen
+                $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+                $imagePath = 'images/welcome-sections/' . $imageName;
+                
+                // Mover imagen a public/images/welcome-sections
+                if ($image->move($uploadPath, $imageName)) {
+                    // Eliminar imagen anterior si existe
+                    if ($section->image_path && file_exists(public_path($section->image_path))) {
+                        unlink(public_path($section->image_path));
+                    }
+                    
+                    $updateData['image_path'] = $imagePath;
+                    Log::info('Imagen guardada:', ['path' => $imagePath]);
+                } else {
+                    Log::error('Error al mover imagen');
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Error al guardar la imagen'
+                    ], 500);
+                }
+            }
+
+            // Actualizar sección
+            if (!empty($updateData)) {
+                $section->update($updateData);
+                
+                Log::info('Sección actualizada:', ['id' => $id, 'data' => $updateData]);
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Sección actualizada exitosamente',
+                    'section' => $section->fresh()
+                ]);
+            } else {
+                Log::warning('No se proporcionaron datos para actualizar');
+                return response()->json([
+                    'success' => false,
+                    'error' => 'No se proporcionaron datos para actualizar'
+                ], 400);
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Error al actualizar sección:', [
+                'id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al actualizar sección: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Eliminar una sección
+     */
+    public function destroy(Request $request, $id): JsonResponse
+    {
+        try {
+            // Verificar autenticación
+            $user = $request->user();
+            if (!$user || !$user->isAdmin()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Acceso no autorizado'
+                ], 401);
+            }
+
+            // Buscar la sección
+            $section = WelcomeSection::find($id);
+            if (!$section) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Sección no encontrada'
+                ], 404);
+            }
+
+            // Eliminar imagen física si existe
+            if ($section->image_path && file_exists(public_path($section->image_path))) {
+                unlink(public_path($section->image_path));
+            }
+
+            // Eliminar sección
+            $section->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Sección eliminada exitosamente'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error al eliminar sección:', [
+                'id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al eliminar sección: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Cambiar estado activo/inactivo
+     */
+    public function toggleStatus(Request $request, $id): JsonResponse
+    {
+        try {
+            $section = WelcomeSection::find($id);
+
+            if (!$section) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Sección no encontrada'
+                ], 404);
+            }
+
+            $section->update([
+                'is_active' => !$section->is_active
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Estado cambiado exitosamente',
+                'section' => $section
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al cambiar estado: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+} 

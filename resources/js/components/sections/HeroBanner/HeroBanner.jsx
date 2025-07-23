@@ -1,11 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getHeroSliderImagePath, getHeroIconPath } from '../../../utils/assetPaths';
+import useWelcomeSection from '../../../hooks/useWelcomeSection';
 import './HeroBanner.css';
 
 const HeroBanner = () => {
   // State to control current slide
   const [currentSlide, setCurrentSlide] = useState(0);
+  
+  // Hook para obtener la sección de bienvenida activa
+  const { welcomeSection, loading, error } = useWelcomeSection();
 
   // Main banner data with robust asset paths
   const banners = [
@@ -26,7 +30,7 @@ const HeroBanner = () => {
       imageAlt: 'Modelo femenina luciendo outfit completo con accesorios únicos de Cherry Central'
     },
     {
-      id: 2,
+      id: 3,
       image: getHeroSliderImagePath('hero-slider1-girl.png'),
       titlePart1: 'Descubre',
       titlePart2: 'lo mejor para tu estilo',
@@ -40,6 +44,18 @@ const HeroBanner = () => {
     setCurrentSlide(index);
   };
 
+  // Si hay una sección activa desde la base de datos, usarla
+  const activeBanner = welcomeSection ? {
+    id: 1,
+    image: welcomeSection.image_path ? `${window.location.origin}/${welcomeSection.image_path}` : getHeroSliderImagePath('hero-slider1-girl.png'),
+    titlePart1: welcomeSection.title ? welcomeSection.title.split(' ')[0] : '¡Bienvenida',
+    titlePart2: welcomeSection.title ? welcomeSection.title.split(' ').slice(1).join(' ') : 'a la moda que te inspira!',
+    description: welcomeSection.subtitle || 'Explora nuestra colección única y actualizada que resalta tu estilo personal. Afíliate hoy y accede a ofertas exclusivas que no querrás perderte.',
+    buttonText: welcomeSection.button_text || 'Explorar Colección',
+    buttonUrl: welcomeSection.button_url || '/catalogo',
+    imageAlt: 'Imagen de bienvenida dinámica de Cherry Central'
+  } : banners[currentSlide];
+
   return (
     <section className="hero-banner" role="banner">
       {/* Main Banner */}
@@ -47,12 +63,12 @@ const HeroBanner = () => {
         <div className="banner-content">
           <div className="banner-text-container">
             <h1 className="banner-title">
-              <span className="title-part1">{banners[currentSlide].titlePart1}</span>
-              <span className="title-part2">{banners[currentSlide].titlePart2}</span>
+              <span className="title-part1">{activeBanner.titlePart1}</span>
+              <span className="title-part2">{activeBanner.titlePart2}</span>
             </h1>
             
             <p className="banner-description">
-              {banners[currentSlide].description}
+              {activeBanner.description}
             </p>
             
             <div className="banner-actions">
@@ -72,12 +88,12 @@ const HeroBanner = () => {
               </Link>
               
               <Link 
-                to="/explorar" 
+                to={activeBanner.buttonUrl || "/explorar"} 
                 className="btn-explore"
-                title="Explora toda nuestra colección de moda femenina"
-                aria-label="Explora el catálogo completo de productos"
+                title={activeBanner.buttonText || "Explora toda nuestra colección de moda femenina"}
+                aria-label={activeBanner.buttonText || "Explora el catálogo completo de productos"}
               >
-                <p className="explora-text">Explora</p>
+                <p className="explora-text">{activeBanner.buttonText || "Explora"}</p>
                 <img 
                   src={getHeroIconPath('Chevron Right.svg')} 
                   alt="Flecha hacia la derecha" 
@@ -89,40 +105,32 @@ const HeroBanner = () => {
           </div>
           
           <div className="banner-image-container">
-            <div className="image-wrapper">
-              <img 
-                src={banners[currentSlide].image} 
-                alt={banners[currentSlide].imageAlt}
-                className="hero-image" 
-                loading="eager"
-                fetchPriority="high"
-              />
-              <div className="decorative-lines" aria-hidden="true">
-                <div className="line line-1"></div>
-                <div className="line line-2"></div>
-                <div className="line line-3"></div>
-                <div className="line line-4"></div>
-                <div className="line line-5"></div>
-              </div>
-            </div>
+            <img 
+              src={activeBanner.image} 
+              alt={activeBanner.imageAlt}
+              className="banner-image"
+              onError={(e) => {
+                console.error('Error loading image:', activeBanner.image);
+                e.target.src = getHeroSliderImagePath('hero-slider1-girl.png');
+              }}
+            />
           </div>
         </div>
-        
-        {/* Slide Indicators */}
-        <div className="banner-indicators" role="tablist" aria-label="Slides del banner principal">
+      </div>
+
+      {/* Slider Navigation - Solo mostrar si no hay sección activa */}
+      {!welcomeSection && banners.length > 1 && (
+        <div className="slider-navigation">
           {banners.map((_, index) => (
             <button
               key={index}
-              className={`indicator ${index === currentSlide ? 'active' : ''}`}
+              className={`slider-dot ${currentSlide === index ? 'active' : ''}`}
               onClick={() => goToSlide(index)}
-              role="tab"
-              aria-selected={index === currentSlide}
-              aria-controls={`slide-${index}`}
-              aria-label={`Ir al slide ${index + 1} de ${banners.length}`}
+              aria-label={`Ir al slide ${index + 1}`}
             />
           ))}
         </div>
-      </div>
+      )}
     </section>
   );
 };

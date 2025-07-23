@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             TestUserSeeder::class,
             CategorySeeder::class,
+            WelcomeSectionSeeder::class,
         ]);
     }
 }

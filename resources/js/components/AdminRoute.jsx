@@ -21,13 +21,14 @@ const AdminRoute = ({ children }) => {
     );
   }
 
-  // Verificaciones de seguridad (redundantes con SmartRedirect pero por seguridad)
+  // Si no hay usuario, redirigir al login
   if (!user) {
-    return null; // SmartRedirect se encargará de la redirección
+    return <Navigate to="/login" replace />;
   }
 
+  // Si el usuario no es admin, redirigir al home
   if (!isAdmin()) {
-    return null; // SmartRedirect se encargará de la redirección
+    return <Navigate to="/" replace />;
   }
 
   // Si es admin, mostrar el contenido

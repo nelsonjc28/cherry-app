@@ -1,24 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import { favoriteService } from '../../services/api';
 import './FavoriteButton.css';
 
 const FavoriteButton = ({ 
   productId, 
-  productTitle = '', 
-  productImage = '', 
-  productPrice = 0,
-  size = 'medium',
-  className = '',
-  onToggle = null 
+  productTitle, 
+  productImage, 
+  productPrice, 
+  onToggle, 
+  size = 'medium', 
+  className = '' 
 }) => {
   const [isFavorited, setIsFavorited] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Verificar si el producto está en favoritos al cargar
   useEffect(() => {
-    // Solo verificar si no hay un estado local previo
-    if (isFavorited === false && !loading) {
-      checkFavoriteStatus();
-    }
+    checkFavoriteStatus();
   }, [productId]);
 
   const checkFavoriteStatus = async () => {
@@ -30,111 +27,67 @@ const FavoriteButton = ({
       }
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000); // Reducir timeout a 3 segundos
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-      const response = await fetch('/api/favorites/check', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ product_id: productId }),
-        signal: controller.signal
-      });
-
+      const response = await favoriteService.check(productId);
       clearTimeout(timeoutId);
-
-      if (response.ok) {
-        const data = await response.json();
-        setIsFavorited(data.is_favorited);
-      } else if (response.status === 401) {
-        // Usuario no autenticado
-        setIsFavorited(false);
-      }
+      
+      setIsFavorited(response.data.is_favorited || false);
     } catch (error) {
-      if (error.name === 'AbortError') {
-        // Timeout - no hacer nada, mantener el estado actual
-        return;
+      if (error.name !== 'AbortError') {
+        console.error('Error checking favorite status:', error);
       }
-      // Error checking favorite status
       setIsFavorited(false);
     }
   };
 
   const handleToggle = async () => {
     if (loading) return;
-
+    
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      
       if (!token) {
-        // Redirigir a login si no está autenticado
         window.location.href = '/login';
         return;
       }
 
-      // Estado optimista - cambiar inmediatamente
       const newFavoritedState = !isFavorited;
-      setIsFavorited(newFavoritedState);
+      setIsFavorited(newFavoritedState); // Optimistic update
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // Reducir timeout a 5 segundos
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-      const response = await fetch('/api/favorites/toggle', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          product_id: productId,
-          product_title: productTitle,
-          product_image: productImage,
-          product_price: productPrice
-        }),
-        signal: controller.signal
+      const response = await favoriteService.toggle({
+        product_id: productId,
+        product_title: productTitle,
+        product_image: productImage,
+        product_price: productPrice
       });
 
       clearTimeout(timeoutId);
 
-      if (response.ok) {
-        const data = await response.json();
-        // Confirmar el estado del servidor
-        setIsFavorited(data.is_favorited);
-        
-        // Mostrar notificación
-        if (window.showToast) {
-          window.showToast(
-            data.is_favorited ? 'Agregado a favoritos' : 'Removido de favoritos',
-            data.is_favorited ? 'success' : 'info'
-          );
-        }
-
-        // Callback opcional
+      if (response.data.success) {
         if (onToggle) {
-          onToggle(data.is_favorited);
+          onToggle(newFavoritedState);
         }
-      } else if (response.status === 401) {
-        // Usuario no autenticado, redirigir a login
-        setIsFavorited(false); // Revertir estado optimista
-        window.location.href = '/login';
       } else {
-        // Error del servidor, revertir estado optimista
-        setIsFavorited(!newFavoritedState);
+        setIsFavorited(!newFavoritedState); // Revert optimistic update
         throw new Error('Error al actualizar favoritos');
       }
     } catch (error) {
-      // Revertir estado optimista en caso de error
-      setIsFavorited(!isFavorited);
+      setIsFavorited(!isFavorited); // Revert optimistic update
       
       if (error.name === 'AbortError') {
         if (window.showToast) {
-          window.showToast('La operación tardó demasiado, intenta de nuevo', 'error');
+          window.showToast('La operación tardó demasiado. Inténtalo de nuevo.', 'warning');
         }
+      } else if (error.response?.status === 401) {
+        setIsFavorited(false);
+        window.location.href = '/login';
       } else {
         if (window.showToast) {
-          window.showToast('Error al actualizar favoritos', 'error');
+          window.showToast('Error al actualizar favoritos: ' + error.message, 'error');
         }
       }
     } finally {

@@ -12,7 +12,18 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'admin' => \App\Http\Middleware\AdminMiddleware::class,
+        ]);
+        
+        // Agregar middleware para procesar _method en API routes
+        $middleware->api([
+            \Illuminate\Http\Middleware\HandleCors::class,
+            \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
+            \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
+            \Illuminate\Foundation\Http\Middleware\TrimStrings::class,
+            \App\Http\Middleware\ProcessMethodOverride::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
