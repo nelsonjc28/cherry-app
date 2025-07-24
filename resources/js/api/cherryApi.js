@@ -6,6 +6,88 @@ const productCache = new Map();
 // Cache for products to avoid multiple API calls
 let productsCache = null;
 
+// Función de prueba para verificar la API
+export const testApiConnection = async () => {
+  try {
+    console.log('🧪 TEST: Probando conexión a la API...');
+    console.log('🧪 TEST: URL:', CHERRY_API_URL);
+    
+    const response = await fetch(CHERRY_API_URL);
+    console.log('🧪 TEST: Status:', response.status);
+    console.log('🧪 TEST: OK:', response.ok);
+    console.log('🧪 TEST: Headers:', Object.fromEntries(response.headers.entries()));
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log('🧪 TEST: Datos recibidos:', data);
+    console.log('🧪 TEST: Tipo:', typeof data);
+    console.log('🧪 TEST: Es array:', Array.isArray(data));
+    console.log('🧪 TEST: Longitud:', data ? data.length : 'null/undefined');
+    
+    return {
+      success: true,
+      data: data,
+      isArray: Array.isArray(data),
+      length: data ? data.length : 0
+    };
+  } catch (error) {
+    console.error('🧪 TEST: Error:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+// Función para probar diferentes endpoints
+export const testMultipleEndpoints = async () => {
+  const endpoints = [
+    'https://cherryapi.estrategiadmgs.com.mx/cherryApi/',
+    'https://cherryapi.estrategiadmgs.com.mx/cherryApi/products',
+    'https://cherryapi.estrategiadmgs.com.mx/cherryApi/items',
+    'https://cherryapi.estrategiadmgs.com.mx/cherryApi/data',
+    'https://cherryapi.estrategiadmgs.com.mx/cherryApi/catalog'
+  ];
+  
+  console.log('🧪 TEST: Probando múltiples endpoints...');
+  
+  for (const endpoint of endpoints) {
+    try {
+      console.log(`🧪 TEST: Probando endpoint: ${endpoint}`);
+      const response = await fetch(endpoint);
+      console.log(`🧪 TEST: Status para ${endpoint}:`, response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`🧪 TEST: Datos para ${endpoint}:`, data);
+        console.log(`🧪 TEST: Tipo para ${endpoint}:`, typeof data);
+        console.log(`🧪 TEST: Es array para ${endpoint}:`, Array.isArray(data));
+        console.log(`🧪 TEST: Longitud para ${endpoint}:`, data ? data.length : 'null/undefined');
+        
+        if (data && (Array.isArray(data) || (typeof data === 'object' && Object.keys(data).length > 0))) {
+          console.log(`✅ TEST: Endpoint válido encontrado: ${endpoint}`);
+          return {
+            success: true,
+            endpoint: endpoint,
+            data: data
+          };
+        }
+      }
+    } catch (error) {
+      console.log(`❌ TEST: Error para ${endpoint}:`, error.message);
+    }
+  }
+  
+  console.log('❌ TEST: Ningún endpoint funcionó');
+  return {
+    success: false,
+    error: 'Ningún endpoint funcionó'
+  };
+};
+
 // Función para generar URL de imagen S3
 export const generateS3ImageUrl = (id_articulo) => {
   return `https://cherry-fotos.s3.amazonaws.com/shopify/${id_articulo}/${id_articulo}_1.jpg`;
@@ -30,18 +112,62 @@ const CATALOG_MAPPING = {
 // Función para obtener todos los productos
 export const getAllProducts = async (catalog = 'Cherry 2025 - 2026') => {
   try {
+    console.log('🔄 getAllProducts: Haciendo petición a:', CHERRY_API_URL);
     const response = await fetch(CHERRY_API_URL);
+    console.log('📡 getAllProducts: Response status:', response.status);
+    console.log('📡 getAllProducts: Response ok:', response.ok);
+    
     if (!response.ok) {
-      throw new Error('Error al obtener productos');
+      throw new Error(`Error al obtener productos: ${response.status} ${response.statusText}`);
     }
+    
     const products = await response.json();
+    console.log('📊 getAllProducts: Productos obtenidos de la API:', products);
+    console.log('📊 getAllProducts: Tipo de datos:', typeof products);
+    console.log('📊 getAllProducts: Es array:', Array.isArray(products));
+    console.log('📊 getAllProducts: Longitud:', products ? products.length : 'null/undefined');
+    
+    // Verificar si products es válido
+    if (!products) {
+      console.error('❌ getAllProducts: Los datos son null/undefined');
+      return [];
+    }
+    
+    // Si no es un array, intentar convertirlo
+    let productsArray = products;
+    if (!Array.isArray(products)) {
+      console.warn('⚠️ getAllProducts: Los datos no son un array, intentando convertir...');
+      
+      // Si es un objeto, buscar una propiedad que contenga los productos
+      if (typeof products === 'object') {
+        const possibleKeys = ['products', 'data', 'items', 'result', 'content'];
+        for (const key of possibleKeys) {
+          if (products[key] && Array.isArray(products[key])) {
+            console.log(`✅ getAllProducts: Encontrados productos en la propiedad '${key}'`);
+            productsArray = products[key];
+            break;
+          }
+        }
+        
+        // Si no se encontró, intentar usar el objeto completo como array
+        if (!Array.isArray(productsArray)) {
+          console.warn('⚠️ getAllProducts: No se pudo convertir a array, usando datos como están');
+          productsArray = [products];
+        }
+      } else {
+        console.error('❌ getAllProducts: Los datos no son un objeto válido');
+        return [];
+      }
+    }
+    
+    console.log('✅ getAllProducts: Productos procesados correctamente:', productsArray.length);
     
     // Filtrar productos por catálogo si es necesario
     if (catalog && catalog !== 'Cherry 2025 - 2026') {
       const catalogConfig = CATALOG_MAPPING[catalog];
       if (catalogConfig) {
         // Filtrar por temporada o estado activo
-        const filteredProducts = products.filter(product => {
+        const filteredProducts = productsArray.filter(product => {
           // Simular diferentes productos según el catálogo
           if (catalog === 'Cherry 2024 - 2025') {
             // Para catálogo 2024-2025, mostrar productos con descuentos moderados
@@ -57,8 +183,11 @@ export const getAllProducts = async (catalog = 'Cherry 2025 - 2026') => {
       }
     }
     
-    return products;
+    return productsArray;
   } catch (error) {
+    console.error('❌ getAllProducts: Error completo:', error);
+    console.error('❌ getAllProducts: Error message:', error.message);
+    console.error('❌ getAllProducts: Error stack:', error.stack);
     return [];
   }
 };
@@ -112,37 +241,92 @@ export const getProductsByLineDescription = async (lineDescription) => {
 };
 
 // Función para mapear productos de la API al formato de la app
-export const mapApiProductToAppProduct = (apiProduct) => {
-  // Generar URL de imagen S3 usando el id_articulo
-  const image = generateS3ImageUrl(apiProduct.id_articulo);
+export const mapApiProductToAppProduct = async (apiProduct) => {
+  console.log('🔄 mapApiProductToAppProduct: Procesando producto:', apiProduct);
   
-  // Calcular precio con descuento si aplica
-  const originalPrice = apiProduct.precio1 || 0;
-  const discount = apiProduct.desc_promo || 0;
+  // Verificar que el producto tenga los campos necesarios
+  if (!apiProduct) {
+    console.error('❌ mapApiProductToAppProduct: Producto es null/undefined');
+    return null;
+  }
+  
+  // Extraer campos con fallbacks específicos para la API real
+  const id = apiProduct.id_articulo || apiProduct.id || apiProduct.codigo || 'unknown';
+  const title = apiProduct.descripcion || apiProduct.nombre || apiProduct.title || 'Producto sin nombre';
+  const originalPrice = apiProduct.precio1 || apiProduct.precio || apiProduct.price || 0;
+  const discount = apiProduct.desc_promo || apiProduct.descuento || apiProduct.discount || 0;
   const finalPrice = discount > 0 ? originalPrice * (1 - discount / 100) : originalPrice;
   
-  // Obtener colores únicos de los detalles
-  const colors = [...new Set(apiProduct.detalles?.map(d => d.nombreColor) || [])];
+  // Generar URL de imagen S3 usando el id_articulo
+  const image = generateS3ImageUrl(id);
   
-  return {
-    id: apiProduct.id_articulo,
-    title: apiProduct.descripcion,
+  // Obtener colores únicos de los detalles
+  let colors = [];
+  if (apiProduct.detalles && Array.isArray(apiProduct.detalles)) {
+    colors = [...new Set(apiProduct.detalles.map(d => d.nombreColor).filter(Boolean))];
+  } else if (apiProduct.colores && Array.isArray(apiProduct.colores)) {
+    colors = apiProduct.colores;
+  } else if (apiProduct.colors && Array.isArray(apiProduct.colors)) {
+    colors = apiProduct.colors;
+  }
+  
+  // Obtener categoría de la línea
+  const category = apiProduct.linea?.descripcion || apiProduct.categoria || apiProduct.category || 'Sin categoría';
+  
+  // Obtener calificación real del sistema local
+  let rating = 0;
+  let ratingCount = 0;
+  
+  try {
+    console.log(`🔍 Obteniendo rating para producto: ${id}`);
+    const ratingResponse = await fetch(`http://localhost:8000/api/ratings/product?product_id=${id}`);
+    console.log(`📡 Rating response status:`, ratingResponse.status);
+    console.log(`📡 Rating response ok:`, ratingResponse.ok);
+    
+    if (ratingResponse.ok) {
+      const ratingData = await ratingResponse.json();
+      console.log(`📊 Rating data recibida:`, ratingData);
+      
+      if (ratingData.success && ratingData.average_rating) {
+        rating = ratingData.average_rating.average || 0;
+        ratingCount = ratingData.average_rating.count || 0;
+        console.log(`⭐ Rating real para ${id}: ${rating} (${ratingCount} calificaciones)`);
+      } else {
+        console.warn(`⚠️ Rating data no tiene el formato esperado:`, ratingData);
+      }
+    } else {
+      console.warn(`⚠️ Rating response no ok: ${ratingResponse.status} ${ratingResponse.statusText}`);
+    }
+  } catch (error) {
+    console.error(`❌ Error obteniendo rating para ${id}:`, error);
+    // Usar rating por defecto si falla
+    rating = 5;
+    ratingCount = 0;
+  }
+  
+  const mappedProduct = {
+    id: id,
+    title: title,
     image: image,
     price: finalPrice,
     originalPrice: discount > 0 ? originalPrice : null,
     discount: discount > 0 ? discount : null,
-    rating: 5, // Mantener rating por defecto
-    description: apiProduct.descripcion,
-    brand: apiProduct.marca,
-    category: apiProduct.linea?.descripcion || 'Sin categoría',
+    rating: rating,
+    ratingCount: ratingCount,
+    description: apiProduct.descripcion || apiProduct.descripcion_corta || title,
+    brand: apiProduct.marca || apiProduct.brand || 'Cherry',
+    category: category,
     colors: colors,
-    stock: apiProduct.inventario || 0,
-    isActive: apiProduct.activo === 1,
-    isNew: apiProduct.opc_nuevo === 'S',
-    isPromo: apiProduct.opc_promo === 'S',
-    codigo: apiProduct.id_articulo,
+    stock: apiProduct.inventario || apiProduct.stock || 0,
+    isActive: apiProduct.activo === 1 || apiProduct.active === true,
+    isNew: apiProduct.opc_nuevo === 'S' || apiProduct.is_new === true,
+    isPromo: apiProduct.opc_promo === 'S' || apiProduct.is_promo === true,
+    codigo: id,
     dtu: apiProduct.DTU || apiProduct.dtu
   };
+  
+  console.log('✅ mapApiProductToAppProduct: Producto mapeado:', mappedProduct);
+  return mappedProduct;
 };
 
 // Función para obtener productos destacados
@@ -151,10 +335,77 @@ export const getFeaturedProducts = async (limit = 8) => {
     const products = await getAllProducts();
     const featured = products
       .filter(product => product.activo === 1 && product.inventario > 0)
-      .slice(0, limit)
-      .map(mapApiProductToAppProduct);
-    return featured;
+      .slice(0, limit);
+    
+    // Mapear productos de forma asíncrona
+    const mappedProducts = await Promise.all(featured.map(mapApiProductToAppProduct));
+    return mappedProducts.filter(p => p !== null);
   } catch (error) {
+    return [];
+  }
+};
+
+// Función para obtener productos aleatorios
+export const getRandomProducts = async (limit = 5) => {
+  try {
+    console.log('🔄 getRandomProducts: Iniciando...');
+    const products = await getAllProducts();
+    console.log('📊 getRandomProducts: Total productos obtenidos:', products.length);
+    
+    // Filtrar productos activos (activo: 1) y con stock (inventario > 0)
+    const activeProducts = products.filter(product => {
+      const isActive = product.activo === 1;
+      const hasStock = product.inventario > 0;
+      const isWebEnabled = product.opc_web === 'S';
+      
+      console.log(`🔍 Producto ${product.id_articulo}: activo=${product.activo}, inventario=${product.inventario}, opc_web=${product.opc_web}`);
+      
+      return isActive && hasStock && isWebEnabled;
+    });
+    
+    console.log('✅ getRandomProducts: Productos activos con stock:', activeProducts.length);
+    
+    if (activeProducts.length === 0) {
+      console.warn('⚠️ getRandomProducts: No hay productos activos, usando productos con inventario > 0');
+      // Si no hay productos activos, usar productos con stock
+      const productsWithStock = products.filter(product => product.inventario > 0);
+      console.log('📦 getRandomProducts: Productos con stock:', productsWithStock.length);
+      
+      if (productsWithStock.length === 0) {
+        console.warn('⚠️ getRandomProducts: No hay productos con stock, usando todos los productos');
+        // Si no hay productos con stock, usar todos
+        const shuffled = products.sort(() => 0.5 - Math.random());
+        const selectedProducts = shuffled.slice(0, limit);
+        
+        // Mapear productos de forma asíncrona
+        const randomProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
+        console.log('🎲 getRandomProducts: Productos aleatorios seleccionados (todos):', randomProducts.length);
+        return randomProducts.filter(p => p !== null);
+      }
+      
+      // Mezclar productos con stock
+      const shuffled = productsWithStock.sort(() => 0.5 - Math.random());
+      const selectedProducts = shuffled.slice(0, limit);
+      
+      // Mapear productos de forma asíncrona
+      const randomProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
+      console.log('🎲 getRandomProducts: Productos aleatorios seleccionados (con stock):', randomProducts.length);
+      return randomProducts.filter(p => p !== null);
+    }
+    
+    // Mezclar el array de productos para obtener una selección aleatoria
+    const shuffled = activeProducts.sort(() => 0.5 - Math.random());
+    
+    // Tomar solo los primeros 'limit' productos
+    const selectedProducts = shuffled.slice(0, limit);
+    
+    // Mapear productos de forma asíncrona
+    const randomProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
+    console.log('🎲 getRandomProducts: Productos aleatorios seleccionados (activos):', randomProducts.length);
+    
+    return randomProducts.filter(p => p !== null);
+  } catch (error) {
+    console.error('❌ getRandomProducts: Error:', error);
     return [];
   }
 };
@@ -165,9 +416,11 @@ export const getNewProducts = async (limit = 8) => {
     const products = await getAllProducts();
     const newProducts = products
       .filter(product => product.opc_nuevo === 'S' && product.activo === 1)
-      .slice(0, limit)
-      .map(mapApiProductToAppProduct);
-    return newProducts;
+      .slice(0, limit);
+    
+    // Mapear productos de forma asíncrona
+    const mappedProducts = await Promise.all(newProducts.map(mapApiProductToAppProduct));
+    return mappedProducts.filter(p => p !== null);
   } catch (error) {
     return [];
   }
@@ -179,9 +432,11 @@ export const getPromoProducts = async (limit = 8) => {
     const products = await getAllProducts();
     const promoProducts = products
       .filter(product => product.opc_promo === 'S' && product.desc_promo > 0)
-      .slice(0, limit)
-      .map(mapApiProductToAppProduct);
-    return promoProducts;
+      .slice(0, limit);
+    
+    // Mapear productos de forma asíncrona
+    const mappedProducts = await Promise.all(promoProducts.map(mapApiProductToAppProduct));
+    return mappedProducts.filter(p => p !== null);
   } catch (error) {
     return [];
   }
@@ -560,4 +815,48 @@ export const getProductById = async (productId) => {
   } catch (error) {
     throw error;
   }
+}; 
+
+// Función para probar con una API pública de ejemplo
+export const testWithPublicApi = async () => {
+  try {
+    console.log('🧪 TEST: Probando con API pública de ejemplo...');
+    const response = await fetch('https://jsonplaceholder.typicode.com/posts?_limit=5');
+    console.log('🧪 TEST: Status API pública:', response.status);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('🧪 TEST: Datos API pública:', data);
+      
+      // Convertir los datos de ejemplo a formato de productos
+      const mockProducts = data.map((post, index) => ({
+        id: `MOCK${post.id}`,
+        title: `Producto ${post.title}`,
+        image: `https://picsum.photos/300/400?random=${post.id}`,
+        price: Math.floor(Math.random() * 200) + 50,
+        rating: Math.floor(Math.random() * 2) + 4, // 4-5 estrellas
+        description: post.body,
+        brand: 'Cherry',
+        category: 'Vestidos',
+        colors: ['Negro', 'Rojo'],
+        stock: Math.floor(Math.random() * 20) + 5,
+        isActive: true,
+        isNew: Math.random() > 0.5,
+        isPromo: Math.random() > 0.7
+      }));
+      
+      console.log('🧪 TEST: Productos mock generados:', mockProducts);
+      return {
+        success: true,
+        data: mockProducts
+      };
+    }
+  } catch (error) {
+    console.error('🧪 TEST: Error con API pública:', error);
+  }
+  
+  return {
+    success: false,
+    error: 'API pública no funcionó'
+  };
 }; 

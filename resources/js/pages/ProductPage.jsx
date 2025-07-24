@@ -9,7 +9,6 @@ import FavoriteButton from '../components/FavoriteButton/FavoriteButton';
 import FeaturedProducts from '../components/sections/FeaturedProducts/FeaturedProducts';
 import ProductGallery from '../components/ProductGallery/ProductGallery';
 import StarRating from '../components/StarRating/StarRating';
-import { toast } from 'react-toastify';
 
 // API and Store
 import { getProductById, generateS3ImageUrl } from '../api/cherryApi';
@@ -120,7 +119,9 @@ const ProductPage = () => {
   // Handle rating submission
   const handleRatingSubmit = async (rating) => {
     if (!user) {
-      toast.error('Debes iniciar sesión para calificar productos');
+      if (window.showToast) {
+        window.showToast('Debes iniciar sesión para calificar productos', 'error');
+      }
       return;
     }
 
@@ -145,19 +146,25 @@ const ProductPage = () => {
         setRatingData(data.average_rating);
         setRatingComment('');
         setShowRatingModal(false);
-        toast.success('Calificación enviada exitosamente');
+        if (window.showToast) {
+          window.showToast('Gracias por calificar el producto', 'success');
+        }
       } else {
         throw new Error('Error al enviar calificación');
       }
     } catch (error) {
-      toast.error('Error al enviar calificación');
+      if (window.showToast) {
+        window.showToast('Error al enviar calificación', 'error');
+      }
     }
   };
 
   // Handle add to cart
   const handleAddToCart = async () => {
     if (!selectedColor || !selectedSize) {
-      toast.error('Por favor selecciona color y talla');
+      if (window.showToast) {
+        window.showToast('Por favor selecciona color y talla', 'error');
+      }
       return;
     }
 
@@ -176,10 +183,13 @@ const ProductPage = () => {
       };
 
       addToCart(productToAdd, quantity);
-      toast.success('Producto agregado al carrito');
+      if (window.showToast) {
+        window.showToast('Producto agregado al carrito', 'success');
+      }
     } catch (err) {
-      
-      toast.error('Error al agregar al carrito');
+      if (window.showToast) {
+        window.showToast('Error al agregar al carrito', 'error');
+      }
     }
   };
 

@@ -124,3 +124,33 @@
 .featured-products--gray-bg {
   background-color: #f9f9f9;
 } 
+
+/* Loading spinner styles */
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.loading-spinner p {
+  color: #666;
+  font-size: 16px;
+  margin: 0;
+}
+
+/* Error message styles */
+.error-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.error-message p {
+  color: #e74c3c;
+  font-size: 16px;
+  margin: 0;
+} 

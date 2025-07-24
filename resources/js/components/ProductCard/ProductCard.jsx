@@ -5,7 +5,7 @@ import './ProductCard.css';
 
 const ProductCard = ({ product, onFavoriteToggle }) => {
   // Destructure product properties
-  const { id, title, image, price, rating, description } = product;
+  const { id, title, image, price, rating, ratingCount, description } = product;
 
   // Generate rating stars
   const renderRatingStars = (rating) => {
@@ -53,6 +53,11 @@ const ProductCard = ({ product, onFavoriteToggle }) => {
         <div className="product-price-container">
           <div className="product-rating">
             {renderRatingStars(rating)}
+            {ratingCount > 0 && (
+              <span className="product-rating-count">
+                ({ratingCount})
+              </span>
+            )}
           </div>
           
           <div className="price-container">

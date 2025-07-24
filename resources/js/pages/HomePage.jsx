@@ -115,9 +115,9 @@ const HomePage = () => {
           <h2 id="featured-products-heading" className="sr-only">Productos Destacados</h2>
           <FeaturedProducts 
             title="Productos diseñados para reflejar tu estilo y personalidad."
-            products={featuredProducts}
             viewAllLink="/productos"
             viewAllText="Ver Más"
+            useApi={true}
           />
         </section>
 
