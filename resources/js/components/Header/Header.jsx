@@ -474,7 +474,7 @@ const Header = () => {
               </li>
               <li className="nav-item nav-divider"></li>
               <li className={`nav-item ${activeMenu === 'catalogos' ? 'active' : ''}`} onMouseEnter={() => handleMouseEnter('catalogos')}>
-                <Link to="/catalogo" className="nav-link">
+                <Link to="/catalogos" className="nav-link">
                   <img src={getIconPath('File Alt.svg')} alt="Catálogos" />
                   Catálogos
                   <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />

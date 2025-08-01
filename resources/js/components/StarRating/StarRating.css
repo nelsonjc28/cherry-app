@@ -38,6 +38,16 @@
   color: #ffd700;
 }
 
+/* Estrellas opacas cuando no hay calificaciones */
+.star-rating__star.no-ratings {
+  color: #e0e0e0;
+  opacity: 0.5;
+}
+
+.star-rating__star.no-ratings.filled {
+  color: #e0e0e0;
+}
+
 .star-rating__star:hover {
   transform: scale(1.1);
 }

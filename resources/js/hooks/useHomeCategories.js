@@ -11,9 +11,7 @@ const useHomeCategories = () => {
     const fetchHomeCategories = async () => {
       try {
         setLoading(true);
-        console.log('Fetching home categories...');
         const response = await api.get('/home-categories');
-        console.log('Response received:', response.data);
         
         if (response.data.success && response.data.categories) {
           // Mapear las categorías con sus iconos
@@ -24,10 +22,8 @@ const useHomeCategories = () => {
             icon: getCategoryIconPath(`${category.slug}.svg`) || getCategoryIconPath('default-category.svg')
           }));
           
-          console.log('Categories with icons:', categoriesWithIcons);
           setCategories(categoriesWithIcons);
         } else {
-          console.log('No ordered categories found, using defaults');
           // Si no hay categorías ordenadas, usar las categorías por defecto
           const defaultCategories = [
             { name: 'Vestidos', icon: getCategoryIconPath('vestido-de-novio 1.svg') },

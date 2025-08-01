@@ -1,0 +1,55 @@
+export const mockCatalogs = [
+  {
+    id: '1',
+    name: 'Primavera Verano',
+    title: 'Catálogo1',
+    cover: '/images/catalogPDF/botas-portada.jpg',
+    description: 'Catálogo especial para la temporada.',
+    images: [
+      '/images/catalogPDF/botas-portada.jpg',
+      '/images/catalogPDF/botas-horizontal-1.jpg',
+      '/images/catalogPDF/botas-horizontal-2.jpg',
+      '/images/catalogPDF/botas-horizontal-1.jpg',
+      '/images/catalogPDF/botas-horizontal-2.jpg',
+    ],
+  },
+  {
+    id: '2',
+    name: 'Elegante',
+    title: 'Catálogo2',
+    cover: '/images/catalogPDF/Rectangle 4922.png',
+    description: 'Colección anual con las últimas tendencias.',
+    images: [
+      '/images/catalogPDF/botas-vertical-2.jpg',
+      '/images/catalogPDF/botas-vertical-1.jpg',
+      '/images/catalogPDF/botas-vertical-2.jpg',
+      '/images/catalogPDF/botas-vertical-2.jpg',
+      '/images/catalogPDF/botas-vertical-1.jpg',
+      '/images/catalogPDF/botas-vertical-2.jpg',
+    ],
+  },
+  {
+    id: '3',
+    name: 'Edición Limitada',
+    title: 'Catálogo Edición Limitada',
+    cover: '/images/FeaturedProducts/example_image_card.png',
+    description: 'Piezas exclusivas y colaboraciones únicas.',
+    images: [
+      '/images/catalogPDF/botas-portada.jpg',
+      '/images/catalogPDF/botas-horizontal-1.jpg',
+      '/images/catalogPDF/botas-horizontal-2.jpg',
+    ],
+  },
+  {
+    id: '4',
+    name: 'Casual',
+    title: 'Catálogo Casual',
+    cover: '/images/FeaturedProducts/example_image_card.png',
+    description: 'Estilo relajado y cómodo para el día a día.',
+    images: [
+      '/images/RecentCatalogs/image_example_2.png',
+      '/images/catalogPDF/botas-vertical-1.jpg',
+      '/images/catalogPDF/botas-vertical-2.jpg',
+    ],
+  },
+]; 

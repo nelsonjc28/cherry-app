@@ -7,18 +7,30 @@ import './CatalogProductCard.css';
 import { getIconPath } from '../../utils/assetPaths';
 
 const CatalogProductCard = ({ product, onFavoriteToggle }) => {
-  // Destructure product properties
-  const { id, title, images = {}, image, price, colors = [], isNew = false, rating = 0, ratingCount = 0 } = product;
+  // Destructure product properties with proper fallbacks
+  const { 
+    id, 
+    title, 
+    image, 
+    price, 
+    originalPrice,
+    discount,
+    colors = [], 
+    isNew = false, 
+    rating = 0, 
+    ratingCount = 0,
+    description,
+    brand,
+    category,
+    stock = 0
+  } = product;
   
   // State for selected color
   const [selectedColor, setSelectedColor] = useState(colors[0] || null);
 
-  // Get current image based on selected color
+  // Get current image based on selected color or use default image
   const getCurrentImage = () => {
-    if (selectedColor && images[selectedColor]) {
-      return images[selectedColor];
-    }
-    return image || Object.values(images)[0] || '';
+    return image || '';
   };
 
   // Color mapping for display
@@ -133,6 +145,8 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
             size="small"
             readonly={true}
             showAverage={false}
+            averageRating={rating}
+            totalRatings={ratingCount}
           />
           {ratingCount > 0 && (
             <span className="catalog-product-rating-count">

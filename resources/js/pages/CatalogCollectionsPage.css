@@ -1,0 +1,191 @@
+/* Catalog Collections Page Styles - BEM, Mobile First */
+.catalog-collections-page {
+  min-height: 100vh;
+  background-color: var(--color-background-light, #fafbfc);
+  padding: 0;
+}
+
+.catalog-collections-page .container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.catalog-collections-page__header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(231, 231, 231, 1);
+  margin: 0;
+  margin-top: 1rem;
+}
+
+.catalog-collections-page__title {
+  font-size: 15px;
+  font-weight: 400;
+  color: #373737;
+  margin: 0;
+}
+
+.catalog-collections-page__whatsapp-text {
+  display: none;
+}
+
+.catalog-collections-page__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+.catalog-collections-page__card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+}
+
+.catalog-collections-page__card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+.catalog-collections-page__card:hover .catalog-collections-page__card-image {
+  transform: scale(1.05);
+}
+
+.catalog-collections-page__card-image-wrapper {
+  width: 100%;
+  aspect-ratio: 3/4;
+  background: #f3f3f3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.catalog-collections-page__card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.catalog-collections-page__card-content {
+  padding: 1rem 1.2rem 1.2rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.catalog-collections-page__card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #222;
+  margin: 0 0 0.2rem 0;
+}
+
+.catalog-collections-page__card-title-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.catalog-collections-page__card-title-link:hover .catalog-collections-page__card-title {
+  color: var(--color-primary, #F9738A);
+}
+
+.catalog-collections-page__card-description {
+  font-size: 0.98rem;
+  color: #666;
+  margin: 0;
+}
+
+.catalog-collections-page__pdf-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-primary);
+  font-weight: 500;
+  text-decoration: none;
+  margin-top: 8px;
+  font-size: 1rem;
+  transition: color 0.2s;
+}
+
+.catalog-collections-page__pdf-link:hover {
+  color: #c21828;
+  text-decoration: underline;
+}
+
+.catalog-collections-page__pdf-link img {
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+}
+
+/* TABLET Y DESKTOP */
+@media (min-width: 768px) {
+  .catalog-collections-page__header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(231, 231, 231, 1);
+    margin: 0;
+  }
+
+  .catalog-collections-page__title {
+    font-size: 2rem;
+  }
+
+  .catalog-collections-page__grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+
+  .catalog-collections-page__card-content {
+    padding: 1.5rem 2rem 2rem 2rem;
+  }
+
+  .catalog-collections-page__card-title {
+    font-size: 1.25rem;
+  }
+  
+  .catalog-collections-page__card-description {
+    font-size: 1.05rem;
+  }
+  .catalog-collections-page__whatsapp-text {
+    display: inline;
+    margin-left: 8px;
+    font-size: 1rem;
+    color: #fff;
+  }
+  .catalog-collections-page__card-image-wrapper {
+    aspect-ratio: 3/4;
+    min-height: 220px;
+  }
+} 
+
+@media (min-width: 1200px) {
+  .catalog-collections-page__header {
+    padding-bottom: 8px;
+    margin-bottom: 24px;
+    margin-top: 28px;
+    border-bottom: 1px solid rgba(231, 231, 231, 1);
+  }
+  .catalog-collections-page__grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+} 

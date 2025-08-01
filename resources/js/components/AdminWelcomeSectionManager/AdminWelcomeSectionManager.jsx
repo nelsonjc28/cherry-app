@@ -41,30 +41,44 @@ const AdminWelcomeSectionManager = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    console.log('=== HANDLE SUBMIT ===');
-    console.log('editingSection:', editingSection);
-    console.log('formData:', formData);
-    console.log('imageFile:', imageFile);
-    
+    if (!editingSection) {
+      console.error('No section selected for editing');
+      return;
+    }
+
     try {
-      const response = await welcomeSectionService.createOrUpdate(editingSection, formData, imageFile);
+      setSubmitting(true);
       
-      setShowForm(false);
-      setEditingSection(null);
-      resetForm();
-      fetchSections();
+      const response = await fetch(`/api/welcome-sections/${editingSection.id}`, {
+        method: 'POST',
+        headers: {
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+          'Accept': 'application/json',
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
       
-      if (window.showToast) {
-        window.showToast(
-          editingSection ? 'Sección actualizada exitosamente' : 'Sección creada exitosamente',
-          'success'
-        );
+      if (result.success) {
+        // Actualizar la lista de secciones
+        fetchSections();
+        setEditingSection(null);
+        setFormData({});
+        setImageFile(null);
+        setImagePreview(null);
+      } else {
+        setError(result.message || 'Error al actualizar la sección');
       }
-    } catch (err) {
-      console.error('Error en handleSubmit:', err);
-      if (window.showToast) {
-        window.showToast('Error: ' + err.message, 'error');
-      }
+    } catch (error) {
+      console.error('Error updating welcome section:', error);
+      setError('Error al actualizar la sección');
+    } finally {
+      setSubmitting(false);
     }
   };
 

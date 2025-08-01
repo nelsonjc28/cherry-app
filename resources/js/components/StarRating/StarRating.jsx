@@ -41,16 +41,18 @@ const StarRating = ({
   const renderStars = () => {
     const stars = [];
     const displayRating = readonly ? currentRating : hoverRating || currentRating;
+    const hasRatings = totalRatings > 0;
 
     for (let i = 0; i < maxRating; i++) {
       const starClass = `star-rating__star ${size}`;
       const isFilled = i < displayRating;
       const isHalf = !isFilled && displayRating > i && displayRating < i + 1;
+      const isNoRatings = !hasRatings;
 
       stars.push(
         <span
           key={i}
-          className={`${starClass} ${isFilled ? 'filled' : isHalf ? 'half' : ''}`}
+          className={`${starClass} ${isFilled ? 'filled' : isHalf ? 'half' : ''} ${isNoRatings ? 'no-ratings' : ''}`}
           onMouseEnter={() => handleMouseEnter(i)}
           onMouseLeave={handleMouseLeave}
           onClick={() => handleClick(i)}

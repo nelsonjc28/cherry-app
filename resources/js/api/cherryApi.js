@@ -9,23 +9,14 @@ let productsCache = null;
 // Función de prueba para verificar la API
 export const testApiConnection = async () => {
   try {
-    console.log('🧪 TEST: Probando conexión a la API...');
-    console.log('🧪 TEST: URL:', CHERRY_API_URL);
     
     const response = await fetch(CHERRY_API_URL);
-    console.log('🧪 TEST: Status:', response.status);
-    console.log('🧪 TEST: OK:', response.ok);
-    console.log('🧪 TEST: Headers:', Object.fromEntries(response.headers.entries()));
     
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
     const data = await response.json();
-    console.log('🧪 TEST: Datos recibidos:', data);
-    console.log('🧪 TEST: Tipo:', typeof data);
-    console.log('🧪 TEST: Es array:', Array.isArray(data));
-    console.log('🧪 TEST: Longitud:', data ? data.length : 'null/undefined');
     
     return {
       success: true,
@@ -52,23 +43,15 @@ export const testMultipleEndpoints = async () => {
     'https://cherryapi.estrategiadmgs.com.mx/cherryApi/catalog'
   ];
   
-  console.log('🧪 TEST: Probando múltiples endpoints...');
   
   for (const endpoint of endpoints) {
     try {
-      console.log(`🧪 TEST: Probando endpoint: ${endpoint}`);
       const response = await fetch(endpoint);
-      console.log(`🧪 TEST: Status para ${endpoint}:`, response.status);
       
       if (response.ok) {
         const data = await response.json();
-        console.log(`🧪 TEST: Datos para ${endpoint}:`, data);
-        console.log(`🧪 TEST: Tipo para ${endpoint}:`, typeof data);
-        console.log(`🧪 TEST: Es array para ${endpoint}:`, Array.isArray(data));
-        console.log(`🧪 TEST: Longitud para ${endpoint}:`, data ? data.length : 'null/undefined');
         
         if (data && (Array.isArray(data) || (typeof data === 'object' && Object.keys(data).length > 0))) {
-          console.log(`✅ TEST: Endpoint válido encontrado: ${endpoint}`);
           return {
             success: true,
             endpoint: endpoint,
@@ -77,11 +60,9 @@ export const testMultipleEndpoints = async () => {
         }
       }
     } catch (error) {
-      console.log(`❌ TEST: Error para ${endpoint}:`, error.message);
     }
   }
   
-  console.log('❌ TEST: Ningún endpoint funcionó');
   return {
     success: false,
     error: 'Ningún endpoint funcionó'
@@ -112,38 +93,27 @@ const CATALOG_MAPPING = {
 // Función para obtener todos los productos
 export const getAllProducts = async (catalog = 'Cherry 2025 - 2026') => {
   try {
-    console.log('🔄 getAllProducts: Haciendo petición a:', CHERRY_API_URL);
     const response = await fetch(CHERRY_API_URL);
-    console.log('📡 getAllProducts: Response status:', response.status);
-    console.log('📡 getAllProducts: Response ok:', response.ok);
     
     if (!response.ok) {
       throw new Error(`Error al obtener productos: ${response.status} ${response.statusText}`);
     }
     
     const products = await response.json();
-    console.log('📊 getAllProducts: Productos obtenidos de la API:', products);
-    console.log('📊 getAllProducts: Tipo de datos:', typeof products);
-    console.log('📊 getAllProducts: Es array:', Array.isArray(products));
-    console.log('📊 getAllProducts: Longitud:', products ? products.length : 'null/undefined');
     
     // Verificar si products es válido
     if (!products) {
-      console.error('❌ getAllProducts: Los datos son null/undefined');
       return [];
     }
     
     // Si no es un array, intentar convertirlo
     let productsArray = products;
     if (!Array.isArray(products)) {
-      console.warn('⚠️ getAllProducts: Los datos no son un array, intentando convertir...');
-      
       // Si es un objeto, buscar una propiedad que contenga los productos
       if (typeof products === 'object') {
         const possibleKeys = ['products', 'data', 'items', 'result', 'content'];
         for (const key of possibleKeys) {
           if (products[key] && Array.isArray(products[key])) {
-            console.log(`✅ getAllProducts: Encontrados productos en la propiedad '${key}'`);
             productsArray = products[key];
             break;
           }
@@ -151,16 +121,12 @@ export const getAllProducts = async (catalog = 'Cherry 2025 - 2026') => {
         
         // Si no se encontró, intentar usar el objeto completo como array
         if (!Array.isArray(productsArray)) {
-          console.warn('⚠️ getAllProducts: No se pudo convertir a array, usando datos como están');
           productsArray = [products];
         }
       } else {
-        console.error('❌ getAllProducts: Los datos no son un objeto válido');
         return [];
       }
     }
-    
-    console.log('✅ getAllProducts: Productos procesados correctamente:', productsArray.length);
     
     // Filtrar productos por catálogo si es necesario
     if (catalog && catalog !== 'Cherry 2025 - 2026') {
@@ -185,9 +151,36 @@ export const getAllProducts = async (catalog = 'Cherry 2025 - 2026') => {
     
     return productsArray;
   } catch (error) {
-    console.error('❌ getAllProducts: Error completo:', error);
-    console.error('❌ getAllProducts: Error message:', error.message);
-    console.error('❌ getAllProducts: Error stack:', error.stack);
+    return [];
+  }
+};
+
+// Función optimizada para obtener productos con ratings
+export const getProductsWithRatings = async (catalog = 'Cherry 2025 - 2026') => {
+  try {
+    // Obtener productos de la API externa
+    const rawProducts = await getAllProducts(catalog);
+    
+    if (!rawProducts || rawProducts.length === 0) {
+      return [];
+    }
+    
+    // Extraer IDs de productos para obtener ratings en bulk
+    const productIds = rawProducts.map(product => 
+      product.id_articulo || product.id || product.codigo
+    ).filter(Boolean);
+    
+    // Obtener ratings en bulk
+    const ratingsCache = await getBulkRatings(productIds);
+    
+    // Mapear productos con ratings
+    const mappedProducts = await Promise.all(
+      rawProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
+    );
+    
+    return mappedProducts.filter(p => p !== null);
+  } catch (error) {
+    console.error('Error obteniendo productos con ratings:', error);
     return [];
   }
 };
@@ -240,13 +233,34 @@ export const getProductsByLineDescription = async (lineDescription) => {
   }
 };
 
-// Función para mapear productos de la API al formato de la app
-export const mapApiProductToAppProduct = async (apiProduct) => {
-  console.log('🔄 mapApiProductToAppProduct: Procesando producto:', apiProduct);
-  
+// Función para obtener ratings en bulk para múltiples productos
+export const getBulkRatings = async (productIds) => {
+  try {
+    const response = await fetch('/api/ratings/bulk', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        product_ids: productIds
+      })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return data.ratings || {};
+    }
+    return {};
+  } catch (error) {
+    console.error('Error obteniendo ratings en bulk:', error);
+    return {};
+  }
+};
+
+export const mapApiProductToAppProduct = async (apiProduct, ratingsCache = {}) => {
   // Verificar que el producto tenga los campos necesarios
   if (!apiProduct) {
-    console.error('❌ mapApiProductToAppProduct: Producto es null/undefined');
     return null;
   }
   
@@ -273,35 +287,13 @@ export const mapApiProductToAppProduct = async (apiProduct) => {
   // Obtener categoría de la línea
   const category = apiProduct.linea?.descripcion || apiProduct.categoria || apiProduct.category || 'Sin categoría';
   
-  // Obtener calificación real del sistema local
-  let rating = 0;
+  // Obtener calificación del cache o usar valores por defecto
+  let rating = 5;
   let ratingCount = 0;
   
-  try {
-    console.log(`🔍 Obteniendo rating para producto: ${id}`);
-    const ratingResponse = await fetch(`http://localhost:8000/api/ratings/product?product_id=${id}`);
-    console.log(`📡 Rating response status:`, ratingResponse.status);
-    console.log(`📡 Rating response ok:`, ratingResponse.ok);
-    
-    if (ratingResponse.ok) {
-      const ratingData = await ratingResponse.json();
-      console.log(`📊 Rating data recibida:`, ratingData);
-      
-      if (ratingData.success && ratingData.average_rating) {
-        rating = ratingData.average_rating.average || 0;
-        ratingCount = ratingData.average_rating.count || 0;
-        console.log(`⭐ Rating real para ${id}: ${rating} (${ratingCount} calificaciones)`);
-      } else {
-        console.warn(`⚠️ Rating data no tiene el formato esperado:`, ratingData);
-      }
-    } else {
-      console.warn(`⚠️ Rating response no ok: ${ratingResponse.status} ${ratingResponse.statusText}`);
-    }
-  } catch (error) {
-    console.error(`❌ Error obteniendo rating para ${id}:`, error);
-    // Usar rating por defecto si falla
-    rating = 5;
-    ratingCount = 0;
+  if (ratingsCache[id]) {
+    rating = ratingsCache[id].average || 5;
+    ratingCount = ratingsCache[id].count || 0;
   }
   
   const mappedProduct = {
@@ -325,7 +317,6 @@ export const mapApiProductToAppProduct = async (apiProduct) => {
     dtu: apiProduct.DTU || apiProduct.dtu
   };
   
-  console.log('✅ mapApiProductToAppProduct: Producto mapeado:', mappedProduct);
   return mappedProduct;
 };
 
@@ -348,9 +339,7 @@ export const getFeaturedProducts = async (limit = 8) => {
 // Función para obtener productos aleatorios
 export const getRandomProducts = async (limit = 5) => {
   try {
-    console.log('🔄 getRandomProducts: Iniciando...');
     const products = await getAllProducts();
-    console.log('📊 getRandomProducts: Total productos obtenidos:', products.length);
     
     // Filtrar productos activos (activo: 1) y con stock (inventario > 0)
     const activeProducts = products.filter(product => {
@@ -358,18 +347,15 @@ export const getRandomProducts = async (limit = 5) => {
       const hasStock = product.inventario > 0;
       const isWebEnabled = product.opc_web === 'S';
       
-      console.log(`🔍 Producto ${product.id_articulo}: activo=${product.activo}, inventario=${product.inventario}, opc_web=${product.opc_web}`);
       
       return isActive && hasStock && isWebEnabled;
     });
     
-    console.log('✅ getRandomProducts: Productos activos con stock:', activeProducts.length);
     
     if (activeProducts.length === 0) {
       console.warn('⚠️ getRandomProducts: No hay productos activos, usando productos con inventario > 0');
       // Si no hay productos activos, usar productos con stock
       const productsWithStock = products.filter(product => product.inventario > 0);
-      console.log('📦 getRandomProducts: Productos con stock:', productsWithStock.length);
       
       if (productsWithStock.length === 0) {
         console.warn('⚠️ getRandomProducts: No hay productos con stock, usando todos los productos');
@@ -379,7 +365,6 @@ export const getRandomProducts = async (limit = 5) => {
         
         // Mapear productos de forma asíncrona
         const randomProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
-        console.log('🎲 getRandomProducts: Productos aleatorios seleccionados (todos):', randomProducts.length);
         return randomProducts.filter(p => p !== null);
       }
       
@@ -389,7 +374,6 @@ export const getRandomProducts = async (limit = 5) => {
       
       // Mapear productos de forma asíncrona
       const randomProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
-      console.log('🎲 getRandomProducts: Productos aleatorios seleccionados (con stock):', randomProducts.length);
       return randomProducts.filter(p => p !== null);
     }
     
@@ -401,7 +385,6 @@ export const getRandomProducts = async (limit = 5) => {
     
     // Mapear productos de forma asíncrona
     const randomProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
-    console.log('🎲 getRandomProducts: Productos aleatorios seleccionados (activos):', randomProducts.length);
     
     return randomProducts.filter(p => p !== null);
   } catch (error) {
@@ -541,10 +524,10 @@ export const getProductsByCategory = async (category, catalog = 'Cherry 2025 - 2
       });
     }
     
-    // Mapear los productos filtrados al formato de la app
-    const mappedProducts = filteredRawProducts.map(mapApiProductToAppProduct);
+    // Mapear los productos filtrados al formato de la app de forma asíncrona
+    const mappedProducts = await Promise.all(filteredRawProducts.map(mapApiProductToAppProduct));
     
-    return mappedProducts;
+    return mappedProducts.filter(p => p !== null);
   } catch (error) {
     return [];
   }
@@ -554,7 +537,8 @@ export const getProductsByCategory = async (category, catalog = 'Cherry 2025 - 2
 export const fetchProducts = async (catalog = 'Cherry 2025 - 2026') => {
   try {
     const products = await getAllProducts(catalog);
-    return products.map(mapApiProductToAppProduct);
+    const mappedProducts = await Promise.all(products.map(mapApiProductToAppProduct));
+    return mappedProducts.filter(p => p !== null);
   } catch (error) {
     return [];
   }
@@ -591,7 +575,9 @@ export const getProductsByAvailability = async (availability, catalog = 'Cherry 
       filteredProducts = filteredProducts.filter(product => product.inventario > 0);
     }
     
-    return filteredProducts;
+    // Mapear productos al formato de la app
+    const mappedProducts = await Promise.all(filteredProducts.map(mapApiProductToAppProduct));
+    return mappedProducts.filter(p => p !== null);
   } catch (error) {
     return [];
   }
@@ -820,13 +806,9 @@ export const getProductById = async (productId) => {
 // Función para probar con una API pública de ejemplo
 export const testWithPublicApi = async () => {
   try {
-    console.log('🧪 TEST: Probando con API pública de ejemplo...');
     const response = await fetch('https://jsonplaceholder.typicode.com/posts?_limit=5');
-    console.log('🧪 TEST: Status API pública:', response.status);
-    
     if (response.ok) {
       const data = await response.json();
-      console.log('🧪 TEST: Datos API pública:', data);
       
       // Convertir los datos de ejemplo a formato de productos
       const mockProducts = data.map((post, index) => ({
@@ -845,7 +827,6 @@ export const testWithPublicApi = async () => {
         isPromo: Math.random() > 0.7
       }));
       
-      console.log('🧪 TEST: Productos mock generados:', mockProducts);
       return {
         success: true,
         data: mockProducts

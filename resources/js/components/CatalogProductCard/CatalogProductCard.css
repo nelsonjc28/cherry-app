@@ -189,8 +189,9 @@
 }
 
 .catalog-product-rating-count {
-  font-size: 12px;
+  font-size: 11px;
   color: #666;
+  margin-left: 4px;
 }
 
 /* Responsive adjustments for rating */

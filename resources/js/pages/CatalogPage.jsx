@@ -12,7 +12,8 @@ import {
   getAvailableCategories, 
   mapApiProductToAppProduct, 
   getProductsByAvailability,
-  searchProductsAdvanced
+  searchProductsAdvanced,
+  getProductsWithRatings
 } from '../api/cherryApi';
 
 const CatalogPage = () => {
@@ -98,30 +99,6 @@ const CatalogPage = () => {
       });
     }
 
-    // Filter by sector (if not "Todos los sectores")
-    if (currentFilters.sector && currentFilters.sector !== 'Todos los sectores') {
-      const sectorLower = currentFilters.sector.toLowerCase();
-      filtered = filtered.filter(product => {
-        // For now, we'll keep all products since sector info might not be available
-        // This can be enhanced when sector data is available in the API
-        return true;
-      });
-    }
-
-    // Filter by sizes
-    if (currentFilters.sizes && currentFilters.sizes.length > 0) {
-      filtered = filtered.filter(product => {
-        // Check if product has size information
-        if (product.sizes && product.sizes.length > 0) {
-          return currentFilters.sizes.some(filterSize => 
-            product.sizes.includes(filterSize)
-          );
-        }
-        // If no size info available, keep the product
-        return true;
-      });
-    }
-
     // Filter by price range
     if (currentFilters.priceRange.min > 0 || currentFilters.priceRange.max > 0) {
       filtered = filtered.filter(product => {
@@ -137,25 +114,37 @@ const CatalogPage = () => {
       });
     }
 
+    // Filter by availability
+    if (currentFilters.availability === 'con-existencia') {
+      filtered = filtered.filter(product => product.stock > 0);
+    } else if (currentFilters.availability === 'sin-existencia') {
+      filtered = filtered.filter(product => product.stock === 0);
+    }
+
     return filtered;
   };
 
   // Function to sort products
   const sortProducts = (products, sortOption) => {
+    if (!products || products.length === 0) return [];
+
     const sorted = [...products];
-    
+
     switch (sortOption) {
       case 'precio-menor':
         return sorted.sort((a, b) => (a.price || 0) - (b.price || 0));
       case 'precio-mayor':
         return sorted.sort((a, b) => (b.price || 0) - (a.price || 0));
-      case 'nombre-az':
+      case 'más-recientes':
+        return sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      case 'más-antiguos':
+        return sorted.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+      case 'nombre-a-z':
         return sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
-      case 'nombre-za':
+      case 'nombre-z-a':
         return sorted.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
-      case 'más recientes':
       default:
-        return sorted; // Keep original order for "más recientes"
+        return sorted;
     }
   };
 
@@ -167,24 +156,20 @@ const CatalogPage = () => {
         let productsData;
         
         if (category === 'all') {
-          // Load all products filtered by availability
-          const rawProducts = await getProductsByAvailability(filters.availability, filters.catalog);
-          productsData = rawProducts.map(mapApiProductToAppProduct);
+          // Load all products with ratings optimized
+          productsData = await getProductsWithRatings(filters.catalog);
         } else {
-          // Para categorías específicas, primero obtener por categoría y luego filtrar por disponibilidad
-          const rawProducts = await getProductsByCategory(category, filters.catalog);
-          if (filters.availability === 'con-existencia') {
-            const filteredByAvailability = rawProducts.filter(product => product.stock > 0);
-            productsData = filteredByAvailability;
-          } else {
-            productsData = rawProducts;
-          }
+          // Para categorías específicas, obtener por categoría
+          productsData = await getProductsByCategory(category, filters.catalog);
         }
         
-        setAllProducts(productsData);
-        setFilteredProducts(productsData);
+        // Filtrar productos nulos
+        const validProducts = productsData.filter(p => p !== null);
+        
+        setAllProducts(validProducts);
+        setFilteredProducts(validProducts);
       } catch (error) {
-
+        console.error('Error loading products:', error);
         setAllProducts([]);
         setFilteredProducts([]);
       } finally {
@@ -193,7 +178,7 @@ const CatalogPage = () => {
     };
 
     loadProducts();
-  }, [category, filters.catalog, filters.availability]);
+  }, [category, filters.catalog]);
 
   // Apply filters and sorting when filters or sortBy changes
   useEffect(() => {

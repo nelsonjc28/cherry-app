@@ -85,11 +85,6 @@ export const welcomeSectionService = {
   createOrUpdate: (editingSection, formData, imageFile) => {
     const formDataObj = new FormData();
 
-    console.log('=== DATOS RECIBIDOS ===');
-    console.log('editingSection:', editingSection);
-    console.log('formData:', formData);
-    console.log('imageFile:', imageFile);
-
     // Agregar todos los campos del formData
     Object.keys(formData).forEach(key => {
       let value = formData[key];
@@ -99,28 +94,11 @@ export const welcomeSectionService = {
         value = value.toString();
       }
       formDataObj.append(key, value);
-      console.log(`Agregando ${key}:`, value);
     });
 
     if (imageFile) {
       formDataObj.append('image', imageFile);
-      console.log('Agregando imagen:', imageFile.name);
     }
-
-    // Inspeccionar contenido del FormData
-    console.log('=== FORMDATA CONTENT ===');
-    for (let [key, value] of formDataObj.entries()) {
-      if (key === 'image') {
-        console.log(`${key}:`, {
-          name: value.name,
-          size: value.size,
-          type: value.type
-        });
-      } else {
-        console.log(`${key}:`, value);
-      }
-    }
-    console.log('=== END FORMDATA ===');
 
     if (editingSection) {
       // Usar POST con _method para simular PUT

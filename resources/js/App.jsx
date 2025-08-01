@@ -6,6 +6,7 @@ import './App.css';
 import HomePage from './pages/HomePage';
 import CatalogPage from './pages/CatalogPage';
 import CatalogosPage from './pages/CatalogosPage';
+import CatalogCollectionsPage from './pages/CatalogCollectionsPage';
 import ProductPage from './pages/ProductPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
@@ -49,7 +50,7 @@ function App() {
                 <Routes>
                   <Route path="/" element={<HomePage />} />
                   <Route path="/catalogo" element={<CatalogPage />} />
-                  <Route path="/catalogos" element={<CatalogosPage />} />
+                  <Route path="/catalogos" element={<CatalogCollectionsPage />} />
                   <Route path="/producto/:productId" element={<ProductPage />} />
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/registro" element={<RegisterPage />} />
