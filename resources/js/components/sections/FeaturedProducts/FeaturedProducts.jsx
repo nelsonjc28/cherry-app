@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import ProductGrid from '../../ProductGrid/ProductGrid';
 import ProductSlider from '../../ProductSlider/ProductSlider';
-import { getRandomProducts } from '../../../api/cherryApi';
+import { useExternalApiContext } from '../../../contexts/ExternalApiContext';
 import './FeaturedProducts.css';
 
 const FeaturedProducts = ({ 
@@ -13,18 +13,17 @@ const FeaturedProducts = ({
   className = "",
   useApi = true
 }) => {
+  const { getRandomProductsCached, loading, error } = useExternalApiContext();
   const [apiProducts, setApiProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [localLoading, setLocalLoading] = useState(false);
 
   // Cargar productos desde la API si useApi es true
   useEffect(() => {
     const loadRandomProducts = async () => {
       try {
-        setLoading(true);
-        setError(null);
+        setLocalLoading(true);
         
-        const productsData = await getRandomProducts(6);
+        const productsData = await getRandomProductsCached(6);
         
         if (productsData && productsData.length > 0) {
           setApiProducts(productsData);
@@ -35,7 +34,7 @@ const FeaturedProducts = ({
               id: 'TEST001',
               title: 'Vestido Elegante Cherry',
               image: 'https://cherry-fotos.s3.amazonaws.com/shopify/TEST001/TEST001_1.jpg',
-              price: 129.99,
+              price: 129.00,
               rating: 5,
               description: 'Vestido elegante perfecto para ocasiones especiales',
               brand: 'Cherry',
@@ -65,7 +64,7 @@ const FeaturedProducts = ({
               id: 'TEST003',
               title: 'Pantalón Elegante Cherry',
               image: 'https://cherry-fotos.s3.amazonaws.com/shopify/TEST003/TEST003_1.jpg',
-              price: 149.99,
+              price: 149.00,
               rating: 5,
               description: 'Pantalón que resalta tu figura',
               brand: 'Cherry',
@@ -95,46 +94,56 @@ const FeaturedProducts = ({
               id: 'TEST005',
               title: 'Suéter Elegante Cherry',
               image: 'https://cherry-fotos.s3.amazonaws.com/shopify/TEST005/TEST005_1.jpg',
-              price: 99.99,
+              price: 99.00,
               rating: 5,
               description: 'Suéter elegante para el invierno',
               brand: 'Cherry',
               category: 'Suéteres',
-              colors: ['Beige', 'Gris'],
+              colors: ['Gris', 'Negro'],
               stock: 12,
               isActive: true,
               isNew: true,
               isPromo: false
+            },
+            {
+              id: 'TEST006',
+              title: 'Falda Elegante Cherry',
+              image: 'https://cherry-fotos.s3.amazonaws.com/shopify/TEST006/TEST006_1.jpg',
+              price: 79.99,
+              rating: 4,
+              description: 'Falda elegante para el día a día',
+              brand: 'Cherry',
+              category: 'Faldas',
+              colors: ['Negro', 'Azul'],
+              stock: 18,
+              isActive: true,
+              isNew: false,
+              isPromo: true
             }
           ];
           setApiProducts(testProducts);
         }
       } catch (error) {
-        console.error('Error loading random products:', error);
-        setError(error.message);
+        console.error('❌ FeaturedProducts: Error loading random products:', error);
         setApiProducts([]);
       } finally {
-        setLoading(false);
+        setLocalLoading(false);
       }
     };
 
     if (useApi) {
       loadRandomProducts();
     } else {
-      // Usar productos estáticos si useApi es false
       setApiProducts(products);
+      setLocalLoading(false);
     }
-  }, [useApi, products]); // Añadir products a las dependencias
+  }, []); // SOLO se ejecuta una vez al montar el componente
 
-  // Usar productos de la API si están disponibles, sino usar los productos pasados como props
-  const displayProducts = useApi ? apiProducts : products;
-  
-  // Handle favorite toggle callback
   const handleFavoriteToggle = (productId) => {
     // Here you would typically update your favorites state/API
   };
 
-  if (loading) {
+  if (localLoading) {
     return (
       <section className={`featured-products ${className}`}>
         <div className="container">
@@ -168,7 +177,7 @@ const FeaturedProducts = ({
             title={title}
             viewAllLink={viewAllLink}
             viewAllText={viewAllText}
-            products={displayProducts}
+            products={apiProducts}
             onFavoriteToggle={handleFavoriteToggle}
             showTitle={false}
             showViewAll={false}
@@ -178,7 +187,7 @@ const FeaturedProducts = ({
         {/* Mobile Slider */}
         <div className="mobile-view">
           <ProductSlider 
-            products={displayProducts}
+            products={apiProducts}
             onFavoriteToggle={handleFavoriteToggle}
             showTitle={false}
             showViewAll={false}

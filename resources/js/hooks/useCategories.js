@@ -1,12 +1,21 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { categoryService } from '../services/api';
 
 const useCategories = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const location = useLocation();
 
   useEffect(() => {
+    // No cargar categorías si estamos en el panel de administración
+    if (location.pathname.startsWith('/admin')) {
+      setCategories([]);
+      setLoading(false);
+      return;
+    }
+
     const fetchCategories = async () => {
       try {
         setLoading(true);
@@ -29,7 +38,7 @@ const useCategories = () => {
     };
 
     fetchCategories();
-  }, []);
+  }, [location.pathname]);
 
   return { categories, loading, error };
 };

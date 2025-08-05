@@ -339,7 +339,35 @@ export const getFeaturedProducts = async (limit = 8) => {
 // Función para obtener productos aleatorios
 export const getRandomProducts = async (limit = 5) => {
   try {
-    const products = await getAllProducts();
+    // Llamar directamente a la API en lugar de usar getAllProducts para evitar bucles
+    const response = await fetch(`${CHERRY_API_URL}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // La API devuelve un array directo, no un objeto con clave 'productos'
+    let products = [];
+    if (Array.isArray(data)) {
+      products = data;
+    } else if (data && data.productos && Array.isArray(data.productos)) {
+      products = data.productos;
+    } else {
+      console.warn('⚠️ getRandomProducts: Formato de respuesta inesperado');
+      return [];
+    }
+    
+    if (products.length === 0) {
+      console.warn('⚠️ getRandomProducts: No hay productos');
+      return [];
+    }
     
     // Filtrar productos activos (activo: 1) y con stock (inventario > 0)
     const activeProducts = products.filter(product => {
@@ -347,10 +375,8 @@ export const getRandomProducts = async (limit = 5) => {
       const hasStock = product.inventario > 0;
       const isWebEnabled = product.opc_web === 'S';
       
-      
       return isActive && hasStock && isWebEnabled;
     });
-    
     
     if (activeProducts.length === 0) {
       console.warn('⚠️ getRandomProducts: No hay productos activos, usando productos con inventario > 0');
@@ -396,7 +422,31 @@ export const getRandomProducts = async (limit = 5) => {
 // Función para obtener productos nuevos
 export const getNewProducts = async (limit = 8) => {
   try {
-    const products = await getAllProducts();
+    // Llamar directamente a la API en lugar de usar getAllProducts para evitar bucles
+    const response = await fetch(`${CHERRY_API_URL}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // La API devuelve un array directo, no un objeto con clave 'productos'
+    let products = [];
+    if (Array.isArray(data)) {
+      products = data;
+    } else if (data && data.productos && Array.isArray(data.productos)) {
+      products = data.productos;
+    } else {
+      console.warn('⚠️ getNewProducts: Formato de respuesta inesperado');
+      return [];
+    }
+
     const newProducts = products
       .filter(product => product.opc_nuevo === 'S' && product.activo === 1)
       .slice(0, limit);
@@ -405,6 +455,7 @@ export const getNewProducts = async (limit = 8) => {
     const mappedProducts = await Promise.all(newProducts.map(mapApiProductToAppProduct));
     return mappedProducts.filter(p => p !== null);
   } catch (error) {
+    console.error('❌ getNewProducts: Error:', error);
     return [];
   }
 };
@@ -412,7 +463,31 @@ export const getNewProducts = async (limit = 8) => {
 // Función para obtener productos en promoción
 export const getPromoProducts = async (limit = 8) => {
   try {
-    const products = await getAllProducts();
+    // Llamar directamente a la API en lugar de usar getAllProducts para evitar bucles
+    const response = await fetch(`${CHERRY_API_URL}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // La API devuelve un array directo, no un objeto con clave 'productos'
+    let products = [];
+    if (Array.isArray(data)) {
+      products = data;
+    } else if (data && data.productos && Array.isArray(data.productos)) {
+      products = data.productos;
+    } else {
+      console.warn('⚠️ getPromoProducts: Formato de respuesta inesperado');
+      return [];
+    }
+
     const promoProducts = products
       .filter(product => product.opc_promo === 'S' && product.desc_promo > 0)
       .slice(0, limit);
@@ -421,6 +496,7 @@ export const getPromoProducts = async (limit = 8) => {
     const mappedProducts = await Promise.all(promoProducts.map(mapApiProductToAppProduct));
     return mappedProducts.filter(p => p !== null);
   } catch (error) {
+    console.error('❌ getPromoProducts: Error:', error);
     return [];
   }
 };

@@ -13,7 +13,13 @@ const Header = () => {
   const location = useLocation();
   const { user, fetchUser, logout } = useUserStore();
   const { items: cartItems, totalItems, totalPrice } = useCartStore();
+  
+  // Check if current page is admin
+  const isAdminPage = location.pathname.startsWith('/admin');
+  
+  // Solo cargar categorías si no estamos en el panel de administración
   const { categories, loading: categoriesLoading } = useCategories();
+  
   const [activeMenu, setActiveMenu] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openMobileSubMenu, setOpenMobileSubMenu] = useState(null);
@@ -22,11 +28,13 @@ const Header = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const userMenuRef = useRef(null);
 
-  // Check if current page is admin
-  const isAdminPage = location.pathname.startsWith('/admin');
-
   // Organizar categorías en grupos para el menú
   const getCategoryGroups = () => {
+    // Si estamos en el panel de administración, no mostrar categorías
+    if (isAdminPage) {
+      return [];
+    }
+    
     if (categoriesLoading || !categories.length) {
       // Devolver estructura por defecto mientras carga
       return [

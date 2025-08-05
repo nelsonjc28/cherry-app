@@ -2,6 +2,10 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import './App.css';
 
+// Contexts
+import { FavoritesProvider } from './contexts/FavoritesContext';
+import { ExternalApiProvider } from './contexts/ExternalApiContext';
+
 // Pages
 import HomePage from './pages/HomePage';
 import CatalogPage from './pages/CatalogPage';
@@ -41,49 +45,53 @@ import CustomToastContainer from './components/Toast/ToastContainer';
 function App() {
   return (
     <HelmetProvider>
-      <Router>
-        <AuthInitializer>
-          <SmartRedirect>
-            <div className="App">
-              <Header />
-              <main>
-                <Routes>
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/catalogo" element={<CatalogPage />} />
-                  <Route path="/catalogos" element={<CatalogCollectionsPage />} />
-                  <Route path="/producto/:productId" element={<ProductPage />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/registro" element={<RegisterPage />} />
-                  <Route path="/carrito-detalle" element={<CartDetailsPage />} />
-                  <Route path="/compra-exitosa" element={<CheckoutSuccessPage />} />
-                  <Route path="/carrito" element={<CarritoPage />} />
-                  <Route path="/buscar" element={<BuscarPage />} />
-                  <Route path="/categorias" element={<CategoriasPage />} />
-                  <Route path="/contacto" element={<ContactoPage />} />
-                  <Route path="/afiliate" element={<AfiliatePage />} />
-                  <Route path="/terminos" element={<TerminosPage />} />
-                  <Route path="/privacidad" element={<PrivacidadPage />} />
-                  <Route path="/cookies" element={<CookiesPage />} />
-                  <Route path="/notificaciones" element={<NotificacionesPage />} />
-                  <Route path="/explorar" element={<ExplorarPage />} />
-                  <Route path="/promociones" element={<PromocionesPage />} />
-                  <Route path="/destacados" element={<DestacadosPage />} />
-                  <Route path="/nuevos" element={<NuevosPage />} />
-                  <Route path="/productos" element={<ProductosPage />} />
-                  <Route path="/destacados-ofertas" element={<DestacadosOfertasPage />} />
-                  <Route path="/favoritos" element={<FavoritosPage />} />
-                  <Route path="/admin" element={
-                    <AdminRoute>
-                      <AdminPanelPage />
-                    </AdminRoute>
-                  } />
-                </Routes>
-              </main>
-              <CustomToastContainer />
-            </div>
-          </SmartRedirect>
-        </AuthInitializer>
-      </Router>
+      <FavoritesProvider>
+        <Router>
+          <ExternalApiProvider>
+            <AuthInitializer>
+              <SmartRedirect>
+                <div className="App">
+                  <Header />
+                  <main>
+                    <Routes>
+                      <Route path="/" element={<HomePage />} />
+                      <Route path="/catalogo" element={<CatalogPage />} />
+                      <Route path="/catalogos" element={<CatalogCollectionsPage />} />
+                      <Route path="/producto/:productId" element={<ProductPage />} />
+                      <Route path="/login" element={<LoginPage />} />
+                      <Route path="/registro" element={<RegisterPage />} />
+                      <Route path="/carrito-detalle" element={<CartDetailsPage />} />
+                      <Route path="/compra-exitosa" element={<CheckoutSuccessPage />} />
+                      <Route path="/carrito" element={<CarritoPage />} />
+                      <Route path="/buscar" element={<BuscarPage />} />
+                      <Route path="/categorias" element={<CategoriasPage />} />
+                      <Route path="/contacto" element={<ContactoPage />} />
+                      <Route path="/afiliate" element={<AfiliatePage />} />
+                      <Route path="/terminos" element={<TerminosPage />} />
+                      <Route path="/privacidad" element={<PrivacidadPage />} />
+                      <Route path="/cookies" element={<CookiesPage />} />
+                      <Route path="/notificaciones" element={<NotificacionesPage />} />
+                      <Route path="/explorar" element={<ExplorarPage />} />
+                      <Route path="/promociones" element={<PromocionesPage />} />
+                      <Route path="/destacados" element={<DestacadosPage />} />
+                      <Route path="/nuevos" element={<NuevosPage />} />
+                      <Route path="/productos" element={<ProductosPage />} />
+                      <Route path="/destacados-ofertas" element={<DestacadosOfertasPage />} />
+                      <Route path="/favoritos" element={<FavoritosPage />} />
+                      <Route path="/admin" element={
+                        <AdminRoute>
+                          <AdminPanelPage />
+                        </AdminRoute>
+                      } />
+                    </Routes>
+                  </main>
+                  <CustomToastContainer />
+                </div>
+              </SmartRedirect>
+            </AuthInitializer>
+          </ExternalApiProvider>
+        </Router>
+      </FavoritesProvider>
     </HelmetProvider>
   );
 }

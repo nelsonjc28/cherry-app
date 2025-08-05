@@ -4,25 +4,26 @@ import { Link } from 'react-router-dom';
 import CategoryIcon from '../components/CategoryIcon/CategoryIcon';
 import CherryButton from '../components/CherryButton/CherryButton';
 import { getIconPath } from '../utils/assetPaths';
-import { getAvailableCategories } from '../api/cherryApi';
+import { useExternalApiContext } from '../contexts/ExternalApiContext';
 import './CategoriasPage.css';
 
 const CategoriasPage = () => {
+  const { getCategoriesCached, loading, error } = useExternalApiContext();
   const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [localLoading, setLocalLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
 
   useEffect(() => {
     const loadCategories = async () => {
-      setLoading(true);
       try {
-        const categoriesData = await getAvailableCategories();
-        setCategories(categoriesData);
+        setLocalLoading(true);
+        const categoriesData = await getCategoriesCached();
+        setCategories(categoriesData || []);
       } catch (error) {
-
+        console.error('Error loading categories:', error);
         setCategories([]);
       } finally {
-        setLoading(false);
+        setLocalLoading(false);
       }
     };
 
@@ -38,7 +39,7 @@ const CategoriasPage = () => {
     window.location.href = `/catalogo?categoria=${encodeURIComponent(category.name)}`;
   };
 
-  if (loading) {
+  if (loading || localLoading) {
     return (
       <>
         <Helmet>

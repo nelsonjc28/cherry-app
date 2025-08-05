@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import FavoriteButton from '../components/FavoriteButton/FavoriteButton';
-import StarRating from '../components/StarRating/StarRating';
+import { formatPrice } from '../utils/formatters';
 import './FavoritosPage.css';
 
 const FavoritosPage = () => {
@@ -128,7 +128,7 @@ const FavoritosPage = () => {
                   
                   {favorite.product_price && (
                     <p className="favoritos-page__item-price">
-                      ${parseFloat(favorite.product_price).toFixed(2)}
+                      {formatPrice(favorite.product_price)}
                     </p>
                   )}
                   

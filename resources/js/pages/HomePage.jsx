@@ -145,6 +145,7 @@ const HomePage = () => {
             products={featuredProducts}
             title="Productos más vendidos"
             description="Perfectos para ocasiones especiales, con diseños que realzan la figura"
+            useApi={true}
           />
         </section>
       </main>

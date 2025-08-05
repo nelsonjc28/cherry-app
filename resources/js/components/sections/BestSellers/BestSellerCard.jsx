@@ -1,15 +1,22 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import FavoriteButton from '../../FavoriteButton/FavoriteButton';
+import StarRating from '../../StarRating/StarRating';
+import { formatPrice } from '../../../utils/formatters';
 import './BestSellerCard.css';
 
 const BestSellerCard = ({ id, title, image, price, rating, description, onFavoriteToggle }) => {
-  // Generate stars based on rating
-  const generateStars = (rating) => {
-    return '★'.repeat(rating);
+  const handleCardClick = (e) => {
+    // No navegar si se hace clic en el botón de favoritos
+    if (e.target.closest('.favorite-button')) {
+      return;
+    }
+    // Navegar al detalle del producto
+    window.location.href = `/producto/${id}`;
   };
 
   return (
-    <div className="best-seller-card">
+    <div className="best-seller-card" onClick={handleCardClick}>
       {/* Product Image Container */}
       <div className="best-seller-image-container">
         <img 
@@ -40,13 +47,13 @@ const BestSellerCard = ({ id, title, image, price, rating, description, onFavori
         
         {/* Rating */}
         <div className="best-seller-rating">
-          <span className="stars">{generateStars(rating)}</span>
+          <StarRating rating={rating} />
         </div>
         
         {/* Price */}
         <div className="best-seller-price">
           <span className="price-label">Desde:</span>
-          <span className="price-value">${price}</span>
+          <span className="price-value">{formatPrice(price)}</span>
         </div>
       </div>
     </div>
