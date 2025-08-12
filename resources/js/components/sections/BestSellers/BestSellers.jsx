@@ -28,7 +28,6 @@ const BestSellers = ({
           setApiProducts(products);
         }
       } catch (error) {
-        console.error('Error loading random products:', error);
         setApiProducts(products);
       } finally {
         setLocalLoading(false);

@@ -1,0 +1,313 @@
+/* Mobile First Styles */
+.register-page {
+  min-height: 100vh;
+  padding: 15px 0;
+  background-color: var(--background-color);
+}
+
+.register-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: var(--box-shadow);
+}
+
+.register-left {
+  text-align: center;
+  padding: 30px 14px 15px 14px;
+}
+
+.register-shopping-image {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.register-benefits-section {
+  text-align: left;
+}
+
+.register-benefits-title {
+  color: var(--text-color);
+  font-size: 25px;
+  font-weight: 400;
+}
+
+.register-benefits-list {
+  list-style: none;
+  padding: 0;
+  margin-top: 10px;
+  padding-top: 15px;
+}
+
+.register-benefits-list li {
+  position: relative;
+  margin-bottom: 0.8rem;
+  color: #000;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.4;
+  padding-left: 1.2rem;
+}
+
+.register-benefits-list li::before {
+  content: "●";
+  position: absolute;
+  left: 0;
+  color: #e53e3e;
+  font-size: 1.2rem;
+}
+
+.register-right {
+  background-color: #B8B7B7;
+  border-radius: 8px;
+  padding: 30px 14px 15px 14px;
+}
+
+.register-form-container {
+  max-width: 100%;
+}
+
+.register-form-header {
+  text-align: start;
+  margin-bottom: 0.5rem;
+}
+
+.register-logo {
+  font-size: 2rem;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  letter-spacing: 2px;
+}
+
+.heart {
+  color: #e53e3e;
+}
+
+.register-subtitle {
+  font-size: 25px;
+  color: #fff;
+  font-weight: 400;
+}
+
+.white-divider {
+  border-top: 1px solid #fff;
+  width: 100%;
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  margin-top: 20px;
+}
+
+.register-form-row {
+  display: flex;
+  flex-direction: column;
+}
+
+.register-form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.register-form-group:nth-child(2) {
+  margin-top: 10px;
+}
+
+.register-form-group label {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.register-form-group input,
+.register-form-group select {
+  padding: 12px 16px;
+  border: none;
+  border-radius: 6px;
+  background-color: #fff;
+  font-size: 16px;
+  font-weight: 400;
+  color: #7B7B7B;
+}
+
+.register-form-group input:focus,
+.register-form-group select:focus {
+  outline: none;
+  border: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.register-form-group input::placeholder {
+  color: #7B7B7B;
+}
+
+.register-date-selectors {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.register-date-selectors select {
+  flex: 1;
+  padding: 12px 12px;
+  border: none;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 1rem;
+  color: #9CA3AF;
+}
+
+.register-section-title {
+  color: #fff;
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.register-password-hint {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.4;
+  margin-top: -10px;
+  margin-bottom: 10px;
+}
+
+.register-checkbox-group {
+  margin-bottom: 1px;
+}
+
+.register-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.register-checkbox-label input[type="checkbox"] {
+  margin-right: 0.75rem;
+  margin-top: 0.1rem;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.register-checkbox-label span::before {
+  content: '';
+  display: inline-block;
+  background: #fff;
+  width: 20px;
+  height: 20px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-right: 8px;
+  vertical-align: middle;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.register-checkbox-label input[type="checkbox"]:checked+span::before {
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+.register-arrow {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.register-button-container {
+  display: flex;
+  justify-content: stretch;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.register-button-container>* {
+  width: 100%;
+}
+
+/* Desktop Styles */
+@media (min-width: 768px) {
+  .register-page {
+    padding: 30px 0;
+  }
+
+  .register-content {
+    flex-direction: row;
+    min-height: 100vh;
+  }
+
+  .register-left {
+    display: flex;
+    flex-direction: column;
+    padding: 40px 30px;
+  }
+
+  .register-shopping-image {
+    max-height: 800px;
+  }
+
+  .register-benefits-title {
+    font-size: 31px;
+  }
+
+  .register-benefits-list li {
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
+  }
+
+  .register-right {
+    flex: 1;
+    padding: 20px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .register-form-container {
+    width: 100%;
+    padding: 20px 30px 20px 30px;
+  }
+
+  .register-logo {
+    font-size: 2.5rem;
+  }
+
+  .register-subtitle {
+    font-size: 1.4rem;
+  }
+
+  .register-form-row {
+    flex-direction: row;
+    gap: 1rem;
+  }
+
+  .register-form-group {
+    flex: 1;
+  }
+
+  .register-form-group:nth-child(2) {
+    margin-top: 0;
+  }
+
+  .register-date-selectors {
+    gap: 1rem;
+  }
+
+  .register-button-container {
+    justify-content: center;
+    align-items: center;
+  }
+
+  .register-button-container>* {
+    width: 200px;
+  }
+}

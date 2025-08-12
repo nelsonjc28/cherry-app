@@ -6,6 +6,8 @@ import ClientManager from '../components/ClientManager/ClientManager';
 import CategoryManager from '../components/CategoryManager/CategoryManager';
 import CategoryOrderManager from '../components/CategoryOrderManager/CategoryOrderManager';
 import AdminWelcomeSectionManager from '../components/AdminWelcomeSectionManager/AdminWelcomeSectionManager';
+import AdminContactManager from '../components/AdminContactManager/AdminContactManager';
+import AdminPrivacyPolicyManager from '../components/AdminPrivacyPolicyManager/AdminPrivacyPolicyManager';
 import AuthTest from '../components/AuthTest';
 import useUserStore from '../store/userStore';
 import '../index.css';
@@ -66,6 +68,8 @@ function AdminPanelPage() {
           <button className={`admin-panel__sidebar-link${selectedMenu==='categories'?' active':''}`} onClick={()=>{setSelectedMenu('categories'); setSidebarOpen(false);}}>Gestionar Categorías</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='category-order'?' active':''}`} onClick={()=>{setSelectedMenu('category-order'); setSidebarOpen(false);}}>Ordenar Categorías</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='welcome-sections'?' active':''}`} onClick={()=>{setSelectedMenu('welcome-sections'); setSidebarOpen(false);}}>Secciones de Bienvenida</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='contact-info'?' active':''}`} onClick={()=>{setSelectedMenu('contact-info'); setSidebarOpen(false);}}>Información de Contacto</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='privacy-policy'?' active':''}`} onClick={()=>{setSelectedMenu('privacy-policy'); setSidebarOpen(false);}}>Políticas de Privacidad</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='auth-test'?' active':''}`} onClick={()=>{setSelectedMenu('auth-test'); setSidebarOpen(false);}}>Test Auth</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='other'?' active':''}`} onClick={()=>{setSelectedMenu('other'); setSidebarOpen(false);}}>Otra sección</button>
           <button className="admin-panel__sidebar-link" onClick={handleLogout}>Volver al sitio</button>
@@ -94,7 +98,11 @@ function AdminPanelPage() {
                         <div className="fs-sm text-secondary">Estado: {item.status}</div>
                       </div>
                       <div className="d-flex align-items-center">
-                        <CherryButton size="small" variant="outline" onClick={()=>alert('Editar no implementado')}>Editar</CherryButton>
+                        <CherryButton size="small" variant="outline" onClick={()=>{
+                          if (window.showToast) {
+                            window.showToast('Función de editar no implementada', 'warning');
+                          }
+                        }}>Editar</CherryButton>
                         <CherryButton size="small" variant="red" onClick={()=>handleDelete(item.id)}>Eliminar</CherryButton>
                       </div>
                     </div>
@@ -102,7 +110,11 @@ function AdminPanelPage() {
                   {homeData.length === 0 && <div className="text-center text-secondary py-3">No hay elementos.</div>}
                 </div>
                 <div className="mt-3">
-                  <CherryButton size="medium" variant="red" onClick={()=>alert('Crear nuevo no implementado')}>Agregar sección</CherryButton>
+                  <CherryButton size="medium" variant="red" onClick={()=>{
+                    if (window.showToast) {
+                      window.showToast('Función de crear nueva sección no implementada', 'warning');
+                    }
+                  }}>Agregar sección</CherryButton>
                 </div>
               </>
             ) : (
@@ -162,6 +174,18 @@ function AdminPanelPage() {
         {selectedMenu === 'welcome-sections' && isAdmin() && (
           <section>
             <AdminWelcomeSectionManager />
+          </section>
+        )}
+
+        {selectedMenu === 'contact-info' && isAdmin() && (
+          <section>
+            <AdminContactManager />
+          </section>
+        )}
+
+        {selectedMenu === 'privacy-policy' && isAdmin() && (
+          <section>
+            <AdminPrivacyPolicyManager />
           </section>
         )}
 

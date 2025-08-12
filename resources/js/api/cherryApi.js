@@ -25,7 +25,6 @@ export const testApiConnection = async () => {
       length: data ? data.length : 0
     };
   } catch (error) {
-    console.error('🧪 TEST: Error:', error);
     return {
       success: false,
       error: error.message
@@ -180,7 +179,6 @@ export const getProductsWithRatings = async (catalog = 'Cherry 2025 - 2026') => 
     
     return mappedProducts.filter(p => p !== null);
   } catch (error) {
-    console.error('Error obteniendo productos con ratings:', error);
     return [];
   }
 };
@@ -253,7 +251,6 @@ export const getBulkRatings = async (productIds) => {
     }
     return {};
   } catch (error) {
-    console.error('Error obteniendo ratings en bulk:', error);
     return {};
   }
 };
@@ -360,12 +357,10 @@ export const getRandomProducts = async (limit = 5) => {
     } else if (data && data.productos && Array.isArray(data.productos)) {
       products = data.productos;
     } else {
-      console.warn('⚠️ getRandomProducts: Formato de respuesta inesperado');
       return [];
     }
     
     if (products.length === 0) {
-      console.warn('⚠️ getRandomProducts: No hay productos');
       return [];
     }
     
@@ -379,12 +374,10 @@ export const getRandomProducts = async (limit = 5) => {
     });
     
     if (activeProducts.length === 0) {
-      console.warn('⚠️ getRandomProducts: No hay productos activos, usando productos con inventario > 0');
       // Si no hay productos activos, usar productos con stock
       const productsWithStock = products.filter(product => product.inventario > 0);
       
       if (productsWithStock.length === 0) {
-        console.warn('⚠️ getRandomProducts: No hay productos con stock, usando todos los productos');
         // Si no hay productos con stock, usar todos
         const shuffled = products.sort(() => 0.5 - Math.random());
         const selectedProducts = shuffled.slice(0, limit);
@@ -414,15 +407,13 @@ export const getRandomProducts = async (limit = 5) => {
     
     return randomProducts.filter(p => p !== null);
   } catch (error) {
-    console.error('❌ getRandomProducts: Error:', error);
     return [];
   }
 };
 
 // Función para obtener productos nuevos
-export const getNewProducts = async (limit = 8) => {
+export const getNewProducts = async (limit = 5) => {
   try {
-    // Llamar directamente a la API en lugar de usar getAllProducts para evitar bucles
     const response = await fetch(`${CHERRY_API_URL}`, {
       method: 'GET',
       headers: {
@@ -436,34 +427,60 @@ export const getNewProducts = async (limit = 8) => {
 
     const data = await response.json();
     
-    // La API devuelve un array directo, no un objeto con clave 'productos'
     let products = [];
     if (Array.isArray(data)) {
       products = data;
     } else if (data && data.productos && Array.isArray(data.productos)) {
       products = data.productos;
     } else {
-      console.warn('⚠️ getNewProducts: Formato de respuesta inesperado');
       return [];
     }
-
-    const newProducts = products
-      .filter(product => product.opc_nuevo === 'S' && product.activo === 1)
-      .slice(0, limit);
     
-    // Mapear productos de forma asíncrona
-    const mappedProducts = await Promise.all(newProducts.map(mapApiProductToAppProduct));
-    return mappedProducts.filter(p => p !== null);
+    if (products.length === 0) {
+      return [];
+    }
+    
+    // Filtrar productos activos y con stock
+    const activeProducts = products.filter(product => {
+      const isActive = product.activo === 1;
+      const hasStock = product.inventario > 0;
+      const isWebEnabled = product.opc_web === 'S';
+      
+      return isActive && hasStock && isWebEnabled;
+    });
+    
+    if (activeProducts.length === 0) {
+      const productsWithStock = products.filter(product => product.inventario > 0);
+      
+      if (productsWithStock.length === 0) {
+        const shuffled = products.sort(() => 0.5 - Math.random());
+        const selectedProducts = shuffled.slice(0, limit);
+        
+        const newProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
+        return newProducts.filter(p => p !== null);
+      }
+      
+      const shuffled = productsWithStock.sort(() => 0.5 - Math.random());
+      const selectedProducts = shuffled.slice(0, limit);
+      
+      const newProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
+      return newProducts.filter(p => p !== null);
+    }
+    
+    const shuffled = activeProducts.sort(() => 0.5 - Math.random());
+    const selectedProducts = shuffled.slice(0, limit);
+    
+    const newProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
+    
+    return newProducts.filter(p => p !== null);
   } catch (error) {
-    console.error('❌ getNewProducts: Error:', error);
     return [];
   }
 };
 
 // Función para obtener productos en promoción
-export const getPromoProducts = async (limit = 8) => {
+export const getPromoProducts = async (limit = 5) => {
   try {
-    // Llamar directamente a la API en lugar de usar getAllProducts para evitar bucles
     const response = await fetch(`${CHERRY_API_URL}`, {
       method: 'GET',
       headers: {
@@ -477,26 +494,53 @@ export const getPromoProducts = async (limit = 8) => {
 
     const data = await response.json();
     
-    // La API devuelve un array directo, no un objeto con clave 'productos'
     let products = [];
     if (Array.isArray(data)) {
       products = data;
     } else if (data && data.productos && Array.isArray(data.productos)) {
       products = data.productos;
     } else {
-      console.warn('⚠️ getPromoProducts: Formato de respuesta inesperado');
       return [];
     }
-
-    const promoProducts = products
-      .filter(product => product.opc_promo === 'S' && product.desc_promo > 0)
-      .slice(0, limit);
     
-    // Mapear productos de forma asíncrona
-    const mappedProducts = await Promise.all(promoProducts.map(mapApiProductToAppProduct));
-    return mappedProducts.filter(p => p !== null);
+    if (products.length === 0) {
+      return [];
+    }
+    
+    // Filtrar productos activos y con stock
+    const activeProducts = products.filter(product => {
+      const isActive = product.activo === 1;
+      const hasStock = product.inventario > 0;
+      const isWebEnabled = product.opc_web === 'S';
+      
+      return isActive && hasStock && isWebEnabled;
+    });
+    
+    if (activeProducts.length === 0) {
+      const productsWithStock = products.filter(product => product.inventario > 0);
+      
+      if (productsWithStock.length === 0) {
+        const shuffled = products.sort(() => 0.5 - Math.random());
+        const selectedProducts = shuffled.slice(0, limit);
+        
+        const promoProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
+        return promoProducts.filter(p => p !== null);
+      }
+      
+      const shuffled = productsWithStock.sort(() => 0.5 - Math.random());
+      const selectedProducts = shuffled.slice(0, limit);
+      
+      const promoProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
+      return promoProducts.filter(p => p !== null);
+    }
+    
+    const shuffled = activeProducts.sort(() => 0.5 - Math.random());
+    const selectedProducts = shuffled.slice(0, limit);
+    
+    const promoProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
+    
+    return promoProducts.filter(p => p !== null);
   } catch (error) {
-    console.error('❌ getPromoProducts: Error:', error);
     return [];
   }
 };
@@ -909,7 +953,7 @@ export const testWithPublicApi = async () => {
       };
     }
   } catch (error) {
-    console.error('🧪 TEST: Error con API pública:', error);
+    // Error silencioso
   }
   
   return {

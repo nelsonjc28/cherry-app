@@ -52,8 +52,9 @@ export const ExternalApiProvider = ({ children }) => {
       dataCacheRef.current[cacheKey] = cachedData;
       return cachedData;
     } catch (err) {
-      console.error('❌ ExternalApiContext: Error loading random products:', err);
-      setError('Error al cargar productos aleatorios');
+      if (window.showToast) {
+        window.showToast('Error al cargar productos aleatorios', 'error');
+      }
       return [];
     } finally {
       loadingRef.current[cacheKey] = false;
@@ -91,8 +92,9 @@ export const ExternalApiProvider = ({ children }) => {
       dataCacheRef.current[cacheKey] = cachedData;
       return cachedData;
     } catch (err) {
-      console.error('Error loading all products:', err);
-      setError('Error al cargar todos los productos');
+      if (window.showToast) {
+        window.showToast('Error al cargar todos los productos', 'error');
+      }
       return [];
     } finally {
       loadingRef.current[cacheKey] = false;
@@ -130,8 +132,9 @@ export const ExternalApiProvider = ({ children }) => {
       dataCacheRef.current[cacheKey] = cachedData;
       return cachedData;
     } catch (err) {
-      console.error('Error loading categories:', err);
-      setError('Error al cargar categorías');
+      if (window.showToast) {
+        window.showToast('Error al cargar categorías', 'error');
+      }
       return [];
     } finally {
       loadingRef.current[cacheKey] = false;

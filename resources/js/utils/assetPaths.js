@@ -36,6 +36,7 @@ export const getAssetPath = (path) => {
 export const getIconPath = (iconName) => {
   // Remove .svg extension if already present to avoid double extension
   const cleanIconName = iconName.replace(/\.svg$/i, '');
+  // Use window.location.origin for full URL
   return `${window.location.origin}/icons/${cleanIconName}.svg`;
 };
 
@@ -45,7 +46,8 @@ export const getIconPath = (iconName) => {
  * @returns {string} - Full path to the image
  */
 export const getImagePath = (imageName) => {
-  return `${window.location.origin}/images/${imageName}`;
+  // Use getAssetPath for consistent path resolution
+  return getAssetPath(`images/${imageName}`);
 };
 
 /**
@@ -83,7 +85,7 @@ export const getHeroIconPath = (iconName) => {
  * @returns {string} - Full path to the hero slider image
  */
 export const getHeroSliderImagePath = (imageName) => {
-  return `${window.location.origin}/images/HeroBanner/${imageName}`;
+  return getAssetPath(`images/HeroBanner/${imageName}`);
 };
 
 /**
@@ -92,7 +94,7 @@ export const getHeroSliderImagePath = (imageName) => {
  * @returns {string} - Full path to the featured catalog image
  */
 export const getFeaturedCatalogImagePath = (imageName) => {
-  return `${window.location.origin}/images/RecentCatalogs/${imageName}`;
+  return getAssetPath(`images/RecentCatalogs/${imageName}`);
 };
 
 /**
@@ -101,7 +103,7 @@ export const getFeaturedCatalogImagePath = (imageName) => {
  * @returns {string} - Full path to the product image
  */
 export const getProductImagePath = (imageName) => {
-  return `${window.location.origin}/images/catalogProductImages/${imageName}`;
+  return getAssetPath(`images/catalogProductImages/${imageName}`);
 };
 
 /**
@@ -110,7 +112,7 @@ export const getProductImagePath = (imageName) => {
  * @returns {string} - Full path to the featured product image
  */
 export const getFeaturedProductImagePath = (imageName) => {
-  return `${window.location.origin}/images/FeaturedProducts/${imageName}`;
+  return getAssetPath(`images/FeaturedProducts/${imageName}`);
 };
 
 /**
@@ -119,7 +121,7 @@ export const getFeaturedProductImagePath = (imageName) => {
  * @returns {string} - Full path to the hero banner image
  */
 export const getHeroBannerImagePath = (imageName) => {
-  return `${window.location.origin}/images/HeroBanner/${imageName}`;
+  return getAssetPath(`images/HeroBanner/${imageName}`);
 };
 
 /**
@@ -128,7 +130,7 @@ export const getHeroBannerImagePath = (imageName) => {
  * @returns {string} - Full path to the recent catalog image
  */
 export const getRecentCatalogImagePath = (imageName) => {
-  return `${window.location.origin}/images/RecentCatalogs/${imageName}`;
+  return getAssetPath(`images/RecentCatalogs/${imageName}`);
 };
 
 /**
@@ -137,7 +139,7 @@ export const getRecentCatalogImagePath = (imageName) => {
  * @returns {string} - Full path to the affiliate section image
  */
 export const getAffiliateImagePath = (imageName) => {
-  return `${window.location.origin}/images/AffiliateSection/${imageName}`;
+  return getAssetPath(`images/AffiliateSection/${imageName}`);
 };
 
 /**
@@ -145,7 +147,7 @@ export const getAffiliateImagePath = (imageName) => {
  * @returns {string} - Full path to the logo
  */
 export const getLogoPath = () => {
-  return `${window.location.origin}/images/logo.svg`;
+  return getAssetPath('images/logo.svg');
 };
 
 /**
@@ -153,7 +155,7 @@ export const getLogoPath = () => {
  * @returns {string} - Full path to the placeholder image
  */
 export const getPlaceholderImagePath = () => {
-  return `${window.location.origin}/images/placeholder.jpg`;
+  return getAssetPath('images/placeholder.jpg');
 };
 
 /**
@@ -226,4 +228,24 @@ export const logAssetAction = (message, level = 'log') => {
   if (import.meta.env.DEV) {
     console[level](`[Asset Manager] ${message}`);
   }
+};
+
+/**
+ * Debug function to test asset paths
+ * @param {string} assetType - Type of asset (icon, image, etc.)
+ * @param {string} assetName - Name of the asset
+ * @returns {object} Debug information about the asset path
+ */
+export const debugAssetPath = (assetType, assetName) => {
+  const baseUrl = getBaseUrl();
+  const assetPath = assetType === 'icon' ? getIconPath(assetName) : getImagePath(assetName);
+  
+  return {
+    assetType,
+    assetName,
+    baseUrl,
+    assetPath,
+    fullUrl: assetPath,
+    exists: null // Will be populated by checkAssetExists
+  };
 }; 

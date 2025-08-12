@@ -110,8 +110,7 @@ const HeroBanner = () => {
               alt={activeBanner.imageAlt}
               className="banner-image"
               onError={(e) => {
-                console.error('Error loading image:', activeBanner.image);
-                e.target.src = getHeroSliderImagePath('hero-slider1-girl.png');
+                e.target.src = '/placeholder-banner.jpg';
               }}
             />
           </div>

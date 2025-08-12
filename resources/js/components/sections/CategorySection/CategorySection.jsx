@@ -21,7 +21,7 @@ const CategorySection = () => {
   }
 
   if (error) {
-    console.error('Error loading categories:', error);
+    // Error silencioso
   }
 
   return (

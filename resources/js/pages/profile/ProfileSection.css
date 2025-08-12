@@ -1,0 +1,53 @@
+/* Shared styles for profile sections */
+.profile-section {
+  max-width: 800px;
+}
+
+.profile-section__header {
+  margin-bottom: 32px;
+}
+
+.profile-section__title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 8px 0;
+}
+
+.profile-section__description {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.profile-section__content {
+  min-height: 400px;
+}
+
+.profile-section__placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 2px dashed #e0e0e0;
+}
+
+.profile-section__placeholder p {
+  color: #666;
+  font-size: 16px;
+  margin: 0;
+}
+
+/* Desktop Styles */
+@media (min-width: 768px) {
+  .profile-section__title {
+    font-size: 24px;
+  }
+
+  .profile-section__description {
+    font-size: 16px;
+  }
+}

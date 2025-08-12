@@ -38,20 +38,7 @@ const useHomeCategories = () => {
         
         setError(null);
       } catch (err) {
-        console.error('Error fetching home categories:', err);
-        console.error('Error response:', err.response);
-        setError(err.response?.data?.message || err.message);
-        
-        // En caso de error, usar categorías por defecto
-        const defaultCategories = [
-          { name: 'Vestidos', icon: getCategoryIconPath('vestido-de-novio 1.svg') },
-          { name: 'Blusas', icon: getCategoryIconPath('blusa 1.svg') },
-          { name: 'Pantalones', icon: getCategoryIconPath('pantalones-ajustados 1.svg') },
-          { name: 'Sacos', icon: getCategoryIconPath('vestir 1.svg') },
-          { name: 'Conjuntos', icon: getCategoryIconPath('moda 2 1.svg') },
-          { name: 'Gabardinas', icon: getCategoryIconPath('gabardina 1.svg') }
-        ];
-        setCategories(defaultCategories);
+        setCategories([]);
       } finally {
         setLoading(false);
       }

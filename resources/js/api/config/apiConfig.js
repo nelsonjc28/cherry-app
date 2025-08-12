@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Base URL for API - will be replaced with actual backend URL in production
-const API_BASE_URL = 'https://api.cherrycentral.com';
+const API_BASE_URL = '';
 
 // Create axios instance with default config
 const apiClient = axios.create({
@@ -17,7 +17,7 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     // Get token from localStorage or other storage
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('token');
     
     // If token exists, add to headers
     if (token) {
@@ -38,7 +38,7 @@ apiClient.interceptors.response.use(
     // Handle 401 Unauthorized errors (token expired)
     if (error.response && error.response.status === 401) {
       // Clear auth data
-      localStorage.removeItem('auth_token');
+      localStorage.removeItem('token');
       
       // Redirect to login page or show login modal
       // window.location.href = '/login';

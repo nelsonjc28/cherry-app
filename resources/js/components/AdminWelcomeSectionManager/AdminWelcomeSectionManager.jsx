@@ -86,11 +86,7 @@ const AdminWelcomeSectionManager = () => {
         setError(response.data.message || 'Error al procesar la sección');
       }
     } catch (error) {
-      console.error('Error saving welcome section:', error);
-      setError('Error al guardar la sección');
-      if (window.showToast) {
-        window.showToast('Error al guardar la sección', 'error');
-      }
+      window.showToast('Error al guardar la sección', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -114,21 +110,35 @@ const AdminWelcomeSectionManager = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar esta sección?')) {
-      return;
+  const handleDelete = async (section) => {
+    if (window.showToast) {
+      window.showToast('¿Estás seguro de que quieres eliminar esta sección?', 'warning');
     }
-
+    // Por ahora solo mostramos el toast, en el futuro se puede implementar un modal de confirmación
+    return;
+    
     try {
-      await welcomeSectionService.delete(id);
-      
-      if (window.showToast) {
-        window.showToast('Sección eliminada exitosamente', 'success');
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/admin/welcome-sections/${section.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        }
+      });
+
+      if (response.ok) {
+        if (window.showToast) {
+          window.showToast('Sección eliminada exitosamente', 'success');
+        }
+        fetchSections();
+      } else {
+        if (window.showToast) {
+          window.showToast('Error al eliminar la sección', 'error');
+        }
       }
-      
-      fetchSections();
     } catch (error) {
-      console.error('Error deleting section:', error);
       if (window.showToast) {
         window.showToast('Error al eliminar la sección', 'error');
       }
@@ -145,10 +155,7 @@ const AdminWelcomeSectionManager = () => {
       
       fetchSections();
     } catch (error) {
-      console.error('Error toggling status:', error);
-      if (window.showToast) {
-        window.showToast('Error al cambiar el estado', 'error');
-      }
+      window.showToast('Error al cambiar el estado', 'error');
     }
   };
 
@@ -280,7 +287,7 @@ const AdminWelcomeSectionManager = () => {
                     </button>
                     <button 
                       className="btn btn-outline-danger btn-sm"
-                      onClick={() => handleDelete(section.id)}
+                      onClick={() => handleDelete(section)}
                     >
                       Eliminar
                     </button>

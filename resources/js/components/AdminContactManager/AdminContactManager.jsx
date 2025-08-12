@@ -1,402 +1,296 @@
 import React, { useState, useEffect } from 'react';
-import Swal from 'sweetalert2';
-import CherryButton from '../CherryButton/CherryButton';
 import './AdminContactManager.css';
 
 const AdminContactManager = () => {
-  const [contacts, setContacts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [showForm, setShowForm] = useState(false);
-  const [editingContact, setEditingContact] = useState(null);
-  const [formData, setFormData] = useState({
-    type: '',
-    title: '',
-    value: '',
-    description: '',
-    icon: '',
-    is_active: true,
-    order: 0
+  const [contactInfo, setContactInfo] = useState({
+    address_street: 'José María Izazaga 127 piso 2 Col.',
+    address_city: 'Centros México D.F. C.P. 06080',
+    phone: '55-5542-4442',
+    email: 'cherryonline@cherry.com.mx',
+    map_url: 'https://www.google.com/maps/embed?pb=!1m12!1m8!1m3!1d3830947.253725377!2d-99.1779212!3d20.3350315!3m2!1i1024!2i768!4f13.1!2m1!1scherry%20tienda%20mx%20direccion!5e0!3m2!1ses-419!2sve!4v1753274350284!5m2!1ses-419!2sve',
+    store_hours: {
+      monday: { open: '9:30 am', close: '7:00 pm', closed: false },
+      tuesday: { open: '9:30 am', close: '7:00 pm', closed: false },
+      wednesday: { open: '9:30 am', close: '7:00 pm', closed: false },
+      thursday: { open: '9:30 am', close: '7:00 pm', closed: false },
+      friday: { open: '9:30 am', close: '5:00 pm', closed: false },
+      saturday: { open: '', close: '', closed: true },
+      sunday: { open: '', close: '', closed: true }
+    },
+    online_hours: {
+      monday: { open: '9:30 am', close: '7:00 pm', closed: false },
+      tuesday: { open: '9:30 am', close: '7:00 pm', closed: false },
+      wednesday: { open: '9:30 am', close: '7:00 pm', closed: false },
+      thursday: { open: '9:30 am', close: '7:00 pm', closed: false },
+      friday: { open: '9:30 am', close: '5:00 pm', closed: false },
+      saturday: { open: '', close: '', closed: true },
+      sunday: { open: '', close: '', closed: true }
+    }
   });
 
-  // Fetch contacts on component mount
+  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState('');
+
+  const daysOfWeek = [
+    { key: 'monday', label: 'Lunes' },
+    { key: 'tuesday', label: 'Martes' },
+    { key: 'wednesday', label: 'Miércoles' },
+    { key: 'thursday', label: 'Jueves' },
+    { key: 'friday', label: 'Viernes' },
+    { key: 'saturday', label: 'Sábado' },
+    { key: 'sunday', label: 'Domingo' }
+  ];
+
+  // Cargar información de contacto al montar el componente
   useEffect(() => {
-    fetchContacts();
+    fetchContactInfo();
   }, []);
 
-  const fetchContacts = async () => {
+  const fetchContactInfo = async () => {
     try {
-      const response = await fetch('/api/admin/contacts', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
+      setLoading(true);
+      const response = await fetch('/api/contact-info');
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setContactInfo(prev => ({
+            ...prev,
+            ...data.data,
+            store_hours: data.data.store_hours || prev.store_hours,
+            online_hours: data.data.online_hours || prev.online_hours
+          }));
         }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Error al obtener contactos');
       }
-      
-      const data = await response.json();
-      setContacts(data.contacts);
-    } catch (err) {
-      setError(err.message);
-      window.showToast('Error al cargar contactos: ' + err.message, 'error');
+    } catch (error) {
+      if (window.showToast) {
+        window.showToast('Error al cargar la información de contacto', 'error');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+  const handleInputChange = (field, value) => {
+    setContactInfo(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [field]: value
     }));
   };
 
-  const resetForm = () => {
-    setFormData({
-      type: '',
-      title: '',
-      value: '',
-      description: '',
-      icon: '',
-      is_active: true,
-      order: 0
-    });
-    setEditingContact(null);
-    setShowForm(false);
+  const handleHoursChange = (type, day, field, value) => {
+    setContactInfo(prev => ({
+      ...prev,
+      [type]: {
+        ...prev[type],
+        [day]: {
+          ...prev[type][day],
+          [field]: value
+        }
+      }
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+    setSubmitting(true);
+    if (window.showToast) {
+      window.showToast('', 'info');
+    }
     try {
-      const url = editingContact 
-        ? `/api/admin/contacts/${editingContact.id}`
-        : '/api/admin/contacts';
-      
-      const method = editingContact ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/admin/contact-info', {
+        method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(contactInfo)
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al guardar contacto');
-      }
-
-      const data = await response.json();
-      
-      if (editingContact) {
-        setContacts(contacts.map(contact => 
-          contact.id === editingContact.id ? data.contact : contact
-        ));
-        window.showToast('Contacto actualizado exitosamente', 'success');
+      if (response.ok) {
+        const data = await response.json();
+        if (window.showToast) {
+          window.showToast(data.message || 'Información de contacto actualizada correctamente', 'success');
+        }
       } else {
-        setContacts([...contacts, data.contact]);
-        window.showToast('Contacto creado exitosamente', 'success');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al actualizar la información');
       }
-      
-      resetForm();
-    } catch (err) {
-      window.showToast('Error: ' + err.message, 'error');
+    } catch (error) {
+      if (window.showToast) {
+        window.showToast('Error al actualizar la información de contacto: ' + error.message, 'error');
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleEdit = (contact) => {
-    setFormData({
-      type: contact.type,
-      title: contact.title,
-      value: contact.value,
-      description: contact.description || '',
-      icon: contact.icon || '',
-      is_active: contact.is_active,
-      order: contact.order
-    });
-    setEditingContact(contact);
-    setShowForm(true);
-  };
-
-  const handleDelete = async (contact) => {
-    const result = await Swal.fire({
-      title: '¿Estás seguro?',
-      text: `¿Deseas eliminar el contacto "${contact.title}"?`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar'
-    });
-
-    if (result.isConfirmed) {
-      try {
-        const response = await fetch(`/api/admin/contacts/${contact.id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error('Error al eliminar contacto');
-        }
-
-        setContacts(contacts.filter(c => c.id !== contact.id));
-        window.showToast('Contacto eliminado exitosamente', 'success');
-      } catch (err) {
-        window.showToast('Error al eliminar contacto: ' + err.message, 'error');
-      }
-    }
-  };
-
-  const handleToggleStatus = async (contact) => {
-    try {
-      const response = await fetch(`/api/admin/contacts/${contact.id}/toggle`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al cambiar estado');
-      }
-
-      const data = await response.json();
-      setContacts(contacts.map(c => 
-        c.id === contact.id ? data.contact : c
-      ));
-      
-      window.showToast(
-        `Contacto ${data.contact.is_active ? 'activado' : 'desactivado'} exitosamente`, 
-        'success'
-      );
-    } catch (err) {
-      window.showToast('Error al cambiar estado: ' + err.message, 'error');
-    }
-  };
-
-  const getTypeLabel = (type) => {
-    const types = {
-      'phone': 'Teléfono',
-      'email': 'Email',
-      'whatsapp': 'WhatsApp',
-      'address': 'Dirección',
-      'social': 'Red Social'
-    };
-    return types[type] || type;
-  };
+  const renderHoursSection = (type, title) => (
+    <div className="contact-hours-section">
+      <h4>{title}</h4>
+      <div className="hours-grid">
+        {daysOfWeek.map(day => (
+          <div key={day.key} className="hours-row">
+            <div className="day-label">{day.label}</div>
+            <div className="hours-inputs">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={!contactInfo[type][day.key].closed}
+                  onChange={(e) => handleHoursChange(type, day.key, 'closed', !e.target.checked)}
+                />
+                Abierto
+              </label>
+              {!contactInfo[type][day.key].closed && (
+                <>
+                  <input
+                    type="text"
+                    placeholder="9:30 am"
+                    value={contactInfo[type][day.key].open}
+                    onChange={(e) => handleHoursChange(type, day.key, 'open', e.target.value)}
+                    className="time-input"
+                  />
+                  <span>a</span>
+                  <input
+                    type="text"
+                    placeholder="7:00 pm"
+                    value={contactInfo[type][day.key].close}
+                    onChange={(e) => handleHoursChange(type, day.key, 'close', e.target.value)}
+                    className="time-input"
+                  />
+                </>
+              )}
+              {contactInfo[type][day.key].closed && (
+                <span className="closed-label">Cerrado</span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   if (loading) {
     return (
       <div className="admin-contact-manager">
-        <div className="loading">Cargando contactos...</div>
+        <div className="loading">Cargando información de contacto...</div>
       </div>
     );
   }
 
   return (
     <div className="admin-contact-manager">
-      <div className="admin-contact-manager__header">
-        <h2 className="section-title">Gestión de Contactos</h2>
-        <CherryButton 
-          onClick={() => setShowForm(true)} 
-          variant="red" 
-          size="medium"
-        >
-          Agregar Contacto
-        </CherryButton>
+      <div className="admin-contact-header">
+        <h2>Gestionar Información de Contacto</h2>
+        <p>Actualiza la información de contacto que se muestra en la página de contacto</p>
       </div>
 
-      {showForm && (
-        <div className="admin-contact-manager__form-container">
-          <h3>{editingContact ? 'Editar Contacto' : 'Nuevo Contacto'}</h3>
-          <form onSubmit={handleSubmit} className="admin-contact-manager__form">
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="type">Tipo *</label>
-                <select
-                  id="type"
-                  name="type"
-                  value={formData.type}
-                  onChange={handleInputChange}
-                  required
-                  className="form-select"
-                >
-                  <option value="">Seleccionar tipo</option>
-                  <option value="phone">Teléfono</option>
-                  <option value="email">Email</option>
-                  <option value="whatsapp">WhatsApp</option>
-                  <option value="address">Dirección</option>
-                  <option value="social">Red Social</option>
-                </select>
+      {message && (
+        <div className={`message ${message.includes('Error') ? 'error' : 'success'}`}>
+          {message}
               </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="contact-form">
+        <div className="form-section">
+          <h3>Información Básica</h3>
 
               <div className="form-group">
-                <label htmlFor="title">Título *</label>
+            <label>Dirección - Calle:</label>
                 <input
                   type="text"
-                  id="title"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  required
-                  className="form-input"
-                  placeholder="Ej: Teléfono Principal"
-                />
-              </div>
+              value={contactInfo.address_street}
+              onChange={(e) => handleInputChange('address_street', e.target.value)}
+              placeholder="José María Izazaga 127 piso 2 Col."
+            />
             </div>
 
             <div className="form-group">
-              <label htmlFor="value">Valor *</label>
+            <label>Dirección - Ciudad:</label>
               <input
                 type="text"
-                id="value"
-                name="value"
-                value={formData.value}
-                onChange={handleInputChange}
-                required
-                className="form-input"
-                placeholder="Ej: +52 (55) 1234-5678"
+              value={contactInfo.address_city}
+              onChange={(e) => handleInputChange('address_city', e.target.value)}
+              placeholder="Centros México D.F. C.P. 06080"
               />
             </div>
 
             <div className="form-group">
-              <label htmlFor="description">Descripción</label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                className="form-textarea"
-                placeholder="Ej: Lun - Vie: 9:00 AM - 6:00 PM"
-                rows="3"
+            <label>Teléfono:</label>
+            <input
+              type="text"
+              value={contactInfo.phone}
+              onChange={(e) => handleInputChange('phone', e.target.value)}
+              placeholder="55-5542-4442"
               />
             </div>
 
-            <div className="form-row">
               <div className="form-group">
-                <label htmlFor="icon">Icono</label>
+            <label>Email:</label>
                 <input
-                  type="text"
-                  id="icon"
-                  name="icon"
-                  value={formData.icon}
-                  onChange={handleInputChange}
-                  className="form-input"
-                  placeholder="Ej: Phone.svg"
+              type="email"
+              value={contactInfo.email}
+              onChange={(e) => handleInputChange('email', e.target.value)}
+              placeholder="cherryonline@cherry.com.mx"
                 />
               </div>
 
               <div className="form-group">
-                <label htmlFor="order">Orden</label>
-                <input
-                  type="number"
-                  id="order"
-                  name="order"
-                  value={formData.order}
-                  onChange={handleInputChange}
-                  className="form-input"
-                  min="0"
+            <label>URL del Mapa (Google Maps Embed):</label>
+            <textarea
+              value={contactInfo.map_url}
+              onChange={(e) => handleInputChange('map_url', e.target.value)}
+              placeholder="URL del mapa de Google Maps"
+              rows="3"
                 />
               </div>
             </div>
 
-            <div className="form-group checkbox-group">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  name="is_active"
-                  checked={formData.is_active}
-                  onChange={handleInputChange}
-                  className="form-checkbox"
-                />
-                <span>Activo</span>
-              </label>
+        <div className="form-section">
+          <h3>Horarios de Atención</h3>
+          
+          {renderHoursSection('store_hours', 'Horario de Atención en Tienda')}
+          {renderHoursSection('online_hours', 'Horario de Atención en Línea')}
             </div>
 
             <div className="form-actions">
-              <CherryButton type="submit" variant="red" size="medium">
-                {editingContact ? 'Actualizar' : 'Crear'} Contacto
-              </CherryButton>
-              <CherryButton 
-                type="button" 
-                variant="outline" 
-                size="medium"
-                onClick={resetForm}
-              >
-                Cancelar
-              </CherryButton>
-            </div>
-          </form>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="submit-btn"
+          >
+            {submitting ? 'Guardando...' : 'Guardar Cambios'}
+          </button>
         </div>
-      )}
+      </form>
 
-      <div className="admin-contact-manager__list">
-        {contacts.length === 0 ? (
-          <div className="empty-state">
-            <p>No hay contactos registrados</p>
-          </div>
-        ) : (
-          contacts.map(contact => (
-            <div key={contact.id} className={`contact-item ${!contact.is_active ? 'inactive' : ''}`}>
-              <div className="contact-info">
-                <div className="contact-header">
-                  <h4>{contact.title}</h4>
-                  <span className={`status-badge ${contact.is_active ? 'active' : 'inactive'}`}>
-                    {contact.is_active ? 'Activo' : 'Inactivo'}
-                  </span>
-                </div>
-                <div className="contact-details">
-                  <p><strong>Tipo:</strong> {getTypeLabel(contact.type)}</p>
-                  <p><strong>Valor:</strong> {contact.value}</p>
-                  {contact.description && (
-                    <p><strong>Descripción:</strong> {contact.description}</p>
-                  )}
-                  {contact.icon && (
-                    <p><strong>Icono:</strong> {contact.icon}</p>
-                  )}
-                  <p><strong>Orden:</strong> {contact.order}</p>
-                </div>
+      <div className="preview-section">
+        <h3>Vista Previa</h3>
+        <div className="contact-preview">
+          <div className="preview-info">
+            <h4>Información de Contacto</h4>
+            <p><strong>Dirección:</strong> {contactInfo.address_street}</p>
+            <p><strong>Ciudad:</strong> {contactInfo.address_city}</p>
+            <p><strong>Teléfono:</strong> {contactInfo.phone}</p>
+            <p><strong>Email:</strong> {contactInfo.email}</p>
               </div>
               
-              <div className="contact-actions">
-                <CherryButton 
-                  onClick={() => handleEdit(contact)} 
-                  variant="outline" 
-                  size="small"
-                >
-                  Editar
-                </CherryButton>
-                <CherryButton 
-                  onClick={() => handleToggleStatus(contact)} 
-                  variant={contact.is_active ? "outline" : "red"} 
-                  size="small"
-                >
-                  {contact.is_active ? 'Desactivar' : 'Activar'}
-                </CherryButton>
-                <CherryButton 
-                  onClick={() => handleDelete(contact)} 
-                  variant="red" 
-                  size="small"
-                >
-                  Eliminar
-                </CherryButton>
+          <div className="preview-hours">
+            <h4>Horarios de Tienda</h4>
+            {daysOfWeek.map(day => (
+              <p key={day.key}>
+                <strong>{day.label}:</strong> {
+                  contactInfo.store_hours[day.key].closed 
+                    ? 'Cerrado' 
+                    : `${contactInfo.store_hours[day.key].open} - ${contactInfo.store_hours[day.key].close}`
+                }
+              </p>
+            ))}
               </div>
             </div>
-          ))
-        )}
       </div>
     </div>
   );

@@ -72,19 +72,27 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
       });
     } else {
       // Fallback to clipboard copy
-      navigator.clipboard.writeText(productUrl).then(() => {
-        // You could add a toast notification here
-        alert('Enlace copiado al portapapeles');
-      }).catch(() => {
-        // Fallback for older browsers
-        const textArea = document.createElement('textarea');
-        textArea.value = productUrl;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        alert('Enlace copiado al portapapeles');
-      });
+      copyToClipboard(productUrl);
+    }
+  };
+
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      if (window.showToast) {
+        window.showToast('Enlace copiado al portapapeles', 'success');
+      }
+    } catch (err) {
+      // Fallback para navegadores que no soportan clipboard API
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      if (window.showToast) {
+        window.showToast('Enlace copiado al portapapeles', 'success');
+      }
     }
   };
 

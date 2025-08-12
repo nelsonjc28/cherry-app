@@ -20,7 +20,6 @@ const CategoriasPage = () => {
         const categoriesData = await getCategoriesCached();
         setCategories(categoriesData || []);
       } catch (error) {
-        console.error('Error loading categories:', error);
         setCategories([]);
       } finally {
         setLocalLoading(false);

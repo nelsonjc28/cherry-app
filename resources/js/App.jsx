@@ -11,15 +11,23 @@ import HomePage from './pages/HomePage';
 import CatalogPage from './pages/CatalogPage';
 import CatalogosPage from './pages/CatalogosPage';
 import CatalogCollectionsPage from './pages/CatalogCollectionsPage';
+import CatalogPdfPage from './pages/CatalogPdfPage';
 import ProductPage from './pages/ProductPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
+import ProfileLayout from './pages/profile/ProfileLayout';
+import PersonalData from './pages/profile/PersonalData';
+import MyOrders from './pages/profile/MyOrders';
+import Favorites from './pages/profile/Favorites';
+import Addresses from './pages/profile/Addresses';
+import PaymentMethods from './pages/profile/PaymentMethods';
+import PrivacySecurity from './pages/profile/PrivacySecurity';
 import CartDetailsPage from './pages/CartDetailsPage';
 import CheckoutSuccessPage from './pages/CheckoutSuccessPage';
 import CarritoPage from './pages/CarritoPage';
 import BuscarPage from './pages/BuscarPage';
 import CategoriasPage from './pages/CategoriasPage';
-import ContactoPage from './pages/ContactoPage';
+import ContactPage from './pages/ContactPage';
 import AfiliatePage from './pages/AfiliatePage';
 import TerminosPage from './pages/TerminosPage';
 import PrivacidadPage from './pages/PrivacidadPage';
@@ -50,22 +58,35 @@ function App() {
           <ExternalApiProvider>
             <AuthInitializer>
               <SmartRedirect>
-                <div className="App">
+                <div className="App app-container">
                   <Header />
                   <main>
                     <Routes>
                       <Route path="/" element={<HomePage />} />
                       <Route path="/catalogo" element={<CatalogPage />} />
                       <Route path="/catalogos" element={<CatalogCollectionsPage />} />
+                      <Route path="/catalogo-pdf" element={<CatalogPdfPage />} />
                       <Route path="/producto/:productId" element={<ProductPage />} />
                       <Route path="/login" element={<LoginPage />} />
                       <Route path="/registro" element={<RegisterPage />} />
+                      
+                      {/* Profile Routes */}
+                      <Route path="/perfil" element={<ProfileLayout />}>
+                        <Route index element={<PersonalData />} />
+                        <Route path="datos-personales" element={<PersonalData />} />
+                        <Route path="mis-pedidos" element={<MyOrders />} />
+                        <Route path="favoritos" element={<Favorites />} />
+                        <Route path="direcciones" element={<Addresses />} />
+                        <Route path="metodos-pago" element={<PaymentMethods />} />
+                        <Route path="privacidad-seguridad" element={<PrivacySecurity />} />
+                      </Route>
+                      
                       <Route path="/carrito-detalle" element={<CartDetailsPage />} />
                       <Route path="/compra-exitosa" element={<CheckoutSuccessPage />} />
                       <Route path="/carrito" element={<CarritoPage />} />
                       <Route path="/buscar" element={<BuscarPage />} />
                       <Route path="/categorias" element={<CategoriasPage />} />
-                      <Route path="/contacto" element={<ContactoPage />} />
+                      <Route path="/contacto" element={<ContactPage />} />
                       <Route path="/afiliate" element={<AfiliatePage />} />
                       <Route path="/terminos" element={<TerminosPage />} />
                       <Route path="/privacidad" element={<PrivacidadPage />} />
@@ -85,6 +106,7 @@ function App() {
                       } />
                     </Routes>
                   </main>
+                  <Footer />
                   <CustomToastContainer />
                 </div>
               </SmartRedirect>

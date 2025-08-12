@@ -11,12 +11,22 @@ use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\WelcomeSectionController;
 use App\Http\Controllers\Api\AdminWelcomeSectionController;
+use App\Http\Controllers\Api\ContactInfoController;
+use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\PrivacyPolicyController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api');
 Route::get('/me', [AuthController::class, 'me'])->middleware('auth:api');
 Route::get('/debug', [AuthController::class, 'debug'])->middleware('auth:api');
+
+// Profile routes - require authentication
+Route::middleware(['auth:api'])->group(function () {
+    Route::put('/profile/update', [ProfileController::class, 'update']);
+    
+
+});
 
 // Admin routes - require authentication and admin role
 Route::middleware(['auth:api'])->group(function () {
@@ -80,6 +90,26 @@ Route::get('/categories/{slug}', [CategoryController::class, 'show']);
 // Public welcome sections routes (no authentication required)
 Route::get('/welcome-sections/active', [WelcomeSectionController::class, 'getActiveSection']);
 Route::get('/welcome-sections', [WelcomeSectionController::class, 'getActiveSections']);
+
+// Public contact info routes (no authentication required)
+Route::get('/contact-info', [ContactInfoController::class, 'show']);
+
+// Public privacy policy routes (no authentication required)
+Route::get('/privacy-policy', [PrivacyPolicyController::class, 'show']);
+
+
+
+// Admin contact info routes - require authentication and admin role
+Route::middleware(['auth:api', 'admin'])->group(function () {
+    Route::put('/admin/contact-info', [ContactInfoController::class, 'update']);
+    
+    // Admin privacy policy routes
+    Route::get('/admin/privacy-policies', [PrivacyPolicyController::class, 'index']);
+    Route::post('/admin/privacy-policies', [PrivacyPolicyController::class, 'store']);
+    Route::put('/admin/privacy-policies/{id}', [PrivacyPolicyController::class, 'update']);
+    Route::delete('/admin/privacy-policies/{id}', [PrivacyPolicyController::class, 'destroy']);
+    Route::patch('/admin/privacy-policies/{id}/activate', [PrivacyPolicyController::class, 'activate']);
+});
 
 // Public home categories route (no authentication required)
 Route::get('/home-categories', [AdminOrderedCategoryController::class, 'getHomeCategories']); 

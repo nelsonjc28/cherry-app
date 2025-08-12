@@ -21,13 +21,67 @@
 }
 
 .favorite-button.favorited {
-  color: #ff4757;
+  color: #ff4757 !important;
   animation: heartBeat 0.3s ease-in-out;
 }
 
 .favorite-button.favorited:hover {
-  color: #ff3742;
+  color: #ff3742 !important;
   transform: scale(1.1);
+}
+
+/* Asegurar que el SVG del corazón favorito sea rojo */
+.favorite-button.favorited svg {
+  color: #ff4757 !important;
+  fill: #ff4757 !important;
+}
+
+.favorite-button.favorited:hover svg {
+  color: #ff3742 !important;
+  fill: #ff3742 !important;
+}
+
+/* Estilos más específicos para asegurar que se apliquen */
+.favorite-button.favorited .favorite-button__icon {
+  color: #ff4757 !important;
+}
+
+.favorite-button.favorited svg path {
+  fill: #ff4757 !important;
+}
+
+.favorite-button.favorited:hover svg path {
+  fill: #ff3742 !important;
+}
+
+/* CSS Custom Properties para colores */
+:root {
+  --favorite-color: #ff4757;
+  --favorite-hover-color: #ff3742;
+}
+
+/* Estilos con mayor especificidad */
+.favorite-button.favorited,
+.favorite-button.favorited svg,
+.favorite-button.favorited svg path {
+  color: var(--favorite-color) !important;
+  fill: var(--favorite-color) !important;
+}
+
+.favorite-button.favorited:hover,
+.favorite-button.favorited:hover svg,
+.favorite-button.favorited:hover svg path {
+  color: var(--favorite-hover-color) !important;
+  fill: var(--favorite-hover-color) !important;
+}
+
+/* Override para cualquier otro estilo que pueda estar interfiriendo */
+.favorite-button.favorited * {
+  color: var(--favorite-color) !important;
+}
+
+.favorite-button.favorited svg * {
+  fill: var(--favorite-color) !important;
 }
 
 .favorite-button.loading {

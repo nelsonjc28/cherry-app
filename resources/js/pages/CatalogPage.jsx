@@ -169,9 +169,7 @@ const CatalogPage = () => {
         setAllProducts(validProducts);
         setFilteredProducts(validProducts);
       } catch (error) {
-        console.error('Error loading products:', error);
         setAllProducts([]);
-        setFilteredProducts([]);
       } finally {
         setLoading(false);
       }
@@ -268,19 +266,27 @@ const CatalogPage = () => {
       });
     } else {
       // Fallback to clipboard copy
-      navigator.clipboard.writeText(catalogUrl).then(() => {
-        // You could add a toast notification here
-        alert('Enlace del catálogo copiado al portapapeles');
-      }).catch(() => {
-        // Fallback for older browsers
-        const textArea = document.createElement('textarea');
-        textArea.value = catalogUrl;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        alert('Enlace del catálogo copiado al portapapeles');
-      });
+      copyToClipboard(catalogUrl);
+    }
+  };
+
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      if (window.showToast) {
+        window.showToast('Enlace del catálogo copiado al portapapeles', 'success');
+      }
+    } catch (err) {
+      // Fallback para navegadores que no soportan clipboard API
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      if (window.showToast) {
+        window.showToast('Enlace del catálogo copiado al portapapeles', 'success');
+      }
     }
   };
 
@@ -338,8 +344,8 @@ const CatalogPage = () => {
                   <option value="más recientes">más recientes</option>
                   <option value="precio-menor">Precio: menor a mayor</option>
                   <option value="precio-mayor">Precio: mayor a menor</option>
-                  <option value="nombre-az">Nombre: A-Z</option>
-                  <option value="nombre-za">Nombre: Z-A</option>
+                  <option value="nombre-a-z">Nombre: A-Z</option>
+                  <option value="nombre-z-a">Nombre: Z-A</option>
                 </select>
               </div>
             </div>
@@ -369,8 +375,8 @@ const CatalogPage = () => {
                   <option value="más recientes">más recientes</option>
                   <option value="precio-menor">Precio: menor a mayor</option>
                   <option value="precio-mayor">Precio: mayor a menor</option>
-                  <option value="nombre-az">Nombre: A-Z</option>
-                  <option value="nombre-za">Nombre: Z-A</option>
+                  <option value="nombre-a-z">Nombre: A-Z</option>
+                  <option value="nombre-z-a">Nombre: Z-A</option>
                 </select>
               </div>
               <CustomButton

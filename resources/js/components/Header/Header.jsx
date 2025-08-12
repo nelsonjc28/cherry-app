@@ -381,31 +381,27 @@ const Header = () => {
                       Dashboard
                     </Link>
                     <div className="user-dropdown-divider"></div>
-                    {/* <Link to="/perfil" className="user-dropdown-item">
+                    <Link to="/perfil" className="user-dropdown-item">
                       <img src={getIconPath('User.svg')} alt="Perfil" />
                       Mi Perfil
                     </Link>
-                    <Link to="/ordenes" className="user-dropdown-item">
+                    <Link to="/perfil/mis-pedidos" className="user-dropdown-item">
                       <img src={getIconPath('Package.svg')} alt="Órdenes" />
                       Mis Órdenes
                     </Link>
-                    <Link to="/direcciones" className="user-dropdown-item">
+                    <Link to="/perfil/favoritos" className="user-dropdown-item">
+                      <img src={getIconPath('Heart.svg')} alt="Favoritos" />
+                      Mis Favoritos
+                    </Link>
+                    <Link to="/perfil/direcciones" className="user-dropdown-item">
                       <img src={getIconPath('Map Pin.svg')} alt="Direcciones" />
                       Mis Direcciones
                     </Link>
-                    <Link to="/metodos-pago" className="user-dropdown-item">
+                    <Link to="/perfil/metodos-pago" className="user-dropdown-item">
                       <img src={getIconPath('Credit Card.svg')} alt="Métodos de Pago" />
                       Métodos de Pago
                     </Link>
-                    <Link to="/notificaciones" className="user-dropdown-item">
-                      <img src={getIconPath('Bell.svg')} alt="Notificaciones" />
-                      Notificaciones
-                    </Link>
-                    <Link to="/carrito" className="user-dropdown-item">
-                      <img src={getIconPath('Shopping Cart.svg')} alt="Carrito" />
-                      Mi Carrito
-                    </Link>
-                    <div className="user-dropdown-divider"></div> */}
+                    <div className="user-dropdown-divider"></div>
                     <button className="user-dropdown-item logout-item" onClick={logout}>
                       <img src={getIconPath('Log Out.svg')} alt="Cerrar Sesión" />
                       Cerrar Sesión

@@ -68,7 +68,9 @@ const ProductPage = () => {
           fetchUserRating();
         }
       } catch (err) {
-        setError(err.message);
+        if (window.showToast) {
+          window.showToast('Error al cargar el producto', 'error');
+        }
       } finally {
         setIsLoading(false);
       }

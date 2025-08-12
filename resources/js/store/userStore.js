@@ -73,7 +73,6 @@ const useUserStore = create((set, get) => ({
       
       return data.user;
     } catch (err) {
-      console.error('Login error:', err);
       set({ error: 'Error de red o del servidor.', loading: false });
       return null;
     }
@@ -170,7 +169,6 @@ const useUserStore = create((set, get) => ({
       set({ user, loading: false, initialized: true });
       return user;
     } catch (err) {
-      console.error('Fetch user error:', err);
       set({ user: null, error: err.message, loading: false, initialized: true });
       setToken(null);
       return null;
@@ -183,6 +181,11 @@ const useUserStore = create((set, get) => ({
     cartStore.clearCart();
     setToken(null);
     set({ user: null, token: null, loading: false, error: null });
+  },
+  
+  // Función para actualizar el perfil del usuario
+  updateProfile: (updatedUser) => {
+    set({ user: updatedUser });
   },
 }));
 

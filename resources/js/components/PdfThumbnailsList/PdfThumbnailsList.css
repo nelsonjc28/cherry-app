@@ -1,0 +1,72 @@
+.pdf-thumbnails-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 600px;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.pdf-thumbnail {
+  position: relative;
+  cursor: pointer;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.pdf-thumbnail:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.pdf-thumbnail.selected {
+  border-color: #EA2630;
+  box-shadow: 0 0 0 2px rgba(234, 38, 48, 0.2);
+}
+
+.pdf-thumbnail-image {
+  width: 100%;
+  height: 80px;
+  object-fit: cover;
+  display: block;
+}
+
+.pdf-thumbnail-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+  padding: 8px;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.pdf-thumbnail-title {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .pdf-thumbnails-list {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 8px 0;
+  }
+  
+  .pdf-thumbnail {
+    min-width: 120px;
+    flex-shrink: 0;
+  }
+  
+  .pdf-thumbnail-image {
+    height: 60px;
+  }
+} 

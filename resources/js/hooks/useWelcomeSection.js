@@ -14,9 +14,7 @@ const useWelcomeSection = () => {
         setWelcomeSection(response.data.section);
         setError(null);
       } catch (err) {
-        console.error('Error fetching welcome section:', err);
-        setError(err.message);
-        setWelcomeSection(null);
+        setError('Error al cargar la sección de bienvenida');
       } finally {
         setLoading(false);
       }

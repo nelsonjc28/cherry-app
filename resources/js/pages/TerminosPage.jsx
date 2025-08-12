@@ -1,8 +1,94 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { useNavigate } from 'react-router-dom';
 import './TerminosPage.css';
+import apiClient from '../api/config/apiConfig';
 
 const TerminosPage = () => {
+  const navigate = useNavigate();
+  const [termsContent, setTermsContent] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [showAcceptance, setShowAcceptance] = useState(false);
+
+  useEffect(() => {
+    loadTermsAndConditions();
+  }, []);
+
+  const loadTermsAndConditions = async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.get('/api/terms-conditions');
+      setTermsContent(response.data.data.content);
+      setShowAcceptance(true);
+    } catch (error) {
+      setError('No se pudieron cargar los términos y condiciones');
+      // Contenido por defecto en caso de error
+      setTermsContent(`
+        <h2>1. Aceptación de los Términos</h2>
+        <p>Al acceder y utilizar este sitio web, usted acepta estar sujeto a estos términos y condiciones de uso. Si no está de acuerdo con alguna parte de estos términos, no debe utilizar nuestro servicio.</p>
+        
+        <h2>2. Descripción del Servicio</h2>
+        <p>Cherry Central es una plataforma de comercio electrónico que ofrece productos de moda femenina. Nuestro servicio incluye la visualización de catálogos, información de productos y facilitación de transacciones comerciales.</p>
+        
+        <h2>3. Uso Aceptable</h2>
+        <p>Usted se compromete a utilizar este sitio web únicamente para fines legales y de acuerdo con estos términos y condiciones.</p>
+      `);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAcceptTerms = async () => {
+    try {
+      await apiClient.post('/api/user/terms/accept');
+      if (window.showToast) {
+        window.showToast('Términos y condiciones aceptados correctamente', 'success');
+      }
+      // Redirigir al perfil
+      navigate('/perfil');
+    } catch (error) {
+      if (window.showToast) {
+        window.showToast('Error al aceptar los términos y condiciones', 'error');
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="terminos-page">
+        <div className="container">
+          <div className="terminos-content">
+            <h1>Términos y Condiciones</h1>
+            <p className="terminos-date">Última actualización: Enero 2025</p>
+            <div className="terminos-loading">
+              <p>Cargando términos y condiciones...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="terminos-page">
+        <div className="container">
+          <div className="terminos-content">
+            <h1>Términos y Condiciones</h1>
+            <p className="terminos-date">Última actualización: Enero 2025</p>
+            <div className="terminos-error">
+              <p>{error}</p>
+              <button onClick={loadTermsAndConditions} className="terminos-retry-btn">
+                Reintentar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <Helmet>
@@ -16,104 +102,25 @@ const TerminosPage = () => {
             <h1>Términos y Condiciones</h1>
             <p className="terminos-date">Última actualización: Enero 2025</p>
 
-            <section className="terminos-section">
-              <h2>1. Aceptación de los Términos</h2>
-              <p>
-                Al acceder y utilizar este sitio web, usted acepta estar sujeto a estos términos y condiciones de uso. 
-                Si no está de acuerdo con alguna parte de estos términos, no debe utilizar nuestro servicio.
-              </p>
-            </section>
+            <div 
+              className="terminos-content-html"
+              dangerouslySetInnerHTML={{ __html: termsContent }}
+            />
 
-            <section className="terminos-section">
-              <h2>2. Descripción del Servicio</h2>
-              <p>
-                Cherry Central es una plataforma de comercio electrónico que ofrece productos de moda femenina. 
-                Nuestro servicio incluye la visualización de catálogos, información de productos y facilitación 
-                de transacciones comerciales.
-              </p>
-            </section>
-
-            <section className="terminos-section">
-              <h2>3. Uso del Sitio</h2>
-              <p>Usted se compromete a:</p>
-              <ul>
-                <li>Utilizar el sitio solo para fines legales y apropiados</li>
-                <li>No intentar acceder a áreas restringidas del sitio</li>
-                <li>No interferir con el funcionamiento del sitio</li>
-                <li>No transmitir virus o código malicioso</li>
-                <li>Respetar los derechos de propiedad intelectual</li>
-              </ul>
-            </section>
-
-            <section className="terminos-section">
-              <h2>4. Información del Usuario</h2>
-              <p>
-                Al registrarse en nuestro sitio, usted proporciona información personal que será tratada 
-                de acuerdo con nuestra Política de Privacidad. Usted es responsable de mantener la 
-                confidencialidad de su cuenta y contraseña.
-              </p>
-            </section>
-
-            <section className="terminos-section">
-              <h2>5. Productos y Precios</h2>
-              <p>
-                Los precios mostrados están sujetos a cambios sin previo aviso. Nos esforzamos por 
-                mantener la información de productos actualizada, pero no garantizamos la disponibilidad 
-                de todos los productos mostrados.
-              </p>
-            </section>
-
-            <section className="terminos-section">
-              <h2>6. Propiedad Intelectual</h2>
-              <p>
-                Todo el contenido de este sitio web, incluyendo textos, imágenes, logos y diseño, 
-                está protegido por derechos de autor y otras leyes de propiedad intelectual. 
-                No está permitida la reproducción sin autorización previa.
-              </p>
-            </section>
-
-            <section className="terminos-section">
-              <h2>7. Limitación de Responsabilidad</h2>
-              <p>
-                Cherry Central no será responsable por daños indirectos, incidentales o consecuentes 
-                que puedan resultar del uso de nuestro servicio.
-              </p>
-            </section>
-
-            <section className="terminos-section">
-              <h2>8. Modificaciones</h2>
-              <p>
-                Nos reservamos el derecho de modificar estos términos en cualquier momento. 
-                Los cambios entrarán en vigor inmediatamente después de su publicación en el sitio.
-              </p>
-            </section>
-
-            <section className="terminos-section">
-              <h2>9. Ley Aplicable</h2>
-              <p>
-                Estos términos se rigen por las leyes de México. Cualquier disputa será resuelta 
-                en los tribunales competentes de la Ciudad de México.
-              </p>
-            </section>
-
-            <section className="terminos-section">
-              <h2>10. Contacto</h2>
-              <p>
-                Si tiene preguntas sobre estos términos, puede contactarnos a través de:
-              </p>
-              <ul>
-                <li>Email: legal@cherrycentral.com</li>
-                <li>Teléfono: +52 (55) 1234-5678</li>
-                <li>Dirección: Ciudad de México, México</li>
-              </ul>
-            </section>
-
-            <div className="terminos-footer">
-              <p>
-                Al continuar utilizando nuestro sitio, usted confirma que ha leído, 
-                entendido y aceptado estos términos y condiciones.
-              </p>
-            </div>
+            {showAcceptance && (
+              <div className="terminos-acceptance">
+                <button 
+                  className="terminos-accept-btn"
+                  onClick={handleAcceptTerms}
+                >
+                  Acepto los Términos y Condiciones
+                </button>
+                <p className="terminos-acceptance-note">
+                  Al hacer clic en "Acepto los Términos y Condiciones", confirma que ha leído, 
+                  entendido y acepta cumplir con todos los términos y condiciones establecidos.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </main>

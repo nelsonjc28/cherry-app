@@ -10,7 +10,7 @@ use Illuminate\Http\JsonResponse;
 class FavoriteController extends Controller
 {
     /**
-     * Obtener favoritos del usuario
+     * Obtener favoritos del usuario con paginación
      */
     public function index(Request $request): JsonResponse
     {
@@ -20,11 +20,27 @@ class FavoriteController extends Controller
                 return response()->json(['error' => 'No autenticado'], 401);
             }
 
-            $favorites = Favorite::getUserFavorites($user->id);
+            // Obtener parámetros de paginación
+            $perPage = $request->get('per_page', 6);
+            $page = $request->get('page', 1);
+
+            // Obtener favoritos paginados
+            $favorites = Favorite::where('user_id', $user->id)
+                ->select(['id', 'product_id', 'product_title', 'product_image', 'product_price', 'created_at'])
+                ->orderBy('created_at', 'desc')
+                ->paginate($perPage, ['*'], 'page', $page);
 
             return response()->json([
                 'success' => true,
-                'favorites' => $favorites
+                'favorites' => $favorites->items(),
+                'pagination' => [
+                    'current_page' => $favorites->currentPage(),
+                    'last_page' => $favorites->lastPage(),
+                    'per_page' => $favorites->perPage(),
+                    'total' => $favorites->total(),
+                    'from' => $favorites->firstItem(),
+                    'to' => $favorites->lastItem()
+                ]
             ]);
         } catch (\Exception $e) {
             return response()->json([

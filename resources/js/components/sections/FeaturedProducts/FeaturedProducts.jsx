@@ -17,25 +17,66 @@ const FeaturedProducts = ({
   const [apiProducts, setApiProducts] = useState([]);
   const [localLoading, setLocalLoading] = useState(false);
 
+  // Función para obtener calificaciones de productos desde la BD
+  const fetchProductRatings = async (productIds) => {
+    try {
+      const ratingsPromises = productIds.map(async (productId) => {
+        try {
+          const response = await fetch(`/api/ratings/product?product_id=${productId}`);
+          if (response.ok) {
+            const data = await response.json();
+            return {
+              productId,
+              rating: data.average_rating || 0
+            };
+          }
+          return { productId, rating: 0 };
+        } catch (error) {
+          return { productId, rating: 0 };
+        }
+      });
+
+      const ratings = await Promise.all(ratingsPromises);
+      const ratingsMap = {};
+      ratings.forEach(({ productId, rating }) => {
+        ratingsMap[productId] = rating;
+      });
+      
+      return ratingsMap;
+    } catch (error) {
+      return {};
+    }
+  };
+
   // Cargar productos desde la API si useApi es true
   useEffect(() => {
     const loadRandomProducts = async () => {
       try {
         setLocalLoading(true);
         
-        const productsData = await getRandomProductsCached(6);
+        const productsData = await getRandomProductsCached(4); // Cambio de 6 a 4 productos
         
         if (productsData && productsData.length > 0) {
-          setApiProducts(productsData);
+          // Obtener calificaciones de la BD para los productos de la API externa
+          const productIds = productsData.map(product => product.id);
+          const ratings = await fetchProductRatings(productIds);
+          
+          // Actualizar productos con las calificaciones reales
+          const productsWithRatings = productsData.map(product => ({
+            ...product,
+            rating: ratings[product.id] || 0 // Si no hay calificación, usar 0 (estrellas vacías)
+          }));
+          
+          setApiProducts(productsWithRatings.slice(0, 4)); // Asegurar solo 4 productos
         } else {
-          // Datos de prueba temporales mientras diagnosticamos la API
+          // Datos de prueba temporales - solo 4 productos
           const testProducts = [
             {
               id: 'TEST001',
               title: 'Vestido Elegante Cherry',
               image: 'https://cherry-fotos.s3.amazonaws.com/shopify/TEST001/TEST001_1.jpg',
               price: 129.00,
-              rating: 5,
+              rating: 0, // Se actualizará con la BD
               description: 'Vestido elegante perfecto para ocasiones especiales',
               brand: 'Cherry',
               category: 'Vestidos',
@@ -50,7 +91,7 @@ const FeaturedProducts = ({
               title: 'Blusa Moderna Cherry',
               image: 'https://cherry-fotos.s3.amazonaws.com/shopify/TEST002/TEST002_1.jpg',
               price: 89.99,
-              rating: 4,
+              rating: 0, // Se actualizará con la BD
               description: 'Blusa moderna para el día a día',
               brand: 'Cherry',
               category: 'Blusas',
@@ -65,7 +106,7 @@ const FeaturedProducts = ({
               title: 'Pantalón Elegante Cherry',
               image: 'https://cherry-fotos.s3.amazonaws.com/shopify/TEST003/TEST003_1.jpg',
               price: 149.00,
-              rating: 5,
+              rating: 0, // Se actualizará con la BD
               description: 'Pantalón que resalta tu figura',
               brand: 'Cherry',
               category: 'Pantalones',
@@ -80,7 +121,7 @@ const FeaturedProducts = ({
               title: 'Accesorio Único Cherry',
               image: 'https://cherry-fotos.s3.amazonaws.com/shopify/TEST004/TEST004_1.jpg',
               price: 59.99,
-              rating: 4,
+              rating: 0, // Se actualizará con la BD
               description: 'Accesorio único para completar tu outfit',
               brand: 'Cherry',
               category: 'Accesorios',
@@ -89,42 +130,22 @@ const FeaturedProducts = ({
               isActive: true,
               isNew: false,
               isPromo: true
-            },
-            {
-              id: 'TEST005',
-              title: 'Suéter Elegante Cherry',
-              image: 'https://cherry-fotos.s3.amazonaws.com/shopify/TEST005/TEST005_1.jpg',
-              price: 99.00,
-              rating: 5,
-              description: 'Suéter elegante para el invierno',
-              brand: 'Cherry',
-              category: 'Suéteres',
-              colors: ['Gris', 'Negro'],
-              stock: 12,
-              isActive: true,
-              isNew: true,
-              isPromo: false
-            },
-            {
-              id: 'TEST006',
-              title: 'Falda Elegante Cherry',
-              image: 'https://cherry-fotos.s3.amazonaws.com/shopify/TEST006/TEST006_1.jpg',
-              price: 79.99,
-              rating: 4,
-              description: 'Falda elegante para el día a día',
-              brand: 'Cherry',
-              category: 'Faldas',
-              colors: ['Negro', 'Azul'],
-              stock: 18,
-              isActive: true,
-              isNew: false,
-              isPromo: true
             }
           ];
-          setApiProducts(testProducts);
+          
+          // Obtener calificaciones de la BD para los productos de prueba también
+          const testProductIds = testProducts.map(product => product.id);
+          const testRatings = await fetchProductRatings(testProductIds);
+          
+          // Actualizar productos de prueba con las calificaciones reales
+          const testProductsWithRatings = testProducts.map(product => ({
+            ...product,
+            rating: testRatings[product.id] || 0 // Si no hay calificación, usar 0 (estrellas vacías)
+          }));
+          
+          setApiProducts(testProductsWithRatings);
         }
       } catch (error) {
-        console.error('❌ FeaturedProducts: Error loading random products:', error);
         setApiProducts([]);
       } finally {
         setLocalLoading(false);
