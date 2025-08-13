@@ -31,6 +31,7 @@ const ProductPage = () => {
   const [selectedColor, setSelectedColor] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
   const [quantity, setQuantity] = useState(1);
+  const [quantitiesBySize, setQuantitiesBySize] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   
@@ -77,6 +78,52 @@ const ProductPage = () => {
     };
     fetchProduct();
   }, [productId, user]);
+
+  // Efecto para resetear la cantidad cuando cambie la talla o color
+  useEffect(() => {
+    if (selectedColor && selectedSize) {
+      const stockDisponible = getStockBySizeAndColor(selectedSize, selectedColor);
+      // Si la cantidad actual excede el stock disponible, ajustarla
+      if (quantity > stockDisponible) {
+        setQuantity(Math.max(1, stockDisponible));
+      }
+    }
+  }, [selectedColor, selectedSize, product]);
+
+  // Efecto para ajustar la cantidad cuando se seleccione una talla diferente
+  useEffect(() => {
+    if (selectedColor && selectedSize) {
+      const stockDisponible = getStockBySizeAndColor(selectedSize, selectedColor);
+      // Ajustar la cantidad al stock disponible de la nueva talla
+      if (quantity > stockDisponible) {
+        setQuantity(Math.max(1, stockDisponible));
+      }
+    }
+  }, [selectedSize]);
+
+  // Efecto para resetear la talla seleccionada cuando cambie el color
+  useEffect(() => {
+    if (selectedColor && selectedSize) {
+      const stockDisponible = getStockBySizeAndColor(selectedSize, selectedColor);
+      // Si la talla seleccionada no tiene stock para el nuevo color, resetearla
+      if (stockDisponible <= 0) {
+        setSelectedSize('');
+        setQuantity(1);
+        setQuantitiesBySize({});
+      }
+    }
+  }, [selectedColor]);
+
+  // Efecto para inicializar las cantidades por talla cuando se cargue el producto
+  useEffect(() => {
+    if (product && product.detalles) {
+      const initialQuantities = {};
+      tallas.forEach(talla => {
+        initialQuantities[talla] = 0;
+      });
+      setQuantitiesBySize(initialQuantities);
+    }
+  }, [product, selectedColor]);
 
   // Fetch rating data for the product
   const fetchRatingData = async () => {
@@ -163,30 +210,56 @@ const ProductPage = () => {
 
   // Handle add to cart
   const handleAddToCart = async () => {
-    if (!selectedColor || !selectedSize) {
+    if (!selectedColor) {
       if (window.showToast) {
-        window.showToast('Por favor selecciona color y talla', 'error');
+        window.showToast('Por favor selecciona un color', 'error');
       }
       return;
     }
 
-    try {
-      // Mapear los datos del producto a los campos esperados por el store
-      const productToAdd = {
-        id_articulo: product.id_articulo,
-        title: product.descripcion,
-        price: product.precio1,
-        precio: product.precio1,
-        image: generateS3ImageUrl(product.id_articulo),
-        selectedColor,
-        selectedSize,
-        quantity,
-        colors: [selectedColor]
-      };
-
-      addToCart(productToAdd, quantity);
+    // Obtener las tallas con cantidades seleccionadas
+    const tallasConCantidades = getSelectedSizesWithQuantities();
+    
+    if (tallasConCantidades.length === 0) {
       if (window.showToast) {
-        window.showToast('Producto agregado al carrito', 'success');
+        window.showToast('Por favor selecciona al menos una talla con cantidad mayor a 0', 'error');
+      }
+      return;
+    }
+
+    // Verificar que todas las cantidades no excedan el stock disponible
+    for (const { talla, cantidad } of tallasConCantidades) {
+      const stockDisponible = getStockBySizeAndColor(talla, selectedColor);
+      
+      if (cantidad > stockDisponible) {
+        if (window.showToast) {
+          window.showToast(`Solo hay ${stockDisponible} unidades disponibles para la talla ${talla}`, 'error');
+        }
+        return;
+      }
+    }
+
+    try {
+      // Agregar cada talla con su cantidad al carrito
+      for (const { talla, cantidad } of tallasConCantidades) {
+        const productToAdd = {
+          id_articulo: product.id_articulo,
+          title: product.descripcion,
+          price: product.precio1,
+          precio: product.precio1,
+          image: generateS3ImageUrl(product.id_articulo),
+          selectedColor,
+          selectedSize: talla,
+          quantity: cantidad,
+          colors: [selectedColor]
+        };
+
+        addToCart(productToAdd, cantidad);
+      }
+
+      if (window.showToast) {
+        const totalUnidades = getTotalUnits();
+        window.showToast(`${totalUnidades} unidad${totalUnidades > 1 ? 'es' : ''} agregada${totalUnidades > 1 ? 's' : ''} al carrito`, 'success');
       }
     } catch (err) {
       if (window.showToast) {
@@ -197,8 +270,59 @@ const ProductPage = () => {
 
   // Handle quantity change
   const handleQuantityChange = (newQuantity) => {
-    if (newQuantity >= 1 && newQuantity <= (product?.stock || 99)) {
+    // Obtener el stock máximo disponible para la talla y color seleccionados
+    const stockMaximo = selectedColor && selectedSize ? 
+      getStockBySizeAndColor(selectedSize, selectedColor) : 
+      (product?.inventario || product?.stock || 99);
+    
+    if (newQuantity >= 1 && newQuantity <= stockMaximo) {
       setQuantity(newQuantity);
+    }
+  };
+
+  // Handle quantity change for specific size
+  const handleQuantityChangeForSize = (talla, newQuantity) => {
+    const stockMaximo = getStockForSize(talla);
+    
+    if (newQuantity >= 0 && newQuantity <= stockMaximo) {
+      // Actualizar la cantidad para la talla específica
+      setQuantitiesBySize(prev => ({
+        ...prev,
+        [talla]: newQuantity
+      }));
+      
+      // Si es la talla seleccionada, también actualizar la cantidad global
+      if (selectedSize === talla) {
+        setQuantity(newQuantity);
+      }
+      
+      // Seleccionar la talla si no está seleccionada
+      if (selectedSize !== talla) {
+        setSelectedSize(talla);
+        setQuantity(newQuantity);
+      }
+    }
+  };
+
+  // Función para seleccionar talla e inicializar cantidad
+  const handleSizeSelection = (talla) => {
+    if (!selectedColor || getStockBySizeAndColor(talla, selectedColor) > 0) {
+      setSelectedSize(talla);
+      
+      // Si la talla no tiene cantidad o tiene 0, inicializar con 1
+      const cantidadActual = quantitiesBySize[talla] || 0;
+      if (cantidadActual <= 0) {
+        const stockDisponible = getStockForSize(talla);
+        if (stockDisponible > 0) {
+          setQuantitiesBySize(prev => ({
+            ...prev,
+            [talla]: 1
+          }));
+          setQuantity(1);
+        }
+      } else {
+        setQuantity(cantidadActual);
+      }
     }
   };
 
@@ -287,6 +411,62 @@ const ProductPage = () => {
   // Colores y tallas únicos
   const colores = [...new Set(detalles.map(d => d.nombreColor).filter(Boolean))];
   const tallas = [...new Set(detalles.map(d => d.detalle).filter(Boolean))];
+
+  // Función para obtener el stock disponible por talla y color
+  const getStockBySizeAndColor = (talla, color) => {
+    if (!detalles || detalles.length === 0) return 0;
+    
+    // Buscar el detalle específico que coincida con talla y color
+    const detalle = detalles.find(d => 
+      d.detalle === talla && d.nombreColor === color
+    );
+    
+    // Si no hay detalle específico, usar el stock general del producto
+    if (!detalle) {
+      return product.inventario || product.stock || 0;
+    }
+    
+    // Si el detalle tiene stock específico, usarlo
+    if (detalle.piezas !== undefined && detalle.piezas > 0) {
+      return detalle.piezas;
+    }
+    
+    // Si no, usar el stock general
+    return product.inventario || product.stock || 0;
+  };
+
+  // Filtrar solo tallas con stock disponible para el color seleccionado
+  const tallasDisponibles = tallas.filter(talla => {
+    if (!selectedColor) return true; // Si no hay color seleccionado, mostrar todas
+    const stock = getStockBySizeAndColor(talla, selectedColor);
+    return stock > 0;
+  });
+
+  // Si no hay tallas disponibles para el color seleccionado, mostrar todas
+  const tallasAMostrar = tallasDisponibles.length > 0 ? tallasDisponibles : tallas;
+
+  // Obtener el stock máximo disponible para la talla y color seleccionados
+  const stockMaximoDisponible = selectedColor && selectedSize ? 
+    getStockBySizeAndColor(selectedSize, selectedColor) : 
+    (product.inventario || product.stock || 99);
+
+  // Función para obtener el stock máximo de una talla específica
+  const getStockForSize = (talla) => {
+    if (!selectedColor) return product.inventario || product.stock || 99;
+    return getStockBySizeAndColor(talla, selectedColor);
+  };
+
+  // Función para calcular el total de unidades seleccionadas
+  const getTotalUnits = () => {
+    return Object.values(quantitiesBySize).reduce((total, cantidad) => total + (cantidad || 0), 0);
+  };
+
+  // Función para obtener las tallas con cantidades seleccionadas
+  const getSelectedSizesWithQuantities = () => {
+    return Object.entries(quantitiesBySize)
+      .filter(([talla, cantidad]) => cantidad > 0)
+      .map(([talla, cantidad]) => ({ talla, cantidad }));
+  };
 
   // Precios adicionales
   const precios = [precio1, precio2, precio3, precio4, precio5, precio6, precio7, precio8, precio9, precio10]
@@ -435,7 +615,7 @@ const ProductPage = () => {
               )}
 
               {/* Size Selection - Step 2 */}
-              {tallas.length > 0 && (
+              {tallasAMostrar.length > 0 && (
                 <div className="product-page__option">
                   <div className="product-page__option-header product-page__step-number-border">
                     <span className="product-page__step-number">Paso 2</span>
@@ -443,34 +623,54 @@ const ProductPage = () => {
                   </div>
                   <div className="product-page__option-label">Talla</div>
 
+                  {selectedColor && tallasDisponibles.length === 0 && (
+                    <div className="product-page__no-stock-message">
+                      <p>No hay tallas disponibles para el color seleccionado</p>
+                    </div>
+                  )}
+
                   <div className="product-page__size-options">
-                    {tallas.map((talla, index) => (
+                    {tallasAMostrar.map((talla, index) => (
                       <div key={talla} className={`product-page__size-item ${selectedSize === talla ? 'product-page__size-item--selected' : ''}`}> 
                         <button
-                          className={`product-page__size-button`}
-                          onClick={() => setSelectedSize(talla)}
+                          className={`product-page__size-button ${selectedColor && getStockBySizeAndColor(talla, selectedColor) <= 0 ? 'product-page__size-button--out-of-stock' : ''}`}
+                          onClick={() => handleSizeSelection(talla)}
+                          disabled={selectedColor && getStockBySizeAndColor(talla, selectedColor) <= 0}
+                          title={selectedColor && getStockBySizeAndColor(talla, selectedColor) <= 0 ? 
+                            'Sin stock disponible para este color' : 
+                            'Seleccionar talla'
+                          }
                         >
                           <span className="product-page__size-number">{talla}</span>
-                          <span className="product-page__size-availability">Disponibles</span>
+                          <span className="product-page__size-availability">
+                            {selectedColor ? 
+                              `${getStockBySizeAndColor(talla, selectedColor)} disponibles` : 
+                              'Disponibles'
+                            }
+                          </span>
                         </button>
 
                         <div className="product-page__size-quantity">
                           <button
-                            className={`product-page__quantity-btn ${selectedSize !== talla || quantity <= 1 ? 'product-page__quantity-btn--disabled' : ''}`}
-                            onClick={() => handleQuantityChange(quantity - 1)}
-                            disabled={selectedSize !== talla || quantity <= 1}
+                            className={`product-page__quantity-btn ${(quantitiesBySize[talla] || 0) <= 0 ? 'product-page__quantity-btn--disabled' : ''}`}
+                            onClick={() => handleQuantityChangeForSize(talla, (quantitiesBySize[talla] || 0) - 1)}
+                            disabled={(quantitiesBySize[talla] || 0) <= 0}
                           >
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                               <line x1="5" y1="12" x2="19" y2="12"></line>
                             </svg>
                           </button>
                           <span className="product-page__quantity-display">
-                            {selectedSize === talla ? quantity : 0}
+                            {quantitiesBySize[talla] || 0}
                           </span>
                           <button
-                            className={`product-page__quantity-btn ${selectedSize !== talla || quantity >= (product.stock || 99) ? 'product-page__quantity-btn--disabled' : ''}`}
-                            onClick={() => handleQuantityChange(quantity + 1)}
-                            disabled={selectedSize !== talla || quantity >= (product.stock || 99)}
+                            className={`product-page__quantity-btn ${(quantitiesBySize[talla] || 0) >= getStockForSize(talla) ? 'product-page__quantity-btn--disabled' : ''}`}
+                            onClick={() => handleQuantityChangeForSize(talla, (quantitiesBySize[talla] || 0) + 1)}
+                            disabled={(quantitiesBySize[talla] || 0) >= getStockForSize(talla)}
+                            title={(quantitiesBySize[talla] || 0) >= getStockForSize(talla) ? 
+                              `Máximo ${getStockForSize(talla)} unidades disponibles` : 
+                              'Aumentar cantidad'
+                            }
                           >
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                               <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -478,6 +678,13 @@ const ProductPage = () => {
                             </svg>
                           </button>
                         </div>
+                        {selectedColor && (
+                          <div className="product-page__size-stock-info">
+                            <span className="product-page__stock-available">
+                              {getStockBySizeAndColor(talla, selectedColor)} unidades disponibles
+                            </span>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -486,17 +693,24 @@ const ProductPage = () => {
 
               {/* Add to Cart - Step 3 */}
               <div className="product-page__option">
-                <div className="product-page__option-header product-page__step-number-border">
-                  <span className="product-page__step-number">Paso 3</span>
-                  <span className="product-page__step-description">Agregar al carrito</span>
-                </div>
+                                  <div className="product-page__option-header product-page__step-number-border">
+                    <span className="product-page__step-number">Paso 3</span>
+                    <span className="product-page__step-description">
+                      Agregar al carrito 
+                      {getTotalUnits() > 0 && (
+                        <span className="product-page__total-units-indicator">
+                          ({getTotalUnits()} unidad{getTotalUnits() > 1 ? 'es' : ''})
+                        </span>
+                      )}
+                    </span>
+                  </div>
 
                 <CherryButton
                   variant="red"
                   size="large"
                   fullWidth
                   onClick={handleAddToCart}
-                  disabled={!selectedColor || !selectedSize || isAddingToCart}
+                  disabled={!selectedColor || getTotalUnits() === 0 || isAddingToCart}
                   icon={
                     <svg width="15" height="14" viewBox="0 0 15 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M14.349 2.00028H3.75L3.51562 0.854451C3.46354 0.567993 3.20312 0.333618 2.91667 0.333618H0.3125C0.130208 0.333618 0 0.489868 0 0.646118V1.27112C0 1.45341 0.130208 1.58362 0.3125 1.58362H2.39583L4.19271 10.8545C3.90625 11.167 3.75 11.5576 3.75 12.0003C3.75 12.9378 4.47917 13.667 5.41667 13.667C6.32812 13.667 7.08333 12.9378 7.08333 12.0003C7.08333 11.7138 6.97917 11.4274 6.84896 11.167H10.625C10.4948 11.4274 10.4167 11.7138 10.4167 12.0003C10.4167 12.9378 11.1458 13.667 12.0833 13.667C12.9948 12.9378 13.75 12.9378 13.75 12.0003C13.75 11.5315 13.5417 11.1149 13.2292 10.8024L13.2552 10.6982C13.3333 10.3076 13.0469 9.91695 12.6302 9.91695H5.28646L5.05208 8.66695H13.1771C13.4896 8.66695 13.724 8.48466 13.8021 8.1982L14.974 2.78153C15.0521 2.39091 14.7656 2.00028 14.349 2.00028ZM5.41667 12.6253C5.05208 12.6253 4.79167 12.3649 4.79167 12.0003C4.79167 11.6617 5.05208 11.3753 5.41667 11.3753C5.75521 11.3753 6.04167 11.6617 6.04167 12.0003C6.04167 12.3649 5.75521 12.6253 5.41667 12.6253ZM12.0833 12.6253C11.7188 12.6253 11.4583 12.3649 11.4583 12.0003C11.4583 11.6617 11.7188 11.3753 12.0833 11.3753C12.4219 11.3753 12.7083 11.6617 12.7083 12.0003C12.7083 12.3649 12.4219 12.6253 12.0833 12.6253ZM12.6823 7.41695H4.79167L3.98438 3.25028H13.5938L12.6823 7.41695Z" fill="white" />
@@ -504,8 +718,26 @@ const ProductPage = () => {
                   }
                   iconPosition="left"
                 >
-                  {isAddingToCart ? 'Agregando...' : 'Agregar al carrito'}
+                  {isAddingToCart ? 'Agregando...' : `Agregar al carrito (${getTotalUnits()} unidad${getTotalUnits() > 1 ? 'es' : ''})`}
                 </CherryButton>
+                
+                {selectedColor && (
+                  <div className="product-page__stock-summary">
+                    <p>Total de unidades seleccionadas: <strong>{getTotalUnits()} unidad{getTotalUnits() > 1 ? 'es' : ''}</strong></p>
+                    {getSelectedSizesWithQuantities().length > 0 && (
+                      <div className="product-page__selected-sizes">
+                        <p>Tallas seleccionadas:</p>
+                        <ul>
+                          {getSelectedSizesWithQuantities().map(({ talla, cantidad }) => (
+                            <li key={talla}>
+                              <strong>{talla}</strong>: {cantidad} unidad{cantidad > 1 ? 'es' : ''}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

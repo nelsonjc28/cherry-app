@@ -418,6 +418,19 @@
   color: white;
 }
 
+.product-page__size-button--out-of-stock {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.product-page__size-button--out-of-stock .product-page__size-number {
+  color: #999;
+}
+
+.product-page__size-button--out-of-stock .product-page__size-availability {
+  color: #999;
+}
+
 /* Product Page Quantity Controls */
 .product-page__size-quantity {
   display: flex;
@@ -455,6 +468,93 @@
   border-color: #f0f0f0;
   background: #f8f8f8;
   color: #ccc;
+}
+
+/* Stock Information */
+.product-page__size-stock-info {
+  margin-top: 8px;
+  text-align: center;
+}
+
+.product-page__stock-available {
+  font-size: 11px;
+  color: #666;
+  font-weight: 500;
+  background: #f8f8f8;
+  padding: 4px 8px;
+  border-radius: 12px;
+  display: inline-block;
+}
+
+.product-page__no-stock-message {
+  text-align: center;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  color: #856404;
+}
+
+.product-page__no-stock-message p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.product-page__stock-summary {
+  margin-top: 16px;
+  text-align: center;
+  padding: 12px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+}
+
+.product-page__stock-summary p {
+  margin: 0;
+  font-size: 14px;
+  color: #495057;
+}
+
+.product-page__stock-summary strong {
+  color: #28a745;
+  font-weight: 600;
+}
+
+.product-page__selected-sizes {
+  margin-top: 12px;
+  text-align: left;
+}
+
+.product-page__selected-sizes p {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #495057;
+  font-weight: 500;
+}
+
+.product-page__selected-sizes ul {
+  margin: 0;
+  padding: 0 0 0 16px;
+  list-style: none;
+}
+
+.product-page__selected-sizes li {
+  margin: 4px 0;
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.product-page__selected-sizes li strong {
+  color: #495057;
+  font-weight: 600;
+}
+
+.product-page__total-units-indicator {
+  color: #28a745;
+  font-weight: 600;
+  margin-left: 8px;
 }
 
 .product-page__quantity-display {
