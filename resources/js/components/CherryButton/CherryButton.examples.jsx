@@ -53,7 +53,7 @@ const CherryButtonExamples = () => {
             icon={<img src="/icons/hero/Users.svg" alt="" width="20" height="20" />} 
             iconPosition="left"
           >
-            Afiliate ahora
+            Regístrate ahora
           </CherryButton>
           
           <CherryButton 

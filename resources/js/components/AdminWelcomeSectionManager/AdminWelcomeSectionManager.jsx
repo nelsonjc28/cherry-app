@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { welcomeSectionService } from '../../services/api';
+import { welcomeSectionService, formDataUtils } from '../../services/api';
 import './AdminWelcomeSectionManager.css';
 
 const AdminWelcomeSectionManager = () => {
@@ -45,20 +45,39 @@ const AdminWelcomeSectionManager = () => {
     try {
       setSubmitting(true);
       
-      const formDataObj = new FormData();
-      Object.keys(formData).forEach(key => {
-        let value = formData[key];
-        if (key === 'is_active') {
-          value = value ? '1' : '0';
-        } else if (key === 'display_order') {
-          value = value.toString();
+      // Validar que se haya seleccionado una imagen para nuevas secciones
+      if (!editingSection && !imageFile) {
+        setError('Por favor selecciona una imagen para la sección');
+        if (window.showToast) {
+          window.showToast('Por favor selecciona una imagen para la sección', 'error');
         }
-        formDataObj.append(key, value);
+        return;
+      }
+      
+      // Validar campos requeridos usando las utilidades
+      try {
+        const tempFormData = formDataUtils.createFromObject(formData, { trim: true });
+        formDataUtils.validateRequired(tempFormData, ['title', 'subtitle', 'button_text', 'button_url']);
+      } catch (validationError) {
+        setError(validationError.message);
+        if (window.showToast) {
+          window.showToast(validationError.message, 'error');
+        }
+        return;
+      }
+      
+      // Crear FormData usando las utilidades
+      const formDataObj = formDataUtils.createFromObject(formData, {
+        trim: true,
+        skipEmpty: false
       });
-
+      
+      // Agregar imagen si existe
       if (imageFile) {
         formDataObj.append('image', imageFile);
       }
+
+
 
       let response;
       if (editingSection) {
@@ -84,9 +103,15 @@ const AdminWelcomeSectionManager = () => {
         resetForm();
       } else {
         setError(response.data.message || 'Error al procesar la sección');
+        if (window.showToast) {
+          window.showToast(response.data.message || 'Error al procesar la sección', 'error');
+        }
       }
     } catch (error) {
-      window.showToast('Error al guardar la sección', 'error');
+      setError('Error al guardar la sección: ' + (error.message || 'Error desconocido'));
+      if (window.showToast) {
+        window.showToast('Error al guardar la sección: ' + (error.message || 'Error desconocido'), 'error');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -217,7 +242,15 @@ const AdminWelcomeSectionManager = () => {
 
       {error && (
         <div className="alert alert-danger">
-          {error}
+          <strong>Error:</strong> {error}
+          <button 
+            type="button" 
+            className="btn-close" 
+            onClick={() => setError(null)}
+            aria-label="Cerrar"
+          >
+            ×
+          </button>
         </div>
       )}
 
@@ -399,7 +432,7 @@ const AdminWelcomeSectionManager = () => {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="image">Imagen de la Sección</label>
+                  <label htmlFor="image">Imagen de la Sección *</label>
                   <input
                     type="file"
                     id="image"
@@ -407,7 +440,13 @@ const AdminWelcomeSectionManager = () => {
                     onChange={handleImageChange}
                     className="form-control"
                     accept="image/*"
+                    required={!editingSection}
                   />
+                  {!editingSection && (
+                    <small className="form-text text-muted">
+                      La imagen es obligatoria para nuevas secciones
+                    </small>
+                  )}
                   {imagePreview && (
                     <div className="image-preview">
                       <img src={imagePreview} alt="Preview" />

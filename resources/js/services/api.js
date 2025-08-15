@@ -32,11 +32,57 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (error.response?.status === 401) {
-      // Token expirado o inválido
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+    // Manejar casos específicos de error
+    if (error.response) {
+      switch (error.response.status) {
+        case 401:
+          // Token expirado o inválido
+          localStorage.removeItem('token');
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
+          break;
+        case 403:
+          // Acceso denegado
+          if (window.showToast) {
+            window.showToast('Acceso denegado: No tienes permisos para realizar esta acción', 'error');
+          }
+          break;
+        case 404:
+          // Recurso no encontrado
+          if (window.showToast) {
+            window.showToast('Recurso no encontrado', 'error');
+          }
+          break;
+        case 422:
+          // Error de validación
+          if (window.showToast && error.response.data?.message) {
+            window.showToast(error.response.data.message, 'error');
+          }
+          break;
+        case 500:
+          // Error interno del servidor
+          if (window.showToast) {
+            window.showToast('Error interno del servidor', 'error');
+          }
+          break;
+        default:
+          if (window.showToast) {
+            window.showToast('Error del servidor', 'error');
+          }
+      }
+    } else if (error.request) {
+      // La petición fue hecha pero no se recibió respuesta
+      if (window.showToast) {
+        window.showToast('No se recibió respuesta del servidor', 'error');
+      }
+    } else {
+      // Algo sucedió al configurar la petición
+      if (window.showToast) {
+        window.showToast('Error al configurar la petición', 'error');
+      }
     }
+    
     return Promise.reject(error);
   }
 );
@@ -44,105 +90,470 @@ api.interceptors.response.use(
 // Servicios específicos para welcome sections
 export const welcomeSectionService = {
   // Obtener todas las secciones (admin)
-  getAll: () => api.get('/admin/welcome-sections'),
+  getAll: async () => {
+    try {
+      const response = await api.get('/admin/welcome-sections');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
 
   // Obtener una sección específica (admin)
-  getById: (id) => api.get(`/admin/welcome-sections/${id}`),
+  getById: async (id) => {
+    try {
+      const response = await api.get(`/admin/welcome-sections/${id}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
 
   // Crear nueva sección (admin)
-  create: (data) => {
-    const formData = new FormData();
-    Object.keys(data).forEach(key => {
-      let value = data[key];
-      if (key === 'is_active') {
-        value = value ? '1' : '0';
-      } else if (key === 'display_order') {
-        value = value.toString();
+  create: async (formData) => {
+    try {
+      // Validar que formData sea una instancia de FormData
+      if (!(formData instanceof FormData)) {
+        throw new Error('Los datos deben ser enviados como FormData');
       }
-      formData.append(key, value);
-    });
 
-    return api.post('/admin/welcome-sections', formData);
+      const response = await api.post('/admin/welcome-sections', formData, {
+        headers: {
+          'Accept': 'application/json',
+        },
+        timeout: 30000, // 30 segundos de timeout
+      });
+
+      return response;
+    } catch (error) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
+    }
   },
 
   // Actualizar sección (admin)
-  update: (id, data) => {
-    const formData = new FormData();
-    Object.keys(data).forEach(key => {
-      let value = data[key];
-      if (key === 'is_active') {
-        value = value ? '1' : '0';
-      } else if (key === 'display_order') {
-        value = value.toString();
+  update: async (id, formData) => {
+    try {
+      // Validar que formData sea una instancia de FormData
+      if (!(formData instanceof FormData)) {
+        throw new Error('Los datos deben ser enviados como FormData');
       }
-      formData.append(key, value);
-    });
 
-    return api.put(`/admin/welcome-sections/${id}`, formData);
+      const response = await api.put(`/admin/welcome-sections/${id}`, formData, {
+        headers: {
+          'Accept': 'application/json',
+        },
+        timeout: 30000, // 30 segundos de timeout
+      });
+
+      return response;
+    } catch (error) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
+    }
   },
 
-  // Crear o actualizar sección (admin)
-  createOrUpdate: (editingSection, formData, imageFile) => {
-    const formDataObj = new FormData();
+  // Crear o actualizar sección (admin) - método unificado
+  createOrUpdate: async (editingSection, formData, imageFile) => {
+    try {
+      const formDataObj = new FormData();
 
-    // Agregar todos los campos del formData
-    Object.keys(formData).forEach(key => {
-      let value = formData[key];
-      if (key === 'is_active') {
-        value = value ? '1' : '0';
-      } else if (key === 'display_order') {
-        value = value.toString();
+      // Agregar campos del formulario
+      if (formData.title) formDataObj.append('title', formData.title.trim());
+      if (formData.subtitle) formDataObj.append('subtitle', formData.subtitle.trim());
+      if (formData.button_text) formDataObj.append('button_text', formData.button_text.trim());
+      if (formData.button_url) formDataObj.append('button_url', formData.button_url.trim());
+      if (formData.is_active !== undefined) formDataObj.append('is_active', formData.is_active ? '1' : '0');
+      if (formData.display_order !== undefined) formDataObj.append('display_order', formData.display_order.toString());
+
+      // Agregar imagen si existe
+      if (imageFile) {
+        formDataObj.append('image', imageFile);
       }
-      formDataObj.append(key, value);
-    });
 
-    if (imageFile) {
-      formDataObj.append('image', imageFile);
-    }
 
-    if (editingSection) {
-      // Usar POST con _method para simular PUT
-      return api.post(`/admin/welcome-sections/${editingSection.id}`, formDataObj);
-    } else {
-      return api.post('/admin/welcome-sections', formDataObj);
+
+      let response;
+      if (editingSection) {
+        // Actualizar sección existente
+        response = await api.put(`/admin/welcome-sections/${editingSection.id}`, formDataObj, {
+          headers: {
+            'Accept': 'application/json',
+          },
+          timeout: 30000,
+        });
+      } else {
+        // Crear nueva sección
+        response = await api.post('/admin/welcome-sections', formDataObj, {
+          headers: {
+            'Accept': 'application/json',
+          },
+          timeout: 30000,
+        });
+      }
+
+      return response;
+    } catch (error) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
     }
   },
 
   // Eliminar sección (admin)
-  delete: (id) => api.delete(`/admin/welcome-sections/${id}`),
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`/admin/welcome-sections/${id}`, {
+        headers: {
+          'Accept': 'application/json',
+        },
+        timeout: 15000, // 15 segundos para eliminación
+      });
+      return response;
+    } catch (error) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
+    }
+  },
 
   // Cambiar estado de sección (admin)
-  toggleStatus: (id) => api.patch(`/admin/welcome-sections/${id}/toggle`),
+  toggleStatus: async (id) => {
+    try {
+      const response = await api.patch(`/admin/welcome-sections/${id}/toggle`, {}, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        timeout: 15000,
+      });
+      return response;
+    } catch (error) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
+    }
+  },
 
   // Obtener sección activa (público)
-  getActive: () => api.get('/welcome-sections/active'),
+  getActive: async () => {
+    try {
+      const response = await api.get('/welcome-sections/active', {
+        timeout: 10000, // 10 segundos para consultas públicas
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
 
   // Obtener todas las secciones activas (público)
-  getActiveSections: () => api.get('/welcome-sections'),
+  getActiveSections: async () => {
+    try {
+      const response = await api.get('/welcome-sections', {
+        timeout: 10000, // 10 segundos para consultas públicas
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Obtener secciones por orden de visualización
+  getByDisplayOrder: async (order = 'asc') => {
+    try {
+      const response = await api.get('/admin/welcome-sections', {
+        params: { order },
+        timeout: 10000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Buscar secciones por título
+  searchByTitle: async (searchTerm) => {
+    try {
+      const response = await api.get('/admin/welcome-sections', {
+        params: { search: searchTerm },
+        timeout: 10000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Obtener estadísticas de secciones
+  getStats: async () => {
+    try {
+      const response = await api.get('/admin/welcome-sections/stats', {
+        timeout: 10000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 // Servicios para categorías
 export const categoryService = {
-  getAll: () => api.get('/categories'),
-  getBySlug: (slug) => api.get(`/categories/${slug}`),
+  getAll: async () => {
+    try {
+      const response = await api.get('/categories', {
+        timeout: 10000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  getBySlug: async (slug) => {
+    try {
+      const response = await api.get(`/categories/${slug}`, {
+        timeout: 10000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 // Servicios para favoritos
 export const favoriteService = {
-  getAll: () => api.get('/favorites'),
-  add: (data) => api.post('/favorites', data),
-  check: (productId) => api.post('/favorites/check', { product_id: productId }),
-  toggle: (data) => api.post('/favorites/toggle', data),
-  remove: (productId) => api.delete('/favorites', { data: { product_id: productId } }),
+  getAll: async () => {
+    try {
+      const response = await api.get('/favorites', {
+        timeout: 10000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  add: async (data) => {
+    try {
+      const response = await api.post('/favorites', data, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        timeout: 15000,
+      });
+      return response;
+    } catch (error) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
+    }
+  },
+
+  check: async (productId) => {
+    try {
+      const response = await api.post('/favorites/check', { product_id: productId }, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  toggle: async (data) => {
+    try {
+      const response = await api.post('/favorites/toggle', data, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        timeout: 15000,
+      });
+      return response;
+    } catch (error) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
+    }
+  },
+
+  remove: async (productId) => {
+    try {
+      const response = await api.delete('/favorites', {
+        data: { product_id: productId },
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        timeout: 15000,
+      });
+      return response;
+    } catch (error) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
+    }
+  },
 };
 
 // Servicios para ratings
 export const ratingService = {
-  getUserRating: () => api.get('/ratings/user'),
-  add: (data) => api.post('/ratings', data),
-  checkUserRating: (productId) => api.post('/ratings/check', { product_id: productId }),
-  getProductRatings: (productId) => api.get('/ratings/product', { params: { product_id: productId } }),
-  getBulkRatings: (productIds) => api.post('/ratings/bulk', { product_ids: productIds }),
+  getUserRating: async () => {
+    try {
+      const response = await api.get('/ratings/user', {
+        timeout: 10000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  add: async (data) => {
+    try {
+      const response = await api.post('/ratings', data, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        timeout: 15000,
+      });
+      return response;
+    } catch (error) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
+    }
+  },
+
+  checkUserRating: async (productId) => {
+    try {
+      const response = await api.post('/ratings/check', { product_id: productId }, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  getProductRatings: async (productId) => {
+    try {
+      const response = await api.get('/ratings/product', {
+        params: { product_id: productId },
+        timeout: 10000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  getBulkRatings: async (productIds) => {
+    try {
+      const response = await api.post('/ratings/bulk', { product_ids: productIds }, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        timeout: 15000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+};
+
+// Utilidades para FormData
+export const formDataUtils = {
+  // Crear FormData desde un objeto de datos
+  createFromObject: (data, options = {}) => {
+    const formData = new FormData();
+    
+    Object.keys(data).forEach(key => {
+      let value = data[key];
+      
+      // Saltar campos undefined o null
+      if (value === undefined || value === null) {
+        return;
+      }
+      
+      // Convertir booleanos a string
+      if (typeof value === 'boolean') {
+        value = value ? '1' : '0';
+      }
+      
+      // Convertir números a string
+      if (typeof value === 'number') {
+        value = value.toString();
+      }
+      
+      // Truncar strings si se especifica
+      if (typeof value === 'string' && options.trim !== false) {
+        value = value.trim();
+      }
+      
+      // Saltar strings vacíos si se especifica
+      if (typeof value === 'string' && value === '' && options.skipEmpty !== false) {
+        return;
+      }
+      
+      formData.append(key, value);
+    });
+    
+    return formData;
+  },
+
+  // Validar que un FormData contenga campos requeridos
+  validateRequired: (formData, requiredFields) => {
+    const missingFields = [];
+    
+    requiredFields.forEach(field => {
+      if (!formData.has(field) || formData.get(field) === '') {
+        missingFields.push(field);
+      }
+    });
+    
+    if (missingFields.length > 0) {
+      throw new Error(`Campos requeridos faltantes: ${missingFields.join(', ')}`);
+    }
+    
+    return true;
+  },
+
+  // Debug: mostrar contenido de FormData (solo en desarrollo)
+  debug: (formData, label = 'FormData') => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🔍 ${label}:`);
+      for (let [key, value] of formData.entries()) {
+        console.log(`  ${key}:`, value);
+      }
+    }
+  }
 };
 
 export default api;

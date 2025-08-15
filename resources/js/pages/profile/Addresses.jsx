@@ -50,7 +50,7 @@ const Addresses = () => {
 
   // Handle menu actions
   const handleMenuAction = (addressId, action) => {
-    console.log(`Action ${action} for address ${addressId}`);
+
 
     if (action === 'setDefaultShipping') {
       // Set as default shipping address
@@ -97,7 +97,7 @@ const Addresses = () => {
 
   // Handle add new address
   const handleAddAddress = () => {
-    console.log('Add new address');
+
     // Here you would open a modal or navigate to add address form
   };
 

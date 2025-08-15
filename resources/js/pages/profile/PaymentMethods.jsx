@@ -49,7 +49,7 @@ const PaymentMethods = () => {
 
   // Handle menu actions
   const handleMenuAction = (methodId, action) => {
-    console.log(`Action ${action} for payment method ${methodId}`);
+
 
     if (action === 'setDefault') {
       // Set as default payment method

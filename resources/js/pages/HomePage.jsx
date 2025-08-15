@@ -8,7 +8,7 @@ import FeaturedProducts from '../components/sections/FeaturedProducts/FeaturedPr
 import FeaturedCategories from '../components/sections/FeaturedCategories/FeaturedCategories';
 import CustomerReviews from '../components/sections/CustomerReviews/CustomerReviews';
 import BestSellers from '../components/sections/BestSellers/BestSellers';
-import AffiliateSection from '../components/sections/AffiliateSection';
+
 
 const HomePage = () => {
   const featuredProducts = [
@@ -127,10 +127,7 @@ const HomePage = () => {
           <FeaturedCategories />
         </section>
 
-        {/* Affiliate Call-to-Action */}
-        <section className="affiliate-banner" aria-labelledby="affiliate-heading">
-          <AffiliateSection />
-        </section>
+
 
         {/* Customer Testimonials */}
         <section aria-labelledby="reviews-heading">

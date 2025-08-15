@@ -37,7 +37,6 @@ const FavoriteButton = ({
   useEffect(() => {
     if (initialized && favorites) {
       const favorited = favorites.has(productId);
-      console.log(`Producto ${productId} - Favorito: ${favorited}`, Array.from(favorites || []));
       setLocalFavorited(favorited);
     }
   }, [favorites, productId, initialized]);
@@ -48,7 +47,6 @@ const FavoriteButton = ({
       if (initialized && favorites) {
         const favorited = favorites.has(productId);
         if (favorited !== localFavorited) {
-          console.log(`Sincronizando producto ${productId}: ${localFavorited} -> ${favorited}`);
           setLocalFavorited(favorited);
         }
       }
@@ -96,7 +94,6 @@ const FavoriteButton = ({
           if (initialized && favorites) {
             const contextFavorited = favorites.has(productId);
             if (contextFavorited !== result) {
-              console.log(`Forzando sincronización: contexto=${contextFavorited}, resultado=${result}`);
               setLocalFavorited(contextFavorited);
             }
           }
@@ -111,8 +108,6 @@ const FavoriteButton = ({
         onToggle(result);
       }
     } catch (error) {
-      console.error('Error en toggleFavorite:', error);
-      
       if (error.name === 'AbortError') {
         if (window.showToast) {
           window.showToast('La operación tardó demasiado. Inténtalo de nuevo.', 'warning');
@@ -120,9 +115,7 @@ const FavoriteButton = ({
       } else if (error.response?.status === 401) {
         window.location.href = '/login';
       } else {
-        if (window.showToast) {
-          window.showToast('Error al actualizar favoritos: ' + error.message, 'error');
-        }
+
       }
     } finally {
       setLoading(false);

@@ -35,7 +35,6 @@ const AdminPrivacyPolicyManager = () => {
         setCurrentPolicy(activePolicy);
       }
     } catch (error) {
-      console.error('Error cargando políticas:', error);
       window.showToast('Error al cargar las políticas de privacidad', 'error');
     } finally {
       setLoading(false);
@@ -96,7 +95,6 @@ const AdminPrivacyPolicyManager = () => {
       setEditorState({ title: '', version: '', content: '' });
       loadPolicies();
     } catch (error) {
-      console.error('Error guardando política:', error);
       window.showToast('Error al guardar la política', 'error');
     } finally {
       setLoading(false);
@@ -109,7 +107,6 @@ const AdminPrivacyPolicyManager = () => {
       window.showToast('Política activada exitosamente', 'success');
       loadPolicies();
     } catch (error) {
-      console.error('Error activando política:', error);
       window.showToast('Error al activar la política', 'error');
     }
   };
@@ -124,7 +121,6 @@ const AdminPrivacyPolicyManager = () => {
       window.showToast('Política eliminada exitosamente', 'success');
       loadPolicies();
     } catch (error) {
-      console.error('Error eliminando política:', error);
       window.showToast('Error al eliminar la política', 'error');
     }
   };

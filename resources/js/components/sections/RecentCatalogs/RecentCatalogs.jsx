@@ -50,10 +50,10 @@ const RecentCatalogs = () => {
                 </div>
                 <div className='content-btn-explore'>
                   <Link
-                    to="/afiliate"
+                    to={catalog.link}
                     className="btn-explore"
-                    title="Únete a nuestro programa de afiliados y comienza tu negocio"
-                    aria-label="Afiliate a Cherry Central y comienza tu negocio"
+                    title="Ver más detalles de este catálogo"
+                    aria-label="Ver más detalles de este catálogo"
                   >
                     Ver más
                     <img

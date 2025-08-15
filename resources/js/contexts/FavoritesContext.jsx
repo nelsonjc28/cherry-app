@@ -79,17 +79,12 @@ export const FavoritesProvider = ({ children }) => {
         const favoritesSet = new Set(
           response.data.favorites.map(fav => fav.product_id)
         );
-        console.log('✅ Favoritos cargados exitosamente:', Array.from(favoritesSet));
-        console.log('📊 Total de favoritos:', favoritesSet.size);
         setFavorites(favoritesSet);
       } else {
-        console.error('❌ Error en respuesta de favoritos:', response.data);
+        // Error en respuesta de favoritos - no mostrar toast
       }
     } catch (error) {
-      console.error('Error al cargar favoritos:', error);
-      if (window.showToast) {
-        window.showToast('Error al cargar favoritos', 'error');
-      }
+      // Error al cargar favoritos - no mostrar toast
     } finally {
       setLoading(false);
       setInitialized(true);
@@ -149,14 +144,9 @@ export const FavoritesProvider = ({ children }) => {
 
       // Verificar que el estado esté correcto después de la operación
       const expectedFavorited = !currentFavorited;
-      console.log(`🔄 Toggle favorito: ${currentFavorited} -> ${expectedFavorited}`);
-      console.log(`📡 Respuesta del servidor: ${response.data.is_favorited}`);
       
       if (response.data.is_favorited !== expectedFavorited) {
-        console.warn('⚠️ Estado de favorito no coincide, recargando...');
         await loadFavorites();
-      } else {
-        console.log('✅ Estado de favorito sincronizado correctamente');
       }
 
       return response.data.is_favorited;

@@ -56,7 +56,6 @@ const Favorites = () => {
         setError('Error al cargar favoritos');
       }
     } catch (err) {
-      console.error('Error fetching favorites:', err);
       setError('Error al cargar favoritos');
     } finally {
       setLoading(false);
@@ -102,15 +101,9 @@ const Favorites = () => {
       
       // Reload favorites to get updated data
       fetchFavorites(currentPage);
-      
-      if (window.showToast) {
-        window.showToast('Producto removido de favoritos', 'success');
-      }
     } catch (err) {
-      console.error('Error removing favorite:', err);
-      if (window.showToast) {
-        window.showToast('Error al remover de favoritos', 'error');
-      }
+
+
     }
   };
 
@@ -168,15 +161,12 @@ const Favorites = () => {
         // Reload favorites to get updated data
         fetchFavorites(currentPage);
         
-        if (window.showToast) {
-          window.showToast(`${selectedItems.size} productos removidos de favoritos`, 'success');
+
+              } catch (err) {
+          if (window.showToast) {
+            window.showToast('Error al remover productos seleccionados', 'error');
+          }
         }
-      } catch (err) {
-        console.error('Error removing selected favorites:', err);
-        if (window.showToast) {
-          window.showToast('Error al remover productos seleccionados', 'error');
-        }
-      }
     }
   };
 

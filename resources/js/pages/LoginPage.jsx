@@ -24,7 +24,7 @@ const LoginPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Login submitted:", formData);
+;
   };
 
   const togglePasswordVisibility = () => {
@@ -119,7 +119,7 @@ const LoginPage = () => {
                   </div>
 
                   <div className="login-register-link">
-                    ¿No tienes cuenta? <Link to="/afiliate">Afíliate</Link>
+                    ¿No tienes cuenta? <Link to="/registro">Regístrate</Link>
                   </div>
                 </form>
               </div>

@@ -19,9 +19,7 @@ const FavoritosPage = () => {
       const token = localStorage.getItem('token');
       
       if (!token) {
-        if (window.showToast) {
-          window.showToast('Debes iniciar sesión para ver tus favoritos', 'error');
-        }
+
         setLoading(false);
         return;
       }
@@ -40,9 +38,7 @@ const FavoritosPage = () => {
         throw new Error('Error al obtener favoritos');
       }
     } catch (error) {
-      if (window.showToast) {
-        window.showToast('Error al cargar tus favoritos', 'error');
-      }
+
     } finally {
       setLoading(false);
     }

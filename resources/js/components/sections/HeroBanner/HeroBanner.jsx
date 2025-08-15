@@ -73,21 +73,6 @@ const HeroBanner = () => {
             
             <div className="banner-actions">
               <Link 
-                to="/afiliate" 
-                className="btn-affiliate"
-                title="Únete a nuestro programa de afiliados y comienza tu negocio"
-                aria-label="Afiliate a Cherry Central y comienza tu negocio"
-              >
-                <img 
-                  src={getHeroIconPath('Users.svg')} 
-                  alt="Icono de usuarios" 
-                  width="20" 
-                  height="20" 
-                />
-                Afiliate ahora
-              </Link>
-              
-              <Link 
                 to={activeBanner.buttonUrl || "/explorar"} 
                 className="btn-explore"
                 title={activeBanner.buttonText || "Explora toda nuestra colección de moda femenina"}

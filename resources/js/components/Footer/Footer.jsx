@@ -19,9 +19,7 @@ const Footer = () => {
               placeholder="Ingresa email"
               className="footer-email-input"
             />
-            <div className="footer-affiliate-btn-wrapper">
-              <button className="footer-affiliate-button"><span>Afíliate ahora</span></button>
-            </div>
+
           </div>
 
           <p className="footer-privacy-notice">

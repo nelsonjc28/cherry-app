@@ -320,15 +320,7 @@ const Header = () => {
 
   return (
     <header className="site-header">
-      {/* Top Affiliate Bar */}
-      {!user && (
-        <div className="affiliate-bar">
-          <div className="affiliate-container">
-            <p className="affiliate-text">¡Afiliate ahora mismo y comienza tu propio negocio!</p>
-            <Link to="/afiliate" className="affiliate-button">Afiliate aquí</Link>
-          </div>
-        </div>
-      )}
+
 
       {/* Main Header */}
       <div className="main-header">

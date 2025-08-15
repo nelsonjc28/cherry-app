@@ -35,7 +35,7 @@ const RegisterPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    console.log("Form submitted:", formData)
+
   }
 
   const days = Array.from({ length: 31 }, (_, i) => i + 1)

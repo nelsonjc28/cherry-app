@@ -64,6 +64,7 @@ class AdminWelcomeSectionController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+
         try {
             // Verificar autenticación
             $user = $request->user();
