@@ -1,0 +1,443 @@
+.admin-catalog-manager {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.admin-catalog-manager__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.admin-catalog-manager__header h2 {
+  margin: 0;
+  color: #333;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.admin-catalog-manager__add-btn {
+  background: var(--color-primary, #EA2630);
+  border: none;
+  color: #fff;
+  font-size: 1rem;
+  padding: 10px 18px;
+  border-radius: 6px;
+  text-align: left;
+  transition: background 0.2s, color 0.2s;
+  cursor: pointer;
+  margin-bottom: 2px;
+  font-weight: 500;
+}
+
+.admin-catalog-manager__add-btn:hover {
+  background: #d4202a;
+  color: #fff;
+}
+
+.admin-catalog-manager__loading {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.admin-catalog-manager__loading .spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.admin-catalog-manager__form-container {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  margin-bottom: 30px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+}
+
+.admin-catalog-manager__form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.admin-catalog-manager__form-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.admin-catalog-manager__close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.admin-catalog-manager__close-btn:hover {
+  background: #f8f9fa;
+  color: #495057;
+}
+
+.admin-catalog-manager__form {
+  display: grid;
+  gap: 20px;
+}
+
+.admin-catalog-manager__form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-catalog-manager__form-group label {
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #495057;
+  font-size: 14px;
+}
+
+.admin-catalog-manager__form-group input,
+.admin-catalog-manager__form-group textarea {
+  padding: 12px 16px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+}
+
+.admin-catalog-manager__form-group input:focus,
+.admin-catalog-manager__form-group textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.admin-catalog-manager__form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.admin-catalog-manager__checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-weight: 500;
+  color: #495057;
+}
+
+.admin-catalog-manager__checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.admin-catalog-manager__image-preview {
+  margin-top: 15px;
+  text-align: center;
+}
+
+.admin-catalog-manager__image-preview img {
+  max-width: 200px;
+  max-height: 150px;
+  border-radius: 8px;
+  border: 2px solid #e9ecef;
+}
+
+.admin-catalog-manager__form-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.admin-catalog-manager__submit-btn,
+.admin-catalog-manager__cancel-btn {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.admin-catalog-manager__submit-btn {
+  background: var(--color-primary, #EA2630);
+  color: white;
+  box-shadow: 0 4px 15px rgba(234, 38, 48, 0.3);
+}
+
+.admin-catalog-manager__submit-btn:hover {
+  background: #d4202a;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(234, 38, 48, 0.4);
+}
+
+.admin-catalog-manager__cancel-btn {
+  background: #6c757d;
+  color: white;
+}
+
+.admin-catalog-manager__cancel-btn:hover {
+  background: #5a6268;
+}
+
+.admin-catalog-manager__catalogs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 25px;
+}
+
+.admin-catalog-manager__catalog-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.admin-catalog-manager__catalog-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+
+.admin-catalog-manager__catalog-image {
+  height: 200px;
+  overflow: hidden;
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-catalog-manager__catalog-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.admin-catalog-manager__no-image {
+  color: #6c757d;
+  font-size: 14px;
+  text-align: center;
+}
+
+.admin-catalog-manager__catalog-info {
+  padding: 20px;
+}
+
+.admin-catalog-manager__catalog-info h4 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.admin-catalog-manager__catalog-info p {
+  margin: 0 0 15px 0;
+  color: #6c757d;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.admin-catalog-manager__catalog-stats {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.admin-catalog-manager__stat {
+  font-size: 12px;
+  color: #495057;
+  background: #f8f9fa;
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+.admin-catalog-manager__catalog-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.admin-catalog-manager__status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.admin-catalog-manager__status-badge.active {
+  background: #d4edda;
+  color: #155724;
+}
+
+.admin-catalog-manager__status-badge.inactive {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.admin-catalog-manager__order {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.admin-catalog-manager__catalog-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 20px 20px;
+  flex-wrap: wrap;
+}
+
+.admin-catalog-manager__action-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-catalog-manager__action-btn--edit {
+  background: #17a2b8;
+  color: white;
+}
+
+.admin-catalog-manager__action-btn--edit:hover {
+  background: #138496;
+  transform: scale(1.05);
+}
+
+.admin-catalog-manager__action-btn--pdf {
+  background: #6f42c1;
+  color: white;
+}
+
+.admin-catalog-manager__action-btn--pdf:hover {
+  background: #5a32a3;
+  transform: scale(1.05);
+}
+
+.admin-catalog-manager__action-btn--products {
+  background: #fd7e14;
+  color: white;
+}
+
+.admin-catalog-manager__action-btn--products:hover {
+  background: #e8690b;
+  transform: scale(1.05);
+}
+
+.admin-catalog-manager__action-btn--toggle {
+  background: #28a745;
+  color: white;
+}
+
+.admin-catalog-manager__action-btn--toggle:hover {
+  background: #218838;
+  transform: scale(1.05);
+}
+
+.admin-catalog-manager__action-btn--delete {
+  background: #dc3545;
+  color: white;
+}
+
+.admin-catalog-manager__action-btn--delete:hover {
+  background: #c82333;
+  transform: scale(1.05);
+}
+
+.admin-catalog-manager__empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6c757d;
+  font-size: 16px;
+}
+
+/* Alertas */
+.alert {
+  padding: 15px 20px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  position: relative;
+}
+
+.alert-danger {
+  color: #721c24;
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+}
+
+.btn-close {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #721c24;
+  padding: 0;
+  line-height: 1;
+}
+
+.btn-close:hover {
+  color: #491217;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .admin-catalog-manager {
+    padding: 15px;
+  }
+  
+  .admin-catalog-manager__header {
+    flex-direction: column;
+    gap: 20px;
+    text-align: center;
+  }
+  
+  .admin-catalog-manager__form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .admin-catalog-manager__catalogs-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .admin-catalog-manager__catalog-actions {
+    justify-content: center;
+  }
+}

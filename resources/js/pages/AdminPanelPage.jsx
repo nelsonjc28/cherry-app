@@ -8,6 +8,8 @@ import CategoryOrderManager from '../components/CategoryOrderManager/CategoryOrd
 import AdminWelcomeSectionManager from '../components/AdminWelcomeSectionManager/AdminWelcomeSectionManager';
 import AdminContactManager from '../components/AdminContactManager/AdminContactManager';
 import AdminPrivacyPolicyManager from '../components/AdminPrivacyPolicyManager/AdminPrivacyPolicyManager';
+import AdminCatalogManager from '../components/AdminCatalogManager/AdminCatalogManager';
+import AdminCategoryManager from '../components/AdminCategoryManager/AdminCategoryManager';
 import AuthTest from '../components/AuthTest';
 import useUserStore from '../store/userStore';
 import '../index.css';
@@ -66,8 +68,10 @@ function AdminPanelPage() {
           <button className={`admin-panel__sidebar-link${selectedMenu==='users'?' active':''}`} onClick={()=>{setSelectedMenu('users'); setSidebarOpen(false);}}>Gestionar Administradores</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='clients'?' active':''}`} onClick={()=>{setSelectedMenu('clients'); setSidebarOpen(false);}}>Gestionar Clientes</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='categories'?' active':''}`} onClick={()=>{setSelectedMenu('categories'); setSidebarOpen(false);}}>Gestionar Categorías</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='category-products'?' active':''}`} onClick={()=>{setSelectedMenu('category-products'); setSidebarOpen(false);}}>Productos de Categorías</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='category-order'?' active':''}`} onClick={()=>{setSelectedMenu('category-order'); setSidebarOpen(false);}}>Ordenar Categorías</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='welcome-sections'?' active':''}`} onClick={()=>{setSelectedMenu('welcome-sections'); setSidebarOpen(false);}}>Secciones de Bienvenida</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='catalogs'?' active':''}`} onClick={()=>{setSelectedMenu('catalogs'); setSidebarOpen(false);}}>Catálogos</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='contact-info'?' active':''}`} onClick={()=>{setSelectedMenu('contact-info'); setSidebarOpen(false);}}>Información de Contacto</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='privacy-policy'?' active':''}`} onClick={()=>{setSelectedMenu('privacy-policy'); setSidebarOpen(false);}}>Políticas de Privacidad</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='auth-test'?' active':''}`} onClick={()=>{setSelectedMenu('auth-test'); setSidebarOpen(false);}}>Test Auth</button>
@@ -110,11 +114,18 @@ function AdminPanelPage() {
                   {homeData.length === 0 && <div className="text-center text-secondary py-3">No hay elementos.</div>}
                 </div>
                 <div className="mt-3">
-                  <CherryButton size="medium" variant="red" onClick={()=>{
-                    if (window.showToast) {
-                      window.showToast('Función de crear nueva sección no implementada', 'warning');
-                    }
-                  }}>Agregar sección</CherryButton>
+                  <CherryButton 
+                    size="medium" 
+                    variant="red" 
+                    className="admin-panel__add-section-btn"
+                    onClick={()=>{
+                      if (window.showToast) {
+                        window.showToast('Función de crear nueva sección no implementada', 'warning');
+                      }
+                    }}
+                  >
+                    Agregar sección
+                  </CherryButton>
                 </div>
               </>
             ) : (
@@ -165,6 +176,12 @@ function AdminPanelPage() {
           </section>
         )}
         
+        {selectedMenu === 'category-products' && isAdmin() && (
+          <section>
+            <AdminCategoryManager />
+          </section>
+        )}
+        
         {selectedMenu === 'category-order' && isAdmin() && (
           <section>
             <CategoryOrderManager />
@@ -174,6 +191,12 @@ function AdminPanelPage() {
         {selectedMenu === 'welcome-sections' && isAdmin() && (
           <section>
             <AdminWelcomeSectionManager />
+          </section>
+        )}
+
+        {selectedMenu === 'catalogs' && isAdmin() && (
+          <section>
+            <AdminCatalogManager />
           </section>
         )}
 

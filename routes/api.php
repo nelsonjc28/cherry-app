@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\AdminWelcomeSectionController;
 use App\Http\Controllers\Api\ContactInfoController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\PrivacyPolicyController;
+use App\Http\Controllers\Api\AdminCatalogController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -45,11 +46,23 @@ Route::middleware(['auth:api'])->group(function () {
     Route::delete('/admin/clients/{id}', [ClientController::class, 'deleteClient']);
     
     // Category routes - require authentication and admin role
-    Route::get('/admin/categories', [AdminCategoryController::class, 'index']);
-    Route::get('/admin/categories/{id}', [AdminCategoryController::class, 'show']);
-    Route::post('/admin/categories', [AdminCategoryController::class, 'store']);
-    Route::put('/admin/categories/{id}', [AdminCategoryController::class, 'update']);
-    Route::delete('/admin/categories/{id}', [AdminCategoryController::class, 'destroy']);
+    Route::middleware(['auth:api', 'admin'])->group(function () {
+        Route::get('/admin/categories', [AdminCategoryController::class, 'index']);
+        
+        // Category Products routes - MUST come before the general {id} route
+        Route::get('/admin/categories/category-product-ids', [AdminCategoryController::class, 'getCategoryProductIds']);
+        Route::post('/admin/categories/{categoryId}/products', [AdminCategoryController::class, 'addProducts']);
+        Route::delete('/admin/categories/{categoryId}/products/{productId}', [AdminCategoryController::class, 'removeProduct']);
+        Route::get('/admin/categories/{categoryId}/products', [AdminCategoryController::class, 'getCategoryProducts']);
+        Route::post('/admin/categories/{categoryId}/reorder-products', [AdminCategoryController::class, 'reorderProducts']);
+        
+        // General category routes - MUST come after specific routes
+        Route::get('/admin/categories/{id}', [AdminCategoryController::class, 'show']);
+        Route::post('/admin/categories', [AdminCategoryController::class, 'store']);
+        Route::put('/admin/categories/{id}', [AdminCategoryController::class, 'update']);
+        Route::delete('/admin/categories/{id}', [AdminCategoryController::class, 'destroy']);
+        Route::patch('/admin/categories/{id}/toggle', [AdminCategoryController::class, 'toggleStatus']);
+    });
     
     // Ordered Categories routes - require authentication and admin role
     Route::get('/admin/ordered-categories', [AdminOrderedCategoryController::class, 'index']);
@@ -64,6 +77,23 @@ Route::middleware(['auth:api'])->group(function () {
         Route::post('/admin/welcome-sections/{id}', [AdminWelcomeSectionController::class, 'update']);
         Route::delete('/admin/welcome-sections/{id}', [AdminWelcomeSectionController::class, 'destroy']);
         Route::patch('/admin/welcome-sections/{id}/toggle', [AdminWelcomeSectionController::class, 'toggleStatus']);
+    });
+    
+    // Catalogs routes - require authentication and admin role
+    Route::middleware(['auth:api', 'admin'])->group(function () {
+        Route::get('/admin/catalogs', [AdminCatalogController::class, 'index']);
+        Route::get('/admin/catalogs/catalog-product-ids', [AdminCatalogController::class, 'getCatalogProductIds']);
+        Route::post('/admin/catalogs/filter-available-products', [AdminCatalogController::class, 'filterAvailableProducts']);
+        Route::get('/admin/catalogs/{id}', [AdminCatalogController::class, 'show']);
+        Route::post('/admin/catalogs', [AdminCatalogController::class, 'store']);
+        Route::post('/admin/catalogs/{id}', [AdminCatalogController::class, 'update']);
+        Route::delete('/admin/catalogs/{id}', [AdminCatalogController::class, 'destroy']);
+        Route::patch('/admin/catalogs/{id}/toggle', [AdminCatalogController::class, 'toggleStatus']);
+        Route::post('/admin/catalogs/{id}/pdf-images', [AdminCatalogController::class, 'addPdfImages']);
+        Route::delete('/admin/catalogs/{catalogId}/pdf-images/{imageId}', [AdminCatalogController::class, 'removePdfImage']);
+        Route::post('/admin/catalogs/{id}/products', [AdminCatalogController::class, 'addProducts']);
+        Route::delete('/admin/catalogs/{catalogId}/products/{productId}', [AdminCatalogController::class, 'removeProduct']);
+        Route::post('/admin/catalogs/{id}/reorder', [AdminCatalogController::class, 'reorder']);
     });
     
     // Favorites routes

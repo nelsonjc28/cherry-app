@@ -21,7 +21,6 @@ const PrivacySecurity = () => {
       const response = await axios.get('/api/privacy-policy');
       setPolicyContent(response.data.data.content);
     } catch (error) {
-      console.error('Error cargando política de privacidad:', error);
       setError('No se pudo cargar la política de privacidad');
       // Contenido por defecto en caso de error
       setPolicyContent(`
@@ -65,7 +64,7 @@ const PrivacySecurity = () => {
         setTermsStatus(response.data.data);
       }
     } catch (error) {
-      console.error('Error cargando estado de términos:', error);
+      // Error silencioso para evitar spam en consola
     }
   };
 

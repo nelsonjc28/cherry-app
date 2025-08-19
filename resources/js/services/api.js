@@ -10,6 +10,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -36,10 +37,10 @@ api.interceptors.response.use(
     if (error.response) {
       switch (error.response.status) {
         case 401:
-          // Token expirado o inválido
-          localStorage.removeItem('token');
+      // Token expirado o inválido
+      localStorage.removeItem('token');
           if (window.location.pathname !== '/login') {
-            window.location.href = '/login';
+      window.location.href = '/login';
           }
           break;
         case 403:
@@ -160,7 +161,7 @@ export const welcomeSectionService = {
   // Crear o actualizar sección (admin) - método unificado
   createOrUpdate: async (editingSection, formData, imageFile) => {
     try {
-      const formDataObj = new FormData();
+    const formDataObj = new FormData();
 
       // Agregar campos del formulario
       if (formData.title) formDataObj.append('title', formData.title.trim());
@@ -171,14 +172,14 @@ export const welcomeSectionService = {
       if (formData.display_order !== undefined) formDataObj.append('display_order', formData.display_order.toString());
 
       // Agregar imagen si existe
-      if (imageFile) {
-        formDataObj.append('image', imageFile);
-      }
+    if (imageFile) {
+      formDataObj.append('image', imageFile);
+    }
 
 
 
       let response;
-      if (editingSection) {
+    if (editingSection) {
         // Actualizar sección existente
         response = await api.put(`/admin/welcome-sections/${editingSection.id}`, formDataObj, {
           headers: {
@@ -186,7 +187,7 @@ export const welcomeSectionService = {
           },
           timeout: 30000,
         });
-      } else {
+    } else {
         // Crear nueva sección
         response = await api.post('/admin/welcome-sections', formDataObj, {
           headers: {
@@ -309,8 +310,75 @@ export const welcomeSectionService = {
 export const categoryService = {
   getAll: async () => {
     try {
-      const response = await api.get('/categories', {
+      const response = await api.get('/admin/categories', {
         timeout: 10000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  getById: async (id) => {
+    try {
+      const response = await api.get(`/admin/categories/${id}`, {
+        timeout: 10000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  create: async (data) => {
+    try {
+      const response = await api.post('/admin/categories', data, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        timeout: 15000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  update: async (id, data) => {
+    try {
+      const response = await api.put(`/admin/categories/${id}`, data, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        timeout: 15000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`/admin/categories/${id}`, {
+        timeout: 15000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  toggleStatus: async (id) => {
+    try {
+      const response = await api.patch(`/admin/categories/${id}/toggle`, {}, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        timeout: 15000,
       });
       return response;
     } catch (error) {
@@ -323,6 +391,56 @@ export const categoryService = {
       const response = await api.get(`/categories/${slug}`, {
         timeout: 10000,
       });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Obtener IDs de productos que están en categorías (admin)
+  getCategoryProductIds: async () => {
+    try {
+      const response = await api.get('/admin/categories/category-product-ids');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Agregar productos a una categoría
+  addProductsToCategory: async (categoryId, products) => {
+    try {
+      const response = await api.post(`/admin/categories/${categoryId}/products`, { products });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Remover producto de una categoría
+  removeProductFromCategory: async (categoryId, productId) => {
+    try {
+      const response = await api.delete(`/admin/categories/${categoryId}/products/${productId}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Obtener productos de una categoría
+  getCategoryProducts: async (categoryId) => {
+    try {
+      const response = await api.get(`/admin/categories/${categoryId}/products`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Reordenar productos de una categoría
+  reorderCategoryProducts: async (categoryId, products) => {
+    try {
+      const response = await api.post(`/admin/categories/${categoryId}/reorder-products`, { products });
       return response;
     } catch (error) {
       throw error;
@@ -488,6 +606,230 @@ export const ratingService = {
   },
 };
 
+// Servicios específicos para catálogos
+export const catalogService = {
+  // Obtener todos los catálogos (admin)
+  getAll: async () => {
+    try {
+      const response = await api.get('/admin/catalogs');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Obtener un catálogo específico (admin)
+  getById: async (id) => {
+    try {
+      const response = await api.get(`/admin/catalogs/${id}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Crear un nuevo catálogo (admin)
+  create: async (formData) => {
+    try {
+      const response = await api.post('/admin/catalogs', formData, {
+        timeout: 15000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Actualizar un catálogo existente (admin)
+  update: async (id, formData) => {
+    try {
+      const response = await api.post(`/admin/catalogs/${id}`, formData, {
+        timeout: 15000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Eliminar un catálogo (admin)
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`/admin/catalogs/${id}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Cambiar estado activo/inactivo (admin)
+  toggleStatus: async (id) => {
+    try {
+      const response = await api.patch(`/admin/catalogs/${id}/toggle`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Agregar imágenes PDF al catálogo (admin)
+  addPdfImages: async (id, formData) => {
+    try {
+      const response = await api.post(`/admin/catalogs/${id}/pdf-images`, formData, {
+        timeout: 20000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Eliminar imagen PDF del catálogo (admin)
+  removePdfImage: async (catalogId, imageId) => {
+    try {
+      const response = await api.delete(`/admin/catalogs/${catalogId}/pdf-images/${imageId}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Agregar productos al catálogo (admin)
+  addProducts: async (id, products) => {
+    try {
+      const response = await api.post(`/admin/catalogs/${id}/products`, { products }, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        timeout: 15000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Eliminar producto del catálogo (admin)
+  removeProduct: async (catalogId, productId) => {
+    try {
+      const response = await api.delete(`/admin/catalogs/${catalogId}/products/${productId}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Obtener IDs de productos que están en catálogos (admin)
+  getCatalogProductIds: async () => {
+    try {
+      const response = await api.get('/admin/catalogs/catalog-product-ids');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Obtener IDs de productos que están en categorías (admin)
+  getCategoryProductIds: async () => {
+    try {
+      const response = await api.get('/admin/categories/category-product-ids');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Agregar productos a una categoría
+  addProductsToCategory: async (categoryId, products) => {
+    try {
+      const response = await api.post(`/admin/categories/${categoryId}/products`, { products });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Remover producto de una categoría
+  removeProductFromCategory: async (categoryId, productId) => {
+    try {
+      const response = await api.delete(`/admin/categories/${categoryId}/products/${productId}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Obtener productos de una categoría
+  getCategoryProducts: async (categoryId) => {
+    try {
+      const response = await api.get(`/admin/categories/${categoryId}/products`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Reordenar productos de una categoría
+  reorderCategoryProducts: async (categoryId, products) => {
+    try {
+      const response = await api.post(`/admin/categories/${categoryId}/reorder-products`, { products });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Filtrar productos disponibles basándose en una lista externa
+  filterAvailableProducts: async (products) => {
+    try {
+      const response = await api.post('/admin/catalogs/filter-available-products', { products });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Reordenar elementos del catálogo (admin)
+  reorder: async (id, type, items) => {
+    try {
+      const response = await api.post(`/admin/catalogs/${id}/reorder`, { type, items }, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+};
+
+// Servicio de autenticación
+export const authService = {
+  // Extender la sesión del usuario
+  extendSession: async () => {
+    try {
+      const response = await api.post('/auth/extend-session');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Verificar si el token está activo
+  checkToken: async () => {
+    try {
+      const response = await api.get('/auth/check-token');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+};
+
 // Utilidades para FormData
 export const formDataUtils = {
   // Crear FormData desde un objeto de datos
@@ -548,10 +890,7 @@ export const formDataUtils = {
   // Debug: mostrar contenido de FormData (solo en desarrollo)
   debug: (formData, label = 'FormData') => {
     if (process.env.NODE_ENV === 'development') {
-      console.log(`🔍 ${label}:`);
-      for (let [key, value] of formData.entries()) {
-        console.log(`  ${key}:`, value);
-      }
+      // Debug silencioso en producción
     }
   }
 };

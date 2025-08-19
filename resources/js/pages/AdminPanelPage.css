@@ -369,3 +369,23 @@
     padding: 1rem;
   }
 } 
+
+/* Estilos para el botón "Agregar sección" del dashboard */
+.admin-panel__add-section-btn {
+  background: var(--color-primary, #EA2630) !important;
+  border: none !important;
+  color: #fff !important;
+  font-size: 1rem !important;
+  padding: 10px 18px !important;
+  border-radius: 6px !important;
+  text-align: left !important;
+  transition: background 0.2s, color 0.2s !important;
+  cursor: pointer !important;
+  margin-bottom: 2px !important;
+  font-weight: 500 !important;
+}
+
+.admin-panel__add-section-btn:hover {
+  background: #d4202a !important;
+  color: #fff !important;
+} 
