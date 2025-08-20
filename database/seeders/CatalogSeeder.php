@@ -35,7 +35,10 @@ class CatalogSeeder extends Seeder
         ];
 
         foreach ($catalogs as $catalogData) {
-            Catalog::create($catalogData);
+            Catalog::updateOrCreate(
+                ['name' => $catalogData['name']],
+                $catalogData
+            );
         }
 
         $this->command->info('Catálogos creados exitosamente!');
