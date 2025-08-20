@@ -188,4 +188,70 @@
     grid-template-columns: repeat(4, 1fr);
     gap: 1rem;
   }
+}
+
+/* Estados de carga, error y vacío */
+.catalog-collections-page__loading,
+.catalog-collections-page__error,
+.catalog-collections-page__empty {
+  text-align: center;
+  padding: 60px 20px;
+  margin-top: 40px;
+}
+
+.catalog-collections-page__loading .spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid var(--color-primary, #F9738A);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.catalog-collections-page__loading p {
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.catalog-collections-page__error p {
+  color: #dc3545;
+  font-size: 1.1rem;
+  margin-bottom: 20px;
+}
+
+.catalog-collections-page__empty p {
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.retry-button {
+  background: var(--color-primary, #F9738A);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.retry-button:hover {
+  background: #e85a73;
+}
+
+/* Información adicional del catálogo */
+.catalog-collections-page__info {
+  margin: 8px 0;
+}
+
+.catalog-pdf-count {
+  color: var(--color-primary, #F9738A);
+  font-size: 0.9rem;
+  font-weight: 500;
 } 

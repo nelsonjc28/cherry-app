@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\AdminCategoryController;
 use App\Http\Controllers\Api\AdminOrderedCategoryController;
+use App\Http\Controllers\Api\HomeCategoryController;
 use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\CategoryController;
@@ -92,6 +93,7 @@ Route::middleware(['auth:api'])->group(function () {
         Route::post('/admin/catalogs/{id}/pdf-images', [AdminCatalogController::class, 'addPdfImages']);
         Route::delete('/admin/catalogs/{catalogId}/pdf-images/{imageId}', [AdminCatalogController::class, 'removePdfImage']);
         Route::post('/admin/catalogs/{id}/products', [AdminCatalogController::class, 'addProducts']);
+        Route::get('/admin/catalogs/{id}/products', [AdminCatalogController::class, 'getCatalogProducts']);
         Route::delete('/admin/catalogs/{catalogId}/products/{productId}', [AdminCatalogController::class, 'removeProduct']);
         Route::post('/admin/catalogs/{id}/reorder', [AdminCatalogController::class, 'reorder']);
     });
@@ -116,6 +118,7 @@ Route::post('/ratings/bulk', [RatingController::class, 'getBulkRatings']);
 // Public categories routes (no authentication required)
 Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/categories/{slug}', [CategoryController::class, 'show']);
+Route::get('/categories/{slug}/products', [CategoryController::class, 'getCategoryProducts']);
 
 // Public welcome sections routes (no authentication required)
 Route::get('/welcome-sections/active', [WelcomeSectionController::class, 'getActiveSection']);
@@ -142,4 +145,9 @@ Route::middleware(['auth:api', 'admin'])->group(function () {
 });
 
 // Public home categories route (no authentication required)
-Route::get('/home-categories', [AdminOrderedCategoryController::class, 'getHomeCategories']); 
+Route::get('/home-categories', [HomeCategoryController::class, 'getHomeCategories']);
+
+// Public catalogs routes (no authentication required)
+Route::get('/catalogs', [AdminCatalogController::class, 'getPublicCatalogs']);
+Route::get('/catalogs/{id}', [AdminCatalogController::class, 'getPublicCatalog']);
+Route::get('/catalogs/{id}/products', [AdminCatalogController::class, 'getPublicCatalogProducts']); 

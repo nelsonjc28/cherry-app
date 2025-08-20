@@ -12,6 +12,8 @@ import CatalogPage from './pages/CatalogPage';
 import CatalogosPage from './pages/CatalogosPage';
 import CatalogCollectionsPage from './pages/CatalogCollectionsPage';
 import CatalogPdfPage from './pages/CatalogPdfPage';
+import CatalogProductsPage from './pages/CatalogProductsPage';
+import CategoryProductsPage from './pages/CategoryProductsPage';
 import ProductPage from './pages/ProductPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
@@ -64,7 +66,9 @@ function App() {
                     <Routes>
                       <Route path="/" element={<HomePage />} />
                       <Route path="/catalogo" element={<CatalogPage />} />
+                      <Route path="/catalogo/:id" element={<CatalogProductsPage />} />
                       <Route path="/catalogos" element={<CatalogCollectionsPage />} />
+                      <Route path="/categoria/:slug" element={<CategoryProductsPage />} />
                       <Route path="/catalogo-pdf" element={<CatalogPdfPage />} />
                       <Route path="/producto/:productId" element={<ProductPage />} />
                       <Route path="/login" element={<LoginPage />} />

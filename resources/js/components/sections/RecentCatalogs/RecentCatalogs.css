@@ -122,6 +122,58 @@
 }
 
 /* View More Section */
+/* Estados de carga y error */
+.catalogs-loading,
+.catalogs-error,
+.catalogs-empty {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.catalogs-loading .spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.catalogs-error p {
+  color: #dc3545;
+  font-size: 1.1rem;
+}
+
+.catalogs-empty p {
+  color: #6c757d;
+  font-size: 1.1rem;
+}
+
+/* Información del PDF */
+.catalog-pdf-info {
+  color: #667eea;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-top: 10px;
+}
+
+/* Enlace de la imagen */
+.catalog-image-link {
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.catalog-image-link:hover {
+  transform: scale(1.05);
+}
+
+/* View more catalogs link */
 .view-more-section {
   text-align: center;
   margin-top: 40px;

@@ -20,6 +20,13 @@ const Header = () => {
   // Solo cargar categorías si no estamos en el panel de administración
   const { categories, loading: categoriesLoading } = useCategories();
   
+  // Debug logs
+  console.log('🔍 Header: Estado de categorías:', { 
+    categoriesCount: categories.length, 
+    loading: categoriesLoading, 
+    pathname: location.pathname 
+  });
+  
   const [activeMenu, setActiveMenu] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openMobileSubMenu, setOpenMobileSubMenu] = useState(null);
@@ -30,12 +37,20 @@ const Header = () => {
 
   // Organizar categorías en grupos para el menú
   const getCategoryGroups = () => {
+    console.log('🔍 Header getCategoryGroups:', { 
+      isAdminPage, 
+      categoriesLoading, 
+      categoriesCount: categories.length 
+    });
+    
     // Si estamos en el panel de administración, no mostrar categorías
     if (isAdminPage) {
+      console.log('🚫 Header: En panel admin, no mostrando categorías');
       return [];
     }
     
     if (categoriesLoading || !categories.length) {
+      console.log('⏳ Header: Cargando o sin categorías, mostrando placeholder');
       // Devolver estructura por defecto mientras carga
       return [
         {

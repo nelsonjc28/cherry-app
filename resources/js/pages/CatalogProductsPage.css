@@ -1,0 +1,232 @@
+.catalog-products-page {
+  min-height: 100vh;
+  background: #f8f9fa;
+}
+
+/* Header del catálogo */
+.catalog-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 60px 20px;
+}
+
+.catalog-header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 40px;
+  align-items: center;
+}
+
+.catalog-info h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 20px 0;
+  line-height: 1.2;
+}
+
+.catalog-description {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin: 0 0 20px 0;
+  opacity: 0.9;
+}
+
+.catalog-pdf-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+.pdf-icon {
+  font-size: 1.2rem;
+}
+
+.catalog-header-image img {
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Navegación */
+.catalog-navigation {
+  background: white;
+  padding: 20px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.catalog-navigation {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+}
+
+.nav-link {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.nav-link:hover {
+  text-decoration: underline;
+}
+
+.nav-separator {
+  color: #6c757d;
+}
+
+.nav-current {
+  color: #495057;
+  font-weight: 500;
+}
+
+/* Sección de productos */
+.catalog-products-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.catalog-products-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.catalog-products-header h2 {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 10px 0;
+}
+
+.products-count {
+  color: #6c757d;
+  font-size: 1rem;
+}
+
+/* Grid de productos */
+.catalog-products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 30px;
+  margin-bottom: 40px;
+}
+
+/* Estados vacíos y de carga */
+.catalog-products-empty,
+.catalog-products-loading,
+.catalog-products-error {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.catalog-products-loading .spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.catalog-products-empty p {
+  color: #6c757d;
+  font-size: 1.1rem;
+}
+
+.catalog-products-error h2 {
+  color: #dc3545;
+  margin-bottom: 10px;
+}
+
+.catalog-products-error p {
+  color: #6c757d;
+  margin-bottom: 20px;
+}
+
+/* Footer */
+.catalog-footer {
+  background: white;
+  padding: 40px 20px;
+  border-top: 1px solid #e9ecef;
+  text-align: center;
+}
+
+.back-home-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: #667eea;
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.back-home-btn:hover {
+  background: #5a6fd8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .catalog-header {
+    padding: 40px 20px;
+  }
+  
+  .catalog-header-content {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 30px;
+  }
+  
+  .catalog-info h1 {
+    font-size: 2rem;
+  }
+  
+  .catalog-header-image img {
+    width: 150px;
+    height: 150px;
+  }
+  
+  .catalog-products-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+  }
+  
+  .catalog-products-header h2 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .catalog-products-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .catalog-header {
+    padding: 30px 15px;
+  }
+  
+  .catalog-products-section {
+    padding: 30px 15px;
+  }
+}
+

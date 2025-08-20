@@ -15,8 +15,13 @@ import {
   searchProductsAdvanced,
   getProductsWithRatings
 } from '../api/cherryApi';
+import { catalogService, publicCatalogService } from '../services/api';
+import { getProductImageUrl } from '../utils/productImageUtils';
 
-const CatalogPage = () => {
+const CatalogPage = ({ catalogId }) => {
+  // Debug: verificar que estamos recibiendo el catalogId
+  console.log('CatalogPage - catalogId recibido:', catalogId);
+  
   const [searchParams] = useSearchParams();
   const category = searchParams.get('category') || 'all';
   const colorFilter = searchParams.get('color') || '';
@@ -28,8 +33,10 @@ const CatalogPage = () => {
   const [allProducts, setAllProducts] = useState([]); // Store all products
   const [filteredProducts, setFilteredProducts] = useState([]); // Store filtered products
   const [loading, setLoading] = useState(true);
+  const [catalogs, setCatalogs] = useState([]); // Store all available catalogs
+  const [catalogLoading, setCatalogLoading] = useState(true);
   const [filters, setFilters] = useState({
-    catalog: 'Cherry 2025 - 2026',
+    catalog: '',
     availability: 'todos',
     category: 'Todas las categorías',
     department: 'Todos los departamentos',
@@ -52,6 +59,8 @@ const CatalogPage = () => {
     });
     return Array.from(colorSet).sort();
   };
+
+
 
   // Function to filter products based on current filters
   const filterProducts = (products, currentFilters) => {
@@ -148,6 +157,41 @@ const CatalogPage = () => {
     }
   };
 
+  // Load catalogs
+  useEffect(() => {
+    const loadCatalogs = async () => {
+      // Si tenemos catalogId, no necesitamos cargar todos los catálogos
+      if (catalogId) {
+        setCatalogLoading(false);
+        return;
+      }
+
+      setCatalogLoading(true);
+      try {
+        const response = await catalogService.getAll();
+        if (response.data.success) {
+          const availableCatalogs = response.data.data.catalogs.filter(catalog => catalog.status === 'active');
+          setCatalogs(availableCatalogs);
+          
+          if (availableCatalogs.length > 0) {
+            // Usar el primer catálogo disponible
+            setFilters(prev => ({
+              ...prev,
+              catalog: availableCatalogs[0].name
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('Error loading catalogs:', error);
+        setCatalogs([]);
+      } finally {
+        setCatalogLoading(false);
+      }
+    };
+
+    loadCatalogs();
+  }, [catalogId]);
+
   // Load products based on category, catalog and availability
   useEffect(() => {
     const loadProducts = async () => {
@@ -155,12 +199,48 @@ const CatalogPage = () => {
       try {
         let productsData;
         
-        if (category === 'all') {
-          // Load all products with ratings optimized
-          productsData = await getProductsWithRatings(filters.catalog);
+        // Si se proporciona catalogId, cargar productos de ese catálogo específico
+        if (catalogId) {
+          try {
+            const response = await publicCatalogService.getProducts(catalogId);
+            if (response.data.success) {
+              // Mapear productos del catálogo al formato esperado
+              productsData = response.data.data.products.map(product => ({
+                id: product.external_product_id,
+                title: product.product_name,
+                description: product.product_description,
+                price: product.product_price,
+                image: getProductImageUrl(product.external_product_id),
+                brand: product.product_metadata?.marca,
+                category: product.product_category,
+                stock: product.product_metadata?.inventario || 0,
+                colors: [],
+                isNew: false,
+                rating: 0,
+                ratingCount: 0
+              }));
+            } else {
+              productsData = [];
+            }
+          } catch (error) {
+            console.error('Error loading catalog products:', error);
+            productsData = [];
+          }
         } else {
-          // Para categorías específicas, obtener por categoría
-          productsData = await getProductsByCategory(category, filters.catalog);
+          // Solo cargar productos si tenemos un catálogo seleccionado
+          if (!filters.catalog) {
+            setLoading(false);
+            return;
+          }
+          
+          // Carga normal de productos
+          if (category === 'all') {
+            // Load all products with ratings optimized
+            productsData = await getProductsWithRatings(filters.catalog);
+          } else {
+            // Para categorías específicas, obtener por categoría
+            productsData = await getProductsByCategory(category, filters.catalog);
+          }
         }
         
         // Filtrar productos nulos
@@ -169,6 +249,7 @@ const CatalogPage = () => {
         setAllProducts(validProducts);
         setFilteredProducts(validProducts);
       } catch (error) {
+        console.error('Error loading products:', error);
         setAllProducts([]);
       } finally {
         setLoading(false);
@@ -176,7 +257,7 @@ const CatalogPage = () => {
     };
 
     loadProducts();
-  }, [category, filters.catalog]);
+  }, [category, filters.catalog, catalogId]);
 
   // Apply filters and sorting when filters or sortBy changes
   useEffect(() => {
@@ -238,7 +319,7 @@ const CatalogPage = () => {
   // Handle clear filters
   const handleClearFilters = () => {
     setFilters({
-      catalog: 'Cherry 2025 - 2026',
+      catalog: catalogs.length > 0 ? catalogs[0].name : '',
       availability: 'todos',
       category: 'Todas las categorías',
       department: 'Todos los departamentos',
@@ -399,6 +480,9 @@ const CatalogPage = () => {
                 onFilterChange={handleFilterChange}
                 onClearFilters={handleClearFilters}
                 isMobile={false}
+                catalogs={catalogs}
+                catalogLoading={catalogLoading}
+                hideCatalogSelector={!!catalogId}
               />
             </aside>
 
@@ -441,6 +525,9 @@ const CatalogPage = () => {
                 onClearFilters={handleClearFilters}
                 isMobile={true}
                 onClose={toggleFilterModal}
+                catalogs={catalogs}
+                catalogLoading={catalogLoading}
+                hideCatalogSelector={!!catalogId}
               />
             </div>
             </div>

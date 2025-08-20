@@ -1,44 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import CategoryIcon from '../components/CategoryIcon/CategoryIcon';
 import CherryButton from '../components/CherryButton/CherryButton';
-import { getIconPath } from '../utils/assetPaths';
-import { useExternalApiContext } from '../contexts/ExternalApiContext';
+import { getCategoryIconPath, getIconPath } from '../utils/assetPaths';
+import useCategories from '../hooks/useCategories';
 import './CategoriasPage.css';
 
 const CategoriasPage = () => {
-  const { getCategoriesCached, loading, error } = useExternalApiContext();
-  const [categories, setCategories] = useState([]);
-  const [localLoading, setLocalLoading] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const { categories, loading, error } = useCategories();
 
-  useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        setLocalLoading(true);
-        const categoriesData = await getCategoriesCached();
-        setCategories(categoriesData || []);
-      } catch (error) {
-        setCategories([]);
-      } finally {
-        setLocalLoading(false);
-      }
-    };
-
-    loadCategories();
-  }, []);
-
-  const handleCategoryClick = (category) => {
-    setSelectedCategory(category);
-  };
-
-  const handleViewProducts = (category) => {
-    // Navegar a la página de catálogo con filtro de categoría
-    window.location.href = `/catalogo?categoria=${encodeURIComponent(category.name)}`;
-  };
-
-  if (loading || localLoading) {
+  if (loading) {
     return (
       <>
         <Helmet>
@@ -72,68 +44,14 @@ const CategoriasPage = () => {
             <p>Explora nuestra amplia selección de moda femenina organizada por categorías</p>
           </div>
 
-          {/* Grid de categorías */}
-          <div className="categorias-grid">
+          {/* Iconos de categorías */}
+          <div className="categorias-icons">
             {categories.map((category) => (
-              <div 
-                key={category.id} 
-                className={`categoria-card ${selectedCategory?.id === category.id ? 'selected' : ''}`}
-                onClick={() => handleCategoryClick(category)}
-              >
-                <div className="categoria-icon">
-                  <CategoryIcon category={category.name} />
-                </div>
-                <div className="categoria-content">
-                  <h3>{category.name}</h3>
-                  <p>{category.description || `${category.name} de moda femenina`}</p>
-                  <div className="categoria-actions">
-                    <CherryButton 
-                      variant="red" 
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleViewProducts(category);
-                      }}
-                    >
-                      Ver productos
-                    </CherryButton>
-                  </div>
-                </div>
+              <div key={category.id} className="categoria-icon-wrapper">
+                <CategoryIcon name={category.name} icon={getCategoryIconPath(category.name)} />
               </div>
             ))}
           </div>
-
-          {/* Categoría seleccionada */}
-          {selectedCategory && (
-            <div className="categoria-selected">
-              <div className="selected-header">
-                <h2>{selectedCategory.name}</h2>
-                <button 
-                  className="close-selected"
-                  onClick={() => setSelectedCategory(null)}
-                >
-                  ×
-                </button>
-              </div>
-              <div className="selected-content">
-                <p>{selectedCategory.description || `Descubre nuestra colección de ${selectedCategory.name.toLowerCase()}.`}</p>
-                <div className="selected-actions">
-                  <CherryButton 
-                    variant="red" 
-                    size="large"
-                    onClick={() => handleViewProducts(selectedCategory)}
-                  >
-                    Ver todos los productos
-                  </CherryButton>
-                  <Link to="/catalogo">
-                    <CherryButton variant="outline" size="large">
-                      Ver catálogo completo
-                    </CherryButton>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Información adicional */}
           <div className="categorias-info">

@@ -33,14 +33,23 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
+    // NO redirigir automáticamente para rutas públicas
+    const isPublicRoute = error.config?.url?.includes('/catalogs') || 
+                         error.config?.url?.includes('/categories') ||
+                         error.config?.url?.includes('/welcome-sections') ||
+                         error.config?.url?.includes('/contact-info') ||
+                         error.config?.url?.includes('/privacy-policy');
+    
     // Manejar casos específicos de error
     if (error.response) {
       switch (error.response.status) {
         case 401:
-      // Token expirado o inválido
-      localStorage.removeItem('token');
-          if (window.location.pathname !== '/login') {
-      window.location.href = '/login';
+          // Token expirado o inválido - solo redirigir si NO es una ruta pública
+          if (!isPublicRoute) {
+            localStorage.removeItem('token');
+            if (window.location.pathname !== '/login') {
+              window.location.href = '/login';
+            }
           }
           break;
         case 403:
@@ -304,6 +313,87 @@ export const welcomeSectionService = {
       throw error;
     }
   },
+};
+
+// Servicios públicos para catálogos (sin autenticación requerida)
+export const publicCatalogService = {
+  // Obtener todos los catálogos públicos
+  getAll: async () => {
+    try {
+      const response = await api.get('/catalogs', {
+        timeout: 10000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Obtener un catálogo público específico
+  getById: async (id) => {
+    try {
+      const response = await api.get(`/catalogs/${id}`, {
+        timeout: 10000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Obtener productos de un catálogo público específico
+  getProducts: async (id) => {
+    try {
+      const response = await api.get(`/catalogs/${id}/products`, {
+        timeout: 10000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+};
+
+// Servicios públicos para categorías (sin autenticación requerida)
+export const publicCategoryService = {
+  // Obtener todas las categorías públicas
+  getAll: async () => {
+    try {
+      console.log('🌐 publicCategoryService.getAll: Iniciando llamada a /categories');
+      const response = await api.get('/categories', {
+        timeout: 10000,
+      });
+      console.log('✅ publicCategoryService.getAll: Respuesta exitosa:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ publicCategoryService.getAll: Error:', error);
+      throw error;
+    }
+  },
+
+  // Obtener una categoría pública específica
+  getBySlug: async (slug) => {
+    try {
+      const response = await api.get(`/categories/${slug}`, {
+        timeout: 10000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Obtener productos de una categoría pública específica
+  getProducts: async (slug) => {
+    try {
+      const response = await api.get(`/categories/${slug}/products`, {
+        timeout: 10000,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
 };
 
 // Servicios para categorías
@@ -724,6 +814,16 @@ export const catalogService = {
   getCatalogProductIds: async () => {
     try {
       const response = await api.get('/admin/catalogs/catalog-product-ids');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Obtener productos de un catálogo específico
+  getCatalogProducts: async (catalogId) => {
+    try {
+      const response = await api.get(`/admin/catalogs/${catalogId}/products`);
       return response;
     } catch (error) {
       throw error;

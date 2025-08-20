@@ -55,11 +55,38 @@ const AdminContactManager = () => {
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data) {
+          // Asegurar que store_hours y online_hours tengan la estructura completa
+          const defaultStoreHours = {
+            monday: { open: '9:30 am', close: '7:00 pm', closed: false },
+            tuesday: { open: '9:30 am', close: '7:00 pm', closed: false },
+            wednesday: { open: '9:30 am', close: '7:00 pm', closed: false },
+            thursday: { open: '9:30 am', close: '7:00 pm', closed: false },
+            friday: { open: '9:30 am', close: '5:00 pm', closed: false },
+            saturday: { open: '', close: '', closed: true },
+            sunday: { open: '', close: '', closed: true }
+          };
+          
+          const defaultOnlineHours = {
+            monday: { open: '9:30 am', close: '7:00 pm', closed: false },
+            tuesday: { open: '9:30 am', close: '7:00 pm', closed: false },
+            wednesday: { open: '9:30 am', close: '7:00 pm', closed: false },
+            thursday: { open: '9:30 am', close: '7:00 pm', closed: false },
+            friday: { open: '9:30 am', close: '5:00 pm', closed: false },
+            saturday: { open: '', close: '', closed: true },
+            sunday: { open: '', close: '', closed: true }
+          };
+          
           setContactInfo(prev => ({
             ...prev,
             ...data.data,
-            store_hours: data.data.store_hours || prev.store_hours,
-            online_hours: data.data.online_hours || prev.online_hours
+            store_hours: {
+              ...defaultStoreHours,
+              ...(data.data.store_hours || {})
+            },
+            online_hours: {
+              ...defaultOnlineHours,
+              ...(data.data.online_hours || {})
+            }
           }));
         }
       }
@@ -80,16 +107,28 @@ const AdminContactManager = () => {
   };
 
   const handleHoursChange = (type, day, field, value) => {
-    setContactInfo(prev => ({
-      ...prev,
-      [type]: {
-        ...prev[type],
-        [day]: {
-          ...prev[type][day],
-          [field]: value
-        }
+    setContactInfo(prev => {
+      // Asegurar que el tipo existe
+      if (!prev[type]) {
+        prev[type] = {};
       }
-    }));
+      
+      // Asegurar que el día existe
+      if (!prev[type][day]) {
+        prev[type][day] = { open: '', close: '', closed: true };
+      }
+      
+      return {
+        ...prev,
+        [type]: {
+          ...prev[type],
+          [day]: {
+            ...prev[type][day],
+            [field]: value
+          }
+        }
+      };
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -132,43 +171,51 @@ const AdminContactManager = () => {
     <div className="contact-hours-section">
       <h4>{title}</h4>
       <div className="hours-grid">
-        {daysOfWeek.map(day => (
-          <div key={day.key} className="hours-row">
-            <div className="day-label">{day.label}</div>
-            <div className="hours-inputs">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={!contactInfo[type][day.key].closed}
-                  onChange={(e) => handleHoursChange(type, day.key, 'closed', !e.target.checked)}
-                />
-                Abierto
-              </label>
-              {!contactInfo[type][day.key].closed && (
-                <>
+        {daysOfWeek.map(day => {
+          // Validar que el día existe en contactInfo[type]
+          const dayInfo = contactInfo[type]?.[day.key];
+          if (!dayInfo) {
+            return null; // No renderizar si no hay información del día
+          }
+          
+          return (
+            <div key={day.key} className="hours-row">
+              <div className="day-label">{day.label}</div>
+              <div className="hours-inputs">
+                <label>
                   <input
-                    type="text"
-                    placeholder="9:30 am"
-                    value={contactInfo[type][day.key].open}
-                    onChange={(e) => handleHoursChange(type, day.key, 'open', e.target.value)}
-                    className="time-input"
+                    type="checkbox"
+                    checked={!dayInfo.closed}
+                    onChange={(e) => handleHoursChange(type, day.key, 'closed', !e.target.checked)}
                   />
-                  <span>a</span>
-                  <input
-                    type="text"
-                    placeholder="7:00 pm"
-                    value={contactInfo[type][day.key].close}
-                    onChange={(e) => handleHoursChange(type, day.key, 'close', e.target.value)}
-                    className="time-input"
-                  />
-                </>
-              )}
-              {contactInfo[type][day.key].closed && (
-                <span className="closed-label">Cerrado</span>
-              )}
+                  Abierto
+                </label>
+                {!dayInfo.closed && (
+                  <>
+                    <input
+                      type="text"
+                      placeholder="9:30 am"
+                      value={dayInfo.open || ''}
+                      onChange={(e) => handleHoursChange(type, day.key, 'open', e.target.value)}
+                      className="time-input"
+                    />
+                    <span>a</span>
+                    <input
+                      type="text"
+                      placeholder="7:00 pm"
+                      value={dayInfo.close || ''}
+                      onChange={(e) => handleHoursChange(type, day.key, 'close', e.target.value)}
+                      className="time-input"
+                    />
+                  </>
+                )}
+                {dayInfo.closed && (
+                  <span className="closed-label">Cerrado</span>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

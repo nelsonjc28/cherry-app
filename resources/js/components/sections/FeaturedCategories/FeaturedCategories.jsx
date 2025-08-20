@@ -1,33 +1,91 @@
+import { useState, useEffect } from 'react';
 import './FeaturedCategories.css';
 import { Link } from 'react-router-dom';
 import { getHeroIconPath, getFeaturedCategoryIconPath } from '../../../utils/assetPaths';
+import { publicCategoryService } from '../../../services/api';
 
 const FeaturedCategories = () => {
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Categories data with their respective information
-  const categories = [
-    {
-      id: 1,
-      title: "Elige lo mejor para ti y marca la diferencia.",
-      description: "Nuestra chaqueta de cuero es ideal para cualquier ocasión",
-      iconName: "chaqueta.svg",
-      link: "/categoria/chaquetas"
-    },
-    {
-      id: 2,
-      title: "Complementa tu look con nuestro elegante collar de perlas.",
-      description: "Un toque clásico que nunca pasa de moda",
-      iconName: "collar.svg",
-      link: "/categoria/collares"
-    },
-    {
-      id: 3,
-      title: "Confort y estilo se unen en nuestros zapatos altos",
-      description: "Ideales para un día activo sin sacrificar la moda",
-      iconName: "tacones.svg",
-      link: "/categoria/zapatos"
-    }
-  ];
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setLoading(true);
+        const response = await publicCategoryService.getAll();
+        
+        if (response.data.success && response.data.categories) {
+          // Tomar las primeras 3 categorías y mapearlas
+          const featuredCategories = response.data.categories.slice(0, 3).map((category, index) => ({
+            id: category.id,
+            title: category.name,
+            description: category.description || `Descubre nuestra colección de ${category.name}`,
+            iconName: `${category.slug}.svg`,
+            link: `/categoria/${category.slug}`
+          }));
+          
+          setCategories(featuredCategories);
+        } else {
+          // Fallback a categorías por defecto
+          const defaultCategories = [
+            {
+              id: 1,
+              title: "Elige lo mejor para ti y marca la diferencia.",
+              description: "Nuestra chaqueta de cuero es ideal para cualquier ocasión",
+              iconName: "chaqueta.svg",
+              link: "/categoria/chaquetas"
+            },
+            {
+              id: 2,
+              title: "Complementa tu look con nuestro elegante collar de perlas.",
+              description: "Un toque clásico que nunca pasa de moda",
+              iconName: "collar.svg",
+              link: "/categoria/collares"
+            },
+            {
+              id: 3,
+              title: "Confort y estilo se unen en nuestros zapatos altos",
+              description: "Ideales para un día activo sin sacrificar la moda",
+              iconName: "tacones.svg",
+              link: "/categoria/zapatos"
+            }
+          ];
+          setCategories(defaultCategories);
+        }
+      } catch (error) {
+        console.error('Error loading featured categories:', error);
+        // Usar categorías por defecto en caso de error
+        const defaultCategories = [
+          {
+            id: 1,
+            title: "Elige lo mejor para ti y marca la diferencia.",
+            description: "Nuestra chaqueta de cuero es ideal para cualquier ocasión",
+            iconName: "chaqueta.svg",
+            link: "/categoria/chaquetas"
+          },
+          {
+            id: 2,
+            title: "Complementa tu look con nuestro elegante collar de perlas.",
+            description: "Un toque clásico que nunca pasa de moda",
+            iconName: "collar.svg",
+            link: "/categoria/collares"
+          },
+          {
+            id: 3,
+            title: "Confort y estilo se unen en nuestros zapatos altos",
+            description: "Ideales para un día activo sin sacrificar la moda",
+            iconName: "tacones.svg",
+            link: "/categoria/zapatos"
+          }
+        ];
+        setCategories(defaultCategories);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   return (
     <section className="featured-categories">
@@ -64,8 +122,8 @@ const FeaturedCategories = () => {
                 </p>
                 
                 <div className="category-card__action">
-                  <Link to="/catalogo" className="view-more-link">
-                    Ver todos los catálogos
+                  <Link to={category.link} className="view-more-link">
+                    Ver productos
                     <img 
                       src={getHeroIconPath('Chevron Right.svg')} 
                       alt="Ver más" 

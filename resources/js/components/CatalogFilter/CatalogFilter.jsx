@@ -9,7 +9,10 @@ const CatalogFilter = ({
   onFilterChange,
   onClearFilters,
   isMobile = false,
-  onClose
+  onClose,
+  catalogs = [],
+  catalogLoading = false,
+  hideCatalogSelector = false
 }) => {
   // Local state for expandable sections
   const [expandedSections, setExpandedSections] = useState({
@@ -77,11 +80,9 @@ const CatalogFilter = ({
   };
 
   // Available filter options
-  const catalogOptions = [
-    'Cherry 2025 - 2026',
-    'Cherry 2024 - 2025',
-    'Cherry 2023 - 2024'
-  ];
+  const catalogOptions = catalogs.length > 0 
+    ? catalogs.map(catalog => catalog.name)
+    : ['Cargando catálogos...'];
 
   const availabilityOptions = [
     { value: 'todos', label: 'Todos' },
@@ -130,19 +131,21 @@ const CatalogFilter = ({
       )}
 
       <div className="filter-content">
-        {/* Catalog selector */}
-        <div className="filter-section">
-          <h3 className="filter-title">Catálogo</h3>
-          <select
-            value={filters.catalog}
-            onChange={(e) => handleFilterChange('catalog', e.target.value)}
-            className="filter-select"
-          >
-            {catalogOptions.map((option) => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
-        </div>
+        {/* Catalog selector - solo mostrar si no está oculto */}
+        {!hideCatalogSelector && (
+          <div className="filter-section">
+            <h3 className="filter-title">Catálogo</h3>
+            <select
+              value={filters.catalog}
+              onChange={(e) => handleFilterChange('catalog', e.target.value)}
+              className="filter-select"
+            >
+              {catalogOptions.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Availability filter */}
         <div className="filter-section">

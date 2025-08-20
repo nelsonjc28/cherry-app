@@ -1,16 +1,17 @@
+import { getCurrencyCode, getCurrencyLocale, getCurrencyFormatting } from '../config/currency';
+
 /**
  * Format a price number to a currency string
  * @param {number} price - Price to format
- * @param {string} currencyCode - ISO currency code (default: USD)
+ * @param {string} currencyCode - ISO currency code (default: MXN)
  * @param {string} locale - Locale for formatting (default: es-MX)
  * @returns {string} - Formatted price string
  */
-export const formatPrice = (price, currencyCode = 'USD', locale = 'es-MX') => {
+export const formatPrice = (price, currencyCode = getCurrencyCode(), locale = getCurrencyLocale()) => {
+  const formatting = getCurrencyFormatting();
   return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency: currencyCode,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
+    ...formatting,
+    currency: currencyCode
   }).format(price);
 };
 

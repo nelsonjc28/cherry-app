@@ -547,4 +547,105 @@ class AdminCatalogController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Obtener productos de un catálogo específico
+     */
+    public function getCatalogProducts($id)
+    {
+        try {
+            $catalog = Catalog::findOrFail($id);
+            
+            // Obtener productos del catálogo con orden
+            $products = $catalog->products()
+                ->orderBy('display_order', 'asc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'catalog' => $catalog,
+                    'products' => $products
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener productos del catálogo: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener todos los catálogos públicos (activos)
+     */
+    public function getPublicCatalogs()
+    {
+        try {
+            $catalogs = Catalog::with(['pdfImages'])
+                ->where('is_active', true)
+                ->ordered()
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $catalogs
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener los catálogos: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener un catálogo público específico
+     */
+    public function getPublicCatalog($id)
+    {
+        try {
+            $catalog = Catalog::with(['pdfImages'])
+                ->where('is_active', true)
+                ->findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'data' => $catalog
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener el catálogo: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener productos de un catálogo público específico
+     */
+    public function getPublicCatalogProducts($id)
+    {
+        try {
+            $catalog = Catalog::where('is_active', true)->findOrFail($id);
+            
+            // Obtener productos del catálogo con orden
+            $products = $catalog->products()
+                ->orderBy('display_order', 'asc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'catalog' => $catalog,
+                    'products' => $products
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener productos del catálogo: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

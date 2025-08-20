@@ -71,10 +71,7 @@ class CategorySeeder extends Seeder
                 'name' => 'Calzado',
                 'description' => 'Zapatos y sandalias para complementar cualquier outfit.'
             ],
-            [
-                'name' => 'Bolsas',
-                'description' => 'Bolsas y carteras elegantes para completar tu look.'
-            ],
+
             [
                 'name' => 'Accesorios',
                 'description' => 'Accesorios como bufandas, cinturones y más para complementar tu estilo.'
