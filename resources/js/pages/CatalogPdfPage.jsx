@@ -1,11 +1,11 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
-import { mockCatalogs } from '../api/mockCatalogs';
+import { useLocation, useNavigate } from 'react-router-dom';
 import PdfThumbnailsList from '../components/PdfThumbnailsList/PdfThumbnailsList';
 import useIsDesktop from '../hooks/useIsDesktop';
 import './CatalogPdfPage.css';
 import { getIconPath } from '../utils/assetPaths';
 import CustomButton from '../components/CustomButton';
+import { publicCatalogService } from '../services/api';
 
 /**
  * CatalogPdfPage
@@ -25,15 +25,16 @@ import CustomButton from '../components/CustomButton';
 const CatalogPdfPage = () => {
   const isDesktop = useIsDesktop();
   const location = useLocation();
+  const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
   const catalogId = queryParams.get('id');
-  const selectedCatalog = useMemo(() => 
-    mockCatalogs.find(c => c.id === catalogId) || mockCatalogs[0],
-    [catalogId]
-  );
+  
+  const [selectedCatalog, setSelectedCatalog] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Obtiene las imágenes del catálogo seleccionado
-  const images = useMemo(() => selectedCatalog?.images || [], [selectedCatalog]);
+  const images = useMemo(() => selectedCatalog?.pdf_images?.map(img => `/${img.image_path}`) || [], [selectedCatalog]);
   // Estado para la página (índice de la imagen actual)
   const [pageIndex, setPageIndex] = useState(0);
   // Estado para guardar la orientación de cada imagen
@@ -44,6 +45,45 @@ const CatalogPdfPage = () => {
   const thumbnailListRef = useRef(null);
   // Referencia al IntersectionObserver (para detectar imagen visible)
   const observerRef = useRef(null);
+
+  // Cargar el catálogo al montar el componente
+  useEffect(() => {
+    if (catalogId) {
+      fetchCatalog();
+    } else {
+      setError('ID de catálogo no proporcionado');
+      setLoading(false);
+    }
+  }, [catalogId]);
+
+  const fetchCatalog = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await publicCatalogService.getById(catalogId);
+      
+      if (response.data.success) {
+        const catalog = response.data.data;
+        
+        // Verificar que el catálogo tenga imágenes PDF
+        if (!catalog.pdf_images || catalog.pdf_images.length === 0) {
+          setError('Este catálogo no tiene imágenes PDF disponibles');
+          setLoading(false);
+          return;
+        }
+        
+        setSelectedCatalog(catalog);
+      } else {
+        setError('Error al cargar el catálogo');
+      }
+    } catch (error) {
+      console.error('Error al cargar el catálogo:', error);
+      setError('Error al cargar el catálogo. Verifica que el ID sea válido.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Navega a la página anterior
   const handlePrev = () => {
@@ -163,8 +203,60 @@ const CatalogPdfPage = () => {
   const pageThumbnails = images.map((img, idx) => ({
     id: `${selectedCatalog?.id}-page-${idx}`,
     image: img,
-    title: `${selectedCatalog?.title} página ${idx + 1}`
+    title: `${selectedCatalog?.name} página ${idx + 1}`
   }));
+
+  // Mostrar estados de carga y error
+  if (loading) {
+    return (
+      <div className="catalog-pdf-page">
+        <div className="container">
+          <div className="catalog-pdf__loading">
+            <div className="spinner"></div>
+            <p>Cargando catálogo PDF...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="catalog-pdf-page">
+        <div className="container">
+          <div className="catalog-pdf__error">
+            <h2>Error al cargar el catálogo</h2>
+            <p>{error}</p>
+            <button 
+              onClick={() => navigate('/')}
+              className="catalog-pdf__back-btn"
+            >
+              Volver al inicio
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!selectedCatalog) {
+    return (
+      <div className="catalog-pdf-page">
+        <div className="container">
+          <div className="catalog-pdf__error">
+            <h2>Catálogo no encontrado</h2>
+            <p>El catálogo solicitado no existe o no está disponible.</p>
+            <button 
+              onClick={() => navigate('/')}
+              className="catalog-pdf__back-btn"
+            >
+              Volver al inicio
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`catalog-pdf-page ${isDesktop ? 'desktop' : 'mobile'}`}>
@@ -173,6 +265,9 @@ const CatalogPdfPage = () => {
         <header className="catalog-pdf__header">
           <div className="catalog-pdf__title-section">
             <h1 className="catalog-pdf__title">{selectedCatalog?.name || 'Catálogo PDF'}</h1>
+            <p className="catalog-pdf__subtitle">
+              {selectedCatalog?.description || 'Catálogo de productos'}
+            </p>
           </div>
           <div className="catalog-pdf__controls">
             <CustomButton

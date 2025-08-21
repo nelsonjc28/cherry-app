@@ -98,6 +98,89 @@ api.interceptors.response.use(
 );
 
 // Servicios específicos para welcome sections
+
+// Servicios para ofertas de catálogos
+export const catalogOfferService = {
+  // Obtener todas las ofertas
+  getAll: async () => {
+    try {
+      const response = await api.get('/admin/catalog-offers');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Obtener una oferta específica
+  getById: async (id) => {
+    try {
+      const response = await api.get(`/admin/catalog-offers/${id}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Crear una nueva oferta
+  create: async (offerData) => {
+    try {
+      const response = await api.post('/admin/catalog-offers', offerData);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Actualizar una oferta existente
+  update: async (id, offerData) => {
+    try {
+      const response = await api.post(`/admin/catalog-offers/${id}`, offerData);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Eliminar una oferta
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`/admin/catalog-offers/${id}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Cambiar estado de una oferta
+  toggleStatus: async (id) => {
+    try {
+      const response = await api.patch(`/admin/catalog-offers/${id}/toggle`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Reordenar ofertas
+  reorder: async (offers) => {
+    try {
+      const response = await api.post('/admin/catalog-offers/reorder', { offers });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Obtener ofertas por catálogo
+  getByCatalog: async (catalogId) => {
+    try {
+      const response = await api.get(`/admin/catalogs/${catalogId}/offers`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+};
 export const welcomeSectionService = {
   // Obtener todas las secciones (admin)
   getAll: async () => {
@@ -778,6 +861,16 @@ export const catalogService = {
   removePdfImage: async (catalogId, imageId) => {
     try {
       const response = await api.delete(`/admin/catalogs/${catalogId}/pdf-images/${imageId}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Reordenar imágenes PDF del catálogo (admin)
+  reorderPdfImages: async (id, reorderData) => {
+    try {
+      const response = await api.patch(`/admin/catalogs/${id}/reorder`, reorderData);
       return response;
     } catch (error) {
       throw error;

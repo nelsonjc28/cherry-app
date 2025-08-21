@@ -87,11 +87,7 @@ const RecentCatalogs = () => {
                   <div className="catalog-text">
                     <p className="catalog-subtitle">{catalog.subtitle}</p>
                     <h3 className="catalog-title">{catalog.title}</h3>
-                    {catalog.hasPdf && (
-                      <p className="catalog-pdf-info">
-                        📄 {catalog.pdfCount} página{catalog.pdfCount !== 1 ? 's' : ''} PDF
-                      </p>
-                    )}
+
                   </div>
                   <div className='content-btn-explore'>
                     <Link
@@ -108,6 +104,16 @@ const RecentCatalogs = () => {
                         height="20"
                       />
                     </Link>
+                    {catalog.hasPdf && (
+                      <Link
+                        to={`/catalogo-pdf?id=${catalog.id}`}
+                        className="btn-explore btn-explore--pdf"
+                        title="Ver catálogo PDF"
+                        aria-label="Ver catálogo PDF"
+                      >
+                        📄 Catálogo PDF
+                      </Link>
+                    )}
                   </div>
                 </div>
                 <div className="home-catalog-image">

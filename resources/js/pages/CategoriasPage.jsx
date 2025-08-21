@@ -53,32 +53,7 @@ const CategoriasPage = () => {
             ))}
           </div>
 
-          {/* Información adicional */}
-          <div className="categorias-info">
-            <div className="info-card">
-              <div className="info-icon">
-                <img src={getIconPath('File Alt.svg')} alt="Catálogos" />
-              </div>
-              <h3>Catálogos por categoría</h3>
-              <p>Accede a catálogos especializados por cada categoría de productos</p>
-            </div>
-            
-            <div className="info-card">
-              <div className="info-icon">
-                <img src={getIconPath('Bell.svg')} alt="Notificaciones" />
-              </div>
-              <h3>Nuevas colecciones</h3>
-              <p>Recibe notificaciones cuando lleguen nuevos productos en tus categorías favoritas</p>
-            </div>
-            
-            <div className="info-card">
-              <div className="info-icon">
-                <img src={getIconPath('Search.svg')} alt="Búsqueda" />
-              </div>
-              <h3>Búsqueda avanzada</h3>
-              <p>Filtra productos por categoría, color, talla y más opciones</p>
-            </div>
-          </div>
+
         </div>
       </main>
     </>

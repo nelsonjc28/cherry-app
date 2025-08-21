@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\ContactInfoController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\PrivacyPolicyController;
 use App\Http\Controllers\Api\AdminCatalogController;
+use App\Http\Controllers\Api\AdminCatalogOfferController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -96,6 +97,16 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/admin/catalogs/{id}/products', [AdminCatalogController::class, 'getCatalogProducts']);
         Route::delete('/admin/catalogs/{catalogId}/products/{productId}', [AdminCatalogController::class, 'removeProduct']);
         Route::post('/admin/catalogs/{id}/reorder', [AdminCatalogController::class, 'reorder']);
+        
+        // Catalog Offers routes - require authentication and admin role
+        Route::get('/admin/catalog-offers', [AdminCatalogOfferController::class, 'index']);
+        Route::get('/admin/catalog-offers/{id}', [AdminCatalogOfferController::class, 'show']);
+        Route::post('/admin/catalog-offers', [AdminCatalogOfferController::class, 'store']);
+        Route::post('/admin/catalog-offers/{id}', [AdminCatalogOfferController::class, 'update']);
+        Route::delete('/admin/catalog-offers/{id}', [AdminCatalogOfferController::class, 'destroy']);
+        Route::patch('/admin/catalog-offers/{id}/toggle', [AdminCatalogOfferController::class, 'toggleStatus']);
+        Route::post('/admin/catalog-offers/reorder', [AdminCatalogOfferController::class, 'reorder']);
+        Route::get('/admin/catalogs/{catalogId}/offers', [AdminCatalogOfferController::class, 'getOffersByCatalog']);
     });
     
     // Favorites routes

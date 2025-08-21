@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { catalogService } from '../../services/api';
 import CatalogProductManager from './CatalogProductManager';
+import CatalogPdfManager from './CatalogPdfManager';
+import CatalogPdfModule from './CatalogPdfModule';
+import CatalogOffersModule from './CatalogOffersModule';
 import useUserStore from '../../store/userStore';
 import './AdminCatalogManager.css';
 
@@ -10,8 +13,9 @@ const AdminCatalogManager = () => {
   const [loading, setLoading] = useState(true);
   const [editingCatalog, setEditingCatalog] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [currentView, setCurrentView] = useState('catalogs'); // 'catalogs' o 'products'
+  const [currentView, setCurrentView] = useState('catalogs'); // 'catalogs', 'products', 'pdf', 'pdf-module' o 'offers'
   const [selectedCatalog, setSelectedCatalog] = useState(null);
+  const [showPdfManager, setShowPdfManager] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -176,13 +180,37 @@ const AdminCatalogManager = () => {
     setSelectedCatalog(null);
   };
 
+  const handleClosePdfManager = () => {
+    setShowPdfManager(false);
+    setCurrentView('catalogs');
+    setSelectedCatalog(null);
+  };
+
+  const handleBackFromPdfModule = () => {
+    setCurrentView('catalogs');
+  };
+
+  const handleBackFromOffersModule = () => {
+    setCurrentView('catalogs');
+    setSelectedCatalog(null);
+  };
+
   const handleProductsUpdated = () => {
     fetchCatalogs(); // Recargar catálogos para actualizar contadores
   };
 
+  const handlePdfUpdated = () => {
+    fetchCatalogs(); // Recargar catálogos para actualizar contadores
+  };
+
   const openPdfManager = (catalog) => {
-    // Aquí abrirías el modal de gestión de imágenes PDF
-    window.showToast('Funcionalidad de gestión de imágenes PDF próximamente', 'info');
+    setSelectedCatalog(catalog);
+    setCurrentView('pdf-module');
+  };
+
+  const openOffersManager = (catalog) => {
+    setSelectedCatalog(catalog);
+    setCurrentView('offers');
   };
 
   if (loading) {
@@ -207,27 +235,74 @@ const AdminCatalogManager = () => {
     );
   }
 
+  // Si estamos en la vista de PDF, mostrar el gestor de PDF
+  if (currentView === 'pdf' && selectedCatalog && showPdfManager) {
+    return (
+      <CatalogPdfManager
+        catalog={selectedCatalog}
+        onClose={handleClosePdfManager}
+        onPdfUpdated={handlePdfUpdated}
+      />
+    );
+  }
+
+  // Si estamos en la vista del módulo de PDF, mostrar el módulo completo
+  if (currentView === 'pdf-module') {
+    return (
+      <CatalogPdfModule
+        onBack={handleBackFromPdfModule}
+        initialCatalog={selectedCatalog}
+      />
+    );
+  }
+
+  // Si estamos en la vista del módulo de ofertas, mostrar el módulo completo
+  if (currentView === 'offers') {
+    return (
+      <CatalogOffersModule
+        onBack={handleBackFromOffersModule}
+        initialCatalog={selectedCatalog}
+      />
+    );
+  }
+
   return (
     <div className="admin-catalog-manager">
       <div className="admin-catalog-manager__header">
         <h2>Gestión de Catálogos</h2>
-        <button 
-          className="admin-catalog-manager__add-btn"
-          onClick={() => {
-            // Calcular el siguiente número de orden antes de abrir el formulario
-            const nextOrder = catalogs.length > 0 
-              ? Math.max(...catalogs.map(cat => cat.display_order || 0)) + 1 
-              : 1;
-            
-            setFormData(prev => ({
-              ...prev,
-              display_order: nextOrder
-            }));
-            setShowForm(true);
-          }}
-        >
-          + Nuevo Catálogo
-        </button>
+        <div className="admin-catalog-manager__header-actions">
+          <button 
+            className="admin-catalog-manager__pdf-module-btn"
+            onClick={() => setCurrentView('pdf-module')}
+            title="Ir al módulo de gestión de PDF"
+          >
+            📄 Módulo PDF
+          </button>
+          <button 
+            className="admin-catalog-manager__offers-module-btn"
+            onClick={() => setCurrentView('offers')}
+            title="Ir al módulo de gestión de ofertas"
+          >
+            🎯 Módulo Ofertas
+          </button>
+          <button 
+            className="admin-catalog-manager__add-btn"
+            onClick={() => {
+              // Calcular el siguiente número de orden antes de abrir el formulario
+              const nextOrder = catalogs.length > 0 
+                ? Math.max(...catalogs.map(cat => cat.display_order || 0)) + 1 
+                : 1;
+              
+              setFormData(prev => ({
+                ...prev,
+                display_order: nextOrder
+              }));
+              setShowForm(true);
+            }}
+          >
+            + Nuevo Catálogo
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -369,9 +444,7 @@ const AdminCatalogManager = () => {
                   <p>{catalog.description}</p>
                   
                   <div className="admin-catalog-manager__catalog-stats">
-                    <span className="admin-catalog-manager__stat">
-                      📄 {catalog.pdf_images?.length || 0} imágenes PDF
-                    </span>
+                    
                     <span className="admin-catalog-manager__stat">
                       🛍️ {catalog.products?.length || 0} productos
                     </span>
@@ -399,9 +472,17 @@ const AdminCatalogManager = () => {
                   <button
                     className="admin-catalog-manager__action-btn admin-catalog-manager__action-btn--pdf"
                     onClick={() => openPdfManager(catalog)}
-                    title="Gestionar imágenes PDF"
+                    title="Gestionar PDF"
                   >
                     📄
+                  </button>
+                  
+                  <button
+                    className="admin-catalog-manager__action-btn admin-catalog-manager__action-btn--offers"
+                    onClick={() => openOffersManager(catalog)}
+                    title="Gestionar ofertas"
+                  >
+                    🎯
                   </button>
                   
                   <button

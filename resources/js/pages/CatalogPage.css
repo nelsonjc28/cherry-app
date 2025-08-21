@@ -29,6 +29,32 @@
   gap: 10px;
 }
 
+.catalog-page__action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.catalog-page__pdf-btn {
+  background: #6f42c1 !important;
+  color: white !important;
+  border: 1px solid #6f42c1 !important;
+  font-size: 0.9rem;
+  padding: 8px 16px;
+  height: auto;
+  min-height: 32px;
+}
+
+.catalog-page__pdf-btn:hover {
+  background: #5a32a3 !important;
+  border-color: #5a32a3 !important;
+  transform: translateY(-1px);
+}
+
+.catalog-page__pdf-text {
+  display: block;
+}
+
 .catalog-page__whatsapp-text {
   display: none;
 }
@@ -277,5 +303,27 @@
 
   .catalog-page__whatsapp-text {
     display: inline;
+  }
+
+  .catalog-page__action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .catalog-page__pdf-btn {
+    background: #6f42c1 !important;
+    color: white !important;
+    border: 1px solid #6f42c1 !important;
+    font-size: 1rem;
+    padding: 10px 20px;
+    height: auto;
+    min-height: 40px;
+  }
+
+  .catalog-page__pdf-btn:hover {
+    background: #5a32a3 !important;
+    border-color: #5a32a3 !important;
+    transform: translateY(-1px);
   }
 }

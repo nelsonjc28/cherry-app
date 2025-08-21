@@ -65,7 +65,7 @@ class AdminCatalogController extends Controller
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
                 'description' => 'required|string',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif',
                 'is_active' => 'boolean',
                 'display_order' => 'integer|min:0'
             ]);
@@ -122,7 +122,7 @@ class AdminCatalogController extends Controller
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
                 'description' => 'required|string',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif',
                 'is_active' => 'boolean',
                 'display_order' => 'integer|min:0'
             ]);
@@ -215,7 +215,7 @@ class AdminCatalogController extends Controller
             $catalog = Catalog::findOrFail($id);
 
             $validator = Validator::make($request->all(), [
-                'images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
+                'images.*' => 'required|image|mimes:jpeg,png,jpg,gif'
             ]);
 
             if ($validator->fails()) {

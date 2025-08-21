@@ -35,6 +35,7 @@ const CatalogPage = ({ catalogId }) => {
   const [loading, setLoading] = useState(true);
   const [catalogs, setCatalogs] = useState([]); // Store all available catalogs
   const [catalogLoading, setCatalogLoading] = useState(true);
+  const [currentCatalog, setCurrentCatalog] = useState(null); // Store current catalog info
   const [filters, setFilters] = useState({
     catalog: '',
     availability: 'todos',
@@ -202,6 +203,13 @@ const CatalogPage = ({ catalogId }) => {
         // Si se proporciona catalogId, cargar productos de ese catálogo específico
         if (catalogId) {
           try {
+            // Cargar información del catálogo
+            const catalogResponse = await publicCatalogService.getById(catalogId);
+            if (catalogResponse.data.success) {
+              setCurrentCatalog(catalogResponse.data.data);
+            }
+            
+            // Cargar productos del catálogo
             const response = await publicCatalogService.getProducts(catalogId);
             if (response.data.success) {
               // Mapear productos del catálogo al formato esperado
@@ -386,21 +394,36 @@ const CatalogPage = ({ catalogId }) => {
           {/* Header section with title and filters  -  MOBILE */}
           <div className="catalog-page__header-mobile">
             <div className="catalog-page__title-section">
-              <h1 className="catalog-page__title">Catálogo de productos</h1>
+              <h1 className="catalog-page__title">
+                {currentCatalog ? currentCatalog.name : 'Catálogo de productos'}
+              </h1>
               <div className='catalog-page__content-texts'>
                 <span className="catalog-page__results-count">
                   ({totalResults})
                   <p className="catalog-page__text-results-count">Resultados</p>
                 </span>
-                <CustomButton
-                  variant="filled"
-                  size="small"
-                  className="catalog-page__compare-clients-btn"
-                  iconLeft={<img src={getIconPath('Whatsapp.svg')} alt="Comparar clientes" style={{ width: 16, height: 16 }} />}
-                  onClick={handleShareCatalog}
-                >
-                  <span className="catalog-page__whatsapp-text">Compartir a clientes</span>
-                </CustomButton>
+                <div className="catalog-page__action-buttons">
+                  {currentCatalog?.pdf_images && currentCatalog.pdf_images.length > 0 && (
+                    <CustomButton
+                      variant="outline"
+                      size="small"
+                      className="catalog-page__pdf-btn"
+                      iconLeft={<span style={{ fontSize: '16px' }}>📄</span>}
+                      onClick={() => window.location.href = `/catalogo-pdf?id=${catalogId}`}
+                    >
+                      <span className="catalog-page__pdf-text">Catálogo PDF</span>
+                    </CustomButton>
+                  )}
+                  <CustomButton
+                    variant="filled"
+                    size="small"
+                    className="catalog-page__compare-clients-btn"
+                    iconLeft={<img src={getIconPath('Whatsapp.svg')} alt="Comparar clientes" style={{ width: 16, height: 16 }} />}
+                    onClick={handleShareCatalog}
+                  >
+                    <span className="catalog-page__whatsapp-text">Compartir a clientes</span>
+                  </CustomButton>
+                </div>
               </div>
             </div>
 
@@ -435,7 +458,9 @@ const CatalogPage = ({ catalogId }) => {
           {/* Header section with title and filters  -  DESKTOP */}
           <div className="catalog-page__header-desktop">
             <div className="catalog-page__title-section">
-              <h1 className="catalog-page__title">Catálogo de productos</h1>
+              <h1 className="catalog-page__title">
+                {currentCatalog ? currentCatalog.name : 'Catálogo de productos'}
+              </h1>
               <div className='catalog-page__content-texts'>
                 <span className="catalog-page__results-count">
                   ({totalResults})
@@ -455,19 +480,33 @@ const CatalogPage = ({ catalogId }) => {
                 >
                   <option value="más recientes">más recientes</option>
                   <option value="precio-menor">Precio: menor a mayor</option>
+                  <option value="precio-menor">Precio: menor a mayor</option>
                   <option value="precio-mayor">Precio: mayor a menor</option>
                   <option value="nombre-a-z">Nombre: A-Z</option>
                   <option value="nombre-z-a">Nombre: Z-A</option>
                 </select>
               </div>
-              <CustomButton
-                variant="filled"
-                size="medium"
-                iconLeft={<img src={getIconPath('Whatsapp.svg')} alt="Comparar clientes" style={{ width: 16, height: 16 }} />}
-                onClick={handleShareCatalog}
-              >
-                <span className="catalog-page__whatsapp-text">Compartir a clientes</span>
-              </CustomButton>
+              <div className="catalog-page__action-buttons">
+                {currentCatalog?.pdf_images && currentCatalog.pdf_images.length > 0 && (
+                  <CustomButton
+                    variant="outline"
+                    size="medium"
+                    className="catalog-page__pdf-btn"
+                    iconLeft={<span style={{ fontSize: '16px' }}>📄</span>}
+                    onClick={() => window.location.href = `/catalogo-pdf?id=${catalogId}`}
+                  >
+                    <span className="catalog-page__pdf-text">Catálogo PDF</span>
+                  </CustomButton>
+                )}
+                <CustomButton
+                  variant="filled"
+                  size="medium"
+                  iconLeft={<img src={getIconPath('Whatsapp.svg')} alt="Comparar clientes" style={{ width: 16, height: 16 }} />}
+                  onClick={handleShareCatalog}
+                >
+                  <span className="catalog-page__whatsapp-text">Compartir a clientes</span>
+                </CustomButton>
+              </div>
             </div>
           </div>
 

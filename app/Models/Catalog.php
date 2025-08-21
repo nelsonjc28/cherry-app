@@ -39,6 +39,14 @@ class Catalog extends Model
     }
 
     /**
+     * Obtener las ofertas del catálogo
+     */
+    public function offers()
+    {
+        return $this->hasMany(CatalogOffer::class)->orderBy('display_order');
+    }
+
+    /**
      * Obtener catálogos activos ordenados
      */
     public function scopeActive($query)

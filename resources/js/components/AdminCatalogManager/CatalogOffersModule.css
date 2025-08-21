@@ -1,0 +1,672 @@
+/* Módulo de ofertas de catálogos */
+.catalog-offers-module {
+  padding: 20px;
+  background: #f8f9fa;
+  min-height: 100vh;
+}
+
+/* Header del módulo */
+.catalog-offers-module__header {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.catalog-offers-module__title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.catalog-offers-module__back-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #666;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.catalog-offers-module__back-btn:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.catalog-offers-module__title h2 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.catalog-offers-module__subtitle {
+  color: #666;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.catalog-offers-module__header-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.catalog-offers-module__view-all-btn,
+.catalog-offers-module__add-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.catalog-offers-module__view-all-btn {
+  background: #6c757d;
+  color: white;
+}
+
+.catalog-offers-module__view-all-btn:hover {
+  background: #5a6268;
+}
+
+.catalog-offers-module__add-btn {
+  background: var(--color-primary, #EA2630);
+  color: white;
+}
+
+.catalog-offers-module__add-btn:hover {
+  background: #d4202a;
+}
+
+/* Estados de carga y error */
+.catalog-offers-module__loading,
+.catalog-offers-module__empty {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.catalog-offers-module__loading .spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.catalog-offers-module__empty h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.catalog-offers-module__empty p {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+
+
+/* Grid de catálogos */
+.catalog-offers-module__catalogs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.catalog-offers-module__catalog-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.catalog-offers-module__catalog-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.catalog-offers-module__catalog-image {
+  width: 100%;
+  height: 120px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.catalog-offers-module__catalog-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.catalog-offers-module__no-image {
+  width: 100%;
+  height: 100%;
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.catalog-offers-module__catalog-info h4 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px 0;
+}
+
+.catalog-offers-module__catalog-info p {
+  color: #666;
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.catalog-offers-module__catalog-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.catalog-offers-module__stat {
+  font-size: 0.9rem;
+  color: #666;
+  background: #f8f9fa;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.catalog-offers-module__catalog-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.catalog-offers-module__status-badge {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.catalog-offers-module__status-badge.active {
+  background: #d4edda;
+  color: #155724;
+}
+
+.catalog-offers-module__status-badge.inactive {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.catalog-offers-module__order {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.catalog-offers-module__catalog-actions {
+  margin-top: auto;
+  text-align: center;
+}
+
+.catalog-offers-module__action-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.catalog-offers-module__action-btn--offers:hover {
+  background: #fff3cd;
+  color: #856404;
+}
+
+/* Contenido principal */
+.catalog-offers-module__content {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.catalog-offers-module__offers-header {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.catalog-offers-module__offers-header h4 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px 0;
+}
+
+.catalog-offers-module__offers-header p {
+  color: #666;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* Grid de ofertas */
+.catalog-offers-module__offers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.catalog-offers-module__offer-item {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+  cursor: move;
+}
+
+.catalog-offers-module__offer-item:hover {
+  border-color: #dee2e6;
+  background: white;
+}
+
+.catalog-offers-module__offer-item.dragging {
+  opacity: 0.5;
+  transform: rotate(5deg);
+}
+
+.catalog-offers-module__offer-item.drag-over {
+  border-color: #007bff;
+  background: #e3f2fd;
+}
+
+/* Vista previa de la oferta */
+.catalog-offers-module__offer-preview {
+  width: 100%;
+  height: 120px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.catalog-offers-module__offer-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.catalog-offers-module__offer-placeholder {
+  width: 100%;
+  height: 100%;
+  background: #e9ecef;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  color: #adb5bd;
+}
+
+/* Información de la oferta */
+.catalog-offers-module__offer-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px 0;
+}
+
+.catalog-offers-module__offer-description {
+  color: #666;
+  margin: 0 0 12px 0;
+  line-height: 1.4;
+  font-size: 0.9rem;
+}
+
+.catalog-offers-module__offer-discount {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.catalog-offers-module__discount-amount {
+  background: #28a745;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.catalog-offers-module__max-discount {
+  background: #ffc107;
+  color: #212529;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* Meta información */
+.catalog-offers-module__offer-meta {
+  margin-bottom: 16px;
+}
+
+.catalog-offers-module__offer-dates,
+.catalog-offers-module__offer-usage {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.catalog-offers-module__offer-dates span,
+.catalog-offers-module__offer-usage span {
+  font-size: 0.8rem;
+  color: #666;
+  background: #e9ecef;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Acciones de la oferta */
+.catalog-offers-module__offer-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.catalog-offers-module__status-badge.expired {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.catalog-offers-module__status-badge.pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.catalog-offers-module__offer-order {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.catalog-offers-module__offer-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.catalog-offers-module__edit-btn,
+.catalog-offers-module__toggle-btn,
+.catalog-offers-module__remove-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.catalog-offers-module__edit-btn:hover {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.catalog-offers-module__toggle-btn:hover {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.catalog-offers-module__remove-btn:hover {
+  background: #ffebee;
+  color: #d32f2f;
+}
+
+/* Formulario */
+.catalog-offers-module__form-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.catalog-offers-module__form {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.catalog-offers-module__form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.catalog-offers-module__form-header h3 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.catalog-offers-module__form-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #666;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.catalog-offers-module__form-close:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+/* Filas del formulario */
+.catalog-offers-module__form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.catalog-offers-module__form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.catalog-offers-module__form-group label {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.catalog-offers-module__form-group input,
+.catalog-offers-module__form-group select,
+.catalog-offers-module__form-group textarea {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: border-color 0.3s ease;
+}
+
+.catalog-offers-module__form-group input:focus,
+.catalog-offers-module__form-group select:focus,
+.catalog-offers-module__form-group textarea:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* Inputs de descuento */
+.catalog-offers-module__discount-inputs {
+  display: flex;
+  gap: 8px;
+}
+
+.catalog-offers-module__discount-inputs input {
+  flex: 1;
+}
+
+.catalog-offers-module__discount-inputs select {
+  width: 80px;
+}
+
+/* Checkbox */
+.catalog-offers-module__checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.catalog-offers-module__checkbox-label input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+/* Acciones del formulario */
+.catalog-offers-module__form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e9ecef;
+}
+
+.catalog-offers-module__submit-btn,
+.catalog-offers-module__cancel-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.catalog-offers-module__submit-btn {
+  background: #28a745;
+  color: white;
+}
+
+.catalog-offers-module__submit-btn:hover {
+  background: #218838;
+}
+
+.catalog-offers-module__cancel-btn {
+  background: #6c757d;
+  color: white;
+}
+
+.catalog-offers-module__cancel-btn:hover {
+  background: #5a6268;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .catalog-offers-module {
+    padding: 16px;
+  }
+
+  .catalog-offers-module__header {
+    padding: 20px;
+  }
+
+  .catalog-offers-module__title h2 {
+    font-size: 1.5rem;
+  }
+
+  .catalog-offers-module__header-actions {
+    flex-direction: column;
+  }
+
+  .catalog-offers-module__catalogs-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-offers-module__offers-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-offers-module__form-row {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .catalog-offers-module__form {
+    padding: 20px;
+    margin: 20px;
+  }
+
+  .catalog-offers-module__offer-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .catalog-offers-module__catalog-stats {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .catalog-offers-module__catalog-status {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .catalog-offers-module__offer-dates,
+  .catalog-offers-module__offer-usage {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
