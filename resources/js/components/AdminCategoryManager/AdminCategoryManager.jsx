@@ -13,6 +13,7 @@ const AdminCategoryManager = () => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    code: '',
     is_active: true
   });
   const [error, setError] = useState('');
@@ -75,15 +76,16 @@ const AdminCategoryManager = () => {
     }
   };
 
-  const handleEdit = (category) => {
-    setEditingCategory(category);
-    setFormData({
-      name: category.name,
-      description: category.description || '',
-      is_active: category.is_active
-    });
-    setShowForm(true);
-  };
+     const handleEdit = (category) => {
+     setEditingCategory(category);
+     setFormData({
+       name: category.name,
+       description: category.description || '',
+       code: category.code || '',
+       is_active: category.is_active
+     });
+     setShowForm(true);
+   };
 
   const handleDelete = async (category) => {
     if (window.confirm(`¿Estás seguro de que quieres eliminar la categoría "${category.name}"?`)) {
@@ -111,16 +113,17 @@ const AdminCategoryManager = () => {
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      description: '',
-      is_active: true
-    });
-    setEditingCategory(null);
-    setShowForm(false);
-    setError('');
-  };
+     const resetForm = () => {
+     setFormData({
+       name: '',
+       description: '',
+       code: '',
+       is_active: true
+     });
+     setEditingCategory(null);
+     setShowForm(false);
+     setError('');
+   };
 
   const openProductManager = (category) => {
     setSelectedCategory(category);
@@ -180,34 +183,47 @@ const AdminCategoryManager = () => {
               </div>
             )}
 
-            <div className="admin-category-manager__form-group">
-              <label htmlFor="name">
-                Nombre <span className="text-danger">*</span>
-              </label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                required
-                className="admin-category-manager__form-input"
-                placeholder="Nombre de la categoría"
-              />
-            </div>
-
-            <div className="admin-category-manager__form-group">
-              <label htmlFor="description">Descripción</label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                className="admin-category-manager__form-textarea"
-                placeholder="Descripción de la categoría"
-                rows="3"
-              />
-            </div>
+                         <div className="admin-category-manager__form-group">
+               <label htmlFor="name">
+                 Nombre <span className="text-danger">*</span>
+               </label>
+               <input
+                 type="text"
+                 id="name"
+                 name="name"
+                 value={formData.name}
+                 onChange={handleInputChange}
+                 required
+                 className="admin-category-manager__form-input"
+                 placeholder="Nombre de la categoría"
+               />
+             </div>
+ 
+             <div className="admin-category-manager__form-group">
+               <label htmlFor="code">Código</label>
+               <input
+                 type="text"
+                 id="code"
+                 name="code"
+                 value={formData.code}
+                 onChange={handleInputChange}
+                 className="admin-category-manager__form-input"
+                 placeholder="Código de la categoría (opcional)"
+               />
+             </div>
+ 
+             <div className="admin-category-manager__form-group">
+               <label htmlFor="description">Descripción</label>
+               <textarea
+                 id="description"
+                 name="description"
+                 value={formData.description}
+                 onChange={handleInputChange}
+                 className="admin-category-manager__form-textarea"
+                 placeholder="Descripción de la categoría"
+                 rows="3"
+               />
+             </div>
 
             <div className="admin-category-manager__form-group">
               <label className="admin-category-manager__checkbox-label">
@@ -256,21 +272,26 @@ const AdminCategoryManager = () => {
             </div>
           ) : (
             categories.map((category) => (
-              <div key={category.id} className="admin-category-manager__category-card">
-                <div className="admin-category-manager__category-info">
-                  <h4>{category.name}</h4>
-                  {category.description && (
-                    <p>{category.description}</p>
-                  )}
-                  <div className="admin-category-manager__category-meta">
-                    <span className={`admin-category-manager__status admin-category-manager__status--${category.is_active ? 'active' : 'inactive'}`}>
-                      {category.is_active ? 'Activa' : 'Inactiva'}
-                    </span>
-                    <span className="admin-category-manager__slug">
-                      {category.slug}
-                    </span>
-                  </div>
-                </div>
+                               <div key={category.id} className="admin-category-manager__category-card">
+                   <div className="admin-category-manager__category-info">
+                     <h4>{category.name}</h4>
+                     {category.description && (
+                       <p>{category.description}</p>
+                     )}
+                     <div className="admin-category-manager__category-meta">
+                       <span className={`admin-category-manager__status admin-category-manager__status--${category.is_active ? 'active' : 'inactive'}`}>
+                         {category.is_active ? 'Activa' : 'Inactiva'}
+                       </span>
+                       {category.code && (
+                         <span className="admin-category-manager__code">
+                           Código: {category.code}
+                         </span>
+                       )}
+                       <span className="admin-category-manager__slug">
+                         {category.slug}
+                       </span>
+                     </div>
+                   </div>
                 
                 <div className="admin-category-manager__category-actions">
                                      <button

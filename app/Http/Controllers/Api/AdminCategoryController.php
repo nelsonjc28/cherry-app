@@ -60,6 +60,7 @@ class AdminCategoryController extends Controller
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255|unique:categories,name',
                 'description' => 'nullable|string',
+                'code' => 'nullable|string|max:100|unique:categories,code',
                 'is_active' => 'boolean'
             ]);
 
@@ -75,6 +76,7 @@ class AdminCategoryController extends Controller
                 'name' => $request->name,
                 'slug' => \Illuminate\Support\Str::slug($request->name),
                 'description' => $request->description,
+                'code' => $request->code,
                 'is_active' => $request->is_active ?? true
             ]);
 
@@ -100,6 +102,7 @@ class AdminCategoryController extends Controller
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255|unique:categories,name,' . $id,
                 'description' => 'nullable|string',
+                'code' => 'nullable|string|max:100|unique:categories,code,' . $id,
                 'is_active' => 'boolean'
             ]);
 
@@ -116,6 +119,7 @@ class AdminCategoryController extends Controller
                 'name' => $request->name,
                 'slug' => \Illuminate\Support\Str::slug($request->name),
                 'description' => $request->description,
+                'code' => $request->code,
                 'is_active' => $request->is_active ?? $category->is_active
             ]);
 

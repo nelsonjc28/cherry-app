@@ -511,6 +511,24 @@
   color: #491217;
 }
 
+/* Estilos para el campo código */
+.admin-category-manager__category-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.admin-category-manager__code {
+  font-size: 12px;
+  color: #495057;
+  background: #e3f2fd;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+  border: 1px solid #bbdefb;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .admin-category-manager {

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import CherryButton from '../components/CherryButton/CherryButton';
 import AdminUserManager from '../components/AdminUserManager/AdminUserManager';
 import ClientManager from '../components/ClientManager/ClientManager';
-import CategoryManager from '../components/CategoryManager/CategoryManager';
+
 import CategoryOrderManager from '../components/CategoryOrderManager/CategoryOrderManager';
 import AdminWelcomeSectionManager from '../components/AdminWelcomeSectionManager/AdminWelcomeSectionManager';
 import AdminContactManager from '../components/AdminContactManager/AdminContactManager';
@@ -67,8 +67,8 @@ function AdminPanelPage() {
           <button className={`admin-panel__sidebar-link${selectedMenu==='home'?' active':''}`} onClick={()=>{setSelectedMenu('home'); setSidebarOpen(false);}}>Dashboard</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='users'?' active':''}`} onClick={()=>{setSelectedMenu('users'); setSidebarOpen(false);}}>Gestionar Administradores</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='clients'?' active':''}`} onClick={()=>{setSelectedMenu('clients'); setSidebarOpen(false);}}>Gestionar Clientes</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='categories'?' active':''}`} onClick={()=>{setSelectedMenu('categories'); setSidebarOpen(false);}}>Gestionar Categorías</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='category-products'?' active':''}`} onClick={()=>{setSelectedMenu('category-products'); setSidebarOpen(false);}}>Productos de Categorías</button>
+
+          <button className={`admin-panel__sidebar-link${selectedMenu==='category-products'?' active':''}`} onClick={()=>{setSelectedMenu('category-products'); setSidebarOpen(false);}}>Gestionar Categorías</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='category-order'?' active':''}`} onClick={()=>{setSelectedMenu('category-order'); setSidebarOpen(false);}}>Ordenar Categorías</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='welcome-sections'?' active':''}`} onClick={()=>{setSelectedMenu('welcome-sections'); setSidebarOpen(false);}}>Secciones de Bienvenida</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='catalogs'?' active':''}`} onClick={()=>{setSelectedMenu('catalogs'); setSidebarOpen(false);}}>Catálogos</button>
@@ -170,11 +170,7 @@ function AdminPanelPage() {
           </section>
         )}
         
-        {selectedMenu === 'categories' && isAdmin() && (
-          <section>
-            <CategoryManager />
-          </section>
-        )}
+
         
         {selectedMenu === 'category-products' && isAdmin() && (
           <section>
