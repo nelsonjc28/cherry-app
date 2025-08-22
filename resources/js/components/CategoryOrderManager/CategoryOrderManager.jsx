@@ -183,6 +183,12 @@ const CategoryOrderManager = () => {
         
         setOrderedCategories(newOrderedCategories);
       } else {
+        // Verificar que no se exceda el límite de 6 categorías
+        if (orderedCategories.length >= 6) {
+          window.showToast('Ya tienes el máximo de 6 categorías en el home', 'warning');
+          return;
+        }
+        
         // Mover desde availableCategories a orderedCategories
         // Remover de availableCategories
         setAvailableCategories(prev => prev.filter(item => item.id.toString() !== realActiveId));
@@ -427,6 +433,9 @@ const CategoryOrderManager = () => {
           hacia "Categorías para el Home" para ordenarlas. Las categorías ya ordenadas no aparecen 
           en la lista de disponibles. El orden se guarda automáticamente al soltar las categorías.
         </p>
+        <p>
+          <strong>Límite:</strong> Máximo 6 categorías se mostrarán en el home para mantener un diseño limpio.
+        </p>
       </div>
 
       <DndContext
@@ -438,6 +447,14 @@ const CategoryOrderManager = () => {
           {/* Contenedor de categorías disponibles */}
           <div className="category-order-manager__container">
             <h3>Categorías Disponibles ({availableCategories.length})</h3>
+            
+            {/* Mensaje cuando se alcanza el límite */}
+            {orderedCategories.length >= 6 && (
+              <div className="category-order-manager__limit-info">
+                <p>⚠️ No se pueden agregar más categorías. Límite de 6 alcanzado.</p>
+              </div>
+            )}
+            
             <div className="category-order-manager__dropzone">
               <SortableContext
                 items={availableCategories.map(item => `all-${item.id}`)}
@@ -462,7 +479,16 @@ const CategoryOrderManager = () => {
 
           {/* Contenedor de categorías ordenadas */}
           <div className="category-order-manager__container">
-            <h3>Categorías para el Home ({orderedCategories.length})</h3>
+            <h3>Categorías para el Home ({orderedCategories.length}/6)</h3>
+            
+            {/* Mensaje de límite alcanzado */}
+            {orderedCategories.length >= 6 && (
+              <div className="category-order-manager__limit-reached">
+                <p>🎯 <strong>Límite alcanzado:</strong> Ya tienes el máximo de 6 categorías en el home.</p>
+                <p>Para agregar una nueva categoría, primero debes remover una de las existentes.</p>
+              </div>
+            )}
+            
             <div className="category-order-manager__dropzone">
               <SortableContext
                 items={orderedCategories.map(item => `ordered-${item.id}`)}

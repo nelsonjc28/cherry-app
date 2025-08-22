@@ -376,6 +376,7 @@
   background-color: #ffffff;
   border-bottom: 1px solid #A4A4A4;
   display: block;
+  position: relative;
 }
 
 .nav-container {
@@ -481,6 +482,12 @@
   width: 80%;
 }
 
+/* Asegurar que el mega menú se muestre en hover */
+.nav-item:hover .mega-menu {
+  opacity: 1;
+  visibility: visible;
+}
+
 /* Mobile Navigation */
 .mobile-navigation {
   display: none;
@@ -521,6 +528,16 @@
   .user-action span {
     font-size: 11px;
   }
+}
+
+/* Asegurar que el mega menú se muestre correctamente */
+.mega-menu {
+  display: block;
+}
+
+.mega-menu.hidden {
+  opacity: 0;
+  visibility: hidden;
 }
 
 @media (max-width: 768px) {
@@ -594,8 +611,11 @@
   margin-left: calc(-50vw + 50%);
   background-color: #ffffff;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-  z-index: 100;
+  z-index: 1000;
   border-top: 1px solid #eeeeee;
+  opacity: 1;
+  visibility: visible;
+  transition: all 0.3s ease;
 }
 
 .mega-menu-content {
