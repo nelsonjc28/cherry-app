@@ -6,6 +6,7 @@ import useUserStore from '../../store/userStore';
 import useCartStore from '../../store/cartStore';
 import CartModal from '../CartModal/CartModal';
 import useCategories from '../../hooks/useCategories';
+import useMenuCategories from '../../hooks/useMenuCategories';
 import './Header.css';
 
 const Header = () => {
@@ -19,11 +20,14 @@ const Header = () => {
   
   // Solo cargar categorías si no estamos en el panel de administración
   const { categories, loading: categoriesLoading } = useCategories();
+  const { menuCategories, loading: menuCategoriesLoading } = useMenuCategories();
   
   // Debug logs
   console.log('🔍 Header: Estado de categorías:', { 
     categoriesCount: categories.length, 
-    loading: categoriesLoading, 
+    categoriesLoading, 
+    menuCategoriesCount: menuCategories.length,
+    menuCategoriesLoading,
     pathname: location.pathname 
   });
   
@@ -40,7 +44,9 @@ const Header = () => {
     console.log('🔍 Header getCategoryGroups:', { 
       isAdminPage, 
       categoriesLoading, 
-      categoriesCount: categories.length 
+      categoriesCount: categories.length,
+      menuCategoriesLoading,
+      menuCategoriesCount: menuCategories.length
     });
     
     // Si estamos en el panel de administración, no mostrar categorías
@@ -49,9 +55,52 @@ const Header = () => {
       return [];
     }
     
+    // Priorizar las categorías del menú si están disponibles
+    if (menuCategoriesLoading) {
+      console.log('⏳ Header: Cargando categorías del menú, mostrando placeholder');
+      return [
+        {
+          title: 'Cargando...',
+          items: [
+            { name: 'Cargando categorías...', link: '/categorias' }
+          ]
+        }
+      ];
+    }
+    
+    // Si hay categorías del menú configuradas, usarlas
+    if (menuCategories && menuCategories.length > 0) {
+      console.log('✅ Header: Usando categorías del menú configuradas');
+      
+      // Dividir las categorías del menú en grupos de 6 para mejor organización
+      const groups = [];
+      const itemsPerGroup = 6;
+      
+      for (let i = 0; i < menuCategories.length; i += itemsPerGroup) {
+        const group = menuCategories.slice(i, i + itemsPerGroup);
+        groups.push({
+          title: `Categorías ${Math.floor(i / itemsPerGroup) + 1}`,
+          items: group.map(cat => ({
+            name: cat.name,
+            link: `/categorias/${cat.slug}`
+          }))
+        });
+      }
+      
+      // Agregar grupo "Ver todas" al final
+      groups.push({
+        title: 'Ver todas',
+        items: [
+          { name: 'Todas las categorías', link: '/categorias' }
+        ]
+      });
+      
+      return groups;
+    }
+    
+    // Fallback a categorías generales si no hay categorías del menú
     if (categoriesLoading || !categories.length) {
-      console.log('⏳ Header: Cargando o sin categorías, mostrando placeholder');
-      // Devolver estructura por defecto mientras carga
+      console.log('⏳ Header: Cargando o sin categorías generales, mostrando placeholder');
       return [
         {
           title: 'Cargando...',
@@ -62,7 +111,8 @@ const Header = () => {
       ];
     }
 
-    // Dividir las categorías en grupos de 6 para mejor organización
+    console.log('🔄 Header: Usando categorías generales como fallback');
+    // Dividir las categorías generales en grupos de 6 para mejor organización
     const groups = [];
     const itemsPerGroup = 6;
     

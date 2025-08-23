@@ -619,6 +619,46 @@ export const categoryService = {
       throw error;
     }
   },
+
+  // Obtener categorías del menú
+  getMenuCategories: async () => {
+    try {
+      const response = await api.get('/admin/menu-categories');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Actualizar orden de categorías del menú
+  updateMenuOrder: async (categoryIds) => {
+    try {
+      const response = await api.post('/admin/menu-categories/update-order', { categoryIds });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Agregar categoría al menú
+  addCategoryToMenu: async (categoryId) => {
+    try {
+      const response = await api.post('/admin/menu-categories', { category_id: categoryId });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Remover categoría del menú
+  removeCategoryFromMenu: async (categoryId) => {
+    try {
+      const response = await api.delete(`/admin/menu-categories/${categoryId}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 // Servicios para favoritos

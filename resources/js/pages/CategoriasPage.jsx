@@ -5,12 +5,18 @@ import CategoryIcon from '../components/CategoryIcon/CategoryIcon';
 import CherryButton from '../components/CherryButton/CherryButton';
 import { getCategoryIconPath, getIconPath } from '../utils/assetPaths';
 import useCategories from '../hooks/useCategories';
+import useMenuCategories from '../hooks/useMenuCategories';
 import './CategoriasPage.css';
 
 const CategoriasPage = () => {
   const { categories, loading, error } = useCategories();
+  const { menuCategories, loading: menuLoading } = useMenuCategories();
+  
+  // Priorizar las categorías del menú si están disponibles
+  const displayCategories = menuCategories.length > 0 ? menuCategories : categories;
+  const displayLoading = menuLoading || loading;
 
-  if (loading) {
+  if (displayLoading) {
     return (
       <>
         <Helmet>
@@ -42,11 +48,12 @@ const CategoriasPage = () => {
           <div className="categorias-header">
             <h1>Nuestras Categorías</h1>
             <p>Explora nuestra amplia selección de moda femenina organizada por categorías</p>
+
           </div>
 
           {/* Iconos de categorías */}
           <div className="categorias-icons">
-            {categories.map((category) => (
+            {displayCategories.map((category) => (
               <div key={category.id} className="categoria-icon-wrapper">
                 <CategoryIcon name={category.name} icon={getCategoryIconPath(category.name)} />
               </div>
