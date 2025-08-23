@@ -71,6 +71,17 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('/admin/ordered-categories/update-order', [AdminOrderedCategoryController::class, 'updateOrder']);
     Route::delete('/admin/ordered-categories/clear', [AdminOrderedCategoryController::class, 'clearOrder']);
     
+    // Menu Categories routes - require authentication and admin role
+    Route::get('/admin/menu-categories', [App\Http\Controllers\Api\AdminMenuCategoryController::class, 'index']);
+    Route::post('/admin/menu-categories', [App\Http\Controllers\Api\AdminMenuCategoryController::class, 'store']);
+    Route::post('/admin/menu-categories/update-order', [App\Http\Controllers\Api\AdminMenuCategoryController::class, 'updateOrder']);
+    Route::delete('/admin/menu-categories/{id}', [App\Http\Controllers\Api\AdminMenuCategoryController::class, 'destroy']);
+    Route::get('/admin/menu-categories/available', [App\Http\Controllers\Api\AdminMenuCategoryController::class, 'getAvailableCategories']);
+    
+
+    
+
+    
     // Welcome Sections routes - require authentication and admin role
     Route::middleware(['auth:api', 'admin'])->group(function () {
         Route::get('/admin/welcome-sections', [AdminWelcomeSectionController::class, 'index']);
