@@ -234,7 +234,7 @@ export const welcomeSectionService = {
         throw new Error('Los datos deben ser enviados como FormData');
       }
 
-      const response = await api.put(`/admin/welcome-sections/${id}`, formData, {
+      const response = await api.post(`/admin/welcome-sections/${id}`, formData, {
         headers: {
           'Accept': 'application/json',
         },
@@ -273,7 +273,7 @@ export const welcomeSectionService = {
       let response;
     if (editingSection) {
         // Actualizar sección existente
-        response = await api.put(`/admin/welcome-sections/${editingSection.id}`, formDataObj, {
+        response = await api.post(`/admin/welcome-sections/${editingSection.id}`, formDataObj, {
           headers: {
             'Accept': 'application/json',
           },

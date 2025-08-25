@@ -28,7 +28,10 @@ const AdminWelcomeSectionManager = () => {
     try {
       setLoading(true);
       const response = await welcomeSectionService.getAll();
-      setSections(response.data.sections || []);
+      // Ordenar secciones por display_order
+      const sortedSections = (response.data.sections || [])
+        .sort((a, b) => a.display_order - b.display_order);
+      setSections(sortedSections);
     } catch (err) {
       setError(err.message);
       if (window.showToast) {
@@ -221,6 +224,72 @@ const AdminWelcomeSectionManager = () => {
     }));
   };
 
+  // Función para mover sección hacia arriba
+  const moveSectionUp = async (sectionId) => {
+    const currentIndex = sections.findIndex(s => s.id === sectionId);
+    if (currentIndex <= 0) return;
+
+    const updatedSections = [...sections];
+    const temp = updatedSections[currentIndex];
+    updatedSections[currentIndex] = updatedSections[currentIndex - 1];
+    updatedSections[currentIndex - 1] = temp;
+
+    // Actualizar display_order
+    const updates = updatedSections.map((section, index) => ({
+      id: section.id,
+      display_order: index + 1
+    }));
+
+    try {
+      // Actualizar todas las secciones con el nuevo orden
+      await Promise.all(updates.map(update => 
+        welcomeSectionService.update(update.id, formDataUtils.createFromObject(update))
+      ));
+      
+      setSections(updatedSections);
+      if (window.showToast) {
+        window.showToast('Orden actualizado exitosamente', 'success');
+      }
+    } catch (err) {
+      if (window.showToast) {
+        window.showToast('Error al actualizar el orden: ' + err.message, 'error');
+      }
+    }
+  };
+
+  // Función para mover sección hacia abajo
+  const moveSectionDown = async (sectionId) => {
+    const currentIndex = sections.findIndex(s => s.id === sectionId);
+    if (currentIndex >= sections.length - 1) return;
+
+    const updatedSections = [...sections];
+    const temp = updatedSections[currentIndex];
+    updatedSections[currentIndex] = updatedSections[currentIndex + 1];
+    updatedSections[currentIndex + 1] = temp;
+
+    // Actualizar display_order
+    const updates = updatedSections.map((section, index) => ({
+      id: section.id,
+      display_order: index + 1
+    }));
+
+    try {
+      // Actualizar todas las secciones con el nuevo orden
+      await Promise.all(updates.map(update => 
+        welcomeSectionService.update(update.id, formDataUtils.createFromObject(update))
+      ));
+      
+      setSections(updatedSections);
+      if (window.showToast) {
+        window.showToast('Orden actualizado exitosamente', 'success');
+      }
+    } catch (err) {
+      if (window.showToast) {
+        window.showToast('Error al actualizar el orden: ' + err.message, 'error');
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="admin-welcome-manager">
@@ -238,6 +307,15 @@ const AdminWelcomeSectionManager = () => {
         <p className="section-description">
           Administra los mensajes de bienvenida que se muestran en la página principal.
         </p>
+        <div className="admin-welcome-manager__info">
+          <p><strong>📋 Información importante:</strong></p>
+          <ul>
+            <li>• Solo las secciones <strong>activas</strong> se mostrarán en el carrusel de la página principal</li>
+            <li>• El <strong>orden de visualización</strong> se controla con los botones ↑↓ o editando el campo "Orden"</li>
+            <li>• Se mostrarán máximo <strong>3 secciones</strong> en el carrusel (las primeras por orden)</li>
+            <li>• Las secciones inactivas aparecen con opacidad reducida</li>
+          </ul>
+        </div>
       </div>
 
       {error && (
@@ -279,51 +357,80 @@ const AdminWelcomeSectionManager = () => {
             </div>
           ) : (
             <div className="admin-welcome-manager__sections-list">
-              {sections.map((section) => (
-                <div key={section.id} className="admin-welcome-manager__section-card">
-                  <div className="admin-welcome-manager__section-info">
-                    <div className="admin-welcome-manager__section-image">
-                      <img 
-                        src={`/${section.image_path}`} 
-                        alt={section.title}
-                        onError={(e) => {
-                          e.target.src = '/images/placeholder.jpg';
-                        }}
-                      />
+              {sections.map((section, index) => (
+                <div key={section.id} className={`admin-welcome-manager__section-card ${!section.is_active ? 'inactive-section' : ''}`}>
+                  <div className="admin-welcome-manager__section-header">
+                    <div className="section-order-info">
+                      <span className="order-number">#{section.display_order}</span>
+                      <span className={`status-indicator ${section.is_active ? 'active' : 'inactive'}`}>
+                        {section.is_active ? '●' : '○'}
+                      </span>
                     </div>
-                    <div className="admin-welcome-manager__section-details">
-                      <h4>{section.title}</h4>
-                      <p>{section.subtitle}</p>
-                      <div className="admin-welcome-manager__section-meta">
-                        <span className={`status-badge ${section.is_active ? 'active' : 'inactive'}`}>
-                          {section.is_active ? 'Activa' : 'Inactiva'}
-                        </span>
-                        <span className="order-badge">Orden: {section.display_order}</span>
-                      </div>
-                      <div className="admin-welcome-manager__section-button">
-                        <strong>Botón:</strong> {section.button_text} → {section.button_url}
-                      </div>
+                    <div className="section-order-controls">
+                      <button 
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={() => moveSectionUp(section.id)}
+                        disabled={index === 0}
+                        title="Mover hacia arriba"
+                      >
+                        ↑
+                      </button>
+                      <button 
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={() => moveSectionDown(section.id)}
+                        disabled={index === sections.length - 1}
+                        title="Mover hacia abajo"
+                      >
+                        ↓
+                      </button>
                     </div>
                   </div>
-                  <div className="admin-welcome-manager__section-actions">
-                    <button 
-                      className="btn btn-outline-primary btn-sm"
-                      onClick={() => handleEdit(section)}
-                    >
-                      Editar
-                    </button>
-                    <button 
-                      className={`btn btn-sm ${section.is_active ? 'btn-outline-warning' : 'btn-outline-success'}`}
-                      onClick={() => handleToggleStatus(section.id)}
-                    >
-                      {section.is_active ? 'Desactivar' : 'Activar'}
-                    </button>
-                    <button 
-                      className="btn btn-outline-danger btn-sm"
-                      onClick={() => handleDelete(section)}
-                    >
-                      Eliminar
-                    </button>
+                  
+                  <div className="admin-welcome-manager__section-content">
+                    <div className="admin-welcome-manager__section-info">
+                      <div className="admin-welcome-manager__section-image">
+                        <img 
+                          src={`/${section.image_path}`} 
+                          alt={section.title}
+                          onError={(e) => {
+                            e.target.src = '/images/placeholder.jpg';
+                          }}
+                        />
+                      </div>
+                      <div className="admin-welcome-manager__section-details">
+                        <h4>{section.title}</h4>
+                        <p>{section.subtitle}</p>
+                        <div className="admin-welcome-manager__section-meta">
+                          <span className={`status-badge ${section.is_active ? 'active' : 'inactive'}`}>
+                            {section.is_active ? 'Activa' : 'Inactiva'}
+                          </span>
+                          <span className="order-badge">Orden: {section.display_order}</span>
+                        </div>
+                        <div className="admin-welcome-manager__section-button">
+                          <strong>Botón:</strong> {section.button_text} → {section.button_url}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="admin-welcome-manager__section-actions">
+                      <button 
+                        className="btn btn-outline-primary btn-sm"
+                        onClick={() => handleEdit(section)}
+                      >
+                        Editar
+                      </button>
+                      <button 
+                        className={`btn btn-sm ${section.is_active ? 'btn-outline-warning' : 'btn-outline-success'}`}
+                        onClick={() => handleToggleStatus(section.id)}
+                      >
+                        {section.is_active ? 'Desactivar' : 'Activar'}
+                      </button>
+                      <button 
+                        className="btn btn-outline-danger btn-sm"
+                        onClick={() => handleDelete(section)}
+                      >
+                        Eliminar
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

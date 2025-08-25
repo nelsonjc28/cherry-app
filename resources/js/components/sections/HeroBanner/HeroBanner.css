@@ -245,6 +245,88 @@
   border: 1.5px solid #FFFFFF;
 }
 
+/* Slider Navigation */
+.slider-navigation {
+  position: absolute;
+  bottom: 30px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  z-index: 10;
+}
+
+.slider-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #FFD1D9;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: none;
+  outline: none;
+}
+
+.slider-dot.active {
+  width: 24px;
+  height: 24px;
+  background-color: var(--color-primary);
+  border: 1.5px solid #FFFFFF;
+}
+
+/* Navigation Arrows */
+.slider-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.slider-arrow:hover {
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.slider-arrow svg {
+  color: var(--color-primary);
+  transition: transform 0.3s ease;
+}
+
+.slider-arrow:hover svg {
+  transform: scale(1.1);
+}
+
+.slider-arrow--prev {
+  left: 20px;
+}
+
+.slider-arrow--next {
+  right: 20px;
+}
+
+/* Image hover effect */
+.banner-image {
+  transition: transform 0.3s ease;
+}
+
+.banner-image:hover {
+  transform: scale(1.02);
+}
+
 /* Responsive Styles */
 @media (max-width: 992px) {
   .banner-content {
@@ -314,6 +396,19 @@
   .banner-indicators {
     top: 460px;
   }
+
+  .slider-arrow {
+    width: 40px;
+    height: 40px;
+  }
+
+  .slider-arrow--prev {
+    left: 10px;
+  }
+
+  .slider-arrow--next {
+    right: 10px;
+  }
 }
 
 @media (max-width: 576px) {
@@ -363,6 +458,19 @@
 
   .banner-indicators {
     top: 300px;
+  }
+
+  .slider-arrow {
+    width: 36px;
+    height: 36px;
+  }
+
+  .slider-arrow--prev {
+    left: 5px;
+  }
+
+  .slider-arrow--next {
+    right: 5px;
   }
 
   .explora-text {
