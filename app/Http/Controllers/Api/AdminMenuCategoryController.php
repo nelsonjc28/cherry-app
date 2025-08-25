@@ -190,3 +190,4 @@ class AdminMenuCategoryController extends Controller
         }
     }
 }
+

@@ -50,3 +50,4 @@ class MenuCategory extends Model
         }
     }
 }
+

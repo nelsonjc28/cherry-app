@@ -69,81 +69,8 @@ const FeaturedProducts = ({
           
           setApiProducts(productsWithRatings.slice(0, 4)); // Asegurar solo 4 productos
         } else {
-          // Datos de prueba temporales - solo 4 productos
-          const testProducts = [
-            {
-              id: 'TEST001',
-              title: 'Vestido Elegante Cherry',
-              image: 'https://cherry-fotos.s3.amazonaws.com/shopify/TEST001/TEST001_1.jpg',
-              price: 129.00,
-              rating: 0, // Se actualizará con la BD
-              description: 'Vestido elegante perfecto para ocasiones especiales',
-              brand: 'Cherry',
-              category: 'Vestidos',
-              colors: ['Negro', 'Rojo'],
-              stock: 10,
-              isActive: true,
-              isNew: true,
-              isPromo: false
-            },
-            {
-              id: 'TEST002',
-              title: 'Blusa Moderna Cherry',
-              image: 'https://cherry-fotos.s3.amazonaws.com/shopify/TEST002/TEST002_1.jpg',
-              price: 89.99,
-              rating: 0, // Se actualizará con la BD
-              description: 'Blusa moderna para el día a día',
-              brand: 'Cherry',
-              category: 'Blusas',
-              colors: ['Blanco', 'Azul'],
-              stock: 15,
-              isActive: true,
-              isNew: false,
-              isPromo: true
-            },
-            {
-              id: 'TEST003',
-              title: 'Pantalón Elegante Cherry',
-              image: 'https://cherry-fotos.s3.amazonaws.com/shopify/TEST003/TEST003_1.jpg',
-              price: 149.00,
-              rating: 0, // Se actualizará con la BD
-              description: 'Pantalón que resalta tu figura',
-              brand: 'Cherry',
-              category: 'Pantalones',
-              colors: ['Negro', 'Gris'],
-              stock: 8,
-              isActive: true,
-              isNew: true,
-              isPromo: false
-            },
-            {
-              id: 'TEST004',
-              title: 'Accesorio Único Cherry',
-              image: 'https://cherry-fotos.s3.amazonaws.com/shopify/TEST004/TEST004_1.jpg',
-              price: 59.99,
-              rating: 0, // Se actualizará con la BD
-              description: 'Accesorio único para completar tu outfit',
-              brand: 'Cherry',
-              category: 'Accesorios',
-              colors: ['Dorado', 'Plateado'],
-              stock: 20,
-              isActive: true,
-              isNew: false,
-              isPromo: true
-            }
-          ];
-          
-          // Obtener calificaciones de la BD para los productos de prueba también
-          const testProductIds = testProducts.map(product => product.id);
-          const testRatings = await fetchProductRatings(testProductIds);
-          
-          // Actualizar productos de prueba con las calificaciones reales
-          const testProductsWithRatings = testProducts.map(product => ({
-            ...product,
-            rating: testRatings[product.id] || 0 // Si no hay calificación, usar 0 (estrellas vacías)
-          }));
-          
-          setApiProducts(testProductsWithRatings);
+          // Si no hay productos de la API, mostrar array vacío
+          setApiProducts([]);
         }
       } catch (error) {
         setApiProducts([]);

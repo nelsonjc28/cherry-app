@@ -304,3 +304,4 @@ class AdminCatalogOfferController extends Controller
         }
     }
 }
+

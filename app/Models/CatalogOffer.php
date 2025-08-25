@@ -95,3 +95,4 @@ class CatalogOffer extends Model
         return $this->discount_percentage;
     }
 }
+
