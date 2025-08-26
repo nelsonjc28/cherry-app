@@ -20,8 +20,6 @@ import { getProductImageUrl } from '../utils/productImageUtils';
 
 const CatalogPage = ({ catalogId }) => {
   // Debug: verificar que estamos recibiendo el catalogId
-  console.log('CatalogPage - catalogId recibido:', catalogId);
-  
   const [searchParams] = useSearchParams();
   const category = searchParams.get('category') || 'all';
   const colorFilter = searchParams.get('color') || '';
@@ -60,8 +58,6 @@ const CatalogPage = ({ catalogId }) => {
     });
     return Array.from(colorSet).sort();
   };
-
-
 
   // Function to filter products based on current filters
   const filterProducts = (products, currentFilters) => {
@@ -183,7 +179,6 @@ const CatalogPage = ({ catalogId }) => {
           }
         }
       } catch (error) {
-        console.error('Error loading catalogs:', error);
         setCatalogs([]);
       } finally {
         setCatalogLoading(false);
@@ -231,7 +226,6 @@ const CatalogPage = ({ catalogId }) => {
               productsData = [];
             }
           } catch (error) {
-            console.error('Error loading catalog products:', error);
             productsData = [];
           }
         } else {
@@ -257,7 +251,6 @@ const CatalogPage = ({ catalogId }) => {
         setAllProducts(validProducts);
         setFilteredProducts(validProducts);
       } catch (error) {
-        console.error('Error loading products:', error);
         setAllProducts([]);
       } finally {
         setLoading(false);

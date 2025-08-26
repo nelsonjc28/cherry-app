@@ -51,7 +51,6 @@ const Addresses = () => {
   // Handle menu actions
   const handleMenuAction = (addressId, action) => {
 
-
     if (action === 'setDefaultShipping') {
       // Set as default shipping address
       setAddresses(addresses =>

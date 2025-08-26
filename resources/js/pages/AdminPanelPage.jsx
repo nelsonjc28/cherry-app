@@ -11,6 +11,7 @@ import AdminPrivacyPolicyManager from '../components/AdminPrivacyPolicyManager/A
 import AdminCatalogManager from '../components/AdminCatalogManager/AdminCatalogManager';
 import AdminCategoryManager from '../components/AdminCategoryManager/AdminCategoryManager';
 import AdminMenuCategoryOrderManager from '../components/AdminMenuCategoryOrderManager/AdminMenuCategoryOrderManager';
+import AdminHomeCatalogManager from '../components/AdminHomeCatalogManager/AdminHomeCatalogManager';
 import AuthTest from '../components/AuthTest';
 import useUserStore from '../store/userStore';
 import '../index.css';
@@ -73,6 +74,7 @@ function AdminPanelPage() {
           <button className={`admin-panel__sidebar-link${selectedMenu==='category-order'?' active':''}`} onClick={()=>{setSelectedMenu('category-order'); setSidebarOpen(false);}}>Ordenar Categorías</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='menu-category-order'?' active':''}`} onClick={()=>{setSelectedMenu('menu-category-order'); setSidebarOpen(false);}}>Ordenar Categorías del Menú</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='welcome-sections'?' active':''}`} onClick={()=>{setSelectedMenu('welcome-sections'); setSidebarOpen(false);}}>Secciones de Bienvenida</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='home-catalogs'?' active':''}`} onClick={()=>{setSelectedMenu('home-catalogs'); setSidebarOpen(false);}}>Catálogos del Home</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='catalogs'?' active':''}`} onClick={()=>{setSelectedMenu('catalogs'); setSidebarOpen(false);}}>Catálogos</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='contact-info'?' active':''}`} onClick={()=>{setSelectedMenu('contact-info'); setSidebarOpen(false);}}>Información de Contacto</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='privacy-policy'?' active':''}`} onClick={()=>{setSelectedMenu('privacy-policy'); setSidebarOpen(false);}}>Políticas de Privacidad</button>
@@ -171,9 +173,7 @@ function AdminPanelPage() {
             <ClientManager />
           </section>
         )}
-        
 
-        
         {selectedMenu === 'category-products' && isAdmin() && (
           <section>
             <AdminCategoryManager />
@@ -195,6 +195,12 @@ function AdminPanelPage() {
         {selectedMenu === 'welcome-sections' && isAdmin() && (
           <section>
             <AdminWelcomeSectionManager />
+          </section>
+        )}
+
+        {selectedMenu === 'home-catalogs' && isAdmin() && (
+          <section>
+            <AdminHomeCatalogManager />
           </section>
         )}
 

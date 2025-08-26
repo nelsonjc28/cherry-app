@@ -268,8 +268,6 @@ export const welcomeSectionService = {
       formDataObj.append('image', imageFile);
     }
 
-
-
       let response;
     if (editingSection) {
         // Actualizar sección existente
@@ -442,14 +440,11 @@ export const publicCategoryService = {
   // Obtener todas las categorías públicas
   getAll: async () => {
     try {
-      console.log('🌐 publicCategoryService.getAll: Iniciando llamada a /categories');
       const response = await api.get('/categories', {
         timeout: 10000,
       });
-      console.log('✅ publicCategoryService.getAll: Respuesta exitosa:', response);
       return response;
     } catch (error) {
-      console.error('❌ publicCategoryService.getAll: Error:', error);
       throw error;
     }
   },
@@ -879,6 +874,16 @@ export const catalogService = {
   toggleStatus: async (id) => {
     try {
       const response = await api.patch(`/admin/catalogs/${id}/toggle`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Actualizar solo el orden de visualización (admin)
+  updateOrder: async (id, displayOrder) => {
+    try {
+      const response = await api.patch(`/admin/catalogs/${id}/order`, { display_order: displayOrder });
       return response;
     } catch (error) {
       throw error;

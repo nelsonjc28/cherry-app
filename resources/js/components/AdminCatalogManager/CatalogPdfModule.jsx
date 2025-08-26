@@ -96,8 +96,7 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
         setError(response.data.message || 'Error al subir archivos');
       }
     } catch (error) {
-      console.error('Error al subir archivos:', error);
-             setError('Error al subir imágenes. Verifica que sean archivos válidos.');
+      setError('Error al subir imágenes. Verifica que sean archivos válidos.');
     } finally {
       setUploading(false);
       // Limpiar el input de archivos
@@ -128,7 +127,6 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
         setError(response.data.message || 'Error al eliminar imagen');
       }
     } catch (error) {
-      console.error('Error al eliminar imagen:', error);
       setError('Error al eliminar imagen');
     }
   };
@@ -188,7 +186,6 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
         await fetchCatalogs();
       }
     } catch (error) {
-      console.error('Error al reordenar:', error);
       setError('Error al actualizar el orden');
       await fetchCatalogs();
     }

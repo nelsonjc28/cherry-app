@@ -18,7 +18,7 @@ class CategoryController extends Controller
         try {
             $categories = Category::active()
                 ->ordered()
-                ->select(['id', 'name', 'slug', 'description'])
+                ->select(['id', 'name', 'slug', 'code', 'description'])
                 ->get();
 
             return response()->json([

@@ -16,12 +16,11 @@ import {
   getProductsWithRatings
 } from '../api/cherryApi';
 import { publicCategoryService } from '../services/api';
+import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
 
 const CategoryPage = ({ categorySlug }) => {
   // Debug: verificar que estamos recibiendo el categorySlug
-  console.log('CategoryPage - categorySlug recibido:', categorySlug);
-  
   const [searchParams] = useSearchParams();
   const category = searchParams.get('category') || 'all';
   const colorFilter = searchParams.get('color') || '';
@@ -71,6 +70,7 @@ const CategoryPage = ({ categorySlug }) => {
 
   // Function to filter products based on current filters
   const filterProducts = (products, currentFilters) => {
+    
     if (!products || products.length === 0) return [];
 
     let filtered = [...products];
@@ -183,7 +183,6 @@ const CategoryPage = ({ categorySlug }) => {
           catalog: 'default'
         }));
       } catch (error) {
-        console.error('Error loading catalogs:', error);
         setCatalogs([]);
       } finally {
         setCatalogLoading(false);
@@ -203,31 +202,119 @@ const CategoryPage = ({ categorySlug }) => {
         // Si se proporciona categorySlug, cargar productos de esa categoría específica
         if (categorySlug) {
           try {
-            const response = await publicCategoryService.getProducts(categorySlug);
-            if (response.data.success) {
-              // Mapear productos de la categoría al formato esperado
-              productsData = response.data.data.products.map(product => ({
-                id: product.external_product_id,
-                title: product.product_name,
-                description: product.product_description,
-                price: product.product_price,
-                image: getProductImageUrl(product.external_product_id),
-                brand: product.product_metadata?.marca,
-                category: product.product_category,
-                stock: product.product_metadata?.inventario || 0,
-                colors: [],
-                isNew: false,
-                rating: 0,
-                ratingCount: 0
-              }));
+            // Primero obtener la categoría para obtener su código
+            const categoryResponse = await publicCategoryService.getBySlug(categorySlug);
+      
+            
+            if (categoryResponse.data.success && categoryResponse.data.category) {
+              const categoryData = categoryResponse.data.category;
+              setCurrentCategory(categoryData);
               
-              // Guardar información de la categoría actual
-              setCurrentCategory(response.data.data.category);
+
+              
+              // Ahora obtener los productos externos directamente de la API externa
+              if (categoryData.code) {
+                try {
+                  // Petición directa a la API externa
+                  const externalResponse = await fetch('https://cherryapi.estrategiadmgs.com.mx/cherryApi/');
+                  const externalData = await externalResponse.json();
+                  
+                  // Filtrar productos por código de categoría
+                  const filteredExternalProducts = externalData.filter(product => {
+                    const productLineaId = product.linea?.id_linea;
+                    const categoryCode = categoryData.code;
+                    
+                    return productLineaId == categoryCode; // Usando == como solicitaste
+                  });
+                  
+                                    // Mapear productos externos filtrados
+                  const allExternalProducts = filteredExternalProducts.map(product => {
+                    // Extraer precio y convertirlo a número
+                    const rawPrice = product.precio1;
+                    const numericPrice = typeof rawPrice === 'string' ? parseFloat(rawPrice.replace(/[^\d.-]/g, '')) : parseFloat(rawPrice) || 0;
+                    
+                    // Extraer colores si existen
+                    const productColors = product.colores || [];
+                    const availableColors = productColors.length > 0 ? productColors : ['black']; // Color por defecto
+                    
+                    // Determinar si el producto es nuevo basado en propiedades reales
+                    const isNewProduct = product.opc_nuevo === 'S' || 
+                                       (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)); // Últimos 30 días
+                    
+                    // Calcular descuento si existe
+                    const hasDiscount = product.opc_promo === 'S' && product.desc_promo > 0;
+                    const discountPercentage = hasDiscount ? product.desc_promo : 0;
+                    const originalPrice = hasDiscount ? (numericPrice / (1 - discountPercentage / 100)) : numericPrice;
+                    
+                    return {
+                      id: product.id_articulo,
+                      title: product.descripcion || 'Sin nombre',
+                      description: product.descripcion || 'Sin descripción',
+                      price: numericPrice,
+                      originalPrice: originalPrice, // Precio original con descuento
+                      discount: discountPercentage, // Porcentaje de descuento real
+                      image: getProductImageUrl(product.id_articulo),
+                      brand: product.marca || 'Sin marca',
+                      category: categoryData.name,
+                      stock: product.inventario || 0,
+                      colors: availableColors,
+                      isNew: isNewProduct, // Basado en propiedades reales
+                      rating: 0, // Se actualizará con la consulta a la BD
+                      ratingCount: 0, // Se actualizará con la consulta a la BD
+                      linea: product.linea,
+                      // Propiedades adicionales de la API externa
+                      fechaAlta: product.fecha_alta,
+                      fechaAct: product.fechaAct,
+                      temporada: product.temporada,
+                      opcNuevo: product.opc_nuevo,
+                      opcPromo: product.opc_promo,
+                      descPromo: product.desc_promo
+                    };
+                  });
+                  
+                  // Por ahora solo productos externos, productos locales se pueden agregar después
+                  productsData = [...allExternalProducts];
+                  
+                  // Contar productos nuevos
+                  const newProductsCount = allExternalProducts.filter(product => product.isNew).length;
+                  
+                  // Obtener calificaciones reales de la base de datos
+                  if (allExternalProducts.length > 0) {
+                    try {
+                      const productIds = allExternalProducts.map(product => product.id);
+                      
+                      const ratingsResponse = await api.get('/products/ratings', {
+                        params: { product_ids: productIds }
+                      });
+                      
+                      if (ratingsResponse.data.success) {
+                        const ratings = ratingsResponse.data.data.ratings;
+                        
+                        // Actualizar productos con calificaciones reales
+                        productsData = allExternalProducts.map(product => ({
+                          ...product,
+                          rating: ratings[product.id]?.average || 0,
+                          ratingCount: ratings[product.id]?.count || 0
+                        }));
+                      }
+                    } catch (error) {
+                      console.error('Error al obtener calificaciones:', error);
+                      // Continuar con productos sin calificaciones
+                    }
+                  }
+                  
+                } catch (error) {
+                  console.error('Error al obtener productos de API externa:', error);
+                  productsData = [];
+                }
+              } else {
+                productsData = [];
+              }
             } else {
               productsData = [];
             }
           } catch (error) {
-            console.error('Error loading category products:', error);
+            console.error('Error al cargar productos de categoría:', error);
             productsData = [];
           }
         } else {
@@ -252,8 +339,9 @@ const CategoryPage = ({ categorySlug }) => {
         
         setAllProducts(validProducts);
         setFilteredProducts(validProducts);
+        
+
       } catch (error) {
-        console.error('Error loading products:', error);
         setAllProducts([]);
       } finally {
         setLoading(false);
@@ -509,13 +597,15 @@ const CategoryPage = ({ categorySlug }) => {
               ) : (
                 <>
                   <div className="catalog-page__products-grid">
-                    {currentProducts.map((product) => (
+                    {currentProducts.map((product, index) => {
+                      return (
                       <CatalogProductCard
                         key={product.id}
                         product={product}
                         onFavoriteToggle={handleFavoriteToggle}
                       />
-                    ))}
+                      );
+                    })}
                   </div>
                   
                 </>

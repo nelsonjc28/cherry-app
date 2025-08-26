@@ -78,7 +78,6 @@ const CatalogPdfPage = () => {
         setError('Error al cargar el catálogo');
       }
     } catch (error) {
-      console.error('Error al cargar el catálogo:', error);
       setError('Error al cargar el catálogo. Verifica que el ID sea válido.');
     } finally {
       setLoading(false);

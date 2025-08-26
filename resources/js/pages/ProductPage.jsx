@@ -401,19 +401,12 @@ const ProductPage = () => {
     tipoart,
     url_video,
     descuento,
+    catalogoId,
+    generoId,
+    sectorId,
+    fechaAct,
     ...rest
   } = product;
-
-  console.log('Producto completo:', product);
-  console.log('Inventario del producto:', inventario);
-  console.log('Stock del producto:', product.stock);
-  console.log('Detalles del producto:', detalles);
-  
-  // Log para ver todos los campos disponibles en el primer detalle
-  if (detalles.length > 0) {
-    console.log('Campos disponibles en el primer detalle:', Object.keys(detalles[0]));
-    console.log('Primer detalle completo:', detalles[0]);
-  }
 
   // Colores y tallas únicos
   const colores = [...new Set(detalles.map(d => d.nombreColor).filter(Boolean))];
@@ -459,14 +452,8 @@ const ProductPage = () => {
 
   // Función para obtener el stock máximo de una talla específica
   const getStockForSize = (talla) => {
-    if (!selectedColor) {
-      const stock = product.inventario || product.stock || 99;
-      console.log(`getStockForSize para talla ${talla} (sin color):`, stock, 'product.inventario:', product.inventario, 'product.stock:', product.stock);
-      return stock;
-    }
-    const stock = getStockBySizeAndColor(talla, selectedColor);
-    console.log(`getStockForSize para talla ${talla}, color ${selectedColor}:`, stock);
-    return stock;
+    if (!selectedColor) return product.inventario || product.stock || 99;
+    return getStockBySizeAndColor(talla, selectedColor);
   };
 
   // Función para calcular el total de unidades seleccionadas
@@ -481,7 +468,10 @@ const ProductPage = () => {
       .map(([talla, cantidad]) => ({ talla, cantidad }));
   };
 
-
+  // Precios adicionales
+  const precios = [precio1, precio2, precio3, precio4, precio5, precio6, precio7, precio8, precio9, precio10]
+    .map((p, i) => ({ label: `Precio${i+1}`, value: p }))
+    .filter(p => p.value && p.value > 0);
 
   return (
     <>
@@ -557,15 +547,43 @@ const ProductPage = () => {
 
             <div className="product-page__container-info-details">
               <div className="product-page__info-sku">
-                <strong>ID:</strong> {sku || id_articulo}
+                <strong>SKU:</strong> {sku || id_articulo}
               </div>
               <div className="product-page__info-details">
                 <span>Descripción del producto</span>
                 <button className="product-page__details-link">Ver Detalles ›</button>
               </div>
               <div className="product-page__info-meta">
-                {especificaciones && <div><strong>Descripción:</strong> {especificaciones}</div>}
+                {marca && <div><strong>Marca:</strong> {marca}</div>}
+                {linea?.descripcion && <div><strong>Línea:</strong> {linea.descripcion}</div>}
+                {sector?.descripcion && <div><strong>Sector:</strong> {sector.descripcion}</div>}
+                {genero?.descripcion && <div><strong>Género:</strong> {genero.descripcion}</div>}
+                {piezas && <div><strong>Piezas:</strong> {piezas}</div>}
+                {costo && <div><strong>Costo:</strong> ${costo.toFixed(2)}</div>}
+                {inventario !== undefined && <div><strong>Inventario:</strong> {inventario}</div>}
+                {fecha_alta && <div><strong>Fecha alta:</strong> {fecha_alta}</div>}
+                {notas && <div><strong>Notas:</strong> {notas}</div>}
+                {especificaciones && <div><strong>Especificaciones:</strong> {especificaciones}</div>}
+                {activo !== undefined && <div><strong>Activo:</strong> {activo ? 'Sí' : 'No'}</div>}
+                {tipoart && <div><strong>Tipo artículo:</strong> {tipoart}</div>}
+                {url_video && <div><strong>Video:</strong> <a href={url_video} target="_blank" rel="noopener noreferrer">Ver video</a></div>}
+                {descuento && <div><strong>Descuento:</strong> {descuento}%</div>}
+                {catalogoId && <div><strong>ID Catálogo:</strong> {catalogoId}</div>}
+                {generoId && <div><strong>ID Género:</strong> {generoId}</div>}
+                {sectorId && <div><strong>ID Sector:</strong> {sectorId}</div>}
+                {fechaAct && <div><strong>Fecha actualización:</strong> {fechaAct}</div>}
               </div>
+              {/* Mostrar todos los precios disponibles */}
+              {precios.length > 1 && (
+                <div className="product-page__info-prices">
+                  <strong>Precios adicionales:</strong>
+                  <ul>
+                    {precios.slice(1).map((p, idx) => (
+                      <li key={idx}>{p.label}: ${p.value.toFixed(2)}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
             {/* Product Options */}
@@ -625,20 +643,10 @@ const ProductPage = () => {
                         >
                           <span className="product-page__size-number">{talla}</span>
                           <span className="product-page__size-availability">
-                            {(() => {
-                              if (selectedColor) {
-                                const stock = getStockBySizeAndColor(talla, selectedColor);
-                                console.log(`Stock para talla ${talla}, color ${selectedColor}:`, stock);
-                                return `${stock} disponibles`;
-                              } else {
-                                // Mostrar total de piezas para esta talla (todos los colores)
-                                const stockTotal = detalles
-                                  .filter(d => d.detalle === talla)
-                                  .reduce((total, d) => total + (d.piezas || 0), 0);
-                                console.log(`Stock total para talla ${talla}:`, stockTotal, 'detalles:', detalles.filter(d => d.detalle === talla));
-                                return `${stockTotal} piezas`;
-                              }
-                            })()}
+                            {selectedColor ? 
+                              `${getStockBySizeAndColor(talla, selectedColor)} disponibles` : 
+                              'Disponibles'
+                            }
                           </span>
                         </button>
 

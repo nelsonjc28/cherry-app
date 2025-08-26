@@ -151,7 +151,6 @@ const RegisterPage = () => {
   ]
   const years = Array.from({ length: 80 }, (_, i) => 2024 - i)
 
-
   return (
     <>
       <Helmet>

@@ -41,8 +41,7 @@ export const testMultipleEndpoints = async () => {
     'https://cherryapi.estrategiadmgs.com.mx/cherryApi/data',
     'https://cherryapi.estrategiadmgs.com.mx/cherryApi/catalog'
   ];
-  
-  
+
   for (const endpoint of endpoints) {
     try {
       const response = await fetch(endpoint);

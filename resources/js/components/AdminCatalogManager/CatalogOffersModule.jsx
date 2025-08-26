@@ -517,8 +517,6 @@ const CatalogOffersModule = ({ onBack, initialCatalog = null }) => {
                 </div>
               </div>
 
-              
-
                              <div className="catalog-offers-module__form-row">
                  <div className="catalog-offers-module__form-group">
                    <label>Compra mínima ($)</label>

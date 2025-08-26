@@ -16,6 +16,7 @@ const CategoriasPage = () => {
   const displayCategories = menuCategories.length > 0 ? menuCategories : categories;
   const displayLoading = menuLoading || loading;
 
+
   if (displayLoading) {
     return (
       <>
@@ -53,13 +54,20 @@ const CategoriasPage = () => {
 
           {/* Iconos de categorías */}
           <div className="categorias-icons">
-            {displayCategories.map((category) => (
-              <div key={category.id} className="categoria-icon-wrapper">
-                <CategoryIcon name={category.name} icon={getCategoryIconPath(category.name)} />
-              </div>
-            ))}
+            {displayCategories.map((category) => {
+              const iconPath = getCategoryIconPath(category.slug || category.name);
+              return (
+                <div key={category.id} className="categoria-icon-wrapper">
+                  <Link to={`/categoria/${category.slug || category.name}`}>
+                    <CategoryIcon 
+                      name={category.name} 
+                      icon={iconPath} 
+                    />
+                  </Link>
+                </div>
+              );
+            })}
           </div>
-
 
         </div>
       </main>

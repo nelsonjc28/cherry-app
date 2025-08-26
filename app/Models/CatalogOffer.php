@@ -96,3 +96,4 @@ class CatalogOffer extends Model
     }
 }
 
+

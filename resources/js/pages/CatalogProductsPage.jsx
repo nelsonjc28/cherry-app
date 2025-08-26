@@ -8,8 +8,6 @@ const CatalogProductsPage = () => {
   const { id } = useParams();
   
   // Debug: verificar que estamos recibiendo el ID
-  console.log('CatalogProductsPage - ID recibido:', id);
-
   return (
     <>
       <Helmet>

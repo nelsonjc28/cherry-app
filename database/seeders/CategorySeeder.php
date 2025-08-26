@@ -16,97 +16,129 @@ class CategorySeeder extends Seeder
     {
         $categories = [
             [
+                'name' => 'Sin Línea',
+                'code' => '00',
+                'description' => 'Productos sin línea específica.'
+            ],
+            [
                 'name' => 'Vestidos',
+                'code' => '01',
                 'description' => 'Hermosos vestidos para toda ocasión, desde casuales hasta elegantes para eventos especiales.'
             ],
             [
-                'name' => 'Blusas',
-                'description' => 'Blusas versátiles y elegantes para complementar cualquier outfit.'
-            ],
-            [
-                'name' => 'Pantalones',
-                'description' => 'Pantalones cómodos y estilosos para el día a día.'
-            ],
-            [
-                'name' => 'Faldas',
-                'description' => 'Faldas femeninas y versátiles para diferentes ocasiones.'
-            ],
-            [
-                'name' => 'Conjuntos',
-                'description' => 'Conjuntos coordinados que facilitan la elección del outfit perfecto.'
-            ],
-            [
-                'name' => 'Suéteres',
-                'description' => 'Suéteres abrigados y elegantes para las temporadas frías.'
-            ],
-            [
                 'name' => 'Sudadera',
+                'code' => '02',
                 'description' => 'Sudaderas cómodas y casuales para el día a día.'
             ],
             [
-                'name' => 'Abrigos',
+                'name' => 'Conjuntos',
+                'code' => '03',
+                'description' => 'Conjuntos coordinados que facilitan la elección del outfit perfecto.'
+            ],
+            [
+                'name' => 'Pantalón',
+                'code' => '04',
+                'description' => 'Pantalones cómodos y estilosos para el día a día.'
+            ],
+            [
+                'name' => 'Falda',
+                'code' => '05',
+                'description' => 'Faldas femeninas y versátiles para diferentes ocasiones.'
+            ],
+            [
+                'name' => 'Blusa',
+                'code' => '06',
+                'description' => 'Blusas versátiles y elegantes para complementar cualquier outfit.'
+            ],
+            [
+                'name' => 'Suéter',
+                'code' => '07',
+                'description' => 'Suéteres abrigados y elegantes para las temporadas frías.'
+            ],
+            [
+                'name' => 'Abrigo',
+                'code' => '08',
                 'description' => 'Abrigos elegantes y abrigados para protegerte del frío.'
             ],
             [
-                'name' => 'Chalecos',
+                'name' => 'Chaleco',
+                'code' => '09',
                 'description' => 'Chalecos versátiles que complementan cualquier outfit.'
             ],
             [
-                'name' => 'Jumpsuits',
+                'name' => 'Capa',
+                'code' => '10',
+                'description' => 'Capas elegantes y versátiles para complementar tu estilo.'
+            ],
+            [
+                'name' => 'Saco',
+                'code' => '11',
+                'description' => 'Sacos elegantes y versátiles para diferentes ocasiones.'
+            ],
+            [
+                'name' => 'Chamarra',
+                'code' => '12',
+                'description' => 'Chamarras cómodas y estilosas para el día a día.'
+            ],
+            [
+                'name' => 'Gabardina',
+                'code' => '13',
+                'description' => 'Gabardinas elegantes y versátiles para complementar tu estilo.'
+            ],
+            [
+                'name' => 'Jumpsuit',
+                'code' => '14',
                 'description' => 'Jumpsuits elegantes y prácticos para una silueta estilizada.'
             ],
             [
-                'name' => 'Shorts',
-                'description' => 'Shorts cómodos y frescos para los días calurosos.'
+                'name' => 'Romper',
+                'code' => '15',
+                'description' => 'Rompers elegantes y versátiles para diferentes ocasiones.'
             ],
             [
-                'name' => 'Tops',
-                'description' => 'Tops versátiles para diferentes ocasiones y estilos.'
-            ],
-            [
-                'name' => 'Pijamas',
+                'name' => 'Pijama',
+                'code' => '16',
                 'description' => 'Pijamas cómodos y elegantes para descansar en estilo.'
             ],
             [
                 'name' => 'Calzado',
+                'code' => '17',
                 'description' => 'Zapatos y sandalias para complementar cualquier outfit.'
             ],
-
             [
-                'name' => 'Accesorios',
-                'description' => 'Accesorios como bufandas, cinturones y más para complementar tu estilo.'
+                'name' => 'Bolsa',
+                'code' => '18',
+                'description' => 'Bolsas elegantes y funcionales para complementar tu estilo.'
+            ],
+            [
+                'name' => 'Bufanda',
+                'code' => '19',
+                'description' => 'Bufandas elegantes y abrigadas para las temporadas frías.'
+            ],
+            [
+                'name' => 'Pants',
+                'code' => '20',
+                'description' => 'Pants cómodos y estilosos para el día a día.'
+            ],
+            [
+                'name' => 'Top',
+                'code' => '21',
+                'description' => 'Tops versátiles para diferentes ocasiones y estilos.'
+            ],
+            [
+                'name' => 'Short',
+                'code' => '22',
+                'description' => 'Shorts cómodos y frescos para los días calurosos.'
             ],
             [
                 'name' => 'Perfumería',
+                'code' => '23',
                 'description' => 'Fragancias y productos de belleza para completar tu rutina.'
             ],
             [
-                'name' => 'Ropa Deportiva',
-                'description' => 'Ropa cómoda y funcional para tus actividades deportivas.'
-            ],
-            [
-                'name' => 'Ropa de Baño',
-                'description' => 'Trajes de baño elegantes para disfrutar del sol y la playa.'
-            ],
-            [
-                'name' => 'Ropa Interior',
-                'description' => 'Ropa interior cómoda y elegante para sentirte segura.'
-            ],
-            [
-                'name' => 'Ropa de Maternidad',
-                'description' => 'Ropa cómoda y elegante diseñada especialmente para embarazadas.'
-            ],
-            [
-                'name' => 'Ropa de Talla Grande',
-                'description' => 'Ropa elegante y cómoda en tallas especiales para todas las mujeres.'
-            ],
-            [
-                'name' => 'Ropa de Fiesta',
-                'description' => 'Vestidos y conjuntos elegantes para eventos especiales y celebraciones.'
-            ],
-            [
-                'name' => 'Ropa de Trabajo',
-                'description' => 'Ropa profesional y elegante para el entorno laboral.'
+                'name' => 'Cosméticos',
+                'code' => '24',
+                'description' => 'Productos de belleza y cosméticos para completar tu rutina.'
             ]
         ];
 
@@ -115,6 +147,7 @@ class CategorySeeder extends Seeder
                 ['name' => $categoryData['name']],
                 [
                     'slug' => Str::slug($categoryData['name']),
+                    'code' => $categoryData['code'],
                     'description' => $categoryData['description'],
                     'is_active' => true
                 ]

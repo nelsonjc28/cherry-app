@@ -1,0 +1,332 @@
+import React, { useState, useEffect } from 'react';
+import { catalogService } from '../../services/api';
+import api from '../../services/api';
+import useUserStore from '../../store/userStore';
+import './AdminHomeCatalogManager.css';
+
+const AdminHomeCatalogManager = () => {
+  const { user } = useUserStore();
+  const [orderedCatalogs, setOrderedCatalogs] = useState([]);
+  const [availableCatalogs, setAvailableCatalogs] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [draggedCatalog, setDraggedCatalog] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [status, setStatus] = useState('ready');
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      
+             // Obtener catálogos del home
+       let homeResponse;
+       try {
+         homeResponse = await api.get('/home-catalogs');
+         if (homeResponse.data.success) {
+           setOrderedCatalogs(homeResponse.data.catalogs || []);
+         } else {
+           setOrderedCatalogs([]);
+         }
+       } catch (error) {
+         setOrderedCatalogs([]);
+       }
+      
+             // Obtener todos los catálogos disponibles
+       let allCatalogsResponse;
+       try {
+         allCatalogsResponse = await catalogService.getAll();
+         if (allCatalogsResponse.data.success) {
+           const allCatalogs = allCatalogsResponse.data.data || [];
+           const homeCatalogIds = (homeResponse?.data?.catalogs || []).map(c => c.id);
+           const available = allCatalogs.filter(c => !homeCatalogIds.includes(c.id));
+           setAvailableCatalogs(available);
+         } else {
+           setAvailableCatalogs([]);
+         }
+       } catch (error) {
+         try {
+           const publicResponse = await api.get('/catalogs');
+           if (publicResponse.data.success) {
+             const allCatalogs = publicResponse.data.data || [];
+             const homeCatalogIds = (homeResponse?.data?.catalogs || []).map(c => c.id);
+             const available = allCatalogs.filter(c => !homeCatalogIds.includes(c.id));
+             setAvailableCatalogs(available);
+           } else {
+             setAvailableCatalogs([]);
+           }
+         } catch (publicError) {
+           setAvailableCatalogs([]);
+         }
+       }
+    } catch (error) {
+      window.showToast('Error al cargar los catálogos', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDragStart = (e, catalog, source) => {
+    setDraggedCatalog({ ...catalog, source });
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = async (e, targetArea) => {
+    e.preventDefault();
+    
+    if (!draggedCatalog) return;
+
+    try {
+      setStatus('saving');
+      
+      if (targetArea === 'ordered' && draggedCatalog.source === 'available') {
+                          // Agregar catálogo al home
+         try {
+           const payload = { display_order: orderedCatalogs.length + 1 };
+           const response = await api.patch(`/admin/catalogs/${draggedCatalog.id}/order`, payload);
+           
+           // Mover catálogo de disponible a ordenados
+           const updatedOrdered = [...orderedCatalogs, { ...draggedCatalog, display_order: orderedCatalogs.length + 1 }];
+           const updatedAvailable = availableCatalogs.filter(c => c.id !== draggedCatalog.id);
+           
+           setOrderedCatalogs(updatedOrdered);
+           setAvailableCatalogs(updatedAvailable);
+           
+           window.showToast('Catálogo agregado al home exitosamente', 'success');
+         } catch (error) {
+           window.showToast('Error al agregar catálogo al home: ' + (error.response?.data?.message || error.message), 'error');
+         }
+      } else if (targetArea === 'available' && draggedCatalog.source === 'ordered') {
+                          // Remover catálogo del home
+         try {
+           const payload = { display_order: null };
+           const response = await api.patch(`/admin/catalogs/${draggedCatalog.id}/order`, payload);
+           
+           // Mover catálogo de ordenados a disponible
+           const updatedOrdered = orderedCatalogs.filter(c => c.id !== draggedCatalog.id);
+           const updatedAvailable = [...availableCatalogs, { ...draggedCatalog, display_order: null }];
+           
+           setOrderedCatalogs(updatedOrdered);
+           setAvailableCatalogs(updatedAvailable);
+           
+           window.showToast('Catálogo removido del home exitosamente', 'success');
+         } catch (error) {
+           window.showToast('Error al remover catálogo del home: ' + (error.response?.data?.message || error.message), 'error');
+         }
+      } else if (targetArea === 'ordered' && draggedCatalog.source === 'ordered') {
+        // Reordenar dentro del home
+        const updatedOrdered = [...orderedCatalogs];
+        const draggedIndex = updatedOrdered.findIndex(c => c.id === draggedCatalog.id);
+        const dropIndex = orderedCatalogs.findIndex(c => c.id === e.target.closest('[data-catalog-id]')?.dataset.catalogId);
+        
+        if (draggedIndex !== -1 && dropIndex !== -1) {
+          const [removed] = updatedOrdered.splice(draggedIndex, 1);
+          updatedOrdered.splice(dropIndex, 0, removed);
+          
+                     // Actualizar display_order para todos los catálogos
+           const updates = updatedOrdered.map((catalog, index) => ({
+             id: catalog.id,
+             display_order: index + 1
+           }));
+           
+                      // Actualizar en la base de datos usando la ruta específica para orden
+           try {
+             await Promise.all(updates.map(async (update) => {
+               const payload = { display_order: update.display_order };
+               return api.patch(`/admin/catalogs/${update.id}/order`, payload);
+             }));
+             
+             setOrderedCatalogs(updatedOrdered);
+             window.showToast('Orden del home actualizado exitosamente', 'success');
+           } catch (error) {
+             window.showToast('Error al actualizar el orden: ' + (error.response?.data?.message || error.message), 'error');
+           }
+        }
+      }
+      
+      setStatus('saved');
+      setTimeout(() => setStatus('ready'), 2000);
+    } catch (error) {
+      window.showToast('Error al actualizar el orden', 'error');
+      setStatus('ready');
+    } finally {
+      setDraggedCatalog(null);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedCatalog(null);
+  };
+
+  const filteredAvailableCatalogs = availableCatalogs.filter(catalog =>
+    catalog.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (catalog.description && catalog.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  if (loading) {
+    return (
+      <div className="admin-home-catalog-manager__loading">
+        <p>Cargando catálogos...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="admin-home-catalog-manager">
+      <div className="admin-home-catalog-manager__header">
+        <div className="admin-home-catalog-manager__header-left">
+          <h2>Ordenar Catálogos del Home</h2>
+          <div className={`admin-home-catalog-manager__status admin-home-catalog-manager__status-${status}`}>
+            {status === 'ready' && 'Listo para ordenar'}
+            {status === 'saving' && 'Guardando cambios...'}
+            {status === 'saved' && 'Cambios guardados'}
+          </div>
+        </div>
+                 <div className="admin-home-catalog-manager__actions">
+           <button onClick={fetchData} className="btn btn-secondary">
+             Recargar
+           </button>
+           <button 
+             onClick={() => {
+               }} 
+             className="btn btn-secondary"
+             style={{ marginLeft: '10px' }}
+           >
+             🐛 Debug
+           </button>
+           <button 
+             onClick={async () => {
+               try {
+                 const testResponse = await api.patch('/admin/catalogs/1/order', { display_order: 5 });
+                 window.showToast('Test de API exitoso', 'success');
+               } catch (error) {
+                 window.showToast('Test de API falló: ' + (error.response?.data?.message || error.message), 'error');
+               }
+             }} 
+             className="btn btn-secondary"
+             style={{ marginLeft: '10px' }}
+           >
+             🧪 Test API
+           </button>
+         </div>
+      </div>
+
+      <div className="admin-home-catalog-manager__description">
+        <p>Arrastra los catálogos para ordenarlos en el home. Solo los catálogos activos se mostrarán en la página principal.</p>
+      </div>
+
+      <div className="admin-home-catalog-manager__containers">
+        {/* Catálogos del Home */}
+        <div className="admin-home-catalog-manager__container">
+          <h3>Catálogos del Home ({orderedCatalogs.length})</h3>
+          <div 
+            className="admin-home-catalog-manager__dropzone"
+            onDragOver={(e) => handleDragOver(e)}
+            onDrop={(e) => handleDrop(e, 'ordered')}
+          >
+            {orderedCatalogs.length === 0 ? (
+              <div className="admin-home-catalog-manager__empty">
+                <p>No hay catálogos en el home</p>
+                <p>Arrastra catálogos desde "Catálogos Disponibles"</p>
+              </div>
+            ) : (
+              orderedCatalogs.map((catalog, index) => (
+                <div
+                  key={catalog.id}
+                  data-catalog-id={catalog.id}
+                  className="admin-home-catalog-manager__item"
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, catalog, 'ordered')}
+                  onDragEnd={handleDragEnd}
+                >
+                  <div className="admin-home-catalog-manager__item-content">
+                    <div className="admin-home-catalog-manager__item-header">
+                      <div className="admin-home-catalog-manager__item-order">
+                        {index + 1}
+                      </div>
+                      <div className="admin-home-catalog-manager__item-name">
+                        {catalog.name}
+                      </div>
+                    </div>
+                    {catalog.description && (
+                      <div className="admin-home-catalog-manager__item-description">
+                        {catalog.description}
+                      </div>
+                    )}
+                    <div className="admin-home-catalog-manager__item-meta">
+                      <span className={`admin-home-catalog-manager__status admin-home-catalog-manager__status--${catalog.is_active ? 'active' : 'inactive'}`}>
+                        {catalog.is_active ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Catálogos Disponibles */}
+        <div className="admin-home-catalog-manager__container">
+          <h3>Catálogos Disponibles ({filteredAvailableCatalogs.length})</h3>
+          <div className="admin-home-catalog-manager__search">
+            <input
+              type="text"
+              placeholder="Buscar catálogos..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="admin-home-catalog-manager__search-input"
+            />
+          </div>
+          <div 
+            className="admin-home-catalog-manager__dropzone"
+            onDragOver={(e) => handleDragOver(e)}
+            onDrop={(e) => handleDrop(e, 'available')}
+          >
+            {filteredAvailableCatalogs.length === 0 ? (
+              <div className="admin-home-catalog-manager__empty">
+                <p>No hay catálogos disponibles</p>
+              </div>
+            ) : (
+              filteredAvailableCatalogs.map((catalog) => (
+                <div
+                  key={catalog.id}
+                  className="admin-home-catalog-manager__item"
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, catalog, 'available')}
+                  onDragEnd={handleDragEnd}
+                >
+                  <div className="admin-home-catalog-manager__item-content">
+                    <div className="admin-home-catalog-manager__item-header">
+                      <div className="admin-home-catalog-manager__item-name">
+                        {catalog.name}
+                      </div>
+                    </div>
+                    {catalog.description && (
+                      <div className="admin-home-catalog-manager__item-description">
+                        {catalog.description}
+                      </div>
+                    )}
+                    <div className="admin-home-catalog-manager__item-meta">
+                      <span className={`admin-home-catalog-manager__status admin-home-catalog-manager__status--${catalog.is_active ? 'active' : 'inactive'}`}>
+                        {catalog.is_active ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AdminHomeCatalogManager;

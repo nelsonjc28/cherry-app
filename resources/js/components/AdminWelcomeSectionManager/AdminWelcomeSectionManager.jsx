@@ -80,8 +80,6 @@ const AdminWelcomeSectionManager = () => {
         formDataObj.append('image', imageFile);
       }
 
-
-
       let response;
       if (editingSection) {
         // Actualizar sección existente

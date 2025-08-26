@@ -51,15 +51,26 @@
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: 15px;
-  border-radius: 12px;
-  transition: all 0.3s ease;
   cursor: pointer;
 }
 
-.categoria-icon-wrapper:hover {
-  transform: translateY(-3px);
+.categoria-icon-wrapper a {
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  padding: 15px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.categoria-icon-wrapper a:hover {
   background: rgba(234, 38, 48, 0.05);
+  transform: translateY(-3px);
 }
 
 /* Sección de categoría seleccionada */

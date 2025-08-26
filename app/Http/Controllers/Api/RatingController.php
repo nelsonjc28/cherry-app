@@ -170,4 +170,32 @@ class RatingController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Obtener calificaciones de múltiples productos
+     */
+    public function getMultipleProductsRatings(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'product_ids' => 'required|array',
+                'product_ids.*' => 'required|string'
+            ]);
+
+            $productIds = $request->input('product_ids');
+            $ratings = Rating::getMultipleProductsRatings($productIds);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'ratings' => $ratings
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al obtener calificaciones: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

@@ -52,12 +52,38 @@ export const getImagePath = (imageName) => {
 
 /**
  * Get the path for a category icon
- * @param {string} categoryName - Name of the category
+ * @param {string} categoryName - Name of the category (with or without extension)
  * @returns {string} - Full path to the category icon
  */
 export const getCategoryIconPath = (categoryName) => {
-  const normalizedName = categoryName.toLowerCase().replace(/\s+/g, '-');
-  return `${window.location.origin}/icons/category/${normalizedName}`;
+  // Remove .svg extension if already present to avoid double extension
+  const cleanIconName = categoryName.replace(/\.svg$/i, '');
+  
+  // Mapeo de nombres de categorías a nombres de archivos disponibles
+  const categoryIconMap = {
+    'vestidos': 'vestidos.svg',
+    'blusas': 'blusas.svg',
+    'pantalones': 'pantalones.svg',
+    'sacos': 'vestir-1.svg',
+    'conjuntos': 'moda-2-1.svg',
+    'gabardinas': 'gabardina-1.svg',
+    'vestido-de-novio': 'vestido-de-novio-1.svg',
+    'pantalones-ajustados': 'pantalones-ajustados-1.svg',
+    'blusa': 'blusa-1.svg',
+    'gabardina': 'gabardina-1.svg',
+    'moda': 'moda-2-1.svg',
+    'vestir': 'vestir-1.svg'
+  };
+  
+  const normalizedName = cleanIconName.toLowerCase().replace(/\s+/g, '-');
+  
+  // Si tenemos un mapeo específico, usarlo
+  if (categoryIconMap[normalizedName]) {
+    return `${window.location.origin}/icons/category/${categoryIconMap[normalizedName]}`;
+  }
+  
+  // Fallback: intentar con el nombre normalizado
+  return `${window.location.origin}/icons/category/${normalizedName}.svg`;
 };
 
 /**

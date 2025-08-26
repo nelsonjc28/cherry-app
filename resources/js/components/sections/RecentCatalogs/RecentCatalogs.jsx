@@ -1,56 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { getFeaturedCatalogImagePath } from '../../../utils/assetPaths';
 import './RecentCatalogs.css';
 import { getHeroIconPath } from '../../../utils/assetPaths';
-import { publicCatalogService } from '../../../services/api';
+import useHomeCatalogs from '../../../hooks/useHomeCatalogs';
 
 const RecentCatalogs = () => {
-  const [catalogs, setCatalogs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { catalogs, loading, error } = useHomeCatalogs();
 
-  // Cargar catálogos al montar el componente
-  useEffect(() => {
-    fetchCatalogs();
-  }, []);
-
-  const fetchCatalogs = async () => {
-    try {
-      setLoading(true);
-      const response = await publicCatalogService.getAll();
-      
-      if (response.data.success) {
-        // Filtrar solo catálogos que tengan PDF
-        const catalogsWithPdf = response.data.data.filter(catalog => 
-          catalog.pdf_images && 
-          catalog.pdf_images.length > 0
-        );
-        
-        // Mapear a formato del componente
-        const mappedCatalogs = catalogsWithPdf.map(catalog => ({
-          id: catalog.id,
-          title: catalog.name,
-          subtitle: catalog.description || 'Descubre nuestra colección exclusiva',
-          image: catalog.image || getFeaturedCatalogImagePath('image_example_1.png'),
-          link: `/catalogo/${catalog.id}`,
-          buttonText: 'Ver más',
-          imageAlt: `Catálogo ${catalog.name} de Cherry Central`,
-          hasPdf: true,
-          pdfCount: catalog.pdf_images.length
-        }));
-        
-        setCatalogs(mappedCatalogs);
-      }
-    } catch (error) {
-      setError('Error al cargar los catálogos');
-      if (window.showToast) {
-        window.showToast('Error al cargar los catálogos', 'error');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Mapear catálogos al formato del componente
+  const mappedCatalogs = catalogs.map(catalog => ({
+    id: catalog.id,
+    title: catalog.name,
+    subtitle: catalog.description || 'Descubre nuestra colección exclusiva',
+    image: catalog.image || getFeaturedCatalogImagePath('image_example_1.png'),
+    link: `/catalogo/${catalog.id}`,
+    buttonText: 'Ver más',
+    imageAlt: `Catálogo ${catalog.name} de Cherry Central`,
+    hasPdf: catalog.hasPdf,
+    pdfCount: catalog.pdfCount
+  }));
 
   return (
     <section className="recent-catalogs" aria-labelledby="recent-catalogs-heading">
@@ -75,19 +44,18 @@ const RecentCatalogs = () => {
           <div className="catalogs-error">
             <p>{error}</p>
           </div>
-        ) : catalogs.length === 0 ? (
+        ) : mappedCatalogs.length === 0 ? (
           <div className="catalogs-empty">
             <p>No hay catálogos disponibles en este momento</p>
           </div>
         ) : (
           <div className="catalogs-grid" role="list">
-            {catalogs.map((catalog) => (
+            {mappedCatalogs.map((catalog) => (
               <article key={catalog.id} className="catalog-card" role="listitem">
                 <div className="home-catalog-content">
                   <div className="catalog-text">
                     <p className="catalog-subtitle">{catalog.subtitle}</p>
                     <h3 className="catalog-title">{catalog.title}</h3>
-
                   </div>
                   <div className='content-btn-explore'>
                     <Link
@@ -135,7 +103,7 @@ const RecentCatalogs = () => {
         {/* View more catalogs link */}
         <footer className="view-more-section">
           <Link
-            to="/catalogo"
+            to="/catalogos"
             className="view-more-link"
             aria-label="Ver todos los catálogos de moda femenina disponibles"
           >

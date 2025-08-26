@@ -51,7 +51,7 @@ class Catalog extends Model
      */
     public function scopeActive($query)
     {
-        return $query->where('is_active', true)->orderBy('display_order');
+        return $query->where('is_active', true);
     }
 
     /**
@@ -59,6 +59,6 @@ class Catalog extends Model
      */
     public function scopeOrdered($query)
     {
-        return $query->orderBy('display_order');
+        return $query->whereNotNull('display_order')->orderBy('display_order', 'asc');
     }
 }

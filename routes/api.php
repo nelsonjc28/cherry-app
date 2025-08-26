@@ -64,6 +64,7 @@ Route::middleware(['auth:api'])->group(function () {
         Route::put('/admin/categories/{id}', [AdminCategoryController::class, 'update']);
         Route::delete('/admin/categories/{id}', [AdminCategoryController::class, 'destroy']);
         Route::patch('/admin/categories/{id}/toggle', [AdminCategoryController::class, 'toggleStatus']);
+        Route::get('/admin/categories/{id}/available-external-products', [App\Http\Controllers\Api\ExternalProductController::class, 'getAvailableProductsForCategory']);
     });
     
     // Ordered Categories routes - require authentication and admin role
@@ -108,6 +109,7 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/admin/catalogs/{id}/products', [AdminCatalogController::class, 'getCatalogProducts']);
         Route::delete('/admin/catalogs/{catalogId}/products/{productId}', [AdminCatalogController::class, 'removeProduct']);
         Route::post('/admin/catalogs/{id}/reorder', [AdminCatalogController::class, 'reorder']);
+        Route::patch('/admin/catalogs/{id}/order', [AdminCatalogController::class, 'updateOrder']);
         
         // Catalog Offers routes - require authentication and admin role
         Route::get('/admin/catalog-offers', [AdminCatalogOfferController::class, 'index']);
@@ -142,6 +144,10 @@ Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/categories/{slug}', [CategoryController::class, 'show']);
 Route::get('/categories/{slug}/products', [CategoryController::class, 'getCategoryProducts']);
 
+// External products routes (no authentication required)
+Route::get('/external-products/category/{categoryCode}', [App\Http\Controllers\Api\ExternalProductController::class, 'getProductsByCategoryCode']);
+Route::get('/products/ratings', [App\Http\Controllers\Api\RatingController::class, 'getMultipleProductsRatings']);
+
 // Public welcome sections routes (no authentication required)
 Route::get('/welcome-sections/active', [WelcomeSectionController::class, 'getActiveSection']);
 Route::get('/welcome-sections', [WelcomeSectionController::class, 'getActiveSections']);
@@ -168,6 +174,10 @@ Route::middleware(['auth:api', 'admin'])->group(function () {
 
 // Public home categories route (no authentication required)
 Route::get('/home-categories', [HomeCategoryController::class, 'getHomeCategories']);
+
+// Public home catalogs route (no authentication required)
+Route::get('/home-catalogs', [App\Http\Controllers\Api\HomeCatalogController::class, 'index']);
+Route::get('/home-catalogs/{id}', [App\Http\Controllers\Api\HomeCatalogController::class, 'show']);
 
 // Public catalogs routes (no authentication required)
 Route::get('/catalogs', [AdminCatalogController::class, 'getPublicCatalogs']);

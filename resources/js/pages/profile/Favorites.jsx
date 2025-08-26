@@ -103,7 +103,6 @@ const Favorites = () => {
       fetchFavorites(currentPage);
     } catch (err) {
 
-
     }
   };
 
@@ -160,7 +159,6 @@ const Favorites = () => {
         
         // Reload favorites to get updated data
         fetchFavorites(currentPage);
-        
 
               } catch (err) {
           if (window.showToast) {

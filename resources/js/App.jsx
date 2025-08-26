@@ -29,6 +29,7 @@ import CheckoutSuccessPage from './pages/CheckoutSuccessPage';
 import CarritoPage from './pages/CarritoPage';
 import BuscarPage from './pages/BuscarPage';
 import CategoriasPage from './pages/CategoriasPage';
+
 import ContactPage from './pages/ContactPage';
 import AfiliatePage from './pages/AfiliatePage';
 import TerminosPage from './pages/TerminosPage';
@@ -38,7 +39,7 @@ import NotificacionesPage from './pages/NotificacionesPage';
 import ExplorarPage from './pages/ExplorarPage';
 import PromocionesPage from './pages/PromocionesPage';
 import DestacadosPage from './pages/DestacadosPage';
-import NuevosPage from './pages/NuevosPage';
+import NewProductsPage from './pages/NewProductsPage';
 import ProductosPage from './pages/ProductosPage';
 import DestacadosOfertasPage from './pages/DestacadosOfertasPage';
 import FavoritosPage from './pages/FavoritosPage';
@@ -99,7 +100,7 @@ function App() {
                       <Route path="/explorar" element={<ExplorarPage />} />
                       <Route path="/promociones" element={<PromocionesPage />} />
                       <Route path="/destacados" element={<DestacadosPage />} />
-                      <Route path="/nuevos" element={<NuevosPage />} />
+                      <Route path="/nuevos" element={<NewProductsPage />} />
                       <Route path="/productos" element={<ProductosPage />} />
                       <Route path="/destacados-ofertas" element={<DestacadosOfertasPage />} />
                       <Route path="/favoritos" element={<FavoritosPage />} />

@@ -23,14 +23,6 @@ const Header = () => {
   const { menuCategories, loading: menuCategoriesLoading } = useMenuCategories();
   
   // Debug logs
-  console.log('🔍 Header: Estado de categorías:', { 
-    categoriesCount: categories.length, 
-    categoriesLoading, 
-    menuCategoriesCount: menuCategories.length,
-    menuCategoriesLoading,
-    pathname: location.pathname 
-  });
-  
   const [activeMenu, setActiveMenu] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openMobileSubMenu, setOpenMobileSubMenu] = useState(null);
@@ -41,23 +33,13 @@ const Header = () => {
 
   // Organizar categorías en grupos para el menú
   const getCategoryGroups = () => {
-    console.log('🔍 Header getCategoryGroups:', { 
-      isAdminPage, 
-      categoriesLoading, 
-      categoriesCount: categories.length,
-      menuCategoriesLoading,
-      menuCategoriesCount: menuCategories.length
-    });
-    
     // Si estamos en el panel de administración, no mostrar categorías
     if (isAdminPage) {
-      console.log('🚫 Header: En panel admin, no mostrando categorías');
       return [];
     }
     
     // Priorizar las categorías del menú si están disponibles
     if (menuCategoriesLoading) {
-      console.log('⏳ Header: Cargando categorías del menú, mostrando placeholder');
       return [
         {
           title: 'Cargando...',
@@ -70,8 +52,6 @@ const Header = () => {
     
     // Si hay categorías del menú configuradas, usarlas
     if (menuCategories && menuCategories.length > 0) {
-      console.log('✅ Header: Usando categorías del menú configuradas');
-      
       // Dividir las categorías del menú en grupos de 6 para mejor organización
       const groups = [];
       const itemsPerGroup = 6;
@@ -82,7 +62,7 @@ const Header = () => {
           title: `Categorías ${Math.floor(i / itemsPerGroup) + 1}`,
           items: group.map(cat => ({
             name: cat.name,
-            link: `/categorias/${cat.slug}`
+            link: `/categoria/${cat.slug}`
           }))
         });
       }
@@ -100,7 +80,6 @@ const Header = () => {
     
     // Fallback a categorías generales si no hay categorías del menú
     if (categoriesLoading || !categories.length) {
-      console.log('⏳ Header: Cargando o sin categorías generales, mostrando placeholder');
       return [
         {
           title: 'Cargando...',
@@ -111,7 +90,6 @@ const Header = () => {
       ];
     }
 
-    console.log('🔄 Header: Usando categorías generales como fallback');
     // Dividir las categorías generales en grupos de 6 para mejor organización
     const groups = [];
     const itemsPerGroup = 6;
@@ -122,7 +100,7 @@ const Header = () => {
         title: `Categorías ${Math.floor(i / itemsPerGroup) + 1}`,
         items: group.map(cat => ({
           name: cat.name,
-          link: `/categorias/${cat.slug}`
+                      link: `/categoria/${cat.slug}`
         }))
       });
     }
@@ -385,7 +363,6 @@ const Header = () => {
 
   return (
     <header className="site-header">
-
 
       {/* Main Header */}
       <div className="main-header">

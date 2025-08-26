@@ -66,8 +66,8 @@ class AdminCatalogController extends Controller
                 'name' => 'required|string|max:255',
                 'description' => 'required|string',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif',
-                'is_active' => 'boolean',
-                'display_order' => 'integer|min:0'
+                'is_active' => 'sometimes|boolean',
+                'display_order' => 'sometimes|integer|min:0'
             ]);
 
             if ($validator->fails()) {
@@ -120,11 +120,11 @@ class AdminCatalogController extends Controller
             $catalog = Catalog::findOrFail($id);
 
             $validator = Validator::make($request->all(), [
-                'name' => 'required|string|max:255',
-                'description' => 'required|string',
+                'name' => 'sometimes|required|string|max:255',
+                'description' => 'sometimes|required|string',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif',
-                'is_active' => 'boolean',
-                'display_order' => 'integer|min:0'
+                'is_active' => 'sometimes|boolean',
+                'display_order' => 'sometimes|integer|min:0'
             ]);
 
             if ($validator->fails()) {
@@ -172,6 +172,48 @@ class AdminCatalogController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al actualizar el catálogo: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Actualizar solo el orden de visualización de un catálogo
+     */
+    public function updateOrder(Request $request, $id)
+    {
+        try {
+            $catalog = Catalog::findOrFail($id);
+            
+            // Log para debug
+            \Log::info('updateOrder request', [
+                'id' => $id,
+                'request_data' => $request->all(),
+                'headers' => $request->headers->all()
+            ]);
+
+            $validator = Validator::make($request->all(), [
+                'display_order' => 'nullable|integer|min:0'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error de validación',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $catalog->update(['display_order' => $request->display_order]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Orden del catálogo actualizado exitosamente',
+                'data' => $catalog
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar el orden del catálogo: ' . $e->getMessage()
             ], 500);
         }
     }

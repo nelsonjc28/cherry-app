@@ -53,7 +53,6 @@ const FeaturedCategories = () => {
           setCategories(defaultCategories);
         }
       } catch (error) {
-        console.error('Error loading featured categories:', error);
         // Usar categorías por defecto en caso de error
         const defaultCategories = [
           {

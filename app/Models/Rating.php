@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Rating extends Model
 {
@@ -112,5 +113,36 @@ class Rating extends Model
         return self::where('user_id', $userId)
                    ->where('product_id', $productId)
                    ->exists();
+    }
+
+    /**
+     * Obtener calificaciones de múltiples productos de una vez
+     */
+    public static function getMultipleProductsRatings($productIds)
+    {
+        $ratings = self::whereIn('product_id', $productIds)
+                       ->where('is_approved', true)
+                       ->select('product_id', DB::raw('AVG(rating) as average_rating'), DB::raw('COUNT(*) as rating_count'))
+                       ->groupBy('product_id')
+                       ->get()
+                       ->keyBy('product_id');
+
+        $result = [];
+        foreach ($productIds as $productId) {
+            if ($ratings->has($productId)) {
+                $rating = $ratings->get($productId);
+                $result[$productId] = [
+                    'average' => round($rating->average_rating, 1),
+                    'count' => $rating->rating_count
+                ];
+            } else {
+                $result[$productId] = [
+                    'average' => 0,
+                    'count' => 0
+                ];
+            }
+        }
+
+        return $result;
     }
 }

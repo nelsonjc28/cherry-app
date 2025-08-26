@@ -61,7 +61,6 @@ const CatalogPdfManager = ({ catalog, onClose, onPdfUpdated }) => {
         setError(response.data.message || 'Error al subir archivos');
       }
     } catch (error) {
-      console.error('Error al subir archivos:', error);
       setError('Error al subir archivos. Verifica que no excedan el tamaño máximo.');
     } finally {
       setUploading(false);
@@ -91,7 +90,6 @@ const CatalogPdfManager = ({ catalog, onClose, onPdfUpdated }) => {
         setError(response.data.message || 'Error al eliminar imagen');
       }
     } catch (error) {
-      console.error('Error al eliminar imagen:', error);
       setError('Error al eliminar imagen');
     } finally {
       setLoading(false);
@@ -151,7 +149,6 @@ const CatalogPdfManager = ({ catalog, onClose, onPdfUpdated }) => {
         await loadPdfImages();
       }
     } catch (error) {
-      console.error('Error al reordenar:', error);
       setError('Error al actualizar el orden');
       await loadPdfImages();
     }

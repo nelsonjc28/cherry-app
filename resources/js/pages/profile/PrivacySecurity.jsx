@@ -68,8 +68,6 @@ const PrivacySecurity = () => {
     }
   };
 
-
-
   const handleViewTerms = () => {
     navigate('/terminos');
   };
@@ -154,7 +152,6 @@ const PrivacySecurity = () => {
             </div>
           </div>
         )}
-
 
       </div>
     </div>
