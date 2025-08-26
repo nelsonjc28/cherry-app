@@ -233,8 +233,10 @@ const CategoryPage = ({ categorySlug }) => {
                     const rawPrice = product.precio1;
                     const numericPrice = typeof rawPrice === 'string' ? parseFloat(rawPrice.replace(/[^\d.-]/g, '')) : parseFloat(rawPrice) || 0;
                     
-                    // Extraer colores si existen
-                    const productColors = product.colores || [];
+                    // Extraer colores si existen - usar detalles como en ProductPage
+                    const productColors = product.detalles ? 
+                      [...new Set(product.detalles.map(d => d.nombreColor).filter(Boolean))] : 
+                      [];
                     const availableColors = productColors.length > 0 ? productColors : ['black']; // Color por defecto
                     
                     // Determinar si el producto es nuevo basado en propiedades reales
@@ -258,6 +260,9 @@ const CategoryPage = ({ categorySlug }) => {
                       category: categoryData.name,
                       stock: product.inventario || 0,
                       colors: availableColors,
+                      colores: productColors, // Mantener colores originales para ExternalProductCard
+                      
+
                       isNew: isNewProduct, // Basado en propiedades reales
                       rating: 0, // Se actualizará con la consulta a la BD
                       ratingCount: 0, // Se actualizará con la consulta a la BD

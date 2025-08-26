@@ -1,6 +1,7 @@
 import React from 'react';
 import { generateS3ImageUrl } from '../../api/cherryApi';
 import './ExternalProductCard.css';
+import colorConverter from '../../services/colorConverter';
 
 const ExternalProductCard = ({ product, onAddToCategory, isInCategory = false }) => {
 
@@ -62,7 +63,29 @@ const ExternalProductCard = ({ product, onAddToCategory, isInCategory = false })
           )}
         </div>
         
-
+        {/* Color selector */}
+        {product.colores && product.colores.length > 0 && (
+          <div className="external-product-card__colors">
+            <span className="external-product-card__colors-label">Colores disponibles:</span>
+            <div className="external-product-card__color-options">
+              {product.colores.map((color, index) => {
+                const realColor = colorConverter.getColorHex(color);
+                
+                return (
+                  <div
+                    key={index}
+                    className="external-product-card__color-option"
+                    style={{ 
+                      backgroundColor: realColor,
+                      border: '1px solid #ddd'
+                    }}
+                    title={`${color} (${realColor})`}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
         
         {!isInCategory && (
           <button 

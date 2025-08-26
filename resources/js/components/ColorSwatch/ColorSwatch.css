@@ -1,0 +1,147 @@
+.color-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 8px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+}
+
+.color-swatch:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.color-swatch--selected {
+  border-color: var(--color-primary);
+  background-color: rgba(var(--color-primary-rgb, 0, 123, 255), 0.1);
+}
+
+/* Tamaños */
+.color-swatch--small {
+  padding: 4px;
+  gap: 4px;
+}
+
+.color-swatch--small .color-swatch__color {
+  width: 32px;
+  height: 32px;
+}
+
+.color-swatch--small .color-swatch__name,
+.color-swatch--small .color-swatch__hex {
+  font-size: 10px;
+}
+
+.color-swatch--medium {
+  padding: 8px;
+  gap: 8px;
+}
+
+.color-swatch--medium .color-swatch__color {
+  width: 48px;
+  height: 48px;
+}
+
+.color-swatch--medium .color-swatch__name,
+.color-swatch--medium .color-swatch__hex {
+  font-size: 12px;
+}
+
+.color-swatch--large {
+  padding: 12px;
+  gap: 12px;
+}
+
+.color-swatch--large .color-swatch__color {
+  width: 64px;
+  height: 64px;
+}
+
+.color-swatch--large .color-swatch__name,
+.color-swatch--large .color-swatch__hex {
+  font-size: 14px;
+}
+
+/* Color principal */
+.color-swatch__color {
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.color-swatch__color:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* Placeholder para colores no identificados */
+.color-swatch__placeholder {
+  color: #666;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+/* Nombre del color */
+.color-swatch__name {
+  font-weight: 500;
+  color: #333;
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Código hexadecimal */
+.color-swatch__hex {
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  color: #666;
+  background-color: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+/* Estados de carga */
+.color-swatch--loading .color-swatch__color {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .color-swatch {
+    padding: 6px;
+    gap: 6px;
+  }
+  
+  .color-swatch--medium .color-swatch__color {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .color-swatch--large .color-swatch__color {
+    width: 56px;
+    height: 56px;
+  }
+}

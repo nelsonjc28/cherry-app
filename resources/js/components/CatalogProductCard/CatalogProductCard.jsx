@@ -5,6 +5,7 @@ import StarRating from '../StarRating/StarRating';
 import { formatPrice } from '../../utils/formatters';
 import './CatalogProductCard.css';
 import { getIconPath } from '../../utils/assetPaths';
+import colorConverter from '../../services/colorConverter';
 
 const CatalogProductCard = ({ product, onFavoriteToggle }) => {
   // Destructure product properties with proper fallbacks
@@ -33,18 +34,9 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
     return image || '';
   };
 
-  // Color mapping for display
-  const colorMap = {
-    red: '#e74c3c',
-    blue: '#3498db', 
-    green: '#27ae60',
-    yellow: '#f1c40f',
-    black: '#373737',
-    white: '#ecf0f1',
-    pink: '#e91e63',
-    purple: '#9b59b6',
-    orange: '#f39c12',
-    gray: '#95a5a6'
+  // Función para obtener el color real del nombre
+  const getRealColor = (colorName) => {
+    return colorConverter.getColorHex(colorName);
   };
 
   // Handle color selection
@@ -169,16 +161,24 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
         {/* Color selector */}
         {colors.length > 0 && (
           <div className="catalog-color-selector">
-            {colors.map((color, index) => (
-              <button
-                key={index}
-                className={`color-option ${selectedColor === color ? 'selected' : ''}`}
-                style={{ backgroundColor: colorMap[color] || color }}
-                onClick={() => handleColorSelect(color)}
-                aria-label={`Seleccionar color ${color}`}
-                title={color}
-              />
-            ))}
+            {colors.map((color, index) => {
+              const realColor = getRealColor(color);
+              const isLight = colorConverter.isLightColor(realColor);
+              
+              return (
+                <button
+                  key={index}
+                  className={`color-option ${selectedColor === color ? 'selected' : ''}`}
+                  style={{ 
+                    backgroundColor: realColor,
+                    border: `2px solid ${selectedColor === color ? '#333' : 'transparent'}`
+                  }}
+                  onClick={() => handleColorSelect(color)}
+                  aria-label={`Seleccionar color ${color}`}
+                  title={`${color} (${realColor})`}
+                />
+              );
+            })}
           </div>
         )}
       </div>

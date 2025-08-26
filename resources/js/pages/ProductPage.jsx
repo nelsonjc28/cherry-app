@@ -10,6 +10,10 @@ import FeaturedProducts from '../components/sections/FeaturedProducts/FeaturedPr
 import ProductGallery from '../components/ProductGallery/ProductGallery';
 import StarRating from '../components/StarRating/StarRating';
 
+
+// Hooks
+
+
 // API and Store
 import { getProductById, generateS3ImageUrl } from '../api/cherryApi';
 import useCartStore from '../store/cartStore';
@@ -18,6 +22,7 @@ import useUserStore from '../store/userStore';
 // Utils
 import { formatPrice } from '../utils/formatters';
 import useHorizontalDragScroll from '../hooks/useHorizontalDragScroll';
+import colorConverter from '../services/colorConverter';
 
 const ProductPage = () => {
   const { productId } = useParams();
@@ -50,6 +55,8 @@ const ProductPage = () => {
   
   // Specifications state
   const [showSpecifications, setShowSpecifications] = useState(false);
+
+
 
   // Cart store
   const { addToCart, isLoading: isAddingToCart } = useCartStore();
@@ -84,6 +91,8 @@ const ProductPage = () => {
     };
     fetchProduct();
   }, [productId, user]);
+
+
 
   // Efecto para resetear la cantidad cuando cambie la talla o color
   useEffect(() => {
@@ -631,17 +640,26 @@ const ProductPage = () => {
                   </div>
                   <div className="product-page__option-label">Color</div>
                   <div className="product-page__color-options">
-                    {colores.map((color, index) => (
-                      <button
-                        key={index}
-                        className={`product-page__color-option ${selectedColor === color ? 'product-page__color-option--selected' : ''}`}
-                        style={{ backgroundColor: '#000' }} // Placeholder for color hex
-                        onClick={() => setSelectedColor(color)}
-                        title={color}
-                      >
-                        <span className="product-page__color-option-name">{color}</span>
-                      </button>
-                    ))}
+                    {colores.map((color, index) => {
+                      const hexColor = colorConverter.getColorHex(color);
+                      const isLight = colorConverter.isLightColor(hexColor);
+                      
+                      return (
+                        <button
+                          key={index}
+                          className={`product-page__color-option ${
+                            selectedColor === color ? 'product-page__color-option--selected' : ''
+                          }`}
+                          onClick={() => setSelectedColor(color)}
+                          style={{ 
+                            backgroundColor: hexColor,
+                            border: `2px solid ${selectedColor === color ? '#333' : 'transparent'}`
+                          }}
+                          title={`${color} (${hexColor})`}
+                        >
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
