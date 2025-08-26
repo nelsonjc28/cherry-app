@@ -62,6 +62,8 @@ const ExternalProductCard = ({ product, onAddToCategory, isInCategory = false })
           )}
         </div>
         
+
+        
         {!isInCategory && (
           <button 
             className="external-product-card__add-btn"

@@ -44,6 +44,12 @@ const ProductPage = () => {
   const [userRating, setUserRating] = useState(0);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingComment, setRatingComment] = useState('');
+  
+  // Description state
+  const [showFullDescription, setShowFullDescription] = useState(false);
+  
+  // Specifications state
+  const [showSpecifications, setShowSpecifications] = useState(false);
 
   // Cart store
   const { addToCart, isLoading: isAddingToCart } = useCartStore();
@@ -456,6 +462,39 @@ const ProductPage = () => {
     return getStockBySizeAndColor(talla, selectedColor);
   };
 
+  // Función para truncar la descripción
+  const truncateDescription = (text, maxLength = 150) => {
+    if (!text || text.length <= maxLength) return text;
+    return text.substring(0, maxLength).trim() + '...';
+  };
+
+  // Función para obtener información expandida del producto
+  const getExpandedProductInfo = () => {
+    if (!product) return '';
+    
+    let info = `Descripción: ${descripcion || 'No disponible'}\n`;
+    
+    if (especificaciones) {
+      info += `\nEspecificaciones:\n${especificaciones}`;
+    }
+    
+    if (notas) {
+      info += `\n\nNotas: ${notas}`;
+    }
+    
+    if (temporada) {
+      info += `\n\nTemporada: ${temporada}`;
+    }
+    
+    if (proveedor) {
+      info += `\n\nProveedor: ${proveedor}`;
+    }
+    
+    return info;
+  };
+
+
+
   // Función para calcular el total de unidades seleccionadas
   const getTotalUnits = () => {
     return Object.values(quantitiesBySize).reduce((total, cantidad) => total + (cantidad || 0), 0);
@@ -551,40 +590,33 @@ const ProductPage = () => {
               </div>
               <div className="product-page__info-details">
                 <span>Descripción del producto</span>
-                <button className="product-page__details-link">Ver Detalles ›</button>
+                <button 
+                  className="product-page__details-link"
+                  onClick={() => setShowSpecifications(!showSpecifications)}
+                >
+                  {showSpecifications ? 'Ocultar Detalles' : 'Ver Detalles ›'}
+                </button>
               </div>
               <div className="product-page__info-meta">
-                {marca && <div><strong>Marca:</strong> {marca}</div>}
-                {linea?.descripcion && <div><strong>Línea:</strong> {linea.descripcion}</div>}
-                {sector?.descripcion && <div><strong>Sector:</strong> {sector.descripcion}</div>}
-                {genero?.descripcion && <div><strong>Género:</strong> {genero.descripcion}</div>}
-                {piezas && <div><strong>Piezas:</strong> {piezas}</div>}
-                {costo && <div><strong>Costo:</strong> ${costo.toFixed(2)}</div>}
-                {inventario !== undefined && <div><strong>Inventario:</strong> {inventario}</div>}
-                {fecha_alta && <div><strong>Fecha alta:</strong> {fecha_alta}</div>}
-                {notas && <div><strong>Notas:</strong> {notas}</div>}
-                {especificaciones && <div><strong>Especificaciones:</strong> {especificaciones}</div>}
-                {activo !== undefined && <div><strong>Activo:</strong> {activo ? 'Sí' : 'No'}</div>}
-                {tipoart && <div><strong>Tipo artículo:</strong> {tipoart}</div>}
                 {url_video && <div><strong>Video:</strong> <a href={url_video} target="_blank" rel="noopener noreferrer">Ver video</a></div>}
                 {descuento && <div><strong>Descuento:</strong> {descuento}%</div>}
-                {catalogoId && <div><strong>ID Catálogo:</strong> {catalogoId}</div>}
-                {generoId && <div><strong>ID Género:</strong> {generoId}</div>}
-                {sectorId && <div><strong>ID Sector:</strong> {sectorId}</div>}
-                {fechaAct && <div><strong>Fecha actualización:</strong> {fechaAct}</div>}
               </div>
-              {/* Mostrar todos los precios disponibles */}
-              {precios.length > 1 && (
-                <div className="product-page__info-prices">
-                  <strong>Precios adicionales:</strong>
-                  <ul>
-                    {precios.slice(1).map((p, idx) => (
-                      <li key={idx}>{p.label}: ${p.value.toFixed(2)}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+
             </div>
+
+            {/* Product Specifications - Shown when Ver Detalles is clicked */}
+            {showSpecifications && especificaciones && (
+              <div className="product-page__specifications">
+                <h4>Especificaciones del Producto:</h4>
+                <div className="product-page__specifications-content">
+                  {especificaciones.split(',').map((spec, index) => (
+                    <div key={index} className="product-page__specification-item">
+                      <strong>{spec.split(':')[0]}:</strong> {spec.split(':')[1] || ''}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Product Options */}
             <div className="product-page__options">
@@ -742,11 +774,22 @@ const ProductPage = () => {
             </div>
 
             {/* Product Description */}
-            {descripcion && (
-              <div className="product-page__description">
-                <p className="product-page__description-text">{descripcion}</p>
-              </div>
-            )}
+            <div className="product-page__description">
+              <p className="product-page__description-text">
+                {descripcion ? (showFullDescription ? descripcion : truncateDescription(descripcion)) : 'No hay descripción disponible'}
+              </p>
+              
+              {descripcion && descripcion.length > 150 && (
+                <button 
+                  className="product-page__description-toggle"
+                  onClick={() => setShowFullDescription(!showFullDescription)}
+                >
+                  {showFullDescription ? 'Ver menos' : 'Ver más'}
+                </button>
+              )}
+            </div>
+            
+
           </div>
         </div>
       </div>
