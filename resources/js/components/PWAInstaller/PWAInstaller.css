@@ -64,7 +64,7 @@
   transform: translateY(-1px);
 }
 
-/* Modal de instrucciones iOS */
+/* Modal principal de instalación */
 .pwa-installer__modal-overlay {
   position: fixed;
   top: 0;
@@ -82,27 +82,35 @@
 
 .pwa-installer__modal {
   background: white;
-  border-radius: 20px;
+  border-radius: 24px;
   max-width: 90vw;
   width: 400px;
   max-height: 90vh;
   overflow-y: auto;
   animation: scaleIn 0.3s ease-out;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
 .pwa-installer__modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid #eee;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  position: relative;
+}
+
+.pwa-installer__modal-icon {
+  font-size: 48px;
+  margin-right: 16px;
 }
 
 .pwa-installer__modal-header h3 {
   margin: 0;
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 24px;
+  font-weight: 700;
   color: #333;
+  flex: 1;
 }
 
 .pwa-installer__modal-close {
@@ -111,9 +119,14 @@
   font-size: 24px;
   color: #999;
   cursor: pointer;
-  padding: 4px;
+  padding: 8px;
   border-radius: 50%;
   transition: all 0.2s ease;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .pwa-installer__modal-close:hover {
@@ -125,6 +138,79 @@
   padding: 24px;
 }
 
+.pwa-installer__modal-description {
+  color: #666;
+  line-height: 1.6;
+  font-size: 16px;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.pwa-installer__benefits {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.pwa-installer__benefit {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #333;
+}
+
+.pwa-installer__benefit-icon {
+  font-size: 20px;
+  width: 24px;
+  text-align: center;
+}
+
+.pwa-installer__modal-footer {
+  padding: 16px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pwa-installer__modal-button {
+  padding: 16px 24px;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  text-align: center;
+}
+
+.pwa-installer__modal-button--primary {
+  background: linear-gradient(135deg, #E91E63, #9C27B0);
+  color: white;
+  box-shadow: 0 4px 16px rgba(233, 30, 99, 0.3);
+}
+
+.pwa-installer__modal-button--primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(233, 30, 99, 0.4);
+}
+
+.pwa-installer__modal-button--secondary {
+  background: #f8f9fa;
+  color: #666;
+  border: 2px solid #e9ecef;
+}
+
+.pwa-installer__modal-button--secondary:hover {
+  background: #e9ecef;
+  color: #333;
+}
+
+/* Modal de instrucciones iOS */
 .pwa-installer__step {
   display: flex;
   align-items: flex-start;
@@ -202,28 +288,6 @@
   color: #333;
 }
 
-.pwa-installer__modal-footer {
-  padding: 16px 24px 24px;
-  text-align: center;
-}
-
-.pwa-installer__modal-button {
-  background: linear-gradient(135deg, #E91E63, #9C27B0);
-  color: white;
-  border: none;
-  padding: 12px 32px;
-  border-radius: 25px;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.pwa-installer__modal-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(233, 30, 99, 0.4);
-}
-
 /* Animaciones */
 @keyframes slideUp {
   from {
@@ -280,5 +344,26 @@
   .pwa-installer__modal {
     width: 100%;
     margin: 0 16px;
+    border-radius: 20px;
+  }
+  
+  .pwa-installer__modal-header {
+    padding: 20px 20px 16px;
+  }
+  
+  .pwa-installer__modal-content {
+    padding: 20px;
+  }
+  
+  .pwa-installer__modal-footer {
+    padding: 16px 20px 20px;
+  }
+  
+  .pwa-installer__modal-header h3 {
+    font-size: 20px;
+  }
+  
+  .pwa-installer__modal-icon {
+    font-size: 40px;
   }
 }

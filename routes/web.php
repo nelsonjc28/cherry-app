@@ -2,9 +2,12 @@
 
 use Illuminate\Support\Facades\Route;
 
-// Ruta pública para categorías del menú
-Route::get('/api/menu-categories', [App\Http\Controllers\Api\PublicMenuCategoryController::class, 'index']);
+// Ruta principal para la PWA
+Route::get('/', function () {
+    return view('app');
+});
 
+// Ruta para todas las demás páginas (SPA)
 Route::get('/{any}', function () {
-    return view('welcome');
+    return view('app');
 })->where('any', '.*');
