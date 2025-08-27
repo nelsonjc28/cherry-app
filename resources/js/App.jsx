@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
+import PWAInstaller from './components/PWAInstaller';
 import './App.css';
 
 // Contexts
@@ -113,6 +114,9 @@ function App() {
                   </main>
                   <Footer />
                   <CustomToastContainer />
+                  
+                  {/* PWA Installer */}
+                  <PWAInstaller />
                 </div>
               </SmartRedirect>
             </AuthInitializer>
