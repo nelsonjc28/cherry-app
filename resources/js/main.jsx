@@ -28,10 +28,10 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
       .then((registration) => {
-        console.log('SW registrado exitosamente:', registration.scope);
+
       })
       .catch((error) => {
-        console.log('SW falló al registrarse:', error);
+
       });
   });
 }

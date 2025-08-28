@@ -12,7 +12,7 @@ import AdminCatalogManager from '../components/AdminCatalogManager/AdminCatalogM
 import AdminCategoryManager from '../components/AdminCategoryManager/AdminCategoryManager';
 import AdminMenuCategoryOrderManager from '../components/AdminMenuCategoryOrderManager/AdminMenuCategoryOrderManager';
 import AdminHomeCatalogManager from '../components/AdminHomeCatalogManager/AdminHomeCatalogManager';
-import AuthTest from '../components/AuthTest';
+
 import useUserStore from '../store/userStore';
 import '../index.css';
 import './AdminPanelPage.css';
@@ -78,7 +78,7 @@ function AdminPanelPage() {
           <button className={`admin-panel__sidebar-link${selectedMenu==='catalogs'?' active':''}`} onClick={()=>{setSelectedMenu('catalogs'); setSidebarOpen(false);}}>Catálogos</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='contact-info'?' active':''}`} onClick={()=>{setSelectedMenu('contact-info'); setSidebarOpen(false);}}>Información de Contacto</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='privacy-policy'?' active':''}`} onClick={()=>{setSelectedMenu('privacy-policy'); setSidebarOpen(false);}}>Políticas de Privacidad</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='auth-test'?' active':''}`} onClick={()=>{setSelectedMenu('auth-test'); setSidebarOpen(false);}}>Test Auth</button>
+  
           <button className={`admin-panel__sidebar-link${selectedMenu==='other'?' active':''}`} onClick={()=>{setSelectedMenu('other'); setSidebarOpen(false);}}>Otra sección</button>
           <button className="admin-panel__sidebar-link" onClick={handleLogout}>Volver al sitio</button>
         </nav>
@@ -222,11 +222,7 @@ function AdminPanelPage() {
           </section>
         )}
 
-        {selectedMenu === 'auth-test' && (
-          <section>
-            <AuthTest />
-          </section>
-        )}
+
         
         {selectedMenu === 'other' && (
           <section>

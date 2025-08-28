@@ -11,11 +11,11 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('Cache abierto');
+
         return cache.addAll(urlsToCache);
       })
       .catch((error) => {
-        console.log('Error al cachear archivos:', error);
+
         // Notificar al cliente sobre el error
         self.clients.matchAll().then(clients => {
           clients.forEach(client => {
@@ -38,7 +38,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
-            console.log('Eliminando cache antiguo:', cacheName);
+    
             return caches.delete(cacheName);
           }
         })

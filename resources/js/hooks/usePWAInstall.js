@@ -13,7 +13,7 @@ export const usePWAInstall = () => {
       message,
       data
     };
-    console.log(`🔍 PWA Hook: ${message}`, data);
+
     setDebugLogs(prev => [...prev, log]);
   };
 

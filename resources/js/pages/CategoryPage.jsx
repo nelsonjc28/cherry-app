@@ -20,7 +20,7 @@ import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
 
 const CategoryPage = ({ categorySlug }) => {
-  // Debug: verificar que estamos recibiendo el categorySlug
+
   const [searchParams] = useSearchParams();
   const category = searchParams.get('category') || 'all';
   const colorFilter = searchParams.get('color') || '';

@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Log;
+
 
 class AdminWelcomeSectionController extends Controller
 {
@@ -128,10 +128,7 @@ class AdminWelcomeSectionController extends Controller
             ], 201);
             
         } catch (\Exception $e) {
-            Log::error('Error al crear sección:', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
+
             
             return response()->json([
                 'success' => false,
@@ -147,19 +144,11 @@ class AdminWelcomeSectionController extends Controller
     {
         try {
             // Logs temporales para debugging
-            Log::info('=== DEBUG UPDATE ===');
-            Log::info('Request method:', ['method' => $request->method()]);
-            Log::info('Content-Type:', ['content_type' => $request->header('Content-Type')]);
-            Log::info('All request data:', ['all_data' => $request->all()]);
-            Log::info('Request input:', ['input' => $request->input()]);
-            Log::info('Request files:', ['files' => $request->allFiles()]);
-            Log::info('Has image file:', ['has_image' => $request->hasFile('image')]);
-            Log::info('Request body:', ['body' => $request->getContent()]);
-            Log::info('_method:', ['_method' => $request->input('_method')]);
+
             
             // Verificar si es una petición PUT simulada
             if ($request->input('_method') === 'PUT') {
-                Log::info('Detected PUT method via _method');
+    
             }
             
             // Verificar autenticación
@@ -188,29 +177,25 @@ class AdminWelcomeSectionController extends Controller
             foreach ($textFields as $field) {
                 if ($request->has($field) && $request->input($field) !== null) {
                     $updateData[$field] = $request->input($field);
-                    Log::info("Campo {$field}:", ['value' => $request->input($field)]);
+    
                 }
             }
             
             // Procesar campos booleanos y numéricos
             if ($request->has('is_active')) {
                 $updateData['is_active'] = $request->boolean('is_active');
-                Log::info('Campo is_active:', ['value' => $updateData['is_active']]);
+    
             }
             
             if ($request->has('display_order')) {
                 $updateData['display_order'] = (int) $request->input('display_order');
-                Log::info('Campo display_order:', ['value' => $updateData['display_order']]);
+    
             }
 
             // Procesar imagen si se proporciona
             if ($request->hasFile('image')) {
                 $image = $request->file('image');
-                Log::info('Imagen recibida:', [
-                    'name' => $image->getClientOriginalName(),
-                    'size' => $image->getSize(),
-                    'type' => $image->getMimeType()
-                ]);
+
                 
                 // Validar imagen
                 $request->validate([
@@ -235,9 +220,9 @@ class AdminWelcomeSectionController extends Controller
                     }
                     
                     $updateData['image_path'] = $imagePath;
-                    Log::info('Imagen guardada:', ['path' => $imagePath]);
+
                 } else {
-                    Log::error('Error al mover imagen');
+    
                     return response()->json([
                         'success' => false,
                         'error' => 'Error al guardar la imagen'
@@ -249,7 +234,7 @@ class AdminWelcomeSectionController extends Controller
             if (!empty($updateData)) {
                 $section->update($updateData);
                 
-                Log::info('Sección actualizada:', ['id' => $id, 'data' => $updateData]);
+
                 
                 return response()->json([
                     'success' => true,
@@ -257,7 +242,7 @@ class AdminWelcomeSectionController extends Controller
                     'section' => $section->fresh()
                 ]);
             } else {
-                Log::warning('No se proporcionaron datos para actualizar');
+
                 return response()->json([
                     'success' => false,
                     'error' => 'No se proporcionaron datos para actualizar'
@@ -265,11 +250,7 @@ class AdminWelcomeSectionController extends Controller
             }
             
         } catch (\Exception $e) {
-            Log::error('Error al actualizar sección:', [
-                'id' => $id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
+
             
             return response()->json([
                 'success' => false,
@@ -316,11 +297,7 @@ class AdminWelcomeSectionController extends Controller
             ]);
             
         } catch (\Exception $e) {
-            Log::error('Error al eliminar sección:', [
-                'id' => $id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
+
             
             return response()->json([
                 'success' => false,

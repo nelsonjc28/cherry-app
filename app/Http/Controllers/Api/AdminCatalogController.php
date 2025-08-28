@@ -9,7 +9,7 @@ use App\Models\CatalogProduct;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Log;
+
 
 class AdminCatalogController extends Controller
 {
@@ -186,12 +186,7 @@ class AdminCatalogController extends Controller
         try {
             $catalog = Catalog::findOrFail($id);
             
-            // Log para debug
-            \Log::info('updateOrder request', [
-                'id' => $id,
-                'request_data' => $request->all(),
-                'headers' => $request->headers->all()
-            ]);
+
 
             $validator = Validator::make($request->all(), [
                 'display_order' => 'nullable|integer|min:0'
@@ -435,8 +430,7 @@ class AdminCatalogController extends Controller
             // Obtener solo los IDs de productos que están en catálogos
             $catalogProductIds = CatalogProduct::pluck('external_product_id')->toArray();
             
-            \Illuminate\Support\Facades\Log::info('IDs de productos en catálogos: ' . json_encode($catalogProductIds));
-            \Illuminate\Support\Facades\Log::info('Total de productos en catálogos: ' . count($catalogProductIds));
+
             
             return response()->json([
                 'success' => true,
@@ -483,12 +477,12 @@ class AdminCatalogController extends Controller
             $externalProducts = $request->input('products');
             
             // Log para debugging
-            \Illuminate\Support\Facades\Log::info('Productos recibidos del frontend: ' . count($externalProducts));
+
             
             // Filtrar solo productos que no están en ningún catálogo
             $availableProducts = CatalogProduct::getAvailableProducts($externalProducts);
             
-            \Illuminate\Support\Facades\Log::info('Productos disponibles (no en catálogos): ' . $availableProducts->count());
+
             
             // Mapear los campos de la API externa al formato esperado por el frontend (sin imágenes para optimizar)
             $mappedProducts = $availableProducts->map(function ($product) {

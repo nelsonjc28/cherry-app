@@ -6,10 +6,7 @@ import CategoryPage from './CategoryPage';
 const CategoryProductsPage = () => {
   const { slug } = useParams();
   
-  // Log para debugging
 
-  
-  // Debug: verificar que estamos recibiendo el slug
   return (
     <>
       <Helmet>

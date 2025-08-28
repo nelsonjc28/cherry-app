@@ -7,7 +7,7 @@ use App\Models\Contact;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Log;
+
 
 class ContactFormController extends Controller
 {
@@ -64,12 +64,7 @@ class ContactFormController extends Controller
                         ->subject('Nuevo mensaje de contacto - ' . $messageData['subject_type']);
             });
 
-            // Log del mensaje enviado
-            Log::info('Mensaje de contacto enviado', [
-                'from' => $request->email,
-                'to' => $emailTo,
-                'subject' => $request->subject
-            ]);
+
 
             return response()->json([
                 'success' => true,
@@ -77,7 +72,7 @@ class ContactFormController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Error al enviar mensaje de contacto: ' . $e->getMessage());
+
             
             return response()->json([
                 'success' => false,

@@ -7,7 +7,7 @@ const ExternalProductsList = ({ categoryCode, onProductAdded }) => {
   const { products, category, loading, error, refreshProducts } = useExternalProducts(categoryCode);
   const [selectedTab, setSelectedTab] = useState('all');
 
-  // Logs detallados para debugging
+
 
 
   if (loading) {

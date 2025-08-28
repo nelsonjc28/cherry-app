@@ -166,8 +166,7 @@ class AdminCategoryController extends Controller
             // Obtener solo los IDs de productos que están en categorías
             $categoryProductIds = CategoryProduct::pluck('external_product_id')->toArray();
             
-            \Illuminate\Support\Facades\Log::info('IDs de productos en categorías: ' . json_encode($categoryProductIds));
-            \Illuminate\Support\Facades\Log::info('Total de productos en categorías: ' . count($categoryProductIds));
+
             
             return response()->json([
                 'success' => true,

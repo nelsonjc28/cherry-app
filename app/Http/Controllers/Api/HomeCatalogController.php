@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Catalog;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Log;
+
 
 class HomeCatalogController extends Controller
 {
@@ -16,7 +16,7 @@ class HomeCatalogController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            Log::info('🔍 HomeCatalogController - Iniciando consulta de catálogos del home');
+    
             
             $catalogs = Catalog::active()
                 ->ordered()
@@ -26,10 +26,7 @@ class HomeCatalogController extends Controller
                 }])
                 ->get();
 
-            Log::info('🔍 HomeCatalogController - Catálogos encontrados:', [
-                'total' => $catalogs->count(),
-                'catalogs' => $catalogs->toArray()
-            ]);
+
 
             return response()->json([
                 'success' => true,

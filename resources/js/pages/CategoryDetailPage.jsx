@@ -11,7 +11,7 @@ const CategoryDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Log simple para verificar que el componente se está ejecutando
+
 
 
   useEffect(() => {

@@ -22,7 +22,7 @@ const Header = () => {
   const { categories, loading: categoriesLoading } = useCategories();
   const { menuCategories, loading: menuCategoriesLoading } = useMenuCategories();
   
-  // Debug logs
+
   const [activeMenu, setActiveMenu] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openMobileSubMenu, setOpenMobileSubMenu] = useState(null);

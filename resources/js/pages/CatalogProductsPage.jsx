@@ -7,7 +7,7 @@ import CatalogPage from './CatalogPage';
 const CatalogProductsPage = () => {
   const { id } = useParams();
   
-  // Debug: verificar que estamos recibiendo el ID
+
   return (
     <>
       <Helmet>

@@ -19,7 +19,7 @@ import { catalogService, publicCatalogService } from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
 
 const CatalogPage = ({ catalogId }) => {
-  // Debug: verificar que estamos recibiendo el catalogId
+
   const [searchParams] = useSearchParams();
   const category = searchParams.get('category') || 'all';
   const colorFilter = searchParams.get('color') || '';
@@ -197,14 +197,11 @@ const CatalogPage = ({ catalogId }) => {
         
         // Si se proporciona catalogId, cargar productos de ese catálogo específico
         if (catalogId) {
-          console.log(`🚀 Iniciando carga para catálogo ID: ${catalogId}`);
           try {
             // Cargar información del catálogo
             const catalogResponse = await publicCatalogService.getById(catalogId);
-            console.log('📋 Respuesta del catálogo:', catalogResponse.data);
             if (catalogResponse.data.success) {
               setCurrentCatalog(catalogResponse.data.data);
-              console.log('✅ Catálogo cargado:', catalogResponse.data.data);
             }
             
             // Cargar productos del catálogo local (si existen)
@@ -229,31 +226,20 @@ const CatalogPage = ({ catalogId }) => {
                 }));
               }
             } catch (error) {
-              console.log('No hay productos locales en este catálogo');
+  
             }
             
             // Cargar productos externos y filtrar por código del catálogo
             let externalProducts = [];
             try {
-              console.log('🌐 Iniciando carga de productos externos...');
               const externalResponse = await fetch('https://cherryapi.estrategiadmgs.com.mx/cherryApi/');
               if (externalResponse.ok) {
                 const externalData = await externalResponse.json();
-                console.log(`📦 Total de productos en API externa: ${externalData.length}`);
                 
                 // Filtrar productos por código del catálogo
                 const catalogCode = catalogResponse.data.success ? catalogResponse.data.data.code : null;
-                console.log(`🔍 Código del catálogo a filtrar: ${catalogCode}`);
                 
                 if (catalogCode) {
-                  // Mostrar algunos productos para debug
-                  const sampleProducts = externalData.slice(0, 3);
-                  console.log('📋 Muestra de productos de la API:', sampleProducts.map(p => ({
-                    id: p.id_articulo,
-                    catalogoId: p.catalogoId,
-                    descripcion: p.descripcion
-                  })));
-                  
                   externalProducts = externalData
                     .filter(product => product.catalogoId == catalogCode)
                     .map(product => ({
@@ -272,26 +258,14 @@ const CatalogPage = ({ catalogId }) => {
                       source: 'external',
                       catalogoId: product.catalogoId
                     }));
-                  
-                  console.log(`✅ Productos externos filtrados por código ${catalogCode}: ${externalProducts.length}`);
-                } else {
-                  console.log('❌ No se pudo obtener el código del catálogo');
                 }
-              } else {
-                console.log(`❌ Error en respuesta de API externa: ${externalResponse.status}`);
               }
             } catch (error) {
-              console.log('❌ Error al cargar productos externos:', error);
+  
             }
             
             // Combinar productos locales y externos
             productsData = [...localProducts, ...externalProducts];
-            
-            console.log('📊 RESUMEN FINAL:');
-            console.log(`   - Productos locales: ${localProducts.length}`);
-            console.log(`   - Productos externos: ${externalProducts.length}`);
-            console.log(`   - Total combinado: ${productsData.length}`);
-            console.log('   - Productos finales:', productsData.map(p => ({ id: p.id, title: p.title, source: p.source })));
             
             // Si no hay productos, intentar cargar productos por temporada como fallback
             const catalogName = catalogResponse.data.success ? catalogResponse.data.data.name : null;
@@ -324,7 +298,7 @@ const CatalogPage = ({ catalogId }) => {
                   productsData = fallbackProducts;
                 }
               } catch (error) {
-                console.log('Error en fallback por temporada:', error);
+    
               }
             }
           } catch (error) {

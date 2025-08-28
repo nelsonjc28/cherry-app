@@ -215,7 +215,7 @@
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
                     .then((registration) => {
-                        console.log('SW registrado exitosamente:', registration.scope);
+                
                         
                         // Check for updates
                         registration.addEventListener('updatefound', () => {
@@ -249,7 +249,7 @@
                         });
                     })
                     .catch((error) => {
-                        console.log('SW falló al registrarse:', error);
+                
                         Toast.show('Error al registrar el service worker', 'error', 5000);
                     });
             });
@@ -260,7 +260,7 @@
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            console.log('PWA installation prompt available');
+    
             
             // Show installation toast
             Toast.show(
@@ -294,18 +294,18 @@
         });
         
         window.addEventListener('appinstalled', () => {
-            console.log('PWA was installed');
+    
             Toast.show('¡Cherry App instalada exitosamente! 🎉', 'success', 4000);
             deferredPrompt = null;
         });
         
         // Handle installation errors
         window.addEventListener('appinstalled', (evt) => {
-            console.log('PWA installed successfully');
+    
         });
         
         window.addEventListener('beforeinstallprompt', (evt) => {
-            console.log('PWA install prompt available');
+    
         });
         
         // Listen for messages from Service Worker
