@@ -295,17 +295,44 @@
 }
 
 .admin-catalog-manager__catalog-info h4 {
-  margin: 0 0 10px 0;
+  margin: 0 0 8px 0;
   color: #333;
   font-size: 18px;
   font-weight: 600;
 }
 
-.admin-catalog-manager__catalog-info p {
-  margin: 0 0 15px 0;
+.admin-catalog-manager__catalog-code {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 8px;
+  padding: 0.25rem 0.5rem;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+}
+
+.admin-catalog-manager__code-label {
+  font-size: 0.8rem;
   color: #6c757d;
+  font-weight: 500;
+}
+
+.admin-catalog-manager__code-value {
+  font-size: 0.9rem;
+  color: #495057;
+  font-weight: 600;
+  background-color: white;
+  padding: 0.125rem 0.5rem;
+  border-radius: 3px;
+  border: 1px solid #dee2e6;
+}
+
+.admin-catalog-manager__catalog-info p {
+  margin: 0 0 12px 0;
+  color: #666;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .admin-catalog-manager__catalog-stats {

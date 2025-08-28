@@ -20,7 +20,7 @@ class HomeCatalogController extends Controller
             
             $catalogs = Catalog::active()
                 ->ordered()
-                ->select(['id', 'name', 'description', 'image', 'display_order'])
+                ->select(['id', 'name', 'description', 'code', 'image', 'display_order'])
                 ->with(['pdfImages' => function($query) {
                     $query->select('catalog_id', 'image_path')->orderBy('display_order');
                 }])

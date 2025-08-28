@@ -19,6 +19,7 @@ const AdminCatalogManager = () => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    code: '',
     image: null,
     is_active: true,
     display_order: 0
@@ -80,6 +81,7 @@ const AdminCatalogManager = () => {
       const formDataObj = new FormData();
       formDataObj.append('name', formData.name.trim());
       formDataObj.append('description', formData.description.trim());
+      formDataObj.append('code', formData.code.trim());
       formDataObj.append('is_active', formData.is_active ? '1' : '0');
       formDataObj.append('display_order', formData.display_order.toString());
       
@@ -115,6 +117,7 @@ const AdminCatalogManager = () => {
     setFormData({
       name: catalog.name,
       description: catalog.description,
+      code: catalog.code || '',
       image: null,
       is_active: catalog.is_active,
       display_order: catalog.display_order
@@ -160,6 +163,7 @@ const AdminCatalogManager = () => {
     setFormData({
       name: '',
       description: '',
+      code: '',
       image: null,
       is_active: true,
       display_order: nextOrder
@@ -354,6 +358,19 @@ const AdminCatalogManager = () => {
                 className="form-control"
                 rows="4"
                 required
+              />
+            </div>
+
+            <div className="admin-catalog-manager__form-group">
+              <label htmlFor="code">Código</label>
+              <input
+                type="text"
+                id="code"
+                name="code"
+                value={formData.code}
+                onChange={handleInputChange}
+                className="form-control"
+                placeholder="Ej: 96, 95, 94..."
               />
             </div>
 

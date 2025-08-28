@@ -65,6 +65,7 @@ class AdminCatalogController extends Controller
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
                 'description' => 'required|string',
+                'code' => 'nullable|string|max:100',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif',
                 'is_active' => 'sometimes|boolean',
                 'display_order' => 'sometimes|integer|min:0'
@@ -122,6 +123,7 @@ class AdminCatalogController extends Controller
             $validator = Validator::make($request->all(), [
                 'name' => 'sometimes|required|string|max:255',
                 'description' => 'sometimes|required|string',
+                'code' => 'sometimes|nullable|string|max:100',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif',
                 'is_active' => 'sometimes|boolean',
                 'display_order' => 'sometimes|integer|min:0'
@@ -626,7 +628,7 @@ class AdminCatalogController extends Controller
         try {
             $catalogs = Catalog::with(['pdfImages'])
                 ->where('is_active', true)
-                ->ordered()
+                ->orderByRaw('ISNULL(display_order), display_order ASC')
                 ->get();
 
             return response()->json([

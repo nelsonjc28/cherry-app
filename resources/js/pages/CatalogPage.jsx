@@ -197,35 +197,138 @@ const CatalogPage = ({ catalogId }) => {
         
         // Si se proporciona catalogId, cargar productos de ese catálogo específico
         if (catalogId) {
+          console.log(`🚀 Iniciando carga para catálogo ID: ${catalogId}`);
           try {
             // Cargar información del catálogo
             const catalogResponse = await publicCatalogService.getById(catalogId);
+            console.log('📋 Respuesta del catálogo:', catalogResponse.data);
             if (catalogResponse.data.success) {
               setCurrentCatalog(catalogResponse.data.data);
+              console.log('✅ Catálogo cargado:', catalogResponse.data.data);
             }
             
-            // Cargar productos del catálogo
-            const response = await publicCatalogService.getProducts(catalogId);
-            if (response.data.success) {
-              // Mapear productos del catálogo al formato esperado
-              productsData = response.data.data.products.map(product => ({
-                id: product.external_product_id,
-                title: product.product_name,
-                description: product.product_description,
-                price: product.product_price,
-                image: getProductImageUrl(product.external_product_id),
-                brand: product.product_metadata?.marca,
-                category: product.product_category,
-                stock: product.product_metadata?.inventario || 0,
-                colors: [],
-                isNew: false,
-                rating: 0,
-                ratingCount: 0
-              }));
-            } else {
-              productsData = [];
+            // Cargar productos del catálogo local (si existen)
+            let localProducts = [];
+            try {
+              const localResponse = await publicCatalogService.getProducts(catalogId);
+              if (localResponse.data.success) {
+                localProducts = localResponse.data.data.products.map(product => ({
+                  id: product.external_product_id,
+                  title: product.product_name,
+                  description: product.product_description,
+                  price: product.product_price,
+                  image: getProductImageUrl(product.external_product_id),
+                  brand: product.product_metadata?.marca,
+                  category: product.product_category,
+                  stock: product.product_metadata?.inventario || 0,
+                  colors: [],
+                  isNew: false,
+                  rating: 0,
+                  ratingCount: 0,
+                  source: 'local'
+                }));
+              }
+            } catch (error) {
+              console.log('No hay productos locales en este catálogo');
+            }
+            
+            // Cargar productos externos y filtrar por código del catálogo
+            let externalProducts = [];
+            try {
+              console.log('🌐 Iniciando carga de productos externos...');
+              const externalResponse = await fetch('https://cherryapi.estrategiadmgs.com.mx/cherryApi/');
+              if (externalResponse.ok) {
+                const externalData = await externalResponse.json();
+                console.log(`📦 Total de productos en API externa: ${externalData.length}`);
+                
+                // Filtrar productos por código del catálogo
+                const catalogCode = catalogResponse.data.success ? catalogResponse.data.data.code : null;
+                console.log(`🔍 Código del catálogo a filtrar: ${catalogCode}`);
+                
+                if (catalogCode) {
+                  // Mostrar algunos productos para debug
+                  const sampleProducts = externalData.slice(0, 3);
+                  console.log('📋 Muestra de productos de la API:', sampleProducts.map(p => ({
+                    id: p.id_articulo,
+                    catalogoId: p.catalogoId,
+                    descripcion: p.descripcion
+                  })));
+                  
+                  externalProducts = externalData
+                    .filter(product => product.catalogoId == catalogCode)
+                    .map(product => ({
+                      id: product.id_articulo,
+                      title: product.descripcion || product.nombre_articulo,
+                      description: product.descripcion || product.nombre_articulo,
+                      price: product.precio1 || 0,
+                      image: getProductImageUrl(product.id_articulo),
+                      brand: product.marca,
+                      category: product.categoria,
+                      stock: product.inventario || 0,
+                      colors: [],
+                      isNew: false,
+                      rating: 0,
+                      ratingCount: 0,
+                      source: 'external',
+                      catalogoId: product.catalogoId
+                    }));
+                  
+                  console.log(`✅ Productos externos filtrados por código ${catalogCode}: ${externalProducts.length}`);
+                } else {
+                  console.log('❌ No se pudo obtener el código del catálogo');
+                }
+              } else {
+                console.log(`❌ Error en respuesta de API externa: ${externalResponse.status}`);
+              }
+            } catch (error) {
+              console.log('❌ Error al cargar productos externos:', error);
+            }
+            
+            // Combinar productos locales y externos
+            productsData = [...localProducts, ...externalProducts];
+            
+            console.log('📊 RESUMEN FINAL:');
+            console.log(`   - Productos locales: ${localProducts.length}`);
+            console.log(`   - Productos externos: ${externalProducts.length}`);
+            console.log(`   - Total combinado: ${productsData.length}`);
+            console.log('   - Productos finales:', productsData.map(p => ({ id: p.id, title: p.title, source: p.source })));
+            
+            // Si no hay productos, intentar cargar productos por temporada como fallback
+            const catalogName = catalogResponse.data.success ? catalogResponse.data.data.name : null;
+            if (productsData.length === 0 && catalogName) {
+              try {
+                const fallbackResponse = await fetch('https://cherryapi.estrategiadmgs.com.mx/cherryApi/');
+                if (fallbackResponse.ok) {
+                  const fallbackData = await fallbackResponse.json();
+                  
+                  // Filtrar por temporada (nombre del catálogo)
+                  const fallbackProducts = fallbackData
+                    .filter(product => product.temporada === catalogName)
+                    .map(product => ({
+                      id: product.id_articulo,
+                      title: product.descripcion || product.nombre_articulo,
+                      description: product.descripcion || product.nombre_articulo,
+                      price: product.precio1 || 0,
+                      image: getProductImageUrl(product.id_articulo),
+                      brand: product.marca,
+                      category: product.categoria,
+                      stock: product.inventario || 0,
+                      colors: [],
+                      isNew: false,
+                      rating: 0,
+                      ratingCount: 0,
+                      source: 'external_fallback',
+                      temporada: product.temporada
+                    }));
+                  
+                  productsData = fallbackProducts;
+                }
+              } catch (error) {
+                console.log('Error en fallback por temporada:', error);
+              }
             }
           } catch (error) {
+            console.error('Error al cargar productos del catálogo:', error);
             productsData = [];
           }
         } else {
@@ -395,28 +498,6 @@ const CatalogPage = ({ catalogId }) => {
                   ({totalResults})
                   <p className="catalog-page__text-results-count">Resultados</p>
                 </span>
-                <div className="catalog-page__action-buttons">
-                  {currentCatalog?.pdf_images && currentCatalog.pdf_images.length > 0 && (
-                    <CustomButton
-                      variant="outline"
-                      size="small"
-                      className="catalog-page__pdf-btn"
-                      iconLeft={<span style={{ fontSize: '16px' }}>📄</span>}
-                      onClick={() => window.location.href = `/catalogo-pdf?id=${catalogId}`}
-                    >
-                      <span className="catalog-page__pdf-text">Catálogo PDF</span>
-                    </CustomButton>
-                  )}
-                  <CustomButton
-                    variant="filled"
-                    size="small"
-                    className="catalog-page__compare-clients-btn"
-                    iconLeft={<img src={getIconPath('Whatsapp.svg')} alt="Comparar clientes" style={{ width: 16, height: 16 }} />}
-                    onClick={handleShareCatalog}
-                  >
-                    <span className="catalog-page__whatsapp-text">Compartir a clientes</span>
-                  </CustomButton>
-                </div>
               </div>
             </div>
 
