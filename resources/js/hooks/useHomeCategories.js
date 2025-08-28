@@ -19,19 +19,19 @@ const useHomeCategories = () => {
             id: category.id,
             name: category.name,
             slug: category.slug,
-            icon: getCategoryIconPath(`${category.slug}.svg`) || getCategoryIconPath('default-category.svg')
+            icon: getCategoryIconPath(`${category.slug}.png`) || getCategoryIconPath('default-category.png')
           }));
           
           setCategories(categoriesWithIcons);
         } else {
           // Si no hay categorías ordenadas, usar las categorías por defecto
           const defaultCategories = [
-            { name: 'Vestidos', icon: getCategoryIconPath('vestido-de-novio 1.svg') },
-            { name: 'Blusas', icon: getCategoryIconPath('blusa 1.svg') },
-            { name: 'Pantalones', icon: getCategoryIconPath('pantalones-ajustados 1.svg') },
-            { name: 'Sacos', icon: getCategoryIconPath('vestir 1.svg') },
-            { name: 'Conjuntos', icon: getCategoryIconPath('moda 2 1.svg') },
-            { name: 'Gabardinas', icon: getCategoryIconPath('gabardina 1.svg') }
+            { name: 'Vestidos', icon: getCategoryIconPath('vestido-de-novio.png') },
+            { name: 'Blusas', icon: getCategoryIconPath('Blusa.png') },
+            { name: 'Pantalones', icon: getCategoryIconPath('Pantalones.png') },
+            { name: 'Sacos', icon: getCategoryIconPath('vestir-1.png') },
+            { name: 'Conjuntos', icon: getCategoryIconPath('Conjuntos.png') },
+            { name: 'Gabardinas', icon: getCategoryIconPath('Gabardina.png') }
           ];
           setCategories(defaultCategories);
         }
