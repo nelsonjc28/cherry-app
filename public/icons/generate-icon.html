@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Icono PNG Cherry</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            text-align: center;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #E91E63;
+            margin-bottom: 30px;
+        }
+        
+        .canvas-container {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        canvas {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            background: white;
+        }
+        
+        .download-btn {
+            background: linear-gradient(135deg, #E91E63, #9C27B0);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(233, 30, 99, 0.4);
+        }
+        
+        .download-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .instructions {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        
+        .instructions h3 {
+            color: #1976d2;
+            margin-top: 0;
+        }
+        
+        .instructions ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍒 Generador de Icono PNG Cherry</h1>
+        
+        <div class="canvas-container">
+            <h3>Vista previa del icono:</h3>
+            <canvas id="iconCanvas" width="144" height="144"></canvas>
+        </div>
+        
+        <div>
+            <button class="download-btn" id="downloadBtn" onclick="downloadIcon()">
+                💾 Descargar icon-144x144.png
+            </button>
+            <button class="download-btn" onclick="generateAllSizes()">
+                🎨 Generar todos los tamaños
+            </button>
+        </div>
+        
+        <div class="instructions">
+            <h3>📋 Instrucciones:</h3>
+            <ol>
+                <li><strong>Haz clic en "Descargar icon-144x144.png"</strong> para descargar el icono</li>
+                <li><strong>Mueve el archivo</strong> a la carpeta <code>public/icons/</code></li>
+                <li><strong>Reemplaza</strong> el archivo SVG existente</li>
+                <li><strong>Recarga tu app</strong> para ver el icono funcionando</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('iconCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Generar el icono
+        function generateIcon() {
+            // Crear gradiente de fondo
+            const gradient = ctx.createLinearGradient(0, 0, 144, 144);
+            gradient.addColorStop(0, '#E91E63');
+            gradient.addColorStop(1, '#9C27B0');
+            
+            // Fondo circular
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(72, 72, 70, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Borde blanco
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+            
+            // Emoji de cerezas (usando texto)
+            ctx.font = '80px Arial, sans-serif';
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🍒', 72, 72);
+            
+            // Sombra
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+            ctx.shadowBlur = 8;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 4;
+        }
+        
+        // Descargar el icono
+        function downloadIcon() {
+            const link = document.createElement('a');
+            link.download = 'icon-144x144.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        // Generar todos los tamaños
+        function generateAllSizes() {
+            const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+            
+            sizes.forEach(size => {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = size;
+                tempCanvas.height = size;
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // Crear gradiente
+                const gradient = tempCtx.createLinearGradient(0, 0, size, size);
+                gradient.addColorStop(0, '#E91E63');
+                gradient.addColorStop(1, '#9C27B0');
+                
+                // Fondo circular
+                tempCtx.fillStyle = gradient;
+                tempCtx.beginPath();
+                tempCtx.arc(size/2, size/2, size/2 - 4, 0, 2 * Math.PI);
+                tempCtx.fill();
+                
+                // Borde blanco
+                tempCtx.strokeStyle = 'white';
+                tempCtx.lineWidth = Math.max(2, size/36);
+                tempCtx.stroke();
+                
+                // Emoji de cerezas
+                tempCtx.font = `${size * 0.55}px Arial, sans-serif`;
+                tempCtx.fillStyle = 'white';
+                tempCtx.textAlign = 'center';
+                tempCtx.textBaseline = 'middle';
+                tempCtx.fillText('🍒', size/2, size/2);
+                
+                // Descargar
+                const link = document.createElement('a');
+                link.download = `icon-${size}x${size}.png`;
+                link.href = tempCanvas.toDataURL('image/png');
+                link.click();
+            });
+            
+            alert('¡Todos los iconos han sido generados y descargados!');
+        }
+        
+        // Generar el icono al cargar la página
+        window.onload = function() {
+            generateIcon();
+        };
+    </script>
+</body>
+</html>

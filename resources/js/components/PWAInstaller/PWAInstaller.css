@@ -64,6 +64,74 @@
   transform: translateY(-1px);
 }
 
+/* Botón de prueba para desarrollo - OCULTO */
+/*
+.pwa-installer__test-button {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+}
+
+.pwa-installer__test-button-inner {
+  background: linear-gradient(135deg, #FF6B35, #F7931E);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(255, 107, 53, 0.3);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.pwa-installer__test-button-inner:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(255, 107, 53, 0.4);
+}
+
+.pwa-installer__test-button-inner:active {
+  transform: translateY(0);
+}
+*/
+
+/* Debug Info - OCULTO */
+/*
+.pwa-installer__debug-info {
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.pwa-installer__debug-info h4 {
+  margin: 0 0 12px 0;
+  color: #333;
+  font-size: 14px;
+}
+
+.pwa-installer__debug-item {
+  margin-bottom: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.pwa-installer__debug-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.pwa-installer__debug-item strong {
+  color: #495057;
+  margin-right: 8px;
+}
+*/
+
 /* Modal principal de instalación */
 .pwa-installer__modal-overlay {
   position: fixed;
@@ -139,11 +207,10 @@
 }
 
 .pwa-installer__modal-description {
-  color: #666;
-  line-height: 1.6;
+  margin: 0 0 24px 0;
   font-size: 16px;
-  margin-bottom: 24px;
-  text-align: center;
+  line-height: 1.5;
+  color: #666;
 }
 
 .pwa-installer__benefits {
@@ -157,9 +224,6 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
-  background: #f8f9fa;
-  border-radius: 12px;
   font-size: 14px;
   color: #333;
 }
@@ -178,25 +242,24 @@
 }
 
 .pwa-installer__modal-button {
-  padding: 16px 24px;
-  border-radius: 16px;
+  padding: 14px 24px;
+  border: none;
+  border-radius: 12px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  border: none;
-  text-align: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .pwa-installer__modal-button--primary {
   background: linear-gradient(135deg, #E91E63, #9C27B0);
   color: white;
-  box-shadow: 0 4px 16px rgba(233, 30, 99, 0.3);
 }
 
 .pwa-installer__modal-button--primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(233, 30, 99, 0.4);
+  box-shadow: 0 8px 24px rgba(233, 30, 99, 0.3);
 }
 
 .pwa-installer__modal-button--secondary {
@@ -210,32 +273,35 @@
   color: #333;
 }
 
-/* Modal de instrucciones iOS */
+/* Pasos para iOS */
 .pwa-installer__step {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 16px;
   margin-bottom: 20px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 12px;
 }
 
 .pwa-installer__step-number {
-  background: linear-gradient(135deg, #E91E63, #9C27B0);
-  color: white;
   width: 32px;
   height: 32px;
+  background: linear-gradient(135deg, #E91E63, #9C27B0);
+  color: white;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  font-size: 16px;
+  font-size: 14px;
   flex-shrink: 0;
 }
 
 .pwa-installer__step-text {
+  font-size: 16px;
   color: #333;
-  line-height: 1.5;
-  font-size: 15px;
+  line-height: 1.4;
 }
 
 .pwa-installer__step-text strong {
@@ -243,49 +309,73 @@
 }
 
 .ios-share {
-  font-size: 18px;
-  color: #007AFF;
+  background: #007AFF;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
 }
 
+/* Vista previa de iOS */
 .pwa-installer__ios-preview {
-  text-align: center;
   margin-top: 24px;
   padding: 20px;
   background: #f8f9fa;
   border-radius: 16px;
+  border: 2px solid #e9ecef;
 }
 
-.pwa-installer__ios-screen {
-  display: inline-block;
-  background: #000;
-  border-radius: 20px;
-  padding: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-.pwa-installer__ios-status-bar {
-  height: 20px;
-  background: #000;
-  border-radius: 20px 20px 0 0;
-  margin: -8px -8px 0;
-}
-
-.pwa-installer__ios-content {
+.pwa-installer__ios-preview-content {
   background: white;
-  padding: 20px;
-  border-radius: 0 0 20px 20px;
-  text-align: center;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.pwa-installer__ios-app-icon {
-  font-size: 48px;
-  margin-bottom: 8px;
+.pwa-installer__ios-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
-.pwa-installer__ios-app-name {
+.pwa-installer__ios-preview-icon {
+  font-size: 32px;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #E91E63, #9C27B0);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.pwa-installer__ios-preview-text {
+  flex: 1;
+}
+
+.pwa-installer__ios-preview-text strong {
+  display: block;
   font-size: 16px;
-  font-weight: 600;
   color: #333;
+  margin-bottom: 4px;
+}
+
+.pwa-installer__ios-preview-text span {
+  font-size: 14px;
+  color: #666;
+}
+
+.pwa-installer__ios-preview-button {
+  background: #007AFF;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 16px;
 }
 
 /* Animaciones */
@@ -366,4 +456,25 @@
   .pwa-installer__modal-icon {
     font-size: 40px;
   }
+  
+  /* Debug Info - OCULTO */
+  /*
+  .pwa-installer__debug-info {
+    font-size: 11px;
+    padding: 12px;
+  }
+  */
+  
+  /* Botón de prueba - OCULTO */
+  /*
+  .pwa-installer__test-button {
+    top: 10px;
+    right: 10px;
+  }
+  
+  .pwa-installer__test-button-inner {
+    padding: 10px 16px;
+    font-size: 12px;
+  }
+  */
 }

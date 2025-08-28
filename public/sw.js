@@ -1,10 +1,9 @@
-const CACHE_NAME = 'cherry-app-v1.0.0';
+const CACHE_NAME = 'cherry-app-v1.0.2';
 const urlsToCache = [
   '/',
-  '/static/css/app.css',
-  '/static/js/app.js',
-  '/images/logo.png',
-  '/images/placeholder-product.jpg'
+  '/manifest.json',
+  '/icons/icon-144x144.png',
+  '/images/logo.svg'
 ];
 
 // Instalación del Service Worker
@@ -14,6 +13,20 @@ self.addEventListener('install', (event) => {
       .then((cache) => {
         console.log('Cache abierto');
         return cache.addAll(urlsToCache);
+      })
+      .catch((error) => {
+        console.log('Error al cachear archivos:', error);
+        // Notificar al cliente sobre el error
+        self.clients.matchAll().then(clients => {
+          clients.forEach(client => {
+            client.postMessage({
+              type: 'TOAST',
+              message: 'Error al configurar el cache offline',
+              toastType: 'error',
+              duration: 5000
+            });
+          });
+        });
       })
   );
 });
@@ -30,6 +43,18 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
+    }).then(() => {
+      // Notificar al cliente que el SW está activo
+      self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          client.postMessage({
+            type: 'TOAST',
+            message: 'Cherry App actualizada y lista para usar offline',
+            toastType: 'success',
+            duration: 3000
+          });
+        });
+      });
     })
   );
 });
@@ -73,12 +98,31 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
+// Manejar mensajes del service worker
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+    
+    // Notificar al cliente que se está actualizando
+    self.clients.matchAll().then(clients => {
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'TOAST',
+          message: 'Actualizando Cherry App...',
+          toastType: 'info',
+          duration: 2000
+        });
+      });
+    });
+  }
+});
+
 // Manejar notificaciones push (para futuras funcionalidades)
 self.addEventListener('push', (event) => {
   const options = {
     body: event.data ? event.data.text() : 'Nueva notificación de Cherry',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-72x72.png',
+    icon: '/icons/icon-144x144.png',
+    badge: '/icons/icon-144x144.png',
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
@@ -88,12 +132,12 @@ self.addEventListener('push', (event) => {
       {
         action: 'explore',
         title: 'Ver más',
-        icon: '/icons/icon-72x72.png'
+        icon: '/icons/icon-144x144.png'
       },
       {
         action: 'close',
         title: 'Cerrar',
-        icon: '/icons/icon-72x72.png'
+        icon: '/icons/icon-144x144.png'
       }
     ]
   };
