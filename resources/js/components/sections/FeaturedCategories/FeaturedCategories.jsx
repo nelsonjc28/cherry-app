@@ -20,7 +20,7 @@ const FeaturedCategories = () => {
             id: category.id,
             title: category.name,
             description: category.description || `Descubre nuestra colección de ${category.name}`,
-            iconName: `${category.slug}.svg`,
+            iconName: `${category.slug}.png`,
             link: `/categoria/${category.slug}`
           }));
           
@@ -30,51 +30,53 @@ const FeaturedCategories = () => {
           const defaultCategories = [
             {
               id: 1,
-              title: "Elige lo mejor para ti y marca la diferencia.",
-              description: "Nuestra chaqueta de cuero es ideal para cualquier ocasión",
-              iconName: "chaqueta.svg",
-              link: "/categoria/chaquetas"
+              title: 'Vestidos',
+              description: 'Descubre nuestra colección exclusiva de vestidos para toda ocasión.',
+              iconName: 'vestido.png',
+              link: '/categoria/vestidos'
             },
             {
               id: 2,
-              title: "Complementa tu look con nuestro elegante collar de perlas.",
-              description: "Un toque clásico que nunca pasa de moda",
-              iconName: "collar.svg",
-              link: "/categoria/collares"
+              title: 'Blusas',
+              description: 'Elegantes blusas que complementan cualquier outfit.',
+              iconName: 'Blusa.png',
+              link: '/categoria/blusas'
             },
             {
               id: 3,
-              title: "Confort y estilo se unen en nuestros zapatos altos",
-              description: "Ideales para un día activo sin sacrificar la moda",
-              iconName: "tacones.svg",
-              link: "/categoria/zapatos"
+              title: 'Pantalones',
+              description: 'Pantalones versátiles para un look sofisticado.',
+              iconName: 'Pantalones.png',
+              link: '/categoria/pantalones'
             }
           ];
           setCategories(defaultCategories);
         }
-      } catch (error) {
-        // Usar categorías por defecto en caso de error
+        
+        setError(null);
+      } catch (err) {
+        // Fallback a categorías por defecto en caso de error
         const defaultCategories = [
           {
             id: 1,
-            title: "Elige lo mejor para ti y marca la diferencia.",
-            description: "Nuestra chaqueta de cuero es ideal para cualquier ocasión",
-            iconName: "chaqueta.svg",
-            link: "/categoria/chaquetas"
+            title: 'Vestidos',
+            description: 'Descubre nuestra colección exclusiva de vestidos para toda ocasión.',
+            iconName: 'vestido.png',
+            link: '/categoria/vestidos'
           },
           {
             id: 2,
-            title: "Complementa tu look con nuestro elegante collar de perlas.",
-            description: "Un toque clásico que nunca pasa de moda",
-            iconName: "collar.svg",
-            link: "/categoria/collares"
+            title: 'Blusas',
+            description: 'Elegantes blusas que complementan cualquier outfit.',
+            iconName: 'Blusa.png',
+            link: '/categoria/blusas'
           },
           {
             id: 3,
-            title: "Confort y estilo se unen en nuestros zapatos altos",
-            description: "Ideales para un día activo sin sacrificar la moda",
-            iconName: "tacones.svg",
-            link: "/categoria/zapatos"
+            title: 'Pantalones',
+            description: 'Pantalones versátiles para un look sofisticado.',
+            iconName: 'Pantalones.png',
+            link: '/categoria/pantalones'
           }
         ];
         setCategories(defaultCategories);
