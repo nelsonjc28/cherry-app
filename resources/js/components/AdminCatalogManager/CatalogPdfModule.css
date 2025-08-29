@@ -309,11 +309,11 @@
 }
 
 .catalog-pdf-module__add-btn {
-  background: #28a745;
+  background: #dc3545;
 }
 
 .catalog-pdf-module__add-btn:hover:not(:disabled) {
-  background: #218838;
+  background: #c82333;
 }
 
 /* Contenido Principal */

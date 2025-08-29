@@ -17,33 +17,26 @@ const FeaturedProducts = ({
   const [apiProducts, setApiProducts] = useState([]);
   const [localLoading, setLocalLoading] = useState(false);
 
-  // Función para obtener calificaciones de productos desde la BD
+  // Función para obtener calificaciones de productos desde la BD en una sola petición
   const fetchProductRatings = async (productIds) => {
     try {
-      const ratingsPromises = productIds.map(async (productId) => {
-        try {
-          const response = await fetch(`/api/ratings/product?product_id=${productId}`);
-          if (response.ok) {
-            const data = await response.json();
-            return {
-              productId,
-              rating: data.average_rating || 0
-            };
-          }
-          return { productId, rating: 0 };
-        } catch (error) {
-          return { productId, rating: 0 };
-        }
-      });
-
-      const ratings = await Promise.all(ratingsPromises);
-      const ratingsMap = {};
-      ratings.forEach(({ productId, rating }) => {
-        ratingsMap[productId] = rating;
+      const response = await fetch('/api/products/ratings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ product_ids: productIds })
       });
       
-      return ratingsMap;
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data.ratings) {
+          return data.data.ratings;
+        }
+      }
+      return {};
     } catch (error) {
+      console.error('Error al obtener calificaciones:', error);
       return {};
     }
   };
@@ -62,10 +55,18 @@ const FeaturedProducts = ({
           const ratings = await fetchProductRatings(productIds);
           
           // Actualizar productos con las calificaciones reales
-          const productsWithRatings = productsData.map(product => ({
-            ...product,
-            rating: ratings[product.id] || 0 // Si no hay calificación, usar 0 (estrellas vacías)
-          }));
+          const productsWithRatings = productsData.map(product => {
+            const localRating = ratings[product.id];
+            const finalRating = localRating?.average || 0;
+            const finalRatingCount = localRating?.count || 0;
+            
+            return {
+              ...product,
+              // Incluir rating y ratingCount si existen en la base de datos local
+              rating: finalRating,
+              ratingCount: finalRatingCount
+            };
+          });
           
           setApiProducts(productsWithRatings.slice(0, 4)); // Asegurar solo 4 productos
         } else {

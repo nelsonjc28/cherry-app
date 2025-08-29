@@ -191,17 +191,17 @@
   gap: 2px;
 }
 
-.star {
+.new-products-section .star {
   width: 16px;
   height: 16px;
   color: #ffc107;
 }
 
-.star.empty {
+.new-products-section .star.empty {
   color: #e5e7eb;
 }
 
-.star.half {
+.new-products-section .star.half {
   color: #ffc107;
 }
 

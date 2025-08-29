@@ -21,8 +21,8 @@ class HomeCatalogController extends Controller
             $catalogs = Catalog::active()
                 ->ordered()
                 ->select(['id', 'name', 'description', 'code', 'image', 'display_order'])
-                ->with(['pdfImages' => function($query) {
-                    $query->select('catalog_id', 'image_path')->orderBy('display_order');
+                ->with(['pdfs' => function($query) {
+                    $query->select('catalog_id', 'pdf_path')->orderBy('display_order');
                 }])
                 ->get();
 
@@ -48,8 +48,8 @@ class HomeCatalogController extends Controller
         try {
             $catalog = Catalog::where('id', $id)
                 ->where('is_active', true)
-                ->with(['pdfImages' => function($query) {
-                    $query->select('catalog_id', 'image_path')->orderBy('display_order');
+                ->with(['pdfs' => function($query) {
+                    $query->select('catalog_id', 'pdf_path')->orderBy('display_order');
                 }])
                 ->first();
 

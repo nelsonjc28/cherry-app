@@ -101,6 +101,38 @@ class User extends Authenticatable implements JWTSubject
         return $name;
     }
 
+    /**
+     * Get the addresses for the user.
+     */
+    public function addresses()
+    {
+        return $this->hasMany(Address::class);
+    }
+
+    /**
+     * Get the default address for the user.
+     */
+    public function defaultAddress()
+    {
+        return $this->hasOne(Address::class)->where('is_default', true);
+    }
+
+    /**
+     * Get the payment cards for the user.
+     */
+    public function paymentCards()
+    {
+        return $this->hasMany(PaymentCard::class);
+    }
+
+    /**
+     * Get the default payment card for the user.
+     */
+    public function defaultPaymentCard()
+    {
+        return $this->hasOne(PaymentCard::class)->where('is_default', true);
+    }
+
     // Métodos requeridos por JWTSubject
     public function getJWTIdentifier(): mixed
     {

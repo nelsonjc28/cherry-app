@@ -61,10 +61,10 @@ const RecentCatalogs = () => {
                     <Link
                       to={catalog.link}
                       className="btn-explore"
-                      title="Ver productos de este catálogo"
-                      aria-label="Ver productos de este catálogo"
+                      title="Ver más de este catálogo"
+                      aria-label="Ver más de este catálogo"
                     >
-                      Ver productos
+                      Ver más
                       <img
                         src={getHeroIconPath('Chevron Right.svg')}
                         alt="Flecha hacia la derecha"
@@ -72,17 +72,7 @@ const RecentCatalogs = () => {
                         height="20"
                       />
                     </Link>
-                    {catalog.hasPdf && (
-                      <Link
-                        to={`/catalogo-pdf?id=${catalog.id}`}
-                        className="btn-explore btn-explore--pdf"
-                        title="Ver catálogo PDF"
-                        aria-label="Ver catálogo PDF"
-                      >
-                        📄 Catálogo PDF
-                      </Link>
-                    )}
-                  </div>
+                    </div>
                 </div>
                 <div className="home-catalog-image">
                   <Link to={catalog.link} className="catalog-image-link">

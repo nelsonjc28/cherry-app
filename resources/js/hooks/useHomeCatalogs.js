@@ -14,17 +14,21 @@ const useHomeCatalogs = () => {
         const response = await api.get('/home-catalogs');
         
         if (response.data.success && response.data.catalogs) {
-          // Mapear los catálogos con sus imágenes
-          const catalogsWithImages = response.data.catalogs.map(catalog => ({
-            id: catalog.id,
-            name: catalog.name,
-            description: catalog.description,
-            image: catalog.image || getFeaturedCatalogImagePath('image_example_1.png'),
-            display_order: catalog.display_order,
-            hasPdf: catalog.pdf_images && catalog.pdf_images.length > 0,
-            pdfCount: catalog.pdf_images ? catalog.pdf_images.length : 0
-          }));
-          
+          // Mapear los catálogos con sus PDFs
+          const catalogsWithImages = response.data.catalogs.map(catalog => {
+            const hasPdf = catalog.pdfs && catalog.pdfs.length > 0;
+            const pdfCount = catalog.pdfs ? catalog.pdfs.length : 0;
+            
+            return {
+              id: catalog.id,
+              name: catalog.name,
+              description: catalog.description,
+              image: catalog.image || getFeaturedCatalogImagePath('image_example_1.png'),
+              display_order: catalog.display_order,
+              hasPdf,
+              pdfCount
+            };
+          });
           setCatalogs(catalogsWithImages);
         } else {
           // Si no hay catálogos ordenados, usar catálogos por defecto

@@ -24,11 +24,11 @@ class Catalog extends Model
     ];
 
     /**
-     * Obtener las imágenes del catálogo PDF
+     * Obtener los PDFs del catálogo
      */
-    public function pdfImages()
+    public function pdfs()
     {
-        return $this->hasMany(CatalogPdfImage::class)->orderBy('display_order');
+        return $this->hasMany(CatalogPdf::class)->orderBy('display_order');
     }
 
     /**

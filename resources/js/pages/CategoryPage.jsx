@@ -296,11 +296,15 @@ const CategoryPage = ({ categorySlug }) => {
                         const ratings = ratingsResponse.data.data.ratings;
                         
                         // Actualizar productos con calificaciones reales
-                        productsData = allExternalProducts.map(product => ({
-                          ...product,
-                          rating: ratings[product.id]?.average || 0,
-                          ratingCount: ratings[product.id]?.count || 0
-                        }));
+                        productsData = allExternalProducts.map(product => {
+                          const localRating = ratings[product.id];
+                          return {
+                            ...product,
+                            // Incluir rating y ratingCount si existen en la base de datos local
+                            rating: localRating?.average || 0,
+                            ratingCount: localRating?.count || 0
+                          };
+                        });
                       }
                     } catch (error) {
                       console.error('Error al obtener calificaciones:', error);

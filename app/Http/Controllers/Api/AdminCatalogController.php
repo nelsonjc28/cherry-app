@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Catalog;
-use App\Models\CatalogPdfImage;
+use App\Models\CatalogPdf;
 use App\Models\CatalogProduct;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -19,7 +19,7 @@ class AdminCatalogController extends Controller
     public function index()
     {
         try {
-            $catalogs = Catalog::with(['pdfImages', 'products'])
+            $catalogs = Catalog::with(['pdfs', 'products'])
                 ->ordered()
                 ->get();
 
@@ -41,7 +41,7 @@ class AdminCatalogController extends Controller
     public function show($id)
     {
         try {
-            $catalog = Catalog::with(['pdfImages', 'products'])
+            $catalog = Catalog::with(['pdfs', 'products'])
                 ->findOrFail($id);
 
             return response()->json([
@@ -246,15 +246,15 @@ class AdminCatalogController extends Controller
     }
 
     /**
-     * Agregar imágenes al catálogo PDF
+     * Agregar PDFs al catálogo
      */
-    public function addPdfImages(Request $request, $id)
+    public function addPdfs(Request $request, $id)
     {
         try {
             $catalog = Catalog::findOrFail($id);
 
             $validator = Validator::make($request->all(), [
-                'images.*' => 'required|image|mimes:jpeg,png,jpg,gif'
+                'pdfs.*' => 'required|file|mimes:pdf|max:10240' // Máximo 10MB
             ]);
 
             if ($validator->fails()) {
@@ -265,71 +265,100 @@ class AdminCatalogController extends Controller
                 ], 422);
             }
 
-            $uploadedImages = [];
+            $uploadedPdfs = [];
             
-            if ($request->hasFile('images')) {
+            if ($request->hasFile('pdfs')) {
                 // Crear directorio si no existe
-                if (!file_exists(public_path('catalog-pdf'))) {
-                    mkdir(public_path('catalog-pdf'), 0755, true);
+                if (!file_exists(public_path('catalog-pdfs'))) {
+                    mkdir(public_path('catalog-pdfs'), 0755, true);
                 }
                 
-                foreach ($request->file('images') as $image) {
-                    $imageName = time() . '_' . $image->getClientOriginalName();
-                    $imagePath = 'catalog-pdf/' . $imageName;
+                foreach ($request->file('pdfs') as $pdf) {
+                    // Validar que el archivo sea válido
+                    if (!$pdf->isValid()) {
+                        continue; // Saltar archivos inválidos
+                    }
                     
-                    // Mover imagen a carpeta pública
-                    $image->move(public_path('catalog-pdf'), $imageName);
+                    $pdfName = time() . '_' . $pdf->getClientOriginalName();
+                    $pdfPath = 'catalog-pdfs/' . $pdfName;
                     
-                    $pdfImage = CatalogPdfImage::create([
+                    // Obtener información del archivo ANTES de moverlo
+                    $pdfSize = $pdf->getSize();
+                    $pdfMimeType = $pdf->getMimeType();
+                    
+                    // Validar que el tamaño sea mayor a 0
+                    if ($pdfSize <= 0) {
+                        continue; // Saltar archivos con tamaño inválido
+                    }
+                    
+                    // Mover PDF a carpeta pública
+                    if (!$pdf->move(public_path('catalog-pdfs'), $pdfName)) {
+                        continue; // Saltar si no se puede mover
+                    }
+                    
+                    $catalogPdf = CatalogPdf::create([
                         'catalog_id' => $catalog->id,
-                        'image_path' => $imagePath,
-                        'image_name' => $image->getClientOriginalName(),
-                        'display_order' => CatalogPdfImage::where('catalog_id', $catalog->id)->max('display_order') + 1
+                        'pdf_path' => $pdfPath,
+                        'pdf_name' => $pdf->getClientOriginalName(),
+                        'pdf_size' => $pdfSize,
+                        'pdf_mime_type' => $pdfMimeType,
+                        'page_count' => $this->getPdfPageCount(public_path('catalog-pdfs/' . $pdfName)),
+                        'display_order' => CatalogPdf::where('catalog_id', $catalog->id)->max('display_order') + 1
                     ]);
                     
-                    $uploadedImages[] = $pdfImage;
+                    $uploadedPdfs[] = $catalogPdf;
                 }
             }
 
+            if (empty($uploadedPdfs)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se pudieron procesar los archivos PDF. Verifica que sean archivos válidos y no estén corruptos.'
+                ], 422);
+            }
+            
+            $count = count($uploadedPdfs);
+            $message = $count === 1 ? 'PDF agregado exitosamente' : "{$count} PDFs agregados exitosamente";
+            
             return response()->json([
                 'success' => true,
-                'message' => 'Imágenes agregadas exitosamente',
-                'data' => $uploadedImages
+                'message' => $message,
+                'data' => $uploadedPdfs
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al agregar imágenes: ' . $e->getMessage()
+                'message' => 'Error al agregar PDFs: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Eliminar una imagen del catálogo PDF
+     * Eliminar un PDF del catálogo
      */
-    public function removePdfImage($catalogId, $imageId)
+    public function removePdf($catalogId, $pdfId)
     {
         try {
-            $pdfImage = CatalogPdfImage::where('catalog_id', $catalogId)
-                ->where('id', $imageId)
+            $catalogPdf = CatalogPdf::where('catalog_id', $catalogId)
+                ->where('id', $pdfId)
                 ->firstOrFail();
 
             // Eliminar archivo físico
-            $imagePath = public_path($pdfImage->image_path);
-            if (file_exists($imagePath)) {
-                unlink($imagePath);
+            $pdfPath = public_path($catalogPdf->pdf_path);
+            if (file_exists($pdfPath)) {
+                unlink($pdfPath);
             }
             
-            $pdfImage->delete();
+            $catalogPdf->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Imagen eliminada exitosamente'
+                'message' => 'PDF eliminado exitosamente'
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al eliminar la imagen: ' . $e->getMessage()
+                'message' => 'Error al eliminar el PDF: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -562,7 +591,7 @@ class AdminCatalogController extends Controller
 
             if ($request->type === 'pdf_images') {
                 foreach ($request->items as $item) {
-                    CatalogPdfImage::where('id', $item['id'])
+                    CatalogPdf::where('id', $item['id'])
                         ->where('catalog_id', $catalog->id)
                         ->update(['display_order' => $item['display_order']]);
                 }
@@ -620,7 +649,7 @@ class AdminCatalogController extends Controller
     public function getPublicCatalogs()
     {
         try {
-            $catalogs = Catalog::with(['pdfImages'])
+            $catalogs = Catalog::with(['pdfs'])
                 ->where('is_active', true)
                 ->orderByRaw('ISNULL(display_order), display_order ASC')
                 ->get();
@@ -643,7 +672,7 @@ class AdminCatalogController extends Controller
     public function getPublicCatalog($id)
     {
         try {
-            $catalog = Catalog::with(['pdfImages'])
+            $catalog = Catalog::with(['pdfs'])
                 ->where('is_active', true)
                 ->findOrFail($id);
 
@@ -684,6 +713,34 @@ class AdminCatalogController extends Controller
                 'success' => false,
                 'message' => 'Error al obtener productos del catálogo: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Helper para obtener el número de páginas de un PDF
+     */
+    private function getPdfPageCount($filePath)
+    {
+        if (!file_exists($filePath)) {
+            return 0;
+        }
+
+        try {
+            // Verificar si Imagick está disponible
+            if (extension_loaded('imagick')) {
+                $pdf = new \Imagick($filePath);
+                $pageCount = $pdf->getNumberImages();
+                $pdf->clear();
+                $pdf->destroy();
+                return $pageCount;
+            } else {
+                // Fallback: usar comando de sistema si Imagick no está disponible
+                $output = shell_exec("pdfinfo \"$filePath\" 2>/dev/null | grep Pages | awk '{print $2}'");
+                return $output ? (int) trim($output) : 0;
+            }
+        } catch (\Exception $e) {
+            // Si hay algún error, retornar 0
+            return 0;
         }
     }
 }

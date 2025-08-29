@@ -17,6 +17,8 @@ use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\PrivacyPolicyController;
 use App\Http\Controllers\Api\AdminCatalogController;
 use App\Http\Controllers\Api\AdminCatalogOfferController;
+use App\Http\Controllers\Api\AddressController;
+use App\Http\Controllers\Api\PaymentCardController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -26,8 +28,26 @@ Route::get('/debug', [AuthController::class, 'debug'])->middleware('auth:api');
 
 // Profile routes - require authentication
 Route::middleware(['auth:api'])->group(function () {
-    Route::put('/profile/update', [ProfileController::class, 'update']);
+    Route::post('/profile/update', [ProfileController::class, 'update']);
     
+    // Address routes
+    Route::get('/addresses', [AddressController::class, 'index']);
+    Route::post('/addresses', [AddressController::class, 'store']);
+    Route::get('/addresses/{id}', [AddressController::class, 'show']);
+    Route::post('/addresses/{id}', [AddressController::class, 'update']);
+    Route::delete('/addresses/{id}', [AddressController::class, 'destroy']);
+    Route::patch('/addresses/{id}/set-default', [AddressController::class, 'setDefault']);
+    
+    // Payment Card routes
+    Route::get('/payment-cards', [PaymentCardController::class, 'index']);
+    Route::post('/payment-cards', [PaymentCardController::class, 'store']);
+    Route::get('/payment-cards/{id}', [PaymentCardController::class, 'show']);
+    Route::post('/payment-cards/{id}', [PaymentCardController::class, 'update']);
+    Route::delete('/payment-cards/{id}', [PaymentCardController::class, 'destroy']);
+    Route::patch('/payment-cards/{id}/set-default', [PaymentCardController::class, 'setDefault']);
+    
+    // Profile routes
+    Route::get('/profile', [ProfileController::class, 'show']);
 
 });
 
@@ -36,7 +56,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/admin/users', [AdminController::class, 'getUsers']);
     Route::get('/admin/users/{id}', [AdminController::class, 'getUser']);
     Route::post('/admin/users', [AdminController::class, 'createUser']);
-    Route::put('/admin/users/{id}', [AdminController::class, 'updateUser']);
+    Route::post('/admin/users/{id}', [AdminController::class, 'updateUser']);
     Route::delete('/admin/users/{id}', [AdminController::class, 'deleteUser']);
     Route::get('/admin/roles', [AdminController::class, 'getRoles']);
     
@@ -44,7 +64,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/admin/clients', [ClientController::class, 'getClients']);
     Route::get('/admin/clients/{id}', [ClientController::class, 'getClient']);
     Route::post('/admin/clients', [ClientController::class, 'createClient']);
-    Route::put('/admin/clients/{id}', [ClientController::class, 'updateClient']);
+    Route::post('/admin/clients/{id}', [ClientController::class, 'updateClient']);
     Route::delete('/admin/clients/{id}', [ClientController::class, 'deleteClient']);
     
     // Category routes - require authentication and admin role
@@ -61,7 +81,7 @@ Route::middleware(['auth:api'])->group(function () {
         // General category routes - MUST come after specific routes
         Route::get('/admin/categories/{id}', [AdminCategoryController::class, 'show']);
         Route::post('/admin/categories', [AdminCategoryController::class, 'store']);
-        Route::put('/admin/categories/{id}', [AdminCategoryController::class, 'update']);
+        Route::post('/admin/categories/{id}', [AdminCategoryController::class, 'update']);
         Route::delete('/admin/categories/{id}', [AdminCategoryController::class, 'destroy']);
         Route::patch('/admin/categories/{id}/toggle', [AdminCategoryController::class, 'toggleStatus']);
         Route::get('/admin/categories/{id}/available-external-products', [App\Http\Controllers\Api\ExternalProductController::class, 'getAvailableProductsForCategory']);
@@ -103,8 +123,8 @@ Route::middleware(['auth:api'])->group(function () {
         Route::post('/admin/catalogs/{id}', [AdminCatalogController::class, 'update']);
         Route::delete('/admin/catalogs/{id}', [AdminCatalogController::class, 'destroy']);
         Route::patch('/admin/catalogs/{id}/toggle', [AdminCatalogController::class, 'toggleStatus']);
-        Route::post('/admin/catalogs/{id}/pdf-images', [AdminCatalogController::class, 'addPdfImages']);
-        Route::delete('/admin/catalogs/{catalogId}/pdf-images/{imageId}', [AdminCatalogController::class, 'removePdfImage']);
+        Route::post('/admin/catalogs/{id}/pdfs', [AdminCatalogController::class, 'addPdfs']);
+Route::delete('/admin/catalogs/{catalogId}/pdfs/{pdfId}', [AdminCatalogController::class, 'removePdf']);
         Route::post('/admin/catalogs/{id}/products', [AdminCatalogController::class, 'addProducts']);
         Route::get('/admin/catalogs/{id}/products', [AdminCatalogController::class, 'getCatalogProducts']);
         Route::delete('/admin/catalogs/{catalogId}/products/{productId}', [AdminCatalogController::class, 'removeProduct']);
@@ -146,7 +166,7 @@ Route::get('/categories/{slug}/products', [CategoryController::class, 'getCatego
 
 // External products routes (no authentication required)
 Route::get('/external-products/category/{categoryCode}', [App\Http\Controllers\Api\ExternalProductController::class, 'getProductsByCategoryCode']);
-Route::get('/products/ratings', [App\Http\Controllers\Api\RatingController::class, 'getMultipleProductsRatings']);
+Route::post('/products/ratings', [App\Http\Controllers\Api\RatingController::class, 'getMultipleProductsRatings']);
 
 // Public welcome sections routes (no authentication required)
 Route::get('/welcome-sections/active', [WelcomeSectionController::class, 'getActiveSection']);
@@ -162,12 +182,12 @@ Route::get('/privacy-policy', [PrivacyPolicyController::class, 'show']);
 
 // Admin contact info routes - require authentication and admin role
 Route::middleware(['auth:api', 'admin'])->group(function () {
-    Route::put('/admin/contact-info', [ContactInfoController::class, 'update']);
+    Route::post('/admin/contact-info', [ContactInfoController::class, 'update']);
     
     // Admin privacy policy routes
     Route::get('/admin/privacy-policies', [PrivacyPolicyController::class, 'index']);
     Route::post('/admin/privacy-policies', [PrivacyPolicyController::class, 'store']);
-    Route::put('/admin/privacy-policies/{id}', [PrivacyPolicyController::class, 'update']);
+    Route::post('/admin/privacy-policies/{id}', [PrivacyPolicyController::class, 'update']);
     Route::delete('/admin/privacy-policies/{id}', [PrivacyPolicyController::class, 'destroy']);
     Route::patch('/admin/privacy-policies/{id}/activate', [PrivacyPolicyController::class, 'activate']);
 });

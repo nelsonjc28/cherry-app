@@ -18,6 +18,7 @@ class CatalogSeeder extends Seeder
                 'code' => '96',
                 'name' => 'CRITERIA Otoño-Invierno 2025',
                 'description' => 'Catálogo CRITERIA para la temporada Otoño-Invierno 2025 con las últimas tendencias y colecciones.',
+                'image' => '/images/RecentCatalogs/image_example_1.png',
                 'is_active' => true,
                 'display_order' => 1
             ],
@@ -25,6 +26,7 @@ class CatalogSeeder extends Seeder
                 'code' => '95',
                 'name' => 'FOLEY´S Otoño-Invierno 2025',
                 'description' => 'Catálogo FOLEY´S para la temporada Otoño-Invierno 2025 con diseños exclusivos y elegantes.',
+                'image' => '/images/RecentCatalogs/image_example_2.png',
                 'is_active' => true,
                 'display_order' => 2
             ],
@@ -32,6 +34,7 @@ class CatalogSeeder extends Seeder
                 'code' => '94',
                 'name' => 'SHYLA - 2025',
                 'description' => 'Catálogo SHYLA para el año 2025 con colecciones modernas y sofisticadas.',
+                'image' => '/images/RecentCatalogs/image_example_1.png',
                 'is_active' => true,
                 'display_order' => 3
             ],
@@ -39,6 +42,7 @@ class CatalogSeeder extends Seeder
                 'code' => '93',
                 'name' => 'CHERRY 2025 - 5',
                 'description' => 'Quinta edición del catálogo CHERRY para el año 2025 con las mejores selecciones.',
+                'image' => '/images/RecentCatalogs/image_example_2.png',
                 'is_active' => true,
                 'display_order' => 4
             ],

@@ -104,11 +104,15 @@ const NewProductsPage = () => {
               const ratings = ratingsData.data.ratings;
               
               // Actualizar productos con calificaciones reales
-              const productsWithRatings = mappedProducts.map(product => ({
-                ...product,
-                rating: ratings[product.id]?.average || 0,
-                ratingCount: ratings[product.id]?.count || 0
-              }));
+              const productsWithRatings = mappedProducts.map(product => {
+                const localRating = ratings[product.id];
+                return {
+                  ...product,
+                  // Incluir rating y ratingCount si existen en la base de datos local
+                  rating: localRating?.average || 0,
+                  ratingCount: localRating?.count || 0
+                };
+              });
               
               setProducts(productsWithRatings);
             } else {
@@ -397,7 +401,9 @@ const NewProductsPage = () => {
                       <div className="stars">
                         {renderStars(product.rating)}
                       </div>
-                      <span className="rating-count">({product.ratingCount})</span>
+                      {product.ratingCount > 0 && (
+                        <span className="rating-count">({product.ratingCount})</span>
+                      )}
                     </div>
                     
                     <div className="product-price">

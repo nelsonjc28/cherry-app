@@ -7,9 +7,30 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use App\Models\User;
+use App\Models\Address;
 
 class ProfileController extends Controller
 {
+    /**
+     * Get user profile with addresses
+     */
+    public function show()
+    {
+        $user = Auth::user();
+        
+        if (!$user) {
+            return response()->json(['message' => 'Usuario no autenticado'], 401);
+        }
+
+        // Cargar las direcciones del usuario
+        $user->load('addresses');
+
+        return response()->json([
+            'message' => 'Perfil obtenido correctamente',
+            'user' => $user
+        ], 200);
+    }
+
     /**
      * Update user profile
      */

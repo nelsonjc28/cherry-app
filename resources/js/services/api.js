@@ -890,10 +890,10 @@ export const catalogService = {
     }
   },
 
-  // Agregar imágenes PDF al catálogo (admin)
-  addPdfImages: async (id, formData) => {
+  // Agregar PDFs al catálogo (admin)
+  addPdfs: async (id, formData) => {
     try {
-      const response = await api.post(`/admin/catalogs/${id}/pdf-images`, formData, {
+      const response = await api.post(`/admin/catalogs/${id}/pdfs`, formData, {
         timeout: 20000,
       });
       return response;
@@ -902,18 +902,18 @@ export const catalogService = {
     }
   },
 
-  // Eliminar imagen PDF del catálogo (admin)
-  removePdfImage: async (catalogId, imageId) => {
+  // Eliminar PDF del catálogo (admin)
+  removePdf: async (catalogId, pdfId) => {
     try {
-      const response = await api.delete(`/admin/catalogs/${catalogId}/pdf-images/${imageId}`);
+      const response = await api.delete(`/admin/catalogs/${catalogId}/pdfs/${pdfId}`);
       return response;
     } catch (error) {
       throw error;
     }
   },
 
-  // Reordenar imágenes PDF del catálogo (admin)
-  reorderPdfImages: async (id, reorderData) => {
+  // Reordenar PDFs del catálogo (admin)
+  reorderPdfs: async (id, reorderData) => {
     try {
       const response = await api.patch(`/admin/catalogs/${id}/reorder`, reorderData);
       return response;

@@ -88,7 +88,7 @@ const CatalogCollectionsPage = () => {
                     {catalog.description || 'Descubre nuestra colección exclusiva'}
                   </p>
 
-                  {catalog.pdf_images && catalog.pdf_images.length > 0 && (
+                  {catalog.pdfs && catalog.pdfs.length > 0 && (
                     <Link
                       to={`/catalogo-pdf?id=${catalog.id}`}
                       className="catalog-collections-page__pdf-link"

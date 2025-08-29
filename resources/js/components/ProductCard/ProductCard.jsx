@@ -9,13 +9,19 @@ const ProductCard = ({ product, onFavoriteToggle }) => {
 
   // Generate rating stars
   const renderRatingStars = (rating) => {
+    // Asegurar que rating sea un número
+    const numericRating = parseFloat(rating) || 0;
+    
     return Array(5)
       .fill()
-      .map((_, index) => (
-        <span key={index} className={`star ${index < rating ? 'filled' : ''}`}>
-          ★
-        </span>
-      ));
+      .map((_, index) => {
+        const isFilled = index < numericRating;
+        return (
+          <span key={index} className={`star ${isFilled ? 'filled' : ''}`}>
+            ★
+          </span>
+        );
+      });
   };
 
   return (
