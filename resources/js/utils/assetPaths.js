@@ -13,6 +13,18 @@ export const getBaseUrl = () => {
 };
 
 /**
+ * Get the current origin safely
+ * @returns {string} The current origin or empty string
+ */
+export const getCurrentOrigin = () => {
+  // Ensure window.location.origin is available and safe to use
+  if (typeof window !== 'undefined' && window.location && window.location.origin) {
+    return window.location.origin;
+  }
+  return '';
+};
+
+/**
  * Resolve asset path for public folder assets
  * @param {string} path - Path to asset starting from public folder
  * @returns {string} Complete asset URL
@@ -36,8 +48,9 @@ export const getAssetPath = (path) => {
 export const getIconPath = (iconName) => {
   // Remove .svg extension if already present to avoid double extension
   const cleanIconName = iconName.replace(/\.svg$/i, '');
-  // Use window.location.origin for full URL
-  return `${window.location.origin}/icons/${cleanIconName}.svg`;
+  // Use the safe origin getter
+  const origin = getCurrentOrigin();
+  return `${origin}/icons/${cleanIconName}.svg`;
 };
 
 /**
@@ -46,8 +59,9 @@ export const getIconPath = (iconName) => {
  * @returns {string} - Full path to the image
  */
 export const getImagePath = (imageName) => {
-  // Use window.location.origin for full URL
-  return `${window.location.origin}/images/${imageName}`;
+  // Use the safe origin getter
+  const origin = getCurrentOrigin();
+  return `${origin}/images/${imageName}`;
 };
 
 /**
@@ -98,13 +112,16 @@ export const getCategoryIconPath = (categoryName) => {
   
   const normalizedName = cleanIconName.toLowerCase().replace(/\s+/g, '-');
   
+  // Use the safe origin getter
+  const origin = getCurrentOrigin();
+  
   // Si tenemos un mapeo específico, usarlo
   if (categoryIconMap[normalizedName]) {
-    return `${window.location.origin}/icons/category/${categoryIconMap[normalizedName]}`;
+    return `${origin}/icons/category/${categoryIconMap[normalizedName]}`;
   }
   
   // Fallback: usar el nombre normalizado sin extensión
-  return `${window.location.origin}/icons/category/${normalizedName}`;
+  return `${origin}/icons/category/${normalizedName}`;
 };
 
 /**
@@ -155,13 +172,16 @@ export const getFeaturedCategoryIconPath = (categoryName) => {
   
   const normalizedName = cleanIconName.toLowerCase().replace(/\s+/g, '-');
   
+  // Use the safe origin getter
+  const origin = getCurrentOrigin();
+  
   // Si tenemos un mapeo específico, usarlo
   if (categoryIconMap[normalizedName]) {
-    return `${window.location.origin}/icons/category/${categoryIconMap[normalizedName]}`;
+    return `${origin}/icons/category/${categoryIconMap[normalizedName]}`;
   }
   
   // Fallback: usar el nombre normalizado con extensión .png
-  return `${window.location.origin}/icons/category/${normalizedName}.png`;
+  return `${origin}/icons/category/${normalizedName}.png`;
 };
 
 /**
@@ -241,7 +261,9 @@ export const getAffiliateImagePath = (imageName) => {
  * @returns {string} - Full path to the logo
  */
 export const getLogoPath = () => {
-  return `${window.location.origin}/images/logo.svg`;
+  // Use the safe origin getter
+  const origin = getCurrentOrigin();
+  return `${origin}/images/logo.svg`;
 };
 
 /**
