@@ -22,9 +22,39 @@ import { getProductImageUrl } from '../utils/productImageUtils';
 const CategoryPage = ({ categorySlug }) => {
 
   const [searchParams] = useSearchParams();
-  const category = searchParams.get('category') || 'all';
+  const category = categorySlug || searchParams.get('category') || 'all';
   const colorFilter = searchParams.get('color') || '';
   const dtuFilter = searchParams.get('dtu') || '';
+
+  // Mapeo de slugs de categoría a nombres legibles
+  const categoryNameMapping = {
+    'dresses': 'Vestidos',
+    'tops': 'Blusas y Tops',
+    'pants': 'Pantalones',
+    'skirts': 'Faldas',
+    'jackets': 'Chaquetas',
+    'coats': 'Abrigos',
+    'suits': 'Trajes',
+    'lingerie': 'Ropa Interior',
+    'accessories': 'Accesorios',
+    'shoes': 'Zapatos',
+    'bags': 'Bolsos'
+  };
+
+  // Mapeo de slugs de categoría a códigos de línea de la API
+  const categoryCodeMapping = {
+    'dresses': '1',
+    'tops': '2',
+    'pants': '20',
+    'skirts': '3',
+    'jackets': '4',
+    'coats': '5',
+    'suits': '6',
+    'lingerie': '7',
+    'accessories': '8',
+    'shoes': '9',
+    'bags': '10'
+  };
   
   // State management for filters and products
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
@@ -202,12 +232,28 @@ const CategoryPage = ({ categorySlug }) => {
         // Si se proporciona categorySlug, cargar productos de esa categoría específica
         if (categorySlug) {
           try {
-            // Primero obtener la categoría para obtener su código
-            const categoryResponse = await publicCategoryService.getBySlug(categorySlug);
-      
+            let categoryData;
             
-            if (categoryResponse.data.success && categoryResponse.data.category) {
-              const categoryData = categoryResponse.data.category;
+            // Verificar si es un slug de la API (como 'dresses', 'pants')
+            if (categoryCodeMapping[categorySlug]) {
+              // Crear una categoría virtual para slugs de la API
+              categoryData = {
+                id: categorySlug,
+                name: categoryNameMapping[categorySlug] || categorySlug,
+                slug: categorySlug,
+                code: categoryCodeMapping[categorySlug],
+                description: `Productos de la categoría ${categoryNameMapping[categorySlug] || categorySlug}`
+              };
+            } else {
+              // Intentar obtener la categoría de la base de datos
+              const categoryResponse = await publicCategoryService.getBySlug(categorySlug);
+              
+              if (categoryResponse.data.success && categoryResponse.data.category) {
+                categoryData = categoryResponse.data.category;
+              }
+            }
+            
+            if (categoryData) {
               setCurrentCategory(categoryData);
               
 
