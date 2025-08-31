@@ -46,8 +46,8 @@ export const getIconPath = (iconName) => {
  * @returns {string} - Full path to the image
  */
 export const getImagePath = (imageName) => {
-  // Use getAssetPath for consistent path resolution
-  return getAssetPath(`images/${imageName}`);
+  // Use window.location.origin for full URL
+  return `${window.location.origin}/images/${imageName}`;
 };
 
 /**
@@ -241,7 +241,7 @@ export const getAffiliateImagePath = (imageName) => {
  * @returns {string} - Full path to the logo
  */
 export const getLogoPath = () => {
-  return getAssetPath('images/logo.svg');
+  return `${window.location.origin}/images/logo.svg`;
 };
 
 /**

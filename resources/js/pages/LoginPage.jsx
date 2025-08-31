@@ -1,7 +1,7 @@
 import { Helmet } from 'react-helmet-async';
 import { useState } from "react";
 import "./LoginPage.css";
-import { getIconPath } from '../../utils/assetPaths';
+import { getIconPath, getImagePath } from '../../utils/assetPaths';
 import { Link } from 'react-router-dom';
 import CustomButton from '../../components/CustomButton';
 
@@ -45,7 +45,7 @@ const LoginPage = () => {
           <div className="login-content">
             <div className="login-left">
               <div className="login-image-container">
-                <img src="/images/logo.svg" alt="logo" className="login-logo" />
+                <img src={getImagePath('logo.svg')} alt="logo" className="login-logo" />
                 <img src="/images/AuthPages/girl-login-bag.png" alt="Cherry Shopping" className="login-image" />
                 <img src="/images/AuthPages/round-shape.png" alt="Round Shape" className="login-image-round-shape" />
               </div>
