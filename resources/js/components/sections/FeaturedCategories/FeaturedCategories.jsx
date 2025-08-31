@@ -7,6 +7,16 @@ import { publicCategoryService } from '../../../services/api';
 const FeaturedCategories = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Función para mezclar array de forma aleatoria (Fisher-Yates shuffle)
+  const shuffleArray = (array) => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -15,12 +25,13 @@ const FeaturedCategories = () => {
         const response = await publicCategoryService.getAll();
         
         if (response.data.success && response.data.categories) {
-          // Tomar las primeras 3 categorías y mapearlas
-          const featuredCategories = response.data.categories.slice(0, 3).map((category, index) => ({
+          // Mezclar las categorías y tomar 3 aleatorias
+          const shuffledCategories = shuffleArray(response.data.categories);
+          const featuredCategories = shuffledCategories.slice(0, 3).map((category, index) => ({
             id: category.id,
             title: category.name,
             description: category.description || `Descubre nuestra colección de ${category.name}`,
-            iconName: `${category.slug}.png`,
+            iconName: category.slug,
             link: `/categoria/${category.slug}`
           }));
           
@@ -32,28 +43,26 @@ const FeaturedCategories = () => {
               id: 1,
               title: 'Vestidos',
               description: 'Descubre nuestra colección exclusiva de vestidos para toda ocasión.',
-              iconName: 'vestido.png',
+              iconName: 'vestidos',
               link: '/categoria/vestidos'
             },
             {
               id: 2,
               title: 'Blusas',
               description: 'Elegantes blusas que complementan cualquier outfit.',
-              iconName: 'Blusa.png',
+              iconName: 'blusas',
               link: '/categoria/blusas'
             },
             {
               id: 3,
               title: 'Pantalones',
               description: 'Pantalones versátiles para un look sofisticado.',
-              iconName: 'Pantalones.png',
+              iconName: 'pantalones',
               link: '/categoria/pantalones'
             }
           ];
           setCategories(defaultCategories);
         }
-        
-        setError(null);
       } catch (err) {
         // Fallback a categorías por defecto en caso de error
         const defaultCategories = [
@@ -61,21 +70,21 @@ const FeaturedCategories = () => {
             id: 1,
             title: 'Vestidos',
             description: 'Descubre nuestra colección exclusiva de vestidos para toda ocasión.',
-            iconName: 'vestido.png',
+            iconName: 'vestidos',
             link: '/categoria/vestidos'
           },
           {
             id: 2,
             title: 'Blusas',
             description: 'Elegantes blusas que complementan cualquier outfit.',
-            iconName: 'Blusa.png',
+            iconName: 'blusas',
             link: '/categoria/blusas'
           },
           {
             id: 3,
             title: 'Pantalones',
             description: 'Pantalones versátiles para un look sofisticado.',
-            iconName: 'Pantalones.png',
+            iconName: 'pantalones',
             link: '/categoria/pantalones'
           }
         ];
@@ -96,6 +105,9 @@ const FeaturedCategories = () => {
           <h2 className="featured-categories__title">
             Descubre nuestros productos destacados que realzan tu estilo y personalidad.
           </h2>
+          <p className="featured-categories__subtitle">
+            Explora estas 3 categorías seleccionadas especialmente para ti
+          </p>
         </div>
 
         {/* Categories Grid */}

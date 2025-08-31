@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import './HomePage.css';
 import HeroBanner from '../components/sections/HeroBanner/HeroBanner';
 import CategorySection from '../components/sections/CategorySection/CategorySection';
-import NewProductsSection from '../components/sections/NewProductsSection/NewProductsSection';
+
 import RecentCatalogs from '../components/sections/RecentCatalogs/RecentCatalogs';
 import FeaturedProducts from '../components/sections/FeaturedProducts/FeaturedProducts';
 import FeaturedCategories from '../components/sections/FeaturedCategories/FeaturedCategories';
@@ -105,11 +105,7 @@ const HomePage = () => {
           <CategorySection />
         </nav>
 
-        {/* New Products Section */}
-        <section aria-labelledby="new-products-heading">
-          <h2 id="new-products-heading" className="sr-only">Productos Nuevos</h2>
-          <NewProductsSection />
-        </section>
+
 
         {/* Recent Collections */}
         <section aria-labelledby="recent-catalogs-heading">

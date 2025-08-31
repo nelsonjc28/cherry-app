@@ -53,13 +53,38 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
     const files = Array.from(event.target.files);
     if (files.length === 0) return;
 
-    // Validar tipos de archivo - ahora solo PDFs
-    const validFiles = files.filter(file => 
-      file.type === 'application/pdf'
-    );
+    // Validar tipos de archivo y tamaño - ahora solo PDFs
+    const maxSize = 2 * 1024 * 1024; // 2MB en bytes
+    const validFiles = [];
+    const invalidFiles = [];
+    const oversizedFiles = [];
 
-    if (validFiles.length !== files.length) {
-      window.showToast('Algunos archivos no son PDFs válidos', 'error');
+    files.forEach(file => {
+      const isValidType = file.type === 'application/pdf';
+      const isValidSize = file.size <= maxSize;
+
+      if (!isValidType) {
+        invalidFiles.push(file.name);
+      } else if (!isValidSize) {
+        oversizedFiles.push(file.name);
+      } else {
+        validFiles.push(file);
+      }
+    });
+
+    // Mostrar errores específicos
+    if (invalidFiles.length > 0) {
+      window.showToast(`Los siguientes archivos no son PDFs válidos: ${invalidFiles.join(', ')}`, 'error');
+      return;
+    }
+
+    if (oversizedFiles.length > 0) {
+      window.showToast(`Los siguientes archivos exceden el tamaño máximo (2MB): ${oversizedFiles.join(', ')}`, 'error');
+      return;
+    }
+
+    if (validFiles.length === 0) {
+      window.showToast('No hay archivos válidos para subir', 'error');
       return;
     }
 
@@ -96,11 +121,17 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
         setError(response.data.message || 'Error al subir archivos');
       }
     } catch (error) {
-      setError('Error al subir PDFs. Verifica que sean archivos válidos.');
+      if (error.response && error.response.data) {
+        setError(`Error al subir PDFs: ${error.response.data.message || error.message}`);
+      } else {
+        setError('Error al subir PDFs. Verifica que sean archivos válidos.');
+      }
     } finally {
       setUploading(false);
       // Limpiar el input de archivos
-      event.target.value = '';
+      if (event && event.target) {
+        event.target.value = '';
+      }
     }
   };
 

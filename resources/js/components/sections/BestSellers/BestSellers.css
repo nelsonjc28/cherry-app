@@ -66,32 +66,7 @@
   margin-top: 50px;
 }
 
-.view-more-link {
-  display: inline-flex;
-  align-items: center;
-  color: var(--color-primary);
-  font-weight: 400;
-  font-size: 1rem;
-  text-decoration: none;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-.view-more-link:hover {
-  color: #cc0000;
-  transform: translateX(5px);
-}
-
-.view-more-link::after {
-  margin-left: 8px;
-  transition: margin-left 0.3s ease;
-}
-
-.view-more-link:hover::after {
-  margin-left: 12px;
-}
+/* view-more-link styles are now handled globally in index.css */
 
 /* Responsive Design */
 @media (max-width: 1200px) {

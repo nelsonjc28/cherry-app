@@ -10,12 +10,12 @@ import { publicCatalogService } from '../services/api';
 /**
  * CatalogPdfPage
  * 
- * Página para visualizar un catálogo tipo PDF con navegación por imágenes, miniaturas y paginación.
+ * Página para visualizar un catálogo con navegación por PDFs, miniaturas y paginación.
  * 
  * - Obtiene el catálogo por ID desde la URL.
- * - Permite navegar entre páginas (imágenes) y ver miniaturas.
- * - Usa IntersectionObserver para detectar la página visible y sincronizar el estado.
- * - Detecta orientación de imágenes para aplicar estilos adecuados.
+ * - Permite navegar entre PDFs y ver miniaturas.
+ * - Usa IntersectionObserver para detectar el PDF visible y sincronizar el estado.
+ * - Muestra PDFs en iframes con controles de navegación.
  * 
  * NOTA: Toda la lógica está contenida aquí porque:
  *   - El proyecto es pequeño y no crecerá mucho.
@@ -33,17 +33,19 @@ const CatalogPdfPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Obtiene las imágenes del catálogo seleccionado
-  const images = useMemo(() => selectedCatalog?.pdf_images?.map(img => `/${img.image_path}`) || [], [selectedCatalog]);
-  // Estado para la página (índice de la imagen actual)
-  const [pageIndex, setPageIndex] = useState(0);
-  // Estado para guardar la orientación de cada imagen
-  const [imageOrientations, setImageOrientations] = useState({});
-  // Referencias a los elementos DOM de cada imagen (para scroll y observer)
-  const imageRefs = useRef([]);
+  // Obtiene los PDFs del catálogo seleccionado
+  const pdfs = useMemo(() => selectedCatalog?.pdfs || [], [selectedCatalog]);
+  // Estado para la página actual del PDF (índice de la página)
+  const [currentPage, setCurrentPage] = useState(1);
+  // Estado para el PDF actual seleccionado
+  const [currentPdfIndex, setCurrentPdfIndex] = useState(0);
+  // Estado para el número total de páginas del PDF actual
+  const [totalPages, setTotalPages] = useState(1);
+  // Referencias a los elementos DOM de cada página (para scroll y observer)
+  const pageRefs = useRef([]);
   // Referencia a la lista de miniaturas (para scroll automático)
   const thumbnailListRef = useRef(null);
-  // Referencia al IntersectionObserver (para detectar imagen visible)
+  // Referencia al IntersectionObserver (para detectar página visible)
   const observerRef = useRef(null);
 
   // Cargar el catálogo al montar el componente
@@ -66,9 +68,9 @@ const CatalogPdfPage = () => {
       if (response.data.success) {
         const catalog = response.data.data;
         
-        // Verificar que el catálogo tenga imágenes PDF
-        if (!catalog.pdf_images || catalog.pdf_images.length === 0) {
-          setError('Este catálogo no tiene imágenes PDF disponibles');
+        // Verificar que el catálogo tenga PDFs
+        if (!catalog.pdfs || catalog.pdfs.length === 0) {
+          setError('Este catálogo no tiene PDFs disponibles');
           setLoading(false);
           return;
         }
@@ -84,30 +86,46 @@ const CatalogPdfPage = () => {
     }
   };
 
+  // Efecto para establecer el número total de páginas cuando se carga un PDF
+  useEffect(() => {
+    if (pdfs.length > 0 && pdfs[currentPdfIndex]) {
+      // Por ahora usamos 4 páginas como valor por defecto
+      // El usuario puede ajustarlo manualmente si es necesario
+      const defaultPages = 4;
+      
+      setTotalPages(defaultPages);
+      setCurrentPage(1);
+      
+      // Limpiar las referencias anteriores
+      pageRefs.current = [];
+    }
+  }, [pdfs, currentPdfIndex]);
+
   // Navega a la página anterior
   const handlePrev = () => {
-    if (pageIndex > 0) {
-      const newIndex = pageIndex - 1;
-      setPageIndex(newIndex);
-      scrollToImage(newIndex, false);
+    if (currentPage > 1) {
+      const newPage = currentPage - 1;
+      setCurrentPage(newPage);
+      scrollToPage(newPage, false);
     }
   };
 
   // Navega a la página siguiente
   const handleNext = () => {
-    if (pageIndex < images.length - 1) {
-      const newIndex = pageIndex + 1;
-      setPageIndex(newIndex);
-      scrollToImage(newIndex, false);
+    if (currentPage < totalPages) {
+      const newPage = currentPage + 1;
+      setCurrentPage(newPage);
+      scrollToPage(newPage, false);
     }
   };
 
-  // Hace scroll a la imagen indicada (opcionalmente actualiza el pageIndex)
-  const scrollToImage = (index, shouldSetPageIndex = true) => {
-    if (imageRefs.current[index]) {
-      if (shouldSetPageIndex) setPageIndex(index);
+  // Hace scroll a la página indicada (opcionalmente actualiza el currentPage)
+  const scrollToPage = (page, shouldSetCurrentPage = true) => {
+    const pageIndex = page - 1; // Convertir a índice base 0
+    if (pageRefs.current[pageIndex]) {
+      if (shouldSetCurrentPage) setCurrentPage(page);
       setTimeout(() => {
-        imageRefs.current[index]?.scrollIntoView({
+        pageRefs.current[pageIndex]?.scrollIntoView({
           behavior: 'smooth',
           block: 'start'
         });
@@ -115,29 +133,40 @@ const CatalogPdfPage = () => {
     }
   };
 
-  // Cuando el usuario selecciona una miniatura
-  const handleThumbnailSelect = (index) => {
-    setPageIndex(index);
-    scrollToImage(index, false);
+  // Cuando el usuario selecciona una página desde las miniaturas
+  const handlePageSelect = (page) => {
+    setCurrentPage(page);
+    
+    // Hacer scroll suave a la página seleccionada
+    const pageIndex = page - 1;
+    
+    if (pageRefs.current[pageIndex]) {
+      setTimeout(() => {
+        pageRefs.current[pageIndex]?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }, 100);
+    }
   };
 
-  // Efecto: mantiene la miniatura seleccionada visible en la lista
+  // Efecto: mantiene la página seleccionada visible en la lista
   useEffect(() => {
     if (isDesktop && thumbnailListRef.current) {
-      const selectedThumbnail = thumbnailListRef.current.querySelector('.pdf-thumbnail.selected');
-      if (selectedThumbnail) {
-        selectedThumbnail.scrollIntoView({
+      const selectedPage = thumbnailListRef.current.querySelector('.pdf-page-thumbnail.selected');
+      if (selectedPage) {
+        selectedPage.scrollIntoView({
           behavior: 'smooth',
           block: 'nearest',
           inline: 'center',
         });
       }
     }
-  }, [pageIndex, isDesktop]);
+  }, [currentPage, isDesktop]);
 
-  // Efecto: observa las imágenes para detectar cuál está visible en el viewport
+  // Efecto: observa las páginas para detectar cuál está visible en el viewport
   useEffect(() => {
-    if (!isDesktop || !images || !images.length) return;
+    if (!isDesktop || !totalPages || totalPages < 1) return;
     
     // Limpia el observer anterior si existe
     if (observerRef.current) {
@@ -149,31 +178,34 @@ const CatalogPdfPage = () => {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            const index = imageRefs.current.findIndex(ref => ref === entry.target);
-            if (index !== -1 && index !== pageIndex) {
-              setPageIndex(index);
+            const index = pageRefs.current.findIndex(ref => ref === entry.target);
+            if (index !== -1) {
+              const pageNumber = index + 1; // Convertir a número de página base 1
+              if (pageNumber !== currentPage) {
+                setCurrentPage(pageNumber);
+              }
             }
           }
         });
       },
       {
-        threshold: 0.7, // Imagen debe estar al menos 50% visible
+        threshold: 0.7, // Página debe estar al menos 50% visible
       }
     );
 
-    // Observa todas las imágenes
+    // Observa todas las páginas
     const currentRefs = [];
     
-    images.forEach((_, index) => {
-      const ref = imageRefs.current[index];
+    for (let i = 0; i < totalPages; i++) {
+      const ref = pageRefs.current[i];
       if (ref && observerRef.current) {
         observerRef.current.observe(ref);
         currentRefs.push(ref);
       }
-    });
+    }
     
     // Update refs
-    imageRefs.current = currentRefs;
+    pageRefs.current = currentRefs;
 
     // Limpieza al desmontar
     return () => {
@@ -181,29 +213,47 @@ const CatalogPdfPage = () => {
         observerRef.current.disconnect();
       }
     };
-  }, [images, pageIndex, isDesktop]);
+  }, [totalPages, currentPage, isDesktop]);
 
-  // Cuando una imagen se carga, detecta su orientación y la guarda
-  const handleImageLoad = (e, index) => {
-    const { naturalWidth, naturalHeight } = e.target;
-    const orientation = naturalWidth > naturalHeight ? 'horizontal' : 'vertical';
-    setImageOrientations(prev => ({
-      ...prev,
-      [index]: orientation
-    }));
+  // Efecto para hacer scroll automático cuando cambia la página
+  useEffect(() => {
+    if (currentPage > 0 && pageRefs.current.length > 0) {
+      const pageIndex = currentPage - 1;
+      const targetRef = pageRefs.current[pageIndex];
+      
+      if (targetRef) {
+        setTimeout(() => {
+          targetRef.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }, 100);
+      }
+    }
+  }, [currentPage]);
+
+
+
+  // Función para descargar un PDF
+  const handleDownloadPdf = (pdf) => {
+    const link = document.createElement('a');
+    link.href = `/${pdf.pdf_path}`;
+    link.download = 'catalogo.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
-  // Devuelve la orientación de una imagen (por defecto vertical)
-  const getImageOrientation = (index) => {
-    return imageOrientations[index] || 'vertical';
-  };
-
-  // Prepara los datos para la lista de miniaturas
-  const pageThumbnails = images.map((img, idx) => ({
-    id: `${selectedCatalog?.id}-page-${idx}`,
-    image: img,
-    title: `${selectedCatalog?.name} página ${idx + 1}`
-  }));
+  // Prepara los datos para la lista de miniaturas de páginas
+  const pageThumbnails = Array.from({ length: totalPages }, (_, idx) => {
+    const pageNumber = idx + 1;
+    return {
+      id: `${selectedCatalog?.id}-page-${pageNumber}`,
+      pageNumber: pageNumber,
+      title: `Página ${pageNumber}`,
+      isSelected: pageNumber === currentPage
+    };
+  });
 
   // Mostrar estados de carga y error
   if (loading) {
@@ -264,9 +314,7 @@ const CatalogPdfPage = () => {
         <header className="catalog-pdf__header">
           <div className="catalog-pdf__title-section">
             <h1 className="catalog-pdf__title">{selectedCatalog?.name || 'Catálogo PDF'}</h1>
-            <p className="catalog-pdf__subtitle">
-              {selectedCatalog?.description || 'Catálogo de productos'}
-            </p>
+
           </div>
           <div className="catalog-pdf__controls">
             <CustomButton
@@ -284,7 +332,7 @@ const CatalogPdfPage = () => {
           {isDesktop && (
             <aside className="catalog-pdf__thumbnails">
               <div className="catalog-pdf__thumbnails-header">
-                <span className="catalog-pdf__thumbnails-title">Catálogos disponibles</span>
+                <span className="catalog-pdf__thumbnails-title">Páginas del PDF</span>
                 <div className="catalog-pdf__thumbnails-sort">
                   <label htmlFor="catalog-pdf__sort-select" className="catalog-pdf__sort-label">Ordenar por:</label>
                   <select
@@ -301,16 +349,23 @@ const CatalogPdfPage = () => {
               </div>
               <div className="catalog-pdf__thumbnails-list" ref={thumbnailListRef}>
                 <PdfThumbnailsList
-                  products={pageThumbnails}
-                  selectedIndex={pageIndex}
-                  onSelect={handleThumbnailSelect}
+                  pages={pageThumbnails}
+                  selectedPage={currentPage}
+                  onSelect={handlePageSelect}
+                  pdfPath={pdfs[currentPdfIndex]?.pdf_path}
                 />
               </div>
             </aside>
           )}
-          {/* Image */}
-          <main className="catalog-pdf__main-image" style={{position: 'relative'}}>
-  <button className="catalog-pdf__download-btn catalog-pdf__main-download-btn" type="button" aria-label="Descargar PDF" style={{position: 'absolute', top: 0, right: 40, zIndex: 10}}>
+                  {/* PDF Viewer */}
+        <main className="catalog-pdf__main-pdf" style={{position: 'relative'}}>
+  <button 
+    className="catalog-pdf__download-btn catalog-pdf__main-download-btn" 
+    type="button" 
+    aria-label="Descargar PDF" 
+    style={{position: 'absolute', top: 0, right: 40, zIndex: 10}}
+    onClick={() => handleDownloadPdf(pdfs[currentPdfIndex])}
+  >
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M14.0942 6.18543H11.6493V1.95651C11.6493 1.09751 10.9225 0.370667 10.0635 0.370667H6.4623C5.6033 0.370667 4.87646 1.09751 4.87646 1.95651V6.18543H2.46466C1.044 6.18543 0.31716 7.90342 1.34135 8.89457L7.15611 14.7093C7.7508 15.3371 8.77499 15.3371 9.40272 14.7093L15.2175 8.89457C16.2086 7.90342 15.4818 6.18543 14.0942 6.18543ZM8.27941 13.586L2.46466 7.77127H6.4623V1.95651H10.0635V7.77127H14.0942L8.27941 13.586Z" fill="#F9738A" />
     </svg>
@@ -319,45 +374,76 @@ const CatalogPdfPage = () => {
               <button 
                 className="catalog-pdf__pagination-btn"
                 onClick={handlePrev}
-                disabled={pageIndex === 0}
+                disabled={currentPage === 1}
                 aria-label="Previous page"
               >
                 {'<<'}
               </button>
-              <span className="catalog-pdf__pagination-text">pág {pageIndex + 1} / {images.length}</span>
+              <span className="catalog-pdf__pagination-text">Página {currentPage} / {totalPages}</span>
               <button 
                 className="catalog-pdf__pagination-btn"
                 onClick={handleNext}
-                disabled={pageIndex === images.length - 1}
+                disabled={currentPage === totalPages}
                 aria-label="Next page"
               >
                 {'>>'}
               </button>
+
             </div>
             
-            {/* Scrollable images container */}
-            <div className="catalog-pdf__image-slider-wrapper">
-              {images.map((image, index) => (
-                <div 
-                  key={index}
-                  ref={el => imageRefs.current[index] = el}
-                  className="catalog-pdf__image-wrapper"
-                >
-                  <img
-                    src={image}
-                    alt={selectedCatalog?.title + ' página ' + (index + 1)}
-                    className={`catalog-pdf__image ${getImageOrientation(index)}`}
-                    onLoad={(e) => handleImageLoad(e, index)}
-                  />
+            {/* PDF Viewer con páginas individuales */}
+            <div className="catalog-pdf__pdf-viewer">
+              {pdfs.length > 0 && (
+                <div className="catalog-pdf__pdf-container">
+                  {/* Renderizar un iframe para cada página */}
+                  {Array.from({ length: totalPages }, (_, index) => {
+                    const pageNumber = index + 1;
+                    const isVisible = pageNumber === currentPage;
+                    
+                    return (
+                                              <div
+                          key={`page-${pageNumber}`}
+                          ref={el => pageRefs.current[index] = el}
+                          className={`catalog-pdf__pdf-page ${isVisible ? 'visible' : 'hidden'}`}
+                          style={{ 
+                            visibility: isVisible ? 'visible' : 'hidden',
+                            opacity: isVisible ? 1 : 0,
+                            position: isVisible ? 'relative' : 'absolute',
+                            top: isVisible ? '0' : '-9999px'
+                          }}
+                        >
+                        
+                         
+                         <iframe
+                           src={`/${pdfs[currentPdfIndex].pdf_path}#page=${pageNumber}&toolbar=0&navpanes=0&scrollbar=0`}
+                           title={`Página ${pageNumber}`}
+                           className="catalog-pdf__pdf-iframe"
+                           width="100%"
+                           height="600"
+                           frameBorder="0"
+                         />
+                         
+                         {isVisible && (
+                           <div className="catalog-pdf__page-indicator">
+                             <span className="catalog-pdf__page-indicator-text">
+                               Página {pageNumber} de {totalPages}
+                             </span>
+                           </div>
+                         )}
+                      </div>
+                    );
+                  })}
+                  
+                  
                 </div>
-              ))}
+              )}
             </div>
           </main>
 
           {!isDesktop && (
             <section className="catalog-pdf__thumbnails mobile">
               <div className="catalog-pdf__thumbnails-header">
-                <span className="catalog-pdf__thumbnails-title">Catálogos disponibles</span>
+                <span className="catalog-pdf__thumbnails-title">Páginas del PDF</span>
                 <div className="catalog-pdf__thumbnails-sort">
                   <label htmlFor="catalog-pdf__sort-select" className="catalog-pdf__sort-label">Ordenar por:</label>
                   <select
@@ -374,9 +460,10 @@ const CatalogPdfPage = () => {
               </div>
               <div className="catalog-pdf__thumbnails-list" ref={thumbnailListRef}>
                 <PdfThumbnailsList
-                  products={pageThumbnails}
-                  selectedIndex={pageIndex}
-                  onSelect={handleThumbnailSelect}
+                  pages={pageThumbnails}
+                  selectedPage={currentPage}
+                  onSelect={handlePageSelect}
+                  pdfPath={pdfs[currentPdfIndex]?.pdf_path}
                 />
               </div>
             </section>

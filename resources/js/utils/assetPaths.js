@@ -103,8 +103,8 @@ export const getCategoryIconPath = (categoryName) => {
     return `${window.location.origin}/icons/category/${categoryIconMap[normalizedName]}`;
   }
   
-  // Fallback: intentar con el nombre normalizado como PNG
-  return `${window.location.origin}/icons/category/${normalizedName}.png`;
+  // Fallback: usar el nombre normalizado sin extensión
+  return `${window.location.origin}/icons/category/${normalizedName}`;
 };
 
 /**
@@ -113,8 +113,55 @@ export const getCategoryIconPath = (categoryName) => {
  * @returns {string} - Full path to the featured category icon
  */
 export const getFeaturedCategoryIconPath = (categoryName) => {
-  const normalizedName = categoryName.toLowerCase().replace(/\s+/g, '-');
-  return `${window.location.origin}/icons/featuredCategories/${normalizedName}.png`;
+  // Remove .svg or .png extension if already present to avoid double extension
+  const cleanIconName = categoryName.replace(/\.(svg|png)$/i, '');
+  
+  // Mapeo de nombres de categorías a nombres de archivos PNG disponibles
+  const categoryIconMap = {
+    'vestidos': 'vestido.png',
+    'blusas': 'Blusa.png',
+    'pantalones': 'Pantalon.png',
+    'sacos': 'vestir-1.png',
+    'conjuntos': 'Conjuntos.png',
+    'gabardinas': 'Gabardina.png',
+    'vestido-de-novio': 'vestido-de-novio.png',
+    'pantalones-ajustados': 'Pantalon.png',
+    'blusa': 'Blusa.png',
+    'gabardina': 'Gabardina.png',
+    'moda': 'Conjuntos.png',
+    'vestir': 'vestir-1.png',
+    'trench-coat': 'trench coat _ Gabardina.png',
+    'calzado': 'Calsado.png',
+    'perfumeria': 'Perfumeria.png',
+    'chamarra': 'Chamarra.png',
+    'collar': 'Collar.png',
+    'short': 'Short.png',
+    'capa': 'Capa.png',
+    'chaqueta-de-cuero': 'chaqueta-de-cuero.png',
+    'top': 'Top.png',
+    'chaleco': 'Chaleco.png',
+    'bufanda': 'Bufanda.png',
+    'abrigo': 'Abrigo.png',
+    'bolsa': 'Bolsa.png',
+    'sueter': 'Sueter.png',
+    'pijama': 'Pijama.png',
+    'falda': 'Falda.png',
+    'romper': 'Romper.png',
+    'sudadera': 'Sudadera.png',
+    'jumpsuit': 'Jumpsuit.png',
+    'sin-linea': 'Sin linea.png',
+    'vestido': 'vestido.png'
+  };
+  
+  const normalizedName = cleanIconName.toLowerCase().replace(/\s+/g, '-');
+  
+  // Si tenemos un mapeo específico, usarlo
+  if (categoryIconMap[normalizedName]) {
+    return `${window.location.origin}/icons/category/${categoryIconMap[normalizedName]}`;
+  }
+  
+  // Fallback: usar el nombre normalizado con extensión .png
+  return `${window.location.origin}/icons/category/${normalizedName}.png`;
 };
 
 /**

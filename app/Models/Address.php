@@ -81,3 +81,4 @@ class Address extends Model
         $this->update(['is_default' => true]);
     }
 }
+

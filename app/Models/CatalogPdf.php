@@ -67,3 +67,4 @@ class CatalogPdf extends Model
         return file_exists(storage_path('app/public/' . $this->pdf_path));
     }
 }
+

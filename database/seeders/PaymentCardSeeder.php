@@ -73,3 +73,4 @@ class PaymentCardSeeder extends Seeder
         $this->command->info('Tarjetas de pago de ejemplo creadas correctamente.');
     }
 }
+

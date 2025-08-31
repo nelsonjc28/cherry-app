@@ -246,21 +246,7 @@
   margin-top: 40px;
 }
 
-.view-more-link {
-  display: inline-flex;
-  align-items: center;
-  color: #E91E63;
-  text-decoration: none;
-  font-weight: 400;
-  font-size: 16px;
-  transition: all 0.3s ease;
-  padding: 12px 0;
-}
-
-.view-more-link:hover {
-  color: #C2185B;
-  transform: translateX(5px);
-}
+/* view-more-link styles are now handled globally in index.css */
 
 /* Responsive Design */
 @media (max-width: 1024px) {
@@ -429,9 +415,7 @@
     line-height: 1.2;
   }
 
-  .view-more-link {
-    font-size: 14px;
-  }
+  /* view-more-link font-size is handled globally */
 
   .view-more-section {
     margin-top: 20px;

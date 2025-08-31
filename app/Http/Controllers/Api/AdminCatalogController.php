@@ -254,14 +254,27 @@ class AdminCatalogController extends Controller
             $catalog = Catalog::findOrFail($id);
 
             $validator = Validator::make($request->all(), [
-                'pdfs.*' => 'required|file|mimes:pdf|max:10240' // Máximo 10MB
+                'pdfs.*' => 'required|file|mimes:pdf|max:2048' // Máximo 2MB (coincide con configuración de PHP)
             ]);
 
             if ($validator->fails()) {
+                $errors = $validator->errors();
+                $errorMessages = [];
+                
+                foreach ($errors->all() as $error) {
+                    if (strpos($error, 'max') !== false) {
+                        $errorMessages[] = 'El archivo excede el tamaño máximo permitido (2MB)';
+                    } elseif (strpos($error, 'mimes') !== false) {
+                        $errorMessages[] = 'El archivo debe ser un PDF válido';
+                    } else {
+                        $errorMessages[] = $error;
+                    }
+                }
+                
                 return response()->json([
                     'success' => false,
-                    'message' => 'Error de validación',
-                    'errors' => $validator->errors()
+                    'message' => 'Error de validación: ' . implode(', ', $errorMessages),
+                    'errors' => $errors
                 ], 422);
             }
 
@@ -722,25 +735,11 @@ class AdminCatalogController extends Controller
     private function getPdfPageCount($filePath)
     {
         if (!file_exists($filePath)) {
-            return 0;
+            return 1;
         }
 
-        try {
-            // Verificar si Imagick está disponible
-            if (extension_loaded('imagick')) {
-                $pdf = new \Imagick($filePath);
-                $pageCount = $pdf->getNumberImages();
-                $pdf->clear();
-                $pdf->destroy();
-                return $pageCount;
-            } else {
-                // Fallback: usar comando de sistema si Imagick no está disponible
-                $output = shell_exec("pdfinfo \"$filePath\" 2>/dev/null | grep Pages | awk '{print $2}'");
-                return $output ? (int) trim($output) : 0;
-            }
-        } catch (\Exception $e) {
-            // Si hay algún error, retornar 0
-            return 0;
-        }
+        // Por ahora retornamos 1 como valor por defecto
+        // En el futuro se puede implementar una solución más robusta
+        return 1;
     }
 }

@@ -124,7 +124,7 @@ const Header = () => {
           title: 'Productos populares',
           items: [
             { name: 'Más vendidos', link: '/destacados/mas-vendidos' },
-            { name: 'Nuevos productos', link: '/destacados/nuevos' },
+
             { name: 'Ofertas especiales', link: '/destacados/ofertas' }
           ]
         },
@@ -488,14 +488,7 @@ const Header = () => {
         <nav className="main-navigation" onMouseLeave={handleMouseLeave}>
           <div className="nav-container">
             <ul className="nav-menu">
-              <li className={`nav-item new-items ${activeMenu === 'nuevos' ? 'active' : ''}`} onMouseEnter={() => handleMouseEnter('nuevos')}>
-                <Link to="/nuevos" className="nav-link">
-                  <img src={getIconPath('Cart Plus.svg')} alt="Nuevos" />
-                  Nuevos
-                  <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
-                </Link>
-              </li>
-              <li className="nav-item nav-divider"></li>
+
               <li className="nav-item" onMouseEnter={() => setActiveMenu(null)}>
                 <Link to="/destacados" className="nav-link">
                   <img src={getIconPath('Award.svg')} alt="Destacados" />
@@ -627,11 +620,7 @@ const Header = () => {
             </div>
 
             <ul className="mobile-menu-list">
-              <MobileMenuItem 
-                menuKey="nuevos" 
-                title="Nuevos" 
-                icon={<img src={getIconPath('Cart Plus.svg')} alt="Nuevos" />}
-              />
+
               
               <li className="mobile-menu-item">
                 <Link to="/destacados" className="mobile-menu-link" onClick={() => setMobileMenuOpen(false)}>

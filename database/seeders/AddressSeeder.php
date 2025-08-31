@@ -63,3 +63,4 @@ class AddressSeeder extends Seeder
         $this->command->info('Direcciones de ejemplo creadas correctamente.');
     }
 }
+
