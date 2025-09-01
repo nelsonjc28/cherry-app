@@ -1,55 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Helmet } from 'react-helmet-async';
-import FavoriteButton from '../components/FavoriteButton/FavoriteButton';
-import { formatPrice } from '../utils/formatters';
+import { useFavorites } from '../hooks/useFavorites';
 import './FavoritosPage.css';
 
 const FavoritosPage = () => {
-  const [favorites, setFavorites] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { 
+    favoriteProductIds, 
+    loading, 
+    error, 
+    fetchFavorites,
+    removeFromFavorites 
+  } = useFavorites();
 
-  useEffect(() => {
-    fetchFavorites();
-  }, []);
-
-  const fetchFavorites = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch('/api/favorites', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setFavorites(data.favorites || []);
-      } else {
-        throw new Error('Error al obtener favoritos');
-      }
-    } catch (error) {
-
-    } finally {
-      setLoading(false);
+  const handleRemoveFavorite = async (productId) => {
+    const success = await removeFromFavorites(productId);
+    if (success && window.showToast) {
+      window.showToast('Producto removido de favoritos', 'success');
     }
   };
 
-  const handleRemoveFavorite = (productId) => {
-    setFavorites(prev => prev.filter(fav => fav.product_id !== productId));
-  };
-
   const handleProductClick = (productId) => {
-    // Navegar a la página del producto
     window.location.href = `/producto/${productId}`;
   };
 
@@ -58,7 +28,15 @@ const FavoritosPage = () => {
       <div className="favoritos-page">
         <div className="favoritos-page__loading">
           <div className="loading-spinner"></div>
-          <p>Cargando tus favoritos...</p>
+          <h2>Cargando tus favoritos</h2>
+          <p>Estamos obteniendo tus productos favoritos...</p>
+
+          
+
+          
+
+          
+
         </div>
       </div>
     );
@@ -68,11 +46,38 @@ const FavoritosPage = () => {
     return (
       <div className="favoritos-page">
         <div className="favoritos-page__error">
-          <h2>Error</h2>
+          <div className="favoritos-page__error-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </div>
+          <h2>No se pudieron cargar los favoritos</h2>
           <p>{error}</p>
-          <button onClick={() => window.location.href = '/login'}>
-            Iniciar Sesión
-          </button>
+          <div className="favoritos-page__error-actions">
+            {error.includes('iniciar sesión') ? (
+              <button 
+                className="btn btn-primary"
+                onClick={() => window.location.href = '/login'}
+              >
+                Iniciar Sesión
+              </button>
+            ) : (
+              <button 
+                className="btn btn-outline-primary"
+                onClick={fetchFavorites}
+              >
+                Intentar Nuevamente
+              </button>
+            )}
+            <button 
+              className="btn btn-outline-secondary"
+              onClick={() => window.location.href = '/catalogo'}
+            >
+              Explorar Productos
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -87,11 +92,29 @@ const FavoritosPage = () => {
 
       <div className="favoritos-page">
         <div className="favoritos-page__header">
-          <h1>Mis Favoritos</h1>
-          <p>{favorites.length} {favorites.length === 1 ? 'producto' : 'productos'} guardado{favorites.length !== 1 ? 's' : ''}</p>
+          <div className="favoritos-page__header-content">
+            <div>
+              <h1>Mis Favoritos</h1>
+              <p>{favoriteProductIds.length} {favoriteProductIds.length === 1 ? 'producto' : 'productos'} guardado{favoriteProductIds.length !== 1 ? 's' : ''}</p>
+            </div>
+            <button 
+              className="btn btn-outline-primary"
+              onClick={fetchFavorites}
+              disabled={loading}
+              title="Recargar favoritos"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M23 4v6h-6"></path>
+                <path d="M1 20v-6h6"></path>
+                <path d="M20.24 7.76a6 6 0 0 0-8.49-8.49L5 10.5"></path>
+                <path d="M3.76 16.24a6 6 0 0 0 8.49 8.49L19 13.5"></path>
+              </svg>
+              Recargar
+            </button>
+          </div>
         </div>
 
-        {favorites.length === 0 ? (
+        {favoriteProductIds.length === 0 ? (
           <div className="favoritos-page__empty">
             <div className="favoritos-page__empty-icon">
               <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -106,12 +129,12 @@ const FavoritosPage = () => {
           </div>
         ) : (
           <div className="favoritos-page__grid">
-            {favorites.map((favorite) => (
-              <div key={favorite.id} className="favoritos-page__item">
-                <div className="favoritos-page__item-image" onClick={() => handleProductClick(favorite.product_id)}>
+            {favoriteProductIds.map((productId) => (
+              <div key={productId} className="favoritos-page__item">
+                <div className="favoritos-page__item-image" onClick={() => handleProductClick(productId)}>
                   <img 
-                    src={favorite.product_image || '/placeholder-product.jpg'} 
-                    alt={favorite.product_title}
+                    src="/placeholder-product.jpg" 
+                    alt="Producto"
                     onError={(e) => {
                       e.target.src = '/placeholder-product.jpg';
                     }}
@@ -122,33 +145,22 @@ const FavoritosPage = () => {
                 </div>
                 
                 <div className="favoritos-page__item-content">
-                  <h3 onClick={() => handleProductClick(favorite.product_id)}>
-                    {favorite.product_title}
+                  <h3 onClick={() => handleProductClick(productId)}>
+                    Producto ID: {productId}
                   </h3>
                   
-                  {favorite.product_price && (
-                    <p className="favoritos-page__item-price">
-                      {formatPrice(favorite.product_price)}
-                    </p>
-                  )}
-                  
                   <div className="favoritos-page__item-actions">
-                    <FavoriteButton
-                      productId={favorite.product_id}
-                      productTitle={favorite.product_title}
-                      productImage={favorite.product_image}
-                      productPrice={favorite.product_price}
-                      size="small"
-                      onToggle={(isFavorited) => {
-                        if (!isFavorited) {
-                          handleRemoveFavorite(favorite.product_id);
-                        }
-                      }}
-                    />
+                    <button 
+                      className="btn btn-outline-danger btn-sm"
+                      onClick={() => handleRemoveFavorite(productId)}
+                      title="Remover de favoritos"
+                    >
+                      ❌ Remover
+                    </button>
                     
                     <button 
                       className="favoritos-page__item-view"
-                      onClick={() => handleProductClick(favorite.product_id)}
+                      onClick={() => handleProductClick(productId)}
                     >
                       Ver Producto
                     </button>

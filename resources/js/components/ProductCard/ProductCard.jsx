@@ -3,7 +3,7 @@ import FavoriteButton from '../FavoriteButton/FavoriteButton';
 import { formatPrice } from '../../utils/formatters';
 import './ProductCard.css';
 
-const ProductCard = ({ product, onFavoriteToggle }) => {
+const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true }) => {
   // Destructure product properties
   const { id, title, image, price, rating, ratingCount, description } = product;
 
@@ -36,15 +36,17 @@ const ProductCard = ({ product, onFavoriteToggle }) => {
           />
         </Link>
         
-        {/* Favorite button */}
-        <FavoriteButton 
-          productId={id}
-          productTitle={title}
-          productImage={image}
-          productPrice={price}
-          onToggle={onFavoriteToggle}
-          size="medium"
-        />
+        {/* Favorite button - solo mostrar si showFavoriteButton es true */}
+        {showFavoriteButton && (
+          <FavoriteButton 
+            productId={id}
+            productTitle={title}
+            productImage={image}
+            productPrice={price}
+            onToggle={onFavoriteToggle}
+            size="medium"
+          />
+        )}
       </div>
       
       <div className="product-info">

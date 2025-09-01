@@ -142,17 +142,21 @@ Route::delete('/admin/catalogs/{catalogId}/pdfs/{pdfId}', [AdminCatalogControlle
         Route::get('/admin/catalogs/{catalogId}/offers', [AdminCatalogOfferController::class, 'getOffersByCatalog']);
     });
     
-    // Favorites routes
-    Route::get('/favorites', [FavoriteController::class, 'index']);
-    Route::post('/favorites', [FavoriteController::class, 'store']);
-    Route::post('/favorites/check', [FavoriteController::class, 'check']);
-    Route::post('/favorites/toggle', [FavoriteController::class, 'toggle']);
-    Route::delete('/favorites', [FavoriteController::class, 'destroy']);
+    // Favorites routes - require authentication
+    Route::middleware(['auth:api'])->group(function () {
+        Route::get('/favorites', [FavoriteController::class, 'index']);
+        Route::post('/favorites', [FavoriteController::class, 'store']);
+        Route::post('/favorites/check', [FavoriteController::class, 'check']);
+        Route::post('/favorites/toggle', [FavoriteController::class, 'toggle']);
+        Route::delete('/favorites', [FavoriteController::class, 'destroy']);
+    });
     
-    // Ratings routes
-    Route::get('/ratings/user', [RatingController::class, 'getUserRating']);
-    Route::post('/ratings', [RatingController::class, 'store']);
-    Route::post('/ratings/check', [RatingController::class, 'checkUserRating']);
+    // Ratings routes - require authentication (user ratings)
+    Route::middleware(['auth:api'])->group(function () {
+        Route::get('/ratings/user', [RatingController::class, 'getUserRating']);
+        Route::post('/ratings', [RatingController::class, 'store']);
+        Route::post('/ratings/check', [RatingController::class, 'checkUserRating']);
+    });
 });
 
 // Public ratings routes (no authentication required)

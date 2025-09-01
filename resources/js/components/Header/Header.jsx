@@ -425,10 +425,7 @@ const Header = () => {
                       <img src={getIconPath('Package.svg')} alt="Órdenes" />
                       Mis Órdenes
                     </Link>
-                    <Link to="/perfil/favoritos" className="user-dropdown-item">
-                      <img src={getIconPath('Heart.svg')} alt="Favoritos" />
-                      Mis Favoritos
-                    </Link>
+
                     <Link to="/perfil/direcciones" className="user-dropdown-item">
                       <img src={getIconPath('Map Pin.svg')} alt="Direcciones" />
                       Mis Direcciones
@@ -464,13 +461,7 @@ const Header = () => {
               </div>
             </Link>
 
-            {user && (
-              <Link to="/favoritos" className="user-action icon-only">
-                <div className="icon-badge">
-                  <img src={getIconPath('Heart.svg')} alt="Favoritos" />
-                </div>
-              </Link>
-            )}
+
 
             {!isAdminPage && (
               <button type="button" className="user-action icon-only" onClick={() => setCartModalOpen(true)}>

@@ -6,7 +6,8 @@ const ProductGrid = ({
   title,
   products,
   viewAllLink,
-  viewAllText = 'Ver Más'
+  viewAllText = 'Ver Más',
+  showFavoriteButton = false
 }) => {
   return (
     <div className="product-grid-container">
@@ -27,7 +28,7 @@ const ProductGrid = ({
       <div className="product-grid">
         {products.map((product) => (
           <div key={product.id} className="product-grid-item">
-            <ProductCard product={product} />
+            <ProductCard product={product} showFavoriteButton={showFavoriteButton} />
           </div>
         ))}
       </div>

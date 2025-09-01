@@ -143,6 +143,7 @@ const BestSellers = ({
             showTitle={false}
             showViewAll={false}
             slidesPerView={{ desktop: 4, tablet: 2, mobile: 1.2 }}
+            showFavoriteButton={false}
           />
         </div>
 

@@ -42,7 +42,7 @@
 
 .product-gallery__thumbs-swiper {
   width: 100%;
-  height: 100px;
+  height: 120px;
 }
 
 .product-gallery__thumb-slide {
@@ -54,6 +54,7 @@
   overflow: hidden;
   border: 2px solid transparent;
   transition: border-color 0.3s ease;
+  background-color: #f8f9fa;
 }
 
 .product-gallery__thumb-slide.swiper-slide-thumb-active {
@@ -63,9 +64,10 @@
 .product-gallery__thumb-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 2px;
   transition: transform 0.3s ease;
+  padding: 4px;
 }
 
 .product-gallery__thumb-image:hover {
@@ -142,7 +144,7 @@
   }
   
   .product-gallery__thumbs-swiper {
-    height: 80px;
+    height: 100px;
   }
   
   .product-gallery__loading,
@@ -157,7 +159,7 @@
   }
   
   .product-gallery__thumbs-swiper {
-    height: 70px;
+    height: 90px;
   }
   
   .product-gallery__loading,

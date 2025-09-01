@@ -77,7 +77,7 @@ export const FavoritesProvider = ({ children }) => {
       
       if (response.data.success) {
         const favoritesSet = new Set(
-          response.data.favorites.map(fav => fav.product_id)
+          response.data.favorite_product_ids || []
         );
         setFavorites(favoritesSet);
       } else {

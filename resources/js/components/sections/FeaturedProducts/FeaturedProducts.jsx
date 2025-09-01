@@ -130,6 +130,7 @@ const FeaturedProducts = ({
             onFavoriteToggle={handleFavoriteToggle}
             showTitle={false}
             showViewAll={false}
+            showFavoriteButton={false}
           />
         </div>
         
@@ -141,6 +142,7 @@ const FeaturedProducts = ({
             showTitle={false}
             showViewAll={false}
             slidesPerView={{ desktop: 4, tablet: 2, mobile: 1.2 }}
+            showFavoriteButton={false}
           />
         </div>
       </div>
