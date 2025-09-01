@@ -10,6 +10,7 @@ import FeaturedCategories from '../components/sections/FeaturedCategories/Featur
 import CustomerReviews from '../components/sections/CustomerReviews/CustomerReviews';
 import BestSellers from '../components/sections/BestSellers/BestSellers';
 import AffiliateSection from '../components/sections/AffiliateSection/AffiliateSection';
+import ToastTest from '../components/Toast/ToastTest';
 
 const HomePage = () => {
   const featuredProducts = [
@@ -133,6 +134,11 @@ const HomePage = () => {
         {/* Affiliate Section - Solo visible cuando no hay sesión activa */}
         <section className="affiliate-banner" aria-labelledby="affiliate-heading">
           <AffiliateSection />
+        </section>
+
+        {/* Toast Test Section - Temporal para pruebas */}
+        <section style={{ padding: '40px 0', backgroundColor: '#f8f9fa' }}>
+          <ToastTest />
         </section>
 
         {/* Customer Testimonials */}

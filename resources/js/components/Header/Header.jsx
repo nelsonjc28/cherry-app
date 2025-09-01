@@ -356,13 +356,15 @@ const Header = () => {
 
   return (
     <header className="site-header">
-      {/* Top Affiliate Bar */}
-      <div className="affiliate-bar">
-        <div className="affiliate-container">
-          <p className="affiliate-text">¡Afiliate ahora mismo y comienza tu propio negocio!</p>
-          <Link to="/registro" className="affiliate-button">Afiliate aquí</Link>
+      {/* Top Affiliate Bar - Solo visible cuando no hay sesión */}
+      {!user && (
+        <div className="affiliate-bar">
+          <div className="affiliate-container">
+            <p className="affiliate-text">¡Afiliate ahora mismo y comienza tu propio negocio!</p>
+            <Link to="/registro" className="affiliate-button">Afiliate aquí</Link>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Main Header */}
       <div className="main-header">
