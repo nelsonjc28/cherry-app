@@ -182,6 +182,11 @@
   justify-content: center;
 }
 
+/* Affiliate Action Button - Same as regular user-action */
+.user-action.affiliate-action {
+  /* Inherits all styles from .user-action */
+}
+
 /* User Menu Button */
 .user-menu-btn {
   display: flex;
@@ -1066,6 +1071,11 @@
   width: 18px;
   height: 18px;
   object-fit: contain;
+}
+
+/* Mobile Affiliate Action Button - Same as regular mobile-menu-account */
+.mobile-menu-account.affiliate-action {
+  /* Inherits all styles from .mobile-menu-account */
 }
 
 .mobile-logout-btn {

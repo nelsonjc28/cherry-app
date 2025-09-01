@@ -9,6 +9,7 @@ import FeaturedProducts from '../components/sections/FeaturedProducts/FeaturedPr
 import FeaturedCategories from '../components/sections/FeaturedCategories/FeaturedCategories';
 import CustomerReviews from '../components/sections/CustomerReviews/CustomerReviews';
 import BestSellers from '../components/sections/BestSellers/BestSellers';
+import AffiliateSection from '../components/sections/AffiliateSection/AffiliateSection';
 
 const HomePage = () => {
   const featuredProducts = [
@@ -127,6 +128,11 @@ const HomePage = () => {
         <section aria-labelledby="featured-categories-heading">
           <h2 id="featured-categories-heading" className="sr-only">Categorías Destacadas</h2>
           <FeaturedCategories />
+        </section>
+
+        {/* Affiliate Section - Solo visible cuando no hay sesión activa */}
+        <section className="affiliate-banner" aria-labelledby="affiliate-heading">
+          <AffiliateSection />
         </section>
 
         {/* Customer Testimonials */}
