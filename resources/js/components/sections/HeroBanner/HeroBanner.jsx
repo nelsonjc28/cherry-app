@@ -1,34 +1,32 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getHeroSliderImagePath, getHeroIconPath } from '../../../utils/assetPaths';
 import useWelcomeSection from '../../../hooks/useWelcomeSection';
+import { getHeroSliderImagePath, getHeroIconPath } from '../../../utils/assetPaths';
 import './HeroBanner.css';
 
 const HeroBanner = () => {
   const navigate = useNavigate();
-  // State to control current slide
   const [currentSlide, setCurrentSlide] = useState(0);
-  
-  // Hook para obtener las secciones de bienvenida activas (limitado a 3)
   const { welcomeSections, loading, error } = useWelcomeSection(3);
 
-  // Main banner data with robust asset paths (fallback)
-  const fallbackBanners = [
+  // Memoizar los banners de fallback para evitar recreaciones
+  const fallbackBanners = useMemo(() => [
     {
       id: 1,
       image: getHeroSliderImagePath('hero-slider1-girl.png'),
       titlePart1: '¡Bienvenida',
       titlePart2: 'a la moda que te inspira!',
-      description: 'Explora nuestra colección única y actualizada que resalta tu estilo personal. Afíliate hoy y accede a ofertas exclusivas que no querrás perderte.',
+      description: 'Explora nuestra colección única y actualizada que resalta tu estilo personal.',
       buttonText: 'Explorar Colección',
       buttonUrl: '/catalogo',
       imageAlt: 'Mujer joven modelando vestido elegante de la colección Cherry Central, estilo moderno y sofisticado'
     }
-  ];
+  ], []);
 
-  // Convertir secciones de bienvenida al formato del banner
-  const banners = welcomeSections.length > 0 
-    ? welcomeSections.map((section, index) => ({
+  // Memoizar la conversión de secciones de bienvenida al formato del banner
+  const banners = useMemo(() => {
+    if (welcomeSections.length > 0) {
+      return welcomeSections.map((section, index) => ({
         id: section.id,
         image: section.image_path ? `${window.location.origin}/${section.image_path}` : getHeroSliderImagePath('hero-slider1-girl.png'),
         titlePart1: section.title ? section.title.split(' ')[0] : '¡Bienvenida',
@@ -37,18 +35,28 @@ const HeroBanner = () => {
         buttonText: section.button_text || 'Explorar Colección',
         buttonUrl: section.button_url || '/catalogo',
         imageAlt: `Imagen de bienvenida ${index + 1} de Cherry Central`
-      }))
-    : fallbackBanners;
+      }));
+    }
+    return fallbackBanners;
+  }, [welcomeSections, fallbackBanners]);
 
-  // Function to change slides
-  const goToSlide = (index) => {
+  // Memoizar la función goToSlide
+  const goToSlide = useCallback((index) => {
     setCurrentSlide(index);
-  };
+  }, []);
 
-  // Function to handle image click - redirect to button URL
-  const handleImageClick = (banner) => {
+  // Memoizar la función handleImageClick
+  const handleImageClick = useCallback((banner) => {
     navigate(banner.buttonUrl);
-  };
+  }, [navigate]);
+
+  // Memoizar la función handleImageError para evitar recreaciones
+  const handleImageError = useCallback((e) => {
+    // Usar una imagen de placeholder más específica y optimizada
+    e.target.src = '/images/welcome-sections/default-welcome.jpg';
+    // Prevenir futuros errores
+    e.target.onerror = null;
+  }, []);
 
   // Auto-advance slides if there are multiple banners
   useEffect(() => {
@@ -61,7 +69,75 @@ const HeroBanner = () => {
     return () => clearInterval(interval);
   }, [banners.length]);
 
-  const currentBanner = banners[currentSlide];
+  // Memoizar el banner actual para evitar recálculos
+  const currentBanner = useMemo(() => banners[currentSlide], [banners, currentSlide]);
+
+  if (loading) {
+    return (
+      <section className="hero-banner" role="banner">
+        <div className="banner-container">
+          <div className="banner-content">
+            <div className="banner-text-container">
+              <div className="banner-title skeleton">
+                <div className="skeleton-line"></div>
+                <div className="skeleton-line"></div>
+              </div>
+              <div className="banner-description skeleton">
+                <div className="skeleton-line"></div>
+              </div>
+              <div className="banner-actions skeleton">
+                <div className="skeleton-button"></div>
+              </div>
+            </div>
+            <div className="banner-image-container skeleton">
+              <div className="skeleton-image"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="hero-banner" role="banner">
+        <div className="banner-container">
+          <div className="banner-content">
+            <div className="banner-text-container">
+              <h1 className="banner-title">
+                <span className="title-part1">¡Bienvenida</span>
+                <span className="title-part2">a la moda que te inspira!</span>
+              </h1>
+              <p className="banner-description">
+                Explora nuestra colección única y actualizada que resalta tu estilo personal.
+              </p>
+              <div className="banner-actions">
+                <Link to="/catalogo" className="btn-explore">
+                  <p className="explora-text">Explorar Colección</p>
+                  <img 
+                    src={getHeroIconPath('Chevron Right.svg')} 
+                    alt="Flecha hacia la derecha" 
+                    width="20" 
+                    height="20" 
+                  />
+                </Link>
+              </div>
+            </div>
+            <div className="banner-image-container">
+              <img 
+                src={getHeroSliderImagePath('hero-slider1-girl.png')} 
+                alt="Mujer joven modelando vestido elegante de la colección Cherry Central, estilo moderno y sofisticado"
+                className="banner-image"
+                onClick={() => navigate('/catalogo')}
+                style={{ cursor: 'pointer' }}
+                onError={handleImageError}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="hero-banner" role="banner">
@@ -103,9 +179,7 @@ const HeroBanner = () => {
               className="banner-image"
               onClick={() => handleImageClick(currentBanner)}
               style={{ cursor: 'pointer' }}
-              onError={(e) => {
-                e.target.src = '/placeholder-banner.jpg';
-              }}
+              onError={handleImageError}
             />
           </div>
         </div>
@@ -123,30 +197,6 @@ const HeroBanner = () => {
             />
           ))}
         </div>
-      )}
-
-      {/* Navigation arrows for multiple banners */}
-      {banners.length > 1 && (
-        <>
-          <button
-            className="slider-arrow slider-arrow--prev"
-            onClick={() => goToSlide((currentSlide - 1 + banners.length) % banners.length)}
-            aria-label="Slide anterior"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M15 18l-6-6 6-6"/>
-            </svg>
-          </button>
-          <button
-            className="slider-arrow slider-arrow--next"
-            onClick={() => goToSlide((currentSlide + 1) % banners.length)}
-            aria-label="Slide siguiente"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M9 18l6-6-6-6"/>
-            </svg>
-          </button>
-        </>
       )}
     </section>
   );

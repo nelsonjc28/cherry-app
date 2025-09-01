@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams } from 'react-router-dom';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
@@ -44,8 +44,8 @@ const CatalogPage = ({ catalogId }) => {
     priceRange: { min: 0, max: 0 }
   });
 
-  // Function to get available colors from products
-  const getAvailableColors = (products) => {
+  // Function to get available colors from products - Memoized
+  const getAvailableColors = useCallback((products) => {
     const colorSet = new Set();
     products.forEach(product => {
       if (product.colors && product.colors.length > 0) {
@@ -57,10 +57,10 @@ const CatalogPage = ({ catalogId }) => {
       }
     });
     return Array.from(colorSet).sort();
-  };
+  }, []);
 
-  // Function to filter products based on current filters
-  const filterProducts = (products, currentFilters) => {
+  // Function to filter products based on current filters - Memoized
+  const filterProducts = useCallback((products, currentFilters) => {
     if (!products || products.length === 0) return [];
 
     let filtered = [...products];
@@ -128,10 +128,10 @@ const CatalogPage = ({ catalogId }) => {
     }
 
     return filtered;
-  };
+  }, []);
 
-  // Function to sort products
-  const sortProducts = (products, sortOption) => {
+  // Function to sort products - Memoized
+  const sortProducts = useCallback((products, sortOption) => {
     if (!products || products.length === 0) return [];
 
     const sorted = [...products];
@@ -152,7 +152,7 @@ const CatalogPage = ({ catalogId }) => {
       default:
         return sorted;
     }
-  };
+  }, []);
 
   // Load catalogs
   useEffect(() => {
@@ -337,65 +337,69 @@ const CatalogPage = ({ catalogId }) => {
     loadProducts();
   }, [category, filters.catalog, catalogId]);
 
-  // Apply filters and sorting when filters or sortBy changes
-  useEffect(() => {
-    if (allProducts.length > 0) {
-      let filtered = filterProducts(allProducts, filters);
-      
-      // Apply color filter from URL
-      if (colorFilter) {
-        const colorFilters = colorFilter.split(',').map(c => c.trim());
-        filtered = filtered.filter(product => {
-          if (!product.colors || product.colors.length === 0) return false;
-          
-          return colorFilters.some(filterColor => {
-            const filterColorLower = filterColor.toLowerCase();
-            return product.colors.some(productColor => {
-              const productColorLower = productColor.toLowerCase();
-              return productColorLower === filterColorLower || 
-                     productColorLower.includes(filterColorLower) ||
-                     filterColorLower.includes(productColorLower);
-            });
+  // Memoized filtered and sorted products
+  const processedProducts = useMemo(() => {
+    if (allProducts.length === 0) return [];
+    
+    let filtered = filterProducts(allProducts, filters);
+    
+    // Apply color filter from URL
+    if (colorFilter) {
+      const colorFilters = colorFilter.split(',').map(c => c.trim());
+      filtered = filtered.filter(product => {
+        if (!product.colors || product.colors.length === 0) return false;
+        
+        return colorFilters.some(filterColor => {
+          const filterColorLower = filterColor.toLowerCase();
+          return product.colors.some(productColor => {
+            const productColorLower = productColor.toLowerCase();
+            return productColorLower === filterColorLower || 
+                   productColorLower.includes(filterColorLower) ||
+                   filterColorLower.includes(productColorLower);
           });
         });
-      }
-      
-      // Apply DTU filter from URL
-      if (dtuFilter) {
-        const dtuFilters = dtuFilter.split(',').map(d => d.trim());
-        filtered = filtered.filter(product => {
-          return dtuFilters.some(filterDtu => {
-            const filterDtuLower = filterDtu.toLowerCase();
-            return (
-              (product.dtu && product.dtu.toLowerCase().includes(filterDtuLower)) ||
-              (product.DTU && product.DTU.toLowerCase().includes(filterDtuLower))
-            );
-          });
-        });
-      }
-      
-      filtered = sortProducts(filtered, sortBy);
-      setFilteredProducts(filtered);
+      });
     }
-  }, [filters.category, filters.department, filters.sector, filters.sizes, filters.priceRange, sortBy, allProducts, colorFilter, dtuFilter]);
+    
+    // Apply DTU filter from URL
+    if (dtuFilter) {
+      const dtuFilters = dtuFilter.split(',').map(d => d.trim());
+      filtered = filtered.filter(product => {
+        return dtuFilters.some(filterDtu => {
+          const filterDtuLower = filterDtu.toLowerCase();
+          return (
+            (product.dtu && product.dtu.toLowerCase().includes(filterDtuLower)) ||
+            (product.DTU && product.DTU.toLowerCase().includes(filterDtuLower))
+          );
+        });
+      });
+    }
+    
+    return sortProducts(filtered, sortBy);
+  }, [allProducts, filters, colorFilter, dtuFilter, sortBy, filterProducts, sortProducts]);
 
-  // Handle filter modal
-  const toggleFilterModal = () => {
-    setIsFilterModalOpen(!isFilterModalOpen);
-  };
+  // Update filtered products when processed products change
+  useEffect(() => {
+    setFilteredProducts(processedProducts);
+  }, [processedProducts]);
 
-  // Handle sort change
-  const handleSortChange = (e) => {
+  // Handle filter modal - Memoized
+  const toggleFilterModal = useCallback(() => {
+    setIsFilterModalOpen(prev => !prev);
+  }, []);
+
+  // Handle sort change - Memoized
+  const handleSortChange = useCallback((e) => {
     setSortBy(e.target.value);
-  };
+  }, []);
 
-  // Handle filter changes
-  const handleFilterChange = (newFilters) => {
+  // Handle filter changes - Memoized
+  const handleFilterChange = useCallback((newFilters) => {
     setFilters(newFilters);
-  };
+  }, []);
 
-  // Handle clear filters
-  const handleClearFilters = () => {
+  // Handle clear filters - Memoized
+  const handleClearFilters = useCallback(() => {
     setFilters({
       catalog: catalogs.length > 0 ? catalogs[0].name : '',
       availability: 'todos',
@@ -405,15 +409,15 @@ const CatalogPage = ({ catalogId }) => {
       sizes: [],
       priceRange: { min: 0, max: 0 }
     });
-  };
+  }, [catalogs]);
 
-  // Handle favorite toggle
-  const handleFavoriteToggle = (productId) => {
+  // Handle favorite toggle - Memoized
+  const handleFavoriteToggle = useCallback((productId) => {
     // Implement favorite functionality here
-  };
+  }, []);
 
-  // Handle share functionality
-  const handleShareCatalog = () => {
+  // Handle share functionality - Memoized
+  const handleShareCatalog = useCallback(() => {
     const catalogUrl = `${window.location.origin}/catalogo`;
     
     if (navigator.share) {
@@ -427,9 +431,9 @@ const CatalogPage = ({ catalogId }) => {
       // Fallback to clipboard copy
       copyToClipboard(catalogUrl);
     }
-  };
+  }, []);
 
-  const copyToClipboard = async (text) => {
+  const copyToClipboard = useCallback(async (text) => {
     try {
       await navigator.clipboard.writeText(text);
       if (window.showToast) {
@@ -447,7 +451,7 @@ const CatalogPage = ({ catalogId }) => {
         window.showToast('Enlace del catálogo copiado al portapapeles', 'success');
       }
     }
-  };
+  }, []);
 
   const totalResults = filteredProducts.length;
   const currentProducts = filteredProducts;

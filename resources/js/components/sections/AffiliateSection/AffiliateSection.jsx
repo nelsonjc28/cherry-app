@@ -1,16 +1,8 @@
 import './AffiliateSection.css';
 import { Link } from 'react-router-dom';
 import { getHeroIconPath } from '../../../utils/assetPaths';
-import useUserStore from '../../../store/userStore';
 
 const AffiliateSection = () => {
-  const { user } = useUserStore();
-
-  // Solo mostrar la sección si no hay usuario logueado
-  if (user) {
-    return null;
-  }
-
   return (
     <>
       <div className="affiliate-section__image">
@@ -30,7 +22,7 @@ const AffiliateSection = () => {
           ¡Afíliate ahora mismo y comienza tu propio negocio!
         </h2>
         <Link 
-          to="/afiliate" 
+          to="/registro" 
           className="btn-explore"
           title="Únete a nuestro programa de afiliados y comienza tu negocio"
           aria-label="Afiliate a Cherry Central y comienza tu negocio"

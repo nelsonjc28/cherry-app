@@ -10,9 +10,14 @@ import FeaturedCategories from '../components/sections/FeaturedCategories/Featur
 import CustomerReviews from '../components/sections/CustomerReviews/CustomerReviews';
 import BestSellers from '../components/sections/BestSellers/BestSellers';
 import AffiliateSection from '../components/sections/AffiliateSection/AffiliateSection';
-import ToastTest from '../components/Toast/ToastTest';
+
+import useUserStore from '../store/userStore';
 
 const HomePage = () => {
+  const { user, initialized } = useUserStore();
+  
+
+  
   const featuredProducts = [
     {
       id: 1,
@@ -131,15 +136,14 @@ const HomePage = () => {
           <FeaturedCategories />
         </section>
 
-        {/* Affiliate Section - Solo visible cuando no hay sesión activa */}
-        <section className="affiliate-banner" aria-labelledby="affiliate-heading">
-          <AffiliateSection />
-        </section>
 
-        {/* Toast Test Section - Temporal para pruebas */}
-        <section style={{ padding: '40px 0', backgroundColor: '#f8f9fa' }}>
-          <ToastTest />
-        </section>
+
+        {/* Affiliate Section - Solo visible cuando no hay sesión activa */}
+        {!user && (
+          <section className="affiliate-banner" aria-labelledby="affiliate-heading">
+            <AffiliateSection />
+          </section>
+        )}
 
         {/* Customer Testimonials */}
         <section aria-labelledby="reviews-heading">

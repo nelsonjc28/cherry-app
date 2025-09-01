@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { welcomeSectionService, formDataUtils } from '../../services/api';
 import './AdminWelcomeSectionManager.css';
 
@@ -20,11 +20,8 @@ const AdminWelcomeSectionManager = () => {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
-  useEffect(() => {
-    fetchSections();
-  }, []);
-
-  const fetchSections = async () => {
+  // Memoizar la función fetchSections para evitar recreaciones
+  const fetchSections = useCallback(async () => {
     try {
       setLoading(true);
       const response = await welcomeSectionService.getAll();
@@ -40,9 +37,14 @@ const AdminWelcomeSectionManager = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleSubmit = async (e) => {
+  useEffect(() => {
+    fetchSections();
+  }, [fetchSections]);
+
+  // Memoizar la función handleSubmit
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     
     try {
@@ -116,9 +118,10 @@ const AdminWelcomeSectionManager = () => {
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [editingSection, imageFile, formData, fetchSections]);
 
-  const handleEdit = (section) => {
+  // Memoizar la función handleEdit
+  const handleEdit = useCallback((section) => {
     setEditingSection(section);
     setFormData({
       title: section.title,
@@ -134,9 +137,10 @@ const AdminWelcomeSectionManager = () => {
     if (window.showToast) {
       window.showToast(`Editando sección: ${section.title}`, 'info');
     }
-  };
+  }, []);
 
-  const handleDelete = async (section) => {
+  // Memoizar la función handleDelete
+  const handleDelete = useCallback(async (section) => {
     if (window.showToast) {
       window.showToast('¿Estás seguro de que quieres eliminar esta sección?', 'warning');
     }
@@ -169,9 +173,10 @@ const AdminWelcomeSectionManager = () => {
         window.showToast('Error al eliminar la sección', 'error');
       }
     }
-  };
+  }, [fetchSections]);
 
-  const handleToggleStatus = async (id) => {
+  // Memoizar la función handleToggleStatus
+  const handleToggleStatus = useCallback(async (id) => {
     try {
       await welcomeSectionService.toggleStatus(id);
       
@@ -183,9 +188,10 @@ const AdminWelcomeSectionManager = () => {
     } catch (error) {
       window.showToast('Error al cambiar el estado', 'error');
     }
-  };
+  }, [fetchSections]);
 
-  const resetForm = () => {
+  // Memoizar la función resetForm
+  const resetForm = useCallback(() => {
     setEditingSection(null);
     setFormData({
       title: '',
@@ -198,95 +204,99 @@ const AdminWelcomeSectionManager = () => {
     setImageFile(null);
     setImagePreview(null);
     setShowForm(false);
-  };
+    setError(null);
+  }, []);
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImageFile(file);
-      
-      // Crear preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleInputChange = (e) => {
+  // Memoizar la función handleInputChange
+  const handleInputChange = useCallback((e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-  };
+  }, []);
 
-  // Función para mover sección hacia arriba
-  const moveSectionUp = async (sectionId) => {
-    const currentIndex = sections.findIndex(s => s.id === sectionId);
-    if (currentIndex <= 0) return;
+  // Memoizar la función handleImageChange
+  const handleImageChange = useCallback((e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => setImagePreview(e.target.result);
+      reader.readAsDataURL(file);
+    }
+  }, []);
 
-    const updatedSections = [...sections];
-    const temp = updatedSections[currentIndex];
-    updatedSections[currentIndex] = updatedSections[currentIndex - 1];
-    updatedSections[currentIndex - 1] = temp;
-
-    // Actualizar display_order
-    const updates = updatedSections.map((section, index) => ({
-      id: section.id,
-      display_order: index + 1
-    }));
-
+  // Memoizar la función moveSectionUp
+  const moveSectionUp = useCallback(async (id) => {
     try {
-      // Actualizar todas las secciones con el nuevo orden
+      const currentSection = sections.find(s => s.id === id);
+      const currentIndex = sections.findIndex(s => s.id === id);
+      
+      if (currentIndex > 0) {
+        const prevSection = sections[currentIndex - 1];
+        
+        // Intercambiar display_order
+        const updates = [
+          { id: currentSection.id, display_order: prevSection.display_order },
+          { id: prevSection.id, display_order: currentSection.display_order }
+        ];
+        
+        // Actualizar en paralelo
       await Promise.all(updates.map(update => 
         welcomeSectionService.update(update.id, formDataUtils.createFromObject(update))
       ));
       
-      setSections(updatedSections);
-      if (window.showToast) {
-        window.showToast('Orden actualizado exitosamente', 'success');
+        fetchSections();
       }
-    } catch (err) {
+    } catch (error) {
       if (window.showToast) {
-        window.showToast('Error al actualizar el orden: ' + err.message, 'error');
+        window.showToast('Error al mover la sección', 'error');
       }
     }
-  };
+  }, [sections, fetchSections]);
 
-  // Función para mover sección hacia abajo
-  const moveSectionDown = async (sectionId) => {
-    const currentIndex = sections.findIndex(s => s.id === sectionId);
-    if (currentIndex >= sections.length - 1) return;
-
-    const updatedSections = [...sections];
-    const temp = updatedSections[currentIndex];
-    updatedSections[currentIndex] = updatedSections[currentIndex + 1];
-    updatedSections[currentIndex + 1] = temp;
-
-    // Actualizar display_order
-    const updates = updatedSections.map((section, index) => ({
-      id: section.id,
-      display_order: index + 1
-    }));
-
+  // Memoizar la función moveSectionDown
+  const moveSectionDown = useCallback(async (id) => {
     try {
-      // Actualizar todas las secciones con el nuevo orden
+      const currentSection = sections.find(s => s.id === id);
+      const currentIndex = sections.findIndex(s => s.id === id);
+      
+      if (currentIndex < sections.length - 1) {
+        const nextSection = sections[currentIndex + 1];
+        
+        // Intercambiar display_order
+        const updates = [
+          { id: currentSection.id, display_order: nextSection.display_order },
+          { id: nextSection.id, display_order: currentSection.display_order }
+        ];
+        
+        // Actualizar en paralelo
       await Promise.all(updates.map(update => 
         welcomeSectionService.update(update.id, formDataUtils.createFromObject(update))
       ));
       
-      setSections(updatedSections);
-      if (window.showToast) {
-        window.showToast('Orden actualizado exitosamente', 'success');
+        fetchSections();
       }
-    } catch (err) {
+    } catch (error) {
       if (window.showToast) {
-        window.showToast('Error al actualizar el orden: ' + err.message, 'error');
+        window.showToast('Error al mover la sección', 'error');
       }
     }
-  };
+  }, [sections, fetchSections]);
+
+  // Memoizar la función handleImageError para evitar recreaciones
+  const handleImageError = useCallback((e) => {
+    // Usar una imagen de placeholder más específica y optimizada
+    e.target.src = '/images/welcome-sections/default-welcome.jpg';
+    // Prevenir futuros errores
+    e.target.onerror = null;
+  }, []);
+
+  // Memoizar las secciones ordenadas para evitar recálculos innecesarios
+  const sortedSections = useMemo(() => {
+    return [...sections].sort((a, b) => a.display_order - b.display_order);
+  }, [sections]);
 
   if (loading) {
     return (
@@ -302,18 +312,7 @@ const AdminWelcomeSectionManager = () => {
     <div className="admin-welcome-manager">
       <div className="admin-welcome-manager__header">
         <h2 className="section-title">Gestión de Secciones de Bienvenida</h2>
-        <p className="section-description">
-          Administra los mensajes de bienvenida que se muestran en la página principal.
-        </p>
-        <div className="admin-welcome-manager__info">
-          <p><strong>📋 Información importante:</strong></p>
-          <ul>
-            <li>• Solo las secciones <strong>activas</strong> se mostrarán en el carrusel de la página principal</li>
-            <li>• El <strong>orden de visualización</strong> se controla con los botones ↑↓ o editando el campo "Orden"</li>
-            <li>• Se mostrarán máximo <strong>3 secciones</strong> en el carrusel (las primeras por orden)</li>
-            <li>• Las secciones inactivas aparecen con opacidad reducida</li>
-          </ul>
-        </div>
+
       </div>
 
       {error && (
@@ -336,18 +335,18 @@ const AdminWelcomeSectionManager = () => {
           <div className="admin-welcome-manager__sections-header">
             <h3>Secciones Configuradas</h3>
             <button 
-              className="btn btn-primary"
+              className="btn btn-danger"
               onClick={() => setShowForm(true)}
             >
               + Nueva Sección
             </button>
           </div>
 
-          {sections.length === 0 ? (
+          {sortedSections.length === 0 ? (
             <div className="admin-welcome-manager__empty">
               <p>No hay secciones configuradas.</p>
               <button 
-                className="btn btn-primary"
+                className="btn btn-danger"
                 onClick={() => setShowForm(true)}
               >
                 Crear Primera Sección
@@ -355,7 +354,7 @@ const AdminWelcomeSectionManager = () => {
             </div>
           ) : (
             <div className="admin-welcome-manager__sections-list">
-              {sections.map((section, index) => (
+              {sortedSections.map((section, index) => (
                 <div key={section.id} className={`admin-welcome-manager__section-card ${!section.is_active ? 'inactive-section' : ''}`}>
                   <div className="admin-welcome-manager__section-header">
                     <div className="section-order-info">
@@ -376,7 +375,7 @@ const AdminWelcomeSectionManager = () => {
                       <button 
                         className="btn btn-sm btn-outline-secondary"
                         onClick={() => moveSectionDown(section.id)}
-                        disabled={index === sections.length - 1}
+                        disabled={index === sortedSections.length - 1}
                         title="Mover hacia abajo"
                       >
                         ↓
@@ -390,9 +389,7 @@ const AdminWelcomeSectionManager = () => {
                         <img 
                           src={`/${section.image_path}`} 
                           alt={section.title}
-                          onError={(e) => {
-                            e.target.src = '/images/placeholder.jpg';
-                          }}
+                          onError={handleImageError}
                         />
                       </div>
                       <div className="admin-welcome-manager__section-details">
@@ -413,20 +410,23 @@ const AdminWelcomeSectionManager = () => {
                       <button 
                         className="btn btn-outline-primary btn-sm"
                         onClick={() => handleEdit(section)}
+                        title="Editar sección"
                       >
-                        Editar
+                        <img src="/icons/Edit.svg" alt="Editar" width="16" height="16" />
                       </button>
                       <button 
                         className={`btn btn-sm ${section.is_active ? 'btn-outline-warning' : 'btn-outline-success'}`}
                         onClick={() => handleToggleStatus(section.id)}
+                        title={section.is_active ? 'Desactivar sección' : 'Activar sección'}
                       >
                         {section.is_active ? 'Desactivar' : 'Activar'}
                       </button>
                       <button 
                         className="btn btn-outline-danger btn-sm"
                         onClick={() => handleDelete(section)}
+                        title="Eliminar sección"
                       >
-                        Eliminar
+                        <img src="/icons/Trash.svg" alt="Eliminar" width="16" height="16" />
                       </button>
                     </div>
                   </div>
