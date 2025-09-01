@@ -74,3 +74,4 @@ class PaymentCardSeeder extends Seeder
     }
 }
 
+

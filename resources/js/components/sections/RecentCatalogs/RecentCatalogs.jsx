@@ -8,18 +8,20 @@ import useHomeCatalogs from '../../../hooks/useHomeCatalogs';
 const RecentCatalogs = () => {
   const { catalogs, loading, error } = useHomeCatalogs();
 
-  // Mapear catálogos al formato del componente
-  const mappedCatalogs = catalogs.map(catalog => ({
-    id: catalog.id,
-    title: catalog.name,
-    subtitle: catalog.description || 'Descubre nuestra colección exclusiva',
-    image: catalog.image || getFeaturedCatalogImagePath('image_example_1.png'),
-    link: `/catalogo/${catalog.id}`,
-    buttonText: 'Ver más',
-    imageAlt: `Catálogo ${catalog.name} de Cherry Central`,
-    hasPdf: catalog.hasPdf,
-    pdfCount: catalog.pdfCount
-  }));
+  // Mapear catálogos al formato del componente y limitar a 4
+  const mappedCatalogs = catalogs
+    .slice(0, 4) // Limitar a solo 4 catálogos
+    .map(catalog => ({
+      id: catalog.id,
+      title: catalog.name,
+      subtitle: catalog.description || 'Descubre nuestra colección exclusiva',
+      image: catalog.image || getFeaturedCatalogImagePath('image_example_1.png'),
+      link: `/catalogo/${catalog.id}`,
+      buttonText: 'Ver más',
+      imageAlt: `Catálogo ${catalog.name} de Cherry Central`,
+      hasPdf: catalog.hasPdf,
+      pdfCount: catalog.pdfCount
+    }));
 
   return (
     <section className="recent-catalogs" aria-labelledby="recent-catalogs-heading">

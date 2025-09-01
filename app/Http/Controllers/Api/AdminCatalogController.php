@@ -186,7 +186,17 @@ class AdminCatalogController extends Controller
         try {
             $catalog = Catalog::findOrFail($id);
             
-
+            // Si se está asignando un display_order (agregando al home)
+            if ($request->has('display_order') && $request->display_order !== null) {
+                // Verificar que no se exceda el límite de 4 catálogos
+                $currentHomeCatalogs = Catalog::whereNotNull('display_order')->count();
+                if ($currentHomeCatalogs >= 4 && $catalog->display_order === null) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No se pueden agregar más de 4 catálogos al home'
+                    ], 422);
+                }
+            }
 
             $validator = Validator::make($request->all(), [
                 'display_order' => 'nullable|integer|min:0'

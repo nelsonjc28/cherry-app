@@ -87,22 +87,28 @@ const AdminHomeCatalogManager = () => {
       setStatus('saving');
       
       if (targetArea === 'ordered' && draggedCatalog.source === 'available') {
-                          // Agregar catálogo al home
-         try {
-           const payload = { display_order: orderedCatalogs.length + 1 };
-           const response = await api.patch(`/admin/catalogs/${draggedCatalog.id}/order`, payload);
-           
-           // Mover catálogo de disponible a ordenados
-           const updatedOrdered = [...orderedCatalogs, { ...draggedCatalog, display_order: orderedCatalogs.length + 1 }];
-           const updatedAvailable = availableCatalogs.filter(c => c.id !== draggedCatalog.id);
-           
-           setOrderedCatalogs(updatedOrdered);
-           setAvailableCatalogs(updatedAvailable);
-           
-           window.showToast('Catálogo agregado al home exitosamente', 'success');
-         } catch (error) {
-           window.showToast('Error al agregar catálogo al home: ' + (error.response?.data?.message || error.message), 'error');
-         }
+        // Verificar límite de 4 catálogos
+        if (orderedCatalogs.length >= 4) {
+          window.showToast('No se pueden agregar más de 4 catálogos al home', 'error');
+          return;
+        }
+        
+        // Agregar catálogo al home
+        try {
+          const payload = { display_order: orderedCatalogs.length + 1 };
+          const response = await api.patch(`/admin/catalogs/${draggedCatalog.id}/order`, payload);
+          
+          // Mover catálogo de disponible a ordenados
+          const updatedOrdered = [...orderedCatalogs, { ...draggedCatalog, display_order: orderedCatalogs.length + 1 }];
+          const updatedAvailable = availableCatalogs.filter(c => c.id !== draggedCatalog.id);
+          
+          setOrderedCatalogs(updatedOrdered);
+          setAvailableCatalogs(updatedAvailable);
+          
+          window.showToast('Catálogo agregado al home exitosamente', 'success');
+        } catch (error) {
+          window.showToast('Error al agregar catálogo al home: ' + (error.response?.data?.message || error.message), 'error');
+        }
       } else if (targetArea === 'available' && draggedCatalog.source === 'ordered') {
                           // Remover catálogo del home
          try {
@@ -198,14 +204,22 @@ const AdminHomeCatalogManager = () => {
 
       <div className="admin-home-catalog-manager__description">
         <p>Arrastra los catálogos para ordenarlos en el home. Solo los catálogos activos se mostrarán en la página principal.</p>
+        <p><strong>⚠️ Límite máximo:</strong> Solo se pueden mostrar hasta 4 catálogos en el home.</p>
       </div>
 
       <div className="admin-home-catalog-manager__containers">
         {/* Catálogos del Home */}
         <div className="admin-home-catalog-manager__container">
-          <h3>Catálogos del Home ({orderedCatalogs.length})</h3>
+          <h3>Catálogos del Home ({orderedCatalogs.length}/4)</h3>
+          {orderedCatalogs.length >= 4 && (
+            <div className="admin-home-catalog-manager__limit-warning">
+              <p>✅ Límite máximo alcanzado (4 catálogos)</p>
+            </div>
+          )}
           <div 
-            className="admin-home-catalog-manager__dropzone"
+            className={`admin-home-catalog-manager__dropzone ${
+              orderedCatalogs.length >= 4 ? 'admin-home-catalog-manager__dropzone--full' : ''
+            }`}
             onDragOver={(e) => handleDragOver(e)}
             onDrop={(e) => handleDrop(e, 'ordered')}
           >
@@ -238,11 +252,6 @@ const AdminHomeCatalogManager = () => {
                         {catalog.description}
                       </div>
                     )}
-                    <div className="admin-home-catalog-manager__item-meta">
-                      <span className={`admin-home-catalog-manager__status admin-home-catalog-manager__status--${catalog.is_active ? 'active' : 'inactive'}`}>
-                        {catalog.is_active ? 'Activo' : 'Inactivo'}
-                      </span>
-                    </div>
                   </div>
                 </div>
               ))
@@ -291,11 +300,6 @@ const AdminHomeCatalogManager = () => {
                         {catalog.description}
                       </div>
                     )}
-                    <div className="admin-home-catalog-manager__item-meta">
-                      <span className={`admin-home-catalog-manager__status admin-home-catalog-manager__status--${catalog.is_active ? 'active' : 'inactive'}`}>
-                        {catalog.is_active ? 'Activo' : 'Inactivo'}
-                      </span>
-                    </div>
                   </div>
                 </div>
               ))

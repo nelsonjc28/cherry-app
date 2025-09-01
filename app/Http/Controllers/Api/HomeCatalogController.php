@@ -24,6 +24,7 @@ class HomeCatalogController extends Controller
                 ->with(['pdfs' => function($query) {
                     $query->select('catalog_id', 'pdf_path')->orderBy('display_order');
                 }])
+                ->limit(4) // Limitar a solo 4 catálogos
                 ->get();
 
 
