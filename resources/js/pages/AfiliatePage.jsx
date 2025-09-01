@@ -26,7 +26,7 @@ const AfiliatePage = () => {
               </p>
               <div className="afiliate-actions">
                 <CherryButton variant="red" size="large">
-                  Registrarse como afiliado
+                  Afíliate aquí
                 </CherryButton>
                 <Link to="/contacto" className="afiliate-contact-link">
                   Contactar para más información
@@ -86,7 +86,7 @@ const AfiliatePage = () => {
             <div className="steps-grid">
               <div className="step-card">
                 <div className="step-number">1</div>
-                <h3>Regístrate</h3>
+                <h3>Afíliate aquí</h3>
                 <p>Completa el formulario de registro como afiliado</p>
               </div>
               

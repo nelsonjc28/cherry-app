@@ -193,28 +193,6 @@ const AdminHomeCatalogManager = () => {
            <button onClick={fetchData} className="btn btn-secondary">
              Recargar
            </button>
-           <button 
-             onClick={() => {
-               }} 
-             className="btn btn-secondary"
-             style={{ marginLeft: '10px' }}
-           >
-             🐛 Debug
-           </button>
-           <button 
-             onClick={async () => {
-               try {
-                 const testResponse = await api.patch('/admin/catalogs/1/order', { display_order: 5 });
-                 window.showToast('Test de API exitoso', 'success');
-               } catch (error) {
-                 window.showToast('Test de API falló: ' + (error.response?.data?.message || error.message), 'error');
-               }
-             }} 
-             className="btn btn-secondary"
-             style={{ marginLeft: '10px' }}
-           >
-             🧪 Test API
-           </button>
          </div>
       </div>
 

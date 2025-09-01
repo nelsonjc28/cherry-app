@@ -195,13 +195,6 @@ const Header = () => {
             { name: 'Días festivos', link: '/promociones/festivos' },
             { name: 'Temporada', link: '/promociones/temporada' }
           ]
-        },
-        {
-          title: 'Afiliados',
-          items: [
-            { name: 'Programa de afiliados', link: '/promociones/afiliados' },
-            { name: 'Beneficios exclusivos', link: '/promociones/beneficios' }
-          ]
         }
       ]
     }
@@ -450,8 +443,7 @@ const Header = () => {
                   <span>Iniciar sesión</span>
                 </Link>
                 <Link to="/registro" className="user-action">
-                  <img src={getIconPath('User Plus.svg')} alt="Registrarse" />
-                  <span>Registrarse</span>
+                  <span>Afíliate aquí</span>
                 </Link>
               </>
             )}
@@ -703,8 +695,7 @@ const Header = () => {
                     <span>Iniciar sesión</span>
                   </Link>
                   <Link to="/registro" className="mobile-menu-account" onClick={() => setMobileMenuOpen(false)}>
-                    <img src={getIconPath('User Plus.svg')} alt="Registrarse" />
-                    <span>Registrarse</span>
+                    <span>Afíliate aquí</span>
                   </Link>
                 </>
               )}
