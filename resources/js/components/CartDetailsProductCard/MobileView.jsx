@@ -28,7 +28,7 @@ function MobileView({
           <div className="cart-details-product-card__title">{title}</div>
           <div className="cart-details-product-card__price-block">
             <div className="cart-details-product-card__unit-price-label">Precio unidad</div>
-            <div className="cart-details-product-card__unit-price-value">${price.toFixed(2)}</div>
+            <div className="cart-details-product-card__unit-price-value">{price.toFixed(2)}</div>
           </div>
         </div>
       </div>
@@ -48,20 +48,20 @@ function MobileView({
                 <td>{variant.color}</td>
                 <td>{variant.size}</td>
                 <td className="cart-details-product-card__quantity-cell">
-                  <span>{variant.quantity}</span>
-                  <div className="cart-details-product-card__quantity-buttons">
+                  <div className="cart-details-product-card__quantity-controls">
                     <button
                       onClick={() => onQuantityChange(idx, variant.quantity - 1)}
                       disabled={variant.quantity <= 1}
-                      className="cart-details-product-card__qty-btn cart-details-product-card__btn-icon-up"
+                      className="cart-details-product-card__qty-btn cart-details-product-card__btn-minus"
                     >
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                         <line x1="5" y1="12" x2="19" y2="12"></line>
                       </svg>
                     </button>
+                    <span className="cart-details-product-card__quantity-value">{variant.quantity}</span>
                     <button
                       onClick={() => onQuantityChange(idx, variant.quantity + 1)}
-                      className="cart-details-product-card__qty-btn"
+                      className="cart-details-product-card__qty-btn cart-details-product-card__btn-plus"
                     >
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                         <line x1="12" y1="5" x2="12" y2="19"></line>

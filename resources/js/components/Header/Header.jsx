@@ -7,6 +7,7 @@ import useCartStore from '../../store/cartStore';
 import CartModal from '../CartModal/CartModal';
 import useCategories from '../../hooks/useCategories';
 import useMenuCategories from '../../hooks/useMenuCategories';
+import useHomeCatalogs from '../../hooks/useHomeCatalogs';
 import './Header.css';
 
 const Header = () => {
@@ -21,6 +22,7 @@ const Header = () => {
   // Solo cargar categorías si no estamos en el panel de administración
   const { categories, loading: categoriesLoading } = useCategories();
   const { menuCategories, loading: menuCategoriesLoading } = useMenuCategories();
+  const { catalogs: homeCatalogs, loading: catalogsLoading } = useHomeCatalogs();
 
 
   const [activeMenu, setActiveMenu] = useState(null);
@@ -52,14 +54,14 @@ const Header = () => {
 
     // Si hay categorías del menú configuradas, usarlas
     if (menuCategories && menuCategories.length > 0) {
-      // Dividir las categorías del menú en grupos de 6 para mejor organización
+      // Dividir las categorías del menú en grupos de 5 para mejor organización
       const groups = [];
-      const itemsPerGroup = 6;
+      const itemsPerGroup = 5;
 
       for (let i = 0; i < menuCategories.length; i += itemsPerGroup) {
         const group = menuCategories.slice(i, i + itemsPerGroup);
         groups.push({
-          title: `Categorías ${Math.floor(i / itemsPerGroup) + 1}`,
+          title: '',
           items: group.map(cat => ({
             name: cat.name,
             link: `/categoria/${cat.slug}`
@@ -90,14 +92,14 @@ const Header = () => {
       ];
     }
 
-    // Dividir las categorías generales en grupos de 6 para mejor organización
+    // Dividir las categorías generales en grupos de 5 para mejor organización
     const groups = [];
-    const itemsPerGroup = 6;
+    const itemsPerGroup = 5;
 
     for (let i = 0; i < categories.length; i += itemsPerGroup) {
       const group = categories.slice(i, i + itemsPerGroup);
       groups.push({
-        title: `Categorías ${Math.floor(i / itemsPerGroup) + 1}`,
+        title: '',
         items: group.map(cat => ({
           name: cat.name,
           link: `/categoria/${cat.slug}`
@@ -117,6 +119,37 @@ const Header = () => {
   };
 
   const menuData = {
+    nuevos: {
+      title: 'Nuevos',
+      columns: [
+        {
+          title: 'Lanzamientos',
+          items: [
+            { name: 'Recién llegados', link: '/nuevos?tipo=recien-llegado' },
+            { name: 'Colección primavera', link: '/nuevos?temporada=primavera' },
+            { name: 'Últimas tendencias', link: '/nuevos?tipo=tendencias' },
+            { name: 'Lo más vendido', link: '/nuevos?orden=mas-vendido' }
+          ]
+        },
+        {
+          title: 'Categorías',
+          items: [
+            { name: 'Categorías nuevas', link: '/nuevos?tipo=categorias-nuevas' },
+            { name: 'Accesorios', link: '/nuevos?categoria=accesorios' },
+            { name: 'Maquillaje', link: '/nuevos?categoria=maquillaje' },
+            { name: 'Cuidado personal', link: '/nuevos?categoria=cuidado-personal' }
+          ]
+        },
+        {
+          title: 'Colecciones',
+          items: [
+            { name: 'Destacados', link: '/nuevos?tipo=destacados' },
+            { name: 'Colección limitada', link: '/nuevos?tipo=coleccion-limitada' },
+            { name: 'Edición especial', link: '/nuevos?tipo=edicion-especial' }
+          ]
+        }
+      ]
+    },
     destacados: {
       title: 'Destacados',
       columns: [
@@ -154,25 +187,20 @@ const Header = () => {
       title: 'Catálogos',
       columns: [
         {
-          title: 'Por temporada',
-          items: [
-            { name: 'Primavera-Verano', link: '/catalogos/primavera-verano' },
-            { name: 'Otoño-Invierno', link: '/catalogos/otono-invierno' }
-          ]
+          title: 'Catálogos del Home',
+          items: homeCatalogs.length > 0 
+            ? homeCatalogs.slice(0, 4).map(catalog => ({
+                name: catalog.name,
+                link: `/catalogo/${catalog.id}`
+              }))
+            : [
+                { name: 'Cargando catálogos...', link: '/catalogos' }
+              ]
         },
         {
-          title: 'Por colección',
+          title: 'Ver todos',
           items: [
-            { name: 'Elegante', link: '/catalogos/elegante' },
-            { name: 'Casual', link: '/catalogos/casual' },
-            { name: 'Fiesta', link: '/catalogos/fiesta' }
-          ]
-        },
-        {
-          title: 'Especiales',
-          items: [
-            { name: 'Edición limitada', link: '/catalogos/edicion-limitada' },
-            { name: 'Colaboraciones', link: '/catalogos/colaboraciones' }
+            { name: 'Todos los catálogos', link: '/catalogos' }
           ]
         }
       ]
@@ -356,15 +384,13 @@ const Header = () => {
 
   return (
     <header className="site-header">
-      {/* Top Affiliate Bar - Solo visible cuando no hay sesión */}
-      {!user && (
-        <div className="affiliate-bar">
-          <div className="affiliate-container">
-            <p className="affiliate-text">¡Afiliate ahora mismo y comienza tu propio negocio!</p>
-            <Link to="/registro" className="affiliate-button">Afiliate aquí</Link>
-          </div>
+      {/* Top Affiliate Bar */}
+      <div className="affiliate-bar">
+        <div className="affiliate-container">
+          <p className="affiliate-text">¡Afiliate ahora mismo y comienza tu propio negocio!</p>
+          <Link to="/afiliate" className="affiliate-button">Afiliate aquí</Link>
         </div>
-      )}
+      </div>
 
       {/* Main Header */}
       <div className="main-header">
@@ -425,7 +451,10 @@ const Header = () => {
                       <img src={getIconPath('Package.svg')} alt="Órdenes" />
                       Mis Órdenes
                     </Link>
-
+                    <Link to="/perfil/favoritos" className="user-dropdown-item">
+                      <img src={getIconPath('Heart.svg')} alt="Favoritos" />
+                      Mis Favoritos
+                    </Link>
                     <Link to="/perfil/direcciones" className="user-dropdown-item">
                       <img src={getIconPath('Map Pin.svg')} alt="Direcciones" />
                       Mis Direcciones
@@ -448,7 +477,7 @@ const Header = () => {
                   <img src={getIconPath('User.svg')} alt="Usuario" />
                   <span>Iniciar sesión</span>
                 </Link>
-                <Link to="/registro" className="user-action affiliate-action">
+                <Link to="/registro" className="user-action">
                   <span>Afíliate aquí</span>
                 </Link>
               </>
@@ -461,7 +490,13 @@ const Header = () => {
               </div>
             </Link>
 
-
+            {user && (
+              <Link to="/favoritos" className="user-action icon-only">
+                <div className="icon-badge">
+                  <img src={getIconPath('Heart.svg')} alt="Favoritos" />
+                </div>
+              </Link>
+            )}
 
             {!isAdminPage && (
               <button type="button" className="user-action icon-only" onClick={() => setCartModalOpen(true)}>
@@ -481,6 +516,21 @@ const Header = () => {
           <div className="nav-container">
             <ul className="nav-menu">
 
+              <li className={`nav-item new-items ${activeMenu === 'nuevos' ? 'active' : ''}`} onMouseEnter={() => handleMouseEnter('nuevos')}>
+                <Link to="/nuevos" className="nav-link" data-discover="true">
+                  <img src={getIconPath('Cart Plus.svg')} alt="Nuevos" />
+                  Nuevos
+                  <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
+                </Link>
+                {/* Botón de prueba temporal */}
+                <button 
+                  onClick={() => handleMouseEnter('nuevos')} 
+                  style={{position: 'absolute', top: '5px', right: '5px', fontSize: '10px', padding: '2px 4px'}}
+                >
+                  Test
+                </button>
+              </li>
+              <li className="nav-item nav-divider"></li>
               <li className="nav-item" onMouseEnter={() => setActiveMenu(null)}>
                 <Link to="/destacados" className="nav-link">
                   <img src={getIconPath('Award.svg')} alt="Destacados" />
@@ -522,6 +572,7 @@ const Header = () => {
           </div>
 
           {/* Mega Menu Dropdown */}
+          {console.log('Active menu:', activeMenu, 'Menu data:', menuData[activeMenu])}
           {activeMenu && menuData[activeMenu] && (
             <div className="mega-menu">
               <div className="mega-menu-content">
@@ -613,6 +664,11 @@ const Header = () => {
 
             <ul className="mobile-menu-list">
 
+              <MobileMenuItem
+                menuKey="nuevos"
+                title="Nuevos"
+                icon={<img src={getIconPath('Cart Plus.svg')} alt="Nuevos" />}
+              />
 
               <li className="mobile-menu-item">
                 <Link to="/destacados" className="mobile-menu-link" onClick={() => setMobileMenuOpen(false)}>
@@ -694,7 +750,7 @@ const Header = () => {
                     <img src={getIconPath('User.svg')} alt="Usuario" />
                     <span>Iniciar sesión</span>
                   </Link>
-                  <Link to="/registro" className="mobile-menu-account affiliate-action" onClick={() => setMobileMenuOpen(false)}>
+                  <Link to="/registro" className="mobile-menu-account" onClick={() => setMobileMenuOpen(false)}>
                     <span>Afíliate aquí</span>
                   </Link>
                 </>

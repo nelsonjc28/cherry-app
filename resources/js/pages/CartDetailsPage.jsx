@@ -58,13 +58,10 @@ const CartDetailsPage = () => {
     image: groupedProduct.image || '/images/placeholder.jpg',
     sku: groupedProduct.id_articulo,
     title: groupedProduct.title,
-    isDiscount: false,
-    discountLabel: 'Sin descuento',
     price: groupedProduct.precio,
     variants: groupedProduct.variants,
     summary: {
       quantity: groupedProduct.totalQuantity,
-      priceWithoutDiscount: groupedProduct.totalPrice,
       priceWithDiscount: groupedProduct.totalPrice
     }
   }));

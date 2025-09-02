@@ -83,9 +83,10 @@ api.interceptors.response.use(
       }
     } else if (error.request) {
       // La petición fue hecha pero no se recibió respuesta
-      if (window.showToast) {
-        window.showToast('No se recibió respuesta del servidor', 'error');
-      }
+      // Solo mostrar este mensaje en casos específicos o no mostrarlo
+      // if (window.showToast) {
+      //   window.showToast('No se recibió respuesta del servidor', 'error');
+      // }
     } else {
       // Algo sucedió al configurar la petición
       if (window.showToast) {
@@ -658,14 +659,21 @@ export const categoryService = {
 
 // Servicios para favoritos
 export const favoriteService = {
-  getAll: async () => {
+  getAll: async (signal) => {
     try {
       const response = await api.get('/favorites', {
-        timeout: 10000,
+        timeout: 10000, // 10 segundos
+        signal: signal,
       });
       return response;
     } catch (error) {
-      throw error;
+      // En caso de error, retornar respuesta con array vacío
+      return {
+        data: {
+          success: true,
+          favorite_product_ids: []
+        }
+      };
     }
   },
 

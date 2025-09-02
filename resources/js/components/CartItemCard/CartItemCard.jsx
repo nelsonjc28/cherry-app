@@ -6,10 +6,9 @@ const CartItemCard = ({
   image,
   sku,
   title,
-  isDiscount,
   quantity,
-  priceWithoutDiscount,
-  priceWithDiscount
+  priceWithDiscount,
+  variants = []
 }) => {
   return (
     <div className="cart-item-card">
@@ -22,19 +21,24 @@ const CartItemCard = ({
         <div className="cart-item-card__info-col">
           <div className="cart-item-card__info-row">
             <span className="cart-item-card__sku">{sku}</span>
-            {isDiscount && (
-              <span className="cart-item-card__discount-badge">Descuento cliente</span>
-            )}
           </div>
           <div className="cart-item-card__title-row">
             <span className="cart-item-card__title">{title}</span>
+            {variants && variants.length > 0 && (
+              <div className="cart-item-card__variants">
+                {variants.map((variant, index) => (
+                  <span key={index} className="cart-item-card__variant">
+                    {variant.size}: {variant.quantity}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
         {/* Resume Table */}
         <div className="cart-item-card__order-summary-wrapper">
           <OrderSummaryTable
             quantity={quantity}
-            priceWithoutDiscount={priceWithoutDiscount}
             priceWithDiscount={priceWithDiscount}
           />
         </div>
@@ -47,10 +51,13 @@ CartItemCard.propTypes = {
   image: PropTypes.string.isRequired,
   sku: PropTypes.string.isRequired,
   title: PropTypes.string.isRequired,
-  isDiscount: PropTypes.bool,
   quantity: PropTypes.number.isRequired,
-  priceWithoutDiscount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-  priceWithDiscount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired
+  priceWithDiscount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  variants: PropTypes.arrayOf(PropTypes.shape({
+    size: PropTypes.string.isRequired,
+    quantity: PropTypes.number.isRequired,
+    price: PropTypes.number.isRequired
+  }))
 };
 
 export default CartItemCard; 

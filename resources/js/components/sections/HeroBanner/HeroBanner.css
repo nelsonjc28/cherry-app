@@ -104,7 +104,9 @@
   font-weight: 400;
   height: 50px;
   transition: all 0.3s ease;
-  border: 1px solid var(--color-primary);
+  border: none !important;
+  background-color: var(--color-primary) !important;
+  color: white !important;
 }
 
 .btn-explore .explora-text {
@@ -117,6 +119,7 @@
   font-size: 16px;
   font-weight: 400;
   vertical-align: middle;
+  color: white !important;
 }
 
 .btn-explore img {
@@ -127,10 +130,12 @@
   align-items: center;
   justify-content: center;
   vertical-align: middle;
+  filter: brightness(0) invert(1) !important;
 }
 
 .btn-explore:hover {
-  color: var(--color-primary);
+  background-color: #d10000 !important;
+  color: white !important;
 }
 
 .btn-explore img {

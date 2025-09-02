@@ -20,33 +20,30 @@ class FavoriteController extends Controller
                 return response()->json(['error' => 'No autenticado'], 401);
             }
 
-            // Obtener parámetros de paginación
-            $perPage = $request->get('per_page', 6);
-            $page = $request->get('page', 1);
+            // Obtener solo los IDs de productos favoritos del usuario
+            $favoriteProductIds = Favorite::where('user_id', $user->id)
+                ->pluck('product_id')
+                ->toArray();
 
-            // Obtener favoritos paginados
-            $favorites = Favorite::where('user_id', $user->id)
-                ->select(['id', 'product_id', 'product_title', 'product_image', 'product_price', 'created_at'])
-                ->orderBy('created_at', 'desc')
-                ->paginate($perPage, ['*'], 'page', $page);
+            // Si no hay favoritos, retornar array vacío sin mensaje de error
+            if (empty($favoriteProductIds)) {
+                return response()->json([
+                    'success' => true,
+                    'favorite_product_ids' => []
+                ]);
+            }
 
             return response()->json([
                 'success' => true,
-                'favorites' => $favorites->items(),
-                'pagination' => [
-                    'current_page' => $favorites->currentPage(),
-                    'last_page' => $favorites->lastPage(),
-                    'per_page' => $favorites->perPage(),
-                    'total' => $favorites->total(),
-                    'from' => $favorites->firstItem(),
-                    'to' => $favorites->lastItem()
-                ]
+                'favorite_product_ids' => $favoriteProductIds
             ]);
+            
         } catch (\Exception $e) {
+            // En caso de error, retornar array vacío sin mensaje
             return response()->json([
-                'success' => false,
-                'error' => 'Error al obtener favoritos: ' . $e->getMessage()
-            ], 500);
+                'success' => true,
+                'favorite_product_ids' => []
+            ]);
         }
     }
 

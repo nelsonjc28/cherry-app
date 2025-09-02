@@ -60,3 +60,5 @@ export const showMultipleToasts = (toasts) => {
     }, index * 500); // Delay entre cada toast
   });
 };
+
+

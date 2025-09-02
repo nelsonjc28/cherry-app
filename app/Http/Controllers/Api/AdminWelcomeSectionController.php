@@ -75,13 +75,13 @@ class AdminWelcomeSectionController extends Controller
                 ], 401);
             }
 
-            // Validar datos requeridos
+            // Validar datos requeridos usando configuración centralizada
             $request->validate([
                 'title' => 'required|string|max:255',
                 'subtitle' => 'required|string',
                 'button_text' => 'required|string|max:255',
                 'button_url' => 'required|string|max:500',
-                'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp',
                 'is_active' => 'boolean',
                 'display_order' => 'integer|min:0'
             ]);
@@ -197,9 +197,9 @@ class AdminWelcomeSectionController extends Controller
                 $image = $request->file('image');
 
                 
-                // Validar imagen
+                // Validar imagen usando configuración centralizada
                 $request->validate([
-                    'image' => 'image|mimes:jpeg,png,jpg,gif|max:2048'
+                    'image' => 'image|mimes:jpeg,png,jpg,gif,webp',
                 ]);
                 
                 // Crear directorio si no existe

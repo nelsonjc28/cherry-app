@@ -9,19 +9,14 @@ const OrderSummaryTable = ({ quantity, priceWithoutDiscount, priceWithDiscount }
       <span className="order-summary-value">{quantity}</span>
     </div>
     <div className="order-summary-row">
-      <span className="order-summary-label">Total sin descuento:</span>
-      <span className="order-summary-value order-summary-value--strike">${priceWithoutDiscount}</span>
-    </div>
-    <div className="order-summary-row">
-      <span className="order-summary-label">Total con descuento:</span>
-      <span className="order-summary-value">${priceWithDiscount}</span>
+      <span className="order-summary-label">Total:</span>
+      <span className="order-summary-value">{priceWithDiscount}</span>
     </div>
   </div>
 );
 
 OrderSummaryTable.propTypes = {
   quantity: PropTypes.number.isRequired,
-  priceWithoutDiscount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
   priceWithDiscount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired
 };
 

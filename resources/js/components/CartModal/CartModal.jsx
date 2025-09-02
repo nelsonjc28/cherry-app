@@ -44,7 +44,7 @@ const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout 
         <div className="cart-modal__footer">
           <div className="cart-modal__subtotal-row">
             <span className="cart-modal__subtotal-label">Total parcial:</span>
-            <span className="cart-modal__subtotal-value">${subtotal}</span>
+            <span className="cart-modal__subtotal-value">{subtotal}</span>
           </div>
           <div className="cart-modal__actions">
             <CustomButton
