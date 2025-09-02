@@ -1,8 +1,9 @@
 .hero-banner {
   position: relative;
-  width: 100%;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
   background-color: #ffffff;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .banner-container {
@@ -172,13 +173,15 @@
 }
 
 .hero-image {
-  width: 110%;
+  width: 100vw;
   height: auto;
   display: block;
   object-fit: cover;
   position: absolute;
   z-index: 5;
-  right: -10%;
+  right: 0;
+  left: 0;
+  margin: 0 auto;
 }
 
 /* Líneas decorativas */
@@ -386,14 +389,15 @@
   }
 
   .banner-image-container {
+    width: 100vw;
     min-height: 350px;
+    margin-left: calc(-50vw + 50%);
   }
 
   .banner-image {
     max-height: 350px;
-    width: auto;
+    width: 100vw;
     height: auto;
-    max-width: 100%;
   }
 }
 
@@ -401,24 +405,27 @@
   .hero-image {
     position: relative;
     margin-bottom: -50px;
-    max-width: 100%;
+    width: 100vw;
     right: 0;
+    left: 0;
   }
 
   .banner-content {
     flex-direction: column-reverse;
   }
 
-  .banner-text-container,
-  .banner-image-container {
+  .banner-text-container {
     width: 100%;
     padding: 5px 20px;
   }
-
+  
   .banner-image-container {
+    width: 100vw;
     height: auto;
+    padding: 5px 0;
     padding-bottom: 0;
     min-height: 300px;
+    margin-left: calc(-50vw + 50%);
   }
 
   .banner-image {
@@ -508,19 +515,20 @@
   }
 
   .hero-image {
-    width: 100%;
+    width: 100vw;
     height: auto;
   }
 
   .banner-image-container {
+    width: 100vw;
     min-height: 250px;
+    margin-left: calc(-50vw + 50%);
   }
 
   .banner-image {
     max-height: 250px;
-    width: auto;
+    width: 100vw;
     height: auto;
-    max-width: 100%;
   }
 
   .decorative-lines {
@@ -549,13 +557,14 @@
   }
 
   .banner-image-container {
+    width: 100vw;
     min-height: 200px;
+    margin-left: calc(-50vw + 50%);
   }
 
   .banner-image {
     max-height: 200px;
-    width: auto;
+    width: 100vw;
     height: auto;
-    max-width: 100%;
   }
 }

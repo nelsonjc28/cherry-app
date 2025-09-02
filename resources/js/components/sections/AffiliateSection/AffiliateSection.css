@@ -122,3 +122,39 @@
     width: fit-content;
   }
 }
+
+/* Media query específico para pantallas de 500x599px */
+@media (min-width: 500px) and (max-width: 599px) {
+  .affiliate-banner {
+    height: 600px;
+    flex-direction: column-reverse;
+  }
+
+  .affiliate-section__image img[alt="Affiliate Girl"] {
+    height: 140%;
+    width: auto;
+    object-fit: cover;
+    object-position: center;
+    margin-top: -40px;
+  }
+
+  .affiliate-section__content {
+    padding: 15px 30px 20px;
+    margin-top: -60px;
+    z-index: 2;
+  }
+
+  .affiliateTitle {
+    font-size: 2rem;
+    line-height: 1.3;
+    margin-bottom: 20px;
+    margin-top: 0;
+  }
+
+  .btn-explore {
+    width: calc(100% - 80px);
+    margin: 0 40px;
+    max-width: 280px;
+    align-self: center;
+  }
+}

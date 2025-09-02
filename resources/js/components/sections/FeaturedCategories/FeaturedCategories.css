@@ -58,12 +58,10 @@
 
 .category-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
 }
 
 .category-card:hover .image-container {
   transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 }
 
 /* Category Icon */
@@ -129,6 +127,33 @@
 
 .category-card__action {
   margin-top: auto;
+}
+
+/* Estilo específico para el botón "Ver todos los catálogos" */
+.category-card .view-more-link {
+  color: #EA2630 !important;
+  font-weight: 500;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.category-card .view-more-link:hover {
+  color: #d10000 !important;
+}
+
+.category-card .view-more-link img {
+  vertical-align: middle;
+  margin: 0;
+  padding: 0;
+}
+
+/* Estilo para el enlace de la categoría */
+.category-card__link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
 }
 
 /* Responsive Design */

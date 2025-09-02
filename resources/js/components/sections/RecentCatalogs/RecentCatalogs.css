@@ -126,39 +126,6 @@
 
 /* View More Section */
 
-/* Botón Explore */
-.btn-explore {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 14px 20px;
-  border-radius: 8px;
-  text-decoration: none;
-  font-size: 16px;
-  font-weight: 400;
-  height: 50px;
-  transition: all 0.3s ease;
-  border: 1px solid var(--color-primary);
-  color: var(--color-primary);
-  background: transparent;
-}
-
-.btn-explore:hover {
-  color: var(--color-primary);
-  transform: translateY(-1px);
-}
-
-.btn-explore img {
-  width: 20px;
-  height: 20px;
-  transition: transform 0.3s ease;
-}
-
-.btn-explore:hover img {
-  transform: translateX(5px);
-}
-
 /* Estados de carga y error */
 .catalogs-loading,
 .catalogs-error,
@@ -223,14 +190,16 @@
   font-weight: 400;
   height: 50px;
   transition: all 0.3s ease;
-  border: 1px solid var(--color-primary);
-  color: var(--color-primary);
-  background: transparent;
+  border: 1px solid #EA2630 !important;
+  color: #EA2630 !important;
+  background: white !important;
 }
 
 .btn-explore:hover {
-  color: var(--color-primary);
+  color: #EA2630 !important;
+  background: #f8f9fa !important;
   transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(234, 38, 48, 0.15);
 }
 
 .btn-explore img {
@@ -348,7 +317,9 @@
     align-self: flex-start;
     width: 140px;
     height: 32px;
-    color: var(--color-primary);
+    color: #EA2630 !important;
+    border: 1px solid #EA2630 !important;
+    background: white !important;
   }
 
   .btn-explore--pdf {

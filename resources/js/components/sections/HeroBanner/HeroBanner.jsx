@@ -112,15 +112,21 @@ const HeroBanner = () => {
                 Explora nuestra colección única y actualizada que resalta tu estilo personal.
               </p>
               <div className="banner-actions">
-                <Link to="/catalogo" className="btn-explore">
-                  <p className="explora-text">Explorar Colección</p>
+                <a 
+                  className="btn-affiliate" 
+                  title="Únete a nuestro programa de afiliados y comienza tu negocio" 
+                  aria-label="Afiliate a Cherry Central y comienza tu negocio" 
+                  href="/afiliate" 
+                  data-discover="true"
+                >
                   <img 
-                    src={getHeroIconPath('Chevron Right.svg')} 
-                    alt="Flecha hacia la derecha" 
+                    alt="Icono de usuarios" 
                     width="20" 
                     height="20" 
+                    src="./icons/hero/Users.svg"
                   />
-                </Link>
+                  Afiliate ahora
+                </a>
               </div>
             </div>
             <div className="banner-image-container">
@@ -155,20 +161,21 @@ const HeroBanner = () => {
             </p>
             
             <div className="banner-actions">
-              <Link 
-                to={currentBanner.buttonUrl} 
-                className="btn-explore"
-                title={currentBanner.buttonText}
-                aria-label={currentBanner.buttonText}
+              <a 
+                className="btn-affiliate" 
+                title="Únete a nuestro programa de afiliados y comienza tu negocio" 
+                aria-label="Afiliate a Cherry Central y comienza tu negocio" 
+                href="/afiliate" 
+                data-discover="true"
               >
-                <p className="explora-text">{currentBanner.buttonText}</p>
                 <img 
-                  src={getHeroIconPath('Chevron Right.svg')} 
-                  alt="Flecha hacia la derecha" 
+                  alt="Icono de usuarios" 
                   width="20" 
                   height="20" 
+                  src="./icons/hero/Users.svg"
                 />
-              </Link>
+                Afiliate ahora
+              </a>
             </div>
           </div>
           

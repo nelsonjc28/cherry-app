@@ -137,45 +137,46 @@ const FeaturedCategories = () => {
         {/* Categories Grid */}
         <div className="featured-categories__grid">
           {categories.map((category) => (
-            <Link 
-              key={category.id} 
-              to={category.link} 
-              className="category-card"
-              onClick={() => handleCategoryClick(category)}
-            >
-              <div className="category-card__icon">
-                <div className="image-container">
-                  <img 
-                    src={getFeaturedCategoryIconPath(category.iconName)}
-                    alt={`Icono de ${category.title}`}
-                    width="48"
-                    height="48"
-                  />
-                </div>
-              </div>
-              
-              <div className="category-card__content">
-                <h3 className="category-card__title">
-                  {category.title}
-                </h3>
-                
-                <p className="category-card__description">
-                  {category.description}
-                </p>
-                
-                <div className="category-card__action">
-                  <span className="view-more-link">
-                    Ver productos
+            <div key={category.id} className="category-card">
+              <Link 
+                to={category.link} 
+                className="category-card__link"
+                onClick={() => handleCategoryClick(category)}
+              >
+                <div className="category-card__icon">
+                  <div className="image-container">
                     <img 
-                      src={getHeroIconPath('Chevron Right.svg')} 
-                      alt="Ver más" 
-                      width="16" 
-                      height="16" 
+                      src={getFeaturedCategoryIconPath(category.iconName)}
+                      alt={`Icono de ${category.title}`}
+                      width="48"
+                      height="48"
                     />
-                  </span>
+                  </div>
                 </div>
+                
+                <div className="category-card__content">
+                  <h3 className="category-card__title">
+                    {category.title}
+                  </h3>
+                  
+                  <p className="category-card__description">
+                    {category.description}
+                  </p>
+                </div>
+              </Link>
+              
+              <div className="category-card__action">
+                <Link to="/catalogos" className="view-more-link">
+                  Ver todos los catálogos
+                  <img 
+                    src={getHeroIconPath('Chevron Right.svg')} 
+                    alt="Ver más" 
+                    width="16" 
+                    height="16" 
+                  />
+                </Link>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       </div>

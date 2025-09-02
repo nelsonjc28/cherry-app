@@ -60,21 +60,22 @@ const RecentCatalogs = () => {
                     <h3 className="catalog-title">{catalog.title}</h3>
                   </div>
                   <div className='content-btn-explore'>
-                    <Link
-                      to={catalog.link}
+                    <a
                       className="btn-explore"
-                      title="Ver más de este catálogo"
-                      aria-label="Ver más de este catálogo"
+                      title="Únete a nuestro programa de afiliados y comienza tu negocio"
+                      aria-label="Afiliate a Cherry Central y comienza tu negocio"
+                      href="/afiliate"
+                      data-discover="true"
                     >
                       Ver más
                       <img
-                        src={getHeroIconPath('Chevron Right.svg')}
                         alt="Flecha hacia la derecha"
                         width="20"
                         height="20"
+                        src="./icons/hero/Chevron Right.svg"
                       />
-                    </Link>
-                    </div>
+                    </a>
+                  </div>
                 </div>
                 <div className="home-catalog-image">
                   <Link to={catalog.link} className="catalog-image-link">
