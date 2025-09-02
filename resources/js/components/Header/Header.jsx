@@ -320,16 +320,46 @@ const Header = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Adapt the data for CartItemCard
-  const cartItemCards = cartItems.map((item) => ({
-    id: item.id,
-    image: item.image,
-    sku: item.productId || item.sku || '',
-    title: item.name,
-    isDiscount: true, // Adjust if there is discount logic
-    quantity: item.quantity,
-    priceWithoutDiscount: formatPrice(item.price * item.quantity),
-    priceWithDiscount: formatPrice(item.price * item.quantity) // Adjust if there is a discount
+  // Group cart items by product ID and color, combining different sizes
+  const groupedCartItems = cartItems.reduce((groups, item) => {
+    const key = `${item.id_articulo}-${item.selectedColor}`;
+    
+    if (!groups[key]) {
+      groups[key] = {
+        id: item.id_articulo,
+        image: item.image,
+        sku: item.id_articulo,
+        title: item.title || item.name,
+        variants: [],
+        totalQuantity: 0,
+        totalPrice: 0
+      };
+    }
+    
+    // Add size variant
+    groups[key].variants.push({
+      color: item.selectedColor,
+      size: item.selectedSize,
+      quantity: item.quantity,
+      price: item.precio
+    });
+    
+    // Update totals
+    groups[key].totalQuantity += item.quantity;
+    groups[key].totalPrice += item.precio * item.quantity;
+    
+    return groups;
+  }, {});
+
+  // Convert grouped items to CartItemCard format
+  const cartItemCards = Object.values(groupedCartItems).map((groupedItem) => ({
+    id: groupedItem.id,
+    image: groupedItem.image,
+    sku: groupedItem.sku,
+    title: groupedItem.title,
+    quantity: groupedItem.totalQuantity,
+    priceWithDiscount: formatPrice(groupedItem.totalPrice),
+    variants: groupedItem.variants
   }));
 
   // Component for a mobile menu item

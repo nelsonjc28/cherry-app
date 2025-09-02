@@ -102,34 +102,6 @@ button, input, select, textarea {
   color: var(--color-text);
 }
 
-/* Global view-more-link styling for consistency */
-.view-more-link {
-  display: inline-flex;
-  align-items: center;
-  color: var(--color-primary);
-  text-decoration: none;
-  font-weight: 400;
-  font-size: 16px;
-  transition: all 0.3s ease;
-  padding: 0;
-}
-
-.view-more-link:hover {
-  color: var(--color-primary-dark);
-  transform: translateX(5px);
-}
-
-.view-more-link img {
-  margin-left: 8px;
-  transition: transform 0.3s ease;
-}
-
-.view-more-link:hover img {
-  transform: translateX(5px);
-}
-
-
-
 .section-description {
   text-align: center;
   margin: 0 auto 2rem;
