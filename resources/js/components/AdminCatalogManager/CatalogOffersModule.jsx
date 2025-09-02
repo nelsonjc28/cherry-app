@@ -315,12 +315,21 @@ const CatalogOffersModule = ({ onBack, initialCatalog = null }) => {
                 <div key={catalog.id} className="catalog-offers-module__catalog-card">
                   <div className="catalog-offers-module__catalog-image">
                     {catalog.image ? (
-                      <img src={`/${catalog.image}`} alt={catalog.name} />
-                    ) : (
-                      <div className="catalog-offers-module__no-image">
-                        Sin imagen
-                      </div>
-                    )}
+                      <img 
+                        src={`/${catalog.image}`} 
+                        alt={catalog.name}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div 
+                      className="catalog-offers-module__no-image"
+                      style={{ display: catalog.image ? 'none' : 'flex' }}
+                    >
+                      {catalog.image ? 'Error al cargar imagen' : 'Sin imagen'}
+                    </div>
                   </div>
 
                   <div className="catalog-offers-module__catalog-info">

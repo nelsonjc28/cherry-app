@@ -414,13 +414,15 @@ const Header = () => {
 
   return (
     <header className="site-header">
-      {/* Top Affiliate Bar */}
-      <div className="affiliate-bar">
-        <div className="affiliate-container">
-          <p className="affiliate-text">¡Afiliate ahora mismo y comienza tu propio negocio!</p>
-          <Link to="/afiliate" className="affiliate-button">Afiliate aquí</Link>
+      {/* Top Affiliate Bar - Solo mostrar si no hay usuario logueado */}
+      {!user && (
+        <div className="affiliate-bar">
+          <div className="affiliate-container">
+            <p className="affiliate-text">¡Afiliate ahora mismo y comienza tu propio negocio!</p>
+            <Link to="/afiliate" className="affiliate-button">Afiliate aquí</Link>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Main Header */}
       <div className="main-header">
@@ -481,10 +483,7 @@ const Header = () => {
                       <img src={getIconPath('Package.svg')} alt="Órdenes" />
                       Mis Órdenes
                     </Link>
-                    <Link to="/perfil/favoritos" className="user-dropdown-item">
-                      <img src={getIconPath('Heart.svg')} alt="Favoritos" />
-                      Mis Favoritos
-                    </Link>
+
                     <Link to="/perfil/direcciones" className="user-dropdown-item">
                       <img src={getIconPath('Map Pin.svg')} alt="Direcciones" />
                       Mis Direcciones
@@ -520,13 +519,7 @@ const Header = () => {
               </div>
             </Link>
             
-            {user && (
-              <Link to="/favoritos" className="user-action icon-only">
-                <div className="icon-badge">
-                  <img src={getIconPath('Heart.svg')} alt="Favoritos" />
-                </div>
-              </Link>
-            )}
+
             
             {!isAdminPage && (
               <button type="button" className="user-action icon-only" onClick={() => setCartModalOpen(true)}>
@@ -552,13 +545,7 @@ const Header = () => {
                   Nuevos
                   <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
                 </Link>
-                {/* Botón de prueba temporal */}
-                <button 
-                  onClick={() => handleMouseEnter('nuevos')} 
-                  style={{position: 'absolute', top: '5px', right: '5px', fontSize: '10px', padding: '2px 4px'}}
-                >
-                  Test
-                </button>
+
               </li>
               <li className="nav-item nav-divider"></li>
               <li className="nav-item" onMouseEnter={() => setActiveMenu(null)}>

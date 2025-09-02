@@ -2,12 +2,14 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useWelcomeSection from '../../../hooks/useWelcomeSection';
 import { getHeroSliderImagePath, getHeroIconPath } from '../../../utils/assetPaths';
+import useUserStore from '../../../store/userStore';
 import './HeroBanner.css';
 
 const HeroBanner = () => {
   const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
   const { welcomeSections, loading, error } = useWelcomeSection(3);
+  const { user } = useUserStore();
 
   // Memoizar los banners de fallback para evitar recreaciones
   const fallbackBanners = useMemo(() => [
@@ -114,18 +116,18 @@ const HeroBanner = () => {
               <div className="banner-actions">
                 <a 
                   className="btn-affiliate" 
-                  title="Únete a nuestro programa de afiliados y comienza tu negocio" 
-                  aria-label="Afiliate a Cherry Central y comienza tu negocio" 
-                  href="/afiliate" 
+                  title={currentBanner.buttonText} 
+                  aria-label={currentBanner.buttonText} 
+                  href={currentBanner.buttonUrl} 
                   data-discover="true"
                 >
                   <img 
-                    alt="Icono de usuarios" 
+                    alt="Icono de catálogo" 
                     width="20" 
                     height="20" 
                     src="./icons/hero/Users.svg"
                   />
-                  Afiliate ahora
+                  {currentBanner.buttonText}
                 </a>
               </div>
             </div>
@@ -163,18 +165,18 @@ const HeroBanner = () => {
             <div className="banner-actions">
               <a 
                 className="btn-affiliate" 
-                title="Únete a nuestro programa de afiliados y comienza tu negocio" 
-                aria-label="Afiliate a Cherry Central y comienza tu negocio" 
-                href="/afiliate" 
+                title={currentBanner.buttonText} 
+                aria-label={currentBanner.buttonText} 
+                href={currentBanner.buttonUrl} 
                 data-discover="true"
               >
                 <img 
-                  alt="Icono de usuarios" 
+                  alt="Icono de catálogo" 
                   width="20" 
                   height="20" 
                   src="./icons/hero/Users.svg"
                 />
-                Afiliate ahora
+                {currentBanner.buttonText}
               </a>
             </div>
           </div>

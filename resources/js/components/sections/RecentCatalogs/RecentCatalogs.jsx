@@ -4,9 +4,11 @@ import { getFeaturedCatalogImagePath } from '../../../utils/assetPaths';
 import './RecentCatalogs.css';
 import { getHeroIconPath } from '../../../utils/assetPaths';
 import useHomeCatalogs from '../../../hooks/useHomeCatalogs';
+import useUserStore from '../../../store/userStore';
 
 const RecentCatalogs = () => {
   const { catalogs, loading, error } = useHomeCatalogs();
+  const { user } = useUserStore();
 
   // Mapear catálogos al formato del componente y limitar a 4
   const mappedCatalogs = catalogs
@@ -62,9 +64,9 @@ const RecentCatalogs = () => {
                   <div className='content-btn-explore'>
                     <a
                       className="btn-explore"
-                      title="Únete a nuestro programa de afiliados y comienza tu negocio"
-                      aria-label="Afiliate a Cherry Central y comienza tu negocio"
-                      href="/afiliate"
+                      title="Ver más detalles del catálogo"
+                      aria-label="Ver más detalles del catálogo"
+                      href={catalog.link}
                       data-discover="true"
                     >
                       Ver más

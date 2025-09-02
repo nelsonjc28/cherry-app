@@ -26,6 +26,7 @@ const AdminCatalogManager = () => {
   });
   const [imagePreview, setImagePreview] = useState(null);
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
 
@@ -37,6 +38,7 @@ const AdminCatalogManager = () => {
       setLoading(true);
       const response = await catalogService.getAll();
       if (response.data.success) {
+        console.log('Catalogs data received:', response.data.data);
         setCatalogs(response.data.data);
       }
     } catch (error) {
@@ -65,6 +67,7 @@ const AdminCatalogManager = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setIsSubmitting(true);
 
     try {
       // Validación frontend
@@ -89,6 +92,12 @@ const AdminCatalogManager = () => {
         formDataObj.append('image', formData.image);
       }
 
+      console.log('Enviando datos del catálogo:', {
+        editing: !!editingCatalog,
+        hasImage: !!formData.image,
+        imageSize: formData.image ? formData.image.size : 0
+      });
+
       let response;
       if (editingCatalog) {
         response = await catalogService.update(editingCatalog.id, formDataObj);
@@ -105,10 +114,20 @@ const AdminCatalogManager = () => {
         );
         
         resetForm();
-        fetchCatalogs();
+        await fetchCatalogs();
       }
     } catch (error) {
-      setError('Error al guardar el catálogo');
+      console.error('Error al guardar catálogo:', error);
+      
+      if (error.response?.status === 413) {
+        setError('La imagen es demasiado grande. Por favor, usa una imagen más pequeña.');
+      } else if (error.response?.data?.message) {
+        setError(`Error: ${error.response.data.message}`);
+      } else {
+        setError('Error al guardar el catálogo. Por favor, inténtalo de nuevo.');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -422,8 +441,19 @@ const AdminCatalogManager = () => {
             </div>
 
             <div className="admin-catalog-manager__form-actions">
-              <button type="submit" className="admin-catalog-manager__submit-btn">
-                {editingCatalog ? 'Actualizar' : 'Crear'}
+              <button 
+                type="submit" 
+                className="admin-catalog-manager__submit-btn"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <span className="spinner-small"></span>
+                    {editingCatalog ? 'Actualizando...' : 'Creando...'}
+                  </>
+                ) : (
+                  editingCatalog ? 'Actualizar' : 'Crear'
+                )}
               </button>
               <button 
                 type="button" 
@@ -448,12 +478,23 @@ const AdminCatalogManager = () => {
               <div key={catalog.id} className="admin-catalog-manager__catalog-card">
                                  <div className="admin-catalog-manager__catalog-image">
                    {catalog.image ? (
-                     <img src={`/${catalog.image}`} alt={catalog.name} />
-                   ) : (
-                     <div className="admin-catalog-manager__no-image">
-                       Sin imagen
-                     </div>
-                   )}
+                     <img 
+                       src={`/${catalog.image}`} 
+                       alt={catalog.name}
+                       onLoad={() => console.log('Image loaded successfully:', `/${catalog.image}`)}
+                       onError={(e) => {
+                         console.log('Image failed to load:', `/${catalog.image}`);
+                         e.target.style.display = 'none';
+                         e.target.nextSibling.style.display = 'flex';
+                       }}
+                     />
+                   ) : null}
+                   <div 
+                     className="admin-catalog-manager__no-image"
+                     style={{ display: catalog.image ? 'none' : 'flex' }}
+                   >
+                     {catalog.image ? 'Error al cargar imagen' : 'Sin imagen'}
+                   </div>
                  </div>
 
                 <div className="admin-catalog-manager__catalog-info">

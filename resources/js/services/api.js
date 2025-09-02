@@ -215,7 +215,7 @@ export const welcomeSectionService = {
         headers: {
           'Accept': 'application/json',
         },
-        timeout: 30000, // 30 segundos de timeout
+
       });
 
       return response;
@@ -239,7 +239,7 @@ export const welcomeSectionService = {
         headers: {
           'Accept': 'application/json',
         },
-        timeout: 30000, // 30 segundos de timeout
+
       });
 
       return response;
@@ -276,7 +276,7 @@ export const welcomeSectionService = {
           headers: {
             'Accept': 'application/json',
           },
-          timeout: 30000,
+
         });
     } else {
         // Crear nueva sección
@@ -284,7 +284,7 @@ export const welcomeSectionService = {
           headers: {
             'Accept': 'application/json',
           },
-          timeout: 30000,
+
         });
       }
 
@@ -304,7 +304,7 @@ export const welcomeSectionService = {
         headers: {
           'Accept': 'application/json',
         },
-        timeout: 15000, // 15 segundos para eliminación
+ // 15 segundos para eliminación
       });
       return response;
     } catch (error) {
@@ -323,7 +323,7 @@ export const welcomeSectionService = {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        timeout: 15000,
+
       });
       return response;
     } catch (error) {
@@ -338,7 +338,7 @@ export const welcomeSectionService = {
   getActive: async () => {
     try {
       const response = await api.get('/welcome-sections/active', {
-        timeout: 10000, // 10 segundos para consultas públicas
+ // 10 segundos para consultas públicas
       });
       return response;
     } catch (error) {
@@ -350,7 +350,7 @@ export const welcomeSectionService = {
   getActiveSections: async () => {
     try {
       const response = await api.get('/welcome-sections', {
-        timeout: 10000, // 10 segundos para consultas públicas
+ // 10 segundos para consultas públicas
       });
       return response;
     } catch (error) {
@@ -363,7 +363,7 @@ export const welcomeSectionService = {
     try {
       const response = await api.get('/admin/welcome-sections', {
         params: { order },
-        timeout: 10000,
+
       });
       return response;
     } catch (error) {
@@ -376,7 +376,7 @@ export const welcomeSectionService = {
     try {
       const response = await api.get('/admin/welcome-sections', {
         params: { search: searchTerm },
-        timeout: 10000,
+
       });
       return response;
     } catch (error) {
@@ -388,7 +388,7 @@ export const welcomeSectionService = {
   getStats: async () => {
     try {
       const response = await api.get('/admin/welcome-sections/stats', {
-        timeout: 10000,
+
       });
       return response;
     } catch (error) {
@@ -403,7 +403,7 @@ export const publicCatalogService = {
   getAll: async () => {
     try {
       const response = await api.get('/catalogs', {
-        timeout: 10000,
+
       });
       return response;
     } catch (error) {
@@ -415,7 +415,7 @@ export const publicCatalogService = {
   getById: async (id) => {
     try {
       const response = await api.get(`/catalogs/${id}`, {
-        timeout: 10000,
+
       });
       return response;
     } catch (error) {
@@ -427,7 +427,7 @@ export const publicCatalogService = {
   getProducts: async (id) => {
     try {
       const response = await api.get(`/catalogs/${id}/products`, {
-        timeout: 10000,
+
       });
       return response;
     } catch (error) {
@@ -442,7 +442,7 @@ export const publicCategoryService = {
   getAll: async () => {
     try {
       const response = await api.get('/categories', {
-        timeout: 10000,
+
       });
       return response;
     } catch (error) {
@@ -454,7 +454,7 @@ export const publicCategoryService = {
   getBySlug: async (slug) => {
     try {
       const response = await api.get(`/categories/${slug}`, {
-        timeout: 10000,
+
       });
       return response;
     } catch (error) {
@@ -466,7 +466,7 @@ export const publicCategoryService = {
   getProducts: async (slug) => {
     try {
       const response = await api.get(`/categories/${slug}/products`, {
-        timeout: 10000,
+
       });
       return response;
     } catch (error) {
@@ -480,7 +480,7 @@ export const categoryService = {
   getAll: async () => {
     try {
       const response = await api.get('/admin/categories', {
-        timeout: 10000,
+
       });
       return response;
     } catch (error) {
@@ -491,7 +491,7 @@ export const categoryService = {
   getById: async (id) => {
     try {
       const response = await api.get(`/admin/categories/${id}`, {
-        timeout: 10000,
+
       });
       return response;
     } catch (error) {
@@ -506,7 +506,7 @@ export const categoryService = {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        timeout: 15000,
+
       });
       return response;
     } catch (error) {
@@ -521,7 +521,7 @@ export const categoryService = {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        timeout: 15000,
+
       });
       return response;
     } catch (error) {
@@ -532,7 +532,7 @@ export const categoryService = {
   delete: async (id) => {
     try {
       const response = await api.delete(`/admin/categories/${id}`, {
-        timeout: 15000,
+
       });
       return response;
     } catch (error) {
@@ -547,7 +547,7 @@ export const categoryService = {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        timeout: 15000,
+
       });
       return response;
     } catch (error) {
@@ -558,7 +558,7 @@ export const categoryService = {
   getBySlug: async (slug) => {
     try {
       const response = await api.get(`/categories/${slug}`, {
-        timeout: 10000,
+
       });
       return response;
     } catch (error) {
@@ -662,7 +662,7 @@ export const favoriteService = {
   getAll: async (signal) => {
     try {
       const response = await api.get('/favorites', {
-        timeout: 10000, // 10 segundos
+ // 10 segundos
         signal: signal,
       });
       return response;
@@ -684,7 +684,7 @@ export const favoriteService = {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        timeout: 15000,
+
       });
       return response;
     } catch (error) {
@@ -702,7 +702,7 @@ export const favoriteService = {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        timeout: 10000,
+
       });
       return response;
     } catch (error) {
@@ -717,7 +717,7 @@ export const favoriteService = {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        timeout: 15000,
+
       });
       return response;
     } catch (error) {
@@ -736,7 +736,7 @@ export const favoriteService = {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        timeout: 15000,
+
       });
       return response;
     } catch (error) {
@@ -753,7 +753,7 @@ export const ratingService = {
   getUserRating: async () => {
     try {
       const response = await api.get('/ratings/user', {
-        timeout: 10000,
+
       });
       return response;
     } catch (error) {
@@ -768,7 +768,7 @@ export const ratingService = {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        timeout: 15000,
+
       });
       return response;
     } catch (error) {
@@ -786,7 +786,7 @@ export const ratingService = {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        timeout: 10000,
+
       });
       return response;
     } catch (error) {
@@ -798,7 +798,7 @@ export const ratingService = {
     try {
       const response = await api.get('/ratings/product', {
         params: { product_id: productId },
-        timeout: 10000,
+
       });
       return response;
     } catch (error) {
@@ -813,7 +813,7 @@ export const ratingService = {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        timeout: 15000,
+
       });
       return response;
     } catch (error) {
@@ -848,10 +848,17 @@ export const catalogService = {
   create: async (formData) => {
     try {
       const response = await api.post('/admin/catalogs', formData, {
-        timeout: 15000,
+        headers: {
+          'Accept': 'application/json',
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          console.log(`Progreso de carga: ${percentCompleted}%`);
+        },
       });
       return response;
     } catch (error) {
+      console.error('Error en creación de catálogo:', error);
       throw error;
     }
   },
@@ -860,10 +867,17 @@ export const catalogService = {
   update: async (id, formData) => {
     try {
       const response = await api.post(`/admin/catalogs/${id}`, formData, {
-        timeout: 15000,
+        headers: {
+          'Accept': 'application/json',
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          console.log(`Progreso de carga: ${percentCompleted}%`);
+        },
       });
       return response;
     } catch (error) {
+      console.error('Error en actualización de catálogo:', error);
       throw error;
     }
   },
@@ -902,7 +916,7 @@ export const catalogService = {
   addPdfs: async (id, formData) => {
     try {
       const response = await api.post(`/admin/catalogs/${id}/pdfs`, formData, {
-        timeout: 20000,
+
       });
       return response;
     } catch (error) {
@@ -938,7 +952,7 @@ export const catalogService = {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        timeout: 15000,
+
       });
       return response;
     } catch (error) {
@@ -1044,7 +1058,7 @@ export const catalogService = {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        timeout: 10000,
+
       });
       return response;
     } catch (error) {

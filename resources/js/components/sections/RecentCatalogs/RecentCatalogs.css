@@ -218,7 +218,34 @@
   margin-top: 40px;
 }
 
-/* view-more-link styles are now handled globally in index.css */
+/* View more link styles */
+.view-more-link {
+  color: #EA2630 !important;
+  font-weight: 500;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.view-more-link:hover {
+  color: #d10000 !important;
+  text-decoration: none;
+}
+
+.view-more-link img {
+  vertical-align: middle;
+  margin: 0;
+  padding: 0;
+  transition: transform 0.3s ease;
+}
+
+.view-more-link:hover img {
+  transform: translateX(5px);
+}
 
 /* Responsive Design */
 @media (max-width: 1024px) {

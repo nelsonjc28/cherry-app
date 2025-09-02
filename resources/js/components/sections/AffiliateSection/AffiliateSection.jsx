@@ -1,8 +1,16 @@
 import './AffiliateSection.css';
 import { Link } from 'react-router-dom';
 import { getHeroIconPath } from '../../../utils/assetPaths';
+import useUserStore from '../../../store/userStore';
 
 const AffiliateSection = () => {
+  const { user } = useUserStore();
+
+  // Solo mostrar si no hay usuario logueado
+  if (user) {
+    return null;
+  }
+
   return (
     <>
       <div className="affiliate-section__image">

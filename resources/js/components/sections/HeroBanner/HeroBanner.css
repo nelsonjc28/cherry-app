@@ -72,8 +72,9 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background-color: var(--color-primary);
-  color: white;
+  background-color: white;
+  color: #EA2630;
+  border: 1px solid #EA2630;
   padding: 14px 20px;
   border-radius: 8px;
   text-decoration: none;
@@ -84,13 +85,16 @@
 }
 
 .btn-affiliate:hover {
-  background-color: #d10000;
+  background-color: #f8f9fa;
+  color: #EA2630;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(234, 38, 48, 0.15);
 }
 
 .btn-affiliate img {
   width: 20px;
   height: 20px;
-  filter: brightness(0) invert(1);
+  filter: none;
 }
 
 .btn-explore {

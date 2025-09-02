@@ -263,6 +263,15 @@ class AdminCatalogController extends Controller
         try {
             $catalog = Catalog::findOrFail($id);
 
+            // Verificar si el catálogo ya tiene un PDF
+            $existingPdfCount = CatalogPdf::where('catalog_id', $catalog->id)->count();
+            if ($existingPdfCount > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Este catálogo ya tiene un PDF. Debes eliminar el PDF existente antes de subir uno nuevo.'
+                ], 422);
+            }
+
             $validator = Validator::make($request->all(), [
                 'pdfs.*' => 'required|file|mimes:pdf|max:2048' // Máximo 2MB (coincide con configuración de PHP)
             ]);
@@ -296,56 +305,63 @@ class AdminCatalogController extends Controller
                     mkdir(public_path('catalog-pdfs'), 0755, true);
                 }
                 
-                foreach ($request->file('pdfs') as $pdf) {
-                    // Validar que el archivo sea válido
-                    if (!$pdf->isValid()) {
-                        continue; // Saltar archivos inválidos
-                    }
-                    
-                    $pdfName = time() . '_' . $pdf->getClientOriginalName();
-                    $pdfPath = 'catalog-pdfs/' . $pdfName;
-                    
-                    // Obtener información del archivo ANTES de moverlo
-                    $pdfSize = $pdf->getSize();
-                    $pdfMimeType = $pdf->getMimeType();
-                    
-                    // Validar que el tamaño sea mayor a 0
-                    if ($pdfSize <= 0) {
-                        continue; // Saltar archivos con tamaño inválido
-                    }
-                    
-                    // Mover PDF a carpeta pública
-                    if (!$pdf->move(public_path('catalog-pdfs'), $pdfName)) {
-                        continue; // Saltar si no se puede mover
-                    }
-                    
-                    $catalogPdf = CatalogPdf::create([
-                        'catalog_id' => $catalog->id,
-                        'pdf_path' => $pdfPath,
-                        'pdf_name' => $pdf->getClientOriginalName(),
-                        'pdf_size' => $pdfSize,
-                        'pdf_mime_type' => $pdfMimeType,
-                        'page_count' => $this->getPdfPageCount(public_path('catalog-pdfs/' . $pdfName)),
-                        'display_order' => CatalogPdf::where('catalog_id', $catalog->id)->max('display_order') + 1
-                    ]);
-                    
-                    $uploadedPdfs[] = $catalogPdf;
+                // Solo procesar el primer PDF ya que solo permitimos uno por catálogo
+                $pdf = $request->file('pdfs')[0];
+                
+                // Validar que el archivo sea válido
+                if (!$pdf->isValid()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'El archivo PDF no es válido.'
+                    ], 422);
                 }
+                
+                $pdfName = time() . '_' . $pdf->getClientOriginalName();
+                $pdfPath = 'catalog-pdfs/' . $pdfName;
+                
+                // Obtener información del archivo ANTES de moverlo
+                $pdfSize = $pdf->getSize();
+                $pdfMimeType = $pdf->getMimeType();
+                
+                // Validar que el tamaño sea mayor a 0
+                if ($pdfSize <= 0) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'El archivo PDF está vacío o corrupto.'
+                    ], 422);
+                }
+                
+                // Mover PDF a carpeta pública
+                if (!$pdf->move(public_path('catalog-pdfs'), $pdfName)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Error al guardar el archivo PDF.'
+                    ], 500);
+                }
+                
+                $catalogPdf = CatalogPdf::create([
+                    'catalog_id' => $catalog->id,
+                    'pdf_path' => $pdfPath,
+                    'pdf_name' => $pdf->getClientOriginalName(),
+                    'pdf_size' => $pdfSize,
+                    'pdf_mime_type' => $pdfMimeType,
+                    'page_count' => $this->getPdfPageCount(public_path('catalog-pdfs/' . $pdfName)),
+                    'display_order' => 1 // Siempre será el primer (y único) PDF
+                ]);
+                
+                $uploadedPdfs[] = $catalogPdf;
             }
 
             if (empty($uploadedPdfs)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No se pudieron procesar los archivos PDF. Verifica que sean archivos válidos y no estén corruptos.'
+                    'message' => 'No se pudo procesar el archivo PDF. Verifica que sea un archivo válido y no esté corrupto.'
                 ], 422);
             }
             
-            $count = count($uploadedPdfs);
-            $message = $count === 1 ? 'PDF agregado exitosamente' : "{$count} PDFs agregados exitosamente";
-            
             return response()->json([
                 'success' => true,
-                'message' => $message,
+                'message' => 'PDF agregado exitosamente',
                 'data' => $uploadedPdfs
             ]);
         } catch (\Exception $e) {
