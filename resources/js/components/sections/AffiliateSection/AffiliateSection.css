@@ -8,11 +8,11 @@
   height: 700px;
 }
 
-.affiliateDecorative {
+.affiliate-section__image {
   height: 100%;
 }
 
-.affiliateDecorative img[alt="Affiliate Girl"] {
+.affiliate-section__image img[alt="Affiliate Girl"] {
   height: 100%;
   object-fit: cover;
   z-index: 1;
@@ -27,7 +27,7 @@
   line-height: 52px;
 }
 
-.affiliateContent {
+.affiliate-section__content {
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -44,18 +44,18 @@
 
 /* DECORATIVE */
 
-.affiliateDecorative {
+.affiliate-section__image {
   position: relative;
 }
 
-.affiliateDecorative .flotantGlobes {
+.affiliate-section__image .flotantGlobes {
   position: absolute;
   top: 40%;
   left: 40%;
   transform: translate(-50%, -50%);
 }
 
-.affiliateDecorative .flotantGlobes .bigGlobe {
+.affiliate-section__image .flotantGlobes .bigGlobe {
   width: 364px;
   aspect-ratio: 1;
   background-color: #F73859;
@@ -66,7 +66,7 @@
   transform: translateX(-50%);
 }
 
-.affiliateDecorative .flotantGlobes .smallGlobe {
+.affiliate-section__image .flotantGlobes .smallGlobe {
   width: 100px;
   aspect-ratio: 1;
   background-color: #F9738A;
@@ -83,16 +83,16 @@
     height: 356px;
   }
 
-  .affiliateContent {
+  .affiliate-section__content {
     padding: 0;
   }
 
-  .affiliateDecorative .flotantGlobes {
+  .affiliate-section__image .flotantGlobes {
     top: 30%;
     left: 30%;
   }
 
-  .affiliateDecorative .flotantGlobes .bigGlobe {
+  .affiliate-section__image .flotantGlobes .bigGlobe {
     width: 364px;
     aspect-ratio: 1;
     background-color: #F73859;
@@ -103,12 +103,12 @@
     transform: unset;
   }
 
-  .affiliateDecorative img[alt="Affiliate Girl"] {
+  .affiliate-section__image img[alt="Affiliate Girl"] {
     height: 100%;
     margin-top: 0;
   }
 
-  .affiliateDecorative .flotantGlobes .smallGlobe {
+  .affiliate-section__image .flotantGlobes .smallGlobe {
     width: 160px;
     aspect-ratio: 1;
     background-color: #F9738A;
