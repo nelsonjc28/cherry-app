@@ -65,20 +65,13 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
       return;
     }
 
-    // Validar tipo de archivo y tamaño - solo PDFs
-    const maxSize = 2 * 1024 * 1024; // 2MB en bytes
+    // Validar tipo de archivo - solo PDFs
     const file = files[0];
     
     const isValidType = file.type === 'application/pdf';
-    const isValidSize = file.size <= maxSize;
 
     if (!isValidType) {
       window.showToast('El archivo debe ser un PDF válido', 'error');
-      return;
-    }
-
-    if (!isValidSize) {
-      window.showToast('El archivo excede el tamaño máximo permitido (2MB)', 'error');
       return;
     }
 

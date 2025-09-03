@@ -22,7 +22,7 @@ class HomeCatalogController extends Controller
                 ->ordered()
                 ->select(['id', 'name', 'description', 'code', 'image', 'display_order'])
                 ->with(['pdfs' => function($query) {
-                    $query->select('catalog_id', 'pdf_path')->orderBy('display_order');
+                    $query->select('catalog_id', 'pdf_path', 'page_count')->orderBy('display_order');
                 }])
                 ->limit(4) // Limitar a solo 4 catálogos
                 ->get();
@@ -50,7 +50,7 @@ class HomeCatalogController extends Controller
             $catalog = Catalog::where('id', $id)
                 ->where('is_active', true)
                 ->with(['pdfs' => function($query) {
-                    $query->select('catalog_id', 'pdf_path')->orderBy('display_order');
+                    $query->select('catalog_id', 'pdf_path', 'page_count')->orderBy('display_order');
                 }])
                 ->first();
 

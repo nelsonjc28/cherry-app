@@ -9,6 +9,8 @@ use App\Models\CatalogProduct;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
+use Smalot\PdfParser\Parser;
 
 
 class AdminCatalogController extends Controller
@@ -83,18 +85,18 @@ class AdminCatalogController extends Controller
             }
 
             $data = $request->all();
-            
+
             // Manejar la imagen del catálogo
             if ($request->hasFile('image')) {
                 $image = $request->file('image');
                 $imageName = time() . '_' . $image->getClientOriginalName();
                 $imagePath = 'catalogs/' . $imageName;
-                
+
                 // Crear directorio si no existe
                 if (!file_exists(public_path('catalogs'))) {
                     mkdir(public_path('catalogs'), 0755, true);
                 }
-                
+
                 // Mover imagen a carpeta pública
                 $image->move(public_path('catalogs'), $imageName);
                 $data['image'] = $imagePath;
@@ -144,7 +146,7 @@ class AdminCatalogController extends Controller
             }
 
             $data = $request->all();
-            
+
             // Manejar la imagen del catálogo
             if ($request->hasFile('image')) {
                 // Eliminar imagen anterior si existe
@@ -154,16 +156,16 @@ class AdminCatalogController extends Controller
                         unlink($oldImagePath);
                     }
                 }
-                
+
                 $image = $request->file('image');
                 $imageName = time() . '_' . $image->getClientOriginalName();
                 $imagePath = 'catalogs/' . $imageName;
-                
+
                 // Crear directorio si no existe
                 if (!file_exists(public_path('catalogs'))) {
                     mkdir(public_path('catalogs'), 0755, true);
                 }
-                
+
                 // Mover imagen a carpeta pública
                 $image->move(public_path('catalogs'), $imageName);
                 $data['image'] = $imagePath;
@@ -191,7 +193,7 @@ class AdminCatalogController extends Controller
     {
         try {
             $catalog = Catalog::findOrFail($id);
-            
+
             // Si se está asignando un display_order (agregando al home)
             if ($request->has('display_order') && $request->display_order !== null) {
                 // Verificar que no se exceda el límite de 4 catálogos
@@ -238,7 +240,7 @@ class AdminCatalogController extends Controller
     {
         try {
             $catalog = Catalog::findOrFail($id);
-            
+
             // Eliminar imagen del catálogo si existe
             if ($catalog->image) {
                 $imagePath = public_path($catalog->image);
@@ -246,7 +248,7 @@ class AdminCatalogController extends Controller
                     unlink($imagePath);
                 }
             }
-            
+
             $catalog->delete();
 
             return response()->json([
@@ -266,6 +268,7 @@ class AdminCatalogController extends Controller
      */
     public function addPdfs(Request $request, $id)
     {
+
         try {
             $catalog = Catalog::findOrFail($id);
 
@@ -285,17 +288,15 @@ class AdminCatalogController extends Controller
             if ($validator->fails()) {
                 $errors = $validator->errors();
                 $errorMessages = [];
-                
+
                 foreach ($errors->all() as $error) {
-                    if (strpos($error, 'max') !== false) {
-                        $errorMessages[] = 'El archivo excede el tamaño máximo permitido (2MB)';
-                    } elseif (strpos($error, 'mimes') !== false) {
+                    if (strpos($error, 'mimes') !== false) {
                         $errorMessages[] = 'El archivo debe ser un PDF válido';
                     } else {
                         $errorMessages[] = $error;
                     }
                 }
-                
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Error de validación: ' . implode(', ', $errorMessages),
@@ -304,16 +305,15 @@ class AdminCatalogController extends Controller
             }
 
             $uploadedPdfs = [];
-            
             if ($request->hasFile('pdfs')) {
                 // Crear directorio si no existe
                 if (!file_exists(public_path('catalog-pdfs'))) {
                     mkdir(public_path('catalog-pdfs'), 0755, true);
                 }
-                
+
                 // Solo procesar el primer PDF ya que solo permitimos uno por catálogo
                 $pdf = $request->file('pdfs')[0];
-                
+
                 // Validar que el archivo sea válido
                 if (!$pdf->isValid()) {
                     return response()->json([
@@ -321,14 +321,14 @@ class AdminCatalogController extends Controller
                         'message' => 'El archivo PDF no es válido.'
                     ], 422);
                 }
-                
+
                 $pdfName = time() . '_' . $pdf->getClientOriginalName();
                 $pdfPath = 'catalog-pdfs/' . $pdfName;
-                
+
                 // Obtener información del archivo ANTES de moverlo
                 $pdfSize = $pdf->getSize();
                 $pdfMimeType = $pdf->getMimeType();
-                
+
                 // Validar que el tamaño sea mayor a 0
                 if ($pdfSize <= 0) {
                     return response()->json([
@@ -336,7 +336,7 @@ class AdminCatalogController extends Controller
                         'message' => 'El archivo PDF está vacío o corrupto.'
                     ], 422);
                 }
-                
+
                 // Mover PDF a carpeta pública
                 if (!$pdf->move(public_path('catalog-pdfs'), $pdfName)) {
                     return response()->json([
@@ -344,7 +344,7 @@ class AdminCatalogController extends Controller
                         'message' => 'Error al guardar el archivo PDF.'
                     ], 500);
                 }
-                
+
                 $catalogPdf = CatalogPdf::create([
                     'catalog_id' => $catalog->id,
                     'pdf_path' => $pdfPath,
@@ -354,7 +354,7 @@ class AdminCatalogController extends Controller
                     'page_count' => $this->getPdfPageCount(public_path('catalog-pdfs/' . $pdfName)),
                     'display_order' => 1 // Siempre será el primer (y único) PDF
                 ]);
-                
+
                 $uploadedPdfs[] = $catalogPdf;
             }
 
@@ -364,7 +364,7 @@ class AdminCatalogController extends Controller
                     'message' => 'No se pudo procesar el archivo PDF. Verifica que sea un archivo válido y no esté corrupto.'
                 ], 422);
             }
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'PDF agregado exitosamente',
@@ -393,7 +393,7 @@ class AdminCatalogController extends Controller
             if (file_exists($pdfPath)) {
                 unlink($pdfPath);
             }
-            
+
             $catalogPdf->delete();
 
             return response()->json([
@@ -436,7 +436,7 @@ class AdminCatalogController extends Controller
             }
 
             $addedProducts = [];
-            
+
             foreach ($request->products as $productData) {
                 // Verificar que el producto no esté ya en otro catálogo
                 if (CatalogProduct::isProductInAnyCatalog($productData['external_product_id'])) {
@@ -454,7 +454,7 @@ class AdminCatalogController extends Controller
                     'product_metadata' => $productData['product_metadata'] ?? [],
                     'display_order' => CatalogProduct::where('catalog_id', $catalog->id)->max('display_order') + 1
                 ]);
-                
+
                 $addedProducts[] = $catalogProduct;
             }
 
@@ -480,7 +480,7 @@ class AdminCatalogController extends Controller
             $catalogProduct = CatalogProduct::where('catalog_id', $catalogId)
                 ->where('id', $productId)
                 ->firstOrFail();
-            
+
             $catalogProduct->delete();
 
             return response()->json([
@@ -503,9 +503,9 @@ class AdminCatalogController extends Controller
         try {
             // Obtener solo los IDs de productos que están en catálogos
             $catalogProductIds = CatalogProduct::pluck('external_product_id')->toArray();
-            
 
-            
+
+
             return response()->json([
                 'success' => true,
                 'data' => $catalogProductIds
@@ -549,15 +549,15 @@ class AdminCatalogController extends Controller
             }
 
             $externalProducts = $request->input('products');
-            
+
             // Log para debugging
 
-            
+
             // Filtrar solo productos que no están en ningún catálogo
             $availableProducts = CatalogProduct::getAvailableProducts($externalProducts);
-            
 
-            
+
+
             // Mapear los campos de la API externa al formato esperado por el frontend (sin imágenes para optimizar)
             $mappedProducts = $availableProducts->map(function ($product) {
                 return [
@@ -667,7 +667,7 @@ class AdminCatalogController extends Controller
     {
         try {
             $catalog = Catalog::findOrFail($id);
-            
+
             // Obtener productos del catálogo con orden
             $products = $catalog->products()
                 ->orderBy('display_order', 'asc')
@@ -740,7 +740,7 @@ class AdminCatalogController extends Controller
     {
         try {
             $catalog = Catalog::where('is_active', true)->findOrFail($id);
-            
+
             // Obtener productos del catálogo con orden
             $products = $catalog->products()
                 ->orderBy('display_order', 'asc')
@@ -770,8 +770,22 @@ class AdminCatalogController extends Controller
             return 1;
         }
 
-        // Por ahora retornamos 1 como valor por defecto
-        // En el futuro se puede implementar una solución más robusta
-        return 1;
+        try {
+            // Usar la librería smalot/pdfparser para contar páginas
+            $parser = new Parser();
+            $pdf = $parser->parseFile($filePath);
+            
+            // Obtener el número de páginas del PDF
+            $pages = $pdf->getPages();
+            $pageCount = count($pages);
+            
+            // Asegurar que al menos retorne 1 página
+            return max(1, $pageCount);
+            
+        } catch (\Exception $e) {
+            // Si hay algún error al procesar el PDF, retornar 1 como fallback
+            Log::warning("Error al contar páginas del PDF: " . $e->getMessage());
+            return 1;
+        }
     }
 }
