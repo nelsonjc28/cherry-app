@@ -9,6 +9,7 @@ import AdminWelcomeSectionManager from '../components/AdminWelcomeSectionManager
 import AdminContactManager from '../components/AdminContactManager/AdminContactManager';
 import AdminPrivacyPolicyManager from '../components/AdminPrivacyPolicyManager/AdminPrivacyPolicyManager';
 import AdminCatalogManager from '../components/AdminCatalogManager/AdminCatalogManager';
+import CatalogOffersModule from '../components/AdminCatalogManager/CatalogOffersModule';
 import AdminCategoryManager from '../components/AdminCategoryManager/AdminCategoryManager';
 import AdminMenuCategoryOrderManager from '../components/AdminMenuCategoryOrderManager/AdminMenuCategoryOrderManager';
 import AdminHomeCatalogManager from '../components/AdminHomeCatalogManager/AdminHomeCatalogManager';
@@ -78,8 +79,7 @@ function AdminPanelPage() {
           <button className={`admin-panel__sidebar-link${selectedMenu==='catalogs'?' active':''}`} onClick={()=>{setSelectedMenu('catalogs'); setSidebarOpen(false);}}>Catálogos</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='contact-info'?' active':''}`} onClick={()=>{setSelectedMenu('contact-info'); setSidebarOpen(false);}}>Información de Contacto</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='privacy-policy'?' active':''}`} onClick={()=>{setSelectedMenu('privacy-policy'); setSidebarOpen(false);}}>Políticas de Privacidad</button>
-  
-          <button className={`admin-panel__sidebar-link${selectedMenu==='other'?' active':''}`} onClick={()=>{setSelectedMenu('other'); setSidebarOpen(false);}}>Otra sección</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='discounts'?' active':''}`} onClick={()=>{setSelectedMenu('discounts'); setSidebarOpen(false);}}>Descuentos</button>
           <button className="admin-panel__sidebar-link" onClick={handleLogout}>Volver al sitio</button>
         </nav>
       </aside>
@@ -222,12 +222,9 @@ function AdminPanelPage() {
           </section>
         )}
 
-
-        
-        {selectedMenu === 'other' && (
+        {selectedMenu === 'discounts' && isAdmin() && (
           <section>
-            <h2 className="section-title mb-3">Otra sección</h2>
-            <div className="text-secondary">Contenido de ejemplo para otra sección del panel.</div>
+            <CatalogOffersModule onBack={() => setSelectedMenu('home')} />
           </section>
         )}
       </main>
