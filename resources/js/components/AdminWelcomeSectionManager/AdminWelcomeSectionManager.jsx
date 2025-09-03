@@ -220,6 +220,27 @@ const AdminWelcomeSectionManager = () => {
   const handleImageChange = useCallback((e) => {
     const file = e.target.files[0];
     if (file) {
+      // Validar formato de imagen
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        setError('La imagen no cumple con los formatos permitidos. Formatos permitidos: JPEG, JPG, PNG, GIF, WebP');
+        if (window.showToast) {
+          window.showToast('La imagen no cumple con los formatos permitidos. Formatos permitidos: JPEG, JPG, PNG, GIF, WebP', 'error');
+        }
+        return;
+      }
+      
+      // Validar tamaño (10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB en bytes
+      if (file.size > maxSize) {
+        setError('La imagen excede el tamaño máximo permitido (10MB)');
+        if (window.showToast) {
+          window.showToast('La imagen excede el tamaño máximo permitido (10MB)', 'error');
+        }
+        return;
+      }
+      
+      setError(''); // Limpiar error si la validación pasa
       setImageFile(file);
       const reader = new FileReader();
       reader.onload = (e) => setImagePreview(e.target.result);

@@ -54,6 +54,21 @@ const AdminCatalogManager = () => {
     if (type === 'file') {
       const file = files[0];
       if (file) {
+        // Validar formato de imagen
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+          setError('La imagen no cumple con los formatos permitidos. Formatos permitidos: JPEG, JPG, PNG, GIF, WebP');
+          return;
+        }
+        
+        // Validar tamaño (10MB)
+        const maxSize = 10 * 1024 * 1024; // 10MB en bytes
+        if (file.size > maxSize) {
+          setError('La imagen excede el tamaño máximo permitido (10MB)');
+          return;
+        }
+        
+        setError(''); // Limpiar error si la validación pasa
         setFormData(prev => ({ ...prev, [name]: file }));
         setImagePreview(URL.createObjectURL(file));
       }

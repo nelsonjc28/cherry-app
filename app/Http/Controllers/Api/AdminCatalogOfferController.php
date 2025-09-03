@@ -74,7 +74,10 @@ class AdminCatalogOfferController extends Controller
                 'max_uses' => 'nullable|integer|min:1',
                 'min_purchase_amount' => 'nullable|numeric|min:0',
                 'max_discount_amount' => 'nullable|numeric|min:0',
-                'banner_image' => 'nullable|image|mimes:jpeg,png,jpg,gif'
+                'banner_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp'
+            ], [
+                'banner_image.mimes' => 'La imagen no cumple con los formatos permitidos. Formatos permitidos: JPEG, JPG, PNG, GIF, WebP',
+                'banner_image.image' => 'El archivo debe ser una imagen válida'
             ]);
 
             if ($validator->fails()) {
@@ -140,7 +143,10 @@ class AdminCatalogOfferController extends Controller
                 'max_uses' => 'nullable|integer|min:1',
                 'min_purchase_amount' => 'nullable|numeric|min:0',
                 'max_discount_amount' => 'nullable|numeric|min:0',
-                'banner_image' => 'nullable|image|mimes:jpeg,png,jpg,gif'
+                'banner_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp'
+            ], [
+                'banner_image.mimes' => 'La imagen no cumple con los formatos permitidos. Formatos permitidos: JPEG, JPG, PNG, GIF, WebP',
+                'banner_image.image' => 'El archivo debe ser una imagen válida'
             ]);
 
             if ($validator->fails()) {

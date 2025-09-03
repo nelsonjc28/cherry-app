@@ -76,7 +76,7 @@ class AdminWelcomeSectionController extends Controller
             }
 
             // Validar datos requeridos usando configuración centralizada
-            $request->validate([
+            $validator = Validator::make($request->all(), [
                 'title' => 'required|string|max:255',
                 'subtitle' => 'required|string',
                 'button_text' => 'required|string|max:255',
@@ -84,7 +84,18 @@ class AdminWelcomeSectionController extends Controller
                 'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp',
                 'is_active' => 'boolean',
                 'display_order' => 'integer|min:0'
+            ], [
+                'image.mimes' => 'La imagen no cumple con los formatos permitidos. Formatos permitidos: JPEG, JPG, PNG, GIF, WebP',
+                'image.image' => 'El archivo debe ser una imagen válida'
             ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error de validación',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
 
             // Procesar imagen
             $imagePath = null;
@@ -198,9 +209,20 @@ class AdminWelcomeSectionController extends Controller
 
                 
                 // Validar imagen usando configuración centralizada
-                $request->validate([
+                $imageValidator = Validator::make($request->all(), [
                     'image' => 'image|mimes:jpeg,png,jpg,gif,webp',
+                ], [
+                    'image.mimes' => 'La imagen no cumple con los formatos permitidos. Formatos permitidos: JPEG, JPG, PNG, GIF, WebP',
+                    'image.image' => 'El archivo debe ser una imagen válida'
                 ]);
+
+                if ($imageValidator->fails()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Error de validación de imagen',
+                        'errors' => $imageValidator->errors()
+                    ], 422);
+                }
                 
                 // Crear directorio si no existe
                 $uploadPath = public_path('images/welcome-sections');

@@ -66,9 +66,12 @@ class AdminCatalogController extends Controller
                 'name' => 'required|string|max:255',
                 'description' => 'required|string',
                 'code' => 'nullable|string|max:100',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
                 'is_active' => 'sometimes|boolean',
                 'display_order' => 'sometimes|integer|min:0'
+            ], [
+                'image.mimes' => 'La imagen no cumple con los formatos permitidos. Formatos permitidos: JPEG, JPG, PNG, GIF, WebP',
+                'image.image' => 'El archivo debe ser una imagen válida'
             ]);
 
             if ($validator->fails()) {
@@ -124,9 +127,12 @@ class AdminCatalogController extends Controller
                 'name' => 'sometimes|required|string|max:255',
                 'description' => 'sometimes|required|string',
                 'code' => 'sometimes|nullable|string|max:100',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
                 'is_active' => 'sometimes|boolean',
                 'display_order' => 'sometimes|integer|min:0'
+            ], [
+                'image.mimes' => 'La imagen no cumple con los formatos permitidos. Formatos permitidos: JPEG, JPG, PNG, GIF, WebP',
+                'image.image' => 'El archivo debe ser una imagen válida'
             ]);
 
             if ($validator->fails()) {
@@ -273,7 +279,7 @@ class AdminCatalogController extends Controller
             }
 
             $validator = Validator::make($request->all(), [
-                'pdfs.*' => 'required|file|mimes:pdf|max:2048' // Máximo 2MB (coincide con configuración de PHP)
+                'pdfs.*' => 'required|file|mimes:pdf' // Máximo 2MB (coincide con configuración de PHP)
             ]);
 
             if ($validator->fails()) {
