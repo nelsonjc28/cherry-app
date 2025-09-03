@@ -97,20 +97,21 @@
   filter: none;
 }
 
-.btn-explore {
-   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 14px 20px;
-  border-radius: 8px;
-  text-decoration: none;
-  font-size: 16px;
-  font-weight: 400;
-  height: 50px;
-  transition: all 0.3s ease;
+.banner-actions .btn-explore,
+.hero-banner .btn-explore {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 14px 20px !important;
+  border-radius: 8px !important;
+  text-decoration: none !important;
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  height: 50px !important;
+  transition: all 0.3s ease !important;
   border: none !important;
-  background-color: var(--color-primary) !important;
+  background-color: #EA2630 !important;
   color: white !important;
 }
 
@@ -127,20 +128,24 @@
   color: white !important;
 }
 
-.btn-explore img {
-  width: 20px;
-  height: 20px;
-  transition: transform 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  vertical-align: middle;
+.banner-actions .btn-explore img,
+.hero-banner .btn-explore img {
+  width: 20px !important;
+  height: 20px !important;
+  transition: transform 0.3s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle !important;
   filter: brightness(0) invert(1) !important;
 }
 
-.btn-explore:hover {
-  background-color: #d10000 !important;
+.banner-actions .btn-explore:hover,
+.hero-banner .btn-explore:hover {
+  background-color: #d4202a !important;
   color: white !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(234, 38, 48, 0.15) !important;
 }
 
 .btn-explore img {

@@ -14,7 +14,10 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, fetchUser, logout } = useUserStore();
-  const { items: cartItems, totalItems, totalPrice } = useCartStore();
+  const cartStore = useCartStore();
+  const cartItems = cartStore?.items || [];
+  const totalItems = cartStore?.totalItems || 0;
+  const totalPrice = cartStore?.totalPrice || 0;
   
   // Check if current page is admin
   const isAdminPage = location.pathname.startsWith('/admin');
@@ -321,7 +324,7 @@ const Header = () => {
   }, []);
 
   // Group cart items by product ID and color, combining different sizes
-  const groupedCartItems = cartItems.reduce((groups, item) => {
+  const groupedCartItems = (cartItems || []).reduce((groups, item) => {
     const key = `${item.id_articulo}-${item.selectedColor}`;
     
     if (!groups[key]) {

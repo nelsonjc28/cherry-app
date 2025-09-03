@@ -115,17 +115,34 @@ const HeroBanner = () => {
               </p>
               <div className="banner-actions">
                 <a 
-                  className="btn-affiliate" 
+                  className="btn-explore" 
                   title={currentBanner.buttonText} 
                   aria-label={currentBanner.buttonText} 
                   href={currentBanner.buttonUrl} 
                   data-discover="true"
+                  style={{
+                    backgroundColor: '#EA2630',
+                    color: 'white',
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    padding: '14px 20px',
+                    borderRadius: '8px',
+                    textDecoration: 'none',
+                    fontSize: '16px',
+                    fontWeight: '400',
+                    height: '50px',
+                    transition: 'all 0.3s ease'
+                  }}
                 >
                   <img 
                     alt="Icono de catálogo" 
                     width="20" 
                     height="20" 
                     src="./icons/hero/Users.svg"
+                    style={{ filter: 'brightness(0) invert(1)' }}
                   />
                   {currentBanner.buttonText}
                 </a>
@@ -164,17 +181,34 @@ const HeroBanner = () => {
             
             <div className="banner-actions">
               <a 
-                className="btn-affiliate" 
+                className="btn-explore" 
                 title={currentBanner.buttonText} 
                 aria-label={currentBanner.buttonText} 
                 href={currentBanner.buttonUrl} 
                 data-discover="true"
+                style={{
+                  backgroundColor: '#EA2630',
+                  color: 'white',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '14px 20px',
+                  borderRadius: '8px',
+                  textDecoration: 'none',
+                  fontSize: '16px',
+                  fontWeight: '400',
+                  height: '50px',
+                  transition: 'all 0.3s ease'
+                }}
               >
                 <img 
                   alt="Icono de catálogo" 
                   width="20" 
                   height="20" 
                   src="./icons/hero/Users.svg"
+                  style={{ filter: 'brightness(0) invert(1)' }}
                 />
                 {currentBanner.buttonText}
               </a>
