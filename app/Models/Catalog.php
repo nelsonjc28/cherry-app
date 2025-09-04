@@ -23,6 +23,10 @@ class Catalog extends Model
         'display_order' => 'integer'
     ];
 
+    protected $appends = [
+        'image_url'
+    ];
+
     /**
      * Obtener los PDFs del catálogo
      */
@@ -61,5 +65,23 @@ class Catalog extends Model
     public function scopeOrdered($query)
     {
         return $query->whereNotNull('display_order')->orderBy('display_order', 'asc');
+    }
+
+    /**
+     * Obtener la URL completa de la imagen del catálogo
+     */
+    public function getImageUrlAttribute()
+    {
+        if (!$this->image) {
+            return asset('images/placeholder-catalog.png');
+        }
+        
+        // Si la imagen está en la carpeta public/catalogs, usar esa ruta
+        if (strpos($this->image, 'catalogs/') === 0) {
+            return asset($this->image);
+        }
+        
+        // Si está en storage, usar el enlace simbólico
+        return asset('storage/' . $this->image);
     }
 }

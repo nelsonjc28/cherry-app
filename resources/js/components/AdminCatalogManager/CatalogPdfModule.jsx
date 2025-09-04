@@ -278,9 +278,9 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
               {catalogs.map((catalog) => (
                 <div key={catalog.id} className="catalog-pdf-module__catalog-card">
                   <div className="catalog-pdf-module__catalog-image">
-                    {catalog.image ? (
+                    {catalog.image_url && !catalog.image_url.includes('placeholder') ? (
                       <img 
-                        src={`/${catalog.image}`} 
+                        src={catalog.image_url} 
                         alt={catalog.name}
                         onError={(e) => {
                           e.target.style.display = 'none';
@@ -290,9 +290,9 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
                     ) : null}
                     <div 
                       className="catalog-pdf-module__no-image"
-                      style={{ display: catalog.image ? 'none' : 'flex' }}
+                      style={{ display: (catalog.image_url && !catalog.image_url.includes('placeholder')) ? 'none' : 'flex' }}
                     >
-                      {catalog.image ? 'Error al cargar imagen' : 'Sin imagen'}
+                      {catalog.image_url && !catalog.image_url.includes('placeholder') ? 'Error al cargar imagen' : 'Sin imagen'}
                     </div>
                   </div>
 

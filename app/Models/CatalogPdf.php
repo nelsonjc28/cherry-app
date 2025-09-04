@@ -39,6 +39,11 @@ class CatalogPdf extends Model
      */
     public function getPdfUrlAttribute()
     {
+        // Si el PDF está en la carpeta public/catalog-pdfs, usar esa ruta
+        if (strpos($this->pdf_path, 'catalog-pdfs/') === 0) {
+            return asset($this->pdf_path);
+        }
+        // Si está en storage, usar el enlace simbólico
         return asset('storage/' . $this->pdf_path);
     }
 

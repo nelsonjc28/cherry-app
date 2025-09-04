@@ -38,7 +38,8 @@ api.interceptors.response.use(
                          error.config?.url?.includes('/categories') ||
                          error.config?.url?.includes('/welcome-sections') ||
                          error.config?.url?.includes('/contact-info') ||
-                         error.config?.url?.includes('/privacy-policy');
+                         error.config?.url?.includes('/privacy-policy') ||
+                         error.config?.url?.includes('/home-catalogs');
     
     // Manejar casos específicos de error
     if (error.response) {
@@ -427,6 +428,18 @@ export const publicCatalogService = {
   getProducts: async (id) => {
     try {
       const response = await api.get(`/catalogs/${id}/products`, {
+
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Obtener PDFs de un catálogo público específico
+  getPdfs: async (id) => {
+    try {
+      const response = await api.get(`/catalogs/${id}/pdfs`, {
 
       });
       return response;

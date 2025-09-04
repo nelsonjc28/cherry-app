@@ -721,6 +721,17 @@ class AdminCatalogController extends Controller
                 ->where('is_active', true)
                 ->findOrFail($id);
 
+            // Asegurar que cada PDF tenga el número correcto de páginas
+            foreach ($catalog->pdfs as $pdf) {
+                if (!$pdf->page_count || $pdf->page_count <= 0) {
+                    // Calcular el número de páginas si no está disponible
+                    $pdfPath = storage_path('app/public/' . $pdf->pdf_path);
+                    $pageCount = $this->getPdfPageCount($pdfPath);
+                    $pdf->page_count = $pageCount;
+                    $pdf->save(); // Guardar el número de páginas calculado
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'data' => $catalog
@@ -757,6 +768,33 @@ class AdminCatalogController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener productos del catálogo: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener PDFs de un catálogo público específico
+     */
+    public function getPublicCatalogPdfs($id)
+    {
+        try {
+            $catalog = Catalog::with(['pdfs' => function($query) {
+                $query->orderBy('display_order', 'asc');
+            }])
+            ->where('is_active', true)
+            ->findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'catalog' => $catalog,
+                    'pdfs' => $catalog->pdfs
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener PDFs del catálogo: ' . $e->getMessage()
             ], 500);
         }
     }

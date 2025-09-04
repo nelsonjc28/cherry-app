@@ -492,13 +492,13 @@ const AdminCatalogManager = () => {
             {catalogs.map((catalog) => (
               <div key={catalog.id} className="admin-catalog-manager__catalog-card">
                                  <div className="admin-catalog-manager__catalog-image">
-                   {catalog.image ? (
+                   {catalog.image_url && !catalog.image_url.includes('placeholder') ? (
                      <img 
-                       src={`/${catalog.image}`} 
+                       src={catalog.image_url} 
                        alt={catalog.name}
-                       onLoad={() => console.log('Image loaded successfully:', `/${catalog.image}`)}
+                       onLoad={() => console.log('Image loaded successfully:', catalog.image_url)}
                        onError={(e) => {
-                         console.log('Image failed to load:', `/${catalog.image}`);
+                         console.log('Image failed to load:', catalog.image_url);
                          e.target.style.display = 'none';
                          e.target.nextSibling.style.display = 'flex';
                        }}
@@ -506,9 +506,9 @@ const AdminCatalogManager = () => {
                    ) : null}
                    <div 
                      className="admin-catalog-manager__no-image"
-                     style={{ display: catalog.image ? 'none' : 'flex' }}
+                     style={{ display: (catalog.image_url && !catalog.image_url.includes('placeholder')) ? 'none' : 'flex' }}
                    >
-                     {catalog.image ? 'Error al cargar imagen' : 'Sin imagen'}
+                     {catalog.image_url && !catalog.image_url.includes('placeholder') ? 'Error al cargar imagen' : 'Sin imagen'}
                    </div>
                  </div>
 
