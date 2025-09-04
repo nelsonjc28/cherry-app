@@ -18,15 +18,15 @@ const Header = () => {
   const cartItems = cartStore?.items || [];
   const totalItems = cartStore?.totalItems || 0;
   const totalPrice = cartStore?.totalPrice || 0;
-  
+
   // Check if current page is admin
   const isAdminPage = location.pathname.startsWith('/admin');
-  
+
   // Solo cargar categorías si no estamos en el panel de administración
   const { categories, loading: categoriesLoading } = useCategories();
   const { menuCategories, loading: menuCategoriesLoading } = useMenuCategories();
   const { catalogs: homeCatalogs, loading: catalogsLoading } = useHomeCatalogs();
-  
+
 
   const [activeMenu, setActiveMenu] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -42,7 +42,7 @@ const Header = () => {
     if (isAdminPage) {
       return [];
     }
-    
+
     // Priorizar las categorías del menú si están disponibles
     if (menuCategoriesLoading) {
       return [
@@ -54,13 +54,13 @@ const Header = () => {
         }
       ];
     }
-    
+
     // Si hay categorías del menú configuradas, usarlas
     if (menuCategories && menuCategories.length > 0) {
       // Dividir las categorías del menú en grupos de 5 para mejor organización
       const groups = [];
       const itemsPerGroup = 5;
-      
+
       for (let i = 0; i < menuCategories.length; i += itemsPerGroup) {
         const group = menuCategories.slice(i, i + itemsPerGroup);
         groups.push({
@@ -71,7 +71,7 @@ const Header = () => {
           }))
         });
       }
-      
+
       // Agregar grupo "Ver todas" al final
       groups.push({
         title: 'Ver todas',
@@ -79,10 +79,10 @@ const Header = () => {
           { name: 'Todas las categorías', link: '/categorias' }
         ]
       });
-      
+
       return groups;
     }
-    
+
     // Fallback a categorías generales si no hay categorías del menú
     if (categoriesLoading || !categories.length) {
       return [
@@ -98,14 +98,14 @@ const Header = () => {
     // Dividir las categorías generales en grupos de 5 para mejor organización
     const groups = [];
     const itemsPerGroup = 5;
-    
+
     for (let i = 0; i < categories.length; i += itemsPerGroup) {
       const group = categories.slice(i, i + itemsPerGroup);
       groups.push({
         title: '',
         items: group.map(cat => ({
           name: cat.name,
-                      link: `/categoria/${cat.slug}`
+          link: `/categoria/${cat.slug}`
         }))
       });
     }
@@ -191,14 +191,14 @@ const Header = () => {
       columns: [
         {
           title: 'Catálogos del Home',
-          items: homeCatalogs.length > 0 
+          items: homeCatalogs.length > 0
             ? homeCatalogs.slice(0, 4).map(catalog => ({
-                name: catalog.name,
-                link: `/catalogo/${catalog.id}`
-              }))
+              name: catalog.name,
+              link: `/catalogo/${catalog.id}`
+            }))
             : [
-                { name: 'Cargando catálogos...', link: '/catalogos' }
-              ]
+              { name: 'Cargando catálogos...', link: '/catalogos' }
+            ]
         },
         {
           title: 'Ver todos',
@@ -263,7 +263,7 @@ const Header = () => {
       const colorFilters = [];
       const skuFilters = [];
       const generalTerms = [];
-      
+
       searchParts.forEach(term => {
         const lowerTerm = term.toLowerCase();
         // Check if it's a color (common color names in Spanish)
@@ -279,7 +279,7 @@ const Header = () => {
           generalTerms.push(term);
         }
       });
-      
+
       // Build search query with filters
       const searchParams = new URLSearchParams();
       if (generalTerms.length > 0) {
@@ -291,7 +291,7 @@ const Header = () => {
       if (skuFilters.length > 0) {
         searchParams.set('sku', skuFilters.join(','));
       }
-      
+
       navigate(`/buscar?${searchParams.toString()}`);
       setSearchTerm('');
     }
@@ -308,8 +308,8 @@ const Header = () => {
   };
 
   // Cargar usuario al montar si hay token
-  useEffect(() => { 
-    if (!user && localStorage.getItem('token')) fetchUser(); 
+  useEffect(() => {
+    if (!user && localStorage.getItem('token')) fetchUser();
   }, [user, fetchUser]);
 
   // Cerrar menú al hacer clic fuera
@@ -326,11 +326,11 @@ const Header = () => {
   // Group cart items by product ID and color, combining different sizes
   const groupedCartItems = (cartItems || []).reduce((groups, item) => {
     const key = `${item.id_articulo}-${item.selectedColor}`;
-    
+
     if (!groups[key]) {
       groups[key] = {
         id: item.id_articulo,
-    image: item.image,
+        image: item.image,
         sku: item.id_articulo,
         title: item.title || item.name,
         variants: [],
@@ -338,19 +338,19 @@ const Header = () => {
         totalPrice: 0
       };
     }
-    
+
     // Add size variant
     groups[key].variants.push({
       color: item.selectedColor,
       size: item.selectedSize,
-    quantity: item.quantity,
+      quantity: item.quantity,
       price: item.precio
     });
-    
+
     // Update totals
     groups[key].totalQuantity += item.quantity;
     groups[key].totalPrice += item.precio * item.quantity;
-    
+
     return groups;
   }, {});
 
@@ -383,9 +383,9 @@ const Header = () => {
             {icon}
             <span>{title}</span>
           </div>
-          <img 
-            src={getIconPath('Chevron Down.svg')} 
-            alt="Expandir" 
+          <img
+            src={getIconPath('Chevron Down.svg')}
+            alt="Expandir"
             className={`mobile-menu-arrow ${isOpen ? 'open' : ''}`}
           />
         </div>
@@ -397,8 +397,8 @@ const Header = () => {
                 <ul className="mobile-submenu-items">
                   {column.items.map((item, itemIndex) => (
                     <li key={itemIndex}>
-                      <Link 
-                        to={item.link} 
+                      <Link
+                        to={item.link}
                         className="mobile-submenu-link"
                         onClick={() => setMobileMenuOpen(false)}
                       >
@@ -438,10 +438,10 @@ const Header = () => {
           {/* Search Bar */}
           {!isAdminPage && (
             <div className="search-container">
-              <input 
-                type="text" 
-                placeholder="Buscar producto" 
-                className="search-input" 
+              <input
+                type="text"
+                placeholder="Buscar producto"
+                className="search-input"
                 value={searchTerm}
                 onChange={handleSearchInputChange}
                 onKeyPress={handleSearchKeyPress}
@@ -514,16 +514,16 @@ const Header = () => {
                 </Link>
               </>
             )}
-            
+
             <Link to="/notificaciones" className="user-action icon-only">
               <div className="icon-badge">
                 <img src={getIconPath('Bell.svg')} alt="Notificaciones" />
                 <span className="badge notification-badge">1</span>
               </div>
             </Link>
-            
 
-            
+
+
             {!isAdminPage && (
               <button type="button" className="user-action icon-only" onClick={() => setCartModalOpen(true)}>
                 <div className="icon-badge">
@@ -590,7 +590,7 @@ const Header = () => {
               </li>
             </ul>
           </div>
-          
+
           {/* Mega Menu Dropdown */}
           {console.log('Active menu:', activeMenu, 'Menu data:', menuData[activeMenu])}
           {activeMenu && menuData[activeMenu] && (
@@ -642,7 +642,7 @@ const Header = () => {
             </svg>
             <span>Menú</span>
           </button>
-          
+
           <Link to="/contacto" className="mobile-contact">
             <img src={getIconPath('Phone.svg')} alt="Contacto" />
             <span>Contacto</span>
@@ -663,14 +663,14 @@ const Header = () => {
                 </svg>
               </button>
             </div>
-            
+
             <div className="mobile-search">
               {!isAdminPage && (
                 <>
-                  <input 
-                    type="text" 
-                    placeholder="Buscar producto" 
-                    className="mobile-search-input" 
+                  <input
+                    type="text"
+                    placeholder="Buscar producto"
+                    className="mobile-search-input"
                     value={searchTerm}
                     onChange={handleSearchInputChange}
                     onKeyPress={handleSearchKeyPress}
@@ -684,37 +684,37 @@ const Header = () => {
 
             <ul className="mobile-menu-list">
 
-              <MobileMenuItem 
-                menuKey="nuevos" 
-                title="Nuevos" 
+              <MobileMenuItem
+                menuKey="nuevos"
+                title="Nuevos"
                 icon={<img src={getIconPath('Cart Plus.svg')} alt="Nuevos" />}
               />
-              
+
               <li className="mobile-menu-item">
                 <Link to="/destacados" className="mobile-menu-link" onClick={() => setMobileMenuOpen(false)}>
                   <img src={getIconPath('Award.svg')} alt="Destacados" />
                   <span>Destacados</span>
                 </Link>
               </li>
-              
-              <MobileMenuItem 
-                menuKey="categorias" 
-                title="Categorías" 
+
+              <MobileMenuItem
+                menuKey="categorias"
+                title="Categorías"
                 icon={<img src={getIconPath('File Alt.svg')} alt="Categorías" />}
               />
-              
-              <MobileMenuItem 
-                menuKey="catalogos" 
-                title="Catálogos" 
+
+              <MobileMenuItem
+                menuKey="catalogos"
+                title="Catálogos"
                 icon={<img src={getIconPath('File Alt.svg')} alt="Catálogos" />}
               />
-              
-              <MobileMenuItem 
-                menuKey="promociones" 
-                title="Promociones" 
+
+              <MobileMenuItem
+                menuKey="promociones"
+                title="Promociones"
                 icon={<img src={getIconPath('Bullhorn.svg')} alt="Promociones" />}
               />
-              
+
               <li className="mobile-menu-item">
                 <Link to="/contacto" className="mobile-menu-link" onClick={() => setMobileMenuOpen(false)}>
                   <img src={getIconPath('Phone.svg')} alt="Contacto" />
@@ -722,47 +722,55 @@ const Header = () => {
                 </Link>
               </li>
             </ul>
-            
+
             <div className="mobile-menu-footer">
               {user ? (
-                <div className="user-menu" ref={userMenuRef}>
+                <div className={`user-menu${userMenuOpen ? ' open' : ''}`} ref={userMenuRef}>
                   <div className="mobile-user-info">
-                    <img src={user.image || getIconPath('User.svg')} alt="Usuario" className="mobile-user-avatar" />
-                    <div className="mobile-user-details">
-                      <span className="mobile-user-name">{user.first_name} {user.last_name}</span>
-                      <span className="mobile-user-email">{user.email}</span>
-                    </div>
-                  </div>
-                  <div className="mobile-user-actions">
-                    {/* <Link to="/perfil" className="mobile-menu-account" onClick={() => setMobileMenuOpen(false)}>
-                      <img src={getIconPath('User.svg')} alt="Perfil" />
-                      <span>Mi Perfil</span>
-                    </Link>
-                    <Link to="/ordenes" className="mobile-menu-account" onClick={() => setMobileMenuOpen(false)}>
-                      <img src={getIconPath('Package.svg')} alt="Órdenes" />
-                      <span>Mis Órdenes</span>
-                    </Link>
-                    <Link to="/direcciones" className="mobile-menu-account" onClick={() => setMobileMenuOpen(false)}>
-                      <img src={getIconPath('Map Pin.svg')} alt="Direcciones" />
-                      <span>Mis Direcciones</span>
-                    </Link>
-                    <Link to="/metodos-pago" className="mobile-menu-account" onClick={() => setMobileMenuOpen(false)}>
-                      <img src={getIconPath('Credit Card.svg')} alt="Métodos de Pago" />
-                      <span>Métodos de Pago</span>
-                    </Link>
-                    <Link to="/notificaciones" className="mobile-menu-account" onClick={() => setMobileMenuOpen(false)}>
-                      <img src={getIconPath('Bell.svg')} alt="Notificaciones" />
-                      <span>Notificaciones</span>
-                    </Link>
-                    <Link to="/carrito" className="mobile-menu-account" onClick={() => setMobileMenuOpen(false)}>
-                      <img src={getIconPath('Shopping Cart.svg')} alt="Carrito" />
-                      <span>Mi Carrito</span>
-                    </Link> */}
-                    <button className="mobile-menu-account mobile-logout-btn" onClick={() => { logout(); setMobileMenuOpen(false); }}>
-                      <img src={getIconPath('Log Out.svg')} alt="Cerrar Sesión" />
-                      <span>Cerrar Sesión</span>
+                    <button
+                      className="mobile-user-btn"
+                      onClick={() => setUserMenuOpen((open) => !open)}
+                    >
+                      <div className="mobile-user-btn-content">
+                        <img src={user.image || getIconPath('User.svg')} alt="Usuario" className="mobile-user-avatar" />
+                        <span className="mobile-user-name">{user.first_name} {user.last_name}</span>
+                      </div>
+                      <img
+                        src={getIconPath('Chevron Down.svg')}
+                        alt="Menú"
+                        className={`mobile-user-arrow${userMenuOpen ? ' open' : ''}`}
+                      />
                     </button>
                   </div>
+                  {userMenuOpen && (
+                    <div className="mobile-user-dropdown">
+                      <Link to="/admin" className="user-dropdown-item">
+                        <img src={getIconPath('File Alt.svg')} alt="Dashboard" />
+                        Dashboard
+                      </Link>
+                      <div className="user-dropdown-divider"></div>
+                      <Link to="/perfil" className="mobile-menu-account" onClick={() => { setMobileMenuOpen(false); setUserMenuOpen(false); }}>
+                        <img src={getIconPath('User.svg')} alt="Perfil" />
+                        <span>Mi Perfil</span>
+                      </Link>
+                      <Link to="/perfil/mis-pedidos" className="mobile-menu-account" onClick={() => { setMobileMenuOpen(false); setUserMenuOpen(false); }}>
+                        <img src={getIconPath('Package.svg')} alt="Órdenes" />
+                        <span>Mis Órdenes</span>
+                      </Link>
+                      <Link to="/perfil/direcciones" className="mobile-menu-account" onClick={() => { setMobileMenuOpen(false); setUserMenuOpen(false); }}>
+                        <img src={getIconPath('Map Pin.svg')} alt="Direcciones" />
+                        <span>Mis Direcciones</span>
+                      </Link>
+                      <Link to="/perfil/metodos-pago" className="mobile-menu-account" onClick={() => { setMobileMenuOpen(false); setUserMenuOpen(false); }}>
+                        <img src={getIconPath('Credit Card.svg')} alt="Métodos de Pago" />
+                        <span>Métodos de Pago</span>
+                      </Link>
+                      <button className="mobile-menu-account mobile-logout-btn" onClick={() => { logout(); setMobileMenuOpen(false); setUserMenuOpen(false); }}>
+                        <img src={getIconPath('Log Out.svg')} alt="Cerrar Sesión" />
+                        <span>Cerrar Sesión</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <>
