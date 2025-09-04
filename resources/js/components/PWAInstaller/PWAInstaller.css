@@ -346,6 +346,9 @@
   }
 }
 
+/* Botón flotante para mostrar el instalador */
+/* Botón flotante eliminado */
+
 /* Responsive */
 @media (max-width: 480px) {
   .pwa-installer {
@@ -393,5 +396,6 @@
     font-size: 40px;
   }
   
+  /* Estilos del botón flotante eliminados */
 
 }

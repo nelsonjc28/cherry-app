@@ -6,7 +6,10 @@ const PdfThumbnailsList = ({ pages, selectedPage, onSelect, pdfPath }) => {
   console.log('PdfThumbnailsList Debug:', {
     pages: pages,
     selectedPage: selectedPage,
-    pdfPath: pdfPath
+    pdfPath: pdfPath,
+    pagesLength: pages?.length,
+    firstPage: pages?.[0],
+    lastPage: pages?.[pages?.length - 1]
   });
 
   return (
@@ -35,7 +38,8 @@ const PdfThumbnailsList = ({ pages, selectedPage, onSelect, pdfPath }) => {
               
               {/* Miniatura real de la página del PDF */}
               <iframe
-                src={`/${pdfPath}#page=${page.pageNumber}&toolbar=0&navpanes=0&scrollbar=0&view=FitH&zoom=25`}
+                key={`${pdfPath}-page-${page.pageNumber}-${page.id}`}
+                src={`/${pdfPath}#page=${page.pageNumber}&toolbar=0&navpanes=0&scrollbar=0&view=FitH&zoom=25&t=${Date.now()}`}
                 title={`Página ${page.pageNumber}`}
                 className="pdf-thumbnail-iframe"
                 width="100%"

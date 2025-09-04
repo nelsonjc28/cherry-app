@@ -35,17 +35,27 @@ const ProductGallery = ({ productId, productTitle, onImageChange }) => {
       setLoading(true);
       const availableImages = [];
       
+      console.log('ProductGallery: Cargando imágenes para producto:', productId);
+      
       // Intentar cargar hasta 6 imágenes por producto
       for (let i = 1; i <= 6; i++) {
         const imageUrl = `https://cherry-fotos.s3.amazonaws.com/shopify/${productId}/${productId}_${i}.jpg`;
+        console.log(`ProductGallery: Verificando imagen ${i}:`, imageUrl);
+        
         const exists = await checkImageExists(imageUrl);
         if (exists) {
+          console.log(`ProductGallery: Imagen ${i} encontrada`);
           availableImages.push(imageUrl);
+        } else {
+          console.log(`ProductGallery: Imagen ${i} no encontrada`);
         }
       }
 
+      console.log('ProductGallery: Imágenes disponibles:', availableImages.length, availableImages);
+
       // Si no hay imágenes disponibles, usar una imagen por defecto
       if (availableImages.length === 0) {
+        console.log('ProductGallery: Usando imagen por defecto');
         availableImages.push('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjVGNUY1Ii8+Cjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTk5IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTYiPkltYWdlbiBubyBkaXNwb25pYmxlPC90ZXh0Pgo8L3N2Zz4K');
       }
 

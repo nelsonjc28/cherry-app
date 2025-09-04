@@ -421,49 +421,46 @@
             observer.observe(toastContainer, { childList: true, subtree: true });
         }
         
-        // Handle PWA installation
+        // Handle PWA installation - Simplified for React component
         let deferredPrompt;
+        
+        // Escuchar el evento beforeinstallprompt y pasarlo a React
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-    
+            console.log('beforeinstallprompt recibido');
             
-            // Show installation toast
-            Toast.show(
-                '¡Instala Cherry App en tu dispositivo!',
-                'info',
-                0, // No auto-hide
-                [
-                    {
-                        text: 'Instalar',
-                        primary: true,
-                        onClick: () => {
-                            deferredPrompt.prompt();
-                            deferredPrompt.userChoice.then((choiceResult) => {
-                                if (choiceResult.outcome === 'accepted') {
-                                    Toast.show('¡Cherry App instalada exitosamente!', 'success', 3000);
-                                } else {
-                                    Toast.show('Instalación cancelada', 'warning', 3000);
-                                }
-                                deferredPrompt = null;
-                            });
-                        }
-                    },
-                    {
-                        text: 'Más tarde',
-                        onClick: () => {
-                            Toast.show('Puedes instalar la app más tarde desde el menú del navegador', 'info', 3000);
-                        }
-                    }
-                ]
-            );
+            // Disparar evento personalizado para React
+            window.dispatchEvent(new CustomEvent('pwa-install-available', { 
+                detail: { deferredPrompt: e } 
+            }));
         });
         
         window.addEventListener('appinstalled', () => {
-    
-            Toast.show('¡Cherry App instalada exitosamente! 🎉', 'success', 4000);
+            Toast.show('🎉 ¡Cherry App instalada exitosamente!', 'success', 4000);
             deferredPrompt = null;
+            // Limpiar el flag para permitir mostrar el toast nuevamente si es necesario
+            localStorage.removeItem('pwa-install-toast-shown');
         });
+        
+        // Escuchar eventos de instalación automática desde React
+        window.addEventListener('pwa-installed', (event) => {
+            console.log('PWA instalada automáticamente:', event.detail);
+            localStorage.removeItem('pwa-install-toast-shown');
+        });
+        
+        // Escuchar solicitudes de instalación para iOS
+        window.addEventListener('ios-install-request', () => {
+            console.log('Solicitud de instalación para iOS');
+            // Aquí podrías mostrar un modal específico para iOS si es necesario
+        });
+        
+        // Función global para limpiar el cache de instalación (para testing)
+        window.clearPWAInstallCache = () => {
+            localStorage.removeItem('pwa-install-toast-shown');
+            localStorage.removeItem('pwa-modal-shown');
+            console.log('Cache de instalación PWA limpiado');
+        };
         
         // Handle installation errors
         window.addEventListener('appinstalled', (evt) => {

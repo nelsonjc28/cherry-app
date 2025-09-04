@@ -79,6 +79,10 @@ export const usePWAInstall = () => {
     if (deferredPrompt) {
       try {
         addDebugLog('Prompt disponible, ejecutando...');
+        // Mostrar el prompt de instalación
+        await deferredPrompt.prompt();
+        
+        // Esperar la respuesta del usuario
         const { outcome } = await deferredPrompt.userChoice;
         
         addDebugLog('Resultado de instalación', outcome);

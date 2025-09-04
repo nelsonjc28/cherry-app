@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cherry-app-v1.0.2';
+const CACHE_NAME = 'cherry-app-v1.0.3';
 const urlsToCache = [
   '/',
   '/manifest.json',
@@ -8,14 +8,20 @@ const urlsToCache = [
 
 // Instalación del Service Worker
 self.addEventListener('install', (event) => {
+  console.log('Service Worker instalando...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-
+        console.log('Cache abierto:', CACHE_NAME);
         return cache.addAll(urlsToCache);
       })
+      .then(() => {
+        console.log('Cache poblado exitosamente');
+        // Forzar activación inmediata
+        return self.skipWaiting();
+      })
       .catch((error) => {
-
+        console.error('Error al configurar el cache:', error);
         // Notificar al cliente sobre el error
         self.clients.matchAll().then(clients => {
           clients.forEach(client => {
@@ -33,16 +39,22 @@ self.addEventListener('install', (event) => {
 
 // Activación del Service Worker
 self.addEventListener('activate', (event) => {
+  console.log('Service Worker activando...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
+      console.log('Caches encontrados:', cacheNames);
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
-    
+            console.log('Eliminando cache antiguo:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
+    }).then(() => {
+      console.log('Cache limpio, tomando control de todos los clientes');
+      // Tomar control inmediato de todos los clientes
+      return self.clients.claim();
     }).then(() => {
       // Notificar al cliente que el SW está activo
       self.clients.matchAll().then(clients => {
