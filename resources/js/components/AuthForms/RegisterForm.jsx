@@ -81,6 +81,7 @@ const RegisterForm = ({ onSuccess }) => {
         onChange={handleChange}
         className="register-input"
         required
+        minLength="8"
       />
       
       <label htmlFor="password_confirmation" className="register-label">Confirmar Contraseña</label>
@@ -93,6 +94,7 @@ const RegisterForm = ({ onSuccess }) => {
         onChange={handleChange}
         className="register-input"
         required
+        minLength="8"
       />
       
       {error && <div className="register-error">{error}</div>}

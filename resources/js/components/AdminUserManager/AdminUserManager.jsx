@@ -102,7 +102,7 @@ const AdminUserManager = () => {
         ? `/api/admin/users/${editingUser.id}`
         : '/api/admin/users';
       
-      const method = editingUser ? 'PUT' : 'POST';
+      const method = 'POST';
       
       const response = await fetch(url, {
         method,
@@ -243,14 +243,13 @@ const AdminUserManager = () => {
                   />
                 </div>
                 <div className="admin-user-manager__form-group">
-                  <label htmlFor="middle_name">Segundo Nombre *</label>
+                  <label htmlFor="middle_name">Segundo Nombre</label>
                   <input
                     type="text"
                     id="middle_name"
                     name="middle_name"
                     value={formData.middle_name}
                     onChange={handleInputChange}
-                    required
                   />
                 </div>
               </div>
@@ -303,6 +302,7 @@ const AdminUserManager = () => {
                     value={formData.password}
                     onChange={handleInputChange}
                     required={!editingUser}
+                    minLength="8"
                   />
                 </div>
               </div>

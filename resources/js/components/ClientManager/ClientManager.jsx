@@ -77,7 +77,7 @@ const ClientManager = () => {
         ? `/api/admin/clients/${editingClient.id}`
         : '/api/admin/clients';
       
-      const method = editingClient ? 'PUT' : 'POST';
+      const method = 'POST';
       
       const response = await fetch(url, {
         method,
@@ -218,14 +218,13 @@ const ClientManager = () => {
                   />
                 </div>
                 <div className="client-manager__form-group">
-                  <label htmlFor="middle_name">Segundo Nombre *</label>
+                  <label htmlFor="middle_name">Segundo Nombre</label>
                   <input
                     type="text"
                     id="middle_name"
                     name="middle_name"
                     value={formData.middle_name}
                     onChange={handleInputChange}
-                    required
                   />
                 </div>
               </div>
@@ -278,6 +277,7 @@ const ClientManager = () => {
                     value={formData.password}
                     onChange={handleInputChange}
                     required={!editingClient}
+                    minLength="8"
                   />
                 </div>
               </div>

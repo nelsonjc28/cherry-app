@@ -58,9 +58,6 @@ const RegisterPage = () => {
     if (!formData.lastName.trim()) {
       errors.lastName = 'Los apellidos son requeridos';
     }
-    if (!formData.middleName.trim()) {
-      errors.middleName = 'El segundo nombre es requerido';
-    }
     if (!formData.email.trim()) {
       errors.email = 'El correo electrónico es requerido';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
@@ -226,7 +223,6 @@ const RegisterPage = () => {
                         placeholder="Tu segundo nombre"
                         value={formData.middleName}
                         onChange={handleInputChange}
-                        required
                       />
                       {formErrors.middleName && <span className="error-message">{formErrors.middleName}</span>}
                     </div>
@@ -346,6 +342,7 @@ const RegisterPage = () => {
                         value={formData.password}
                         onChange={handleInputChange}
                         required
+                        minLength="8"
                       />
                       {formErrors.password && <span className="error-message">{formErrors.password}</span>}
                     </div>
@@ -358,6 +355,7 @@ const RegisterPage = () => {
                         value={formData.confirmPassword}
                         onChange={handleInputChange}
                         required
+                        minLength="8"
                       />
                       {formErrors.confirmPassword && <span className="error-message">{formErrors.confirmPassword}</span>}
                     </div>
