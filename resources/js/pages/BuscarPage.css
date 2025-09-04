@@ -107,8 +107,9 @@
 
 .buscar-products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 2rem;
 }
 
 /* Responsive */
@@ -129,5 +130,21 @@
 
   .buscar-results-section {
     order: 1;
+  }
+}
+
+/* Tablet styles */
+@media (min-width: 768px) {
+  .buscar-products-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+}
+
+/* Desktop styles */
+@media (min-width: 1024px) {
+  .buscar-products-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
   }
 } 

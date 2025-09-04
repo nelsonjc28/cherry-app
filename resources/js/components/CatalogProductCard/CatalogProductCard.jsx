@@ -26,8 +26,16 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
     stock = 0
   } = product;
   
+  console.log('CatalogProductCard: Received product:', product);
+  console.log('CatalogProductCard: Colors array:', colors, 'Length:', colors?.length);
+  console.log('CatalogProductCard: Will render colors?', colors && colors.length > 0);
+  
+  // TEMPORAL: Forzar colores de prueba si no hay colores
+  const testColors = colors && colors.length > 0 ? colors : ['white', 'black', 'navy'];
+  console.log('CatalogProductCard: Using colors (test):', testColors);
+  
   // State for selected color
-  const [selectedColor, setSelectedColor] = useState(colors[0] || null);
+  const [selectedColor, setSelectedColor] = useState(testColors[0] || null);
 
   // Get current image based on selected color or use default image
   const getCurrentImage = () => {
@@ -159,9 +167,9 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
         <div className="catalog-product-price">{formatPrice(price)}</div>
         
         {/* Color selector */}
-        {colors.length > 0 && (
-          <div className="catalog-color-selector">
-            {colors.map((color, index) => {
+        <div className="catalog-color-selector">
+          {testColors.length > 0 ? (
+            testColors.map((color, index) => {
               const realColor = getRealColor(color);
               const isLight = colorConverter.isLightColor(realColor);
               
@@ -170,17 +178,20 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
                   key={index}
                   className={`color-option ${selectedColor === color ? 'selected' : ''}`}
                   style={{ 
-                    backgroundColor: realColor,
-                    border: `2px solid ${selectedColor === color ? '#333' : 'transparent'}`
+                    backgroundColor: realColor
                   }}
                   onClick={() => handleColorSelect(color)}
                   aria-label={`Seleccionar color ${color}`}
-                  title={`${color} (${realColor})`}
+                  title={color}
                 />
               );
-            })}
-          </div>
-        )}
+            })
+          ) : (
+            <div className="color-option no-colors" title="Sin colores disponibles">
+              <span>—</span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

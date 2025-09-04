@@ -36,6 +36,8 @@ class ColorConverter {
       
       // Colores de moda
       ['navy', '#000080'],
+      ['marino', '#000080'],
+      ['azul marino', '#000080'],
       ['burgundy', '#800020'],
       ['olive', '#808000'],
       ['teal', '#008080'],
@@ -154,28 +156,33 @@ class ColorConverter {
     const normalizedName = colorName.toLowerCase().trim();
     
     // Debug: mostrar qué color se está buscando
-
+    console.log('ColorConverter: Buscando color:', colorName, '-> normalizado:', normalizedName);
     
     // 1. Búsqueda exacta en el mapa
     const exactMatch = this.colorMap.get(normalizedName);
-          if (exactMatch) {
-        return exactMatch;
-      }
+    if (exactMatch) {
+      console.log('ColorConverter: Coincidencia exacta encontrada:', exactMatch);
+      return exactMatch;
+    }
     
     // 2. Búsqueda por palabras clave (más precisa)
     const keywordMatch = this.findByKeywords(normalizedName);
-          if (keywordMatch) {
-        return keywordMatch;
-      }
+    if (keywordMatch) {
+      console.log('ColorConverter: Coincidencia por palabras clave encontrada:', keywordMatch);
+      return keywordMatch;
+    }
     
     // 3. Búsqueda por similitud (fallback)
     const similarityMatch = this.findBySimilarity(normalizedName);
-          if (similarityMatch) {
-        return similarityMatch;
-      }
+    if (similarityMatch) {
+      console.log('ColorConverter: Coincidencia por similitud encontrada:', similarityMatch);
+      return similarityMatch;
+    }
     
     // 4. Si no se encuentra, generar color único
-    return this.generateColorFromName(normalizedName);
+    const generatedColor = this.generateColorFromName(normalizedName);
+    console.log('ColorConverter: Color generado automáticamente:', generatedColor);
+    return generatedColor;
   }
 
   // Buscar por palabras clave más específicas
@@ -223,6 +230,8 @@ class ColorConverter {
       'lila': '#C8A2C8',
       'lilac': '#C8A2C8',
       'navy': '#000080',
+      'marino': '#000080',
+      'azul marino': '#000080',
       'burgundy': '#800020',
       'olive': '#808000',
       'teal': '#008080',

@@ -254,9 +254,10 @@ export const getBulkRatings = async (productIds) => {
   }
 };
 
-export const mapApiProductToAppProduct = async (apiProduct, ratingsCache = {}) => {
+export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
   // Verificar que el producto tenga los campos necesarios
   if (!apiProduct) {
+    console.log('mapApiProductToAppProduct: No apiProduct provided');
     return null;
   }
   
@@ -272,12 +273,37 @@ export const mapApiProductToAppProduct = async (apiProduct, ratingsCache = {}) =
   
   // Obtener colores únicos de los detalles
   let colors = [];
+  
+  // CONSOLE LOG ESPECÍFICO PARA DETALLES
+  console.log('=== PRODUCTO DETALLES ===');
+  console.log('Producto ID:', apiProduct.id);
+  console.log('Producto Nombre:', apiProduct.nombre);
+  console.log('DETALLES COMPLETOS:', apiProduct.detalles);
+  console.log('Tipo de detalles:', typeof apiProduct.detalles);
+  console.log('Es array:', Array.isArray(apiProduct.detalles));
+  if (apiProduct.detalles && Array.isArray(apiProduct.detalles)) {
+    console.log('Cantidad de detalles:', apiProduct.detalles.length);
+    apiProduct.detalles.forEach((detalle, index) => {
+      console.log(`--- Detalle ${index} ---`);
+      console.log('Detalle completo:', detalle);
+      console.log('Tiene nombreColor:', 'nombreColor' in detalle);
+      console.log('nombreColor valor:', detalle.nombreColor);
+      console.log('Todas las propiedades del detalle:', Object.keys(detalle));
+    });
+  }
+  console.log('=== FIN DETALLES ===');
+  
   if (apiProduct.detalles && Array.isArray(apiProduct.detalles)) {
     colors = [...new Set(apiProduct.detalles.map(d => d.nombreColor).filter(Boolean))];
   } else if (apiProduct.colores && Array.isArray(apiProduct.colores)) {
     colors = apiProduct.colores;
   } else if (apiProduct.colors && Array.isArray(apiProduct.colors)) {
     colors = apiProduct.colors;
+  }
+  
+  // TEMPORAL: Si no hay colores, agregar colores de prueba
+  if (!colors || colors.length === 0) {
+    colors = ['white', 'black', 'navy'];
   }
   
   // Obtener categoría de la línea
@@ -847,7 +873,8 @@ export const searchProductsAdvanced = async (query, filters = {}, catalog = 'Che
     }
 
     // Mapear los productos al formato de la app
-    return finalProducts.map(mapApiProductToAppProduct);
+    const mappedProducts = await Promise.all(finalProducts.map(mapApiProductToAppProduct));
+    return mappedProducts.filter(p => p !== null);
   } catch (error) {
     return [];
   }

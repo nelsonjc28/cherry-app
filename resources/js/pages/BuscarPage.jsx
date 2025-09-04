@@ -5,7 +5,7 @@ import ProductCard from '../components/ProductCard/ProductCard';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import CherryButton from '../components/CherryButton/CherryButton';
 import { getIconPath } from '../utils/assetPaths';
-import { searchProductsAdvanced, getAllProducts, mapApiProductToAppProduct } from '../api/cherryApi';
+import { searchProductsAdvanced, getProductsWithRatings, mapApiProductToAppProduct } from '../api/cherryApi';
 import './BuscarPage.css';
 
 const BuscarPage = () => {
@@ -47,7 +47,7 @@ const BuscarPage = () => {
           setFilteredProducts(searchResults);
         } else {
           // Load all products if no search parameters
-          const allProducts = await getAllProducts();
+          const allProducts = await getProductsWithRatings();
           const mappedProducts = allProducts.map(mapApiProductToAppProduct);
           setProducts(mappedProducts);
           setFilteredProducts(mappedProducts);
@@ -220,9 +220,9 @@ const BuscarPage = () => {
                 </div>
               ) : (
                 <div className="buscar-products-grid">
-                  {filteredProducts.map((product) => (
+                  {filteredProducts.map((product, index) => (
                     <ProductCard
-                      key={product.id}
+                      key={product.id || `product-${index}`}
                       product={product}
                       onFavoriteToggle={handleFavoriteToggle}
                     />

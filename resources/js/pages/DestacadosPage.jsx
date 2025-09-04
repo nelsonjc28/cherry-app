@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard/ProductCard';
 import CherryButton from '../components/CherryButton/CherryButton';
 import { getIconPath } from '../utils/assetPaths';
-import { getAllProducts, mapApiProductToAppProduct } from '../api/cherryApi';
+import { getProductsWithRatings, mapApiProductToAppProduct } from '../api/cherryApi';
 import './DestacadosPage.css';
 
 const DestacadosPage = () => {
@@ -23,7 +23,7 @@ const DestacadosPage = () => {
     const loadFeaturedProducts = async () => {
       setLoading(true);
       try {
-        const allProducts = await getAllProducts();
+        const allProducts = await getProductsWithRatings();
         const mappedProducts = allProducts.map(mapApiProductToAppProduct);
         
         // Filtrar productos destacados (nuevos, populares, etc.)

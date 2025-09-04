@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard/ProductCard';
 import CherryButton from '../components/CherryButton/CherryButton';
 import { getIconPath } from '../utils/assetPaths';
-import { getAllProducts, mapApiProductToAppProduct } from '../api/cherryApi';
+import { getProductsWithRatings, mapApiProductToAppProduct } from '../api/cherryApi';
 import './ExplorarPage.css';
 
 const ExplorarPage = () => {
@@ -26,7 +26,7 @@ const ExplorarPage = () => {
     const loadProducts = async () => {
       setLoading(true);
       try {
-        const allProducts = await getAllProducts();
+        const allProducts = await getProductsWithRatings();
         const mappedProducts = allProducts.map(mapApiProductToAppProduct);
         setProducts(mappedProducts);
       } catch (error) {

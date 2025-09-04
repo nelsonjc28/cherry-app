@@ -61,9 +61,18 @@ const CatalogPage = ({ catalogId }) => {
 
   // Function to filter products based on current filters - Memoized
   const filterProducts = useCallback((products, currentFilters) => {
-    if (!products || products.length === 0) return [];
+    console.log('CatalogPage: filterProducts called', { 
+      productsCount: products?.length, 
+      currentFilters 
+    });
+    
+    if (!products || products.length === 0) {
+      console.log('CatalogPage: No products to filter');
+      return [];
+    }
 
     let filtered = [...products];
+    console.log('CatalogPage: Starting with', filtered.length, 'products');
 
     // Filter by category (if not "Todas las categorías")
     if (currentFilters.category && currentFilters.category !== 'Todas las categorías') {
@@ -127,6 +136,7 @@ const CatalogPage = ({ catalogId }) => {
       filtered = filtered.filter(product => product.stock === 0);
     }
 
+    console.log('CatalogPage: Filtered products result:', filtered.length, 'products remaining');
     return filtered;
   }, []);
 
@@ -242,22 +252,49 @@ const CatalogPage = ({ catalogId }) => {
                 if (catalogCode) {
                   externalProducts = externalData
                     .filter(product => product.catalogoId == catalogCode)
-                    .map(product => ({
-                      id: product.id_articulo,
-                      title: product.descripcion || product.nombre_articulo,
-                      description: product.descripcion || product.nombre_articulo,
-                      price: product.precio1 || 0,
-                      image: getProductImageUrl(product.id_articulo),
-                      brand: product.marca,
-                      category: product.categoria,
-                      stock: product.inventario || 0,
-                      colors: [],
-                      isNew: false,
-                      rating: 0,
-                      ratingCount: 0,
-                      source: 'external',
-                      catalogoId: product.catalogoId
-                    }));
+                    .map(product => {
+                      // CONSOLE LOG ESPECÍFICO PARA DETALLES EN CATÁLOGO
+                      console.log('=== PRODUCTO DETALLES EN CATÁLOGO ===');
+                      console.log('Producto ID:', product.id_articulo);
+                      console.log('Producto Nombre:', product.descripcion);
+                      console.log('DETALLES COMPLETOS:', product.detalles);
+                      console.log('Tipo de detalles:', typeof product.detalles);
+                      console.log('Es array:', Array.isArray(product.detalles));
+                      if (product.detalles && Array.isArray(product.detalles)) {
+                        console.log('Cantidad de detalles:', product.detalles.length);
+                        product.detalles.forEach((detalle, index) => {
+                          console.log(`--- Detalle ${index} ---`);
+                          console.log('Detalle completo:', detalle);
+                          console.log('Tiene nombreColor:', 'nombreColor' in detalle);
+                          console.log('nombreColor valor:', detalle.nombreColor);
+                          console.log('Todas las propiedades del detalle:', Object.keys(detalle));
+                        });
+                      }
+                      console.log('=== FIN DETALLES EN CATÁLOGO ===');
+                      
+                      // Extraer colores de los detalles
+                      let colors = [];
+                      if (product.detalles && Array.isArray(product.detalles)) {
+                        colors = [...new Set(product.detalles.map(d => d.nombreColor).filter(Boolean))];
+                      }
+                      
+                      return {
+                        id: product.id_articulo,
+                        title: product.descripcion || product.nombre_articulo,
+                        description: product.descripcion || product.nombre_articulo,
+                        price: product.precio1 || 0,
+                        image: getProductImageUrl(product.id_articulo),
+                        brand: product.marca,
+                        category: product.categoria,
+                        stock: product.inventario || 0,
+                        colors: colors.length > 0 ? colors : ['white', 'black', 'navy'], // Fallback temporal
+                        isNew: false,
+                        rating: 0,
+                        ratingCount: 0,
+                        source: 'external',
+                        catalogoId: product.catalogoId
+                      };
+                    });
                 }
               }
             } catch (error) {
@@ -278,22 +315,49 @@ const CatalogPage = ({ catalogId }) => {
                   // Filtrar por temporada (nombre del catálogo)
                   const fallbackProducts = fallbackData
                     .filter(product => product.temporada === catalogName)
-                    .map(product => ({
-                      id: product.id_articulo,
-                      title: product.descripcion || product.nombre_articulo,
-                      description: product.descripcion || product.nombre_articulo,
-                      price: product.precio1 || 0,
-                      image: getProductImageUrl(product.id_articulo),
-                      brand: product.marca,
-                      category: product.categoria,
-                      stock: product.inventario || 0,
-                      colors: [],
-                      isNew: false,
-                      rating: 0,
-                      ratingCount: 0,
-                      source: 'external_fallback',
-                      temporada: product.temporada
-                    }));
+                    .map(product => {
+                      // CONSOLE LOG ESPECÍFICO PARA DETALLES EN FALLBACK
+                      console.log('=== PRODUCTO DETALLES EN FALLBACK ===');
+                      console.log('Producto ID:', product.id_articulo);
+                      console.log('Producto Nombre:', product.descripcion);
+                      console.log('DETALLES COMPLETOS:', product.detalles);
+                      console.log('Tipo de detalles:', typeof product.detalles);
+                      console.log('Es array:', Array.isArray(product.detalles));
+                      if (product.detalles && Array.isArray(product.detalles)) {
+                        console.log('Cantidad de detalles:', product.detalles.length);
+                        product.detalles.forEach((detalle, index) => {
+                          console.log(`--- Detalle ${index} ---`);
+                          console.log('Detalle completo:', detalle);
+                          console.log('Tiene nombreColor:', 'nombreColor' in detalle);
+                          console.log('nombreColor valor:', detalle.nombreColor);
+                          console.log('Todas las propiedades del detalle:', Object.keys(detalle));
+                        });
+                      }
+                      console.log('=== FIN DETALLES EN FALLBACK ===');
+                      
+                      // Extraer colores de los detalles
+                      let colors = [];
+                      if (product.detalles && Array.isArray(product.detalles)) {
+                        colors = [...new Set(product.detalles.map(d => d.nombreColor).filter(Boolean))];
+                      }
+                      
+                      return {
+                        id: product.id_articulo,
+                        title: product.descripcion || product.nombre_articulo,
+                        description: product.descripcion || product.nombre_articulo,
+                        price: product.precio1 || 0,
+                        image: getProductImageUrl(product.id_articulo),
+                        brand: product.marca,
+                        category: product.categoria,
+                        stock: product.inventario || 0,
+                        colors: colors.length > 0 ? colors : ['white', 'black', 'navy'], // Fallback temporal
+                        isNew: false,
+                        rating: 0,
+                        ratingCount: 0,
+                        source: 'external_fallback',
+                        temporada: product.temporada
+                      };
+                    });
                   
                   productsData = fallbackProducts;
                 }
@@ -339,7 +403,15 @@ const CatalogPage = ({ catalogId }) => {
 
   // Memoized filtered and sorted products
   const processedProducts = useMemo(() => {
-    if (allProducts.length === 0) return [];
+    console.log('CatalogPage: processedProducts useMemo triggered', { 
+      allProductsCount: allProducts.length, 
+      filters 
+    });
+    
+    if (allProducts.length === 0) {
+      console.log('CatalogPage: No products to process');
+      return [];
+    }
     
     let filtered = filterProducts(allProducts, filters);
     
@@ -375,7 +447,9 @@ const CatalogPage = ({ catalogId }) => {
       });
     }
     
-    return sortProducts(filtered, sortBy);
+    const sorted = sortProducts(filtered, sortBy);
+    console.log('CatalogPage: Final processed products:', sorted.length, 'products');
+    return sorted;
   }, [allProducts, filters, colorFilter, dtuFilter, sortBy, filterProducts, sortProducts]);
 
   // Update filtered products when processed products change
@@ -395,8 +469,9 @@ const CatalogPage = ({ catalogId }) => {
 
   // Handle filter changes - Memoized
   const handleFilterChange = useCallback((newFilters) => {
+    console.log('CatalogPage: handleFilterChange called', { newFilters, currentFilters: filters });
     setFilters(newFilters);
-  }, []);
+  }, [filters]);
 
   // Handle clear filters - Memoized
   const handleClearFilters = useCallback(() => {
