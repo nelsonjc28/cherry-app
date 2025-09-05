@@ -199,3 +199,4 @@ window.showToast('Información importante', 'info');
 El sistema de toasts está completamente configurado y listo para usar en toda la aplicación. Simplemente usa `window.showToast()` o las funciones helper importadas.
 
 
+
