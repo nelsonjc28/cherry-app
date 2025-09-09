@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Cherry API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .loading { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        .product-item {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        .product-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Test Cherry API</h1>
+        <p>Esta página prueba la conexión directa con la Cherry API para diagnosticar problemas.</p>
+        
+        <button onclick="testApi()" id="testBtn">Probar API</button>
+        <button onclick="clearResults()">Limpiar Resultados</button>
+        
+        <div id="status"></div>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const API_URL = 'https://cherryapi.estrategiadmgs.com.mx/cherryApi/';
+        
+        function showStatus(message, type = 'loading') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        function showResults(content) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = content;
+        }
+        
+        function clearResults() {
+            document.getElementById('status').innerHTML = '';
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        async function testApi() {
+            const testBtn = document.getElementById('testBtn');
+            testBtn.disabled = true;
+            
+            try {
+                showStatus('🔄 Probando conexión con Cherry API...', 'loading');
+                
+                console.log('Haciendo petición a:', API_URL);
+                const response = await fetch(API_URL);
+                
+                console.log('Respuesta recibida:', response.status, response.statusText);
+                showStatus(`📡 Respuesta: ${response.status} ${response.statusText}`, 'success');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Datos recibidos:', data);
+                
+                // Mostrar información básica
+                let html = `
+                    <h3>✅ Conexión Exitosa</h3>
+                    <div class="status success">
+                        <strong>Tipo de datos:</strong> ${typeof data}<br>
+                        <strong>Es array:</strong> ${Array.isArray(data)}<br>
+                        <strong>Cantidad de elementos:</strong> ${Array.isArray(data) ? data.length : 'N/A'}
+                    </div>
+                `;
+                
+                if (Array.isArray(data) && data.length > 0) {
+                    html += `
+                        <h3>📦 Primeros 5 Productos</h3>
+                        <div style="max-height: 400px; overflow-y: auto;">
+                    `;
+                    
+                    data.slice(0, 5).forEach((product, index) => {
+                        html += `
+                            <div class="product-item">
+                                <strong>${product.descripcion || 'Sin descripción'}</strong>
+                                <div class="product-info">
+                                    ID: ${product.id_articulo} | 
+                                    Precio: $${product.precio1} | 
+                                    Stock: ${product.inventario} | 
+                                    Activo: ${product.activo} | 
+                                    Web: ${product.opc_web} | 
+                                    Marca: ${product.marca}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += '</div>';
+                    
+                    // Mostrar estadísticas
+                    const activeProducts = data.filter(p => p.activo === 1).length;
+                    const productsWithStock = data.filter(p => p.inventario > 0).length;
+                    const webEnabled = data.filter(p => p.opc_web === 'S').length;
+                    
+                    html += `
+                        <h3>📊 Estadísticas</h3>
+                        <div class="status success">
+                            <strong>Total productos:</strong> ${data.length}<br>
+                            <strong>Productos activos:</strong> ${activeProducts}<br>
+                            <strong>Con stock:</strong> ${productsWithStock}<br>
+                            <strong>Habilitados para web:</strong> ${webEnabled}
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="status error">
+                            <strong>⚠️ No se encontraron productos en formato array</strong>
+                        </div>
+                        <h3>🔍 Datos recibidos:</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+                
+                showResults(html);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus(`❌ Error: ${error.message}`, 'error');
+                
+                let errorHtml = `
+                    <h3>❌ Error en la conexión</h3>
+                    <div class="status error">
+                        <strong>Mensaje:</strong> ${error.message}<br>
+                        <strong>Tipo:</strong> ${error.name}
+                    </div>
+                `;
+                
+                // Información adicional sobre el error
+                if (error.message.includes('CORS')) {
+                    errorHtml += `
+                        <div class="status error">
+                            <strong>🔧 Posible problema de CORS:</strong><br>
+                            La API puede no permitir peticiones desde el navegador.<br>
+                            Esto es normal y se puede solucionar configurando CORS en el servidor.
+                        </div>
+                    `;
+                } else if (error.message.includes('Failed to fetch')) {
+                    errorHtml += `
+                        <div class="status error">
+                            <strong>🔧 Problema de red:</strong><br>
+                            No se pudo conectar con el servidor.<br>
+                            Verifica que la URL sea correcta y que el servidor esté funcionando.
+                        </div>
+                    `;
+                }
+                
+                showResults(errorHtml);
+            } finally {
+                testBtn.disabled = false;
+            }
+        }
+        
+        // Probar automáticamente al cargar la página
+        window.addEventListener('load', () => {
+            console.log('Página cargada, iniciando test automático...');
+            testApi();
+        });
+    </script>
+</body>
+</html>
+
+
+

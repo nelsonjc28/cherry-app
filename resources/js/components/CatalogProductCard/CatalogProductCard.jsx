@@ -26,13 +26,13 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
     stock = 0
   } = product;
   
-  console.log('CatalogProductCard: Received product:', product);
-  console.log('CatalogProductCard: Colors array:', colors, 'Length:', colors?.length);
-  console.log('CatalogProductCard: Will render colors?', colors && colors.length > 0);
+
+
+
   
   // TEMPORAL: Forzar colores de prueba si no hay colores
   const testColors = colors && colors.length > 0 ? colors : ['white', 'black', 'navy'];
-  console.log('CatalogProductCard: Using colors (test):', testColors);
+
   
   // State for selected color
   const [selectedColor, setSelectedColor] = useState(testColors[0] || null);

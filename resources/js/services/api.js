@@ -866,7 +866,6 @@ export const catalogService = {
         },
         onUploadProgress: (progressEvent) => {
           const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          console.log(`Progreso de carga: ${percentCompleted}%`);
         },
       });
       return response;
@@ -885,7 +884,6 @@ export const catalogService = {
         },
         onUploadProgress: (progressEvent) => {
           const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          console.log(`Progreso de carga: ${percentCompleted}%`);
         },
       });
       return response;

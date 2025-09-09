@@ -38,7 +38,7 @@ const AdminCatalogManager = () => {
       setLoading(true);
       const response = await catalogService.getAll();
       if (response.data.success) {
-        console.log('Catalogs data received:', response.data.data);
+
         setCatalogs(response.data.data);
       }
     } catch (error) {
@@ -107,11 +107,6 @@ const AdminCatalogManager = () => {
         formDataObj.append('image', formData.image);
       }
 
-      console.log('Enviando datos del catálogo:', {
-        editing: !!editingCatalog,
-        hasImage: !!formData.image,
-        imageSize: formData.image ? formData.image.size : 0
-      });
 
       let response;
       if (editingCatalog) {
@@ -496,9 +491,9 @@ const AdminCatalogManager = () => {
                      <img 
                        src={catalog.image_url} 
                        alt={catalog.name}
-                       onLoad={() => console.log('Image loaded successfully:', catalog.image_url)}
+                       onLoad={() => {}}
                        onError={(e) => {
-                         console.log('Image failed to load:', catalog.image_url);
+
                          e.target.style.display = 'none';
                          e.target.nextSibling.style.display = 'flex';
                        }}

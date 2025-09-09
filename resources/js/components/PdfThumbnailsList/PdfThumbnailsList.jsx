@@ -2,15 +2,6 @@ import React from 'react';
 import './PdfThumbnailsList.css';
 
 const PdfThumbnailsList = ({ pages, selectedPage, onSelect, pdfPath }) => {
-  // Debug: mostrar información
-  console.log('PdfThumbnailsList Debug:', {
-    pages: pages,
-    selectedPage: selectedPage,
-    pdfPath: pdfPath,
-    pagesLength: pages?.length,
-    firstPage: pages?.[0],
-    lastPage: pages?.[pages?.length - 1]
-  });
 
   return (
     <div className="pdf-thumbnails-list">

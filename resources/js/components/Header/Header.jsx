@@ -592,7 +592,6 @@ const Header = () => {
           </div>
 
           {/* Mega Menu Dropdown */}
-          {console.log('Active menu:', activeMenu, 'Menu data:', menuData[activeMenu])}
           {activeMenu && menuData[activeMenu] && (
             <div className="mega-menu">
               <div className="mega-menu-content">

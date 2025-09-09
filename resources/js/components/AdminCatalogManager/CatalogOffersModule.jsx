@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import Swal from 'sweetalert2';
 import { catalogOfferService } from '../../services/api';
+import ProductMultiSelect from '../ProductMultiSelect';
+import UserMultiSelect from '../UserMultiSelect';
 import './CatalogOffersModule.css';
 
 const CatalogOffersModule = ({ onBack }) => {
@@ -14,13 +18,11 @@ const CatalogOffersModule = ({ onBack }) => {
   const [dragOverIndex, setDragOverIndex] = useState(null);
   
   // Estados para el multiselect de usuarios
-  const [users, setUsers] = useState([]);
   const [selectedUsers, setSelectedUsers] = useState([]);
-  const [userSearchTerm, setUserSearchTerm] = useState('');
-  const [showUserDropdown, setShowUserDropdown] = useState(false);
 
   // Estados del formulario
   const [formData, setFormData] = useState({
+    catalog_id: 1, // ID por defecto del catálogo principal
     title: '',
     description: '',
     discount_percentage: '',
@@ -30,28 +32,17 @@ const CatalogOffersModule = ({ onBack }) => {
     end_date: '',
     is_active: true,
     display_order: 0,
-    min_purchase_amount: '',
-    target_users: [] // Array de IDs de usuarios seleccionados
+    buy_quantity: '', // Cantidad a comprar para Buy X Get Y
+    get_quantity: '', // Cantidad gratis para Buy X Get Y
+    min_purchase_amount: '', // Monto mínimo del pedido para descuentos de pedido
+    target_users: [], // Array de IDs de usuarios seleccionados
+    target_products: [] // Array de productos seleccionados para descuento
   });
 
   useEffect(() => {
     loadAllOffers();
-    loadUsers();
   }, []);
 
-  // Cerrar dropdown al hacer click fuera
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showUserDropdown && !event.target.closest('.catalog-offers-module__user-selector')) {
-        setShowUserDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showUserDropdown]);
 
   const loadAllOffers = async () => {
     try {
@@ -67,24 +58,59 @@ const CatalogOffersModule = ({ onBack }) => {
     }
   };
 
-  const loadUsers = async () => {
+  // Función para cargar usuarios completos basándose en IDs
+  const loadSelectedUsers = async (userIds) => {
     try {
-      // Aquí deberías hacer una llamada a tu API para obtener usuarios
-      // Por ahora uso datos de ejemplo
-      const mockUsers = [
-        { id: 1, first_name: 'Juan', last_name: 'Pérez', email: 'juan@example.com' },
-        { id: 2, first_name: 'María', last_name: 'García', email: 'maria@example.com' },
-        { id: 3, first_name: 'Carlos', last_name: 'López', email: 'carlos@example.com' },
-        { id: 4, first_name: 'Ana', last_name: 'Martínez', email: 'ana@example.com' },
-        { id: 5, first_name: 'Luis', last_name: 'Rodríguez', email: 'luis@example.com' },
-        { id: 6, first_name: 'Carmen', last_name: 'Fernández', email: 'carmen@example.com' },
-        { id: 7, first_name: 'Pedro', last_name: 'Sánchez', email: 'pedro@example.com' },
-        { id: 8, first_name: 'Laura', last_name: 'González', email: 'laura@example.com' }
-      ];
-      setUsers(mockUsers);
+      const response = await axios.get('/api/admin/clients', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.data.success && response.data.users) {
+        // Filtrar solo los usuarios que están en la lista de IDs
+        const selectedUsers = response.data.users.filter(user => 
+          userIds.includes(user.id)
+        );
+        setSelectedUsers(selectedUsers);
+      } else {
+        setSelectedUsers([]);
+      }
     } catch (error) {
-      console.error('Error al cargar usuarios:', error);
+      setSelectedUsers([]);
     }
+  };
+
+  const loadCatalogs = async () => {
+    try {
+      
+      const response = await axios.get('/api/admin/catalogs', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+
+      if (response.data.success && response.data.data) {
+        setCatalogs(response.data.data);
+      } else {
+        console.error('❌ Error en respuesta de catálogos:', response.data);
+        setCatalogs([]);
+      }
+    } catch (error) {
+      console.error('❌ Error al cargar catálogos:', error);
+      setCatalogs([]);
+    }
+  };
+
+  const handleUsersChange = (users) => {
+    // Filtrar usuarios válidos antes de actualizar el estado
+    const validUsers = users.filter(user => user && user.id);
+    setSelectedUsers(validUsers);
+    setFormData(prev => ({
+      ...prev,
+      target_users: validUsers.map(user => user.id)
+    }));
   };
 
   const handleDiscountTypeSelect = (discountType) => {
@@ -103,6 +129,7 @@ const CatalogOffersModule = ({ onBack }) => {
     if (offer) {
       setEditingOffer(offer);
       setFormData({
+        catalog_id: offer.catalog_id || 1,
         title: offer.title,
         description: offer.description,
         discount_percentage: offer.discount_percentage,
@@ -113,16 +140,22 @@ const CatalogOffersModule = ({ onBack }) => {
         is_active: offer.is_active,
         display_order: offer.display_order,
         min_purchase_amount: offer.min_purchase_amount || '',
-        target_users: offer.target_users || []
+        buy_quantity: offer.buy_quantity || '',
+        get_quantity: offer.get_quantity || '',
+        target_users: offer.target_users || [],
+        target_products: offer.target_products || []
       });
       // Cargar usuarios seleccionados para edición
-      const selectedUserObjects = users.filter(user => 
-        (offer.target_users || []).includes(user.id)
-      );
-      setSelectedUsers(selectedUserObjects);
+      // offer.target_users contiene IDs, necesitamos cargar los usuarios completos
+      if (offer.target_users && offer.target_users.length > 0) {
+        loadSelectedUsers(offer.target_users);
+      } else {
+        setSelectedUsers([]);
+      }
     } else {
       setEditingOffer(null);
       setFormData({
+        catalog_id: 1,
         title: '',
         description: '',
         discount_percentage: '',
@@ -132,8 +165,11 @@ const CatalogOffersModule = ({ onBack }) => {
         end_date: '',
         is_active: true,
         display_order: offers.length,
+        buy_quantity: '',
+        get_quantity: '',
         min_purchase_amount: '',
-        target_users: []
+        target_users: [],
+        target_products: []
       });
       setSelectedUsers([]);
     }
@@ -142,10 +178,22 @@ const CatalogOffersModule = ({ onBack }) => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked, files } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : type === 'file' ? files[0] : value
-    }));
+    
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [name]: type === 'checkbox' ? checked : type === 'file' ? files[0] : value
+      };
+      
+      // Si se cambia a "Envío gratis", limpiar productos y descuentos
+      if (name === 'discount_category' && value === 'free_shipping') {
+        newData.target_products = [];
+        newData.discount_percentage = 0;
+        newData.discount_type = 'percentage';
+      }
+      
+      return newData;
+    });
   };
 
   const handleCheckboxChange = (e) => {
@@ -156,52 +204,37 @@ const CatalogOffersModule = ({ onBack }) => {
     }));
   };
 
-  // Funciones para el multiselect de usuarios
-  const handleUserSearch = (e) => {
-    setUserSearchTerm(e.target.value);
-    setShowUserDropdown(true);
-  };
 
-  const handleUserSelect = (user) => {
-    if (!selectedUsers.find(u => u.id === user.id)) {
-      const newSelectedUsers = [...selectedUsers, user];
-      setSelectedUsers(newSelectedUsers);
-      setFormData(prev => ({
-        ...prev,
-        target_users: newSelectedUsers.map(u => u.id)
-      }));
-    }
-    setUserSearchTerm('');
-    setShowUserDropdown(false);
-  };
 
-  const handleUserRemove = (userId) => {
-    const newSelectedUsers = selectedUsers.filter(u => u.id !== userId);
-    setSelectedUsers(newSelectedUsers);
+  // Función para manejar cambios en productos seleccionados
+  const handleProductsChange = (selectedProducts) => {
     setFormData(prev => ({
       ...prev,
-      target_users: newSelectedUsers.map(u => u.id)
+      target_products: Array.isArray(selectedProducts) ? selectedProducts : []
     }));
   };
-
-  const filteredUsers = users.filter(user => {
-    const searchTerm = userSearchTerm.toLowerCase();
-    const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
-    const email = user.email.toLowerCase();
-    return (fullName.includes(searchTerm) || email.includes(searchTerm)) &&
-           !selectedUsers.find(u => u.id === user.id);
-  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     try {
+      
              const submitData = new FormData();
        Object.keys(formData).forEach(key => {
          if (formData[key] !== null && formData[key] !== '') {
            // Para checkboxes, asegurar que se envíe como boolean
            if (key === 'is_active') {
              submitData.append(key, formData[key] ? '1' : '0');
+          } else if (key === 'target_products') {
+            // Para productos, enviar como JSON string (incluso si está vacío)
+            const productsArray = Array.isArray(formData[key]) ? formData[key] : [];
+            submitData.append(key, JSON.stringify(productsArray));
+          } else if (key === 'target_users') {
+            // Para usuarios, enviar como JSON string
+            const usersArray = selectedUsers
+              .filter(user => user && user.id) // Filtrar usuarios válidos
+              .map(user => user.id);
+            submitData.append(key, JSON.stringify(usersArray));
            } else {
              submitData.append(key, formData[key]);
            }
@@ -215,6 +248,7 @@ const CatalogOffersModule = ({ onBack }) => {
         response = await catalogOfferService.create(submitData);
       }
 
+
       if (response.data.success) {
         window.showToast(
           editingOffer ? 'Oferta actualizada exitosamente' : 'Oferta creada exitosamente',
@@ -223,25 +257,39 @@ const CatalogOffersModule = ({ onBack }) => {
         setShowForm(false);
         setEditingOffer(null);
         loadAllOffers();
+      } else {
+        console.error('❌ Error en respuesta del servidor:', response.data);
+        setError('Error al guardar la oferta: ' + (response.data.message || 'Error desconocido'));
       }
     } catch (error) {
-      setError('Error al guardar la oferta');
+      console.error('❌ Error al guardar oferta:', error);
+      setError('Error al guardar la oferta: ' + error.message);
     }
   };
 
   const handleDelete = async (offerId) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar esta oferta?')) {
-      return;
-    }
+    const result = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: 'No podrás revertir esta acción',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
 
+    if (result.isConfirmed) {
     try {
       const response = await catalogOfferService.delete(offerId);
       if (response.data.success) {
-        window.showToast('Oferta eliminada exitosamente', 'success');
+          window.showToast('La oferta ha sido eliminada exitosamente', 'success');
         loadAllOffers();
       }
     } catch (error) {
+        console.error('Error al eliminar oferta:', error);
       setError('Error al eliminar la oferta');
+      }
     }
   };
 
@@ -552,83 +600,87 @@ const CatalogOffersModule = ({ onBack }) => {
                     <option value="free_shipping">Envío gratis</option>
                   </select>
                 </div>
-                <div className="catalog-offers-module__form-group">
-                  <label>Compra mínima ($)</label>
-                  <input
-                    type="number"
-                    name="min_purchase_amount"
-                    value={formData.min_purchase_amount}
-                    onChange={handleInputChange}
-                    min="0"
-                    step="0.01"
-                    placeholder="Sin mínimo"
-                  />
-                </div>
               </div>
 
               <div className="catalog-offers-module__form-row">
                 <div className="catalog-offers-module__form-group catalog-offers-module__form-group--full">
                   <label>Usuarios objetivo *</label>
-                  <div className="catalog-offers-module__user-selector">
-                    {/* Usuarios seleccionados */}
-                    <div className="catalog-offers-module__selected-users">
-                      {selectedUsers.map(user => (
-                        <div key={user.id} className="catalog-offers-module__selected-user">
-                          <span>{user.first_name} {user.last_name}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleUserRemove(user.id)}
-                            className="catalog-offers-module__remove-user"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    
-                    {/* Campo de búsqueda */}
-                    <div className="catalog-offers-module__user-search">
-                      <input
-                        type="text"
-                        placeholder="Buscar usuarios..."
-                        value={userSearchTerm}
-                        onChange={handleUserSearch}
-                        onFocus={() => setShowUserDropdown(true)}
-                        className="catalog-offers-module__user-search-input"
-                      />
-                      
-                      {/* Dropdown de resultados */}
-                      {showUserDropdown && userSearchTerm && (
-                        <div className="catalog-offers-module__user-dropdown">
-                          {filteredUsers.length > 0 ? (
-                            filteredUsers.map(user => (
-                              <div
-                                key={user.id}
-                                className="catalog-offers-module__user-option"
-                                onClick={() => handleUserSelect(user)}
-                              >
-                                <div className="catalog-offers-module__user-info">
-                                  <span className="catalog-offers-module__user-name">
-                                    {user.first_name} {user.last_name}
-                                  </span>
-                                  <span className="catalog-offers-module__user-email">
-                                    {user.email}
-                                  </span>
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="catalog-offers-module__no-users">
-                              No se encontraron usuarios
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <UserMultiSelect
+                    selectedUsers={selectedUsers}
+                    onUsersChange={handleUsersChange}
+                    placeholder="Buscar usuarios clientes..."
+                    maxHeight="300px"
+                  />
+                  <small className="catalog-offers-module__form-help">
+                    Selecciona los usuarios específicos que tendrán acceso a este descuento. Los usuarios se cargan desde la base de datos.
+                  </small>
                 </div>
               </div>
 
+              {/* Selección de productos para descuento - No mostrar para envío gratis */}
+              {formData.discount_category !== 'free_shipping' && (
+                <div className="catalog-offers-module__form-row">
+                  <div className="catalog-offers-module__form-group catalog-offers-module__form-group--full">
+                    <label>Productos con descuento *</label>
+                    <ProductMultiSelect
+                      selectedProducts={formData.target_products}
+                      onProductsChange={handleProductsChange}
+                      placeholder="Buscar productos de Cherry API..."
+                      maxHeight="400px"
+                    />
+                    <small className="catalog-offers-module__form-help">
+                      {formData.discount_category === 'product_discount' && 
+                        'Selecciona los productos específicos que tendrán este descuento. Los productos se cargan desde la API de Cherry.'
+                      }
+                      {formData.discount_category === 'buy_x_get_y' && 
+                        'Selecciona los productos que aplican para la promoción Buy X Get Y. Los productos se cargan desde la API de Cherry.'
+                      }
+                      {formData.discount_category === 'order_discount' && 
+                        'Selecciona los productos que deben estar en el pedido para aplicar el descuento al TOTAL de la compra. El descuento se aplicará al monto total del pedido, no a productos individuales.'
+                      }
+                    </small>
+                  </div>
+                </div>
+              )}
+                    
+              {/* Campos específicos para Buy X Get Y */}
+              {formData.discount_category === 'buy_x_get_y' && (
+                <div className="catalog-offers-module__form-row">
+                  <div className="catalog-offers-module__form-group">
+                    <label>Cantidad a comprar (X) *</label>
+                      <input
+                      type="number"
+                      name="buy_quantity"
+                      value={formData.buy_quantity || ''}
+                      onChange={handleInputChange}
+                      required
+                      min="1"
+                      placeholder="Ej: 10"
+                    />
+                    <small className="catalog-offers-module__form-help">
+                      Cantidad mínima de productos que debe comprar el cliente
+                    </small>
+                                </div>
+                  <div className="catalog-offers-module__form-group">
+                    <label>Cantidad gratis (Y) *</label>
+                    <input
+                      type="number"
+                      name="get_quantity"
+                      value={formData.get_quantity || ''}
+                      onChange={handleInputChange}
+                      required
+                      min="1"
+                      placeholder="Ej: 2"
+                    />
+                    <small className="catalog-offers-module__form-help">
+                      Cantidad de productos que recibirá gratis
+                    </small>
+                              </div>
+                            </div>
+                          )}
+
+              {/* Campos de descuento para otros tipos - No mostrar para envío gratis */}
+              {formData.discount_category !== 'buy_x_get_y' && formData.discount_category !== 'free_shipping' && (
                              <div className="catalog-offers-module__form-row">
                  <div className="catalog-offers-module__form-group">
                    <label>Descuento *</label>
@@ -654,19 +706,26 @@ const CatalogOffersModule = ({ onBack }) => {
                      </select>
                    </div>
                  </div>
+                 {formData.discount_category === 'order_discount' && (
                  <div className="catalog-offers-module__form-group">
-                   <label>Compra mínima ($)</label>
+                     <label>Compra mínima del pedido ($) *</label>
                    <input
                      type="number"
                      name="min_purchase_amount"
-                     value={formData.min_purchase_amount}
+                       value={formData.min_purchase_amount || ''}
                      onChange={handleInputChange}
+                       required
                      min="0"
                      step="0.01"
-                     placeholder="Sin mínimo"
+                       placeholder="Ej: 100.00"
                    />
+                     <small className="catalog-offers-module__form-help">
+                       Monto mínimo que debe tener el pedido para aplicar el descuento al total
+                     </small>
                  </div>
+                 )}
                </div>
+              )}
 
               <div className="catalog-offers-module__form-row">
                 <div className="catalog-offers-module__form-group">
@@ -781,11 +840,20 @@ const CatalogOffersModule = ({ onBack }) => {
                         {offer.discount_category === 'free_shipping' && '🚚 Envío gratis'}
                       </span>
                     </div>
+                    {offer.discount_category !== 'buy_x_get_y' && offer.discount_category !== 'free_shipping' && (
                     <div className="catalog-offers-module__offer-discount">
                       <span className="catalog-offers-module__discount-amount">
                         {offer.discount_type === 'percentage' ? `${offer.discount_percentage}%` : `$${offer.discount_percentage}`}
                       </span>
                     </div>
+                    )}
+                    {offer.discount_category === 'buy_x_get_y' && (
+                      <div className="catalog-offers-module__offer-discount">
+                        <span className="catalog-offers-module__discount-amount">
+                          Compra {offer.buy_quantity} lleva {offer.get_quantity} gratis
+                        </span>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="catalog-offers-module__offer-meta">
@@ -794,7 +862,7 @@ const CatalogOffersModule = ({ onBack }) => {
                       <span>Fin: {formatDate(offer.end_date)}</span>
                     </div>
                                          <div className="catalog-offers-module__offer-usage">
-                       {offer.min_purchase_amount && (
+                       {offer.min_purchase_amount && offer.discount_category !== 'buy_x_get_y' && (
                          <span>Mín: ${offer.min_purchase_amount}</span>
                        )}
                      </div>

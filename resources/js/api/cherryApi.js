@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 const CHERRY_API_URL = 'https://cherryapi.estrategiadmgs.com.mx/cherryApi/';
 
 // Cache para productos
@@ -9,14 +11,8 @@ let productsCache = null;
 // Función de prueba para verificar la API
 export const testApiConnection = async () => {
   try {
-    
-    const response = await fetch(CHERRY_API_URL);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-    
-    const data = await response.json();
+    const response = await axios.get(CHERRY_API_URL);
+    const data = response.data;
     
     return {
       success: true,
@@ -44,20 +40,18 @@ export const testMultipleEndpoints = async () => {
 
   for (const endpoint of endpoints) {
     try {
-      const response = await fetch(endpoint);
-      
-      if (response.ok) {
-        const data = await response.json();
+      const response = await axios.get(endpoint);
+      const data = response.data;
         
-        if (data && (Array.isArray(data) || (typeof data === 'object' && Object.keys(data).length > 0))) {
-          return {
-            success: true,
-            endpoint: endpoint,
-            data: data
-          };
-        }
+      if (data && (Array.isArray(data) || (typeof data === 'object' && Object.keys(data).length > 0))) {
+        return {
+          success: true,
+          endpoint: endpoint,
+          data: data
+        };
       }
     } catch (error) {
+      // Error silencioso, continuar con el siguiente endpoint
     }
   }
   
@@ -91,13 +85,10 @@ const CATALOG_MAPPING = {
 // Función para obtener todos los productos
 export const getAllProducts = async (catalog = 'Cherry 2025 - 2026') => {
   try {
-    const response = await fetch(CHERRY_API_URL);
+    const response = await axios.get(CHERRY_API_URL);
     
-    if (!response.ok) {
-      throw new Error(`Error al obtener productos: ${response.status} ${response.statusText}`);
-    }
     
-    const products = await response.json();
+    const products = response.data;
     
     // Verificar si products es válido
     if (!products) {
@@ -147,8 +138,10 @@ export const getAllProducts = async (catalog = 'Cherry 2025 - 2026') => {
       }
     }
     
+    
     return productsArray;
   } catch (error) {
+    console.error('❌ Error en getAllProducts:', error);
     return [];
   }
 };
@@ -233,22 +226,11 @@ export const getProductsByLineDescription = async (lineDescription) => {
 // Función para obtener ratings en bulk para múltiples productos
 export const getBulkRatings = async (productIds) => {
   try {
-    const response = await fetch('/api/ratings/bulk', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify({
-        product_ids: productIds
-      })
+    const response = await axios.post('/api/ratings/bulk', {
+      product_ids: productIds
     });
 
-    if (response.ok) {
-      const data = await response.json();
-      return data.ratings || {};
-    }
-    return {};
+    return response.data.ratings || {};
   } catch (error) {
     return {};
   }
@@ -257,7 +239,6 @@ export const getBulkRatings = async (productIds) => {
 export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
   // Verificar que el producto tenga los campos necesarios
   if (!apiProduct) {
-    console.log('mapApiProductToAppProduct: No apiProduct provided');
     return null;
   }
   
@@ -274,24 +255,6 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
   // Obtener colores únicos de los detalles
   let colors = [];
   
-  // CONSOLE LOG ESPECÍFICO PARA DETALLES
-  console.log('=== PRODUCTO DETALLES ===');
-  console.log('Producto ID:', apiProduct.id);
-  console.log('Producto Nombre:', apiProduct.nombre);
-  console.log('DETALLES COMPLETOS:', apiProduct.detalles);
-  console.log('Tipo de detalles:', typeof apiProduct.detalles);
-  console.log('Es array:', Array.isArray(apiProduct.detalles));
-  if (apiProduct.detalles && Array.isArray(apiProduct.detalles)) {
-    console.log('Cantidad de detalles:', apiProduct.detalles.length);
-    apiProduct.detalles.forEach((detalle, index) => {
-      console.log(`--- Detalle ${index} ---`);
-      console.log('Detalle completo:', detalle);
-      console.log('Tiene nombreColor:', 'nombreColor' in detalle);
-      console.log('nombreColor valor:', detalle.nombreColor);
-      console.log('Todas las propiedades del detalle:', Object.keys(detalle));
-    });
-  }
-  console.log('=== FIN DETALLES ===');
   
   if (apiProduct.detalles && Array.isArray(apiProduct.detalles)) {
     colors = [...new Set(apiProduct.detalles.map(d => d.nombreColor).filter(Boolean))];
@@ -362,18 +325,8 @@ export const getFeaturedProducts = async (limit = 8) => {
 export const getRandomProducts = async (limit = 5) => {
   try {
     // Llamar directamente a la API en lugar de usar getAllProducts para evitar bucles
-    const response = await fetch(`${CHERRY_API_URL}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const response = await axios.get(CHERRY_API_URL);
+    const data = response.data;
     
     // La API devuelve un array directo, no un objeto con clave 'productos'
     let products = [];
@@ -439,18 +392,8 @@ export const getRandomProducts = async (limit = 5) => {
 // Función para obtener productos nuevos
 export const getNewProducts = async (limit = 5) => {
   try {
-    const response = await fetch(`${CHERRY_API_URL}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const response = await axios.get(CHERRY_API_URL);
+    const data = response.data;
     
     let products = [];
     if (Array.isArray(data)) {
@@ -506,18 +449,8 @@ export const getNewProducts = async (limit = 5) => {
 // Función para obtener productos en promoción
 export const getPromoProducts = async (limit = 5) => {
   try {
-    const response = await fetch(`${CHERRY_API_URL}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const response = await axios.get(CHERRY_API_URL);
+    const data = response.data;
     
     let products = [];
     if (Array.isArray(data)) {
@@ -692,11 +625,8 @@ export const fetchProducts = async (catalog = 'Cherry 2025 - 2026') => {
 // Función para obtener productos por disponibilidad
 export const getProductsByAvailability = async (availability, catalog = 'Cherry 2025 - 2026') => {
   try {
-    const response = await fetch(CHERRY_API_URL);
-    if (!response.ok) {
-      throw new Error('Error al obtener productos');
-    }
-    const products = await response.json();
+    const response = await axios.get(CHERRY_API_URL);
+    const products = response.data;
     
     let filteredProducts = products;
     
@@ -924,13 +854,8 @@ export const getAvailableCategoriesFromAPI = async (catalog = 'Cherry 2025 - 202
 export const getProductById = async (productId) => {
   try {
     // Make direct API call with specific product ID
-    const response = await fetch(`https://cherryapi.estrategiadmgs.com.mx/cherryApi/?id_articulo=${productId}`);
-    
-    if (!response.ok) {
-      throw new Error('No se pudo obtener el producto');
-    }
-    
-    const data = await response.json();
+    const response = await axios.get(`https://cherryapi.estrategiadmgs.com.mx/cherryApi/?id_articulo=${productId}`);
+    const data = response.data;
     
     if (!data || data.length === 0) {
       throw new Error(`Producto con ID ${productId} no encontrado`);
@@ -952,32 +877,30 @@ export const getProductById = async (productId) => {
 // Función para probar con una API pública de ejemplo
 export const testWithPublicApi = async () => {
   try {
-    const response = await fetch('https://jsonplaceholder.typicode.com/posts?_limit=5');
-    if (response.ok) {
-      const data = await response.json();
-      
-      // Convertir los datos de ejemplo a formato de productos
-      const mockProducts = data.map((post, index) => ({
-        id: `MOCK${post.id}`,
-        title: `Producto ${post.title}`,
-        image: `https://picsum.photos/300/400?random=${post.id}`,
-        price: Math.floor(Math.random() * 200) + 50,
-        rating: Math.floor(Math.random() * 2) + 4, // 4-5 estrellas
-        description: post.body,
-        brand: 'Cherry',
-        category: 'Vestidos',
-        colors: ['Negro', 'Rojo'],
-        stock: Math.floor(Math.random() * 20) + 5,
-        isActive: true,
-        isNew: Math.random() > 0.5,
-        isPromo: Math.random() > 0.7
-      }));
-      
-      return {
-        success: true,
-        data: mockProducts
-      };
-    }
+    const response = await axios.get('https://jsonplaceholder.typicode.com/posts?_limit=5');
+    const data = response.data;
+    
+    // Convertir los datos de ejemplo a formato de productos
+    const mockProducts = data.map((post, index) => ({
+      id: `MOCK${post.id}`,
+      title: `Producto ${post.title}`,
+      image: `https://picsum.photos/300/400?random=${post.id}`,
+      price: Math.floor(Math.random() * 200) + 50,
+      rating: Math.floor(Math.random() * 2) + 4, // 4-5 estrellas
+      description: post.body,
+      brand: 'Cherry',
+      category: 'Vestidos',
+      colors: ['Negro', 'Rojo'],
+      stock: Math.floor(Math.random() * 20) + 5,
+      isActive: true,
+      isNew: Math.random() > 0.5,
+      isPromo: Math.random() > 0.7
+    }));
+    
+    return {
+      success: true,
+      data: mockProducts
+    };
   } catch (error) {
     // Error silencioso
   }

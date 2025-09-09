@@ -14,14 +14,10 @@ const PWAInstaller = () => {
 
 
   useEffect(() => {
-    console.log('PWAInstaller useEffect ejecutado');
-    console.log('isStandalone:', isStandalone);
-    console.log('isInstallable:', isInstallable);
-    console.log('isIOS:', isIOS);
     
     // Verificar si ya se mostró el modal anteriormente
     const modalShown = localStorage.getItem('pwa-modal-shown');
-    console.log('Modal ya mostrado:', modalShown);
+
     if (modalShown === 'true') {
       setHasShownModal(true);
       return;
@@ -29,30 +25,30 @@ const PWAInstaller = () => {
     
     // Detectar si es móvil
     const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    console.log('Es móvil:', isMobile);
+
     
     // En desarrollo, mostrar siempre (para testing)
     const isDevelopment = process.env.NODE_ENV === 'development';
     const forceShow = isDevelopment && !isMobile;
-    console.log('Forzar mostrar:', forceShow);
+
     
     // Solo mostrar en móviles o forzar en desarrollo
     if (!isMobile && !forceShow) {
-      console.log('No mostrar: no es móvil y no es desarrollo');
+
       return;
     }
 
     // Verificar si ya está instalado
     if (isStandalone) {
-      console.log('No mostrar: ya está instalado');
+
       return;
     }
 
     // Mostrar modal después de 3 segundos (o inmediatamente en desarrollo)
     const delay = forceShow ? 1000 : 3000;
-    console.log('Mostrando modal en', delay, 'ms');
+
     const timer = setTimeout(() => {
-      console.log('Mostrando modal de instalación');
+
       setShowInstallModal(true);
     }, delay);
 
@@ -64,15 +60,15 @@ const PWAInstaller = () => {
 
 
   const handleInstallClick = async () => {
-    console.log('Intentando instalar PWA...');
-    console.log('isInstallable:', isInstallable);
-    console.log('deferredPrompt:', !!deferredPrompt);
-    console.log('isIOS:', isIOS);
-    console.log('User Agent:', navigator.userAgent);
+
+
+
+
+
     
     if (isInstallable && deferredPrompt) {
       // Android/Chrome - Instalación automática
-      console.log('Instalando con deferredPrompt...');
+
       try {
         // Mostrar el prompt nativo del navegador
         await deferredPrompt.prompt();
@@ -81,21 +77,20 @@ const PWAInstaller = () => {
         const { outcome } = await deferredPrompt.userChoice;
         
         if (outcome === 'accepted') {
-          console.log('Usuario aceptó la instalación');
+
           // Mostrar toast de éxito
           if (window.Toast) {
             window.Toast.show('¡Cherry App instalada exitosamente! 🎉', 'success', 4000);
           }
           setShowInstallModal(false);
         } else {
-          console.log('Usuario rechazó la instalación');
+
           if (window.Toast) {
             window.Toast.show('Instalación cancelada', 'warning', 3000);
           }
         }
         
-        // Limpiar el prompt
-        deferredPrompt = null;
+        // El prompt se limpia automáticamente en el hook
       } catch (error) {
         console.error('Error durante la instalación:', error);
         if (window.Toast) {
@@ -104,7 +99,7 @@ const PWAInstaller = () => {
       }
     } else if (isIOS) {
       // iOS - Mostrar instrucciones
-      console.log('Mostrando instrucciones para iOS...');
+
       setShowIOSInstructions(true);
       setShowInstallModal(false);
     } else {
@@ -147,22 +142,22 @@ const PWAInstaller = () => {
   };
 
   const handleShowInstallModal = () => {
-    console.log('Botón flotante clickeado - mostrando modal');
-    console.log('Estado actual - showInstallModal:', showInstallModal, 'shouldShowModal:', shouldShowModal);
+
+
     setShowInstallModal(true);
-    console.log('Modal debería mostrarse ahora');
+
   };
 
 
 
   // No mostrar nada si ya está instalado o si ya se mostró el modal
-  console.log('Renderizando PWAInstaller - isStandalone:', isStandalone, 'hasShownModal:', hasShownModal);
+
   
   // Siempre mostrar el botón flotante, independientemente del estado
   // El modal se puede mostrar manualmente incluso si ya se mostró antes
   const shouldShowModal = !isStandalone;
 
-  console.log('Renderizando PWAInstaller sin botón flotante');
+
   
   return (
     <>
@@ -170,7 +165,7 @@ const PWAInstaller = () => {
       {/* Modal principal de instalación */}
       {(() => {
         const shouldRender = showInstallModal && shouldShowModal;
-        console.log('Evaluando modal - showInstallModal:', showInstallModal, 'shouldShowModal:', shouldShowModal, 'shouldRender:', shouldRender);
+
         return shouldRender;
       })() && (
         <div 

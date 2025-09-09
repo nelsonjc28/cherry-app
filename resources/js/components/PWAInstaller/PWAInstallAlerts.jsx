@@ -9,7 +9,7 @@ const PWAInstallAlerts = () => {
   useEffect(() => {
     // Escuchar eventos de instalación exitosa
     const handlePWAInstalled = (event) => {
-      console.log('PWA instalada automáticamente:', event.detail);
+
       setToastMessage('🎉 ¡Cherry App instalada exitosamente!');
       setShowSuccessToast(true);
       
@@ -21,7 +21,7 @@ const PWAInstallAlerts = () => {
 
     // Escuchar eventos de error de instalación
     const handlePWAError = (event) => {
-      console.log('Error en instalación PWA:', event.detail);
+
       setToastMessage(event.detail.message || 'Error al instalar la aplicación');
       setShowErrorToast(true);
       
@@ -33,7 +33,7 @@ const PWAInstallAlerts = () => {
 
     // Escuchar solicitudes de instalación para iOS
     const handleIOSInstallRequest = () => {
-      console.log('Solicitud de instalación para iOS');
+
       setToastMessage('📱 Para instalar en iOS: Toca el botón Compartir y selecciona "Agregar a pantalla de inicio"');
       setShowSuccessToast(true);
       
@@ -104,4 +104,7 @@ const PWAInstallAlerts = () => {
 };
 
 export default PWAInstallAlerts;
+
+
+
 

@@ -42,7 +42,7 @@ const CatalogFilter = ({
 
   // Handle filter changes
   const handleFilterChange = (filterType, value) => {
-    console.log('CatalogFilter: handleFilterChange called', { filterType, value, currentFilters: filters });
+
     
     const newFilters = { ...filters };
 
@@ -75,11 +75,11 @@ const CatalogFilter = ({
         newFilters.priceRange = value;
         break;
       default:
-        console.log('CatalogFilter: Unknown filter type:', filterType);
+
         break;
     }
 
-    console.log('CatalogFilter: New filters to apply:', newFilters);
+
     onFilterChange(newFilters);
   };
 

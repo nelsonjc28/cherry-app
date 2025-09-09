@@ -381,7 +381,7 @@ const NuevosPage = () => {
   // Handler for favorite toggle
   const handleFavoriteToggle = (productId) => {
     // Implementar lógica de favoritos si es necesario
-    console.log('Toggle favorite for product:', productId);
+
   };
 
   // Get current products to display

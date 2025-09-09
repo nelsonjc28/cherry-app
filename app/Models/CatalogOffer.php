@@ -15,6 +15,7 @@ class CatalogOffer extends Model
         'description',
         'discount_percentage',
         'discount_type', // 'percentage', 'fixed'
+        'discount_category', // 'product_discount', 'buy_x_get_y', 'order_discount', 'free_shipping'
         'start_date',
         'end_date',
         'is_active',
@@ -24,7 +25,11 @@ class CatalogOffer extends Model
         'max_uses',
         'current_uses',
         'min_purchase_amount',
-        'max_discount_amount'
+        'max_discount_amount',
+        'buy_quantity', // Cantidad a comprar para Buy X Get Y
+        'get_quantity', // Cantidad gratis para Buy X Get Y
+        'target_products', // JSON array of selected products
+        'target_users' // JSON array of user IDs
     ];
 
     protected $casts = [
@@ -36,7 +41,11 @@ class CatalogOffer extends Model
         'max_uses' => 'integer',
         'current_uses' => 'integer',
         'min_purchase_amount' => 'decimal:2',
-        'max_discount_amount' => 'decimal:2'
+        'max_discount_amount' => 'decimal:2',
+        'buy_quantity' => 'integer',
+        'get_quantity' => 'integer',
+        'target_products' => 'array',
+        'target_users' => 'array'
     ];
 
     /**
@@ -81,6 +90,11 @@ class CatalogOffer extends Model
      */
     public function calculateDiscount($amount)
     {
+        // Para envío gratis, no hay descuento monetario
+        if ($this->discount_category === 'free_shipping') {
+            return 0;
+        }
+        
         if ($this->discount_type === 'percentage') {
             $discount = ($amount * $this->discount_percentage) / 100;
             
@@ -93,6 +107,14 @@ class CatalogOffer extends Model
         }
         
         return $this->discount_percentage;
+    }
+
+    /**
+     * Verificar si la oferta incluye envío gratis
+     */
+    public function hasFreeShipping()
+    {
+        return $this->discount_category === 'free_shipping';
     }
 }
 

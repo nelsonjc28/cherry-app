@@ -156,32 +156,32 @@ class ColorConverter {
     const normalizedName = colorName.toLowerCase().trim();
     
     // Debug: mostrar qué color se está buscando
-    console.log('ColorConverter: Buscando color:', colorName, '-> normalizado:', normalizedName);
+
     
     // 1. Búsqueda exacta en el mapa
     const exactMatch = this.colorMap.get(normalizedName);
     if (exactMatch) {
-      console.log('ColorConverter: Coincidencia exacta encontrada:', exactMatch);
+
       return exactMatch;
     }
     
     // 2. Búsqueda por palabras clave (más precisa)
     const keywordMatch = this.findByKeywords(normalizedName);
     if (keywordMatch) {
-      console.log('ColorConverter: Coincidencia por palabras clave encontrada:', keywordMatch);
+
       return keywordMatch;
     }
     
     // 3. Búsqueda por similitud (fallback)
     const similarityMatch = this.findBySimilarity(normalizedName);
     if (similarityMatch) {
-      console.log('ColorConverter: Coincidencia por similitud encontrada:', similarityMatch);
+
       return similarityMatch;
     }
     
     // 4. Si no se encuentra, generar color único
     const generatedColor = this.generateColorFromName(normalizedName);
-    console.log('ColorConverter: Color generado automáticamente:', generatedColor);
+
     return generatedColor;
   }
 

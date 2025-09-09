@@ -41,8 +41,7 @@ export const createToast = (message, type = 'info', duration = null) => {
     window.showToast(message, type, finalDuration);
   } else {
     console.warn('Sistema de toast no disponible');
-    // Fallback a console.log
-    console.log(`[${type.toUpperCase()}] ${message}`);
+
   }
 };
 
@@ -60,6 +59,7 @@ export const showMultipleToasts = (toasts) => {
     }, index * 500); // Delay entre cada toast
   });
 };
+
 
 
 

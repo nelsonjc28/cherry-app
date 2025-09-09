@@ -127,7 +127,7 @@ const PWADiagnostics = () => {
         await Promise.all(
           cacheNames.map(cacheName => caches.delete(cacheName))
         );
-        console.log('Caches eliminados:', cacheNames);
+
       }
       
       // Desregistrar Service Worker
@@ -136,7 +136,7 @@ const PWADiagnostics = () => {
         await Promise.all(
           registrations.map(registration => registration.unregister())
         );
-        console.log('Service Workers desregistrados:', registrations.length);
+
       }
       
       alert('✅ Cache completamente limpiado:\n\n- localStorage limpiado\n- Service Worker cache eliminado\n- Service Workers desregistrados\n\nRecarga la página para aplicar cambios.');

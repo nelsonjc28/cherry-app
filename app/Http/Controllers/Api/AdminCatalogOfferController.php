@@ -64,8 +64,9 @@ class AdminCatalogOfferController extends Controller
                 'catalog_id' => 'required|exists:catalogs,id',
                 'title' => 'required|string|max:255',
                 'description' => 'required|string',
-                'discount_percentage' => 'required|numeric|min:0|max:100',
-                'discount_type' => 'required|in:percentage,fixed',
+                'discount_percentage' => 'required_if:discount_category,product_discount,order_discount|numeric|min:0|max:100',
+                'discount_type' => 'required_if:discount_category,product_discount,order_discount|in:percentage,fixed',
+                'discount_category' => 'required|in:product_discount,buy_x_get_y,order_discount,free_shipping',
                 'start_date' => 'required|date',
                 'end_date' => 'required|date|after:start_date',
                 'is_active' => 'boolean',
@@ -74,10 +75,18 @@ class AdminCatalogOfferController extends Controller
                 'max_uses' => 'nullable|integer|min:1',
                 'min_purchase_amount' => 'nullable|numeric|min:0',
                 'max_discount_amount' => 'nullable|numeric|min:0',
+                'buy_quantity' => 'required_if:discount_category,buy_x_get_y|integer|min:1',
+                'get_quantity' => 'required_if:discount_category,buy_x_get_y|integer|min:1',
+                'target_products' => 'nullable|string', // JSON string
+                'target_users' => 'nullable|string', // JSON string
                 'banner_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp'
             ], [
                 'banner_image.mimes' => 'La imagen no cumple con los formatos permitidos. Formatos permitidos: JPEG, JPG, PNG, GIF, WebP',
-                'banner_image.image' => 'El archivo debe ser una imagen válida'
+                'banner_image.image' => 'El archivo debe ser una imagen válida',
+                'buy_quantity.required_if' => 'La cantidad a comprar es requerida para promociones Buy X Get Y',
+                'get_quantity.required_if' => 'La cantidad gratis es requerida para promociones Buy X Get Y',
+                'discount_percentage.required_if' => 'El descuento es requerido para este tipo de oferta',
+                'discount_type.required_if' => 'El tipo de descuento es requerido para este tipo de oferta'
             ]);
 
             if ($validator->fails()) {
@@ -89,6 +98,32 @@ class AdminCatalogOfferController extends Controller
             }
 
             $data = $request->all();
+            
+            // Limpiar campos según el tipo de descuento
+            if ($data['discount_category'] === 'buy_x_get_y') {
+                // Para Buy X Get Y, no necesitamos discount_percentage ni discount_type
+                unset($data['discount_percentage']);
+                unset($data['discount_type']);
+            } else {
+                // Para otros tipos, no necesitamos buy_quantity ni get_quantity
+                unset($data['buy_quantity']);
+                unset($data['get_quantity']);
+            }
+            
+            // Para Envío gratis, limpiar campos de descuento y productos
+            if ($data['discount_category'] === 'free_shipping') {
+                unset($data['discount_percentage']);
+                unset($data['discount_type']);
+                $data['target_products'] = []; // Array vacío para envío gratis
+            }
+            
+            // Procesar JSON strings para target_products y target_users
+            if (isset($data['target_products']) && is_string($data['target_products'])) {
+                $data['target_products'] = json_decode($data['target_products'], true);
+            }
+            if (isset($data['target_users']) && is_string($data['target_users'])) {
+                $data['target_users'] = json_decode($data['target_users'], true);
+            }
             
             // Manejar la imagen del banner
             if ($request->hasFile('banner_image')) {
@@ -133,8 +168,9 @@ class AdminCatalogOfferController extends Controller
                 'catalog_id' => 'required|exists:catalogs,id',
                 'title' => 'required|string|max:255',
                 'description' => 'required|string',
-                'discount_percentage' => 'required|numeric|min:0|max:100',
-                'discount_type' => 'required|in:percentage,fixed',
+                'discount_percentage' => 'required_if:discount_category,product_discount,order_discount|numeric|min:0|max:100',
+                'discount_type' => 'required_if:discount_category,product_discount,order_discount|in:percentage,fixed',
+                'discount_category' => 'required|in:product_discount,buy_x_get_y,order_discount,free_shipping',
                 'start_date' => 'required|date',
                 'end_date' => 'required|date|after:start_date',
                 'is_active' => 'boolean',
@@ -143,10 +179,18 @@ class AdminCatalogOfferController extends Controller
                 'max_uses' => 'nullable|integer|min:1',
                 'min_purchase_amount' => 'nullable|numeric|min:0',
                 'max_discount_amount' => 'nullable|numeric|min:0',
+                'buy_quantity' => 'required_if:discount_category,buy_x_get_y|integer|min:1',
+                'get_quantity' => 'required_if:discount_category,buy_x_get_y|integer|min:1',
+                'target_products' => 'nullable|string', // JSON string
+                'target_users' => 'nullable|string', // JSON string
                 'banner_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp'
             ], [
                 'banner_image.mimes' => 'La imagen no cumple con los formatos permitidos. Formatos permitidos: JPEG, JPG, PNG, GIF, WebP',
-                'banner_image.image' => 'El archivo debe ser una imagen válida'
+                'banner_image.image' => 'El archivo debe ser una imagen válida',
+                'buy_quantity.required_if' => 'La cantidad a comprar es requerida para promociones Buy X Get Y',
+                'get_quantity.required_if' => 'La cantidad gratis es requerida para promociones Buy X Get Y',
+                'discount_percentage.required_if' => 'El descuento es requerido para este tipo de oferta',
+                'discount_type.required_if' => 'El tipo de descuento es requerido para este tipo de oferta'
             ]);
 
             if ($validator->fails()) {
@@ -158,6 +202,32 @@ class AdminCatalogOfferController extends Controller
             }
 
             $data = $request->all();
+            
+            // Limpiar campos según el tipo de descuento
+            if ($data['discount_category'] === 'buy_x_get_y') {
+                // Para Buy X Get Y, no necesitamos discount_percentage ni discount_type
+                unset($data['discount_percentage']);
+                unset($data['discount_type']);
+            } else {
+                // Para otros tipos, no necesitamos buy_quantity ni get_quantity
+                unset($data['buy_quantity']);
+                unset($data['get_quantity']);
+            }
+            
+            // Para Envío gratis, limpiar campos de descuento y productos
+            if ($data['discount_category'] === 'free_shipping') {
+                unset($data['discount_percentage']);
+                unset($data['discount_type']);
+                $data['target_products'] = []; // Array vacío para envío gratis
+            }
+            
+            // Procesar JSON strings para target_products y target_users
+            if (isset($data['target_products']) && is_string($data['target_products'])) {
+                $data['target_products'] = json_decode($data['target_products'], true);
+            }
+            if (isset($data['target_users']) && is_string($data['target_users'])) {
+                $data['target_users'] = json_decode($data['target_users'], true);
+            }
             
             // Manejar la imagen del banner
             if ($request->hasFile('banner_image')) {

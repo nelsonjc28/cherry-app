@@ -95,17 +95,17 @@ const CatalogPdfPage = () => {
       // Si el page_count es 1 o no está disponible, usar un número por defecto más alto
       if (pdfPageCount <= 1) {
         pdfPageCount = 20; // Número por defecto para PDFs largos
-        console.log('Page count no disponible, usando valor por defecto:', pdfPageCount);
+
       }
       
-      console.log('PDF encontrado:', pdfs[currentPdfIndex].pdf_name, 'Páginas:', pdfPageCount);
+
       
       setTotalPages(pdfPageCount);
       setCurrentPage(1);
       
       // Limpiar las referencias anteriores
       pageRefs.current = [];
-      console.log('TotalPages establecido a:', pdfPageCount);
+
     }
   }, [pdfs, currentPdfIndex]);
 

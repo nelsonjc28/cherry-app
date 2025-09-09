@@ -8,7 +8,7 @@ import colorConverter from '../../services/colorConverter';
 import './ProductCard.css';
 
 const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true }) => {
-  console.log('ProductCard: Received product:', product);
+
   
   // Destructure product properties with proper fallbacks
   const { 
@@ -28,16 +28,13 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true }) =
     stock = 0
   } = product;
   
-  console.log('ProductCard: Destructured values:', {
-    id, title, image, price, rating, ratingCount, description, colors
-  });
   
-  console.log('ProductCard: Colors array:', colors, 'Length:', colors?.length);
-  console.log('ProductCard: Will render colors?', colors && colors.length > 0);
+
+
   
   // TEMPORAL: Forzar colores de prueba si no hay colores
   const testColors = colors && colors.length > 0 ? colors : ['white', 'black', 'navy'];
-  console.log('ProductCard: Using colors (test):', testColors);
+
 
   // State for selected color
   const [selectedColor, setSelectedColor] = useState(testColors[0] || null);

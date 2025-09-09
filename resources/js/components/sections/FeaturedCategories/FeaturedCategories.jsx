@@ -10,7 +10,7 @@ const FeaturedCategories = () => {
   
   // Función para manejar el clic en una categoría
   const handleCategoryClick = (category) => {
-    console.log(`Navegando a la categoría: ${category.title} (${category.link})`);
+
   };
   
   // Mapeo de categorías para compatibilidad con la API
