@@ -472,77 +472,13 @@
   filter: none;
 }
 
-/* Contenedor para separar link principal y botón dropdown */
-.nav-link-container {
-  display: flex;
-  align-items: center;
-  width: 100%;
-}
-
-.nav-link.main-link {
-  flex: 1;
-  border-radius: 8px 0 0 8px;
-  cursor: pointer;
-  position: relative;
-  z-index: 2;
-}
-
-.dropdown-toggle-btn {
-  background: none;
-  border: none;
-  padding: 14px 8px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  border-radius: 0 8px 8px 0;
-}
-
-.dropdown-toggle-btn:hover {
-  background-color: rgba(0, 0, 0, 0.1);
-}
-
-/* Efectos hover específicos para áreas separadas */
-.nav-link.main-link:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-  transform: none;
-}
-
-.nav-link-container:hover .nav-link.main-link::after {
-  width: 0; /* Evitar subrayado cuando se hace hover en el contenedor completo */
-}
-
-.nav-link.main-link:hover::after {
-  width: 80%; /* Solo mostrar subrayado cuando se hace hover específicamente en el link */
-}
-
 /* Estilo para el item Nuevos */
-.new-items .nav-link-container {
+.new-items .nav-link {
   background-color: var(--color-primary);
-  color: white;
-  border-radius: 8px;
-}
-
-.new-items .nav-link.main-link {
-  background-color: transparent;
   color: white;
 }
 
 .new-items .nav-link img {
-  filter: brightness(0) invert(1);
-}
-
-.new-items .dropdown-toggle-btn {
-  background-color: transparent;
-  color: white;
-}
-
-.new-items .dropdown-toggle-btn:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-.new-items .dropdown-toggle-btn img {
   filter: brightness(0) invert(1);
 }
 

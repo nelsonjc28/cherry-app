@@ -566,40 +566,12 @@ const Header = () => {
           <div className="nav-container">
             <ul className="nav-menu">
 
-              <li className={`nav-item new-items ${activeMenu === 'nuevos' ? 'active' : ''}`}>
-                <div className="nav-link-container">
-                  <Link 
-                    to="/nuevos" 
-                    className="nav-link main-link" 
-                    data-discover="true"
-                    onClick={(e) => {
-                      // Asegurar que el click en el link navegue directamente
-                      e.stopPropagation();
-                    }}
-                  >
-                    <img src={getIconPath('Cart Plus.svg')} alt="Nuevos" />
-                    Nuevos
-                  </Link>
-                  <button 
-                    className="dropdown-toggle-btn"
-                    onMouseEnter={() => handleMouseEnter('nuevos')}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setActiveMenu(activeMenu === 'nuevos' ? null : 'nuevos');
-                    }}
-                    onMouseLeave={() => {
-                      // Pequeño delay para permitir hover en el menú
-                      setTimeout(() => {
-                        if (!document.querySelector('.mega-menu:hover')) {
-                          setActiveMenu(null);
-                        }
-                      }, 100);
-                    }}
-                  >
-                    <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
-                  </button>
-                </div>
+              <li className={`nav-item new-items ${activeMenu === 'nuevos' ? 'active' : ''}`} onMouseEnter={() => handleMouseEnter('nuevos')}>
+                <Link to="/nuevos" className="nav-link" data-discover="true">
+                  <img src={getIconPath('Cart Plus.svg')} alt="Nuevos" />
+                  Nuevos
+                  <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
+                </Link>
 
               </li>
               <li className="nav-item nav-divider"></li>
@@ -610,82 +582,28 @@ const Header = () => {
                 </Link>
               </li>
               <li className="nav-item nav-divider"></li>
-              <li className={`nav-item ${activeMenu === 'categorias' ? 'active' : ''}`}>
-                <div className="nav-link-container">
-                  <Link 
-                    to="/categorias" 
-                    className="nav-link main-link"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                  >
-                    <img src={getIconPath('File Alt.svg')} alt="Categorías" />
-                    Categorías
-                  </Link>
-                  <button 
-                    className="dropdown-toggle-btn"
-                    onMouseEnter={() => handleMouseEnter('categorias')}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setActiveMenu(activeMenu === 'categorias' ? null : 'categorias');
-                    }}
-                  >
-                    <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
-                  </button>
-                </div>
+              <li className={`nav-item ${activeMenu === 'categorias' ? 'active' : ''}`} onMouseEnter={() => handleMouseEnter('categorias')}>
+                <Link to="/categorias" className="nav-link">
+                  <img src={getIconPath('File Alt.svg')} alt="Categorías" />
+                  Categorías
+                  <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
+                </Link>
               </li>
               <li className="nav-item nav-divider"></li>
-              <li className={`nav-item ${activeMenu === 'catalogos' ? 'active' : ''}`}>
-                <div className="nav-link-container">
-                  <Link 
-                    to="/catalogos" 
-                    className="nav-link main-link"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                  >
-                    <img src={getIconPath('File Alt.svg')} alt="Catálogos" />
-                    Catálogos
-                  </Link>
-                  <button 
-                    className="dropdown-toggle-btn"
-                    onMouseEnter={() => handleMouseEnter('catalogos')}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setActiveMenu(activeMenu === 'catalogos' ? null : 'catalogos');
-                    }}
-                  >
-                    <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
-                  </button>
-                </div>
+              <li className={`nav-item ${activeMenu === 'catalogos' ? 'active' : ''}`} onMouseEnter={() => handleMouseEnter('catalogos')}>
+                <Link to="/catalogos" className="nav-link">
+                  <img src={getIconPath('File Alt.svg')} alt="Catálogos" />
+                  Catálogos
+                  <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
+                </Link>
               </li>
               <li className="nav-item nav-divider"></li>
-              <li className={`nav-item ${activeMenu === 'promociones' ? 'active' : ''}`}>
-                <div className="nav-link-container">
-                  <Link 
-                    to="/promociones" 
-                    className="nav-link main-link"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                  >
-                    <img src={getIconPath('Bullhorn.svg')} alt="Promociones" />
-                    Promociones
-                  </Link>
-                  <button 
-                    className="dropdown-toggle-btn"
-                    onMouseEnter={() => handleMouseEnter('promociones')}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setActiveMenu(activeMenu === 'promociones' ? null : 'promociones');
-                    }}
-                  >
-                    <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
-                  </button>
-                </div>
+              <li className={`nav-item ${activeMenu === 'promociones' ? 'active' : ''}`} onMouseEnter={() => handleMouseEnter('promociones')}>
+                <Link to="/promociones" className="nav-link">
+                  <img src={getIconPath('Bullhorn.svg')} alt="Promociones" />
+                  Promociones
+                  <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
+                </Link>
               </li>
               <li className="nav-item nav-divider"></li>
               <li className="nav-item contact-item" onMouseEnter={() => setActiveMenu(null)}>
