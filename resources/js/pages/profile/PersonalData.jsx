@@ -230,7 +230,7 @@ const PersonalData = () => {
           </div>
         </div>
 
-        <div className="personal-data__row">
+        <div className="personal-data__row personal-data__row-flex">
           <div className="personal-data__field">
             <label className="personal-data__label">Día</label>
             <select

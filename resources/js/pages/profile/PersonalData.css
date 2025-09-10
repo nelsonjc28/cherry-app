@@ -183,6 +183,11 @@
   gap: 12px;
 }
 
+.personal-data__row-flex {
+  display: flex;
+  flex-direction: column;
+}
+
 /* Desktop Styles */
 @media (min-width: 768px) {
   .personal-data__row {
@@ -211,5 +216,9 @@
   .personal-data__edit-actions {
     flex-direction: row;
     gap: 16px;
+  }
+
+  .personal-data__row-flex {
+    flex-direction: row;
   }
 }
