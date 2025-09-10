@@ -1,6 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import PWAInstaller from './components/PWAInstaller';
 import PWAInstallToast from './components/PWAInstaller/PWAInstallToast';
 import PWAInstallAlerts from './components/PWAInstaller/PWAInstallAlerts';
 import PWADiagnostics from './components/PWAInstaller/PWADiagnostics';
@@ -49,7 +48,6 @@ import ProductosPage from './pages/ProductosPage';
 import DestacadosOfertasPage from './pages/DestacadosOfertasPage';
 import FavoritosPage from './pages/FavoritosPage';
 import AdminPanelPage from './pages/AdminPanelPage';
-import TestProductMultiSelectPage from './pages/TestProductMultiSelectPage';
 
 // Components
 import Header from './components/Header/Header';
@@ -111,7 +109,6 @@ function App() {
                       <Route path="/productos" element={<ProductosPage />} />
                       <Route path="/destacados-ofertas" element={<DestacadosOfertasPage />} />
                       <Route path="/favoritos" element={<FavoritosPage />} />
-                      <Route path="/test-product-select" element={<TestProductMultiSelectPage />} />
                       <Route path="/admin" element={
                         <AdminRoute>
                           <AdminPanelPage />
@@ -121,9 +118,6 @@ function App() {
                   </main>
                   <Footer />
                   <CustomToastContainer />
-                  
-                  {/* PWA Installer */}
-                  <PWAInstaller />
                   
                   {/* PWA Install Toast */}
                   <PWAInstallToast />

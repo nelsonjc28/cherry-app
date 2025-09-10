@@ -42,6 +42,8 @@ const CatalogPdfPage = () => {
   const [totalPages, setTotalPages] = useState(1);
   // Estado para controlar cuando el iframe está listo para mostrar
   const [iframeReady, setIframeReady] = useState(false);
+  // Estado para detectar si el iframe falló en móvil
+  const [iframeError, setIframeError] = useState(false);
   // Referencias a los elementos DOM de cada página (para scroll y observer)
   const pageRefs = useRef([]);
   // Referencia a la lista de miniaturas (para scroll automático)
@@ -192,12 +194,13 @@ const CatalogPdfPage = () => {
   // Reset iframe state when page changes
   useEffect(() => {
     setIframeReady(false);
+    setIframeError(false);
     
     // Timeout de seguridad: más corto en móvil para mejor experiencia
     const timeoutDuration = isDesktop ? 2000 : 1500; // 1.5s en móvil, 2s en desktop
     
     const safetyTimeout = setTimeout(() => {
-      if (!iframeReady) {
+      if (!iframeReady && !iframeError) {
         console.log('Timeout de seguridad: mostrando iframe');
         setIframeReady(true);
         
@@ -213,10 +216,46 @@ const CatalogPdfPage = () => {
             iframe.style.display = 'block';
             iframe.style.width = '100%';
             iframe.style.height = '400px';
+            
+            // En móvil, si después de 3 segundos más el iframe sigue sin contenido,
+            // mostrar fallback
+            setTimeout(() => {
+              const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+              if (!iframeDoc || iframeDoc.body.innerHTML.trim() === '') {
+                console.log('Iframe vacío en móvil, mostrando fallback');
+                setIframeError(true);
+                if (loadingIndicator) {
+                  loadingIndicator.innerHTML = `
+                    <div style="text-align: center; padding: 20px;">
+                      <p style="color: #666; margin-bottom: 15px;">📱 Tu navegador no puede mostrar el PDF aquí</p>
+                      <a 
+                        href="/${pdfs[currentPdfIndex].pdf_path}" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style="
+                          background: #EA2630; 
+                          color: white; 
+                          padding: 12px 24px; 
+                          border-radius: 6px; 
+                          text-decoration: none; 
+                          display: inline-block;
+                          font-weight: 600;
+                          font-size: 16px;
+                        "
+                      >
+                        🔗 Ver PDF completo
+                      </a>
+                      <p style="font-size: 12px; color: #999; margin-top: 10px;">Se abrirá en una nueva pestaña</p>
+                    </div>
+                  `;
+                  loadingIndicator.style.display = 'block';
+                }
+              }
+            }, 3000);
           }
         }
         
-        if (loadingIndicator) {
+        if (loadingIndicator && !iframeError) {
           loadingIndicator.style.display = 'none';
         }
       }
@@ -405,13 +444,15 @@ const CatalogPdfPage = () => {
                          
                     <iframe
                       key={`iframe-${currentPdfIndex}-${currentPage}`} // Force re-render when page changes
-                      src={`/${pdfs[currentPdfIndex].pdf_path}#page=${currentPage}&toolbar=0&navpanes=0&scrollbar=0&view=FitH&zoom=page-fit`}
+                      src={`/${pdfs[currentPdfIndex].pdf_path}#page=${currentPage}&toolbar=0&navpanes=0&scrollbar=0&view=FitH&zoom=${isDesktop ? 'page-fit' : 'page-width'}`}
                       title={`Página ${currentPage} de ${totalPages}`}
                       className="catalog-pdf__pdf-iframe"
                       width="100%"
                       height={isDesktop ? "600" : "400"} // Altura adaptativa según dispositivo
                       frameBorder="0"
                       loading="lazy"
+                      allow="fullscreen"
+                      sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
                       onLoad={(e) => {
                         // Dar un pequeño delay para asegurar que el PDF se renderice correctamente
                         const delay = isDesktop ? 300 : 200; // Delay más corto en móvil
@@ -449,10 +490,33 @@ const CatalogPdfPage = () => {
                         }, delay);
                       }}
                       onError={(e) => {
+                        console.error('Error cargando iframe PDF en móvil');
+                        setIframeError(true);
+                        
                         // Mostrar error si no se puede cargar
                         const loadingIndicator = e.target.parentElement.querySelector('.catalog-pdf__loading-indicator');
                         if (loadingIndicator) {
-                          loadingIndicator.innerHTML = '<span style="color: #f44336;">❌ Error al cargar la página</span>';
+                          loadingIndicator.innerHTML = `
+                            <div style="text-align: center; padding: 20px;">
+                              <p style="color: #f44336; margin-bottom: 15px;">⚠️ No se puede mostrar el PDF</p>
+                              <a 
+                                href="/${pdfs[currentPdfIndex].pdf_path}" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                style="
+                                  background: #EA2630; 
+                                  color: white; 
+                                  padding: 10px 20px; 
+                                  border-radius: 6px; 
+                                  text-decoration: none; 
+                                  display: inline-block;
+                                  font-weight: 600;
+                                "
+                              >
+                                📱 Abrir PDF en nueva pestaña
+                              </a>
+                            </div>
+                          `;
                         }
                       }}
                       style={{ 

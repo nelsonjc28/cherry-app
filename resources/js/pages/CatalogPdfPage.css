@@ -90,6 +90,23 @@
   opacity: 1 !important;
 }
 
+/* Estilos para fallback de PDF en móvil */
+.catalog-pdf-page.mobile .catalog-pdf__loading-indicator {
+  background: rgba(248, 249, 250, 0.98);
+  border: 2px solid #e9ecef;
+}
+
+.catalog-pdf-page.mobile .catalog-pdf__loading-indicator a {
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(234, 38, 48, 0.3);
+}
+
+.catalog-pdf-page.mobile .catalog-pdf__loading-indicator a:hover {
+  background: #c2185b !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(234, 38, 48, 0.4);
+}
+
 .catalog-pdf-page.mobile .catalog-pdf__pdf-page {
   min-height: 400px;
 }
