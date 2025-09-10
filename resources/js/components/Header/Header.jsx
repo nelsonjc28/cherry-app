@@ -373,7 +373,7 @@ const Header = () => {
       toggleSubMenu(menuKey);
       if (menuKey === 'catalogos') {
         setMobileMenuOpen(false);
-        navigate('/catalogo');
+        navigate('/catalogos');
       }
     };
     return (

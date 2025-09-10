@@ -193,7 +193,9 @@ const CatalogPdfPage = () => {
   useEffect(() => {
     setIframeReady(false);
     
-    // Timeout de seguridad: mostrar iframe después de 2 segundos incluso si no se detecta la página correcta
+    // Timeout de seguridad: más corto en móvil para mejor experiencia
+    const timeoutDuration = isDesktop ? 2000 : 1500; // 1.5s en móvil, 2s en desktop
+    
     const safetyTimeout = setTimeout(() => {
       if (!iframeReady) {
         console.log('Timeout de seguridad: mostrando iframe');
@@ -206,16 +208,22 @@ const CatalogPdfPage = () => {
         if (iframe) {
           iframe.style.visibility = 'visible';
           iframe.style.opacity = '1';
+          // En móvil, forzar estilos adicionales
+          if (!isDesktop) {
+            iframe.style.display = 'block';
+            iframe.style.width = '100%';
+            iframe.style.height = '400px';
+          }
         }
         
         if (loadingIndicator) {
           loadingIndicator.style.display = 'none';
         }
       }
-    }, 2000);
+    }, timeoutDuration);
     
     return () => clearTimeout(safetyTimeout);
-  }, [currentPage, currentPdfIndex, iframeReady]);
+  }, [currentPage, currentPdfIndex, iframeReady, isDesktop]);
 
   // Navegación con teclado para mejor UX
   useEffect(() => {
@@ -401,15 +409,19 @@ const CatalogPdfPage = () => {
                       title={`Página ${currentPage} de ${totalPages}`}
                       className="catalog-pdf__pdf-iframe"
                       width="100%"
-                      height="600"
+                      height={isDesktop ? "600" : "400"} // Altura adaptativa según dispositivo
                       frameBorder="0"
                       loading="lazy"
                       onLoad={(e) => {
                         // Dar un pequeño delay para asegurar que el PDF se renderice correctamente
+                        const delay = isDesktop ? 300 : 200; // Delay más corto en móvil
+                        
                         setTimeout(() => {
                           // Verificar que la URL del iframe contenga la página correcta antes de mostrar
                           const iframeSrc = e.target.src;
                           const expectedPage = `page=${currentPage}`;
+                          
+                          console.log(`Cargando PDF - Dispositivo: ${isDesktop ? 'Desktop' : 'Móvil'}, Página: ${currentPage}`);
                           
                           if (iframeSrc.includes(expectedPage)) {
                             // Marcar el iframe como listo y mostrar
@@ -424,11 +436,17 @@ const CatalogPdfPage = () => {
                             // Mostrar el iframe con transición suave
                             e.target.style.visibility = 'visible';
                             e.target.style.opacity = '1';
+                            
+                            // En móvil, asegurar estilos adicionales
+                            if (!isDesktop) {
+                              e.target.style.display = 'block';
+                              console.log('PDF cargado en móvil - iframe visible');
+                            }
                           } else {
                             // Si no es la página correcta, mantener oculto
                             console.log('Página incorrecta cargada, esperando la correcta...');
                           }
-                        }, 300); // Delay de 300ms para asegurar renderizado completo
+                        }, delay);
                       }}
                       onError={(e) => {
                         // Mostrar error si no se puede cargar
