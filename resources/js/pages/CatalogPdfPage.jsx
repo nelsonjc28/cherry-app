@@ -442,14 +442,14 @@ const CatalogPdfPage = () => {
                       <span>Cargando página {currentPage} de {totalPages}...</span>
                     </div>
                          
-                    <iframe
+                         <iframe
                       key={`iframe-${currentPdfIndex}-${currentPage}`} // Force re-render when page changes
                       src={`/${pdfs[currentPdfIndex].pdf_path}#page=${currentPage}&toolbar=0&navpanes=0&scrollbar=0&view=FitH&zoom=${isDesktop ? 'page-fit' : 'page-width'}`}
                       title={`Página ${currentPage} de ${totalPages}`}
-                      className="catalog-pdf__pdf-iframe"
-                      width="100%"
+                           className="catalog-pdf__pdf-iframe"
+                           width="100%"
                       height={isDesktop ? "600" : "400"} // Altura adaptativa según dispositivo
-                      frameBorder="0"
+                           frameBorder="0"
                       loading="lazy"
                       allow="fullscreen"
                       sandbox="allow-same-origin allow-scripts allow-popups allow-forms"

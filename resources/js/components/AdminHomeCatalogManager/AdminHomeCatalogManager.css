@@ -152,12 +152,22 @@
 .admin-home-catalog-manager__item:hover {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transform: translateY(-1px);
+  border-color: var(--color-primary, #EA2630);
+}
+
+.admin-home-catalog-manager__item:active {
+  cursor: grabbing;
 }
 
 .admin-home-catalog-manager__item.dragging {
   transform: rotate(5deg);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   opacity: 0.8;
+}
+
+.admin-home-catalog-manager__dropzone:hover {
+  background-color: rgba(234, 38, 48, 0.05);
+  border-color: var(--color-primary, #EA2630);
 }
 
 .admin-home-catalog-manager__item-content {
@@ -171,6 +181,7 @@
   align-items: center;
   gap: 0.75rem;
 }
+
 
 .admin-home-catalog-manager__item-order {
   background: var(--color-primary, #EA2630);

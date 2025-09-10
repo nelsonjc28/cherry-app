@@ -136,24 +136,22 @@ const AdminHomeCatalogManager = () => {
           const [removed] = updatedOrdered.splice(draggedIndex, 1);
           updatedOrdered.splice(dropIndex, 0, removed);
           
-                     // Actualizar display_order para todos los catálogos
-           const updates = updatedOrdered.map((catalog, index) => ({
-             id: catalog.id,
-             display_order: index + 1
-           }));
-           
-                      // Actualizar en la base de datos usando la ruta específica para orden
-           try {
-             await Promise.all(updates.map(async (update) => {
-               const payload = { display_order: update.display_order };
-               return api.patch(`/admin/catalogs/${update.id}/order`, payload);
-             }));
-             
-             setOrderedCatalogs(updatedOrdered);
-             window.showToast('Orden del home actualizado exitosamente', 'success');
-           } catch (error) {
-             window.showToast('Error al actualizar el orden: ' + (error.response?.data?.message || error.message), 'error');
-           }
+          // Actualizar UI inmediatamente para mostrar nuevos números
+          setOrderedCatalogs(updatedOrdered);
+          
+          // Actualizar display_order para todos los catálogos en el backend
+          const updates = updatedOrdered.map((catalog, index) => ({
+            id: catalog.id,
+            display_order: index + 1
+          }));
+          
+          // Sincronizar con la base de datos
+          await Promise.all(updates.map(async (update) => {
+            const payload = { display_order: update.display_order };
+            return api.patch(`/admin/catalogs/${update.id}/order`, payload);
+          }));
+          
+          window.showToast('Orden del home actualizado exitosamente', 'success');
         }
       }
       
@@ -170,6 +168,55 @@ const AdminHomeCatalogManager = () => {
   const handleDragEnd = () => {
     setDraggedCatalog(null);
   };
+
+  const handleDropOnItem = async (e, targetCatalog) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!draggedCatalog || draggedCatalog.source !== 'ordered' || draggedCatalog.id === targetCatalog.id) {
+      return;
+    }
+
+    try {
+      setStatus('saving');
+      
+      const updatedOrdered = [...orderedCatalogs];
+      const draggedIndex = updatedOrdered.findIndex(c => c.id === draggedCatalog.id);
+      const dropIndex = updatedOrdered.findIndex(c => c.id === targetCatalog.id);
+      
+      if (draggedIndex !== -1 && dropIndex !== -1 && draggedIndex !== dropIndex) {
+        const [removed] = updatedOrdered.splice(draggedIndex, 1);
+        updatedOrdered.splice(dropIndex, 0, removed);
+        
+        // Actualizar UI inmediatamente para mostrar nuevos números
+        setOrderedCatalogs(updatedOrdered);
+        
+        // Actualizar display_order para todos los catálogos en el backend
+        const updates = updatedOrdered.map((catalog, index) => ({
+          id: catalog.id,
+          display_order: index + 1
+        }));
+        
+        // Sincronizar con la base de datos
+        await Promise.all(updates.map(async (update) => {
+          const payload = { display_order: update.display_order };
+          return api.patch(`/admin/catalogs/${update.id}/order`, payload);
+        }));
+        
+        window.showToast('Orden de catálogos actualizado exitosamente', 'success');
+      }
+      
+      setStatus('saved');
+      setTimeout(() => setStatus('ready'), 2000);
+    } catch (error) {
+      window.showToast('Error al actualizar el orden', 'error');
+      setStatus('ready');
+      fetchData();
+    } finally {
+      setDraggedCatalog(null);
+    }
+  };
+
 
   const filteredAvailableCatalogs = availableCatalogs.filter(catalog =>
     catalog.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -237,6 +284,8 @@ const AdminHomeCatalogManager = () => {
                   draggable
                   onDragStart={(e) => handleDragStart(e, catalog, 'ordered')}
                   onDragEnd={handleDragEnd}
+                  onDragOver={(e) => handleDragOver(e)}
+                  onDrop={(e) => handleDropOnItem(e, catalog)}
                 >
                   <div className="admin-home-catalog-manager__item-content">
                     <div className="admin-home-catalog-manager__item-header">

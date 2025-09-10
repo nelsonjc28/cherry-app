@@ -83,23 +83,6 @@ const AdminMenuCategoryOrderManager = () => {
         setAvailableCategories(updatedAvailable);
         
         window.showToast('Categoría removida del menú exitosamente', 'success');
-      } else if (targetArea === 'ordered' && draggedCategory.source === 'ordered') {
-        // Reordenar dentro del menú
-        const updatedOrdered = [...orderedCategories];
-        const draggedIndex = updatedOrdered.findIndex(c => c.id === draggedCategory.id);
-        const dropIndex = orderedCategories.findIndex(c => c.id === e.target.closest('[data-category-id]')?.dataset.categoryId);
-        
-        if (draggedIndex !== -1 && dropIndex !== -1) {
-          const [removed] = updatedOrdered.splice(draggedIndex, 1);
-          updatedOrdered.splice(dropIndex, 0, removed);
-          
-          setOrderedCategories(updatedOrdered);
-          
-          // Guardar el nuevo orden
-          await categoryService.updateMenuOrder(updatedOrdered.map(c => c.id));
-          
-          window.showToast('Orden del menú actualizado exitosamente', 'success');
-        }
       }
       
       setStatus('saved');
@@ -112,9 +95,49 @@ const AdminMenuCategoryOrderManager = () => {
     }
   };
 
+  const handleDropOnItem = async (e, targetCategory) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!draggedCategory || draggedCategory.source !== 'ordered' || draggedCategory.id === targetCategory.id) {
+      return;
+    }
+
+    try {
+      setStatus('saving');
+      
+      const updatedOrdered = [...orderedCategories];
+      const draggedIndex = updatedOrdered.findIndex(c => c.id === draggedCategory.id);
+      const dropIndex = updatedOrdered.findIndex(c => c.id === targetCategory.id);
+      
+      if (draggedIndex !== -1 && dropIndex !== -1) {
+        const [removed] = updatedOrdered.splice(draggedIndex, 1);
+        updatedOrdered.splice(dropIndex, 0, removed);
+        
+        setOrderedCategories(updatedOrdered);
+        
+        // Guardar el nuevo orden
+        await categoryService.updateMenuOrder(updatedOrdered.map(c => c.id));
+        
+        window.showToast('Orden del menú actualizado exitosamente', 'success');
+      }
+      
+      setStatus('saved');
+      setTimeout(() => setStatus('ready'), 2000);
+    } catch (error) {
+      window.showToast('Error al actualizar el orden', 'error');
+      setStatus('ready');
+      // Recargar datos en caso de error
+      fetchData();
+    } finally {
+      setDraggedCategory(null);
+    }
+  };
+
   const handleDragEnd = () => {
     setDraggedCategory(null);
   };
+
 
   const filteredAvailableCategories = availableCategories.filter(category =>
     category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -174,6 +197,8 @@ const AdminMenuCategoryOrderManager = () => {
                   draggable
                   onDragStart={(e) => handleDragStart(e, category, 'ordered')}
                   onDragEnd={handleDragEnd}
+                  onDragOver={(e) => handleDragOver(e)}
+                  onDrop={(e) => handleDropOnItem(e, category)}
                 >
                   <div className="admin-menu-category-order-manager__item-content">
                     <div className="admin-menu-category-order-manager__item-header">

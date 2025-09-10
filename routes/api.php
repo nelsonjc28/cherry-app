@@ -19,6 +19,8 @@ use App\Http\Controllers\Api\AdminCatalogController;
 use App\Http\Controllers\Api\AdminCatalogOfferController;
 use App\Http\Controllers\Api\AddressController;
 use App\Http\Controllers\Api\PaymentCardController;
+use App\Http\Controllers\Api\UserTermsController;
+use App\Http\Controllers\Api\TermsConditionsController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -48,6 +50,11 @@ Route::middleware(['auth:api'])->group(function () {
     
     // Profile routes
     Route::get('/profile', [ProfileController::class, 'show']);
+    
+    // User Terms routes
+    Route::get('/user/terms/status', [UserTermsController::class, 'status']);
+    Route::post('/user/terms/accept', [UserTermsController::class, 'accept']);
+    Route::get('/user/terms/history', [UserTermsController::class, 'history']);
 
 });
 
@@ -182,6 +189,9 @@ Route::get('/contact-info', [ContactInfoController::class, 'show']);
 // Public privacy policy routes (no authentication required)
 Route::get('/privacy-policy', [PrivacyPolicyController::class, 'show']);
 
+// Public terms and conditions routes (no authentication required)
+Route::get('/terms-conditions', [TermsConditionsController::class, 'show']);
+
 
 
 // Admin contact info routes - require authentication and admin role
@@ -194,6 +204,13 @@ Route::middleware(['auth:api', 'admin'])->group(function () {
     Route::post('/admin/privacy-policies/{id}', [PrivacyPolicyController::class, 'update']);
     Route::delete('/admin/privacy-policies/{id}', [PrivacyPolicyController::class, 'destroy']);
     Route::patch('/admin/privacy-policies/{id}/activate', [PrivacyPolicyController::class, 'activate']);
+    
+    // Admin terms and conditions routes
+    Route::get('/admin/terms-conditions', [TermsConditionsController::class, 'index']);
+    Route::post('/admin/terms-conditions', [TermsConditionsController::class, 'store']);
+    Route::post('/admin/terms-conditions/{id}', [TermsConditionsController::class, 'update']);
+    Route::delete('/admin/terms-conditions/{id}', [TermsConditionsController::class, 'destroy']);
+    Route::patch('/admin/terms-conditions/{id}/activate', [TermsConditionsController::class, 'activate']);
 });
 
 // Public home categories route (no authentication required)

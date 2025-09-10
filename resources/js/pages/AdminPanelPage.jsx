@@ -52,6 +52,17 @@ function AdminPanelPage() {
 
   return (
     <div className="admin-panel__layout">
+      {/* Botón de menú flotante para móvil */}
+      {!sidebarOpen && (
+        <button 
+          className="admin-panel__mobile-menu-btn" 
+          onClick={()=>setSidebarOpen(true)}
+          aria-label="Abrir menú"
+        >
+          ☰
+        </button>
+      )}
+      
       {sidebarOpen && <div className="admin-panel__sidebar-overlay" onClick={()=>setSidebarOpen(false)}></div>}
       <aside className={`admin-panel__sidebar${sidebarOpen ? ' open' : ''}`}>
         <div className="admin-panel__sidebar-header">

@@ -36,6 +36,11 @@ const ProfileSidebar = () => {
       path: '/perfil/privacidad-seguridad',
       label: 'Privacidad y Seguridad',
       icon: 'Shield.svg'
+    },
+    {
+      path: '/terminos',
+      label: 'Términos y Condiciones',
+      icon: 'File Alt.svg'
     }
   ];
 

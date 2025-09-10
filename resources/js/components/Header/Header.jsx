@@ -13,7 +13,7 @@ import './Header.css';
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, fetchUser, logout } = useUserStore();
+  const { user, fetchUser, logout, isAdmin } = useUserStore();
   const cartStore = useCartStore();
   const cartItems = cartStore?.items || [];
   const totalItems = cartStore?.totalItems || 0;
@@ -473,11 +473,15 @@ const Header = () => {
                       </div>
                     </div>
                     <div className="user-dropdown-divider"></div>
-                    <Link to="/admin" className="user-dropdown-item">
-                      <img src={getIconPath('File Alt.svg')} alt="Dashboard" />
-                      Dashboard
-                    </Link>
-                    <div className="user-dropdown-divider"></div>
+                    {isAdmin() && (
+                      <>
+                        <Link to="/admin" className="user-dropdown-item">
+                          <img src={getIconPath('File Alt.svg')} alt="Dashboard" />
+                          Dashboard
+                        </Link>
+                        <div className="user-dropdown-divider"></div>
+                      </>
+                    )}
                     <Link to="/perfil" className="user-dropdown-item">
                       <img src={getIconPath('User.svg')} alt="Perfil" />
                       Mi Perfil
@@ -486,7 +490,10 @@ const Header = () => {
                       <img src={getIconPath('Package.svg')} alt="Órdenes" />
                       Mis Órdenes
                     </Link>
-
+                    <Link to="/perfil/favoritos" className="user-dropdown-item">
+                      <img src={getIconPath('Heart.svg')} alt="Favoritos" />
+                      Favoritos
+                    </Link>
                     <Link to="/perfil/direcciones" className="user-dropdown-item">
                       <img src={getIconPath('Map Pin.svg')} alt="Direcciones" />
                       Mis Direcciones
@@ -743,11 +750,15 @@ const Header = () => {
                   </div>
                   {userMenuOpen && (
                     <div className="mobile-user-dropdown">
-                      <Link to="/admin" className="user-dropdown-item">
-                        <img src={getIconPath('File Alt.svg')} alt="Dashboard" />
-                        Dashboard
-                      </Link>
-                      <div className="user-dropdown-divider"></div>
+                      {isAdmin() && (
+                        <>
+                          <Link to="/admin" className="user-dropdown-item">
+                            <img src={getIconPath('File Alt.svg')} alt="Dashboard" />
+                            Dashboard
+                          </Link>
+                          <div className="user-dropdown-divider"></div>
+                        </>
+                      )}
                       <Link to="/perfil" className="mobile-menu-account" onClick={() => { setMobileMenuOpen(false); setUserMenuOpen(false); }}>
                         <img src={getIconPath('User.svg')} alt="Perfil" />
                         <span>Mi Perfil</span>
@@ -755,6 +766,10 @@ const Header = () => {
                       <Link to="/perfil/mis-pedidos" className="mobile-menu-account" onClick={() => { setMobileMenuOpen(false); setUserMenuOpen(false); }}>
                         <img src={getIconPath('Package.svg')} alt="Órdenes" />
                         <span>Mis Órdenes</span>
+                      </Link>
+                      <Link to="/perfil/favoritos" className="mobile-menu-account" onClick={() => { setMobileMenuOpen(false); setUserMenuOpen(false); }}>
+                        <img src={getIconPath('Heart.svg')} alt="Favoritos" />
+                        <span>Favoritos</span>
                       </Link>
                       <Link to="/perfil/direcciones" className="mobile-menu-account" onClick={() => { setMobileMenuOpen(false); setUserMenuOpen(false); }}>
                         <img src={getIconPath('Map Pin.svg')} alt="Direcciones" />

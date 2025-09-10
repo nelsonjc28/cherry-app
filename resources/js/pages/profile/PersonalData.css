@@ -94,7 +94,7 @@
 
 
 .personal-data__select {
-  padding: 7px 0;
+  padding: 7px 20px 7px 0;
   border: none;
   border-bottom: 1px solid #AAAAAA;
   border-radius: 0;
@@ -107,16 +107,22 @@
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6,9 12,15 18,9'></polyline></svg>");
+  background-repeat: no-repeat;
+  background-position: right center;
+  background-size: 16px;
 }
 
 .personal-data__select:hover {
   border-bottom-color: #d0d0d0;
+  background-image: url("data:image/svg+xml;charset=UTF-8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6,9 12,15 18,9'></polyline></svg>");
 }
 
 .personal-data__select:focus {
   outline: none;
   border-bottom-color: var(--color-primary);
   transform: translateY(-2px);
+  background-image: url("data:image/svg+xml;charset=UTF-8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23EA2630' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6,9 12,15 18,9'></polyline></svg>");
 }
 
 /* Estilo para opciones de select */
@@ -154,6 +160,21 @@
   display: flex;
   justify-content: stretch;
   padding-top: 20px;
+}
+
+.personal-data__actions .cherry-button {
+  width: 100%;
+}
+
+/* Fix icon behavior in the edit button */
+.personal-data__actions .cherry-button__icon img {
+  width: 16px !important;
+  height: 16px !important;
+  transition: transform 0.3s ease;
+}
+
+.personal-data__actions .cherry-button:hover .cherry-button__icon img {
+  transform: translateX(3px);
 }
 
 .personal-data__edit-actions {

@@ -291,7 +291,7 @@ const PersonalData = () => {
           disabled={isSubmitting}
           className="cherry-button--edit-changes"
           icon={
-            <img src={getIconPath('Edit.svg')} alt="Editar" style={{ width: 15, height: 14 }} />
+            <img src={getIconPath('Edit.svg')} alt="Editar" />
           }
           iconPosition="right"
         >
