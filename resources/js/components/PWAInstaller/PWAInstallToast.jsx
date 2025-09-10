@@ -9,7 +9,14 @@ const PWAInstallToast = () => {
 
 
   useEffect(() => {
-
+    // Modo debug: mostrar siempre si está en la URL
+    const isDebugMode = window.location.search.includes('debug-pwa') || window.location.search.includes('show-toast');
+    
+    if (isDebugMode) {
+      console.log('Modo debug PWA activado');
+      setShowToast(true);
+      return;
+    }
     
     // Verificar si ya se mostró el toast
     const toastShown = localStorage.getItem('pwa-install-toast-shown') === 'true';
@@ -219,11 +226,12 @@ const PWAInstallToast = () => {
 
 
   
-  if (!showToast || hasShownToast) {
-
+  // Debug mode para testing
+  const isDebugMode = window.location.search.includes('debug-pwa') || window.location.search.includes('show-toast');
+  
+  if (!showToast && !isDebugMode && hasShownToast) {
     return null;
   }
-
 
   return (
     <div className="pwa-install-toast">
