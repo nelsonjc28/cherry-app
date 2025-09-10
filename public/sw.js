@@ -73,11 +73,44 @@ self.addEventListener('activate', (event) => {
 
 // Interceptar peticiones
 self.addEventListener('fetch', (event) => {
+  // No cachear peticiones de API para evitar datos obsoletos
+  if (event.request.url.includes('/api/')) {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        // Si falla la API, devolver respuesta de error
+        return new Response(JSON.stringify({
+          success: false,
+          message: 'Sin conexión a internet'
+        }), {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      })
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
-        // Si está en cache, devolverlo
+        // Si está en cache, devolverlo pero también verificar si hay una versión más nueva
         if (response) {
+          // Para recursos estáticos, devolver del cache inmediatamente
+          if (event.request.url.includes('.js') || event.request.url.includes('.css') || event.request.url.includes('.png') || event.request.url.includes('.jpg')) {
+            return response;
+          }
+          
+          // Para HTML, verificar si hay una versión más nueva en segundo plano
+          fetch(event.request).then((fetchResponse) => {
+            if (fetchResponse && fetchResponse.status === 200) {
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, fetchResponse.clone());
+              });
+            }
+          }).catch(() => {
+            // Ignorar errores de red en segundo plano
+          });
+          
           return response;
         }
         
@@ -89,14 +122,22 @@ self.addEventListener('fetch', (event) => {
               return response;
             }
             
-            // Clonar la respuesta
-            const responseToCache = response.clone();
-            
-            // Agregar al cache
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
+            // Solo cachear recursos específicos
+            if (event.request.url.includes('.js') || 
+                event.request.url.includes('.css') || 
+                event.request.url.includes('.png') || 
+                event.request.url.includes('.jpg') ||
+                event.request.destination === 'document') {
+              
+              // Clonar la respuesta
+              const responseToCache = response.clone();
+              
+              // Agregar al cache
+              caches.open(CACHE_NAME)
+                .then((cache) => {
+                  cache.put(event.request, responseToCache);
+                });
+            }
             
             return response;
           })

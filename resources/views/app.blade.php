@@ -241,6 +241,9 @@
         }
     </style>
     
+    <!-- Cache Management Script - Load first to handle loading issues -->
+    <script src="/clear-cache.js"></script>
+    
     <!-- Vite Assets -->
     @viteReactRefresh
     @vite(['resources/css/app.css', 'resources/js/main.jsx'])

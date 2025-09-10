@@ -43,7 +43,7 @@ const useWelcomeSection = (limit = 3) => {
       setLoading(false);
       isFetching.current = false;
     }
-  }, [limit, welcomeSections.length]);
+  }, [limit]); // ✅ Solo depende de limit, no de welcomeSections.length
 
   useEffect(() => {
     fetchWelcomeSections();

@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import PdfThumbnailsList from '../components/PdfThumbnailsList/PdfThumbnailsList';
 import useIsDesktop from '../hooks/useIsDesktop';
 import './CatalogPdfPage.css';
 import { getIconPath } from '../utils/assetPaths';
@@ -41,10 +40,11 @@ const CatalogPdfPage = () => {
   const [currentPdfIndex, setCurrentPdfIndex] = useState(0);
   // Estado para el número total de páginas del PDF actual
   const [totalPages, setTotalPages] = useState(1);
+  // Estado para controlar cuando el iframe está listo para mostrar
+  const [iframeReady, setIframeReady] = useState(false);
   // Referencias a los elementos DOM de cada página (para scroll y observer)
   const pageRefs = useRef([]);
   // Referencia a la lista de miniaturas (para scroll automático)
-  const thumbnailListRef = useRef(null);
   // Referencia al IntersectionObserver (para detectar página visible)
   const observerRef = useRef(null);
 
@@ -112,6 +112,7 @@ const CatalogPdfPage = () => {
   // Navega a la página anterior
   const handlePrev = () => {
     if (currentPage > 1) {
+      setIframeReady(false); // Reset iframe state
       const newPage = currentPage - 1;
       setCurrentPage(newPage);
       scrollToPage(newPage, false);
@@ -121,6 +122,7 @@ const CatalogPdfPage = () => {
   // Navega a la página siguiente
   const handleNext = () => {
     if (currentPage < totalPages) {
+      setIframeReady(false); // Reset iframe state
       const newPage = currentPage + 1;
       setCurrentPage(newPage);
       scrollToPage(newPage, false);
@@ -158,87 +160,97 @@ const CatalogPdfPage = () => {
     }
   };
 
-  // Efecto: mantiene la página seleccionada visible en la lista
+
+  // Limpieza del observer al desmontar el componente
   useEffect(() => {
-    if (isDesktop && thumbnailListRef.current) {
-      const selectedPage = thumbnailListRef.current.querySelector('.pdf-page-thumbnail.selected');
-      if (selectedPage) {
-        selectedPage.scrollIntoView({
-          behavior: 'smooth',
-          block: 'nearest',
-          inline: 'center',
-        });
-      }
-    }
-  }, [currentPage, isDesktop]);
-
-  // Efecto: observa las páginas para detectar cuál está visible en el viewport
-  useEffect(() => {
-    if (!isDesktop || !totalPages || totalPages < 1) return;
-    
-    // Limpia el observer anterior si existe
-    if (observerRef.current) {
-      observerRef.current.disconnect();
-    }
-
-    // Crea un nuevo observer
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const index = pageRefs.current.findIndex(ref => ref === entry.target);
-            if (index !== -1) {
-              const pageNumber = index + 1; // Convertir a número de página base 1
-              if (pageNumber !== currentPage) {
-                setCurrentPage(pageNumber);
-              }
-            }
-          }
-        });
-      },
-      {
-        threshold: 0.7, // Página debe estar al menos 50% visible
-      }
-    );
-
-    // Observa todas las páginas
-    const currentRefs = [];
-    
-    for (let i = 0; i < totalPages; i++) {
-      const ref = pageRefs.current[i];
-      if (ref && observerRef.current) {
-        observerRef.current.observe(ref);
-        currentRefs.push(ref);
-      }
-    }
-    
-    // Update refs
-    pageRefs.current = currentRefs;
-
-    // Limpieza al desmontar
     return () => {
       if (observerRef.current) {
         observerRef.current.disconnect();
       }
     };
-  }, [totalPages, currentPage, isDesktop]);
+  }, []);
 
-  // Efecto para hacer scroll automático cuando cambia la página
+  // Efecto para precargar la siguiente página (opcional para mejor UX)
   useEffect(() => {
-    if (currentPage > 0 && pageRefs.current.length > 0) {
-      const pageIndex = currentPage - 1;
-      const targetRef = pageRefs.current[pageIndex];
+    if (pdfs.length > 0 && currentPage < totalPages) {
+      // Precargar la siguiente página en segundo plano para navegación más fluida
+      const nextPage = currentPage + 1;
+      const preloadLink = document.createElement('link');
+      preloadLink.rel = 'prefetch';
+      preloadLink.href = `/${pdfs[currentPdfIndex].pdf_path}#page=${nextPage}&toolbar=0&navpanes=0&scrollbar=0&view=FitH`;
+      document.head.appendChild(preloadLink);
       
-      if (targetRef) {
+      // Limpiar el preload después de 5 segundos
         setTimeout(() => {
-          targetRef.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-          });
-        }, 100);
-      }
+        if (document.head.contains(preloadLink)) {
+          document.head.removeChild(preloadLink);
+        }
+      }, 5000);
     }
-  }, [currentPage]);
+  }, [currentPage, totalPages, pdfs, currentPdfIndex]);
+
+  // Reset iframe state when page changes
+  useEffect(() => {
+    setIframeReady(false);
+    
+    // Timeout de seguridad: mostrar iframe después de 2 segundos incluso si no se detecta la página correcta
+    const safetyTimeout = setTimeout(() => {
+      if (!iframeReady) {
+        console.log('Timeout de seguridad: mostrando iframe');
+        setIframeReady(true);
+        
+        // Buscar y mostrar el iframe manualmente
+        const iframe = document.querySelector('.catalog-pdf__pdf-iframe');
+        const loadingIndicator = document.querySelector('.catalog-pdf__loading-indicator');
+        
+        if (iframe) {
+          iframe.style.visibility = 'visible';
+          iframe.style.opacity = '1';
+        }
+        
+        if (loadingIndicator) {
+          loadingIndicator.style.display = 'none';
+        }
+      }
+    }, 2000);
+    
+    return () => clearTimeout(safetyTimeout);
+  }, [currentPage, currentPdfIndex, iframeReady]);
+
+  // Navegación con teclado para mejor UX
+  useEffect(() => {
+    const handleKeyPress = (event) => {
+      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+        return; // No interferir con inputs
+      }
+      
+      switch (event.key) {
+        case 'ArrowLeft':
+        case 'ArrowUp':
+          event.preventDefault();
+          handlePrev();
+          break;
+        case 'ArrowRight':
+        case 'ArrowDown':
+          event.preventDefault();
+          handleNext();
+          break;
+        case 'Home':
+          event.preventDefault();
+          setIframeReady(false);
+          setCurrentPage(1);
+          break;
+        case 'End':
+          event.preventDefault();
+          setIframeReady(false);
+          setCurrentPage(totalPages);
+          break;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyPress);
+    return () => document.removeEventListener('keydown', handleKeyPress);
+  }, [currentPage, totalPages]);
 
 
 
@@ -252,16 +264,6 @@ const CatalogPdfPage = () => {
     document.body.removeChild(link);
   };
 
-  // Prepara los datos para la lista de miniaturas de páginas
-  const pageThumbnails = Array.from({ length: totalPages }, (_, idx) => {
-    const pageNumber = idx + 1;
-    return {
-      id: `${selectedCatalog?.id}-page-${pageNumber}`,
-      pageNumber: pageNumber,
-      title: `Página ${pageNumber}`,
-      isSelected: pageNumber === currentPage
-    };
-  });
 
   // Mostrar estados de carga y error
   if (loading) {
@@ -337,34 +339,6 @@ const CatalogPdfPage = () => {
         </header>
 
         <div className="catalog-pdf__content">
-          {isDesktop && (
-            <aside className="catalog-pdf__thumbnails">
-              <div className="catalog-pdf__thumbnails-header">
-                <span className="catalog-pdf__thumbnails-title">Páginas del PDF</span>
-                <div className="catalog-pdf__thumbnails-sort">
-                  <label htmlFor="catalog-pdf__sort-select" className="catalog-pdf__sort-label">Ordenar por:</label>
-                  <select
-                    id="sort-select"
-                    className="catalog-pdf__sort-select"
-                  >
-                    <option value="más recientes">más recientes</option>
-                    <option value="precio-menor">Precio: menor a mayor</option>
-                    <option value="precio-mayor">Precio: mayor a menor</option>
-                    <option value="nombre-az">Nombre: A-Z</option>
-                    <option value="nombre-za">Nombre: Z-A</option>
-                  </select>
-                </div>
-              </div>
-              <div className="catalog-pdf__thumbnails-list" ref={thumbnailListRef}>
-                <PdfThumbnailsList
-                  pages={pageThumbnails}
-                  selectedPage={currentPage}
-                  onSelect={handlePageSelect}
-                  pdfPath={pdfs[currentPdfIndex]?.pdf_path}
-                />
-              </div>
-            </aside>
-          )}
                   {/* PDF Viewer */}
         <main className="catalog-pdf__main-pdf" style={{position: 'relative'}}>
   <button 
@@ -399,83 +373,88 @@ const CatalogPdfPage = () => {
 
             </div>
             
-            {/* PDF Viewer con páginas individuales */}
+            {/* PDF Viewer optimizado con una sola página */}
             <div className="catalog-pdf__pdf-viewer">
               {pdfs.length > 0 && (
                 <div className="catalog-pdf__pdf-container">
-                  {/* Renderizar un iframe para cada página */}
-                  {Array.from({ length: totalPages }, (_, index) => {
-                    const pageNumber = index + 1;
-                    const isVisible = pageNumber === currentPage;
-                    
-                    return (
-                                              <div
-                          key={`page-${pageNumber}`}
-                          ref={el => pageRefs.current[index] = el}
-                          className={`catalog-pdf__pdf-page ${isVisible ? 'visible' : 'hidden'}`}
+                  {/* Renderizar solo la página actual para optimizar rendimiento */}
+                  <div
+                    key={`page-${currentPage}`}
+                    ref={el => pageRefs.current[currentPage - 1] = el}
+                    className="catalog-pdf__pdf-page visible"
                           style={{ 
-                            visibility: isVisible ? 'visible' : 'hidden',
-                            opacity: isVisible ? 1 : 0,
-                            position: isVisible ? 'relative' : 'absolute',
-                            top: isVisible ? '0' : '-9999px'
-                          }}
-                        >
-                        
+                      visibility: 'visible',
+                      opacity: 1,
+                      position: 'relative',
+                      minHeight: '600px'
+                    }}
+                  >
+                    {/* Mostrar indicador de carga mientras se carga el iframe */}
+                    <div className="catalog-pdf__loading-indicator">
+                      <div className="catalog-pdf__loading-spinner"></div>
+                      <span>Cargando página {currentPage} de {totalPages}...</span>
+                    </div>
                          
-                         <iframe
-                           src={`/${pdfs[currentPdfIndex].pdf_path}#page=${pageNumber}&toolbar=0&navpanes=0&scrollbar=0`}
-                           title={`Página ${pageNumber}`}
-                           className="catalog-pdf__pdf-iframe"
-                           width="100%"
-                           height="600"
-                           frameBorder="0"
-                         />
-                         
-                         {isVisible && (
+                    <iframe
+                      key={`iframe-${currentPdfIndex}-${currentPage}`} // Force re-render when page changes
+                      src={`/${pdfs[currentPdfIndex].pdf_path}#page=${currentPage}&toolbar=0&navpanes=0&scrollbar=0&view=FitH&zoom=page-fit`}
+                      title={`Página ${currentPage} de ${totalPages}`}
+                      className="catalog-pdf__pdf-iframe"
+                      width="100%"
+                      height="600"
+                      frameBorder="0"
+                      loading="lazy"
+                      onLoad={(e) => {
+                        // Dar un pequeño delay para asegurar que el PDF se renderice correctamente
+                        setTimeout(() => {
+                          // Verificar que la URL del iframe contenga la página correcta antes de mostrar
+                          const iframeSrc = e.target.src;
+                          const expectedPage = `page=${currentPage}`;
+                          
+                          if (iframeSrc.includes(expectedPage)) {
+                            // Marcar el iframe como listo y mostrar
+                            setIframeReady(true);
+                            
+                            // Ocultar indicador de carga
+                            const loadingIndicator = e.target.parentElement.querySelector('.catalog-pdf__loading-indicator');
+                            if (loadingIndicator) {
+                              loadingIndicator.style.display = 'none';
+                            }
+                            
+                            // Mostrar el iframe con transición suave
+                            e.target.style.visibility = 'visible';
+                            e.target.style.opacity = '1';
+                          } else {
+                            // Si no es la página correcta, mantener oculto
+                            console.log('Página incorrecta cargada, esperando la correcta...');
+                          }
+                        }, 300); // Delay de 300ms para asegurar renderizado completo
+                      }}
+                      onError={(e) => {
+                        // Mostrar error si no se puede cargar
+                        const loadingIndicator = e.target.parentElement.querySelector('.catalog-pdf__loading-indicator');
+                        if (loadingIndicator) {
+                          loadingIndicator.innerHTML = '<span style="color: #f44336;">❌ Error al cargar la página</span>';
+                        }
+                      }}
+                      style={{ 
+                        opacity: 0, 
+                        transition: 'opacity 0.5s ease',
+                        visibility: 'hidden' // Inicialmente invisible
+                      }}
+                    />
+                    
                            <div className="catalog-pdf__page-indicator">
                              <span className="catalog-pdf__page-indicator-text">
-                               Página {pageNumber} de {totalPages}
+                        Página {currentPage} de {totalPages}
                              </span>
                            </div>
-                         )}
                       </div>
-                    );
-                  })}
-                  
-                  
                 </div>
               )}
             </div>
           </main>
 
-          {!isDesktop && (
-            <section className="catalog-pdf__thumbnails mobile">
-              <div className="catalog-pdf__thumbnails-header">
-                <span className="catalog-pdf__thumbnails-title">Páginas del PDF</span>
-                <div className="catalog-pdf__thumbnails-sort">
-                  <label htmlFor="catalog-pdf__sort-select" className="catalog-pdf__sort-label">Ordenar por:</label>
-                  <select
-                    id="sort-select"
-                    className="catalog-pdf__sort-select"
-                  >
-                    <option value="más recientes">más recientes</option>
-                    <option value="precio-menor">Precio: menor a mayor</option>
-                    <option value="precio-mayor">Precio: mayor a menor</option>
-                    <option value="nombre-az">Nombre: A-Z</option>
-                    <option value="nombre-za">Nombre: Z-A</option>
-                  </select>
-                </div>
-              </div>
-              <div className="catalog-pdf__thumbnails-list" ref={thumbnailListRef}>
-                <PdfThumbnailsList
-                  pages={pageThumbnails}
-                  selectedPage={currentPage}
-                  onSelect={handlePageSelect}
-                  pdfPath={pdfs[currentPdfIndex]?.pdf_path}
-                />
-              </div>
-            </section>
-          )}
         </div>
       </div>
     </div>
