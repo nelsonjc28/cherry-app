@@ -500,28 +500,28 @@ const Header = () => {
                       </>
                     )}
                     <Link to="/perfil" className="user-dropdown-item">
-                      <img src={getIconPath('User.svg')} alt="Perfil" />
+                      <img src={getIconPath('Red User.svg')} alt="Perfil" />
                       Mi Perfil
                     </Link>
                     <Link to="/perfil/mis-pedidos" className="user-dropdown-item">
-                      <img src={getIconPath('Package.svg')} alt="Órdenes" />
+                      <img src={getIconPath('Red Box.svg')} alt="Órdenes" />
                       Mis Órdenes
                     </Link>
                     <Link to="/perfil/favoritos" className="user-dropdown-item">
-                      <img src={getIconPath('Heart.svg')} alt="Favoritos" />
+                      <img src={getIconPath('Red Star.svg')} alt="Favoritos" />
                       Favoritos
                     </Link>
                     <Link to="/perfil/direcciones" className="user-dropdown-item">
-                      <img src={getIconPath('Map Pin.svg')} alt="Direcciones" />
+                      <img src={getIconPath('Red Home.svg')} alt="Direcciones" />
                       Mis Direcciones
                     </Link>
                     <Link to="/perfil/metodos-pago" className="user-dropdown-item">
-                      <img src={getIconPath('Credit Card.svg')} alt="Métodos de Pago" />
+                      <img src={getIconPath('Red Bill.svg')} alt="Métodos de Pago" />
                       Métodos de Pago
                     </Link>
                     <div className="user-dropdown-divider"></div>
                     <button className="user-dropdown-item logout-item" onClick={logout}>
-                      <img src={getIconPath('Log Out.svg')} alt="Cerrar Sesión" />
+                      <img src={getIconPath('Logout.svg')} alt="Cerrar Sesión" />
                       Cerrar Sesión
                     </button>
                   </div>
