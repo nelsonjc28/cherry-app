@@ -369,25 +369,42 @@ const Header = () => {
   const MobileMenuItem = ({ menuKey, title, icon }) => {
     const isOpen = openMobileSubMenu === menuKey;
     const navigate = useNavigate();
-    const handleClick = () => {
-      toggleSubMenu(menuKey);
-      if (menuKey === 'catalogos') {
-        setMobileMenuOpen(false);
+    
+    const handleMainClick = () => {
+      setMobileMenuOpen(false);
+      if (menuKey === 'nuevos') {
+        navigate('/nuevos');
+      } else if (menuKey === 'catalogos') {
         navigate('/catalogos');
+      } else if (menuKey === 'categorias') {
+        navigate('/categorias');
+      } else if (menuKey === 'promociones') {
+        navigate('/promociones');
       }
     };
+    
+    const handleToggleClick = (e) => {
+      e.stopPropagation();
+      toggleSubMenu(menuKey);
+    };
+    
     return (
       <li className="mobile-menu-item">
-        <div className="mobile-menu-header" onClick={handleClick}>
-          <div className="mobile-menu-title">
+        <div className="mobile-menu-header">
+          <div className="mobile-menu-title" onClick={handleMainClick}>
             {icon}
             <span>{title}</span>
           </div>
-          <img
-            src={getIconPath('Chevron Down.svg')}
-            alt="Expandir"
-            className={`mobile-menu-arrow ${isOpen ? 'open' : ''}`}
-          />
+          <button
+            className="mobile-menu-toggle-btn"
+            onClick={handleToggleClick}
+          >
+            <img
+              src={getIconPath('Chevron Down.svg')}
+              alt="Expandir"
+              className={`mobile-menu-arrow ${isOpen ? 'open' : ''}`}
+            />
+          </button>
         </div>
         {isOpen && (
           <div className="mobile-submenu">
