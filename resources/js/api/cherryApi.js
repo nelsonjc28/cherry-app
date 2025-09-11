@@ -245,9 +245,24 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
   // Extraer campos con fallbacks específicos para la API real
   const id = apiProduct.id_articulo || apiProduct.id || apiProduct.codigo || 'unknown';
   const title = apiProduct.descripcion || apiProduct.nombre || apiProduct.title || 'Producto sin nombre';
+  
+  // Nueva lógica: usar desc_promo como porcentaje de descuento directo sobre precio1
   const originalPrice = apiProduct.precio1 || apiProduct.precio || apiProduct.price || 0;
-  const discount = apiProduct.desc_promo || apiProduct.descuento || apiProduct.discount || 0;
-  const finalPrice = discount > 0 ? originalPrice * (1 - discount / 100) : originalPrice;
+  const discountPromo = apiProduct.desc_promo || 0; // Solo usar desc_promo real de la API
+  const productId = apiProduct.id_articulo || apiProduct.id;
+  
+  // Calcular precio final aplicando desc_promo como porcentaje de descuento
+  let discountPercentage = 0;
+  let finalPrice = originalPrice;
+  
+  // Solo aplicar descuento si desc_promo > 0
+  if (discountPromo > 0 && originalPrice > 0) {
+    discountPercentage = Math.round(discountPromo);
+    finalPrice = originalPrice - (originalPrice * (discountPromo / 100));
+    console.log(`✅ DESCUENTO - Producto ${id}: ${discountPercentage}% | ${originalPrice} → ${finalPrice}`);
+  } else {
+    console.log(`ℹ️ SIN DESCUENTO - Producto ${id}: desc_promo=${discountPromo}`);
+  }
   
   // Generar URL de imagen S3 usando el id_articulo
   const image = generateS3ImageUrl(id);
@@ -286,8 +301,8 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
     title: title,
     image: image,
     price: finalPrice,
-    originalPrice: discount > 0 ? originalPrice : null,
-    discount: discount > 0 ? discount : null,
+    originalPrice: discountPercentage > 0 ? originalPrice : null,
+    discount: discountPercentage > 0 ? discountPercentage : null,
     rating: rating,
     ratingCount: ratingCount,
     description: apiProduct.descripcion || apiProduct.descripcion_corta || title,
@@ -299,7 +314,10 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
     isNew: apiProduct.opc_nuevo === 'S' || apiProduct.is_new === true,
     isPromo: apiProduct.opc_promo === 'S' || apiProduct.is_promo === true,
     codigo: id,
-    dtu: apiProduct.DTU || apiProduct.dtu
+    dtu: apiProduct.DTU || apiProduct.dtu,
+    // Campos adicionales para debugging
+    precio1: apiProduct.precio1,
+    desc_promo: apiProduct.desc_promo
   };
   
   return mappedProduct;
@@ -853,6 +871,8 @@ export const getAvailableCategoriesFromAPI = async (catalog = 'Cherry 2025 - 202
 // Función para obtener un producto específico por ID
 export const getProductById = async (productId) => {
   try {
+    console.log(`🔍 OBTENIENDO PRODUCTO POR ID: ${productId}`);
+    
     // Make direct API call with specific product ID
     const response = await axios.get(`https://cherryapi.estrategiadmgs.com.mx/cherryApi/?id_articulo=${productId}`);
     const data = response.data;
@@ -868,8 +888,25 @@ export const getProductById = async (productId) => {
       throw new Error(`Producto con ID ${productId} no encontrado en la respuesta`);
     }
     
-    return product;
+    console.log(`✅ PRODUCTO ENCONTRADO: ${product.descripcion}, precio1: ${product.precio1}, desc_promo: ${product.desc_promo}`);
+    
+    // 🔥 IMPORTANTE: Aplicar el mapeo para que funcionen las ofertas
+    const mappedProduct = mapApiProductToAppProduct(product);
+    
+    console.log(`🎯 PRODUCTO MAPEADO: discount: ${mappedProduct?.discount}%, price: ${mappedProduct?.price}, originalPrice: ${mappedProduct?.originalPrice}`);
+    
+    // Retornar el producto original con los campos mapeados agregados
+    return {
+      ...product,
+      // Agregar campos mapeados para las ofertas
+      mappedDiscount: mappedProduct?.discount,
+      mappedPrice: mappedProduct?.price,
+      mappedOriginalPrice: mappedProduct?.originalPrice,
+      // Mantener desc_promo original de la API
+      desc_promo: product.desc_promo || 0
+    };
   } catch (error) {
+    console.error(`❌ ERROR obteniendo producto ${productId}:`, error);
     throw error;
   }
 }; 

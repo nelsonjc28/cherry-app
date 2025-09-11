@@ -45,6 +45,21 @@
   z-index: 2;
 }
 
+/* Offer badge */
+.offer-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: #ff4444;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  z-index: 2;
+  box-shadow: 0 2px 4px rgba(255, 68, 68, 0.3);
+}
+
 /* New badge */
 .new-badge {
   position: absolute;
@@ -96,11 +111,21 @@
   color: var(--color-primary);
 }
 
+.product-price-container {
+  margin-bottom: 0.5rem;
+}
+
+.original-price {
+  font-size: 14px;
+  color: #637381;
+  text-decoration: line-through;
+  margin-bottom: 2px;
+}
+
 .product-price {
   font-size: 20px;
   font-weight: 600;
   color: #212B36;
-  margin-bottom: 0.5rem;
 }
 
 /* Color selector */

@@ -42,6 +42,20 @@
   transform: scale(1.05);
 }
 
+/* Offer badge */
+.best-seller-offer-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: #ff4444;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  z-index: 2;
+  box-shadow: 0 2px 6px rgba(255, 68, 68, 0.3);
+}
 
 
 /* Product Info Section */
@@ -99,6 +113,20 @@
 .price-label {
   font-size: 10px;
   color: #7B7B7B;
+  font-weight: 400;
+}
+
+.best-seller-price-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.best-seller-original-price {
+  font-size: 0.9rem;
+  color: #888;
+  text-decoration: line-through;
   font-weight: 400;
 }
 

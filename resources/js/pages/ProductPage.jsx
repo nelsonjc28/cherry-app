@@ -427,6 +427,24 @@ const ProductPage = () => {
   const colores = [...new Set(detalles.map(d => d.nombreColor).filter(Boolean))];
   const tallas = [...new Set(detalles.map(d => d.detalle).filter(Boolean))];
 
+  // Calcular descuento usando SOLO desc_promo de la API
+  const calculateDiscountPercentage = () => {
+    // Solo usar desc_promo real de la API
+    const descPromo = product.desc_promo || 0;
+    console.log(`🔍 DETALLE PRODUCTO - ID: ${id_articulo}, desc_promo: ${descPromo}, precio1: ${precio1}`);
+    return descPromo > 0 ? Math.round(descPromo) : 0;
+  };
+
+  const discountPercentage = calculateDiscountPercentage();
+  const hasOffer = discountPercentage > 0;
+  const finalPrice = hasOffer ? precio1 - (precio1 * (discountPercentage / 100)) : precio1;
+  
+  if (hasOffer) {
+    console.log(`🏷️ OFERTA ACTIVA - ${discountPercentage}%: ${precio1} → ${finalPrice}`);
+  } else {
+    console.log(`ℹ️ SIN OFERTA - Precio normal: ${precio1}`);
+  }
+
   // Función para obtener el stock disponible por talla y color
   const getStockBySizeAndColor = (talla, color) => {
     if (!detalles || detalles.length === 0) return 0;
@@ -590,7 +608,29 @@ const ProductPage = () => {
             </div>
 
             <div className="product-page__info-price">
-              {formatPrice(precio1)}
+              {hasOffer && (
+                <div className="product-page__offer-badge">
+                  🏷️ Oferta {discountPercentage}%
+                </div>
+              )}
+              <div className="product-page__price-container">
+                {hasOffer && (
+                  <>
+                    <div className="product-page__original-price">{formatPrice(precio1)}</div>
+                    <div className="product-page__savings">
+                      💰 Ahorras {formatPrice(precio1 - finalPrice)}
+                    </div>
+                  </>
+                )}
+                <div className="product-page__final-price">{formatPrice(finalPrice)}</div>
+              </div>
+              {hasOffer && (
+                <div className="product-page__offer-details">
+                  <div className="product-page__calculation">
+                    📊 Precio original: {formatPrice(precio1)} - {discountPercentage}% = {formatPrice(finalPrice)}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="product-page__container-info-details">
@@ -608,7 +648,6 @@ const ProductPage = () => {
               </div>
               <div className="product-page__info-meta">
                 {url_video && <div><strong>Video:</strong> <a href={url_video} target="_blank" rel="noopener noreferrer">Ver video</a></div>}
-                {descuento && <div><strong>Descuento:</strong> {descuento}%</div>}
               </div>
 
             </div>

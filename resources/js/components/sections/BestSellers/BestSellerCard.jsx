@@ -5,7 +5,25 @@ import StarRating from '../../StarRating/StarRating';
 import { formatPrice } from '../../../utils/formatters';
 import './BestSellerCard.css';
 
-const BestSellerCard = ({ id, title, image, price, rating, description, onFavoriteToggle }) => {
+const BestSellerCard = ({ id, title, image, price, originalPrice, discount, rating, description, onFavoriteToggle }) => {
+  // Calculate discount percentage - Nueva lógica usando desc_promo
+  const calculateDiscountPercentage = () => {
+    // Si ya viene calculado desde la API (desc_promo), usarlo
+    if (discount && discount > 0) {
+      return Math.round(discount);
+    }
+    
+    // Fallback: calcular usando originalPrice vs price
+    if (originalPrice && price && originalPrice > price) {
+      return Math.round(((originalPrice - price) / originalPrice) * 100);
+    }
+    
+    return 0;
+  };
+
+  const discountPercentage = calculateDiscountPercentage();
+  const hasOffer = discountPercentage > 0;
+
   const handleCardClick = (e) => {
     // No navegar si se hace clic en el botón de favoritos
     if (e.target.closest('.favorite-button')) {
@@ -26,6 +44,13 @@ const BestSellerCard = ({ id, title, image, price, rating, description, onFavori
           loading="lazy"
         />
         
+        {/* Offer badge if product has discount */}
+        {hasOffer && (
+          <span className="best-seller-offer-badge">
+            Oferta {discountPercentage}%
+          </span>
+        )}
+
         {/* Favorite Button */}
         <FavoriteButton 
           productId={id}
@@ -53,7 +78,12 @@ const BestSellerCard = ({ id, title, image, price, rating, description, onFavori
         {/* Price */}
         <div className="best-seller-price">
           <span className="price-label">Desde:</span>
-          <span className="price-value">{formatPrice(price)}</span>
+          <div className="best-seller-price-container">
+            {hasOffer && originalPrice && (
+              <span className="best-seller-original-price">{formatPrice(originalPrice)}</span>
+            )}
+            <span className="price-value">{formatPrice(price)}</span>
+          </div>
         </div>
       </div>
     </div>

@@ -59,6 +59,24 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
     }
   };
 
+  // Calculate discount percentage - Nueva lógica usando desc_promo
+  const calculateDiscountPercentage = () => {
+    // Si ya viene calculado desde la API (desc_promo), usarlo
+    if (discount && discount > 0) {
+      return Math.round(discount);
+    }
+    
+    // Fallback: calcular usando originalPrice vs price
+    if (originalPrice && price && originalPrice > price) {
+      return Math.round(((originalPrice - price) / originalPrice) * 100);
+    }
+    
+    return 0;
+  };
+
+  const discountPercentage = calculateDiscountPercentage();
+  const hasOffer = discountPercentage > 0;
+
   // Handle share functionality
   const handleShare = () => {
     const productUrl = `${window.location.origin}/producto/${id}`;
@@ -120,9 +138,16 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
           className="catalog-favorite-btn"
         />
 
+        {/* Offer badge if product has discount */}
+        {hasOffer && (
+          <span className="catalog-offer-badge">
+            Oferta {discountPercentage}%
+          </span>
+        )}
+
         {/* New badge if product is new */}
-        {isNew && (
-          <span className="new-badge">Nuevo</span>
+        {isNew && !hasOffer && (
+          <span className="catalog-new-badge">Nuevo</span>
         )}
       </div>
       
@@ -164,7 +189,12 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
         </div>
         
         {/* Price */}
-        <div className="catalog-product-price">{formatPrice(price)}</div>
+        <div className="catalog-product-price-container">
+          {hasOffer && originalPrice && (
+            <div className="catalog-original-price">{formatPrice(originalPrice)}</div>
+          )}
+          <div className="catalog-product-price">{formatPrice(price)}</div>
+        </div>
         
         {/* Color selector */}
         <div className="catalog-color-selector">

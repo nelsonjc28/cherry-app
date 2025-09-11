@@ -250,6 +250,71 @@
   display: block;
 }
 
+/* Offer badge */
+.product-page__offer-badge {
+  background: #ff4444;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  display: inline-block;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 6px rgba(255, 68, 68, 0.3);
+}
+
+/* Price container */
+.product-page__price-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Original price (crossed out) */
+.product-page__original-price {
+  font-size: 32px;
+  font-weight: 400;
+  color: #888;
+  text-decoration: line-through;
+  line-height: 1.1;
+}
+
+/* Final price */
+.product-page__final-price {
+  font-size: 48px;
+  font-weight: 400;
+  color: #1a1a1a;
+  line-height: 1.1;
+}
+
+/* Savings highlight */
+.product-page__savings {
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  display: inline-block;
+  margin: 8px 0;
+  box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3);
+}
+
+/* Offer details */
+.product-page__offer-details {
+  margin-top: 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, #fff3e0, #ffffff);
+  border-left: 4px solid #ff4444;
+  border-radius: 6px;
+}
+
+.product-page__calculation {
+  font-size: 14px;
+  color: #666;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
 .product-page__info-sku {
   font-size: 16px;
   color: #666;
@@ -676,6 +741,35 @@
     margin-bottom: 10px;
     line-height: 1.1;
     display: block;
+  }
+
+  /* Responsive offer styles */
+  .product-page__offer-badge {
+    font-size: 14px;
+    padding: 6px 12px;
+    margin-bottom: 12px;
+  }
+
+  .product-page__original-price {
+    font-size: 28px;
+  }
+
+  .product-page__final-price {
+    font-size: 44px;
+  }
+
+  .product-page__savings {
+    font-size: 14px;
+    padding: 6px 12px;
+  }
+
+  .product-page__offer-details {
+    padding: 10px;
+    margin-top: 10px;
+  }
+
+  .product-page__calculation {
+    font-size: 12px;
   }
 
   .product-page__options-title {

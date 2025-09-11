@@ -45,7 +45,7 @@ const CatalogosPage = () => {
         };
         const category = categoryMap[productCatalog] || 'vestidos';
         const response = await getProductsByCategory(category);
-        const mapped = response.map(mapApiProductToAppProduct);
+        const mapped = response.map(mapApiProductToAppProduct).filter(p => p !== null);
         setProducts(mapped);
         setFilteredProducts(mapped);
         setTotalResults(mapped.length);
