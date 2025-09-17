@@ -1,33 +1,81 @@
-const CACHE_NAME = 'cherry-app-v1.0.3';
+const CACHE_NAME = 'cherry-app-v1.1.0';
+const STATIC_CACHE = 'cherry-static-v1.1.0';
+const DYNAMIC_CACHE = 'cherry-dynamic-v1.1.0';
+
 const urlsToCache = [
   '/',
   '/manifest.json',
-  '/icons/icon-144x144.png',
-  '/images/logo.svg'
+  '/offline.html',
+  '/icons/cherry-icon-144x144.png',
+  '/icons/cherry-icon-192x192.png',
+  '/icons/cherry-icon-512x512.png',
+  '/images/logo.svg',
+  '/images/white-logo.svg'
+];
+
+// URLs críticas que siempre deben estar disponibles offline
+const CRITICAL_URLS = [
+  '/',
+  '/categorias',
+  '/carrito-detalle',
+  '/perfil',
+  '/offline.html'
+];
+
+// Patrones de URLs que deben ser cacheadas dinámicamente
+const CACHE_PATTERNS = [
+  /\/catalogs\/.+\.(jpg|jpeg|png|webp)$/,
+  /\/images\/.+\.(jpg|jpeg|png|webp|svg)$/,
+  /\/icons\/.+\.(png|svg)$/,
+  /\/build\/assets\/.+\.(css|js)$/
 ];
 
 // Instalación del Service Worker
 self.addEventListener('install', (event) => {
-  console.log('Service Worker instalando...');
+  
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Cache abierto:', CACHE_NAME);
+    Promise.all([
+      // Cache estático
+      caches.open(STATIC_CACHE).then((cache) => {
         return cache.addAll(urlsToCache);
+      }),
+      // Pre-cache URLs críticas
+      caches.open(DYNAMIC_CACHE).then((cache) => {
+        return Promise.all(
+          CRITICAL_URLS.map(url => 
+            fetch(url)
+              .then(response => {
+                if (response.ok) {
+                  return cache.put(url, response);
+                }
+              })
+              .catch(error => {})
+          )
+        );
       })
+    ])
       .then(() => {
-        console.log('Cache poblado exitosamente');
+      // Notificar instalación exitosa
+      self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          client.postMessage({
+            type: 'SW_INSTALLED',
+            message: 'Cherry App lista para usar offline',
+            version: CACHE_NAME
+          });
+        });
+      });
         // Forzar activación inmediata
         return self.skipWaiting();
       })
       .catch((error) => {
-        console.error('Error al configurar el cache:', error);
-        // Notificar al cliente sobre el error
+      console.error('Error durante la instalación del SW:', error);
+      // Notificar error al cliente
         self.clients.matchAll().then(clients => {
           clients.forEach(client => {
             client.postMessage({
               type: 'TOAST',
-              message: 'Error al configurar el cache offline',
+            message: 'Error al preparar la app para uso offline',
               toastType: 'error',
               duration: 5000
             });
@@ -39,117 +87,207 @@ self.addEventListener('install', (event) => {
 
 // Activación del Service Worker
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker activando...');
+  console.log('Service Worker activando versión:', CACHE_NAME);
+  
   event.waitUntil(
+    Promise.all([
+      // Limpiar caches antiguos
     caches.keys().then((cacheNames) => {
       console.log('Caches encontrados:', cacheNames);
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
+            // Mantener solo los caches de la versión actual
+            if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE && cacheName !== CACHE_NAME) {
             console.log('Eliminando cache antiguo:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
-    }).then(() => {
-      console.log('Cache limpio, tomando control de todos los clientes');
+      }),
       // Tomar control inmediato de todos los clientes
-      return self.clients.claim();
-    }).then(() => {
+      self.clients.claim()
+    ])
+    .then(() => {
+      console.log('Service Worker activado y controlando todos los clientes');
+      
       // Notificar al cliente que el SW está activo
       self.clients.matchAll().then(clients => {
         clients.forEach(client => {
           client.postMessage({
-            type: 'TOAST',
-            message: 'Cherry App actualizada y lista para usar offline',
+            type: 'SW_ACTIVATED',
+            message: 'Cherry App actualizada y optimizada',
             toastType: 'success',
-            duration: 3000
+            duration: 3000,
+            version: CACHE_NAME
           });
         });
       });
+      
+      // Verificar y actualizar cache crítico en segundo plano
+      updateCriticalCache();
+    })
+    .catch(error => {
+      console.error('Error durante la activación del SW:', error);
     })
   );
 });
 
+// Función para actualizar cache crítico en segundo plano
+async function updateCriticalCache() {
+  try {
+    const cache = await caches.open(DYNAMIC_CACHE);
+    const updatePromises = CRITICAL_URLS.map(async (url) => {
+      try {
+        const response = await fetch(url);
+        if (response.ok) {
+          await cache.put(url, response);
+          console.log('Cache actualizado para:', url);
+        }
+      } catch (error) {
+        console.log('Error actualizando cache para:', url, error);
+      }
+    });
+    
+    await Promise.all(updatePromises);
+    console.log('Cache crítico actualizado en segundo plano');
+  } catch (error) {
+    console.error('Error actualizando cache crítico:', error);
+  }
+}
+
 // Interceptar peticiones
 self.addEventListener('fetch', (event) => {
-  // No cachear peticiones de API para evitar datos obsoletos
+  const url = new URL(event.request.url);
+  
+  // Estrategia para peticiones de API
   if (event.request.url.includes('/api/')) {
-    event.respondWith(
-      fetch(event.request).catch(() => {
-        // Si falla la API, devolver respuesta de error
-        return new Response(JSON.stringify({
-          success: false,
-          message: 'Sin conexión a internet'
-        }), {
-          status: 503,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      })
-    );
+    event.respondWith(handleApiRequest(event.request));
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Si está en cache, devolverlo pero también verificar si hay una versión más nueva
-        if (response) {
-          // Para recursos estáticos, devolver del cache inmediatamente
-          if (event.request.url.includes('.js') || event.request.url.includes('.css') || event.request.url.includes('.png') || event.request.url.includes('.jpg')) {
-            return response;
-          }
-          
-          // Para HTML, verificar si hay una versión más nueva en segundo plano
-          fetch(event.request).then((fetchResponse) => {
-            if (fetchResponse && fetchResponse.status === 200) {
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(event.request, fetchResponse.clone());
-              });
-            }
-          }).catch(() => {
-            // Ignorar errores de red en segundo plano
-          });
-          
-          return response;
-        }
-        
-        // Si no está en cache, hacer la petición
-        return fetch(event.request)
-          .then((response) => {
-            // Verificar que la respuesta sea válida
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-            
-            // Solo cachear recursos específicos
-            if (event.request.url.includes('.js') || 
-                event.request.url.includes('.css') || 
-                event.request.url.includes('.png') || 
-                event.request.url.includes('.jpg') ||
-                event.request.destination === 'document') {
-              
-              // Clonar la respuesta
-              const responseToCache = response.clone();
-              
-              // Agregar al cache
-              caches.open(CACHE_NAME)
-                .then((cache) => {
-                  cache.put(event.request, responseToCache);
-                });
-            }
-            
-            return response;
-          })
-          .catch(() => {
-            // Si falla la petición, devolver página offline
-            if (event.request.destination === 'document') {
-              return caches.match('/offline.html');
-            }
-          });
-      })
+  // Estrategia para recursos estáticos (imágenes, CSS, JS)
+  if (shouldCacheResource(event.request.url)) {
+    event.respondWith(handleStaticResource(event.request));
+    return;
+  }
+
+  // Estrategia para páginas HTML
+  if (event.request.destination === 'document') {
+    event.respondWith(handlePageRequest(event.request));
+    return;
+  }
+
+  // Para todo lo demás, intentar red primero
+    event.respondWith(
+      fetch(event.request).catch(() => {
+      return caches.match(event.request);
+    })
   );
 });
+
+// Manejar peticiones de API
+async function handleApiRequest(request) {
+  try {
+    const networkResponse = await fetch(request);
+    return networkResponse;
+  } catch (error) {
+    // Si falla la API, devolver respuesta de error offline
+        return new Response(JSON.stringify({
+          success: false,
+      message: 'Sin conexión a internet. Verifica tu conexión e intenta nuevamente.',
+      offline: true
+        }), {
+          status: 503,
+      headers: { 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache'
+      }
+    });
+  }
+}
+
+// Manejar recursos estáticos (Cache First)
+async function handleStaticResource(request) {
+  try {
+    // Buscar en cache primero
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+
+    // Si no está en cache, obtener de la red
+    const networkResponse = await fetch(request);
+    
+    if (networkResponse.ok) {
+      // Determinar qué cache usar
+      const cacheName = shouldUseStaticCache(request.url) ? STATIC_CACHE : DYNAMIC_CACHE;
+      const cache = await caches.open(cacheName);
+      cache.put(request, networkResponse.clone());
+    }
+    
+    return networkResponse;
+  } catch (error) {
+    // Si falla todo, intentar buscar en cualquier cache
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    
+    // Si es una imagen, devolver una imagen placeholder
+    if (request.destination === 'image') {
+      return caches.match('/images/placeholder-catalog.png');
+    }
+    
+    throw error;
+  }
+}
+
+// Manejar páginas HTML (Network First con Cache Fallback)
+async function handlePageRequest(request) {
+  try {
+    // Intentar red primero para contenido fresco
+    const networkResponse = await fetch(request);
+    
+    if (networkResponse.ok) {
+      // Cachear la respuesta
+      const cache = await caches.open(DYNAMIC_CACHE);
+      cache.put(request, networkResponse.clone());
+      return networkResponse;
+    }
+    
+    throw new Error('Network response not ok');
+  } catch (error) {
+    // Si falla la red, buscar en cache
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    
+    // Si no hay cache y es la página principal, devolver página offline
+    if (request.url.endsWith('/') || request.url.includes('index')) {
+              return caches.match('/offline.html');
+            }
+    
+    // Para otras páginas, intentar devolver la página principal desde cache
+    const mainPage = await caches.match('/');
+    if (mainPage) {
+      return mainPage;
+    }
+    
+    // Último recurso: página offline
+    return caches.match('/offline.html');
+  }
+}
+
+// Verificar si un recurso debe ser cacheado
+function shouldCacheResource(url) {
+  return CACHE_PATTERNS.some(pattern => pattern.test(url));
+}
+
+// Verificar si debe usar cache estático o dinámico
+function shouldUseStaticCache(url) {
+  return url.includes('/build/') || url.includes('/icons/') || url.includes('manifest.json');
+}
 
 // Manejar mensajes del service worker
 self.addEventListener('message', (event) => {

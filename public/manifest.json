@@ -3,60 +3,72 @@
   "short_name": "Cherry",
   "description": "Tu tienda de moda y accesorios favorita. Encuentra las últimas tendencias en ropa, calzado y más.",
   "start_url": "/",
+  "id": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "background_color": "#ffffff",
   "theme_color": "#E91E63",
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "es-MX",
+  "dir": "ltr",
   "categories": ["shopping", "fashion", "lifestyle"],
   "prefer_related_applications": false,
   "related_applications": [],
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+cherry",
+      "url": "/?cherry=%s"
+    }
+  ],
   "icons": [
     {
-      "src": "/icons/icon-144x144.png",
+      "src": "/icons/cherry-icon-72x72.png",
       "sizes": "72x72",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-144x144.png",
+      "src": "/icons/cherry-icon-96x96.png",
       "sizes": "96x96",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-144x144.png",
+      "src": "/icons/cherry-icon-128x128.png",
       "sizes": "128x128",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-144x144.png",
+      "src": "/icons/cherry-icon-144x144.png",
       "sizes": "144x144",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/icon-144x144.png",
+      "src": "/icons/cherry-icon-152x152.png",
       "sizes": "152x152",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-144x144.png",
+      "src": "/icons/cherry-icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-144x144.png",
+      "src": "/icons/cherry-icon-384x384.png",
       "sizes": "384x384",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-144x144.png",
+      "src": "/icons/cherry-icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
@@ -66,38 +78,65 @@
     {
       "name": "Productos Nuevos",
       "short_name": "Nuevos",
-      "description": "Ver productos nuevos",
+      "description": "Ver productos nuevos y tendencias",
       "url": "/nuevos",
       "icons": [
         {
-          "src": "/icons/icon-144x144.png",
-          "sizes": "96x96"
+          "src": "/icons/cherry-icon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
         }
       ]
     },
     {
       "name": "Categorías",
       "short_name": "Categorías",
-      "description": "Explorar categorías",
+      "description": "Explorar todas las categorías",
       "url": "/categorias",
       "icons": [
         {
-          "src": "/icons/icon-144x144.png",
-          "sizes": "96x96"
+          "src": "/icons/cherry-icon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
         }
       ]
     },
     {
-      "name": "Carrito",
+      "name": "Carrito de Compras",
       "short_name": "Carrito",
-      "description": "Ver carrito de compras",
+      "description": "Ver y gestionar carrito",
       "url": "/carrito-detalle",
       "icons": [
         {
-          "src": "/icons/icon-144x144.png",
-          "sizes": "96x96"
+          "src": "/icons/cherry-icon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Mi Perfil",
+      "short_name": "Perfil",
+      "description": "Gestionar cuenta y pedidos",
+      "url": "/perfil",
+      "icons": [
+        {
+          "src": "/icons/cherry-icon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
         }
       ]
     }
-  ]
+  ],
+  "file_handlers": [
+    {
+      "action": "/",
+      "accept": {
+        "image/*": [".jpg", ".jpeg", ".png", ".webp"]
+      }
+    }
+  ],
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  }
 }
