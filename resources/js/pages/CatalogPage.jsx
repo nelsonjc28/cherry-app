@@ -215,7 +215,6 @@ const CatalogPage = ({ catalogId }) => {
             try {
               const localResponse = await publicCatalogService.getProducts(catalogId);
               if (localResponse.data.success) {
-                console.log('Productos locales encontrados:', localResponse.data.data.products.length);
                 
                 // Para productos locales, necesitamos obtener los datos completos de la API externa
                 const externalApiResponse = await fetch('https://cherryapi.estrategiadmgs.com.mx/cherryApi/');
@@ -229,7 +228,6 @@ const CatalogPage = ({ catalogId }) => {
                   const fullProduct = externalApiData.find(p => p.id_articulo === product.external_product_id);
                   
                   if (fullProduct) {
-                    console.log(`Producto ${product.external_product_id} - precio1: ${fullProduct.precio1}, desc_promo: ${fullProduct.desc_promo}%`);
                     // Usar la función de mapeo actualizada con datos completos
                     const mappedProduct = mapApiProductToAppProduct(fullProduct);
                     if (mappedProduct) {
@@ -243,18 +241,18 @@ const CatalogPage = ({ catalogId }) => {
                   
                   // Fallback: mapeo básico sin ofertas
                   return {
-                    id: product.external_product_id,
-                    title: product.product_name,
-                    description: product.product_description,
-                    price: product.product_price,
-                    image: getProductImageUrl(product.external_product_id),
-                    brand: product.product_metadata?.marca,
-                    category: product.product_category,
-                    stock: product.product_metadata?.inventario || 0,
-                    colors: [],
-                    isNew: false,
-                    rating: 0,
-                    ratingCount: 0,
+                  id: product.external_product_id,
+                  title: product.product_name,
+                  description: product.product_description,
+                  price: product.product_price,
+                  image: getProductImageUrl(product.external_product_id),
+                  brand: product.product_metadata?.marca,
+                  category: product.product_category,
+                  stock: product.product_metadata?.inventario || 0,
+                  colors: [],
+                  isNew: false,
+                  rating: 0,
+                  ratingCount: 0,
                     source: 'local',
                     originalPrice: null,
                     discount: null
@@ -305,21 +303,16 @@ const CatalogPage = ({ catalogId }) => {
                       }
                       
                       // Debug específico para productos externos
-                      console.log(`Producto externo ${product.id_articulo}: precio1=${product.precio1}, desc_promo=${product.desc_promo}%, catalogoId=${product.catalogoId}`);
                       
                       // Usar la función de mapeo actualizada que incluye la lógica de ofertas
                       const mappedProduct = mapApiProductToAppProduct(product);
                       if (mappedProduct) {
-                        // Debug del resultado del mapeo
-                        if (mappedProduct.discount && mappedProduct.discount > 0) {
-                          console.log(`✅ OFERTA DETECTADA: ${mappedProduct.title} - ${mappedProduct.discount}% - Original: $${mappedProduct.originalPrice} - Final: $${mappedProduct.price}`);
-                        }
-                        
-                        return {
+                      
+                      return {
                           ...mappedProduct,
-                          source: 'external',
-                          catalogoId: product.catalogoId
-                        };
+                        source: 'external',
+                        catalogoId: product.catalogoId
+                      };
                       }
                       return null;
                     });
@@ -370,21 +363,16 @@ const CatalogPage = ({ catalogId }) => {
                       }
                       
                       // Debug específico para productos fallback
-                      console.log(`Producto fallback ${product.id_articulo}: precio1=${product.precio1}, desc_promo=${product.desc_promo}%, temporada=${product.temporada}`);
                       
                       // Usar la función de mapeo actualizada que incluye la lógica de ofertas
                       const mappedProduct = mapApiProductToAppProduct(product);
                       if (mappedProduct) {
-                        // Debug del resultado del mapeo
-                        if (mappedProduct.discount && mappedProduct.discount > 0) {
-                          console.log(`✅ OFERTA DETECTADA (fallback): ${mappedProduct.title} - ${mappedProduct.discount}% - Original: $${mappedProduct.originalPrice} - Final: $${mappedProduct.price}`);
-                        }
-                        
-                        return {
+                      
+                      return {
                           ...mappedProduct,
-                          source: 'external_fallback',
-                          temporada: product.temporada
-                        };
+                        source: 'external_fallback',
+                        temporada: product.temporada
+                      };
                       }
                       return null;
                     });
@@ -420,18 +408,10 @@ const CatalogPage = ({ catalogId }) => {
         const validProducts = productsData.filter(p => p !== null);
         
         // Console log para debugging
-        console.log('Productos cargados para catálogo:', validProducts.length);
         const productsWithOffers = validProducts.filter(p => p.discount && p.discount > 0);
         const productsWithoutOffers = validProducts.filter(p => !p.discount || p.discount === 0);
         
-        console.log(`🎉 PRODUCTOS CON OFERTAS: ${productsWithOffers.length} (${Math.round(productsWithOffers.length/validProducts.length*100)}%)`);
-        console.log(`📦 PRODUCTOS SIN OFERTAS: ${productsWithoutOffers.length} (${Math.round(productsWithoutOffers.length/validProducts.length*100)}%)`);
         
-        // Mostrar algunos ejemplos de ofertas
-        console.log('🏷️ EJEMPLOS DE OFERTAS:');
-        productsWithOffers.slice(0, 5).forEach(product => {
-          console.log(`   ✨ ${product.title} - ${product.discount}% OFF - $${product.originalPrice} → $${product.price}`);
-        });
         
         setAllProducts(validProducts);
         setFilteredProducts(validProducts);

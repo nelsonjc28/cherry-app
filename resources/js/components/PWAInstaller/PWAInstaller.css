@@ -105,8 +105,18 @@
 }
 
 .pwa-installer__modal-icon {
-  font-size: 48px;
+  width: 48px;
+  height: 48px;
   margin-right: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pwa-installer__modal-icon img {
+  width: 100%;
+  height: auto;
+  max-height: 48px;
 }
 
 .pwa-installer__modal-header h3 {

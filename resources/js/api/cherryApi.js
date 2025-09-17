@@ -259,9 +259,6 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
   if (discountPromo > 0 && originalPrice > 0) {
     discountPercentage = Math.round(discountPromo);
     finalPrice = originalPrice - (originalPrice * (discountPromo / 100));
-    console.log(`✅ DESCUENTO - Producto ${id}: ${discountPercentage}% | ${originalPrice} → ${finalPrice}`);
-  } else {
-    console.log(`ℹ️ SIN DESCUENTO - Producto ${id}: desc_promo=${discountPromo}`);
   }
   
   // Generar URL de imagen S3 usando el id_articulo
@@ -871,7 +868,6 @@ export const getAvailableCategoriesFromAPI = async (catalog = 'Cherry 2025 - 202
 // Función para obtener un producto específico por ID
 export const getProductById = async (productId) => {
   try {
-    console.log(`🔍 OBTENIENDO PRODUCTO POR ID: ${productId}`);
     
     // Make direct API call with specific product ID
     const response = await axios.get(`https://cherryapi.estrategiadmgs.com.mx/cherryApi/?id_articulo=${productId}`);
@@ -888,12 +884,10 @@ export const getProductById = async (productId) => {
       throw new Error(`Producto con ID ${productId} no encontrado en la respuesta`);
     }
     
-    console.log(`✅ PRODUCTO ENCONTRADO: ${product.descripcion}, precio1: ${product.precio1}, desc_promo: ${product.desc_promo}`);
     
     // 🔥 IMPORTANTE: Aplicar el mapeo para que funcionen las ofertas
     const mappedProduct = mapApiProductToAppProduct(product);
     
-    console.log(`🎯 PRODUCTO MAPEADO: discount: ${mappedProduct?.discount}%, price: ${mappedProduct?.price}, originalPrice: ${mappedProduct?.originalPrice}`);
     
     // Retornar el producto original con los campos mapeados agregados
     return {

@@ -7,6 +7,11 @@ const SmartRedirect = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // 🚀 SCROLL AUTOMÁTICO HACIA ARRIBA en cada cambio de página
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+  }, [location.pathname]);
+
   useEffect(() => {
     // Solo ejecutar después de que la autenticación esté inicializada
     if (!initialized) return;

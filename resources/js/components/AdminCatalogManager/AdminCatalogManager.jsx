@@ -153,6 +153,12 @@ const AdminCatalogManager = () => {
     });
          setImagePreview(catalog.image ? `/${catalog.image}` : null);
     setShowForm(true);
+    
+    // 🚀 SCROLL AUTOMÁTICO HACIA ARRIBA al editar catálogo
+    setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+      console.log('📍 Scroll automático - Editando catálogo:', catalog.name);
+    }, 100);
   };
 
   const handleDelete = async (id) => {
@@ -331,6 +337,12 @@ const AdminCatalogManager = () => {
                 display_order: nextOrder
               }));
               setShowForm(true);
+              
+              // 🚀 SCROLL AUTOMÁTICO HACIA ARRIBA al crear nuevo catálogo
+              setTimeout(() => {
+                window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+                console.log('📍 Scroll automático - Creando nuevo catálogo');
+              }, 100);
             }}
           >
             + Nuevo Catálogo

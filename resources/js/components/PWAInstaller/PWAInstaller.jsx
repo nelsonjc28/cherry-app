@@ -212,9 +212,24 @@ const PWAInstaller = () => {
             >
               <div 
                 className="pwa-installer__modal-icon"
-                style={{ fontSize: '48px', marginRight: '16px' }}
+                style={{ 
+                  width: '48px',
+                  height: '48px',
+                  marginRight: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
               >
-                🍒
+                <img 
+                  src="/images/logo.svg" 
+                  alt="Cherry App" 
+                  style={{ 
+                    width: '100%', 
+                    height: 'auto',
+                    maxHeight: '48px'
+                  }} 
+                />
               </div>
               <h3 
                 style={{
@@ -405,7 +420,16 @@ const PWAInstaller = () => {
               <div className="pwa-installer__ios-preview">
                 <div className="pwa-installer__ios-preview-content">
                   <div className="pwa-installer__ios-preview-header">
-                    <div className="pwa-installer__ios-preview-icon">🍒</div>
+                    <div className="pwa-installer__ios-preview-icon">
+                      <img 
+                        src="/images/logo.svg" 
+                        alt="Cherry App" 
+                        style={{ 
+                          width: '24px', 
+                          height: '24px'
+                        }} 
+                      />
+                    </div>
                     <div className="pwa-installer__ios-preview-text">
                       <strong>Cherry App</strong>
                       <span>cherry-app.com</span>

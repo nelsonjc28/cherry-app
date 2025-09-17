@@ -13,7 +13,6 @@ const PWAInstallToast = () => {
     const isDebugMode = window.location.search.includes('debug-pwa') || window.location.search.includes('show-toast');
     
     if (isDebugMode) {
-      console.log('Modo debug PWA activado');
       setShowToast(true);
       return;
     }
@@ -24,19 +23,20 @@ const PWAInstallToast = () => {
     
     if (toastShown) {
       setHasShownToast(true);
-      return;
+      // No hacer return aquí - seguir escuchando eventos para permitir reset
     }
 
     // Escuchar el evento personalizado desde Blade
     const handleInstallAvailable = (event) => {
-
+      
       setDeferredPrompt(event.detail.deferredPrompt);
       
+      // Verificar nuevamente el localStorage por si se limpió
+      const currentToastShown = localStorage.getItem('pwa-install-toast-shown') === 'true';
+      
       // Mostrar toast después de 2 segundos si no se ha mostrado
-      if (!toastShown) {
-
+      if (!currentToastShown) {
         setTimeout(() => {
-
           setShowToast(true);
         }, 2000);
       }
@@ -236,7 +236,9 @@ const PWAInstallToast = () => {
   return (
     <div className="pwa-install-toast">
       <div className="pwa-install-toast__content">
-        <div className="pwa-install-toast__icon">🍒</div>
+        <div className="pwa-install-toast__icon">
+          <img src="/images/logo.svg" alt="Cherry App" />
+        </div>
         <div className="pwa-install-toast__text">
           <h4>¡Instala Cherry App en tu dispositivo!</h4>
           <p>Accede más rápido desde tu pantalla de inicio</p>

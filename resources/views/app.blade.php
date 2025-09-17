@@ -8,8 +8,14 @@
     
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="/manifest.json">
-    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-144x144.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-144x144.png">
+    <!-- Favicon con logo Cherry -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    
+    <!-- Fallback con SVG -->
+    <link rel="icon" type="image/svg+xml" href="/images/logo.svg">
     
     <!-- Modern PWA Meta Tags -->
     <meta name="theme-color" content="#E91E63">
@@ -21,7 +27,7 @@
     <!-- Additional PWA Meta Tags for better installation -->
     <meta name="application-name" content="Cherry App">
     <meta name="msapplication-TileColor" content="#E91E63">
-    <meta name="msapplication-TileImage" content="/icons/icon-144x144.png">
+    <meta name="msapplication-TileImage" content="/mstile-144x144.png">
     
     <!-- Toast Styles -->
     <style>
@@ -244,6 +250,14 @@
     <!-- Cache Management Script - Load first to handle loading issues -->
     <script src="/clear-cache.js"></script>
     
+    <!-- PWA Diagnostics Script - For troubleshooting PWA installation -->
+    
+    <!-- PWA Install Helper - Enhanced installation support -->
+    <script src="/pwa-install-helper.js"></script>
+    
+    <!-- Favicon Generator Script - For creating Cherry favicons -->
+    
+    
     <!-- Vite Assets -->
     @viteReactRefresh
     @vite(['resources/css/app.css', 'resources/js/main.jsx'])
@@ -253,6 +267,7 @@
     
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
+    
     
 
     
@@ -275,7 +290,7 @@
                 title.className = 'toast-title';
                 title.textContent = type === 'success' ? '✅ Éxito' : 
                                   type === 'error' ? '❌ Error' : 
-                                  type === 'warning' ? '⚠️ Advertencia' : '🍒 Cherry App';
+                                  type === 'warning' ? '⚠️ Advertencia' : 'Cherry App';
                 title.style.color = 'black';
                 title.style.fontWeight = '600';
                 
@@ -462,7 +477,28 @@
         window.clearPWAInstallCache = () => {
             localStorage.removeItem('pwa-install-toast-shown');
             localStorage.removeItem('pwa-modal-shown');
-            console.log('Cache de instalación PWA limpiado');
+            localStorage.removeItem('pwa-manually-installed');
+            console.log('🧹 Cache de instalación PWA completamente limpiado');
+            console.log('🔄 Recarga la página para ver el botón de instalación');
+            
+            // Mostrar confirmación visual
+            if (window.showToast) {
+                window.showToast('Cache PWA limpiado. Recarga la página para ver el botón de instalación.', 'success', 5000);
+            }
+        };
+        
+        // Función para forzar mostrar el instalador PWA inmediatamente
+        window.forceShowPWAInstaller = () => {
+            // Limpiar cache primero
+            window.clearPWAInstallCache();
+            
+            // Disparar evento para mostrar instalador
+            setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('pwa-install-available', { 
+                    detail: { deferredPrompt: deferredPrompt } 
+                }));
+                console.log('🚀 Instalador PWA forzado a aparecer');
+            }, 500);
         };
         
         // Handle installation errors

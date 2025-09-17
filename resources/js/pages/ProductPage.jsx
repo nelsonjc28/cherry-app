@@ -72,8 +72,24 @@ const ProductPage = () => {
         setProduct(productData);
         // Set default color/size if available
         if (productData.detalles && productData.detalles.length > 0) {
-          setSelectedColor(productData.detalles[0].nombreColor || '');
-          setSelectedSize(productData.detalles[0].detalle || '');
+          const availableColors = [...new Set(productData.detalles.map(d => d.nombreColor).filter(Boolean))];
+          const availableSizes = [...new Set(productData.detalles.map(d => d.detalle).filter(Boolean))];
+          
+          // Auto-seleccionar primer color con fallback
+          const coloresParaSeleccion = availableColors.length > 0 ? availableColors : (productData.colors || ['rojo', 'azul', 'verde']);
+          if (coloresParaSeleccion.length > 0) {
+            setSelectedColor(coloresParaSeleccion[0]);
+          }
+          
+          if (availableSizes.length > 0) {
+            setSelectedSize(availableSizes[0]);
+          }
+        } else {
+          // Si no hay detalles, usar colores genéricos
+          const coloresGenericos = productData.colors || ['rojo', 'azul', 'verde'];
+          if (coloresGenericos.length > 0) {
+            setSelectedColor(coloresGenericos[0]);
+          }
         }
         
         // Fetch rating data
@@ -139,6 +155,7 @@ const ProductPage = () => {
       setQuantitiesBySize(initialQuantities);
     }
   }, [product, selectedColor]);
+
 
   // Fetch rating data for the product
   const fetchRatingData = async () => {
@@ -426,24 +443,21 @@ const ProductPage = () => {
   // Colores y tallas únicos
   const colores = [...new Set(detalles.map(d => d.nombreColor).filter(Boolean))];
   const tallas = [...new Set(detalles.map(d => d.detalle).filter(Boolean))];
+  
+  // Fallback: si no hay colores desde detalles, usar colores genéricos
+  const coloresFallback = colores.length > 0 ? colores : (product.colors || ['rojo', 'azul', 'verde']);
+
 
   // Calcular descuento usando SOLO desc_promo de la API
   const calculateDiscountPercentage = () => {
     // Solo usar desc_promo real de la API
     const descPromo = product.desc_promo || 0;
-    console.log(`🔍 DETALLE PRODUCTO - ID: ${id_articulo}, desc_promo: ${descPromo}, precio1: ${precio1}`);
     return descPromo > 0 ? Math.round(descPromo) : 0;
   };
 
   const discountPercentage = calculateDiscountPercentage();
   const hasOffer = discountPercentage > 0;
   const finalPrice = hasOffer ? precio1 - (precio1 * (discountPercentage / 100)) : precio1;
-  
-  if (hasOffer) {
-    console.log(`🏷️ OFERTA ACTIVA - ${discountPercentage}%: ${precio1} → ${finalPrice}`);
-  } else {
-    console.log(`ℹ️ SIN OFERTA - Precio normal: ${precio1}`);
-  }
 
   // Función para obtener el stock disponible por talla y color
   const getStockBySizeAndColor = (talla, color) => {
@@ -671,15 +685,29 @@ const ProductPage = () => {
               <h3 className="product-page__options-title">Selecciona color y talla</h3>
 
               {/* Color Selection - Step 1 */}
-              {colores.length > 0 && (
+              {coloresFallback.length > 0 && (
                 <div className="product-page__option">
                   <div className="product-page__option-header">
                     <span className="product-page__step-number">Paso 1</span>
                     <span className="product-page__step-description">Selecciona el color de tu preferencia</span>
                   </div>
-                  <div className="product-page__option-label">Color</div>
+                  <div className="product-page__option-label">
+                    Color{selectedColor ? (
+                      <>
+                        : <span style={{ 
+                          color: colorConverter.getColorHex(selectedColor), 
+                          fontWeight: 'bold',
+                          textShadow: colorConverter.isLightColor(colorConverter.getColorHex(selectedColor)) 
+                            ? '1px 1px 2px rgba(0,0,0,0.3)' 
+                            : '1px 1px 2px rgba(255,255,255,0.3)'
+                        }}>
+                          {selectedColor.charAt(0).toUpperCase() + selectedColor.slice(1).toLowerCase()}
+                        </span> 🎨
+                      </>
+                    ) : ''}
+                  </div>
                   <div className="product-page__color-options">
-                    {colores.map((color, index) => {
+                    {coloresFallback.map((color, index) => {
                       const hexColor = colorConverter.getColorHex(color);
                       const isLight = colorConverter.isLightColor(hexColor);
                       
@@ -767,13 +795,6 @@ const ProductPage = () => {
                             </svg>
                           </button>
                         </div>
-                        {selectedColor && (
-                          <div className="product-page__size-stock-info">
-                            <span className="product-page__stock-available">
-                              {getStockBySizeAndColor(talla, selectedColor)} unidades disponibles
-                            </span>
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>
@@ -867,4 +888,4 @@ const ProductPage = () => {
   );
 };
 
-export default ProductPage; 
+export default ProductPage;
