@@ -16,140 +16,185 @@ class CategorySeeder extends Seeder
     {
         $categories = [
             [
-                'name' => 'Sin Línea',
-                'code' => '00',
-                'description' => 'Productos sin línea específica.'
+                'name' => 'SIN LINEA',
+                'code' => '0',
+                'description' => 'Productos sin línea específica.',
+                'opc_web' => 'S'
             ],
             [
                 'name' => 'Vestidos',
-                'code' => '01',
-                'description' => 'Hermosos vestidos para toda ocasión, desde casuales hasta elegantes para eventos especiales.'
+                'code' => '1',
+                'description' => 'Hermosos vestidos para toda ocasión, desde casuales hasta elegantes para eventos especiales.',
+                'opc_web' => 'S'
             ],
             [
-                'name' => 'Sudadera',
-                'code' => '02',
-                'description' => 'Sudaderas cómodas y casuales para el día a día.'
+                'name' => 'SUDADERA',
+                'code' => '2',
+                'description' => 'Sudaderas cómodas y casuales para el día a día.',
+                'opc_web' => 'S'
             ],
             [
                 'name' => 'Conjuntos',
-                'code' => '03',
-                'description' => 'Conjuntos coordinados que facilitan la elección del outfit perfecto.'
+                'code' => '3',
+                'description' => 'Conjuntos coordinados que facilitan la elección del outfit perfecto.',
+                'opc_web' => 'S'
             ],
             [
-                'name' => 'Pantalón',
-                'code' => '04',
-                'description' => 'Pantalones cómodos y estilosos para el día a día.'
+                'name' => 'PANTALON',
+                'code' => '4',
+                'description' => 'Pantalones cómodos y estilosos para el día a día.',
+                'opc_web' => 'S'
             ],
             [
-                'name' => 'Falda',
-                'code' => '05',
-                'description' => 'Faldas femeninas y versátiles para diferentes ocasiones.'
+                'name' => 'FALDA',
+                'code' => '5',
+                'description' => 'Faldas femeninas y versátiles para diferentes ocasiones.',
+                'opc_web' => 'S'
             ],
             [
-                'name' => 'Blusa',
-                'code' => '06',
-                'description' => 'Blusas versátiles y elegantes para complementar cualquier outfit.'
+                'name' => 'BLUSA',
+                'code' => '6',
+                'description' => 'Blusas versátiles y elegantes para complementar cualquier outfit.',
+                'opc_web' => 'S'
             ],
             [
-                'name' => 'Suéter',
-                'code' => '07',
-                'description' => 'Suéteres abrigados y elegantes para las temporadas frías.'
+                'name' => 'SUETER',
+                'code' => '7',
+                'description' => 'Suéteres abrigados y elegantes para las temporadas frías.',
+                'opc_web' => 'S'
             ],
             [
-                'name' => 'Abrigo',
-                'code' => '08',
-                'description' => 'Abrigos elegantes y abrigados para protegerte del frío.'
+                'name' => 'ABRIGO',
+                'code' => '8',
+                'description' => 'Abrigos elegantes y abrigados para protegerte del frío.',
+                'opc_web' => 'S'
             ],
             [
-                'name' => 'Chaleco',
-                'code' => '09',
-                'description' => 'Chalecos versátiles que complementan cualquier outfit.'
+                'name' => 'CHALECO',
+                'code' => '9',
+                'description' => 'Chalecos versátiles que complementan cualquier outfit.',
+                'opc_web' => 'S'
             ],
             [
-                'name' => 'Capa',
+                'name' => 'CAPA',
                 'code' => '10',
-                'description' => 'Capas elegantes y versátiles para complementar tu estilo.'
+                'description' => 'Capas elegantes y versátiles para complementar tu estilo.',
+                'opc_web' => 'S'
             ],
             [
-                'name' => 'Saco',
+                'name' => 'SACO',
                 'code' => '11',
-                'description' => 'Sacos elegantes y versátiles para diferentes ocasiones.'
+                'description' => 'Sacos elegantes y versátiles para diferentes ocasiones.',
+                'opc_web' => 'S'
             ],
             [
-                'name' => 'Chamarra',
+                'name' => 'CHAMARRA',
                 'code' => '12',
-                'description' => 'Chamarras cómodas y estilosas para el día a día.'
+                'description' => 'Chamarras cómodas y estilosas para el día a día.',
+                'opc_web' => 'S'
             ],
             [
-                'name' => 'Gabardina',
+                'name' => 'GABARDINA',
                 'code' => '13',
-                'description' => 'Gabardinas elegantes y versátiles para complementar tu estilo.'
+                'description' => 'Gabardinas elegantes y versátiles para complementar tu estilo.',
+                'opc_web' => 'S'
             ],
             [
-                'name' => 'Jumpsuit',
+                'name' => 'JUMPSUIT',
                 'code' => '14',
-                'description' => 'Jumpsuits elegantes y prácticos para una silueta estilizada.'
+                'description' => 'Jumpsuits elegantes y prácticos para una silueta estilizada.',
+                'opc_web' => 'S'
             ],
             [
-                'name' => 'Romper',
+                'name' => 'ROMPER',
                 'code' => '15',
-                'description' => 'Rompers elegantes y versátiles para diferentes ocasiones.'
+                'description' => 'Rompers elegantes y versátiles para diferentes ocasiones.',
+                'opc_web' => 'N'
             ],
             [
-                'name' => 'Pijama',
+                'name' => 'PIJAMA',
                 'code' => '16',
-                'description' => 'Pijamas cómodos y elegantes para descansar en estilo.'
+                'description' => 'Pijamas cómodos y elegantes para descansar en estilo.',
+                'opc_web' => 'N'
             ],
             [
-                'name' => 'Calzado',
+                'name' => 'CALZADO',
                 'code' => '17',
-                'description' => 'Zapatos y sandalias para complementar cualquier outfit.'
+                'description' => 'Zapatos y sandalias para complementar cualquier outfit.',
+                'opc_web' => 'S'
             ],
             [
-                'name' => 'Bolsa',
+                'name' => 'BOLSA',
                 'code' => '18',
-                'description' => 'Bolsas elegantes y funcionales para complementar tu estilo.'
+                'description' => 'Bolsas elegantes y funcionales para complementar tu estilo.',
+                'opc_web' => 'S'
             ],
             [
-                'name' => 'Bufanda',
+                'name' => 'BUFANDA',
                 'code' => '19',
-                'description' => 'Bufandas elegantes y abrigadas para las temporadas frías.'
+                'description' => 'Bufandas elegantes y abrigadas para las temporadas frías.',
+                'opc_web' => 'S'
             ],
             [
-                'name' => 'Pants',
+                'name' => 'PANTS',
                 'code' => '20',
-                'description' => 'Pants cómodos y estilosos para el día a día.'
+                'description' => 'Pants cómodos y estilosos para el día a día.',
+                'opc_web' => 'S'
             ],
             [
-                'name' => 'Top',
+                'name' => 'TOP',
                 'code' => '21',
-                'description' => 'Tops versátiles para diferentes ocasiones y estilos.'
+                'description' => 'Tops versátiles para diferentes ocasiones y estilos.',
+                'opc_web' => 'S'
             ],
             [
-                'name' => 'Short',
+                'name' => 'SHORT',
                 'code' => '22',
-                'description' => 'Shorts cómodos y frescos para los días calurosos.'
+                'description' => 'Shorts cómodos y frescos para los días calurosos.',
+                'opc_web' => 'S'
             ],
             [
-                'name' => 'Perfumería',
+                'name' => 'PERFUMERIAS',
                 'code' => '23',
-                'description' => 'Fragancias y productos de belleza para completar tu rutina.'
+                'description' => 'Fragancias y productos de belleza para completar tu rutina.',
+                'opc_web' => 'S'
             ],
             [
-                'name' => 'Cosméticos',
+                'name' => 'Cosmeticos',
                 'code' => '24',
-                'description' => 'Productos de belleza y cosméticos para completar tu rutina.'
+                'description' => 'Productos de belleza y cosméticos para completar tu rutina.',
+                'opc_web' => 'S'
+            ],
+            [
+                'name' => 'CABALLERO',
+                'code' => 'CABALLERO',
+                'description' => 'Línea de productos para caballero.',
+                'opc_web' => 'S'
+            ],
+            [
+                'name' => 'DAMA',
+                'code' => 'DAMA',
+                'description' => 'Línea de productos para dama.',
+                'opc_web' => 'S'
+            ],
+            [
+                'name' => 'UNISEX',
+                'code' => 'UNISEX',
+                'description' => 'Línea de productos unisex.',
+                'opc_web' => 'S'
             ]
         ];
 
         foreach ($categories as $categoryData) {
             Category::updateOrCreate(
-                ['name' => $categoryData['name']],
+                ['code' => $categoryData['code']],
                 [
-                    'slug' => Str::slug($categoryData['name']),
-                    'code' => $categoryData['code'],
+                    'name' => $categoryData['name'],
+                    'slug' => Str::slug($categoryData['name'] . '-' . $categoryData['code']),
                     'description' => $categoryData['description'],
-                    'is_active' => true
+                    'image' => '/images/categories/' . $categoryData['name'] . '.png',
+                    'opc_web' => $categoryData['opc_web'],
+                    'is_active' => $categoryData['opc_web'] === 'S'
                 ]
             );
         }

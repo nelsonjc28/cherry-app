@@ -15,6 +15,8 @@ class Category extends Model
         'slug',
         'description',
         'code',
+        'image',
+        'opc_web',
         'is_active'
     ];
 

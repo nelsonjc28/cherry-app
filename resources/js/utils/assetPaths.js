@@ -110,7 +110,9 @@ export const getCategoryIconPath = (categoryName) => {
     'vestido': 'vestido.png'
   };
   
-  const normalizedName = cleanIconName.toLowerCase().replace(/\s+/g, '-');
+  // Normalizar el nombre y remover códigos numéricos del final (ej: abrigo-8 -> abrigo)
+  let normalizedName = cleanIconName.toLowerCase().replace(/\s+/g, '-');
+  normalizedName = normalizedName.replace(/-\d+$/, ''); // Remover -número del final
   
   // Use the safe origin getter
   const origin = getCurrentOrigin();
@@ -120,8 +122,9 @@ export const getCategoryIconPath = (categoryName) => {
     return `${origin}/icons/category/${categoryIconMap[normalizedName]}`;
   }
   
-  // Fallback: usar el nombre normalizado sin extensión
-  return `${origin}/icons/category/${normalizedName}`;
+  // Fallback: usar el nombre capitalizado con extensión .png
+  const capitalizedName = normalizedName.charAt(0).toUpperCase() + normalizedName.slice(1);
+  return `${origin}/icons/category/${capitalizedName}.png`;
 };
 
 /**
@@ -170,7 +173,9 @@ export const getFeaturedCategoryIconPath = (categoryName) => {
     'vestido': 'vestido.png'
   };
   
-  const normalizedName = cleanIconName.toLowerCase().replace(/\s+/g, '-');
+  // Normalizar el nombre y remover códigos numéricos del final (ej: abrigo-8 -> abrigo)
+  let normalizedName = cleanIconName.toLowerCase().replace(/\s+/g, '-');
+  normalizedName = normalizedName.replace(/-\d+$/, ''); // Remover -número del final
   
   // Use the safe origin getter
   const origin = getCurrentOrigin();
@@ -180,8 +185,9 @@ export const getFeaturedCategoryIconPath = (categoryName) => {
     return `${origin}/icons/category/${categoryIconMap[normalizedName]}`;
   }
   
-  // Fallback: usar el nombre normalizado con extensión .png
-  return `${origin}/icons/category/${normalizedName}.png`;
+  // Fallback: usar el nombre capitalizado con extensión .png
+  const capitalizedName = normalizedName.charAt(0).toUpperCase() + normalizedName.slice(1);
+  return `${origin}/icons/category/${capitalizedName}.png`;
 };
 
 /**
