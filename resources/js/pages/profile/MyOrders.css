@@ -187,9 +187,8 @@
 
 .order-card__actions {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   gap: 12px;
-  margin-top: 5px;
   width: 100%;
 }
 
@@ -197,6 +196,7 @@
   flex: 1;
   font-size: 14px;
   border-radius: 4px;
+  width: 100%;
 }
 
 /* Pagination Container */
@@ -256,7 +256,6 @@
   }
 
   .order-card__actions {
-    flex-direction: column;
     min-width: 180px;
     margin-top: 0;
     width: auto;

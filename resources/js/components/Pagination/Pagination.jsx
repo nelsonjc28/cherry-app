@@ -4,7 +4,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
   // Generate array of page numbers to display
   const generatePageNumbers = () => {
     const pages = [];
-    const maxVisiblePages = 5;
+    const maxVisiblePages = 4;
     
     // Always show first page
     pages.push(1);
@@ -18,21 +18,24 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
       // Show ellipsis and selective pages for larger total
       if (currentPage <= 3) {
         // Near beginning
-        for (let i = 2; i <= 4; i++) {
+        for (let i = 2; i <= 3; i++) {
           pages.push(i);
         }
-        pages.push('...');
-        pages.push(totalPages);
-      } else if (currentPage >= totalPages - 2) {
+        if (totalPages > 4) {
+          pages.push('...');
+          pages.push(totalPages);
+        } else {
+          pages.push(4);
+        }
+      } else if (currentPage >= totalPages - 1) {
         // Near end
         pages.push('...');
-        for (let i = totalPages - 2; i <= totalPages; i++) {
+        for (let i = totalPages - 1; i <= totalPages; i++) {
           pages.push(i);
         }
       } else {
         // In middle
         pages.push('...');
-        pages.push(currentPage - 1);
         pages.push(currentPage);
         pages.push(currentPage + 1);
         pages.push('...');
