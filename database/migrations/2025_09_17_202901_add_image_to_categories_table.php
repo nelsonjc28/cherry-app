@@ -12,7 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('categories', function (Blueprint $table) {
-            $table->string('image')->nullable()->after('description');
+            // Verificar si la columna image ya existe antes de agregarla
+            if (!Schema::hasColumn('categories', 'image')) {
+                $table->string('image')->nullable()->after('description');
+            }
         });
     }
 
@@ -22,7 +25,10 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('categories', function (Blueprint $table) {
-            $table->dropColumn('image');
+            // Verificar si la columna image existe antes de eliminarla
+            if (Schema::hasColumn('categories', 'image')) {
+                $table->dropColumn('image');
+            }
         });
     }
 };
