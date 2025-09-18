@@ -18,6 +18,11 @@ const SmartRedirect = ({ children }) => {
 
     const currentPath = location.pathname;
 
+    // NO interferir con la ruta raíz - dejarla cargar normalmente
+    if (currentPath === '/') {
+      return;
+    }
+
     // Si estamos en /admin pero no hay usuario, ir a login
     if (currentPath === '/admin' && !user) {
       navigate('/login', { replace: true });
@@ -37,27 +42,9 @@ const SmartRedirect = ({ children }) => {
       return;
     }
 
-    // NO redirigir automáticamente desde / si el usuario es admin
-    // Los admins pueden acceder libremente a las vistas de clientes
-
   }, [user, isAdmin, initialized, location.pathname, navigate]);
 
-  // Si no está inicializado, mostrar loading
-  if (!initialized) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        fontSize: '1.2rem',
-        color: '#666'
-      }}>
-        Verificando sesión...
-      </div>
-    );
-  }
-
+  // Siempre mostrar la aplicación, no bloquear por inicialización
   return children;
 };
 

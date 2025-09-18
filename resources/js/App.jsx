@@ -55,86 +55,15 @@ import Footer from './components/Footer/Footer';
 import AdminRoute from './components/AdminRoute';
 import AuthInitializer from './components/AuthInitializer';
 import SmartRedirect from './components/SmartRedirect';
+import RootRouteGuard from './components/RootRouteGuard';
+import ForceHomePage from './components/ForceHomePage';
+import DebugRouter from './components/DebugRouter';
+import SimpleApp from './components/SimpleApp';
 import CustomToastContainer from './components/Toast/ToastContainer';
 
 function App() {
-  return (
-    <HelmetProvider>
-      <FavoritesProvider>
-        <Router>
-          <ExternalApiProvider>
-            <AuthInitializer>
-              <SmartRedirect>
-                <div className="App app-container">
-                  <Header />
-                  <main>
-                    <Routes>
-                      <Route path="/" element={<HomePage />} />
-                      <Route path="/catalogo" element={<CatalogPage />} />
-                      <Route path="/catalogo/:id" element={<CatalogProductsPage />} />
-                      <Route path="/catalogos" element={<CatalogCollectionsPage />} />
-                      <Route path="/categoria/:slug" element={<CategoryProductsPage />} />
-                      <Route path="/catalogo-pdf" element={<CatalogPdfPage />} />
-                      <Route path="/producto/:productId" element={<ProductPage />} />
-                      <Route path="/login" element={<LoginPage />} />
-                      <Route path="/registro" element={<RegisterPage />} />
-                      
-                      {/* Profile Routes */}
-                      <Route path="/perfil" element={<ProfileLayout />}>
-                        <Route index element={<PersonalData />} />
-                        <Route path="datos-personales" element={<PersonalData />} />
-                        <Route path="mis-pedidos" element={<MyOrders />} />
-                        <Route path="favoritos" element={<Favorites />} />
-                        <Route path="direcciones" element={<Addresses />} />
-                        <Route path="metodos-pago" element={<PaymentMethods />} />
-                        <Route path="privacidad-seguridad" element={<PrivacySecurity />} />
-                      </Route>
-                      
-                      <Route path="/carrito-detalle" element={<CartDetailsPage />} />
-                      <Route path="/compra-exitosa" element={<CheckoutSuccessPage />} />
-                      <Route path="/carrito" element={<CarritoPage />} />
-                      <Route path="/buscar" element={<BuscarPage />} />
-                      <Route path="/categorias" element={<CategoriasPage />} />
-                      <Route path="/contacto" element={<ContactPage />} />
-                      <Route path="/afiliate" element={<AfiliatePage />} />
-                      <Route path="/terminos" element={<TerminosPage />} />
-                      <Route path="/privacidad" element={<PrivacidadPage />} />
-                      <Route path="/cookies" element={<CookiesPage />} />
-                      <Route path="/notificaciones" element={<NotificacionesPage />} />
-                      <Route path="/explorar" element={<ExplorarPage />} />
-                      <Route path="/promociones" element={<PromocionesPage />} />
-                      <Route path="/destacados" element={<DestacadosPage />} />
-                      <Route path="/nuevos" element={<NuevosPage />} />
-
-                      <Route path="/productos" element={<ProductosPage />} />
-                      <Route path="/destacados-ofertas" element={<DestacadosOfertasPage />} />
-                      <Route path="/favoritos" element={<FavoritosPage />} />
-                      <Route path="/admin" element={
-                        <AdminRoute>
-                          <AdminPanelPage />
-                        </AdminRoute>
-                      } />
-                    </Routes>
-                  </main>
-                  <Footer />
-                  <CustomToastContainer />
-                  
-                  {/* PWA Install Toast */}
-                  <PWAInstallToast />
-                  
-                  {/* PWA Install Alerts */}
-                  <PWAInstallAlerts />
-                  
-                  {/* PWA Diagnostics */}
-                  <PWADiagnostics />
-                </div>
-              </SmartRedirect>
-            </AuthInitializer>
-          </ExternalApiProvider>
-        </Router>
-      </FavoritesProvider>
-    </HelmetProvider>
-  );
+  // Usar la versión simplificada que garantiza que siempre se cargue HomePage
+  return <SimpleApp />;
 }
 
 export default App;

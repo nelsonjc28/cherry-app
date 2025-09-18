@@ -11,15 +11,17 @@ const AuthInitializer = ({ children }) => {
         try {
           await fetchUser();
         } catch (err) {
-          // Error initializing auth
+          // Error initializing auth - no bloquear la aplicación
+          console.log('Auth initialization error:', err);
         }
       }
     };
 
+    // Inicializar en background sin bloquear
     initializeAuth();
   }, [fetchUser, initialized]);
 
-  // Temporalmente, siempre mostrar la aplicación
+  // Siempre mostrar la aplicación, no bloquear por autenticación
   return children;
 };
 
