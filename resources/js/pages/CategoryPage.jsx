@@ -25,6 +25,7 @@ const CategoryPage = ({ categorySlug }) => {
   const category = categorySlug || searchParams.get('category') || 'all';
   const colorFilter = searchParams.get('color') || '';
   const dtuFilter = searchParams.get('dtu') || '';
+  
 
   // Mapeo de slugs de categoría a nombres legibles
   const categoryNameMapping = {
@@ -66,12 +67,13 @@ const CategoryPage = ({ categorySlug }) => {
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [currentCategory, setCurrentCategory] = useState(null);
   const [filters, setFilters] = useState({
-    catalog: '',
+    catalog: 'Cherry 2025 - 2026',
     availability: 'todos',
     category: 'Todas las categorías',
     department: 'Todos los departamentos',
     sector: 'Todos los sectores',
     sizes: [],
+    colors: [],
     priceRange: { min: 0, max: 0 }
   });
 
@@ -90,6 +92,21 @@ const CategoryPage = ({ categorySlug }) => {
     return Array.from(colorSet).sort();
   };
 
+  // Function to get available sizes from products
+  const getAvailableSizes = (products) => {
+    const sizeSet = new Set();
+    products.forEach(product => {
+      if (product.sizes && product.sizes.length > 0) {
+        product.sizes.forEach(size => {
+          if (size && size.trim()) {
+            sizeSet.add(size.trim());
+          }
+        });
+      }
+    });
+    return Array.from(sizeSet).sort();
+  };
+
   // Function to generate product image URL from AWS S3
   const getProductImageUrl = (externalProductId) => {
     if (!externalProductId) return '/images/placeholder-product.png';
@@ -101,8 +118,10 @@ const CategoryPage = ({ categorySlug }) => {
   // Function to filter products based on current filters
   const filterProducts = (products, currentFilters) => {
     
-    if (!products || products.length === 0) return [];
-
+    if (!products || products.length === 0) {
+      return [];
+    }
+    
     let filtered = [...products];
 
     // Filter by category (if not "Todas las categorías")
@@ -146,11 +165,11 @@ const CategoryPage = ({ categorySlug }) => {
     }
 
     // Filter by price range
-    if (currentFilters.priceRange.min > 0 || currentFilters.priceRange.max > 0) {
+    if (currentFilters.priceRange && (currentFilters.priceRange.min > 0 || currentFilters.priceRange.max > 0)) {
       filtered = filtered.filter(product => {
         const price = product.price || 0;
         const minPrice = currentFilters.priceRange.min || 0;
-        const maxPrice = currentFilters.priceRange.max || Infinity;
+        const maxPrice = currentFilters.priceRange.max || 0;
         
         if (maxPrice > 0) {
           return price >= minPrice && price <= maxPrice;
@@ -165,6 +184,44 @@ const CategoryPage = ({ categorySlug }) => {
       filtered = filtered.filter(product => product.stock > 0);
     } else if (currentFilters.availability === 'sin-existencia') {
       filtered = filtered.filter(product => product.stock === 0);
+    }
+
+    // Filter by colors
+    if (currentFilters.colors && currentFilters.colors.length > 0) {
+      filtered = filtered.filter(product => {
+        if (!product.colors || product.colors.length === 0) {
+          return false;
+        }
+        
+        return currentFilters.colors.some(filterColor => {
+          const filterColorLower = filterColor.toLowerCase();
+          return product.colors.some(productColor => {
+            const productColorLower = productColor.toLowerCase();
+            return productColorLower === filterColorLower || 
+                   productColorLower.includes(filterColorLower) ||
+                   filterColorLower.includes(productColorLower);
+          });
+        });
+      });
+    }
+
+    // Filter by sizes
+    if (currentFilters.sizes && currentFilters.sizes.length > 0) {
+      filtered = filtered.filter(product => {
+        if (!product.sizes || product.sizes.length === 0) {
+          return false;
+        }
+        
+        return currentFilters.sizes.some(filterSize => {
+          const filterSizeLower = filterSize.toLowerCase();
+          return product.sizes.some(productSize => {
+            const productSizeLower = productSize.toLowerCase();
+            return productSizeLower === filterSizeLower || 
+                   productSizeLower.includes(filterSizeLower) ||
+                   filterSizeLower.includes(productSizeLower);
+          });
+        });
+      });
     }
 
     return filtered;
@@ -285,6 +342,12 @@ const CategoryPage = ({ categorySlug }) => {
                       [];
                     const availableColors = productColors.length > 0 ? productColors : ['black']; // Color por defecto
                     
+                    // Extraer tallas si existen - usar detalles como en ProductPage
+                    const productSizes = product.detalles ? 
+                      [...new Set(product.detalles.map(d => d.detalle).filter(Boolean))] : 
+                      [];
+                    const availableSizes = productSizes.length > 0 ? productSizes : ['M']; // Talla por defecto
+                    
                     // Determinar si el producto es nuevo basado en propiedades reales
                     const isNewProduct = product.opc_nuevo === 'S' || 
                                        (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)); // Últimos 30 días
@@ -307,6 +370,8 @@ const CategoryPage = ({ categorySlug }) => {
                       stock: product.inventario || 0,
                       colors: availableColors,
                       colores: productColors, // Mantener colores originales para ExternalProductCard
+                      sizes: availableSizes,
+                      tallas: productSizes, // Mantener tallas originales para ExternalProductCard
                       
 
                       isNew: isNewProduct, // Basado en propiedades reales
@@ -392,6 +457,7 @@ const CategoryPage = ({ categorySlug }) => {
         // Filtrar productos nulos
         const validProducts = productsData.filter(p => p !== null);
         
+        
         setAllProducts(validProducts);
         setFilteredProducts(validProducts);
         
@@ -446,7 +512,7 @@ const CategoryPage = ({ categorySlug }) => {
       filtered = sortProducts(filtered, sortBy);
       setFilteredProducts(filtered);
     }
-  }, [filters.category, filters.department, filters.sector, filters.sizes, filters.priceRange, sortBy, allProducts, colorFilter, dtuFilter]);
+  }, [filters.category, filters.department, filters.sector, filters.sizes, filters.colors, filters.priceRange, sortBy, allProducts, colorFilter, dtuFilter]);
 
   // Handle filter modal
   const toggleFilterModal = () => {
@@ -466,12 +532,13 @@ const CategoryPage = ({ categorySlug }) => {
   // Handle clear filters
   const handleClearFilters = () => {
     setFilters({
-      catalog: catalogs.length > 0 ? catalogs[0].name : '',
+      catalog: catalogs.length > 0 ? catalogs[0].name : 'Cherry 2025 - 2026',
       availability: 'todos',
       category: 'Todas las categorías',
       department: 'Todos los departamentos',
       sector: 'Todos los sectores',
       sizes: [],
+      colors: [],
       priceRange: { min: 0, max: 0 }
     });
   };
@@ -631,6 +698,8 @@ const CategoryPage = ({ categorySlug }) => {
                 onFilterChange={handleFilterChange}
                 onClearFilters={handleClearFilters}
                 isMobile={false}
+                availableColors={getAvailableColors(allProducts)}
+                availableSizes={getAvailableSizes(allProducts)}
                 catalogs={catalogs}
                 catalogLoading={catalogLoading}
                 hideCatalogSelector={!!categorySlug}
@@ -678,6 +747,8 @@ const CategoryPage = ({ categorySlug }) => {
                 onClearFilters={handleClearFilters}
                 isMobile={true}
                 onClose={toggleFilterModal}
+                availableColors={getAvailableColors(allProducts)}
+                availableSizes={getAvailableSizes(allProducts)}
                 catalogs={catalogs}
                 catalogLoading={catalogLoading}
                 hideCatalogSelector={!!categorySlug}

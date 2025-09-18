@@ -16,7 +16,6 @@ class PWAInstallHelper {
 
     init() {
         if (this.isDebugMode) {
-            console.log('🔧 PWA Debug Mode activado');
             this.createDebugPanel();
         }
         
@@ -25,8 +24,6 @@ class PWAInstallHelper {
     }
 
     async runDiagnostics() {
-        console.log('🔍 Ejecutando diagnósticos PWA...');
-        
         // 1. Verificar HTTPS
         this.diagnostics.https = location.protocol === 'https:' || location.hostname === 'localhost';
         
@@ -39,13 +36,12 @@ class PWAInstallHelper {
             if (response.ok) {
                 const manifest = await response.json();
                 this.diagnostics.manifest = true;
-                console.log('✅ Manifest cargado:', manifest);
                 
                 // Verificar iconos del manifest
                 await this.checkManifestIcons(manifest);
             }
         } catch (error) {
-            console.error('❌ Error cargando manifest:', error);
+            // Error silencioso
         }
 
         // 4. Verificar beforeinstallprompt
@@ -57,7 +53,6 @@ class PWAInstallHelper {
 
     async checkManifestIcons(manifest) {
         if (!manifest.icons || manifest.icons.length === 0) {
-            console.warn('⚠️ No se encontraron iconos en el manifest');
             return;
         }
 
@@ -65,10 +60,8 @@ class PWAInstallHelper {
             try {
                 const response = await fetch(icon.src);
                 const exists = response.ok;
-                console.log(`${exists ? '✅' : '❌'} Icono ${icon.sizes}: ${icon.src}`);
                 return exists;
             } catch (error) {
-                console.error(`❌ Error verificando icono ${icon.src}:`, error);
                 return false;
             }
         });
@@ -77,7 +70,6 @@ class PWAInstallHelper {
         this.diagnostics.icons = results.some(result => result);
         
         if (!this.diagnostics.icons) {
-            console.error('❌ Ningún icono del manifest está disponible');
             this.fixMissingIcons();
         }
     }
@@ -85,7 +77,6 @@ class PWAInstallHelper {
     checkInstallPrompt() {
         // Escuchar beforeinstallprompt
         window.addEventListener('beforeinstallprompt', (e) => {
-            console.log('✅ beforeinstallprompt detectado');
             this.diagnostics.beforeInstallPrompt = true;
             this.diagnostics.installable = true;
             
@@ -97,7 +88,6 @@ class PWAInstallHelper {
         // Verificar si ya está instalada
         if (window.matchMedia('(display-mode: standalone)').matches || 
             window.navigator.standalone === true) {
-            console.log('✅ PWA ya está instalada');
             this.diagnostics.installable = false; // Ya instalada
         }
     }
@@ -105,21 +95,18 @@ class PWAInstallHelper {
     setupEventListeners() {
         // Escuchar instalación exitosa
         window.addEventListener('appinstalled', () => {
-            console.log('🎉 PWA instalada exitosamente');
             this.showInstallationSuccess();
         });
 
         // Escuchar errores del Service Worker
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.addEventListener('error', (error) => {
-                console.error('❌ Error en Service Worker:', error);
                 this.showServiceWorkerError();
             });
         }
     }
 
     fixMissingIcons() {
-        console.log('🔧 Intentando corregir iconos faltantes...');
         
         // Crear iconos de respaldo usando canvas
         this.createFallbackIcons();
@@ -147,7 +134,6 @@ class PWAInstallHelper {
             // Convertir a blob y crear URL
             canvas.toBlob((blob) => {
                 const url = URL.createObjectURL(blob);
-                console.log(`✅ Icono de respaldo creado: ${size}x${size}`);
                 
                 // Opcional: descargar el icono para uso permanente
                 if (this.isDebugMode) {
@@ -165,7 +151,6 @@ class PWAInstallHelper {
             `${value ? '✅' : '❌'} ${key}: ${value}`
         ).join('\n');
         
-        console.log('📊 Resultados del diagnóstico PWA:\n' + results);
         
         // Mostrar recomendaciones
         this.showRecommendations();
@@ -195,9 +180,7 @@ class PWAInstallHelper {
         }
 
         if (recommendations.length > 0) {
-            console.log('💡 Recomendaciones:\n' + recommendations.join('\n'));
         } else {
-            console.log('🎉 ¡Todos los diagnósticos pasaron! La PWA debería ser instalable.');
         }
     }
 
@@ -242,7 +225,6 @@ class PWAInstallHelper {
     }
 
     forceInstallPrompt() {
-        console.log('🚀 Forzando prompt de instalación...');
         
         // Simular evento beforeinstallprompt
         const event = new CustomEvent('beforeinstallprompt', {
@@ -258,14 +240,12 @@ class PWAInstallHelper {
     }
 
     async clearCache() {
-        console.log('🧹 Limpiando cache...');
         
         try {
             // Limpiar cache del navegador
             if ('caches' in window) {
                 const cacheNames = await caches.keys();
                 await Promise.all(cacheNames.map(name => caches.delete(name)));
-                console.log('✅ Cache del navegador limpiado');
             }
             
             // Limpiar localStorage relacionado con PWA
@@ -279,14 +259,12 @@ class PWAInstallHelper {
                 const registration = await navigator.serviceWorker.getRegistration();
                 if (registration) {
                     await registration.unregister();
-                    console.log('✅ Service Worker desregistrado');
                 }
             }
             
             alert('✅ Cache limpiado. Recarga la página para ver los cambios.');
             
         } catch (error) {
-            console.error('❌ Error limpiando cache:', error);
             alert('❌ Error limpiando cache: ' + error.message);
         }
     }
@@ -316,7 +294,6 @@ class PWAInstallHelper {
             supportsInstall: this.diagnostics.beforeInstallPrompt || this.diagnostics.serviceWorker
         };
         
-        console.log('📱 Información del dispositivo:', info);
         return info;
     }
 

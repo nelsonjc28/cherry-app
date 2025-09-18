@@ -3,6 +3,7 @@ import './CatalogFilter.css';
 import { getIconPath } from '../../utils/assetPaths';
 import CustomButton from '../CustomButton';
 import { useAvailableColors, useAvailableCategories } from '../../hooks/useProducts';
+import colorConverter from '../../services/colorConverter';
 
 const CatalogFilter = ({
   filters,
@@ -12,14 +13,13 @@ const CatalogFilter = ({
   onClose,
   catalogs = [],
   catalogLoading = false,
-  hideCatalogSelector = false
+  hideCatalogSelector = false,
+  availableColors = [],
+  availableSizes = []
 }) => {
   // Local state for expandable sections
   const [expandedSections, setExpandedSections] = useState({
     sortBy: false,
-    clothing: false,
-    department: false,
-    sector: false,
     sizes: false,
     colors: false,
     price: false
@@ -29,7 +29,7 @@ const CatalogFilter = ({
   const [showAccordion, setShowAccordion] = useState(true);
 
   // Get dynamic data from API
-  const { data: availableColors = [] } = useAvailableColors(filters.catalog);
+  const { data: apiColors = [] } = useAvailableColors(filters.catalog);
   const { data: availableCategories = [] } = useAvailableCategories(filters.catalog);
 
   // Toggle section expansion
@@ -55,20 +55,22 @@ const CatalogFilter = ({
       case 'availability':
         newFilters.availability = value;
         break;
-      case 'category':
-        newFilters.category = value;
-        break;
-      case 'department':
-        newFilters.department = value;
-        break;
-      case 'sector':
-        newFilters.sector = value;
-        break;
       case 'sizes':
         if (newFilters.sizes.includes(value)) {
           newFilters.sizes = newFilters.sizes.filter(size => size !== value);
         } else {
           newFilters.sizes = [...newFilters.sizes, value];
+        }
+        break;
+      case 'colors':
+        // Ensure colors array exists
+        if (!newFilters.colors) {
+          newFilters.colors = [];
+        }
+        if (newFilters.colors.includes(value)) {
+          newFilters.colors = newFilters.colors.filter(color => color !== value);
+        } else {
+          newFilters.colors = [...newFilters.colors, value];
         }
         break;
       case 'priceRange':
@@ -93,35 +95,15 @@ const CatalogFilter = ({
     { value: 'con-existencia', label: 'Con existencia' }
   ];
 
-  const clothingCategories = [
-    'Todas las categorías',
-    ...availableCategories
-  ];
 
-  const departments = [
-    'Todos los departamentos',
-    'Ropa Casual',
-    'Ropa Formal',
-    'Ropa Deportiva',
-    'Accesorios',
-    'Calzado'
-  ];
+  // Get available sizes from props instead of static array
+  const sizes = availableSizes.length > 0 ? availableSizes : ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
-  const sectors = [
-    'Todos los sectores',
-    'Mujer',
-    'Hombre',
-    'Unisex',
-    'Niños'
-  ];
-
-  const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-
-  // Create color options from API data
+  // Create color options from props data with real hex values
   const colors = availableColors.map(color => ({
     name: color,
     value: color,
-    hex: '#666666' // Default color, you can map specific colors if needed
+    hex: colorConverter.getColorHex(color) || '#666666' // Get real color hex or default
   }));
 
   return (
@@ -221,76 +203,7 @@ const CatalogFilter = ({
                 )}
               </div>
 
-              {/* Clothing category */}
-              <div className="filter-section expandable">
-                <button
-                  className="filter-section-header"
-                  onClick={() => toggleSection('clothing')}
-                >
-                  <span>Ropa</span>
-                  <img src={getIconPath('Chevron Down.svg')} alt="Filter" />
-                </button>
-                {expandedSections.clothing && (
-                  <div className="filter-section-content">
-                    <select
-                      value={filters.category}
-                      onChange={(e) => handleFilterChange('category', e.target.value)}
-                      className="filter-select"
-                    >
-                      {clothingCategories.map((category) => (
-                        <option key={category} value={category}>{category}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
 
-              {/* Department */}
-              <div className="filter-section expandable">
-                <button
-                  className="filter-section-header"
-                  onClick={() => toggleSection('department')}
-                >
-                  <span>Departamento</span>
-                  <img src={getIconPath('Chevron Down.svg')} alt="Filter" />
-                </button>
-                {expandedSections.department && (
-                  <div className="filter-section-content">
-                    <select
-                      value={filters.department}
-                      onChange={(e) => handleFilterChange('department', e.target.value)}
-                      className="filter-select"
-                    >
-                      {departments.map((dept) => (
-                        <option key={dept} value={dept}>{dept}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-              {/* Sector */}
-              <div className="filter-section expandable">
-                <button
-                  className="filter-section-header"
-                  onClick={() => toggleSection('sector')}
-                >
-                  <span>Sector</span>
-                  <img src={getIconPath('Chevron Down.svg')} alt="Filter" />
-                </button>
-                {expandedSections.sector && (
-                  <div className="filter-section-content">
-                    <select
-                      value={filters.sector}
-                      onChange={(e) => handleFilterChange('sector', e.target.value)}
-                      className="filter-select"
-                    >
-                      {sectors.map((sector) => (
-                        <option key={sector} value={sector}>{sector}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
 
               {/* Sizes */}
               <div className="filter-section expandable">
@@ -335,13 +248,14 @@ const CatalogFilter = ({
                         <label key={color.value} className="color-option">
                           <input
                             type="checkbox"
-                            checked={filters.colors.includes(color.value)}
+                            checked={filters.colors && filters.colors.includes(color.value)}
                             onChange={() => handleFilterChange('colors', color.value)}
                           />
                           <span
                             className="color-swatch"
                             style={{ backgroundColor: color.hex }}
                             title={color.name}
+                            data-light={colorConverter.isLightColor(color.hex)}
                           ></span>
                         </label>
                       ))}
@@ -355,26 +269,44 @@ const CatalogFilter = ({
             <div className="filter-section">
               <h3 className="filter-title">Precio | MXN</h3>
               <div className="price-inputs">
-                <input
-                  type="number"
-                  placeholder="0.0"
-                  value={filters.priceRange.min || ''}
-                  onChange={(e) => handleFilterChange('priceRange', {
-                    ...filters.priceRange,
-                    min: parseFloat(e.target.value) || 0
-                  })}
-                  className="price-input"
-                />
-                <input
-                  type="number"
-                  placeholder="0.0"
-                  value={filters.priceRange.max || ''}
-                  onChange={(e) => handleFilterChange('priceRange', {
-                    ...filters.priceRange,
-                    max: parseFloat(e.target.value) || 0
-                  })}
-                  className="price-input"
-                />
+                <div className="price-input-group">
+                  <label htmlFor="price-min" className="price-label">Mínimo</label>
+                  <input
+                    id="price-min"
+                    type="number"
+                    placeholder="Precio mínimo"
+                    value={filters.priceRange && filters.priceRange.min ? filters.priceRange.min : ''}
+                    onChange={(e) => {
+                      const minValue = parseFloat(e.target.value) || 0;
+                      handleFilterChange('priceRange', {
+                        ...filters.priceRange,
+                        min: minValue
+                      });
+                    }}
+                    className="price-input"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+                <div className="price-input-group">
+                  <label htmlFor="price-max" className="price-label">Máximo</label>
+                  <input
+                    id="price-max"
+                    type="number"
+                    placeholder="Precio máximo"
+                    value={filters.priceRange && filters.priceRange.max ? filters.priceRange.max : ''}
+                    onChange={(e) => {
+                      const maxValue = parseFloat(e.target.value) || 0;
+                      handleFilterChange('priceRange', {
+                        ...filters.priceRange,
+                        max: maxValue
+                      });
+                    }}
+                    className="price-input"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
               </div>
             </div>
 

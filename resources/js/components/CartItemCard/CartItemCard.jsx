@@ -8,6 +8,9 @@ const CartItemCard = ({
   title,
   quantity,
   priceWithDiscount,
+  originalPrice,
+  discount,
+  savings,
   variants = []
 }) => {
   return (
@@ -45,6 +48,9 @@ const CartItemCard = ({
           <OrderSummaryTable
             quantity={quantity}
             priceWithDiscount={priceWithDiscount}
+            priceWithoutDiscount={originalPrice}
+            discount={discount}
+            savings={savings}
           />
         </div>
       </div>
@@ -58,6 +64,9 @@ CartItemCard.propTypes = {
   title: PropTypes.string.isRequired,
   quantity: PropTypes.number.isRequired,
   priceWithDiscount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  originalPrice: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  discount: PropTypes.number,
+  savings: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   variants: PropTypes.arrayOf(PropTypes.shape({
     size: PropTypes.string.isRequired,
     quantity: PropTypes.number.isRequired,

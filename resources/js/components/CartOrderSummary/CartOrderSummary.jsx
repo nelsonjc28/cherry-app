@@ -12,6 +12,7 @@ const CartOrderSummary = ({
   subtotal,
   discountTotal,
   total,
+  selectedAddress,
   onGenerateOrder,
   onClearCart
 }) => (
@@ -35,6 +36,36 @@ const CartOrderSummary = ({
       </div>
     </div>
     <div className="cart-order-summary__divider" />
+    {selectedAddress && (
+      <>
+        <div className="cart-order-summary__section">
+          <div className="cart-order-summary__section-title">Dirección de entrega</div>
+          <div className="cart-order-summary__section-content">
+            <div className="cart-order-summary__address-name">
+              <strong>{selectedAddress.name}</strong>
+              {selectedAddress.is_default && (
+                <span className="cart-order-summary__default-badge">Predeterminada</span>
+              )}
+            </div>
+            <div className="cart-order-summary__address-street">
+              {selectedAddress.street_address}
+            </div>
+            <div className="cart-order-summary__address-location">
+              {selectedAddress.city}
+              {selectedAddress.state && `, ${selectedAddress.state}`}
+              {selectedAddress.postal_code && ` CP: ${selectedAddress.postal_code}`}
+              {selectedAddress.country && `, ${selectedAddress.country}`}
+            </div>
+            {selectedAddress.additional_info && (
+              <div className="cart-order-summary__address-additional">
+                <small>{selectedAddress.additional_info}</small>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="cart-order-summary__divider" />
+      </>
+    )}
     <div className="cart-order-summary__section">
       <div className="cart-order-summary__section-title">Monto del pedido</div>
       <div className="cart-order-summary__section-content">
@@ -88,6 +119,7 @@ CartOrderSummary.propTypes = {
   onGenerateOrder: PropTypes.func.isRequired,
   pieces: PropTypes.number.isRequired,
   responsable: PropTypes.string.isRequired,
+  selectedAddress: PropTypes.object,
   subtotal: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
   total: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired
 };

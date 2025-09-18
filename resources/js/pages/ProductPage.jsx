@@ -277,8 +277,11 @@ const ProductPage = () => {
         const productToAdd = {
           id_articulo: product.id_articulo,
           title: product.descripcion,
-          price: product.precio1,
-          precio: product.precio1,
+          price: finalPrice, // Usar precio con descuento aplicado
+          precio: finalPrice, // Usar precio con descuento aplicado
+          originalPrice: hasOffer ? precio1 : null, // Precio original solo si hay descuento
+          discount: hasOffer ? discountPercentage : null, // Porcentaje de descuento
+          savings: hasOffer ? (precio1 - finalPrice) : null, // Cantidad ahorrada
           image: generateS3ImageUrl(product.id_articulo),
           selectedColor,
           selectedSize: talla,
@@ -291,7 +294,13 @@ const ProductPage = () => {
 
       if (window.showToast) {
         const totalUnidades = getTotalUnits();
-        window.showToast(`${totalUnidades} unidad${totalUnidades > 1 ? 'es' : ''} agregada${totalUnidades > 1 ? 's' : ''} al carrito`, 'success');
+        let message = `${totalUnidades} unidad${totalUnidades > 1 ? 'es' : ''} agregada${totalUnidades > 1 ? 's' : ''} al carrito`;
+        
+        if (hasOffer) {
+          message += ` 🏷️ Con ${discountPercentage}% de descuento - Ahorras ${formatPrice(precio1 - finalPrice)}`;
+        }
+        
+        window.showToast(message, 'success');
       }
     } catch (err) {
       if (window.showToast) {

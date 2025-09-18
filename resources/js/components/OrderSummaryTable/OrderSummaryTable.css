@@ -48,6 +48,40 @@
   font-weight: 700;
 }
 
+/* Estilos para descuentos */
+.order-summary-discount {
+  background-color: #fff3cd;
+  margin: 2px -5px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  border-left: 3px solid #ffc107;
+}
+
+.order-summary-discount .order-summary-label {
+  color: #856404;
+  font-weight: 500;
+}
+
+.order-summary-savings {
+  color: #28a745 !important;
+  font-weight: 700 !important;
+}
+
+.order-summary-total {
+  border-top: 1px solid #dee2e6;
+  margin-top: 4px;
+  padding-top: 4px;
+}
+
+.order-summary-total .order-summary-label {
+  font-weight: 600;
+}
+
+.order-summary-total .order-summary-value {
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
 @media (min-width: 768px) {
   .order-summary-header {
     font-size: 13px;

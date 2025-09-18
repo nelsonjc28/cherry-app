@@ -4,6 +4,8 @@ import useCartStore from '../store/cartStore';
 import './CartDetailsPage.css';
 import CartDetailsProductCard from '../components/CartDetailsProductCard';
 import CartOrderSummary from '../components/CartOrderSummary/CartOrderSummary';
+import AddressSelector from '../components/AddressSelector/AddressSelector';
+import BuyerInfo from '../components/BuyerInfo/BuyerInfo';
 
 const CartDetailsPage = () => {
   const navigate = useNavigate();
@@ -16,6 +18,9 @@ const CartDetailsPage = () => {
     clearCart,
     initCart 
   } = useCartStore();
+
+  // State for selected address
+  const [selectedAddress, setSelectedAddress] = useState(null);
 
   // Initialize cart from localStorage
   useEffect(() => {
@@ -112,8 +117,19 @@ const CartDetailsPage = () => {
     clearCart();
   };
 
+  // Handle address selection
+  const handleAddressChange = (address) => {
+    setSelectedAddress(address);
+  };
+
   // Handle generate order
   const handleGenerateOrder = () => {
+    if (!selectedAddress) {
+      if (window.showToast) {
+        window.showToast('Por favor selecciona una dirección de entrega', 'warning');
+      }
+      return;
+    }
     navigate('/compra-exitosa');
   };
 
@@ -127,6 +143,7 @@ const CartDetailsPage = () => {
     subtotal: totalPrice.toFixed(2),
     discountTotal: '0.00',
     total: totalPrice.toFixed(2),
+    selectedAddress: selectedAddress,
     onGenerateOrder: handleGenerateOrder,
     onClearCart: handleClearCart
   };
@@ -168,6 +185,12 @@ const CartDetailsPage = () => {
             ))}
           </div>
           <div className="cart-details__summary-col">
+            <BuyerInfo className="cart-details__buyer-info" />
+            <AddressSelector 
+              selectedAddressId={selectedAddress?.id}
+              onAddressChange={handleAddressChange}
+              className="cart-details__address-selector"
+            />
             <CartOrderSummary {...orderSummary} />
           </div>
         </div>

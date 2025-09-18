@@ -28,6 +28,7 @@ const NuevosPage = () => {
     department: 'Todos los departamentos',
     sector: 'Todos los sectores',
     sizes: [],
+    colors: [],
     priceRange: { min: 0, max: 0 }
   });
 
@@ -156,11 +157,11 @@ const NuevosPage = () => {
     }
 
     // Filter by price range
-    if (currentFilters.priceRange.min > 0 || currentFilters.priceRange.max > 0) {
+    if (currentFilters.priceRange && (currentFilters.priceRange.min > 0 || currentFilters.priceRange.max > 0)) {
       filtered = filtered.filter(product => {
         const price = product.price || 0;
         const minPrice = currentFilters.priceRange.min || 0;
-        const maxPrice = currentFilters.priceRange.max || Infinity;
+        const maxPrice = currentFilters.priceRange.max || 0;
         
         if (maxPrice > 0) {
           return price >= minPrice && price <= maxPrice;
@@ -175,6 +176,23 @@ const NuevosPage = () => {
       filtered = filtered.filter(product => product.stock > 0);
     } else if (currentFilters.availability === 'sin-existencia') {
       filtered = filtered.filter(product => product.stock === 0);
+    }
+
+    // Filter by colors
+    if (currentFilters.colors && currentFilters.colors.length > 0) {
+      filtered = filtered.filter(product => {
+        if (!product.colors || product.colors.length === 0) return false;
+        
+        return currentFilters.colors.some(filterColor => {
+          const filterColorLower = filterColor.toLowerCase();
+          return product.colors.some(productColor => {
+            const productColorLower = productColor.toLowerCase();
+            return productColorLower === filterColorLower || 
+                   productColorLower.includes(filterColorLower) ||
+                   filterColorLower.includes(productColorLower);
+          });
+        });
+      });
     }
 
     return filtered;
@@ -369,6 +387,7 @@ const NuevosPage = () => {
       department: 'Todos los departamentos',
       sector: 'Todos los sectores',
       sizes: [],
+      colors: [],
       priceRange: { min: 0, max: 0 }
     });
   };

@@ -352,3 +352,141 @@ self.addEventListener('notificationclick', (event) => {
     );
   }
 });
+
+    // Si no está en cache, obtener de la red
+    const networkResponse = await fetch(request);
+    
+    if (networkResponse.ok) {
+      // Determinar qué cache usar
+      const cacheName = shouldUseStaticCache(request.url) ? STATIC_CACHE : DYNAMIC_CACHE;
+      const cache = await caches.open(cacheName);
+      cache.put(request, networkResponse.clone());
+    }
+    
+    return networkResponse;
+  } catch (error) {
+    // Si falla todo, intentar buscar en cualquier cache
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    
+    // Si es una imagen, devolver una imagen placeholder
+    if (request.destination === 'image') {
+      return caches.match('/images/placeholder-catalog.png');
+    }
+    
+    throw error;
+  }
+}
+
+// Manejar páginas HTML (Network First con Cache Fallback)
+async function handlePageRequest(request) {
+  try {
+    // Intentar red primero para contenido fresco
+    const networkResponse = await fetch(request);
+    
+    if (networkResponse.ok) {
+      // Cachear la respuesta
+      const cache = await caches.open(DYNAMIC_CACHE);
+      cache.put(request, networkResponse.clone());
+      return networkResponse;
+    }
+    
+    throw new Error('Network response not ok');
+  } catch (error) {
+    // Si falla la red, buscar en cache
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    
+    // Si no hay cache y es la página principal, devolver página offline
+    if (request.url.endsWith('/') || request.url.includes('index')) {
+              return caches.match('/offline.html');
+            }
+    
+    // Para otras páginas, intentar devolver la página principal desde cache
+    const mainPage = await caches.match('/');
+    if (mainPage) {
+      return mainPage;
+    }
+    
+    // Último recurso: página offline
+    return caches.match('/offline.html');
+  }
+}
+
+// Verificar si un recurso debe ser cacheado
+function shouldCacheResource(url) {
+  return CACHE_PATTERNS.some(pattern => pattern.test(url));
+}
+
+// Verificar si debe usar cache estático o dinámico
+function shouldUseStaticCache(url) {
+  return url.includes('/build/') || url.includes('/icons/') || url.includes('manifest.json');
+}
+
+// Manejar mensajes del service worker
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+    
+    // Notificar al cliente que se está actualizando
+    self.clients.matchAll().then(clients => {
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'TOAST',
+          message: 'Actualizando Cherry App...',
+          toastType: 'info',
+          duration: 2000
+        });
+      });
+    });
+  }
+});
+
+// Manejar notificaciones push (para futuras funcionalidades)
+self.addEventListener('push', (event) => {
+  const options = {
+    body: event.data ? event.data.text() : 'Nueva notificación de Cherry',
+    icon: '/icons/icon-144x144.png',
+    badge: '/icons/icon-144x144.png',
+    vibrate: [100, 50, 100],
+    data: {
+      dateOfArrival: Date.now(),
+      primaryKey: 1
+    },
+    actions: [
+      {
+        action: 'explore',
+        title: 'Ver más',
+        icon: '/icons/icon-144x144.png'
+      },
+      {
+        action: 'close',
+        title: 'Cerrar',
+        icon: '/icons/icon-144x144.png'
+      }
+    ]
+  };
+
+  event.waitUntil(
+    self.registration.showNotification('Cherry App', options)
+  );
+});
+
+// Manejar clics en notificaciones
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  if (event.action === 'explore') {
+    event.waitUntil(
+      clients.openWindow('/')
+    );
+  } else {
+    event.waitUntil(
+      clients.openWindow('/')
+    );
+  }
+});

@@ -35,12 +35,13 @@ const CatalogPage = ({ catalogId }) => {
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [currentCatalog, setCurrentCatalog] = useState(null); // Store current catalog info
   const [filters, setFilters] = useState({
-    catalog: '',
+    catalog: 'Cherry 2025 - 2026',
     availability: 'todos',
     category: 'Todas las categorías',
     department: 'Todos los departamentos',
     sector: 'Todos los sectores',
     sizes: [],
+    colors: [],
     priceRange: { min: 0, max: 0 }
   });
 
@@ -59,20 +60,39 @@ const CatalogPage = ({ catalogId }) => {
     return Array.from(colorSet).sort();
   }, []);
 
+  // Function to get available sizes from products - Memoized
+  const getAvailableSizes = useCallback((products) => {
+    const sizeSet = new Set();
+    products.forEach(product => {
+      if (product.sizes && product.sizes.length > 0) {
+        product.sizes.forEach(size => {
+          if (size && size.trim()) {
+            sizeSet.add(size.trim());
+          }
+        });
+      }
+    });
+    return Array.from(sizeSet).sort();
+  }, []);
+
   // Function to filter products based on current filters - Memoized
   const filterProducts = useCallback((products, currentFilters) => {
     
     if (!products || products.length === 0) {
-
+      console.log('🔍 DEBUG filterProducts - No hay productos para filtrar');
       return [];
     }
 
+    console.log('🔍 DEBUG filterProducts - Iniciando con', products.length, 'productos');
+    console.log('🔍 DEBUG filterProducts - Filtros recibidos:', JSON.stringify(currentFilters, null, 2));
     let filtered = [...products];
 
 
     // Filter by category (if not "Todas las categorías")
     if (currentFilters.category && currentFilters.category !== 'Todas las categorías') {
       const categoryLower = currentFilters.category.toLowerCase();
+      console.log('🔍 DEBUG filterProducts - Filtro de categoría:', categoryLower);
+      const beforeCategory = filtered.length;
       filtered = filtered.filter(product => {
         const productCategory = product.category?.toLowerCase() || '';
         const productTitle = product.title?.toLowerCase() || '';
@@ -82,6 +102,7 @@ const CatalogPage = ({ catalogId }) => {
                productTitle.includes(categoryLower) ||
                productDescription.includes(categoryLower);
       });
+      console.log(`🔍 DEBUG filterProducts - Después de filtro categoría: ${beforeCategory} -> ${filtered.length}`);
     }
 
     // Filter by department (if not "Todos los departamentos")
@@ -111,18 +132,28 @@ const CatalogPage = ({ catalogId }) => {
     }
 
     // Filter by price range
-    if (currentFilters.priceRange.min > 0 || currentFilters.priceRange.max > 0) {
+    if (currentFilters.priceRange && (currentFilters.priceRange.min > 0 || currentFilters.priceRange.max > 0)) {
+      console.log('🔍 DEBUG filterProducts - Filtro de precio:', currentFilters.priceRange);
+      const beforePrice = filtered.length;
       filtered = filtered.filter(product => {
         const price = product.price || 0;
         const minPrice = currentFilters.priceRange.min || 0;
-        const maxPrice = currentFilters.priceRange.max || Infinity;
+        const maxPrice = currentFilters.priceRange.max || 0;
         
+        let passes = false;
         if (maxPrice > 0) {
-          return price >= minPrice && price <= maxPrice;
+          passes = price >= minPrice && price <= maxPrice;
         } else {
-          return price >= minPrice;
+          passes = price >= minPrice;
         }
+        
+        if (!passes) {
+          console.log('🔍 DEBUG filterProducts - Precio fuera de rango:', product.id, 'precio:', price, 'rango:', minPrice, '-', maxPrice);
+        }
+        
+        return passes;
       });
+      console.log(`🔍 DEBUG filterProducts - Después de filtro precio: ${beforePrice} -> ${filtered.length}`);
     }
 
     // Filter by availability
@@ -132,7 +163,73 @@ const CatalogPage = ({ catalogId }) => {
       filtered = filtered.filter(product => product.stock === 0);
     }
 
+    // Filter by colors
+    if (currentFilters.colors && currentFilters.colors.length > 0) {
+      console.log('🔍 DEBUG filterProducts - Filtro de colores:', currentFilters.colors);
+      const beforeColors = filtered.length;
+      filtered = filtered.filter(product => {
+        if (!product.colors || product.colors.length === 0) {
+          console.log('🔍 DEBUG filterProducts - Producto sin colores:', product.id, product.title);
+          return false;
+        }
+        
+        const matches = currentFilters.colors.some(filterColor => {
+          const filterColorLower = filterColor.toLowerCase();
+          return product.colors.some(productColor => {
+            const productColorLower = productColor.toLowerCase();
+            const match = productColorLower === filterColorLower || 
+                         productColorLower.includes(filterColorLower) ||
+                         filterColorLower.includes(productColorLower);
+            if (match) {
+              console.log('🔍 DEBUG filterProducts - Color match:', filterColor, '<=>', productColor);
+            }
+            return match;
+          });
+        });
+        
+        if (!matches) {
+          console.log('🔍 DEBUG filterProducts - No color match para:', product.id, 'colores:', product.colors, 'vs filtros:', currentFilters.colors);
+        }
+        
+        return matches;
+      });
+      console.log(`🔍 DEBUG filterProducts - Después de filtro colores: ${beforeColors} -> ${filtered.length}`);
+    }
 
+    // Filter by sizes
+    if (currentFilters.sizes && currentFilters.sizes.length > 0) {
+      console.log('🔍 DEBUG filterProducts - Filtro de tallas:', currentFilters.sizes);
+      const beforeSizes = filtered.length;
+      filtered = filtered.filter(product => {
+        if (!product.sizes || product.sizes.length === 0) {
+          console.log('🔍 DEBUG filterProducts - Producto sin tallas:', product.id, product.title);
+          return false;
+        }
+        
+        const matches = currentFilters.sizes.some(filterSize => {
+          const filterSizeLower = filterSize.toLowerCase();
+          return product.sizes.some(productSize => {
+            const productSizeLower = productSize.toLowerCase();
+            const match = productSizeLower === filterSizeLower || 
+                         productSizeLower.includes(filterSizeLower) ||
+                         filterSizeLower.includes(productSizeLower);
+            if (match) {
+              console.log('🔍 DEBUG filterProducts - Size match:', filterSize, '<=>', productSize);
+            }
+            return match;
+          });
+        });
+        
+        if (!matches) {
+          console.log('🔍 DEBUG filterProducts - No size match para:', product.id, 'tallas:', product.sizes, 'vs filtros:', currentFilters.sizes);
+        }
+        
+        return matches;
+      });
+      console.log(`🔍 DEBUG filterProducts - Después de filtro tallas: ${beforeSizes} -> ${filtered.length}`);
+    }
+
+    console.log('🔍 DEBUG filterProducts - RESULTADO FINAL:', filtered.length, 'productos filtrados');
     return filtered;
   }, []);
 
@@ -407,11 +504,17 @@ const CatalogPage = ({ catalogId }) => {
         // Filtrar productos nulos
         const validProducts = productsData.filter(p => p !== null);
         
-        // Console log para debugging
-        const productsWithOffers = validProducts.filter(p => p.discount && p.discount > 0);
-        const productsWithoutOffers = validProducts.filter(p => !p.discount || p.discount === 0);
+        // Debug: Verificar productos cargados
+        console.log('🔍 DEBUG CatalogPage - Productos cargados:', validProducts.length);
+        console.log('🔍 DEBUG CatalogPage - Catálogo:', filters.catalog);
+        console.log('🔍 DEBUG CatalogPage - Categoría:', category);
         
-        
+        // Debug: Mostrar estructura de los primeros productos
+        if (validProducts.length > 0) {
+          console.log('🔍 DEBUG CatalogPage - Estructura del primer producto:', validProducts[0]);
+          console.log('🔍 DEBUG CatalogPage - Categorías disponibles:', validProducts.slice(0, 5).map(p => p.category));
+          console.log('🔍 DEBUG CatalogPage - Colores disponibles:', validProducts.slice(0, 3).map(p => ({ id: p.id, colors: p.colors })));
+        }
         
         setAllProducts(validProducts);
         setFilteredProducts(validProducts);
@@ -429,15 +532,20 @@ const CatalogPage = ({ catalogId }) => {
   const processedProducts = useMemo(() => {
     
     if (allProducts.length === 0) {
-
+      console.log('🔍 DEBUG - allProducts está vacío');
       return [];
     }
     
+    console.log('🔍 DEBUG - Aplicando filtros a', allProducts.length, 'productos');
+    console.log('🔍 DEBUG - Filtros actuales:', filters);
+    
     let filtered = filterProducts(allProducts, filters);
+    console.log('🔍 DEBUG - Productos después de filtros básicos:', filtered.length);
     
     // Apply color filter from URL
     if (colorFilter) {
       const colorFilters = colorFilter.split(',').map(c => c.trim());
+      console.log('🔍 DEBUG - Filtro de color desde URL:', colorFilters);
       filtered = filtered.filter(product => {
         if (!product.colors || product.colors.length === 0) return false;
         
@@ -451,11 +559,13 @@ const CatalogPage = ({ catalogId }) => {
           });
         });
       });
+      console.log('🔍 DEBUG - Productos después de filtro de color URL:', filtered.length);
     }
     
     // Apply DTU filter from URL
     if (dtuFilter) {
       const dtuFilters = dtuFilter.split(',').map(d => d.trim());
+      console.log('🔍 DEBUG - Filtro DTU desde URL:', dtuFilters);
       filtered = filtered.filter(product => {
         return dtuFilters.some(filterDtu => {
           const filterDtuLower = filterDtu.toLowerCase();
@@ -465,9 +575,11 @@ const CatalogPage = ({ catalogId }) => {
           );
         });
       });
+      console.log('🔍 DEBUG - Productos después de filtro DTU:', filtered.length);
     }
     
     const sorted = sortProducts(filtered, sortBy);
+    console.log('🔍 DEBUG - Productos finales después de ordenar:', sorted.length);
 
     return sorted;
   }, [allProducts, filters, colorFilter, dtuFilter, sortBy, filterProducts, sortProducts]);
@@ -496,12 +608,13 @@ const CatalogPage = ({ catalogId }) => {
   // Handle clear filters - Memoized
   const handleClearFilters = useCallback(() => {
     setFilters({
-      catalog: catalogs.length > 0 ? catalogs[0].name : '',
+      catalog: catalogs.length > 0 ? catalogs[0].name : 'Cherry 2025 - 2026',
       availability: 'todos',
       category: 'Todas las categorías',
       department: 'Todos los departamentos',
       sector: 'Todos los sectores',
       sizes: [],
+      colors: [],
       priceRange: { min: 0, max: 0 }
     });
   }, [catalogs]);
@@ -627,7 +740,6 @@ const CatalogPage = ({ catalogId }) => {
                 >
                   <option value="más recientes">más recientes</option>
                   <option value="precio-menor">Precio: menor a mayor</option>
-                  <option value="precio-menor">Precio: menor a mayor</option>
                   <option value="precio-mayor">Precio: mayor a menor</option>
                   <option value="nombre-a-z">Nombre: A-Z</option>
                   <option value="nombre-z-a">Nombre: Z-A</option>
@@ -666,6 +778,8 @@ const CatalogPage = ({ catalogId }) => {
                 onFilterChange={handleFilterChange}
                 onClearFilters={handleClearFilters}
                 isMobile={false}
+                availableColors={getAvailableColors(allProducts)}
+                availableSizes={getAvailableSizes(allProducts)}
                 catalogs={catalogs}
                 catalogLoading={catalogLoading}
                 hideCatalogSelector={!!catalogId}
@@ -711,6 +825,8 @@ const CatalogPage = ({ catalogId }) => {
                 onClearFilters={handleClearFilters}
                 isMobile={true}
                 onClose={toggleFilterModal}
+                availableColors={getAvailableColors(allProducts)}
+                availableSizes={getAvailableSizes(allProducts)}
                 catalogs={catalogs}
                 catalogLoading={catalogLoading}
                 hideCatalogSelector={!!catalogId}
