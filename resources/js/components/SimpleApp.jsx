@@ -113,7 +113,7 @@ const SimpleApp = () => {
                   <Route path="/favoritos" element={<FavoritosPage />} />
                   
                   {/* Admin routes */}
-                  <Route path="/admin" element={
+                  <Route path="/admin/*" element={
                     <AdminRoute>
                       <AdminPanelPage />
                     </AdminRoute>

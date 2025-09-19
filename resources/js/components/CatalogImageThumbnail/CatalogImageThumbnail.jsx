@@ -50,3 +50,4 @@ const CatalogImageThumbnail = ({
 };
 
 export default CatalogImageThumbnail;
+

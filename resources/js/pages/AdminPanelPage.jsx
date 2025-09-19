@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import CherryButton from '../components/CherryButton/CherryButton';
 import AdminUserManager from '../components/AdminUserManager/AdminUserManager';
 import ClientManager from '../components/ClientManager/ClientManager';
@@ -30,11 +30,60 @@ function AdminPanelPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, isAdmin } = useUserStore();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Mapeo de URLs a secciones del menú
+  const urlToMenuMap = {
+    '/admin': 'home',
+    '/admin/': 'home',
+    '/admin/dashboard': 'home',
+    '/admin/usuarios': 'users',
+    '/admin/clientes': 'clients',
+    '/admin/categorias': 'category-products',
+    '/admin/ordenar-categorias': 'category-order',
+    '/admin/menu-categorias': 'menu-category-order',
+    '/admin/secciones-bienvenida': 'welcome-sections',
+    '/admin/catalogos-home': 'home-catalogs',
+    '/admin/catalogos': 'catalogs',
+    '/admin/contacto': 'contact-info',
+    '/admin/privacidad': 'privacy-policy',
+    '/admin/descuentos': 'discounts'
+  };
+
+  // Mapeo de secciones a URLs
+  const menuToUrlMap = {
+    'home': '/admin',
+    'users': '/admin/usuarios',
+    'clients': '/admin/clientes',
+    'category-products': '/admin/categorias',
+    'category-order': '/admin/ordenar-categorias',
+    'menu-category-order': '/admin/menu-categorias',
+    'welcome-sections': '/admin/secciones-bienvenida',
+    'home-catalogs': '/admin/catalogos-home',
+    'catalogs': '/admin/catalogos',
+    'contact-info': '/admin/contacto',
+    'privacy-policy': '/admin/privacidad',
+    'discounts': '/admin/descuentos'
+  };
+
+  // Función para cambiar de sección y actualizar URL
+  const handleMenuChange = (menuKey) => {
+    setSelectedMenu(menuKey);
+    setSidebarOpen(false);
+    const url = menuToUrlMap[menuKey] || '/admin';
+    navigate(url, { replace: true });
+  };
 
   // CRUD dummy actions
   const handleDelete = (id) => {
     setHomeData(homeData.filter(item => item.id !== id));
   };
+
+  // Sincronizar URL con menú seleccionado
+  useEffect(() => {
+    const currentMenu = urlToMenuMap[location.pathname] || 'home';
+    setSelectedMenu(currentMenu);
+  }, [location.pathname, urlToMenuMap]);
 
   useEffect(() => {
     if (sidebarOpen) {
@@ -78,19 +127,19 @@ function AdminPanelPage() {
             <span className="admin-panel__user-name">{user?.first_name} {user?.last_name}</span>
             <span className="admin-panel__user-role">{user?.role?.name === 'admin' ? 'Administrador' : 'Cliente'}</span>
           </div>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='home'?' active':''}`} onClick={()=>{setSelectedMenu('home'); setSidebarOpen(false);}}>Dashboard</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='users'?' active':''}`} onClick={()=>{setSelectedMenu('users'); setSidebarOpen(false);}}>Gestionar Administradores</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='clients'?' active':''}`} onClick={()=>{setSelectedMenu('clients'); setSidebarOpen(false);}}>Gestionar Clientes</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='home'?' active':''}`} onClick={()=>handleMenuChange('home')}>Dashboard</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='users'?' active':''}`} onClick={()=>handleMenuChange('users')}>Gestionar Administradores</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='clients'?' active':''}`} onClick={()=>handleMenuChange('clients')}>Gestionar Clientes</button>
 
-          <button className={`admin-panel__sidebar-link${selectedMenu==='category-products'?' active':''}`} onClick={()=>{setSelectedMenu('category-products'); setSidebarOpen(false);}}>Gestionar Categorías</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='category-order'?' active':''}`} onClick={()=>{setSelectedMenu('category-order'); setSidebarOpen(false);}}>Ordenar Categorías</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='menu-category-order'?' active':''}`} onClick={()=>{setSelectedMenu('menu-category-order'); setSidebarOpen(false);}}>Ordenar Categorías del Menú</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='welcome-sections'?' active':''}`} onClick={()=>{setSelectedMenu('welcome-sections'); setSidebarOpen(false);}}>Secciones de Bienvenida</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='home-catalogs'?' active':''}`} onClick={()=>{setSelectedMenu('home-catalogs'); setSidebarOpen(false);}}>Catálogos del Home</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='catalogs'?' active':''}`} onClick={()=>{setSelectedMenu('catalogs'); setSidebarOpen(false);}}>Catálogos</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='contact-info'?' active':''}`} onClick={()=>{setSelectedMenu('contact-info'); setSidebarOpen(false);}}>Información de Contacto</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='privacy-policy'?' active':''}`} onClick={()=>{setSelectedMenu('privacy-policy'); setSidebarOpen(false);}}>Políticas de Privacidad</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='discounts'?' active':''}`} onClick={()=>{setSelectedMenu('discounts'); setSidebarOpen(false);}}>Descuentos</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='category-products'?' active':''}`} onClick={()=>handleMenuChange('category-products')}>Gestionar Categorías</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='category-order'?' active':''}`} onClick={()=>handleMenuChange('category-order')}>Ordenar Categorías</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='menu-category-order'?' active':''}`} onClick={()=>handleMenuChange('menu-category-order')}>Ordenar Categorías del Menú</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='welcome-sections'?' active':''}`} onClick={()=>handleMenuChange('welcome-sections')}>Secciones de Bienvenida</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='home-catalogs'?' active':''}`} onClick={()=>handleMenuChange('home-catalogs')}>Catálogos del Home</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='catalogs'?' active':''}`} onClick={()=>handleMenuChange('catalogs')}>Catálogos</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='contact-info'?' active':''}`} onClick={()=>handleMenuChange('contact-info')}>Información de Contacto</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='privacy-policy'?' active':''}`} onClick={()=>handleMenuChange('privacy-policy')}>Políticas de Privacidad</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='discounts'?' active':''}`} onClick={()=>handleMenuChange('discounts')}>Descuentos</button>
           <button className="admin-panel__sidebar-link" onClick={handleLogout}>Volver al sitio</button>
         </nav>
       </aside>

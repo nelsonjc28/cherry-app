@@ -584,3 +584,240 @@
     align-items: flex-start;
   }
 }
+
+/* Estilos para grupos de imágenes */
+.catalog-pdf-module__group-form {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.catalog-pdf-module__group-form h4 {
+  margin: 0 0 20px 0;
+  color: #2c3e50;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.catalog-pdf-module__group-form .form-group {
+  margin-bottom: 20px;
+}
+
+.catalog-pdf-module__group-form label {
+  display: block;
+  margin-bottom: 8px;
+  color: #495057;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.catalog-pdf-module__group-form input,
+.catalog-pdf-module__group-form textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.catalog-pdf-module__group-form input:focus,
+.catalog-pdf-module__group-form textarea:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.catalog-pdf-module__group-form .form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.catalog-pdf-module__group-form .btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.catalog-pdf-module__group-form .btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.catalog-pdf-module__group-form .btn-primary:hover {
+  background: #0056b3;
+}
+
+.catalog-pdf-module__group-form .btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.catalog-pdf-module__group-form .btn-secondary:hover {
+  background: #545b62;
+}
+
+.catalog-pdf-module__groups-header {
+  margin-bottom: 20px;
+}
+
+.catalog-pdf-module__groups-header h4 {
+  margin: 0 0 8px 0;
+  color: #2c3e50;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.catalog-pdf-module__groups-header p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.catalog-pdf-module__groups-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.catalog-pdf-module__group-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.catalog-pdf-module__group-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.catalog-pdf-module__group-info h4 {
+  margin: 0 0 8px 0;
+  color: #2c3e50;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.catalog-pdf-module__group-info p {
+  margin: 0 0 12px 0;
+  color: #6c757d;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.catalog-pdf-module__group-stats {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.catalog-pdf-module__group-stats .status {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.catalog-pdf-module__group-stats .status.active {
+  background: #d4edda;
+  color: #155724;
+}
+
+.catalog-pdf-module__group-stats .status.inactive {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.catalog-pdf-module__group-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.catalog-pdf-module__group-actions .catalog-pdf-module__action-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  min-width: 180px;
+  text-align: center;
+}
+
+.catalog-pdf-module__group-actions .catalog-pdf-module__action-btn:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+/* Estilos para la sección de acciones */
+.catalog-pdf-module__actions {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid #e9ecef;
+  text-align: center;
+}
+
+/* Estilos para el botón de crear nuevo grupo */
+.catalog-pdf-module__actions .catalog-pdf-module__add-btn,
+.catalog-pdf-module__add-btn {
+  background: #dc3545 !important;
+  color: white !important;
+  border: none !important;
+  padding: 12px 20px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  white-space: nowrap !important;
+  display: inline-block !important;
+  text-align: center !important;
+  text-decoration: none !important;
+}
+
+.catalog-pdf-module__actions .catalog-pdf-module__add-btn:hover,
+.catalog-pdf-module__add-btn:hover {
+  background: #c82333 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3) !important;
+}
+
+.catalog-pdf-module__loading {
+  text-align: center;
+  padding: 40px;
+  color: #6c757d;
+}
+
+
+/* Responsive para grupos */
+@media (max-width: 768px) {
+  .catalog-pdf-module__groups-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .catalog-pdf-module__group-form {
+    padding: 16px;
+  }
+  
+  .catalog-pdf-module__group-card {
+    padding: 16px;
+  }
+}

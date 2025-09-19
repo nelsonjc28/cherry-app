@@ -48,3 +48,4 @@ The component automatically fetches addresses from `/api/addresses` endpoint usi
 - api (axios instance)
 - CustomButton component
 - CherryButton component
+

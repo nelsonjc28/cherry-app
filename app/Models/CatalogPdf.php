@@ -13,6 +13,7 @@ class CatalogPdf extends Model
 
     protected $fillable = [
         'catalog_id',
+        'image_group_id',
         'catalog_name',
         'image_path',
         'image_name',
@@ -37,6 +38,14 @@ class CatalogPdf extends Model
     public function catalog()
     {
         return $this->belongsTo(Catalog::class);
+    }
+
+    /**
+     * Obtener el grupo de imágenes al que pertenece
+     */
+    public function imageGroup()
+    {
+        return $this->belongsTo(CatalogImageGroup::class, 'image_group_id');
     }
 
     /**

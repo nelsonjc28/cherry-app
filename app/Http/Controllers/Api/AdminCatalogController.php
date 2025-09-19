@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Catalog;
 use App\Models\CatalogPdf;
 use App\Models\CatalogProduct;
+use App\Models\CatalogImageGroup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -273,10 +274,11 @@ class AdminCatalogController extends Controller
 
             $validator = Validator::make($request->all(), [
                 'images.*' => 'required|file|mimes:jpeg,png,jpg,gif,webp', // 10MB máximo
-                'catalog_name' => 'nullable|string|max:255'
+                'catalog_name' => 'nullable|string|max:255',
+                'image_group_id' => 'nullable|exists:catalog_image_groups,id'
             ], [
                 'images.*.mimes' => 'Las imágenes deben ser archivos válidos (JPEG, PNG, JPG, GIF, WebP)',
-                
+                'image_group_id.exists' => 'El grupo de imágenes especificado no existe'
             ]);
 
             if ($validator->fails()) {
@@ -334,7 +336,8 @@ class AdminCatalogController extends Controller
                     );
 
                     $catalogImage = CatalogPdf::create([
-                    'catalog_id' => $catalog->id,
+                        'catalog_id' => $catalog->id,
+                        'image_group_id' => $request->image_group_id,
                         'catalog_name' => $request->catalog_name ?? $catalog->name,
                         'image_path' => $imagePath,
                         'image_name' => $image->getClientOriginalName(),
@@ -800,24 +803,43 @@ class AdminCatalogController extends Controller
     }
 
     /**
-     * Obtener todos los catálogos con imágenes para selección
+     * Obtener todos los catálogos con imágenes para selección (método público)
      */
     public function getCatalogsWithImages()
     {
         try {
             $catalogs = Catalog::where('is_active', true)
-                ->whereHas('pdfs')
-                ->with(['pdfs' => function($query) {
-                    $query->select('catalog_id', 'catalog_name')
-                          ->groupBy('catalog_id', 'catalog_name');
+                ->withCount('pdfs as images_count')
+                ->with(['activeImageGroups' => function($query) {
+                    $query->withCount('images as group_images_count');
                 }])
+                ->orderByRaw('ISNULL(display_order), display_order ASC')
                 ->get()
                 ->map(function($catalog) {
                     return [
                         'id' => $catalog->id,
                         'name' => $catalog->name,
-                        'catalog_name' => $catalog->pdfs->first()->catalog_name ?? $catalog->name,
-                        'image_count' => $catalog->pdfs->count()
+                        'description' => $catalog->description ?? 'Catálogo de imágenes',
+                        'image_url' => $catalog->image_url,
+                        'images_count' => $catalog->images_count,
+                        'pdfs_count' => $catalog->images_count, // Para compatibilidad
+                        'is_active' => $catalog->is_active,
+                        'display_order' => $catalog->display_order,
+                        'image_groups' => $catalog->activeImageGroups->map(function($group) {
+                            return [
+                                'id' => $group->id,
+                                'name' => $group->name,
+                                'description' => $group->description,
+                                'slug' => $group->slug,
+                                'images_count' => $group->group_images_count,
+                                'display_order' => $group->display_order,
+                                'cover_image' => $group->cover_image ? [
+                                    'id' => $group->cover_image->id,
+                                    'image_url' => $group->cover_image->image_url,
+                                    'thumbnail_url' => $group->cover_image->thumbnail_url
+                                ] : null
+                            ];
+                        })
                     ];
                 });
 
@@ -826,9 +848,99 @@ class AdminCatalogController extends Controller
                 'data' => $catalogs
             ]);
         } catch (\Exception $e) {
+            Log::error('Error en getCatalogsWithImages: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener catálogos: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener imágenes de un grupo específico con paginación
+     */
+    public function getImageGroupImages($catalogId, $groupId)
+    {
+        try {
+            $catalog = Catalog::where('is_active', true)->findOrFail($catalogId);
+            $imageGroup = CatalogImageGroup::where('catalog_id', $catalogId)
+                ->where('is_active', true)
+                ->findOrFail($groupId);
+            
+            $perPage = 10; // 10 imágenes por página
+            $page = request('page', 1);
+            
+            $images = CatalogPdf::where('catalog_id', $catalogId)
+                ->where('image_group_id', $groupId)
+                ->orderBy('display_order', 'asc')
+                ->paginate($perPage, ['*'], 'page', $page);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'catalog' => $catalog,
+                    'image_group' => $imageGroup,
+                    'images' => $images->items(),
+                    'pagination' => [
+                        'current_page' => $images->currentPage(),
+                        'last_page' => $images->lastPage(),
+                        'per_page' => $images->perPage(),
+                        'total' => $images->total(),
+                        'has_more' => $images->hasMorePages()
+                    ]
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener imágenes del grupo: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener todos los grupos de imágenes de un catálogo
+     */
+    public function getCatalogImageGroups($catalogId)
+    {
+        try {
+            $catalog = Catalog::where('is_active', true)->findOrFail($catalogId);
+            
+            $imageGroups = CatalogImageGroup::where('catalog_id', $catalogId)
+                ->active()
+                ->ordered()
+                ->withCount('images as images_count')
+                ->with(['images' => function($query) {
+                    $query->orderBy('display_order', 'asc')->limit(1); // Solo la primera imagen como cover
+                }])
+                ->get()
+                ->map(function($group) {
+                    return [
+                        'id' => $group->id,
+                        'name' => $group->name,
+                        'description' => $group->description,
+                        'slug' => $group->slug,
+                        'images_count' => $group->images_count,
+                        'display_order' => $group->display_order,
+                        'cover_image' => $group->images->first() ? [
+                            'id' => $group->images->first()->id,
+                            'image_url' => $group->images->first()->image_url,
+                            'thumbnail_url' => $group->images->first()->thumbnail_url
+                        ] : null
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'catalog' => $catalog,
+                    'image_groups' => $imageGroups
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener grupos de imágenes: ' . $e->getMessage()
             ], 500);
         }
     }

@@ -28,6 +28,9 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api'
 Route::get('/me', [AuthController::class, 'me'])->middleware('auth:api');
 Route::get('/debug', [AuthController::class, 'debug'])->middleware('auth:api');
 
+// Ruta pública para catálogos con imágenes (sin autenticación)
+Route::get('/public/catalogs-with-images', [AdminCatalogController::class, 'getCatalogsWithImages']);
+
 // Profile routes - require authentication
 Route::middleware(['auth:api'])->group(function () {
     Route::post('/profile/update', [ProfileController::class, 'update']);
@@ -227,4 +230,5 @@ Route::get('/catalogs/{id}/products', [AdminCatalogController::class, 'getPublic
 
 // Public catalog images routes (no authentication required)
 Route::get('/catalogs/{id}/pdfs', [AdminCatalogController::class, 'getPublicCatalogPdfs']);
-Route::get('/catalogs-with-images', [AdminCatalogController::class, 'getCatalogsWithImages']); 
+Route::get('/catalogs/{id}/image-groups', [AdminCatalogController::class, 'getCatalogImageGroups']);
+Route::get('/catalogs/{catalogId}/image-groups/{groupId}/images', [AdminCatalogController::class, 'getImageGroupImages']); 

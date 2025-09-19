@@ -6,6 +6,93 @@
   top: 0 !important;
 }
 
+/* Estilos para el selector de catálogos */
+.catalog-pdf__catalog-selector {
+  margin-bottom: 20px;
+  border-bottom: 1px solid rgba(231, 231, 231, 1);
+  padding-bottom: 15px;
+}
+
+.catalog-pdf__catalogs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.catalog-pdf__catalog-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(231, 231, 231, 1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.catalog-pdf__catalog-item:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.catalog-pdf__catalog-item.active {
+  border-color: var(--color-primary);
+  background: rgba(249, 115, 138, 0.05);
+  box-shadow: 0 2px 8px rgba(249, 115, 138, 0.2);
+}
+
+.catalog-pdf__catalog-info {
+  flex: 1;
+  margin-right: 10px;
+}
+
+.catalog-pdf__catalog-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #373737;
+  margin: 0 0 4px 0;
+  line-height: 1.2;
+}
+
+.catalog-pdf__catalog-description {
+  font-size: 12px;
+  color: #666;
+  margin: 0 0 4px 0;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.catalog-pdf__catalog-count {
+  font-size: 11px;
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.catalog-pdf__catalog-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.catalog-pdf__catalog-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.catalog-pdf__loading-text {
+  font-size: 12px;
+  color: #666;
+  margin-left: 10px;
+}
+
 .catalog-pdf__header {
   position: sticky;
   top: 0;
@@ -197,9 +284,9 @@
 .catalog-pdf__image-wrapper {
   position: relative;
   width: 100%;
-  padding: 24px 0 0 0;
+  padding: 80px 0 80px 0;
   box-sizing: border-box;
-  min-height: 200px;
+  min-height: 400px;
   scroll-margin-top: 50px;
 }
 
@@ -257,7 +344,7 @@
   position: relative;
   width: 100%;
   margin: 0 auto;
-  gap: 24px;
+  gap: 60px;
 }
 
 .catalog-pdf__thumbnails.mobile {
@@ -357,9 +444,9 @@
 
   .catalog-pdf__image-wrapper {
     background: none;
-    padding: 24px 0 0 0;
+    padding: 100px 0 100px 0;
     box-shadow: none;
-    min-height: 300px;
+    min-height: 500px;
   }
 
   .catalog-pdf__image {
@@ -400,5 +487,370 @@
     max-width: 650px;
     min-height: 350px;
     margin: 0 auto;
+  }
+
+  /* Estilos desktop para selector de catálogos */
+  .catalog-pdf__catalog-selector {
+    margin-bottom: 30px;
+    border-bottom: 1px solid rgba(231, 231, 231, 1);
+    padding-bottom: 20px;
+  }
+
+  .catalog-pdf__catalogs-list {
+    max-height: 400px;
+    gap: 8px;
+  }
+
+  .catalog-pdf__catalog-item {
+    padding: 16px;
+    border-radius: 10px;
+  }
+
+  .catalog-pdf__catalog-name {
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .catalog-pdf__catalog-description {
+    font-size: 13px;
+    -webkit-line-clamp: 3;
+  }
+
+  .catalog-pdf__catalog-count {
+    font-size: 12px;
+  }
+
+  .catalog-pdf__catalog-thumb {
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+  }
+
+  .catalog-pdf__loading-text {
+    font-size: 13px;
+  }
+
+  /* Estilos para grupos de imágenes */
+  .catalog-pdf__image-groups {
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(231, 231, 231, 1);
+    padding-bottom: 15px;
+  }
+
+  .catalog-pdf__image-groups-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .catalog-pdf__image-group-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid rgba(231, 231, 231, 1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: white;
+  }
+
+  .catalog-pdf__image-group-item:hover {
+    border-color: var(--color-primary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .catalog-pdf__image-group-item.active {
+    border-color: var(--color-primary);
+    background: rgba(249, 115, 138, 0.05);
+    box-shadow: 0 2px 8px rgba(249, 115, 138, 0.2);
+  }
+
+  .catalog-pdf__image-group-info {
+    flex: 1;
+    margin-right: 10px;
+  }
+
+  .catalog-pdf__image-group-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #373737;
+    margin: 0 0 4px 0;
+    line-height: 1.2;
+  }
+
+  .catalog-pdf__image-group-description {
+    font-size: 11px;
+    color: #666;
+    margin: 0 0 4px 0;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .catalog-pdf__image-group-count {
+    font-size: 10px;
+    color: var(--color-primary);
+    font-weight: 500;
+  }
+
+  .catalog-pdf__image-group-thumb {
+    width: 35px;
+    height: 35px;
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .catalog-pdf__image-group-cover {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+
+  /* Estilos desktop para grupos de imágenes */
+  .catalog-pdf__image-groups {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+  }
+
+  .catalog-pdf__image-groups-list {
+    gap: 10px;
+    max-height: 350px;
+  }
+
+  .catalog-pdf__image-group-item {
+    padding: 14px;
+    border-radius: 10px;
+  }
+
+  .catalog-pdf__image-group-name {
+    font-size: 14px;
+  }
+
+  .catalog-pdf__image-group-description {
+    font-size: 12px;
+    -webkit-line-clamp: 2;
+  }
+
+  .catalog-pdf__image-group-count {
+    font-size: 11px;
+  }
+
+  .catalog-pdf__image-group-thumb {
+    width: 45px;
+    height: 45px;
+    border-radius: 8px;
+  }
+}
+
+/* Estilos para la vista principal de grupos como cards */
+.catalog-pdf__groups-main {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Ajustar el main cuando no hay sidebar */
+.catalog-pdf__content:not(:has(.catalog-pdf__thumbnails)) .catalog-pdf__main-image {
+  width: 100%;
+  max-width: none;
+}
+
+.catalog-pdf__groups-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.catalog-pdf__groups-header h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px 0;
+}
+
+.catalog-pdf__groups-header p {
+  font-size: 16px;
+  color: #666;
+  margin: 0;
+}
+
+.catalog-pdf__groups-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+  padding: 20px 0;
+}
+
+.catalog-pdf__group-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.catalog-pdf__group-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border-color: var(--color-primary);
+}
+
+.catalog-pdf__group-image {
+  width: 100%;
+  height: 200px;
+  position: relative;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.catalog-pdf__group-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.catalog-pdf__group-card:hover .catalog-pdf__group-image img {
+  transform: scale(1.05);
+}
+
+.catalog-pdf__group-no-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 48px;
+  color: #6c757d;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.catalog-pdf__group-info {
+  padding: 20px;
+}
+
+.catalog-pdf__group-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px 0;
+  line-height: 1.3;
+}
+
+.catalog-pdf__group-description {
+  font-size: 14px;
+  color: #666;
+  margin: 0 0 16px 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.catalog-pdf__group-stats {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.catalog-pdf__group-count,
+.catalog-pdf__group-order {
+  font-size: 12px;
+  color: #495057;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #f8f9fa;
+  font-weight: 500;
+}
+
+/* Estilos para el botón de volver a grupos */
+.catalog-pdf__back-to-groups {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 0 20px;
+}
+
+.catalog-pdf__back-btn {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.catalog-pdf__back-btn:hover {
+  background: #e85a7a;
+  transform: translateY(-1px);
+}
+
+.catalog-pdf__back-to-groups h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+/* Responsive para vista de grupos */
+@media (max-width: 768px) {
+  .catalog-pdf__groups-main {
+    padding: 16px;
+  }
+  
+  .catalog-pdf__groups-header h2 {
+    font-size: 20px;
+  }
+  
+  .catalog-pdf__groups-header p {
+    font-size: 14px;
+  }
+  
+  .catalog-pdf__groups-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .catalog-pdf__group-image {
+    height: 160px;
+  }
+  
+  .catalog-pdf__group-no-image {
+    font-size: 36px;
+  }
+  
+  .catalog-pdf__group-info {
+    padding: 16px;
+  }
+  
+  .catalog-pdf__group-name {
+    font-size: 18px;
+  }
+  
+  .catalog-pdf__back-to-groups {
+    padding: 0 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .catalog-pdf__back-to-groups h2 {
+    font-size: 20px;
   }
 }

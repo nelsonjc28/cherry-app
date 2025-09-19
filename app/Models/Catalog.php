@@ -52,6 +52,22 @@ class Catalog extends Model
     }
 
     /**
+     * Obtener los grupos de imágenes del catálogo
+     */
+    public function imageGroups()
+    {
+        return $this->hasMany(CatalogImageGroup::class)->orderBy('display_order');
+    }
+
+    /**
+     * Obtener los grupos de imágenes activos del catálogo
+     */
+    public function activeImageGroups()
+    {
+        return $this->hasMany(CatalogImageGroup::class)->active()->ordered();
+    }
+
+    /**
      * Obtener catálogos activos ordenados
      */
     public function scopeActive($query)

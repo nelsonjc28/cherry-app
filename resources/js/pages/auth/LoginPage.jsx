@@ -1,5 +1,5 @@
 import { Helmet } from 'react-helmet-async';
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 import "./LoginPage.css";
 import { getIconPath, getImagePath } from '../../utils/assetPaths';
@@ -9,7 +9,7 @@ import useUserStore from '../../store/userStore';
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { login, loading, error } = useUserStore();
+  const { login, loading, error, user, initialized } = useUserStore();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -70,6 +70,60 @@ const LoginPage = () => {
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
+
+  // Redirigir si el usuario ya está logueado
+  useEffect(() => {
+    if (initialized && user) {
+      // Redirigir según el rol del usuario
+      if (user.role?.name === 'admin') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
+    }
+  }, [initialized, user, navigate]);
+
+  // Mostrar loading mientras se inicializa la autenticación
+  if (!initialized) {
+    return (
+      <>
+        <Helmet>
+          <title>Cargando... - Cherry Central</title>
+        </Helmet>
+        <div className="login-page">
+          <div className="login-container">
+            <div className="login-form-wrapper">
+              <div className="login-loading">
+                <div className="loading-spinner"></div>
+                <p>Verificando sesión...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // Si el usuario ya está logueado, mostrar mensaje de redirección
+  if (user) {
+    return (
+      <>
+        <Helmet>
+          <title>Redirigiendo... - Cherry Central</title>
+        </Helmet>
+        <div className="login-page">
+          <div className="login-container">
+            <div className="login-form-wrapper">
+              <div className="login-redirect-message">
+                <h2>Ya tienes una sesión activa</h2>
+                <p>Redirigiendo...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>

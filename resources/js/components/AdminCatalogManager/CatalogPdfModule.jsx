@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { catalogService } from '../../services/api';
+import { catalogService, publicCatalogService } from '../../services/api';
 import PdfThumbnail from '../PdfThumbnail/PdfThumbnail';
 import './CatalogPdfModule.css';
 
@@ -8,17 +8,34 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedCatalog, setSelectedCatalog] = useState(initialCatalog);
-  const [currentView, setCurrentView] = useState(initialCatalog ? 'detail' : 'list'); // 'list' o 'detail'
+  const [currentView, setCurrentView] = useState(initialCatalog ? 'groups' : 'list'); // 'list', 'groups', 'detail'
   const [uploading, setUploading] = useState(false);
   const [dragIndex, setDragIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
+  
+  // Estados para grupos de imágenes
+  const [imageGroups, setImageGroups] = useState([]);
+  const [selectedImageGroup, setSelectedImageGroup] = useState(null);
+  const [groupsLoading, setGroupsLoading] = useState(false);
+  const [showGroupForm, setShowGroupForm] = useState(false);
+  const [groupFormData, setGroupFormData] = useState({
+    name: '',
+    description: '',
+    is_active: true,
+    display_order: 0
+  });
+  
+  // Estados para imágenes del grupo seleccionado
+  const [groupImages, setGroupImages] = useState([]);
+  const [groupImagesLoading, setGroupImagesLoading] = useState(false);
 
   useEffect(() => {
     if (initialCatalog) {
-      // Si tenemos un catálogo inicial, ir directo a la gestión
+      // Si tenemos un catálogo inicial, ir directo a la gestión de grupos
       setSelectedCatalog(initialCatalog);
-      setCurrentView('detail');
+      setCurrentView('groups');
       setLoading(false);
+      fetchImageGroups(initialCatalog.id);
     } else {
       // Si no, cargar la lista de catálogos
       fetchCatalogs();
@@ -41,13 +58,88 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
 
   const handleCatalogSelect = (catalog) => {
     setSelectedCatalog(catalog);
-    setCurrentView('detail');
+    setCurrentView('groups');
+    fetchImageGroups(catalog.id);
   };
 
   const handleBackToList = () => {
     setSelectedCatalog(null);
+    setSelectedImageGroup(null);
+    setImageGroups([]);
     setCurrentView('list');
     setError('');
+  };
+
+  const handleBackToGroups = () => {
+    setSelectedImageGroup(null);
+    setGroupImages([]);
+    setCurrentView('groups');
+    setError('');
+  };
+
+  // Funciones para grupos de imágenes
+  const fetchImageGroups = async (catalogId) => {
+    try {
+      setGroupsLoading(true);
+      const response = await publicCatalogService.getCatalogImageGroups(catalogId);
+      if (response.data.success) {
+        setImageGroups(response.data.data.image_groups || []);
+      }
+    } catch (error) {
+      setError('Error al cargar los grupos de imágenes');
+    } finally {
+      setGroupsLoading(false);
+    }
+  };
+
+  const handleCreateGroup = async (e) => {
+    e.preventDefault();
+    if (!groupFormData.name.trim()) {
+      setError('El nombre del grupo es obligatorio');
+      return;
+    }
+
+    try {
+      // Por ahora vamos a crear un grupo básico
+      // Aquí necesitarías implementar el endpoint de creación de grupos
+      const newGroup = {
+        id: Date.now(), // Temporal
+        name: groupFormData.name,
+        description: groupFormData.description,
+        is_active: groupFormData.is_active,
+        display_order: imageGroups.length + 1,
+        images_count: 0
+      };
+
+      setImageGroups([...imageGroups, newGroup]);
+      setGroupFormData({ name: '', description: '', is_active: true, display_order: 0 });
+      setShowGroupForm(false);
+      window.showToast('Grupo creado exitosamente', 'success');
+    } catch (error) {
+      setError('Error al crear el grupo');
+    }
+  };
+
+  const handleSelectImageGroup = (group) => {
+    setSelectedImageGroup(group);
+    setCurrentView('detail');
+    fetchGroupImages(selectedCatalog.id, group.id);
+  };
+
+  // Función para cargar las imágenes de un grupo específico
+  const fetchGroupImages = async (catalogId, groupId) => {
+    try {
+      setGroupImagesLoading(true);
+      const response = await publicCatalogService.getImageGroupImages(catalogId, groupId);
+      if (response.data.success) {
+        setGroupImages(response.data.data.images || []);
+      }
+    } catch (error) {
+      setError('Error al cargar las imágenes del grupo');
+      console.error('Error fetching group images:', error);
+    } finally {
+      setGroupImagesLoading(false);
+    }
   };
 
   const handleFileSelect = async (event) => {
@@ -76,6 +168,11 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
       files.forEach(file => {
         formData.append('images[]', file);
       });
+      
+      // Si estamos en la vista de detalle de un grupo, asociar las imágenes a ese grupo
+      if (selectedImageGroup && selectedImageGroup.id) {
+        formData.append('image_group_id', selectedImageGroup.id);
+      }
 
       const response = await catalogService.addPdfs(selectedCatalog.id, formData);
       
@@ -84,13 +181,16 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
         
         // Actualizar el estado local inmediatamente con las nuevas imágenes
         const newImages = response.data.data || [];
-        setSelectedCatalog(prev => ({
-          ...prev,
-          pdfs: [...(prev.pdfs || []), ...newImages]
-        }));
+        
+        // Si estamos en la vista de detalle de un grupo, actualizar groupImages
+        if (selectedImageGroup) {
+          setGroupImages(prev => [...prev, ...newImages]);
+        }
         
         // También actualizar la lista de catálogos para mantener sincronizados los contadores
-        await fetchCatalogs();
+        if (!initialCatalog) {
+          await fetchCatalogs();
+        }
       } else {
         setError(response.data.message || 'Error al subir imágenes');
       }
@@ -134,13 +234,7 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
         window.showToast('Imagen eliminada exitosamente', 'success');
         
         // Actualizar el estado local inmediatamente removiendo la imagen
-        setSelectedCatalog(prev => ({
-          ...prev,
-          pdfs: prev.pdfs.filter(pdf => pdf.id !== pdfId)
-        }));
-        
-        // También actualizar la lista de catálogos para mantener sincronizados los contadores
-        await fetchCatalogs();
+        setGroupImages(prev => prev.filter(pdf => pdf.id !== pdfId));
       } else {
         setError(response.data.message || 'Error al eliminar imagen');
       }
@@ -168,7 +262,7 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
       return;
     }
 
-    const pdfs = selectedCatalog.pdfs || [];
+    const pdfs = groupImages || [];
     const newPdfs = [...pdfs];
     const draggedItem = newPdfs[dragIndex];
     
@@ -178,10 +272,7 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
     newPdfs.splice(dropIndex, 0, draggedItem);
     
     // Actualizar el estado local
-    setSelectedCatalog(prev => ({
-      ...prev,
-      pdfs: newPdfs
-    }));
+    setGroupImages(newPdfs);
     
     // Actualizar el orden en el backend
     try {
@@ -197,15 +288,14 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
 
       if (response.data.success) {
         window.showToast('Orden actualizado exitosamente', 'success');
-        await fetchCatalogs(); // Recargar para actualizar contadores
       } else {
         setError('Error al actualizar el orden');
         // Revertir cambios si falla
-        await fetchCatalogs();
+        setGroupImages(pdfs);
       }
     } catch (error) {
       setError('Error al actualizar el orden');
-      await fetchCatalogs();
+      setGroupImages(pdfs);
     }
 
     setDragIndex(null);
@@ -339,23 +429,154 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
     );
   }
 
-  // Vista de detalle del catálogo
+  // Vista de gestión de grupos de imágenes
+  if (currentView === 'groups' && selectedCatalog) {
+    return (
+      <div className="catalog-pdf-module">
+        <div className="catalog-pdf-module__header">
+          <div className="catalog-pdf-module__title">
+            <button 
+              className="catalog-pdf-module__back-btn"
+              onClick={handleBackToList}
+              title="Volver a la lista de catálogos"
+            >
+              ←
+            </button>
+            <h2>Grupos de Imágenes: {selectedCatalog.name}</h2>
+          </div>
+          <p className="catalog-pdf-module__subtitle">
+            Organiza las imágenes en grupos temáticos
+          </p>
+        </div>
+
+        {error && (
+          <div className="alert alert-danger">
+            {error}
+            <button 
+              type="button" 
+              className="btn-close"
+              onClick={() => setError('')}
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        {/* Formulario para crear grupo */}
+        {showGroupForm && (
+          <div className="catalog-pdf-module__group-form">
+            <h4>Crear Nuevo Grupo</h4>
+            <form onSubmit={handleCreateGroup}>
+              <div className="form-group">
+                <label>Nombre del Grupo *</label>
+                <input
+                  type="text"
+                  value={groupFormData.name}
+                  onChange={(e) => setGroupFormData({...groupFormData, name: e.target.value})}
+                  placeholder="Ej: Colección Principal, Detalles, Colores..."
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Descripción</label>
+                <textarea
+                  value={groupFormData.description}
+                  onChange={(e) => setGroupFormData({...groupFormData, description: e.target.value})}
+                  placeholder="Descripción del grupo de imágenes..."
+                  rows="3"
+                />
+              </div>
+              <div className="form-actions">
+                <button type="submit" className="btn btn-primary">Crear Grupo</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowGroupForm(false)}>
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Botón para crear grupo */}
+        {!showGroupForm && (
+          <div className="catalog-pdf-module__actions">
+            <button 
+              className="catalog-pdf-module__add-btn"
+              onClick={() => setShowGroupForm(true)}
+            >
+              + Crear Nuevo Grupo
+            </button>
+          </div>
+        )}
+
+        {/* Lista de grupos */}
+        <div className="catalog-pdf-module__content">
+          <div className="catalog-pdf-module__groups-header">
+            <h4>Grupos de Imágenes ({imageGroups.length})</h4>
+            <p>Haz clic en un grupo para gestionar sus imágenes</p>
+          </div>
+
+          {groupsLoading ? (
+            <div className="catalog-pdf-module__loading">
+              <div className="spinner"></div>
+              <p>Cargando grupos...</p>
+            </div>
+          ) : imageGroups.length === 0 ? (
+            <div className="catalog-pdf-module__empty">
+              <p>No hay grupos de imágenes creados</p>
+              <p>Crea grupos para organizar mejor las imágenes del catálogo</p>
+            </div>
+          ) : (
+            <div className="catalog-pdf-module__groups-grid">
+              {imageGroups.map((group) => (
+                <div key={group.id} className="catalog-pdf-module__group-card">
+                  <div className="catalog-pdf-module__group-info">
+                    <h4>{group.name}</h4>
+                    <p>{group.description || 'Sin descripción'}</p>
+                    <div className="catalog-pdf-module__group-stats">
+                      <span>🖼️ {group.images_count || 0} imágenes</span>
+                      <span className={`status ${group.is_active ? 'active' : 'inactive'}`}>
+                        {group.is_active ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="catalog-pdf-module__group-actions">
+                    <button
+                      className="catalog-pdf-module__action-btn"
+                      onClick={() => handleSelectImageGroup(group)}
+                      title="Gestionar imágenes de este grupo"
+                    >
+                      📁 Gestionar Imágenes
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Vista de detalle del catálogo (imágenes de un grupo específico)
   return (
     <div className="catalog-pdf-module">
       <div className="catalog-pdf-module__header">
         <div className="catalog-pdf-module__title">
           <button 
             className="catalog-pdf-module__back-btn"
-            onClick={handleBackToList}
-            title="Volver a la lista de catálogos"
+            onClick={handleBackToGroups}
+            title="Volver a los grupos"
           >
             ←
           </button>
-          <h2>Gestionar Imágenes: {selectedCatalog?.name}</h2>
+          <h2>Imágenes: {selectedImageGroup?.name || selectedCatalog?.name}</h2>
         </div>
-                 <p className="catalog-pdf-module__subtitle">
-           Sube y gestiona las imágenes del catálogo
-         </p>
+        <p className="catalog-pdf-module__subtitle">
+          {selectedImageGroup 
+            ? `Gestiona las imágenes del grupo "${selectedImageGroup.name}"` 
+            : 'Sube y gestiona las imágenes del catálogo'
+          }
+        </p>
         <div className="catalog-pdf-module__header-actions">
           <button 
             className="catalog-pdf-module__view-all-btn"
@@ -402,19 +623,25 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
       </div>
 
       <div className="catalog-pdf-module__content">
-                 <div className="catalog-pdf-module__images-header">
-           <h4>Imágenes del catálogo ({selectedCatalog?.pdfs?.length || 0})</h4>
-           <p>Gestiona las imágenes del catálogo. Arrastra y suelta para reordenar.</p>
-         </div>
+        <div className="catalog-pdf-module__images-header">
+          <h4>
+            Imágenes del grupo "{selectedImageGroup?.name}" ({groupImages.length || 0})
+          </h4>
+          <p>Gestiona las imágenes de este grupo. Arrastra y suelta para reordenar.</p>
+        </div>
 
-                 {!selectedCatalog?.pdfs || selectedCatalog.pdfs.length === 0 ? (
-           <div className="catalog-pdf-module__empty">
-             <p>No hay imágenes en este catálogo</p>
-             <p>Sube imágenes para crear las páginas del catálogo</p>
-           </div>
-         ) : (
+        {groupImagesLoading ? (
+          <div className="catalog-pdf-module__loading">
+            <p>Cargando imágenes del grupo...</p>
+          </div>
+        ) : !groupImages || groupImages.length === 0 ? (
+          <div className="catalog-pdf-module__empty">
+            <p>No hay imágenes en este grupo</p>
+            <p>Sube imágenes para agregar contenido al grupo "{selectedImageGroup?.name}"</p>
+          </div>
+        ) : (
           <div className="catalog-pdf-module__images-grid">
-            {selectedCatalog.pdfs.map((pdf, index) => (
+            {groupImages.map((pdf, index) => (
               <div
                 key={pdf.id}
                 className={`catalog-pdf-module__image-item ${
