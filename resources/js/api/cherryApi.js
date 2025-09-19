@@ -138,8 +138,15 @@ export const getAllProducts = async (catalog = 'Cherry 2025 - 2026') => {
       }
     }
     
+    // Filtrar productos activos (activo: 1) y habilitados para web
+    const activeProducts = productsArray.filter(product => {
+      const isActive = product.activo === 1;
+      const isWebEnabled = product.opc_web === 'S';
+      
+      return isActive && isWebEnabled;
+    });
     
-    return productsArray;
+    return activeProducts;
   } catch (error) {
     console.error('❌ Error en getAllProducts:', error);
     return [];
@@ -280,6 +287,22 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
   if (!colors || colors.length === 0) {
     colors = ['white', 'black', 'navy'];
   }
+
+  // Obtener tallas únicas de los detalles
+  let sizes = [];
+  
+  if (apiProduct.detalles && Array.isArray(apiProduct.detalles)) {
+    sizes = [...new Set(apiProduct.detalles.map(d => d.detalle).filter(Boolean))];
+  } else if (apiProduct.tallas && Array.isArray(apiProduct.tallas)) {
+    sizes = apiProduct.tallas;
+  } else if (apiProduct.sizes && Array.isArray(apiProduct.sizes)) {
+    sizes = apiProduct.sizes;
+  }
+  
+  // TEMPORAL: Si no hay tallas, agregar tallas de prueba
+  if (!sizes || sizes.length === 0) {
+    sizes = ['S', 'M', 'L'];
+  }
   
   // Obtener categoría de la línea
   const category = apiProduct.linea?.descripcion || apiProduct.categoria || apiProduct.category || 'Sin categoría';
@@ -306,6 +329,7 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
     brand: apiProduct.marca || apiProduct.brand || 'Cherry',
     category: category,
     colors: colors,
+    sizes: sizes,
     stock: apiProduct.inventario || apiProduct.stock || 0,
     isActive: apiProduct.activo === 1 || apiProduct.active === true,
     isNew: apiProduct.opc_nuevo === 'S' || apiProduct.is_new === true,
@@ -423,13 +447,12 @@ export const getNewProducts = async (limit = 5) => {
       return [];
     }
     
-    // Filtrar productos activos y con stock
+    // Filtrar productos habilitados para web y con stock
     const activeProducts = products.filter(product => {
-      const isActive = product.activo === 1;
       const hasStock = product.inventario > 0;
       const isWebEnabled = product.opc_web === 'S';
       
-      return isActive && hasStock && isWebEnabled;
+      return hasStock && isWebEnabled;
     });
     
     if (activeProducts.length === 0) {
@@ -480,13 +503,12 @@ export const getPromoProducts = async (limit = 5) => {
       return [];
     }
     
-    // Filtrar productos activos y con stock
+    // Filtrar productos habilitados para web y con stock
     const activeProducts = products.filter(product => {
-      const isActive = product.activo === 1;
       const hasStock = product.inventario > 0;
       const isWebEnabled = product.opc_web === 'S';
       
-      return isActive && hasStock && isWebEnabled;
+      return hasStock && isWebEnabled;
     });
     
     if (activeProducts.length === 0) {
@@ -617,8 +639,16 @@ export const getProductsByCategory = async (category, catalog = 'Cherry 2025 - 2
       });
     }
     
+    // Filtrar productos activos (activo: 1) y habilitados para web antes del mapeo
+    const activeProducts = filteredRawProducts.filter(product => {
+      const isActive = product.activo === 1;
+      const isWebEnabled = product.opc_web === 'S';
+      
+      return isActive && isWebEnabled;
+    });
+    
     // Mapear los productos filtrados al formato de la app de forma asíncrona
-    const mappedProducts = await Promise.all(filteredRawProducts.map(mapApiProductToAppProduct));
+    const mappedProducts = await Promise.all(activeProducts.map(mapApiProductToAppProduct));
     
     return mappedProducts.filter(p => p !== null);
   } catch (error) {
@@ -842,6 +872,33 @@ export const getAvailableColors = async (catalog = 'Cherry 2025 - 2026') => {
     });
     
     return Array.from(colorSet).sort();
+  } catch (error) {
+    return [];
+  }
+};
+
+// Función para obtener tallas únicas disponibles
+export const getAvailableSizes = async (catalog = 'Cherry 2025 - 2026') => {
+  try {
+    const products = await getAllProducts(catalog);
+    const sizeSet = new Set();
+    
+    products.forEach(product => {
+      if (product.detalles && product.detalles.length > 0) {
+        product.detalles.forEach(detalle => {
+          if (detalle.detalle && detalle.detalle.toString().trim()) {
+            sizeSet.add(detalle.detalle.toString().trim());
+          }
+        });
+      }
+    });
+    
+    // Ordenar las tallas de manera inteligente (números primero, luego letras)
+    const sizesArray = Array.from(sizeSet);
+    const numericSizes = sizesArray.filter(size => !isNaN(size)).sort((a, b) => Number(a) - Number(b));
+    const letterSizes = sizesArray.filter(size => isNaN(size)).sort();
+    
+    return [...numericSizes, ...letterSizes];
   } catch (error) {
     return [];
   }

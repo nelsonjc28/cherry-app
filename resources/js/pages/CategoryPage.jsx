@@ -13,7 +13,9 @@ import {
   mapApiProductToAppProduct, 
   getProductsByAvailability,
   searchProductsAdvanced,
-  getProductsWithRatings
+  getProductsWithRatings,
+  getAvailableColors,
+  getAvailableSizes
 } from '../api/cherryApi';
 import { publicCategoryService } from '../services/api';
 import api from '../services/api';
@@ -66,6 +68,8 @@ const CategoryPage = ({ categorySlug }) => {
   const [catalogs, setCatalogs] = useState([]); // Store all available catalogs
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [currentCategory, setCurrentCategory] = useState(null);
+  const [availableColors, setAvailableColors] = useState([]);
+  const [availableSizes, setAvailableSizes] = useState([]);
   const [filters, setFilters] = useState({
     catalog: 'Cherry 2025 - 2026',
     availability: 'todos',
@@ -77,35 +81,26 @@ const CategoryPage = ({ categorySlug }) => {
     priceRange: { min: 0, max: 0 }
   });
 
-  // Function to get available colors from products
-  const getAvailableColors = (products) => {
-    const colorSet = new Set();
-    products.forEach(product => {
-      if (product.colors && product.colors.length > 0) {
-        product.colors.forEach(color => {
-          if (color && color.trim()) {
-            colorSet.add(color.trim());
-          }
-        });
+  // Cargar colores y tallas disponibles
+  useEffect(() => {
+    const loadFiltersData = async () => {
+      try {
+        const [colors, sizes] = await Promise.all([
+          getAvailableColors(),
+          getAvailableSizes()
+        ]);
+        
+        setAvailableColors(colors);
+        setAvailableSizes(sizes);
+      } catch (error) {
+        console.error('Error cargando datos de filtros:', error);
+        setAvailableColors([]);
+        setAvailableSizes([]);
       }
-    });
-    return Array.from(colorSet).sort();
-  };
+    };
 
-  // Function to get available sizes from products
-  const getAvailableSizes = (products) => {
-    const sizeSet = new Set();
-    products.forEach(product => {
-      if (product.sizes && product.sizes.length > 0) {
-        product.sizes.forEach(size => {
-          if (size && size.trim()) {
-            sizeSet.add(size.trim());
-          }
-        });
-      }
-    });
-    return Array.from(sizeSet).sort();
-  };
+    loadFiltersData();
+  }, []);
 
   // Function to generate product image URL from AWS S3
   const getProductImageUrl = (externalProductId) => {
@@ -698,8 +693,8 @@ const CategoryPage = ({ categorySlug }) => {
                 onFilterChange={handleFilterChange}
                 onClearFilters={handleClearFilters}
                 isMobile={false}
-                availableColors={getAvailableColors(allProducts)}
-                availableSizes={getAvailableSizes(allProducts)}
+                availableColors={availableColors}
+                availableSizes={availableSizes}
                 catalogs={catalogs}
                 catalogLoading={catalogLoading}
                 hideCatalogSelector={!!categorySlug}
@@ -747,8 +742,8 @@ const CategoryPage = ({ categorySlug }) => {
                 onClearFilters={handleClearFilters}
                 isMobile={true}
                 onClose={toggleFilterModal}
-                availableColors={getAvailableColors(allProducts)}
-                availableSizes={getAvailableSizes(allProducts)}
+                availableColors={availableColors}
+                availableSizes={availableSizes}
                 catalogs={catalogs}
                 catalogLoading={catalogLoading}
                 hideCatalogSelector={!!categorySlug}

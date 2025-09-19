@@ -8,8 +8,11 @@ import './CatalogPage.css';
 import { 
   getAllProducts, 
   getProductsWithRatings,
-  mapApiProductToAppProduct
+  mapApiProductToAppProduct,
+  getAvailableColors,
+  getAvailableSizes
 } from '../api/cherryApi';
+import { publicCatalogService } from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
 
 const NuevosPage = () => {
@@ -21,8 +24,10 @@ const NuevosPage = () => {
   const [loading, setLoading] = useState(true);
   const [catalogs, setCatalogs] = useState([]); // Store all available catalogs
   const [catalogLoading, setCatalogLoading] = useState(true);
+  const [availableColors, setAvailableColors] = useState([]);
+  const [availableSizes, setAvailableSizes] = useState([]);
   const [filters, setFilters] = useState({
-    catalog: 'Cherry 2025 - 2026',
+    catalog: 'Seleccione',
     availability: 'todos',
     category: 'Todas las categorías',
     department: 'Todos los departamentos',
@@ -32,35 +37,6 @@ const NuevosPage = () => {
     priceRange: { min: 0, max: 0 }
   });
 
-  // Function to get available colors from products
-  const getAvailableColors = (products) => {
-    const colorSet = new Set();
-    products.forEach(product => {
-      if (product.colores && Array.isArray(product.colores)) {
-        product.colores.forEach(color => {
-          if (color && color.trim()) {
-            colorSet.add(color.trim());
-          }
-        });
-      }
-    });
-    return Array.from(colorSet).sort();
-  };
-
-  // Function to get available sizes from products
-  const getAvailableSizes = (products) => {
-    const sizeSet = new Set();
-    products.forEach(product => {
-      if (product.tallas && Array.isArray(product.tallas)) {
-        product.tallas.forEach(size => {
-          if (size && size.trim()) {
-            sizeSet.add(size.trim());
-          }
-        });
-      }
-    });
-    return Array.from(sizeSet).sort();
-  };
 
   // Function to get available categories from products
   const getAvailableCategories = (products) => {
@@ -111,6 +87,17 @@ const NuevosPage = () => {
   // Function to apply filters
   const applyFilters = (products, currentFilters) => {
     let filtered = [...products];
+
+    // Filter by catalog
+    if (currentFilters.catalog && currentFilters.catalog !== 'Todos los catálogos' && currentFilters.catalog !== 'Seleccione') {
+      filtered = filtered.filter(product => {
+        // Verificar si el producto pertenece al catálogo seleccionado
+        const productCatalog = product.catalog || product.catalogue || product.catalogName || '';
+        return productCatalog.toLowerCase().includes(currentFilters.catalog.toLowerCase()) ||
+               product.catalogId === currentFilters.catalog ||
+               product.catalog_id === currentFilters.catalog;
+      });
+    }
 
     // Filter by category (if not "Todas las categorías")
     if (currentFilters.category && currentFilters.category !== 'Todas las categorías') {
@@ -195,6 +182,22 @@ const NuevosPage = () => {
       });
     }
 
+    // Filter by sizes
+    if (currentFilters.sizes && currentFilters.sizes.length > 0) {
+      filtered = filtered.filter(product => {
+        if (!product.sizes || product.sizes.length === 0) return false;
+        
+        return currentFilters.sizes.some(filterSize => {
+          const filterSizeLower = filterSize.toLowerCase();
+          return product.sizes.some(productSize => {
+            const productSizeLower = productSize.toString().toLowerCase();
+            return productSizeLower === filterSizeLower || 
+                   productSizeLower.includes(filterSizeLower);
+          });
+        });
+      });
+    }
+
     return filtered;
   };
 
@@ -227,13 +230,37 @@ const NuevosPage = () => {
     const loadCatalogs = async () => {
       setCatalogLoading(true);
       try {
-        // Para productos nuevos, establecer un catálogo por defecto
-        setCatalogs([]);
-        setFilters(prev => ({
-          ...prev,
-          catalog: 'Cherry 2025 - 2026'
-        }));
+        const response = await publicCatalogService.getAll();
+        
+        // Manejar diferentes estructuras de respuesta
+        let catalogsData = [];
+        
+        if (response.data) {
+          if (response.data.success && Array.isArray(response.data.data)) {
+            catalogsData = response.data.data;
+          } else if (response.data.success && response.data.data && response.data.data.catalogs) {
+            catalogsData = response.data.data.catalogs;
+          } else if (response.data.success && response.data.catalogs) {
+            catalogsData = response.data.catalogs;
+          } else if (Array.isArray(response.data)) {
+            catalogsData = response.data;
+          }
+        }
+        
+        if (catalogsData && catalogsData.length > 0) {
+          const availableCatalogs = catalogsData.filter(catalog => 
+            catalog.is_active === true || catalog.is_active === 1 || 
+            catalog.status === 'active' || catalog.status === 1 || 
+            !catalog.hasOwnProperty('is_active') && !catalog.hasOwnProperty('status')
+          );
+          setCatalogs(availableCatalogs);
+          
+          // No establecer automáticamente un catálogo, dejar "Seleccione"
+        } else {
+          setCatalogs([]);
+        }
       } catch (error) {
+        console.error('Error loading catalogs:', error);
         setCatalogs([]);
       } finally {
         setCatalogLoading(false);
@@ -241,6 +268,27 @@ const NuevosPage = () => {
     };
 
     loadCatalogs();
+  }, []);
+
+  // Cargar colores y tallas disponibles
+  useEffect(() => {
+    const loadFiltersData = async () => {
+      try {
+        const [colors, sizes] = await Promise.all([
+          getAvailableColors(),
+          getAvailableSizes()
+        ]);
+        
+        setAvailableColors(colors);
+        setAvailableSizes(sizes);
+      } catch (error) {
+        console.error('Error cargando datos de filtros:', error);
+        setAvailableColors([]);
+        setAvailableSizes([]);
+      }
+    };
+
+    loadFiltersData();
   }, []);
 
   // Load products - only new products
@@ -381,7 +429,7 @@ const NuevosPage = () => {
   // Handler for clearing all filters
   const handleClearFilters = () => {
     setFilters({
-      catalog: 'Cherry 2025 - 2026',
+      catalog: 'Seleccione',
       availability: 'todos',
       category: 'Todas las categorías',
       department: 'Todos los departamentos',
@@ -471,6 +519,8 @@ const NuevosPage = () => {
               catalogs={catalogs}
               catalogLoading={catalogLoading}
               hideCatalogSelector={true}
+              availableColors={availableColors}
+              availableSizes={availableSizes}
             />
           </aside>
 
@@ -525,6 +575,8 @@ const NuevosPage = () => {
                 catalogs={catalogs}
                 catalogLoading={catalogLoading}
                 hideCatalogSelector={true}
+                availableColors={availableColors}
+                availableSizes={availableSizes}
               />
             </div>
           </div>

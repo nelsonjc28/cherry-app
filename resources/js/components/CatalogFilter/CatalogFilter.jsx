@@ -87,8 +87,8 @@ const CatalogFilter = ({
 
   // Available filter options
   const catalogOptions = catalogs.length > 0 
-    ? catalogs.map(catalog => catalog.name)
-    : ['Cargando catálogos...'];
+    ? ['Seleccione', ...catalogs.map(catalog => catalog.name)]
+    : ['Seleccione', 'Cargando catálogos...'];
 
   const availabilityOptions = [
     { value: 'todos', label: 'Todos' },

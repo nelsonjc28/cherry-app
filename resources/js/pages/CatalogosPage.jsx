@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { getProductsByCategory, mapApiProductToAppProduct } from '../api/cherryApi';
+import { getProductsByCategory, mapApiProductToAppProduct, getAvailableColors, getAvailableSizes } from '../api/cherryApi';
 import ProductGrid from '../components/ProductGrid/ProductGrid';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
+import { publicCatalogService } from '../services/api';
 import './CatalogosPage.css';
 
 const CatalogosPage = () => {
@@ -12,8 +13,12 @@ const CatalogosPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [totalResults, setTotalResults] = useState(0);
+  const [catalogs, setCatalogs] = useState([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [availableColors, setAvailableColors] = useState([]);
+  const [availableSizes, setAvailableSizes] = useState([]);
   const [filters, setFilters] = useState({
-    catalog: catalog || 'primavera-verano',
+    catalog: 'Seleccione',
     availability: 'todos',
     category: 'Todas las categorías',
     department: 'Todos los departamentos',
@@ -27,6 +32,72 @@ const CatalogosPage = () => {
 
   // Obtener el catálogo desde la URL
   const productCatalog = catalog || 'primavera-verano';
+
+  // Cargar catálogos
+  useEffect(() => {
+    const loadCatalogs = async () => {
+      setCatalogLoading(true);
+      try {
+        const response = await publicCatalogService.getAll();
+        
+        // Manejar diferentes estructuras de respuesta
+        let catalogsData = [];
+        
+        if (response.data) {
+          if (response.data.success && Array.isArray(response.data.data)) {
+            catalogsData = response.data.data;
+          } else if (response.data.success && response.data.data && response.data.data.catalogs) {
+            catalogsData = response.data.data.catalogs;
+          } else if (response.data.success && response.data.catalogs) {
+            catalogsData = response.data.catalogs;
+          } else if (Array.isArray(response.data)) {
+            catalogsData = response.data;
+          }
+        }
+        
+        if (catalogsData && catalogsData.length > 0) {
+          const availableCatalogs = catalogsData.filter(catalog => 
+            catalog.is_active === true || catalog.is_active === 1 || 
+            catalog.status === 'active' || catalog.status === 1 || 
+            !catalog.hasOwnProperty('is_active') && !catalog.hasOwnProperty('status')
+          );
+          setCatalogs(availableCatalogs);
+          
+          // No establecer automáticamente un catálogo, dejar "Seleccione"
+        } else {
+          setCatalogs([]);
+        }
+      } catch (error) {
+        console.error('Error loading catalogs:', error);
+        setCatalogs([]);
+      } finally {
+        setCatalogLoading(false);
+      }
+    };
+
+    loadCatalogs();
+  }, []);
+
+  // Cargar colores y tallas disponibles
+  useEffect(() => {
+    const loadFiltersData = async () => {
+      try {
+        const [colors, sizes] = await Promise.all([
+          getAvailableColors(),
+          getAvailableSizes()
+        ]);
+        
+        setAvailableColors(colors);
+        setAvailableSizes(sizes);
+      } catch (error) {
+        console.error('Error cargando datos de filtros:', error);
+        setAvailableColors([]);
+        setAvailableSizes([]);
+      }
+    };
+
+    loadFiltersData();
+  }, []);
 
   useEffect(() => {
     const fetchCatalogProducts = async () => {
@@ -65,6 +136,18 @@ const CatalogosPage = () => {
   const filterProducts = (products, currentFilters) => {
     if (!products || products.length === 0) return [];
     let filtered = [...products];
+    
+    // Filtrar por catálogo
+    if (currentFilters.catalog && currentFilters.catalog !== 'Todos los catálogos' && currentFilters.catalog !== 'Seleccione') {
+      filtered = filtered.filter(product => {
+        // Verificar si el producto pertenece al catálogo seleccionado
+        const productCatalog = product.catalog || product.catalogue || product.catalogName || '';
+        return productCatalog.toLowerCase().includes(currentFilters.catalog.toLowerCase()) ||
+               product.catalogId === currentFilters.catalog ||
+               product.catalog_id === currentFilters.catalog;
+      });
+    }
+    
     // Filtros igual que en CatalogPage.jsx
     if (currentFilters.category && currentFilters.category !== 'Todas las categorías') {
       const categoryLower = currentFilters.category.toLowerCase();
@@ -124,6 +207,23 @@ const CatalogosPage = () => {
         );
       });
     }
+    
+    // Filtrar por tallas
+    if (currentFilters.sizes && currentFilters.sizes.length > 0) {
+      filtered = filtered.filter(product => {
+        if (!product.sizes || product.sizes.length === 0) return false;
+        
+        return currentFilters.sizes.some(filterSize => {
+          const filterSizeLower = filterSize.toLowerCase();
+          return product.sizes.some(productSize => {
+            const productSizeLower = productSize.toString().toLowerCase();
+            return productSizeLower === filterSizeLower || 
+                   productSizeLower.includes(filterSizeLower);
+          });
+        });
+      });
+    }
+    
     return filtered;
   };
 
@@ -139,7 +239,7 @@ const CatalogosPage = () => {
 
   const handleClearFilters = () => {
     setFilters({
-      catalog: productCatalog,
+      catalog: 'Seleccione',
       availability: 'todos',
       category: 'Todas las categorías',
       department: 'Todos los departamentos',
@@ -151,6 +251,7 @@ const CatalogosPage = () => {
       dtu: ''
     });
   };
+
 
   const getPageTitle = () => {
     const titles = {
@@ -248,6 +349,10 @@ const CatalogosPage = () => {
           onFilterChange={handleFilterChange}
           onClearFilters={handleClearFilters}
           isMobile={false}
+          catalogs={catalogs}
+          catalogLoading={catalogLoading}
+          availableColors={availableColors}
+          availableSizes={availableSizes}
         />
 
         {/* Products Grid */}

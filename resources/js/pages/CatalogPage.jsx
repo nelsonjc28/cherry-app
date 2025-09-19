@@ -13,7 +13,9 @@ import {
   mapApiProductToAppProduct, 
   getProductsByAvailability,
   searchProductsAdvanced,
-  getProductsWithRatings
+  getProductsWithRatings,
+  getAvailableColors,
+  getAvailableSizes
 } from '../api/cherryApi';
 import { catalogService, publicCatalogService } from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
@@ -34,6 +36,8 @@ const CatalogPage = ({ catalogId }) => {
   const [catalogs, setCatalogs] = useState([]); // Store all available catalogs
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [currentCatalog, setCurrentCatalog] = useState(null); // Store current catalog info
+  const [availableColors, setAvailableColors] = useState([]);
+  const [availableSizes, setAvailableSizes] = useState([]);
   const [filters, setFilters] = useState({
     catalog: 'Cherry 2025 - 2026',
     availability: 'todos',
@@ -45,34 +49,25 @@ const CatalogPage = ({ catalogId }) => {
     priceRange: { min: 0, max: 0 }
   });
 
-  // Function to get available colors from products - Memoized
-  const getAvailableColors = useCallback((products) => {
-    const colorSet = new Set();
-    products.forEach(product => {
-      if (product.colors && product.colors.length > 0) {
-        product.colors.forEach(color => {
-          if (color && color.trim()) {
-            colorSet.add(color.trim());
-          }
-        });
+  // Cargar colores y tallas disponibles
+  useEffect(() => {
+    const loadFiltersData = async () => {
+      try {
+        const [colors, sizes] = await Promise.all([
+          getAvailableColors(),
+          getAvailableSizes()
+        ]);
+        
+        setAvailableColors(colors);
+        setAvailableSizes(sizes);
+      } catch (error) {
+        console.error('Error cargando datos de filtros:', error);
+        setAvailableColors([]);
+        setAvailableSizes([]);
       }
-    });
-    return Array.from(colorSet).sort();
-  }, []);
+    };
 
-  // Function to get available sizes from products - Memoized
-  const getAvailableSizes = useCallback((products) => {
-    const sizeSet = new Set();
-    products.forEach(product => {
-      if (product.sizes && product.sizes.length > 0) {
-        product.sizes.forEach(size => {
-          if (size && size.trim()) {
-            sizeSet.add(size.trim());
-          }
-        });
-      }
-    });
-    return Array.from(sizeSet).sort();
+    loadFiltersData();
   }, []);
 
   // Function to filter products based on current filters - Memoized
@@ -778,8 +773,8 @@ const CatalogPage = ({ catalogId }) => {
                 onFilterChange={handleFilterChange}
                 onClearFilters={handleClearFilters}
                 isMobile={false}
-                availableColors={getAvailableColors(allProducts)}
-                availableSizes={getAvailableSizes(allProducts)}
+                availableColors={availableColors}
+                availableSizes={availableSizes}
                 catalogs={catalogs}
                 catalogLoading={catalogLoading}
                 hideCatalogSelector={!!catalogId}
@@ -825,8 +820,8 @@ const CatalogPage = ({ catalogId }) => {
                 onClearFilters={handleClearFilters}
                 isMobile={true}
                 onClose={toggleFilterModal}
-                availableColors={getAvailableColors(allProducts)}
-                availableSizes={getAvailableSizes(allProducts)}
+                availableColors={availableColors}
+                availableSizes={availableSizes}
                 catalogs={catalogs}
                 catalogLoading={catalogLoading}
                 hideCatalogSelector={!!catalogId}

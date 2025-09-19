@@ -5,7 +5,8 @@ import ProductCard from '../components/ProductCard/ProductCard';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import CherryButton from '../components/CherryButton/CherryButton';
 import { getIconPath } from '../utils/assetPaths';
-import { searchProductsAdvanced, getProductsWithRatings, mapApiProductToAppProduct } from '../api/cherryApi';
+import { searchProductsAdvanced, getProductsWithRatings, mapApiProductToAppProduct, getAvailableColors, getAvailableSizes } from '../api/cherryApi';
+import { publicCatalogService } from '../services/api';
 import './BuscarPage.css';
 
 const BuscarPage = () => {
@@ -17,8 +18,14 @@ const BuscarPage = () => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [catalogs, setCatalogs] = useState([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [availableColors, setAvailableColors] = useState([]);
+  const [availableSizes, setAvailableSizes] = useState([]);
+  const [colorsLoading, setColorsLoading] = useState(true);
+  const [sizesLoading, setSizesLoading] = useState(true);
   const [filters, setFilters] = useState({
-    catalog: 'Cherry 2025 - 2026',
+    catalog: 'Seleccione',
     availability: 'todos',
     category: 'Todas las categorías',
     department: 'Todos los departamentos',
@@ -29,6 +36,91 @@ const BuscarPage = () => {
     codigo: '',
     dtu: ''
   });
+
+  // Cargar catálogos
+  useEffect(() => {
+    const loadCatalogs = async () => {
+      console.log('🔍 BuscarPage: Iniciando carga de catálogos...');
+      setCatalogLoading(true);
+      try {
+        const response = await publicCatalogService.getAll();
+        console.log('🔍 BuscarPage: Respuesta completa:', response);
+        
+        // Manejar diferentes estructuras de respuesta
+        let catalogsData = [];
+        
+        if (response.data) {
+          if (response.data.success && Array.isArray(response.data.data)) {
+            // Estructura: { data: { success: true, data: [...] } }
+            catalogsData = response.data.data;
+          } else if (response.data.success && response.data.data && response.data.data.catalogs) {
+            // Estructura: { data: { success: true, data: { catalogs: [...] } } }
+            catalogsData = response.data.data.catalogs;
+          } else if (response.data.success && response.data.catalogs) {
+            // Estructura: { data: { success: true, catalogs: [...] } }
+            catalogsData = response.data.catalogs;
+          } else if (Array.isArray(response.data)) {
+            // Estructura: { data: [...] }
+            catalogsData = response.data;
+          }
+        }
+        
+        console.log('🔍 BuscarPage: Datos de catálogos extraídos:', catalogsData);
+        
+        if (catalogsData && catalogsData.length > 0) {
+          // Filtrar catálogos activos
+          const availableCatalogs = catalogsData.filter(catalog => 
+            catalog.is_active === true || catalog.is_active === 1 || 
+            catalog.status === 'active' || catalog.status === 1 || 
+            !catalog.hasOwnProperty('is_active') && !catalog.hasOwnProperty('status')
+          );
+          console.log('🔍 BuscarPage: Catálogos disponibles:', availableCatalogs);
+          setCatalogs(availableCatalogs);
+          
+          // No establecer automáticamente un catálogo, dejar "Seleccione"
+          console.log('🔍 BuscarPage: Catálogos cargados, manteniendo "Seleccione"');
+        } else {
+          console.log('🔍 BuscarPage: No se encontraron catálogos');
+          setCatalogs([]);
+        }
+      } catch (error) {
+        console.error('❌ BuscarPage: Error loading catalogs:', error);
+        setCatalogs([]);
+      } finally {
+        setCatalogLoading(false);
+        console.log('🔍 BuscarPage: Carga de catálogos finalizada');
+      }
+    };
+
+    loadCatalogs();
+  }, []);
+
+  // Cargar colores y tallas disponibles
+  useEffect(() => {
+    const loadFiltersData = async () => {
+      setColorsLoading(true);
+      setSizesLoading(true);
+      
+      try {
+        const [colors, sizes] = await Promise.all([
+          getAvailableColors(),
+          getAvailableSizes()
+        ]);
+        
+        setAvailableColors(colors);
+        setAvailableSizes(sizes);
+      } catch (error) {
+        console.error('Error cargando datos de filtros:', error);
+        setAvailableColors([]);
+        setAvailableSizes([]);
+      } finally {
+        setColorsLoading(false);
+        setSizesLoading(false);
+      }
+    };
+
+    loadFiltersData();
+  }, []);
 
   // Cargar productos
   useEffect(() => {
@@ -66,6 +158,24 @@ const BuscarPage = () => {
   // Filtrar productos basado en filtros adicionales
   useEffect(() => {
     let filtered = [...products];
+
+    // Filtrar por catálogo
+    if (filters.catalog && filters.catalog !== 'Todos los catálogos' && filters.catalog !== 'Seleccione') {
+      console.log('🔍 BuscarPage: Filtrando por catálogo:', filters.catalog);
+      console.log('🔍 BuscarPage: Productos antes del filtro:', filtered.length);
+      
+      filtered = filtered.filter(product => {
+        // Verificar si el producto pertenece al catálogo seleccionado
+        const productCatalog = product.catalog || product.catalogue || product.catalogName || '';
+        const matches = productCatalog.toLowerCase().includes(filters.catalog.toLowerCase()) ||
+               product.catalogId === filters.catalog ||
+               product.catalog_id === filters.catalog;
+        
+        return matches;
+      });
+      
+      console.log('🔍 BuscarPage: Productos después del filtro:', filtered.length);
+    }
 
     // Aplicar filtros adicionales
     if (filters.category && filters.category !== 'Todas las categorías') {
@@ -107,6 +217,22 @@ const BuscarPage = () => {
       });
     }
 
+    // Filtrar por tallas
+    if (filters.sizes && filters.sizes.length > 0) {
+      filtered = filtered.filter(product => {
+        if (!product.sizes || product.sizes.length === 0) return false;
+        
+        return filters.sizes.some(filterSize => {
+          const filterSizeLower = filterSize.toLowerCase();
+          return product.sizes.some(productSize => {
+            const productSizeLower = productSize.toString().toLowerCase();
+            return productSizeLower === filterSizeLower || 
+                   productSizeLower.includes(filterSizeLower);
+          });
+        });
+      });
+    }
+
     // Filtrar por código adicional
     if (filters.codigo && filters.codigo.trim() !== '') {
       const codigoLower = filters.codigo.trim().toLowerCase();
@@ -138,7 +264,7 @@ const BuscarPage = () => {
 
   const handleClearFilters = () => {
     setFilters({
-      catalog: 'Cherry 2025 - 2026',
+      catalog: 'Seleccione',
       availability: 'todos',
       category: 'Todas las categorías',
       department: 'Todos los departamentos',
@@ -154,6 +280,7 @@ const BuscarPage = () => {
   const handleFavoriteToggle = (productId) => {
     // Handle favorite toggle
   };
+
 
   // Build search description
   const getSearchDescription = () => {
@@ -193,6 +320,10 @@ const BuscarPage = () => {
                 filters={filters}
                 onFilterChange={handleFilterChange}
                 onClearFilters={handleClearFilters}
+                catalogs={catalogs}
+                catalogLoading={catalogLoading}
+                availableColors={availableColors}
+                availableSizes={availableSizes}
               />
             </aside>
 

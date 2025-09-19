@@ -5,15 +5,20 @@ import ProductCard from '../components/ProductCard/ProductCard';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import CherryButton from '../components/CherryButton/CherryButton';
 import { getIconPath } from '../utils/assetPaths';
-import { getProductsWithRatings, mapApiProductToAppProduct } from '../api/cherryApi';
+import { getProductsWithRatings, mapApiProductToAppProduct, getAvailableColors, getAvailableSizes } from '../api/cherryApi';
+import { publicCatalogService } from '../services/api';
 import './ProductosPage.css';
 
 const ProductosPage = () => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [catalogs, setCatalogs] = useState([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [availableColors, setAvailableColors] = useState([]);
+  const [availableSizes, setAvailableSizes] = useState([]);
   const [filters, setFilters] = useState({
-    catalog: 'Cherry 2025 - 2026',
+    catalog: 'Seleccione',
     availability: 'todos',
     category: 'Todas las categorías',
     department: 'Todos los departamentos',
@@ -24,6 +29,73 @@ const ProductosPage = () => {
     codigo: '',
     dtu: ''
   });
+
+  // Cargar catálogos
+  useEffect(() => {
+    const loadCatalogs = async () => {
+      setCatalogLoading(true);
+      try {
+        const response = await publicCatalogService.getAll();
+        console.log('🔍 ProductosPage: Respuesta de catálogos:', response);
+        
+        // Manejar diferentes estructuras de respuesta
+        let catalogsData = [];
+        
+        if (response.data) {
+          if (response.data.success && Array.isArray(response.data.data)) {
+            catalogsData = response.data.data;
+          } else if (response.data.success && response.data.data && response.data.data.catalogs) {
+            catalogsData = response.data.data.catalogs;
+          } else if (response.data.success && response.data.catalogs) {
+            catalogsData = response.data.catalogs;
+          } else if (Array.isArray(response.data)) {
+            catalogsData = response.data;
+          }
+        }
+        
+        if (catalogsData && catalogsData.length > 0) {
+          const availableCatalogs = catalogsData.filter(catalog => 
+            catalog.is_active === true || catalog.is_active === 1 || 
+            catalog.status === 'active' || catalog.status === 1 || 
+            !catalog.hasOwnProperty('is_active') && !catalog.hasOwnProperty('status')
+          );
+          setCatalogs(availableCatalogs);
+          
+          // No establecer automáticamente un catálogo, dejar "Seleccione"
+        } else {
+          setCatalogs([]);
+        }
+      } catch (error) {
+        console.error('Error loading catalogs:', error);
+        setCatalogs([]);
+      } finally {
+        setCatalogLoading(false);
+      }
+    };
+
+    loadCatalogs();
+  }, []);
+
+  // Cargar colores y tallas disponibles
+  useEffect(() => {
+    const loadFiltersData = async () => {
+      try {
+        const [colors, sizes] = await Promise.all([
+          getAvailableColors(),
+          getAvailableSizes()
+        ]);
+        
+        setAvailableColors(colors);
+        setAvailableSizes(sizes);
+      } catch (error) {
+        console.error('Error cargando datos de filtros:', error);
+        setAvailableColors([]);
+        setAvailableSizes([]);
+      }
+    };
+
+    loadFiltersData();
+  }, []);
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -48,6 +120,17 @@ const ProductosPage = () => {
   // Filtrar productos
   useEffect(() => {
     let filtered = [...products];
+
+    // Filtrar por catálogo
+    if (filters.catalog && filters.catalog !== 'Todos los catálogos' && filters.catalog !== 'Seleccione') {
+      filtered = filtered.filter(product => {
+        // Verificar si el producto pertenece al catálogo seleccionado
+        const productCatalog = product.catalog || product.catalogue || product.catalogName || '';
+        return productCatalog.toLowerCase().includes(filters.catalog.toLowerCase()) ||
+               product.catalogId === filters.catalog ||
+               product.catalog_id === filters.catalog;
+      });
+    }
 
     // Aplicar filtros
     if (filters.category && filters.category !== 'Todas las categorías') {
@@ -89,6 +172,22 @@ const ProductosPage = () => {
       });
     }
 
+    // Filtrar por tallas
+    if (filters.sizes && filters.sizes.length > 0) {
+      filtered = filtered.filter(product => {
+        if (!product.sizes || product.sizes.length === 0) return false;
+        
+        return filters.sizes.some(filterSize => {
+          const filterSizeLower = filterSize.toLowerCase();
+          return product.sizes.some(productSize => {
+            const productSizeLower = productSize.toString().toLowerCase();
+            return productSizeLower === filterSizeLower || 
+                   productSizeLower.includes(filterSizeLower);
+          });
+        });
+      });
+    }
+
     // Filtrar por código
     if (filters.codigo && filters.codigo.trim() !== '') {
       const codigoLower = filters.codigo.trim().toLowerCase();
@@ -120,7 +219,7 @@ const ProductosPage = () => {
 
   const handleClearFilters = () => {
     setFilters({
-      catalog: 'Cherry 2025 - 2026',
+      catalog: 'Seleccione',
       availability: 'todos',
       category: 'Todas las categorías',
       department: 'Todos los departamentos',
@@ -134,7 +233,9 @@ const ProductosPage = () => {
   };
 
   const handleFavoriteToggle = (productId) => {
-    };
+    // Handle favorite toggle
+  };
+
 
   if (loading) {
     return (
@@ -177,6 +278,10 @@ const ProductosPage = () => {
                 filters={filters}
                 onFilterChange={handleFilterChange}
                 onClearFilters={handleClearFilters}
+                catalogs={catalogs}
+                catalogLoading={catalogLoading}
+                availableColors={availableColors}
+                availableSizes={availableSizes}
               />
             </aside>
 
