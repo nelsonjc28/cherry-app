@@ -1,64 +1,31 @@
-import React from 'react';
+import { useRef } from 'react';
+import useIsDesktop from '../../hooks/useIsDesktop';
+import useHorizontalDragScroll from '../../hooks/useHorizontalDragScroll';
+import PdfThumbnail from '../PdfThumbnail/PdfThumbnail';
 import './PdfThumbnailsList.css';
 
-const PdfThumbnailsList = ({ pages, selectedPage, onSelect, pdfPath }) => {
+const PdfThumbnailsList = ({ products, selectedIndex, onSelect }) => {
+  const isDesktop = useIsDesktop();
+  const scrollRef = useRef(null);
+  // Llama siempre el hook, pero solo aplica eventHandlers si es mobile
+  const { eventHandlers } = useHorizontalDragScroll(scrollRef);
 
   return (
-    <div className="pdf-thumbnails-list">
-      {/* Indicador de páginas */}
-      <div className="pdf-thumbnails-header">
-        <span className="pdf-thumbnails-count">
-          {pages.length} páginas disponibles
-        </span>
-      </div>
-      
-      <div className="pdf-thumbnails-scroll-container">
-        {pages.map((page) => (
-          <div
-            key={page.id}
-            className={`pdf-thumbnail ${selectedPage === page.pageNumber ? 'selected' : ''}`}
-            onClick={() => onSelect(page.pageNumber)}
-            title={`Ir a página ${page.pageNumber}`}
-          >
-            <div className="pdf-thumbnail-page">
-              {/* Indicador de carga */}
-              <div className="pdf-thumbnail-loading">
-                <div className="pdf-thumbnail-loading-spinner"></div>
-                <span>Cargando...</span>
-              </div>
-              
-              {/* Miniatura real de la página del PDF */}
-              <iframe
-                key={`${pdfPath}-page-${page.pageNumber}-${page.id}`}
-                src={`/${pdfPath}#page=${page.pageNumber}&toolbar=0&navpanes=0&scrollbar=0&view=FitH&zoom=25&t=${Date.now()}`}
-                title={`Página ${page.pageNumber}`}
-                className="pdf-thumbnail-iframe"
-                width="100%"
-                height="60"
-                frameBorder="0"
-                loading="lazy"
-                onLoad={(e) => {
-                  // Ocultar indicador de carga y mostrar iframe
-                  const loadingEl = e.target.parentElement.querySelector('.pdf-thumbnail-loading');
-                  if (loadingEl) {
-                    loadingEl.style.display = 'none';
-                  }
-                  e.target.style.opacity = '1';
-                }}
-                style={{ opacity: 0, transition: 'opacity 0.3s ease' }}
-              />
-              
-              {/* Número de página superpuesto */}
-              <div className="pdf-thumbnail-page-number-overlay">
-                {page.pageNumber}
-              </div>
-            </div>
-            <div className="pdf-thumbnail-overlay">
-              <span className="pdf-thumbnail-title">{page.title}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+    <div
+      ref={scrollRef}
+      className={`pdf-thumbnails-list ${isDesktop ? 'vertical' : 'horizontal'}`}
+      {...(!isDesktop ? eventHandlers : {})}
+    >
+      {products.map((product, idx) => (
+        <PdfThumbnail
+          key={product.id}
+          image={product.image}
+          selected={idx === selectedIndex}
+          onClick={() => onSelect(idx)}
+          showRemoveButton={false}
+          isDragging={false}
+        />
+      ))}
     </div>
   );
 };

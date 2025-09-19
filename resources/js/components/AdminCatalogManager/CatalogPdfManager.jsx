@@ -1,38 +1,41 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { catalogService } from '../../services/api';
+import PdfThumbnail from '../PdfThumbnail/PdfThumbnail';
 import './CatalogPdfManager.css';
 
 const CatalogPdfManager = ({ catalog, onClose, onPdfUpdated }) => {
-  const [pdfImages, setPdfImages] = useState([]);
+  const [catalogImages, setCatalogImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [dragIndex, setDragIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [catalogName, setCatalogName] = useState('');
   const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (catalog) {
-      loadPdfImages();
+      loadCatalogImages();
+      setCatalogName(catalog.name);
     }
   }, [catalog]);
 
-  const loadPdfImages = async () => {
-    if (!catalog?.pdf_images) return;
-    setPdfImages([...catalog.pdf_images]);
+  const loadCatalogImages = async () => {
+    if (!catalog?.pdfs) return;
+    setCatalogImages([...catalog.pdfs]);
   };
 
   const handleFileSelect = (event) => {
     const files = Array.from(event.target.files);
     if (files.length === 0) return;
 
-    // Validar tipos de archivo
+    // Validar tipos de archivo - solo imágenes
     const validFiles = files.filter(file => 
-      file.type.startsWith('image/') || file.type === 'application/pdf'
+      file.type.startsWith('image/')
     );
 
     if (validFiles.length !== files.length) {
-      window.showToast('Algunos archivos no son imágenes o PDF válidos', 'error');
+      window.showToast('Solo se permiten archivos de imagen (JPG, PNG, GIF, WebP)', 'error');
       return;
     }
 
@@ -48,26 +51,47 @@ const CatalogPdfManager = ({ catalog, onClose, onPdfUpdated }) => {
       files.forEach(file => {
         formData.append('images[]', file);
       });
+      
+      // Agregar nombre del catálogo si se especificó
+      if (catalogName) {
+        formData.append('catalog_name', catalogName);
+      }
 
-      const response = await catalogService.addPdfImages(catalog.id, formData);
+      const response = await catalogService.addPdfs(catalog.id, formData);
       
       if (response.data.success) {
-        window.showToast(`${files.length} archivo(s) subido(s) exitosamente`, 'success');
-        await loadPdfImages();
+        window.showToast(`${files.length} imagen(es) subida(s) exitosamente`, 'success');
+        await loadCatalogImages();
         if (onPdfUpdated) {
           onPdfUpdated();
         }
       } else {
-        setError(response.data.message || 'Error al subir archivos');
+        setError(response.data.message || 'Error al subir imágenes');
+        window.showToast(response.data.message || 'Error al subir imágenes', 'error');
       }
     } catch (error) {
-      setError('Error al subir archivos. Verifica que no excedan el tamaño máximo.');
+      console.error('Upload error:', error);
+      
+      let errorMessage = 'Error al subir imágenes';
+      
+      if (error.response?.status === 413) {
+        errorMessage = 'El archivo es demasiado grande. El tamaño máximo permitido es 2MB por imagen.';
+      } else if (error.response?.status === 422) {
+        errorMessage = error.response.data?.message || 'Error de validación en los archivos';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      setError(errorMessage);
+      window.showToast(errorMessage, 'error');
     } finally {
       setUploading(false);
-      // Limpiar el input de archivos
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      // Limpiar el input de archivos después de un pequeño delay para asegurar que se procese
+      setTimeout(() => {
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }, 100);
     }
   };
 
@@ -78,11 +102,11 @@ const CatalogPdfManager = ({ catalog, onClose, onPdfUpdated }) => {
 
     setLoading(true);
     try {
-      const response = await catalogService.removePdfImage(catalog.id, imageId);
+      const response = await catalogService.removePdf(catalog.id, imageId);
       
       if (response.data.success) {
         window.showToast('Imagen eliminada exitosamente', 'success');
-        await loadPdfImages();
+        await loadCatalogImages();
         if (onPdfUpdated) {
           onPdfUpdated();
         }
@@ -115,7 +139,7 @@ const CatalogPdfManager = ({ catalog, onClose, onPdfUpdated }) => {
       return;
     }
 
-    const newImages = [...pdfImages];
+    const newImages = [...catalogImages];
     const draggedItem = newImages[dragIndex];
     
     // Remover el elemento arrastrado
@@ -124,7 +148,7 @@ const CatalogPdfManager = ({ catalog, onClose, onPdfUpdated }) => {
     newImages.splice(dropIndex, 0, draggedItem);
     
     // Actualizar el estado local
-    setPdfImages(newImages);
+    setCatalogImages(newImages);
     
     // Actualizar el orden en el backend
     try {
@@ -133,7 +157,7 @@ const CatalogPdfManager = ({ catalog, onClose, onPdfUpdated }) => {
         display_order: index + 1
       }));
 
-      const response = await catalogService.reorderPdfImages(catalog.id, {
+      const response = await catalogService.reorder(catalog.id, {
         type: 'pdf_images',
         items: reorderData
       });
@@ -146,11 +170,11 @@ const CatalogPdfManager = ({ catalog, onClose, onPdfUpdated }) => {
       } else {
         setError('Error al actualizar el orden');
         // Revertir cambios si falla
-        await loadPdfImages();
+        await loadCatalogImages();
       }
     } catch (error) {
       setError('Error al actualizar el orden');
-      await loadPdfImages();
+      await loadCatalogImages();
     }
 
     setDragIndex(null);
@@ -166,17 +190,19 @@ const CatalogPdfManager = ({ catalog, onClose, onPdfUpdated }) => {
     fileInputRef.current?.click();
   };
 
-  const getFileIcon = (fileType) => {
-    if (fileType === 'application/pdf') {
-      return '📄';
+  const resetUploadState = () => {
+    setUploading(false);
+    setError('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
+  };
+
+  const getFileIcon = () => {
     return '🖼️';
   };
 
-  const getFileTypeName = (fileType) => {
-    if (fileType === 'application/pdf') {
-      return 'PDF';
-    }
+  const getFileTypeName = () => {
     return 'Imagen';
   };
 
@@ -184,7 +210,7 @@ const CatalogPdfManager = ({ catalog, onClose, onPdfUpdated }) => {
     <div className="catalog-pdf-manager">
       <div className="catalog-pdf-manager__header">
         <div className="catalog-pdf-manager__title">
-          <h3>Gestión de PDF</h3>
+          <h3>Gestión de Imágenes del Catálogo</h3>
           <span className="catalog-pdf-manager__catalog-name">{catalog?.name}</span>
         </div>
         <button 
@@ -210,8 +236,20 @@ const CatalogPdfManager = ({ catalog, onClose, onPdfUpdated }) => {
 
       <div className="catalog-pdf-manager__upload-section">
         <div className="catalog-pdf-manager__upload-info">
-          <h4>Subir Archivos PDF</h4>
-          <p>Sube imágenes (JPG, PNG, GIF) o archivos PDF para crear las páginas del catálogo</p>
+          <h4>Subir Imágenes del Catálogo</h4>
+          <p>Sube imágenes (JPG, PNG, GIF, WebP) para crear las páginas del catálogo</p>
+          
+          <div className="catalog-pdf-manager__catalog-name-input">
+            <label htmlFor="catalog-name">Nombre del catálogo (opcional):</label>
+            <input
+              id="catalog-name"
+              type="text"
+              value={catalogName}
+              onChange={(e) => setCatalogName(e.target.value)}
+              placeholder="Ej: Catálogo Primavera 2024"
+              className="catalog-pdf-manager__name-input"
+            />
+          </div>
         </div>
         
         <div className="catalog-pdf-manager__upload-actions">
@@ -221,14 +259,24 @@ const CatalogPdfManager = ({ catalog, onClose, onPdfUpdated }) => {
             onClick={openFileDialog}
             disabled={uploading}
           >
-            {uploading ? 'Subiendo...' : '+ Subir Archivos PDF'}
+            {uploading ? 'Subiendo...' : '+ Subir Imágenes'}
           </button>
+          
+          {error && (
+            <button
+              type="button"
+              className="catalog-pdf-manager__retry-btn"
+              onClick={resetUploadState}
+            >
+              Reintentar
+            </button>
+          )}
           
           <input
             ref={fileInputRef}
             type="file"
             multiple
-            accept="image/*,.pdf"
+            accept="image/*"
             onChange={handleFileSelect}
             style={{ display: 'none' }}
           />
@@ -237,18 +285,18 @@ const CatalogPdfManager = ({ catalog, onClose, onPdfUpdated }) => {
 
       <div className="catalog-pdf-manager__content">
         <div className="catalog-pdf-manager__images-header">
-          <h4>Páginas del PDF ({pdfImages.length})</h4>
-          <p>Arrastra y suelta para reordenar las páginas del catálogo</p>
+          <h4>Imágenes del Catálogo ({catalogImages.length})</h4>
+          <p>Arrastra y suelta para reordenar las imágenes del catálogo</p>
         </div>
 
-        {pdfImages.length === 0 ? (
+        {catalogImages.length === 0 ? (
           <div className="catalog-pdf-manager__empty">
-            <p>No hay páginas PDF en este catálogo</p>
-            <p>Sube archivos para crear las páginas del catálogo</p>
+            <p>No hay imágenes en este catálogo</p>
+            <p>Sube imágenes para crear las páginas del catálogo</p>
           </div>
         ) : (
           <div className="catalog-pdf-manager__images-grid">
-            {pdfImages.map((image, index) => (
+            {catalogImages.map((image, index) => (
               <div
                 key={image.id}
                 className={`catalog-pdf-manager__image-item ${
@@ -260,47 +308,14 @@ const CatalogPdfManager = ({ catalog, onClose, onPdfUpdated }) => {
                 onDrop={(e) => handleDrop(e, index)}
                 onDragEnd={handleDragEnd}
               >
-                <div className="catalog-pdf-manager__image-preview">
-                  {image.image_path ? (
-                    <img 
-                      src={`/${image.image_path}`} 
-                      alt={`Página ${index + 1}`}
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'block';
-                      }}
-                    />
-                  ) : null}
-                  <div className="catalog-pdf-manager__image-placeholder">
-                    {getFileIcon(image.image_path?.includes('.pdf') ? 'application/pdf' : 'image')}
-                  </div>
-                </div>
-                
-                <div className="catalog-pdf-manager__image-info">
-                  <div className="catalog-pdf-manager__image-details">
-                    <span className="catalog-pdf-manager__image-name">
-                      {image.image_name || `Página ${index + 1}`}
-                    </span>
-                    <span className="catalog-pdf-manager__image-type">
-                      {getFileTypeName(image.image_path?.includes('.pdf') ? 'application/pdf' : 'image')}
-                    </span>
-                  </div>
-                  
-                  <div className="catalog-pdf-manager__image-actions">
-                    <span className="catalog-pdf-manager__image-order">
-                      Orden: {image.display_order || index + 1}
-                    </span>
-                    <button
-                      type="button"
-                      className="catalog-pdf-manager__remove-btn"
-                      onClick={() => handleRemoveImage(image.id)}
-                      disabled={loading}
-                      title="Eliminar archivo"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                </div>
+                <PdfThumbnail
+                  image={image}
+                  selected={false}
+                  onClick={() => {}}
+                  onRemove={handleRemoveImage}
+                  showRemoveButton={true}
+                  isDragging={dragIndex === index}
+                />
               </div>
             ))}
           </div>

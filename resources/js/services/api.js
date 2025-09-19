@@ -11,7 +11,26 @@ api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     
-    if (token) {
+    // NO agregar token a rutas públicas
+    const publicRoutes = [
+      '/catalogs',
+      '/catalogs/',
+      '/catalogs-with-images',
+      '/home-catalogs',
+      '/categories',
+      '/products',
+      '/welcome-sections',
+      '/contact-info',
+      '/privacy-policy',
+      '/terms-conditions'
+    ];
+    
+    const isPublicRoute = publicRoutes.some(route => 
+      config.url.includes(route) || 
+      (route.endsWith('/') && config.url.startsWith(route))
+    );
+    
+    if (token && !isPublicRoute) {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
@@ -436,16 +455,33 @@ export const publicCatalogService = {
     }
   },
 
-  // Obtener PDFs de un catálogo público específico
-  getPdfs: async (id) => {
+  // Obtener imágenes de un catálogo público específico (con paginación)
+  getCatalogImages: async (id, page = 1) => {
     try {
-      const response = await api.get(`/catalogs/${id}/pdfs`, {
+      const response = await api.get(`/catalogs/${id}/pdfs?page=${page}`, {
 
       });
       return response;
     } catch (error) {
       throw error;
     }
+  },
+
+  // Obtener todos los catálogos con imágenes para selección
+  getCatalogsWithImages: async () => {
+    try {
+      const response = await api.get('/catalogs-with-images', {
+
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Mantener compatibilidad con el nombre anterior
+  getPdfs: async (id) => {
+    return publicCatalogService.getCatalogImages(id, 1);
   }
 };
 

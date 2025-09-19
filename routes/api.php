@@ -225,5 +225,6 @@ Route::get('/catalogs', [AdminCatalogController::class, 'getPublicCatalogs']);
 Route::get('/catalogs/{id}', [AdminCatalogController::class, 'getPublicCatalog']);
 Route::get('/catalogs/{id}/products', [AdminCatalogController::class, 'getPublicCatalogProducts']);
 
-// Public catalog PDFs routes (no authentication required)
-Route::get('/catalogs/{id}/pdfs', [AdminCatalogController::class, 'getPublicCatalogPdfs']); 
+// Public catalog images routes (no authentication required)
+Route::get('/catalogs/{id}/pdfs', [AdminCatalogController::class, 'getPublicCatalogPdfs']);
+Route::get('/catalogs-with-images', [AdminCatalogController::class, 'getCatalogsWithImages']); 

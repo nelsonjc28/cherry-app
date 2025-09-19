@@ -89,6 +89,42 @@
   line-height: 1.5;
 }
 
+.catalog-pdf-manager__catalog-name-input {
+  margin-top: 16px;
+}
+
+.catalog-pdf-manager__catalog-name-input label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 8px;
+}
+
+.catalog-pdf-manager__name-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+}
+
+.catalog-pdf-manager__name-input:focus {
+  outline: none;
+  border-color: #EA2630;
+  box-shadow: 0 0 0 2px rgba(234, 38, 48, 0.1);
+}
+
+.catalog-pdf-manager__image-dimensions {
+  font-size: 12px;
+  color: #6c757d;
+  background: #f8f9fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+}
+
 .catalog-pdf-manager__upload-actions {
   display: flex;
   gap: 12px;
@@ -147,6 +183,27 @@
   transform: none;
 }
 
+.catalog-pdf-manager__retry-btn {
+  background: #ffc107;
+  color: #212529;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 12px;
+}
+
+.catalog-pdf-manager__retry-btn:hover {
+  background: #e0a800;
+  transform: translateY(-1px);
+}
+
 .catalog-pdf-manager__content {
   flex: 1;
   overflow-y: auto;
@@ -183,23 +240,23 @@
 
 .catalog-pdf-manager__images-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 20px;
+  padding: 20px 0;
 }
 
 .catalog-pdf-manager__image-item {
-  border: 2px solid #e9ecef;
-  border-radius: 12px;
-  padding: 16px;
-  background: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0;
+  background: transparent;
   transition: all 0.2s ease;
   cursor: grab;
   position: relative;
 }
 
 .catalog-pdf-manager__image-item:hover {
-  border-color: #007bff;
-  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+  transform: translateY(-2px);
 }
 
 .catalog-pdf-manager__image-item.dragging {

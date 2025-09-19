@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { catalogService } from '../../services/api';
+import PdfThumbnail from '../PdfThumbnail/PdfThumbnail';
 import './CatalogPdfModule.css';
 
 const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
@@ -53,29 +54,17 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
     const files = Array.from(event.target.files);
     if (files.length === 0) return;
 
-    // Solo permitir un archivo
-    if (files.length > 1) {
-      window.showToast('Solo se permite subir un PDF por catálogo', 'error');
+    // Validar tipos de archivo - solo imágenes
+    const validFiles = files.filter(file => 
+      file.type.startsWith('image/')
+    );
+
+    if (validFiles.length !== files.length) {
+      window.showToast('Solo se permiten archivos de imagen (JPG, PNG, GIF, WebP)', 'error');
       return;
     }
 
-    // Verificar si ya existe un PDF
-    if (selectedCatalog?.pdfs && selectedCatalog.pdfs.length > 0) {
-      window.showToast('Este catálogo ya tiene un PDF. Elimina el PDF existente antes de subir uno nuevo.', 'error');
-      return;
-    }
-
-    // Validar tipo de archivo - solo PDFs
-    const file = files[0];
-    
-    const isValidType = file.type === 'application/pdf';
-
-    if (!isValidType) {
-      window.showToast('El archivo debe ser un PDF válido', 'error');
-      return;
-    }
-
-    await uploadFiles([file]);
+    await uploadFiles(validFiles);
   };
 
   const uploadFiles = async (files) => {
@@ -85,43 +74,56 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
     try {
       const formData = new FormData();
       files.forEach(file => {
-        formData.append('pdfs[]', file);
+        formData.append('images[]', file);
       });
 
       const response = await catalogService.addPdfs(selectedCatalog.id, formData);
       
       if (response.data.success) {
-        window.showToast('PDF subido exitosamente', 'success');
+        window.showToast(`${files.length} imagen(es) subida(s) exitosamente`, 'success');
         
-        // Actualizar el estado local inmediatamente con el nuevo PDF
-        const newPdfs = response.data.data || [];
+        // Actualizar el estado local inmediatamente con las nuevas imágenes
+        const newImages = response.data.data || [];
         setSelectedCatalog(prev => ({
           ...prev,
-          pdfs: [...(prev.pdfs || []), ...newPdfs]
+          pdfs: [...(prev.pdfs || []), ...newImages]
         }));
         
         // También actualizar la lista de catálogos para mantener sincronizados los contadores
         await fetchCatalogs();
       } else {
-        setError(response.data.message || 'Error al subir archivo');
+        setError(response.data.message || 'Error al subir imágenes');
       }
     } catch (error) {
-      if (error.response && error.response.data) {
-        setError(`Error al subir PDF: ${error.response.data.message || error.message}`);
-      } else {
-        setError('Error al subir PDF. Verifica que sea un archivo válido.');
+      console.error('Upload error:', error);
+      
+      let errorMessage = 'Error al subir imágenes';
+      
+      if (error.response?.status === 413) {
+        errorMessage = 'El archivo es demasiado grande. El tamaño máximo permitido es 2MB por imagen.';
+      } else if (error.response?.status === 422) {
+        errorMessage = error.response.data?.message || 'Error de validación en los archivos';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
       }
+      
+      setError(errorMessage);
+      window.showToast(errorMessage, 'error');
     } finally {
       setUploading(false);
-      // Limpiar el input de archivos
-      if (event && event.target) {
-        event.target.value = '';
-      }
+      // Limpiar el input de archivos después de un pequeño delay para asegurar que se procese
+      setTimeout(() => {
+        if (event && event.target) {
+          event.target.value = '';
+        }
+      }, 100);
     }
   };
 
   const handleRemovePdf = async (pdfId) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar este PDF?')) {
+    if (!window.confirm('¿Estás seguro de que quieres eliminar esta imagen?')) {
       return;
     }
 
@@ -129,9 +131,9 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
       const response = await catalogService.removePdf(selectedCatalog.id, pdfId);
       
       if (response.data.success) {
-        window.showToast('PDF eliminado exitosamente', 'success');
+        window.showToast('Imagen eliminada exitosamente', 'success');
         
-        // Actualizar el estado local inmediatamente removiendo el PDF
+        // Actualizar el estado local inmediatamente removiendo la imagen
         setSelectedCatalog(prev => ({
           ...prev,
           pdfs: prev.pdfs.filter(pdf => pdf.id !== pdfId)
@@ -140,10 +142,10 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
         // También actualizar la lista de catálogos para mantener sincronizados los contadores
         await fetchCatalogs();
       } else {
-        setError(response.data.message || 'Error al eliminar PDF');
+        setError(response.data.message || 'Error al eliminar imagen');
       }
     } catch (error) {
-      setError('Error al eliminar PDF');
+      setError('Error al eliminar imagen');
     }
   };
 
@@ -242,10 +244,10 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
             >
               ←
             </button>
-            <h2>Gestión de Catálogos PDF</h2>
+            <h2>Gestión de Imágenes de Catálogos</h2>
           </div>
                      <p className="catalog-pdf-module__subtitle">
-             Gestiona los PDFs de todos tus catálogos
+             Gestiona las imágenes de todos tus catálogos
            </p>
         </div>
 
@@ -302,6 +304,9 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
                     
                                          <div className="catalog-pdf-module__catalog-stats">
                        <span className="catalog-pdf-module__stat">
+                         🖼️ {catalog.pdfs?.length || 0} imágenes
+                       </span>
+                       <span className="catalog-pdf-module__stat">
                          🛍️ {catalog.products?.length || 0} productos
                        </span>
                      </div>
@@ -346,10 +351,10 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
           >
             ←
           </button>
-          <h2>Gestionar PDF: {selectedCatalog?.name}</h2>
+          <h2>Gestionar Imágenes: {selectedCatalog?.name}</h2>
         </div>
                  <p className="catalog-pdf-module__subtitle">
-           Sube y gestiona los PDFs del catálogo
+           Sube y gestiona las imágenes del catálogo
          </p>
         <div className="catalog-pdf-module__header-actions">
           <button 
@@ -377,26 +382,20 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
 
       <div className="catalog-pdf-module__upload-section">
         <div className="catalog-pdf-module__upload-info">
-          <h4>Subir PDF</h4>
-          {selectedCatalog?.pdfs && selectedCatalog.pdfs.length > 0 ? (
-            <p>Este catálogo ya tiene un PDF. Elimina el PDF existente para subir uno nuevo.</p>
-          ) : (
-            <p>Sube un archivo PDF para crear el catálogo (solo se permite un PDF por catálogo)</p>
-          )}
+          <h4>Subir Imágenes</h4>
+          <p>Sube imágenes (JPG, PNG, GIF, WebP) para crear las páginas del catálogo. Puedes subir múltiples imágenes a la vez.</p>
         </div>
         
         <div className="catalog-pdf-module__upload-actions">
-          <label className={`catalog-pdf-module__upload-btn catalog-pdf-module__add-btn ${
-            (selectedCatalog?.pdfs && selectedCatalog.pdfs.length > 0) ? 'disabled' : ''
-          }`}>
-            {uploading ? 'Subiendo...' : 
-             (selectedCatalog?.pdfs && selectedCatalog.pdfs.length > 0) ? 'PDF ya existe' : '+ Subir PDF'}
+          <label className="catalog-pdf-module__upload-btn catalog-pdf-module__add-btn">
+            {uploading ? 'Subiendo...' : '+ Subir Imágenes'}
             <input
               type="file"
-              accept=".pdf"
+              accept="image/*"
+              multiple
               onChange={handleFileSelect}
               style={{ display: 'none' }}
-              disabled={uploading || (selectedCatalog?.pdfs && selectedCatalog.pdfs.length > 0)}
+              disabled={uploading}
             />
           </label>
         </div>
@@ -404,14 +403,14 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
 
       <div className="catalog-pdf-module__content">
                  <div className="catalog-pdf-module__images-header">
-           <h4>PDF del catálogo</h4>
-           <p>Gestiona el PDF del catálogo (solo se permite un PDF por catálogo)</p>
+           <h4>Imágenes del catálogo ({selectedCatalog?.pdfs?.length || 0})</h4>
+           <p>Gestiona las imágenes del catálogo. Arrastra y suelta para reordenar.</p>
          </div>
 
                  {!selectedCatalog?.pdfs || selectedCatalog.pdfs.length === 0 ? (
            <div className="catalog-pdf-module__empty">
-             <p>No hay PDF en este catálogo</p>
-             <p>Sube un PDF para crear el catálogo</p>
+             <p>No hay imágenes en este catálogo</p>
+             <p>Sube imágenes para crear las páginas del catálogo</p>
            </div>
          ) : (
           <div className="catalog-pdf-module__images-grid">
@@ -427,36 +426,14 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
                 onDrop={(e) => handleDrop(e, index)}
                 onDragEnd={handleDragEnd}
               >
-                <div className="catalog-pdf-module__image-preview">
-                  <div className="catalog-pdf-module__image-placeholder">
-                    📄
-                  </div>
-                </div>
-                
-                <div className="catalog-pdf-module__image-info">
-                  <div className="catalog-pdf-module__image-details">
-                    <span className="catalog-pdf-module__image-name">
-                      {pdf.pdf_name || `PDF ${index + 1}`}
-                    </span>
-                    <span className="catalog-pdf-module__image-type">
-                      PDF
-                    </span>
-                  </div>
-                  
-                  <div className="catalog-pdf-module__image-actions">
-                    <span className="catalog-pdf-module__image-order">
-                      Orden: {pdf.display_order || index + 1}
-                    </span>
-                    <button
-                      type="button"
-                      className="catalog-pdf-module__remove-btn"
-                      onClick={() => handleRemovePdf(pdf.id)}
-                      title="Eliminar archivo"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                </div>
+                <PdfThumbnail
+                  image={pdf}
+                  selected={false}
+                  onClick={() => {}}
+                  onRemove={handleRemovePdf}
+                  showRemoveButton={true}
+                  isDragging={dragIndex === index}
+                />
               </div>
             ))}
           </div>

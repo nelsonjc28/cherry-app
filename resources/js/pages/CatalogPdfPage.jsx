@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { mockCatalogs } from '../api/mockCatalogs';
+import PdfThumbnailsList from '../components/PdfThumbnailsList/PdfThumbnailsList';
 import useIsDesktop from '../hooks/useIsDesktop';
 import './CatalogPdfPage.css';
 import { getIconPath } from '../utils/assetPaths';
@@ -9,12 +11,12 @@ import { publicCatalogService } from '../services/api';
 /**
  * CatalogPdfPage
  * 
- * Página para visualizar un catálogo con navegación por PDFs, miniaturas y paginación.
+ * Página para visualizar un catálogo tipo PDF con navegación por imágenes, miniaturas y paginación.
  * 
  * - Obtiene el catálogo por ID desde la URL.
- * - Permite navegar entre PDFs y ver miniaturas.
- * - Usa IntersectionObserver para detectar el PDF visible y sincronizar el estado.
- * - Muestra PDFs en iframes con controles de navegación.
+ * - Permite navegar entre páginas (imágenes) y ver miniaturas.
+ * - Usa IntersectionObserver para detectar la página visible y sincronizar el estado.
+ * - Detecta orientación de imágenes para aplicar estilos adecuados.
  * 
  * NOTA: Toda la lógica está contenida aquí porque:
  *   - El proyecto es pequeño y no crecerá mucho.
@@ -24,302 +26,286 @@ import { publicCatalogService } from '../services/api';
 const CatalogPdfPage = () => {
   const isDesktop = useIsDesktop();
   const location = useLocation();
-  const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
   const catalogId = queryParams.get('id');
-  
+
+
+  // Estados para API
+  const [catalogs, setCatalogs] = useState([]);
   const [selectedCatalog, setSelectedCatalog] = useState(null);
+  const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // Obtiene los PDFs del catálogo seleccionado
-  const pdfs = useMemo(() => selectedCatalog?.pdfs || [], [selectedCatalog]);
-  // Estado para la página actual del PDF (índice de la página)
   const [currentPage, setCurrentPage] = useState(1);
-  // Estado para el PDF actual seleccionado
-  const [currentPdfIndex, setCurrentPdfIndex] = useState(0);
-  // Estado para el número total de páginas del PDF actual
-  const [totalPages, setTotalPages] = useState(1);
-  // Estado para controlar cuando el iframe está listo para mostrar
-  const [iframeReady, setIframeReady] = useState(false);
-  // Estado para detectar si el iframe falló en móvil
-  const [iframeError, setIframeError] = useState(false);
-  // Referencias a los elementos DOM de cada página (para scroll y observer)
-  const pageRefs = useRef([]);
-  // Referencia a la lista de miniaturas (para scroll automático)
-  // Referencia al IntersectionObserver (para detectar página visible)
-  const observerRef = useRef(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  // Cargar el catálogo al montar el componente
+  // Cargar catálogo e imágenes al montar
   useEffect(() => {
     if (catalogId) {
-      fetchCatalog();
+      fetchCatalogAndImages();
     } else {
-      setError('ID de catálogo no proporcionado');
-      setLoading(false);
+      fetchCatalogs();
     }
   }, [catalogId]);
 
-  const fetchCatalog = async () => {
+  const fetchCatalogAndImages = async () => {
     try {
       setLoading(true);
-      setError(null);
       
-      const response = await publicCatalogService.getById(catalogId);
-      
-      if (response.data.success) {
-        const catalog = response.data.data;
+      // Primero obtener el catálogo específico
+      const catalogResponse = await publicCatalogService.getById(catalogId);
+      if (catalogResponse.data.success) {
+        setSelectedCatalog(catalogResponse.data.data);
         
-        // Verificar que el catálogo tenga PDFs
-        if (!catalog.pdfs || catalog.pdfs.length === 0) {
-          setError('Este catálogo no tiene PDFs disponibles');
-          setLoading(false);
-          return;
-        }
-        
-        setSelectedCatalog(catalog);
+        // Luego cargar las imágenes del catálogo
+        await fetchImages(catalogId, 1);
       } else {
         setError('Error al cargar el catálogo');
       }
     } catch (error) {
-      setError('Error al cargar el catálogo. Verifica que el ID sea válido.');
+      console.error('Error fetching catalog and images:', error);
+      setError('Error al cargar el catálogo');
     } finally {
       setLoading(false);
     }
   };
 
-  // Efecto para establecer el número total de páginas cuando se carga un PDF
-  useEffect(() => {
-    if (pdfs.length > 0 && pdfs[currentPdfIndex]) {
-      // Usar el número real de páginas del PDF
-      let pdfPageCount = pdfs[currentPdfIndex].page_count || 1;
+  const fetchCatalogs = async () => {
+    try {
+      setLoading(true);
+      const response = await publicCatalogService.getCatalogsWithImages();
       
-      // Si el page_count es 1 o no está disponible, usar un número por defecto más alto
-      if (pdfPageCount <= 1) {
-        pdfPageCount = 20; // Número por defecto para PDFs largos
-
+      if (response.data.success) {
+        setCatalogs(response.data.data);
+      } else {
+        setError('Error al cargar los catálogos');
       }
-      
-
-      
-      setTotalPages(pdfPageCount);
-      setCurrentPage(1);
-      
-      // Limpiar las referencias anteriores
-      pageRefs.current = [];
-
+    } catch (error) {
+      console.error('Error fetching catalogs:', error);
+      setError('Error al cargar los catálogos');
+    } finally {
+      setLoading(false);
     }
-  }, [pdfs, currentPdfIndex]);
+  };
+
+  const fetchImages = async (catalogId, page = 1) => {
+    try {
+      if (page === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+
+      const response = await publicCatalogService.getCatalogImages(catalogId, page);
+      
+      if (response.data.success) {
+        const newImages = response.data.data.images || [];
+        
+        if (page === 1) {
+          setImages(newImages);
+        } else {
+          setImages(prev => [...prev, ...newImages]);
+        }
+        
+        setHasMore(response.data.data.pagination.current_page < response.data.data.pagination.last_page);
+        setCurrentPage(page);
+        
+        // Resetear índice de imagen seleccionada
+        if (page === 1) {
+          setPageIndex(0);
+        }
+      } else {
+        setError('Error al cargar las imágenes');
+      }
+    } catch (error) {
+      console.error('Error fetching images:', error);
+      setError('Error al cargar las imágenes');
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (selectedCatalog && hasMore && !loadingMore) {
+      fetchImages(selectedCatalog.id, currentPage + 1);
+    }
+  };
+  // Estado para la página (índice de la imagen actual)
+  const [pageIndex, setPageIndex] = useState(0);
+  // Estado para guardar la orientación de cada imagen
+  const [imageOrientations, setImageOrientations] = useState({});
+  // Referencias a los elementos DOM de cada imagen (para scroll y observer)
+  const imageRefs = useRef([]);
+  // Referencia a la lista de miniaturas (para scroll automático)
+  const thumbnailListRef = useRef(null);
+  // Referencia al IntersectionObserver (para detectar imagen visible)
+  const observerRef = useRef(null);
 
   // Navega a la página anterior
-  const handlePrev = () => {
-    if (currentPage > 1) {
-      setIframeReady(false); // Reset iframe state
-      const newPage = currentPage - 1;
-      setCurrentPage(newPage);
-      scrollToPage(newPage, false);
+  const handlePrev = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (pageIndex > 0) {
+      const newIndex = pageIndex - 1;
+      setPageIndex(newIndex);
+
+      // Timeout para compatibilidad con Chrome
+      setTimeout(() => {
+        scrollToImage(newIndex, false);
+      }, 50);
     }
   };
 
   // Navega a la página siguiente
-  const handleNext = () => {
-    if (currentPage < totalPages) {
-      setIframeReady(false); // Reset iframe state
-      const newPage = currentPage + 1;
-      setCurrentPage(newPage);
-      scrollToPage(newPage, false);
-    }
-  };
+  const handleNext = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
 
-  // Hace scroll a la página indicada (opcionalmente actualiza el currentPage)
-  const scrollToPage = (page, shouldSetCurrentPage = true) => {
-    const pageIndex = page - 1; // Convertir a índice base 0
-    if (pageRefs.current[pageIndex]) {
-      if (shouldSetCurrentPage) setCurrentPage(page);
+    if (pageIndex < images.length - 1) {
+      const newIndex = pageIndex + 1;
+      setPageIndex(newIndex);
+
+      // Timeout para compatibilidad con Chrome
       setTimeout(() => {
-        pageRefs.current[pageIndex]?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start'
-        });
-      }, 0);
+        scrollToImage(newIndex, false);
+      }, 50);
     }
   };
 
-  // Cuando el usuario selecciona una página desde las miniaturas
-  const handlePageSelect = (page) => {
-    setCurrentPage(page);
-    
-    // Hacer scroll suave a la página seleccionada
-    const pageIndex = page - 1;
-    
-    if (pageRefs.current[pageIndex]) {
-      setTimeout(() => {
-        pageRefs.current[pageIndex]?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start'
-        });
-      }, 100);
+  // Hace scroll a la imagen indicada (opcionalmente actualiza el pageIndex)
+  const scrollToImage = (index, shouldSetPageIndex = true) => {
+    if (imageRefs.current[index]) {
+      if (shouldSetPageIndex) setPageIndex(index);
+
+      // Para todos los navegadores
+      const element = imageRefs.current[index];
+
+      // Intentar scrollIntoView con fallback
+      try {
+        setTimeout(() => {
+          if (element && element.scrollIntoView) {
+            element.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            });
+          } else {
+            // Fallback manual
+            const elementTop = element.offsetTop;
+            window.scrollTo({
+              top: elementTop - 100, // Offset para el header sticky
+              behavior: 'smooth'
+            });
+          }
+        }, 100); // Timeout para Chrome
+      } catch {
+        // Fallback sin smooth scroll
+        const elementTop = element.offsetTop;
+        window.scrollTo(0, elementTop - 100);
+      }
     }
   };
 
+  // Cuando el usuario selecciona una miniatura
+  const handleThumbnailSelect = (index) => {
+    setPageIndex(index);
+    scrollToImage(index, false);
+  };
 
-  // Limpieza del observer al desmontar el componente
+  // Efecto: mantiene la miniatura seleccionada visible en la lista
   useEffect(() => {
+    if (isDesktop && thumbnailListRef.current) {
+      const selectedThumbnail = thumbnailListRef.current.querySelector('.pdf-thumbnail.selected');
+      if (selectedThumbnail) {
+        selectedThumbnail.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'center',
+        });
+      }
+    }
+  }, [pageIndex, isDesktop]);
+
+  // Efecto: observa las imágenes para detectar cuál está visible en el viewport
+  useEffect(() => {
+    if (!isDesktop || !images || !images.length) return;
+
+    // Limpia el observer anterior si existe
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+
+    // Crea un nuevo observer
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const index = imageRefs.current.findIndex(ref => ref === entry.target);
+            if (index !== -1 && index !== pageIndex) {
+              setPageIndex(index);
+            }
+          }
+        });
+      },
+      {
+        threshold: 0.7, // Imagen debe estar al menos 50% visible
+      }
+    );
+
+    // Observa todas las imágenes
+    const currentRefs = [];
+
+    images.forEach((_, index) => {
+      const ref = imageRefs.current[index];
+      if (ref && observerRef.current) {
+        observerRef.current.observe(ref);
+        currentRefs.push(ref);
+      }
+    });
+
+    // Update refs
+    imageRefs.current = currentRefs;
+
+    // Limpieza al desmontar
     return () => {
       if (observerRef.current) {
         observerRef.current.disconnect();
       }
     };
-  }, []);
+  }, [images, pageIndex, isDesktop]);
 
-  // Efecto para precargar la siguiente página (opcional para mejor UX)
-  useEffect(() => {
-    if (pdfs.length > 0 && currentPage < totalPages) {
-      // Precargar la siguiente página en segundo plano para navegación más fluida
-      const nextPage = currentPage + 1;
-      const preloadLink = document.createElement('link');
-      preloadLink.rel = 'prefetch';
-      preloadLink.href = `/${pdfs[currentPdfIndex].pdf_path}#page=${nextPage}&toolbar=0&navpanes=0&scrollbar=0&view=FitH`;
-      document.head.appendChild(preloadLink);
-      
-      // Limpiar el preload después de 5 segundos
-        setTimeout(() => {
-        if (document.head.contains(preloadLink)) {
-          document.head.removeChild(preloadLink);
-        }
-      }, 5000);
-    }
-  }, [currentPage, totalPages, pdfs, currentPdfIndex]);
-
-  // Reset iframe state when page changes
-  useEffect(() => {
-    setIframeReady(false);
-    setIframeError(false);
-    
-    // Timeout de seguridad: más corto en móvil para mejor experiencia
-    const timeoutDuration = isDesktop ? 2000 : 1500; // 1.5s en móvil, 2s en desktop
-    
-    const safetyTimeout = setTimeout(() => {
-      if (!iframeReady && !iframeError) {
-        console.log('Timeout de seguridad: mostrando iframe');
-        setIframeReady(true);
-        
-        // Buscar y mostrar el iframe manualmente
-        const iframe = document.querySelector('.catalog-pdf__pdf-iframe');
-        const loadingIndicator = document.querySelector('.catalog-pdf__loading-indicator');
-        
-        if (iframe) {
-          iframe.style.visibility = 'visible';
-          iframe.style.opacity = '1';
-          // En móvil, forzar estilos adicionales
-          if (!isDesktop) {
-            iframe.style.display = 'block';
-            iframe.style.width = '100%';
-            iframe.style.height = '400px';
-            
-            // En móvil, si después de 3 segundos más el iframe sigue sin contenido,
-            // mostrar fallback
-            setTimeout(() => {
-              const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-              if (!iframeDoc || iframeDoc.body.innerHTML.trim() === '') {
-                console.log('Iframe vacío en móvil, mostrando fallback');
-                setIframeError(true);
-                if (loadingIndicator) {
-                  loadingIndicator.innerHTML = `
-                    <div style="text-align: center; padding: 20px;">
-                      <p style="color: #666; margin-bottom: 15px;">📱 Tu navegador no puede mostrar el PDF aquí</p>
-                      <a 
-                        href="/${pdfs[currentPdfIndex].pdf_path}" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        style="
-                          background: #EA2630; 
-                          color: white; 
-                          padding: 12px 24px; 
-                          border-radius: 6px; 
-                          text-decoration: none; 
-                          display: inline-block;
-                          font-weight: 600;
-                          font-size: 16px;
-                        "
-                      >
-                        🔗 Ver PDF completo
-                      </a>
-                      <p style="font-size: 12px; color: #999; margin-top: 10px;">Se abrirá en una nueva pestaña</p>
-                    </div>
-                  `;
-                  loadingIndicator.style.display = 'block';
-                }
-              }
-            }, 3000);
-          }
-        }
-        
-        if (loadingIndicator && !iframeError) {
-          loadingIndicator.style.display = 'none';
-        }
-      }
-    }, timeoutDuration);
-    
-    return () => clearTimeout(safetyTimeout);
-  }, [currentPage, currentPdfIndex, iframeReady, isDesktop]);
-
-  // Navegación con teclado para mejor UX
-  useEffect(() => {
-    const handleKeyPress = (event) => {
-      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
-        return; // No interferir con inputs
-      }
-      
-      switch (event.key) {
-        case 'ArrowLeft':
-        case 'ArrowUp':
-          event.preventDefault();
-          handlePrev();
-          break;
-        case 'ArrowRight':
-        case 'ArrowDown':
-          event.preventDefault();
-          handleNext();
-          break;
-        case 'Home':
-          event.preventDefault();
-          setIframeReady(false);
-          setCurrentPage(1);
-          break;
-        case 'End':
-          event.preventDefault();
-          setIframeReady(false);
-          setCurrentPage(totalPages);
-          break;
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyPress);
-    return () => document.removeEventListener('keydown', handleKeyPress);
-  }, [currentPage, totalPages]);
-
-
-
-  // Función para descargar un PDF
-  const handleDownloadPdf = (pdf) => {
-    const link = document.createElement('a');
-    link.href = `/${pdf.pdf_path}`;
-    link.download = 'catalogo.pdf';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // Cuando una imagen se carga, detecta su orientación y la guarda
+  const handleImageLoad = (e, index) => {
+    const { naturalWidth, naturalHeight } = e.target;
+    const orientation = naturalWidth > naturalHeight ? 'horizontal' : 'vertical';
+    setImageOrientations(prev => ({
+      ...prev,
+      [index]: orientation
+    }));
   };
 
+  // Devuelve la orientación de una imagen (por defecto vertical)
+  const getImageOrientation = (index) => {
+    return imageOrientations[index] || 'vertical';
+  };
 
-  // Mostrar estados de carga y error
+  // Prepara los datos para la lista de miniaturas
+  const pageThumbnails = images.map((img, idx) => ({
+    id: `${selectedCatalog?.id}-page-${idx}`,
+    image: img,
+    title: `${selectedCatalog?.name || 'Catálogo'} página ${idx + 1}`
+  }));
+
+  // Estados de carga y error
   if (loading) {
     return (
       <div className="catalog-pdf-page">
         <div className="container">
           <div className="catalog-pdf__loading">
             <div className="spinner"></div>
-            <p>Cargando catálogo PDF...</p>
+            <p>Cargando catálogo...</p>
           </div>
         </div>
       </div>
@@ -331,14 +317,11 @@ const CatalogPdfPage = () => {
       <div className="catalog-pdf-page">
         <div className="container">
           <div className="catalog-pdf__error">
-            <h2>Error al cargar el catálogo</h2>
+            <h2>Error</h2>
             <p>{error}</p>
-            <button 
-              onClick={() => navigate('/')}
-              className="catalog-pdf__back-btn"
-            >
-              Volver al inicio
-            </button>
+            <CustomButton onClick={() => window.location.reload()}>
+              Reintentar
+            </CustomButton>
           </div>
         </div>
       </div>
@@ -352,12 +335,9 @@ const CatalogPdfPage = () => {
           <div className="catalog-pdf__error">
             <h2>Catálogo no encontrado</h2>
             <p>El catálogo solicitado no existe o no está disponible.</p>
-            <button 
-              onClick={() => navigate('/')}
-              className="catalog-pdf__back-btn"
-            >
-              Volver al inicio
-            </button>
+            <CustomButton onClick={() => window.location.href = '/catalogos'}>
+              Ver todos los catálogos
+            </CustomButton>
           </div>
         </div>
       </div>
@@ -371,7 +351,6 @@ const CatalogPdfPage = () => {
         <header className="catalog-pdf__header">
           <div className="catalog-pdf__title-section">
             <h1 className="catalog-pdf__title">{selectedCatalog?.name || 'Catálogo PDF'}</h1>
-
           </div>
           <div className="catalog-pdf__controls">
             <CustomButton
@@ -386,157 +365,140 @@ const CatalogPdfPage = () => {
         </header>
 
         <div className="catalog-pdf__content">
-                  {/* PDF Viewer */}
-        <main className="catalog-pdf__main-pdf" style={{position: 'relative'}}>
-  <button 
-    className="catalog-pdf__download-btn catalog-pdf__main-download-btn" 
-    type="button" 
-    aria-label="Descargar PDF" 
-    style={{position: 'absolute', top: 0, right: 40, zIndex: 10}}
-    onClick={() => handleDownloadPdf(pdfs[currentPdfIndex])}
-  >
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M14.0942 6.18543H11.6493V1.95651C11.6493 1.09751 10.9225 0.370667 10.0635 0.370667H6.4623C5.6033 0.370667 4.87646 1.09751 4.87646 1.95651V6.18543H2.46466C1.044 6.18543 0.31716 7.90342 1.34135 8.89457L7.15611 14.7093C7.7508 15.3371 8.77499 15.3371 9.40272 14.7093L15.2175 8.89457C16.2086 7.90342 15.4818 6.18543 14.0942 6.18543ZM8.27941 13.586L2.46466 7.77127H6.4623V1.95651H10.0635V7.77127H14.0942L8.27941 13.586Z" fill="#F9738A" />
-    </svg>
-  </button>
+          {isDesktop && (
+            <aside className="catalog-pdf__thumbnails">
+              <div className="catalog-pdf__thumbnails-header">
+                <span className="catalog-pdf__thumbnails-title">Catálogos disponibles</span>
+                <div className="catalog-pdf__thumbnails-sort">
+                  <label htmlFor="catalog-pdf__sort-select" className="catalog-pdf__sort-label">Ordenar por:</label>
+                  <select
+                    id="sort-select"
+                    className="catalog-pdf__sort-select"
+                  >
+                    <option value="más recientes">más recientes</option>
+                    <option value="precio-menor">Precio: menor a mayor</option>
+                    <option value="precio-mayor">Precio: mayor a menor</option>
+                    <option value="nombre-az">Nombre: A-Z</option>
+                    <option value="nombre-za">Nombre: Z-A</option>
+                  </select>
+                </div>
+              </div>
+                <div className="catalog-pdf__thumbnails-list" ref={thumbnailListRef}>
+                  <PdfThumbnailsList
+                    products={pageThumbnails}
+                    selectedIndex={pageIndex}
+                    onSelect={handleThumbnailSelect}
+                  />
+                </div>
+                
+                {/* Botón cargar más */}
+                {hasMore && (
+                  <div className="catalog-pdf__load-more">
+                    <CustomButton
+                      variant="outline"
+                      size="medium"
+                      onClick={handleLoadMore}
+                      disabled={loadingMore}
+                    >
+                      {loadingMore ? 'Cargando...' : 'Cargar más imágenes'}
+                    </CustomButton>
+                  </div>
+                )}
+              </aside>
+            )}
+          {/* Image */}
+          <main className="catalog-pdf__main-image">
+            <button className="catalog-pdf__download-btn catalog-pdf__main-download-btn" type="button" aria-label="Descargar PDF">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14.0942 6.18543H11.6493V1.95651C11.6493 1.09751 10.9225 0.370667 10.0635 0.370667H6.4623C5.6033 0.370667 4.87646 1.09751 4.87646 1.95651V6.18543H2.46466C1.044 6.18543 0.31716 7.90342 1.34135 8.89457L7.15611 14.7093C7.7508 15.3371 8.77499 15.3371 9.40272 14.7093L15.2175 8.89457C16.2086 7.90342 15.4818 6.18543 14.0942 6.18543ZM8.27941 13.586L2.46466 7.77127H6.4623V1.95651H10.0635V7.77127H14.0942L8.27941 13.586Z" fill="#F9738A" />
+              </svg>
+            </button>
             <div className="catalog-pdf__pagination">
-              <button 
+              <button
                 className="catalog-pdf__pagination-btn"
                 onClick={handlePrev}
-                disabled={currentPage === 1}
+                disabled={pageIndex === 0}
                 aria-label="Previous page"
               >
                 {'<<'}
               </button>
-              <span className="catalog-pdf__pagination-text">Página {currentPage} / {totalPages}</span>
-              <button 
+              <span className="catalog-pdf__pagination-text">pág {pageIndex + 1} / {images.length}</span>
+              <button
                 className="catalog-pdf__pagination-btn"
                 onClick={handleNext}
-                disabled={currentPage === totalPages}
+                disabled={pageIndex === images.length - 1}
                 aria-label="Next page"
               >
                 {'>>'}
               </button>
-
             </div>
-            
-            {/* PDF Viewer optimizado con una sola página */}
-            <div className="catalog-pdf__pdf-viewer">
-              {pdfs.length > 0 && (
-                <div className="catalog-pdf__pdf-container">
-                  {/* Renderizar solo la página actual para optimizar rendimiento */}
+
+            {/* Scrollable images container */}
+            <div className="catalog-pdf__image-slider-wrapper">
+              {images.length > 0 ? (
+                images.map((image, index) => (
                   <div
-                    key={`page-${currentPage}`}
-                    ref={el => pageRefs.current[currentPage - 1] = el}
-                    className="catalog-pdf__pdf-page visible"
-                          style={{ 
-                      visibility: 'visible',
-                      opacity: 1,
-                      position: 'relative',
-                      minHeight: '600px'
-                    }}
+                    key={index}
+                    ref={el => imageRefs.current[index] = el}
+                    className="catalog-pdf__image-wrapper"
                   >
-                    {/* Mostrar indicador de carga mientras se carga el iframe */}
-                    <div className="catalog-pdf__loading-indicator">
-                      <div className="catalog-pdf__loading-spinner"></div>
-                      <span>Cargando página {currentPage} de {totalPages}...</span>
-                    </div>
-                         
-                         <iframe
-                      key={`iframe-${currentPdfIndex}-${currentPage}`} // Force re-render when page changes
-                      src={`/${pdfs[currentPdfIndex].pdf_path}#page=${currentPage}&toolbar=0&navpanes=0&scrollbar=0&view=FitH&zoom=${isDesktop ? 'page-fit' : 'page-width'}`}
-                      title={`Página ${currentPage} de ${totalPages}`}
-                           className="catalog-pdf__pdf-iframe"
-                           width="100%"
-                      height={isDesktop ? "600" : "400"} // Altura adaptativa según dispositivo
-                           frameBorder="0"
-                      loading="lazy"
-                      allow="fullscreen"
-                      sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-                      onLoad={(e) => {
-                        // Dar un pequeño delay para asegurar que el PDF se renderice correctamente
-                        const delay = isDesktop ? 300 : 200; // Delay más corto en móvil
-                        
-                        setTimeout(() => {
-                          // Verificar que la URL del iframe contenga la página correcta antes de mostrar
-                          const iframeSrc = e.target.src;
-                          const expectedPage = `page=${currentPage}`;
-                          
-                          console.log(`Cargando PDF - Dispositivo: ${isDesktop ? 'Desktop' : 'Móvil'}, Página: ${currentPage}`);
-                          
-                          if (iframeSrc.includes(expectedPage)) {
-                            // Marcar el iframe como listo y mostrar
-                            setIframeReady(true);
-                            
-                            // Ocultar indicador de carga
-                            const loadingIndicator = e.target.parentElement.querySelector('.catalog-pdf__loading-indicator');
-                            if (loadingIndicator) {
-                              loadingIndicator.style.display = 'none';
-                            }
-                            
-                            // Mostrar el iframe con transición suave
-                            e.target.style.visibility = 'visible';
-                            e.target.style.opacity = '1';
-                            
-                            // En móvil, asegurar estilos adicionales
-                            if (!isDesktop) {
-                              e.target.style.display = 'block';
-                              console.log('PDF cargado en móvil - iframe visible');
-                            }
-                          } else {
-                            // Si no es la página correcta, mantener oculto
-                            console.log('Página incorrecta cargada, esperando la correcta...');
-                          }
-                        }, delay);
-                      }}
-                      onError={(e) => {
-                        console.error('Error cargando iframe PDF en móvil');
-                        setIframeError(true);
-                        
-                        // Mostrar error si no se puede cargar
-                        const loadingIndicator = e.target.parentElement.querySelector('.catalog-pdf__loading-indicator');
-                        if (loadingIndicator) {
-                          loadingIndicator.innerHTML = `
-                            <div style="text-align: center; padding: 20px;">
-                              <p style="color: #f44336; margin-bottom: 15px;">⚠️ No se puede mostrar el PDF</p>
-                              <a 
-                                href="/${pdfs[currentPdfIndex].pdf_path}" 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                style="
-                                  background: #EA2630; 
-                                  color: white; 
-                                  padding: 10px 20px; 
-                                  border-radius: 6px; 
-                                  text-decoration: none; 
-                                  display: inline-block;
-                                  font-weight: 600;
-                                "
-                              >
-                                📱 Abrir PDF en nueva pestaña
-                              </a>
-                            </div>
-                          `;
-                        }
-                      }}
-                      style={{ 
-                        opacity: 0, 
-                        transition: 'opacity 0.5s ease',
-                        visibility: 'hidden' // Inicialmente invisible
-                      }}
-                    />
-                    
-                           <div className="catalog-pdf__page-indicator">
-                             <span className="catalog-pdf__page-indicator-text">
-                        Página {currentPage} de {totalPages}
-                             </span>
-                           </div>
-                      </div>
+                     <img
+                       src={image.image_url || image.thumbnail_url || `http://127.0.0.1:8000/${image.image_path}`}
+                       alt={image.image_alt || image.image_name || selectedCatalog?.name + ' página ' + (index + 1)}
+                       className={`catalog-pdf__image ${getImageOrientation(index)}`}
+                       onLoad={(e) => handleImageLoad(e, index)}
+                     />
+                  </div>
+                ))
+              ) : (
+                <div className="catalog-pdf__empty">
+                  <p>No hay imágenes en este catálogo</p>
                 </div>
               )}
             </div>
           </main>
 
+          {!isDesktop && (
+            <section className="catalog-pdf__thumbnails mobile">
+              <div className="catalog-pdf__thumbnails-header">
+                <span className="catalog-pdf__thumbnails-title">Catálogos disponibles</span>
+                <div className="catalog-pdf__thumbnails-sort">
+                  <label htmlFor="catalog-pdf__sort-select" className="catalog-pdf__sort-label">Ordenar por:</label>
+                  <select
+                    id="sort-select"
+                    className="catalog-pdf__sort-select"
+                  >
+                    <option value="más recientes">más recientes</option>
+                    <option value="precio-menor">Precio: menor a mayor</option>
+                    <option value="precio-mayor">Precio: mayor a menor</option>
+                    <option value="nombre-az">Nombre: A-Z</option>
+                    <option value="nombre-za">Nombre: Z-A</option>
+                  </select>
+                </div>
+              </div>
+                <div className="catalog-pdf__thumbnails-list" ref={thumbnailListRef}>
+                  <PdfThumbnailsList
+                    products={pageThumbnails}
+                    selectedIndex={pageIndex}
+                    onSelect={handleThumbnailSelect}
+                  />
+                </div>
+                
+                {/* Botón cargar más */}
+                {hasMore && (
+                  <div className="catalog-pdf__load-more">
+                    <CustomButton
+                      variant="outline"
+                      size="medium"
+                      onClick={handleLoadMore}
+                      disabled={loadingMore}
+                    >
+                      {loadingMore ? 'Cargando...' : 'Cargar más imágenes'}
+                    </CustomButton>
+                  </div>
+                )}
+              </section>
+            )}
         </div>
       </div>
     </div>

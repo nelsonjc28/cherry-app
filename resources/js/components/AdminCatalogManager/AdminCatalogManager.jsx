@@ -524,7 +524,9 @@ const AdminCatalogManager = () => {
                   <p>{catalog.description}</p>
                   
                   <div className="admin-catalog-manager__catalog-stats">
-                    
+                    <span className="admin-catalog-manager__stat">
+                      🖼️ {catalog.pdfs?.length || 0} imágenes
+                    </span>
                     <span className="admin-catalog-manager__stat">
                       🛍️ {catalog.products?.length || 0} productos
                     </span>
@@ -552,9 +554,9 @@ const AdminCatalogManager = () => {
                   <button
                     className="admin-catalog-manager__action-btn admin-catalog-manager__action-btn--pdf"
                     onClick={() => openPdfManager(catalog)}
-                    title="Gestionar PDF"
+                    title="Gestionar Imágenes del Catálogo"
                   >
-                    📄
+                    🖼️
                   </button>
                   
                   <button

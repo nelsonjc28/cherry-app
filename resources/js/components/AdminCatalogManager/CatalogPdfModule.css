@@ -355,23 +355,23 @@
 /* Grid de Imágenes */
 .catalog-pdf-module__images-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 20px;
+  padding: 20px 0;
 }
 
 .catalog-pdf-module__image-item {
-  border: 2px solid #e9ecef;
-  border-radius: 12px;
-  padding: 16px;
-  background: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0;
+  background: transparent;
   transition: all 0.2s ease;
   cursor: grab;
   position: relative;
 }
 
 .catalog-pdf-module__image-item:hover {
-  border-color: #007bff;
-  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+  transform: translateY(-2px);
 }
 
 .catalog-pdf-module__image-item.dragging {
@@ -435,7 +435,7 @@
 }
 
 .catalog-pdf-module__image-type {
-  display: block;
+  display: inline-block;
   color: #6c757d;
   font-size: 12px;
   background: #e9ecef;
@@ -443,6 +443,16 @@
   border-radius: 12px;
   text-transform: uppercase;
   font-weight: 500;
+  margin-right: 8px;
+}
+
+.catalog-pdf-module__image-dimensions {
+  font-size: 12px;
+  color: #6c757d;
+  background: #f8f9fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
 }
 
 .catalog-pdf-module__image-actions {

@@ -746,15 +746,15 @@ const CatalogPage = ({ catalogId }) => {
                 </select>
               </div>
               <div className="catalog-page__action-buttons">
-                {currentCatalog?.pdf_images && currentCatalog.pdf_images.length > 0 && (
+                {currentCatalog?.pdfs && currentCatalog.pdfs.length > 0 && (
                   <CustomButton
                     variant="outline"
                     size="medium"
                     className="catalog-page__pdf-btn"
-                    iconLeft={<span style={{ fontSize: '16px' }}>📄</span>}
+                    iconLeft={<span style={{ fontSize: '16px' }}>🖼️</span>}
                     onClick={() => window.location.href = `/catalogo-pdf?id=${catalogId}`}
                   >
-                    <span className="catalog-page__pdf-text">Catálogo PDF</span>
+                    <span className="catalog-page__pdf-text">Catálogo de Imágenes</span>
                   </CustomButton>
                 )}
                 <CustomButton
