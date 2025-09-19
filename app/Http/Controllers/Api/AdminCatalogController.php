@@ -264,146 +264,144 @@ class AdminCatalogController extends Controller
     }
 
     /**
-     * Agregar PDFs al catálogo
+     * Agregar imágenes al catálogo
      */
     public function addPdfs(Request $request, $id)
     {
-
         try {
             $catalog = Catalog::findOrFail($id);
 
-            // Verificar si el catálogo ya tiene un PDF
-            $existingPdfCount = CatalogPdf::where('catalog_id', $catalog->id)->count();
-            if ($existingPdfCount > 0) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Este catálogo ya tiene un PDF. Debes eliminar el PDF existente antes de subir uno nuevo.'
-                ], 422);
-            }
-
             $validator = Validator::make($request->all(), [
-                'pdfs.*' => 'required|file|mimes:pdf' // Máximo 2MB (coincide con configuración de PHP)
+                'images.*' => 'required|file|mimes:jpeg,png,jpg,gif,webp', // 10MB máximo
+                'catalog_name' => 'nullable|string|max:255'
+            ], [
+                'images.*.mimes' => 'Las imágenes deben ser archivos válidos (JPEG, PNG, JPG, GIF, WebP)',
+                
             ]);
 
             if ($validator->fails()) {
-                $errors = $validator->errors();
-                $errorMessages = [];
-
-                foreach ($errors->all() as $error) {
-                    if (strpos($error, 'mimes') !== false) {
-                        $errorMessages[] = 'El archivo debe ser un PDF válido';
-                    } else {
-                        $errorMessages[] = $error;
-                    }
-                }
-
                 return response()->json([
                     'success' => false,
-                    'message' => 'Error de validación: ' . implode(', ', $errorMessages),
-                    'errors' => $errors
+                    'message' => 'Error de validación',
+                    'errors' => $validator->errors()
                 ], 422);
             }
 
-            $uploadedPdfs = [];
-            if ($request->hasFile('pdfs')) {
-                // Crear directorio si no existe
-                if (!file_exists(public_path('catalog-pdfs'))) {
-                    mkdir(public_path('catalog-pdfs'), 0755, true);
+            $uploadedImages = [];
+            if ($request->hasFile('images')) {
+                // Crear directorios si no existen
+                $catalogImagesDir = public_path('catalog-images');
+                $thumbnailsDir = public_path('catalog-images/thumbnails');
+                
+                if (!file_exists($catalogImagesDir)) {
+                    mkdir($catalogImagesDir, 0755, true);
+                }
+                if (!file_exists($thumbnailsDir)) {
+                    mkdir($thumbnailsDir, 0755, true);
                 }
 
-                // Solo procesar el primer PDF ya que solo permitimos uno por catálogo
-                $pdf = $request->file('pdfs')[0];
+                $displayOrder = CatalogPdf::where('catalog_id', $catalog->id)->max('display_order') ?? 0;
 
+                foreach ($request->file('images') as $index => $image) {
                 // Validar que el archivo sea válido
-                if (!$pdf->isValid()) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'El archivo PDF no es válido.'
-                    ], 422);
-                }
+                    if (!$image->isValid()) {
+                        continue; // Saltar archivos inválidos
+                    }
 
-                $pdfName = time() . '_' . $pdf->getClientOriginalName();
-                $pdfPath = 'catalog-pdfs/' . $pdfName;
+                    $imageName = time() . '_' . $index . '_' . $image->getClientOriginalName();
+                    $imagePath = 'catalog-images/' . $imageName;
+                    $thumbnailPath = 'catalog-images/thumbnails/thumb_' . $imageName;
 
-                // Obtener información del archivo ANTES de moverlo
-                $pdfSize = $pdf->getSize();
-                $pdfMimeType = $pdf->getMimeType();
+                    // Obtener información del archivo
+                    $imageSize = $image->getSize();
+                    $imageMimeType = $image->getMimeType();
 
-                // Validar que el tamaño sea mayor a 0
-                if ($pdfSize <= 0) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'El archivo PDF está vacío o corrupto.'
-                    ], 422);
-                }
+                    // Obtener dimensiones de la imagen
+                    $imageInfo = getimagesize($image->getPathname());
+                    $width = $imageInfo[0] ?? null;
+                    $height = $imageInfo[1] ?? null;
 
-                // Mover PDF a carpeta pública
-                if (!$pdf->move(public_path('catalog-pdfs'), $pdfName)) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Error al guardar el archivo PDF.'
-                    ], 500);
-                }
+                    // Mover imagen a carpeta pública
+                    if (!$image->move(public_path('catalog-images'), $imageName)) {
+                        continue; // Saltar si no se puede mover
+                    }
 
-                $catalogPdf = CatalogPdf::create([
+                    // Crear thumbnail
+                    $this->createThumbnail(
+                        public_path('catalog-images/' . $imageName),
+                        public_path('catalog-images/thumbnails/thumb_' . $imageName),
+                        300, 300
+                    );
+
+                    $catalogImage = CatalogPdf::create([
                     'catalog_id' => $catalog->id,
-                    'pdf_path' => $pdfPath,
-                    'pdf_name' => $pdf->getClientOriginalName(),
-                    'pdf_size' => $pdfSize,
-                    'pdf_mime_type' => $pdfMimeType,
-                    'page_count' => $this->getPdfPageCount(public_path('catalog-pdfs/' . $pdfName)),
-                    'display_order' => 1 // Siempre será el primer (y único) PDF
-                ]);
+                        'catalog_name' => $request->catalog_name ?? $catalog->name,
+                        'image_path' => $imagePath,
+                        'image_name' => $image->getClientOriginalName(),
+                        'image_size' => $imageSize,
+                        'image_mime_type' => $imageMimeType,
+                        'image_alt' => $image->getClientOriginalName(),
+                        'width' => $width,
+                        'height' => $height,
+                        'thumbnail_path' => $thumbnailPath,
+                        'display_order' => $displayOrder + $index + 1
+                    ]);
 
-                $uploadedPdfs[] = $catalogPdf;
+                    $uploadedImages[] = $catalogImage;
+                }
             }
 
-            if (empty($uploadedPdfs)) {
+            if (empty($uploadedImages)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No se pudo procesar el archivo PDF. Verifica que sea un archivo válido y no esté corrupto.'
+                    'message' => 'No se pudieron procesar las imágenes. Verifica que sean archivos válidos.'
                 ], 422);
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'PDF agregado exitosamente',
-                'data' => $uploadedPdfs
+                'message' => 'Imágenes agregadas exitosamente',
+                'data' => $uploadedImages
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al agregar PDFs: ' . $e->getMessage()
+                'message' => 'Error al agregar imágenes: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Eliminar un PDF del catálogo
+     * Eliminar una imagen del catálogo
      */
     public function removePdf($catalogId, $pdfId)
     {
         try {
-            $catalogPdf = CatalogPdf::where('catalog_id', $catalogId)
+            $catalogImage = CatalogPdf::where('catalog_id', $catalogId)
                 ->where('id', $pdfId)
                 ->firstOrFail();
 
-            // Eliminar archivo físico
-            $pdfPath = public_path($catalogPdf->pdf_path);
-            if (file_exists($pdfPath)) {
-                unlink($pdfPath);
+            // Eliminar archivos físicos
+            $imagePath = public_path($catalogImage->image_path);
+            if (file_exists($imagePath)) {
+                unlink($imagePath);
             }
 
-            $catalogPdf->delete();
+            $thumbnailPath = public_path($catalogImage->thumbnail_path);
+            if (file_exists($thumbnailPath)) {
+                unlink($thumbnailPath);
+            }
+
+            $catalogImage->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'PDF eliminado exitosamente'
+                'message' => 'Imagen eliminada exitosamente'
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al eliminar el PDF: ' . $e->getMessage()
+                'message' => 'Error al eliminar la imagen: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -721,16 +719,8 @@ class AdminCatalogController extends Controller
                 ->where('is_active', true)
                 ->findOrFail($id);
 
-            // Asegurar que cada PDF tenga el número correcto de páginas
-            foreach ($catalog->pdfs as $pdf) {
-                if (!$pdf->page_count || $pdf->page_count <= 0) {
-                    // Calcular el número de páginas si no está disponible
-                    $pdfPath = storage_path('app/public/' . $pdf->pdf_path);
-                    $pageCount = $this->getPdfPageCount($pdfPath);
-                    $pdf->page_count = $pageCount;
-                    $pdf->save(); // Guardar el número de páginas calculado
-                }
-            }
+            // Las imágenes no necesitan cálculo de páginas
+            // Solo verificar que las imágenes existan
 
             return response()->json([
                 'success' => true,
@@ -773,57 +763,162 @@ class AdminCatalogController extends Controller
     }
 
     /**
-     * Obtener PDFs de un catálogo público específico
+     * Obtener imágenes de un catálogo público específico con paginación
      */
     public function getPublicCatalogPdfs($id)
     {
         try {
-            $catalog = Catalog::with(['pdfs' => function($query) {
-                $query->orderBy('display_order', 'asc');
-            }])
-            ->where('is_active', true)
-            ->findOrFail($id);
+            $catalog = Catalog::where('is_active', true)->findOrFail($id);
+            
+            $perPage = 10; // 10 imágenes por página
+            $page = request('page', 1);
+            
+            $images = CatalogPdf::where('catalog_id', $id)
+                ->orderBy('display_order', 'asc')
+                ->paginate($perPage, ['*'], 'page', $page);
 
             return response()->json([
                 'success' => true,
                 'data' => [
                     'catalog' => $catalog,
-                    'pdfs' => $catalog->pdfs
+                    'images' => $images->items(),
+                    'pagination' => [
+                        'current_page' => $images->currentPage(),
+                        'last_page' => $images->lastPage(),
+                        'per_page' => $images->perPage(),
+                        'total' => $images->total(),
+                        'has_more' => $images->hasMorePages()
+                    ]
                 ]
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener PDFs del catálogo: ' . $e->getMessage()
+                'message' => 'Error al obtener imágenes del catálogo: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Helper para obtener el número de páginas de un PDF
+     * Obtener todos los catálogos con imágenes para selección
      */
-    private function getPdfPageCount($filePath)
+    public function getCatalogsWithImages()
     {
-        if (!file_exists($filePath)) {
-            return 1;
-        }
-
         try {
-            // Usar la librería smalot/pdfparser para contar páginas
-            $parser = new Parser();
-            $pdf = $parser->parseFile($filePath);
-            
-            // Obtener el número de páginas del PDF
-            $pages = $pdf->getPages();
-            $pageCount = count($pages);
-            
-            // Asegurar que al menos retorne 1 página
-            return max(1, $pageCount);
-            
+            $catalogs = Catalog::where('is_active', true)
+                ->whereHas('pdfs')
+                ->with(['pdfs' => function($query) {
+                    $query->select('catalog_id', 'catalog_name')
+                          ->groupBy('catalog_id', 'catalog_name');
+                }])
+                ->get()
+                ->map(function($catalog) {
+                    return [
+                        'id' => $catalog->id,
+                        'name' => $catalog->name,
+                        'catalog_name' => $catalog->pdfs->first()->catalog_name ?? $catalog->name,
+                        'image_count' => $catalog->pdfs->count()
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'data' => $catalogs
+            ]);
         } catch (\Exception $e) {
-            // Si hay algún error al procesar el PDF, retornar 1 como fallback
-            Log::warning("Error al contar páginas del PDF: " . $e->getMessage());
-            return 1;
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener catálogos: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Crear thumbnail de una imagen
+     */
+    private function createThumbnail($sourcePath, $thumbnailPath, $maxWidth = 300, $maxHeight = 300)
+    {
+        try {
+            $imageInfo = getimagesize($sourcePath);
+            if (!$imageInfo) {
+                return false;
+            }
+
+            $sourceWidth = $imageInfo[0];
+            $sourceHeight = $imageInfo[1];
+            $mimeType = $imageInfo['mime'];
+
+            // Calcular nuevas dimensiones manteniendo la proporción
+            $ratio = min($maxWidth / $sourceWidth, $maxHeight / $sourceHeight);
+            $newWidth = intval($sourceWidth * $ratio);
+            $newHeight = intval($sourceHeight * $ratio);
+
+            // Crear imagen desde el archivo fuente
+            switch ($mimeType) {
+                case 'image/jpeg':
+                    $sourceImage = imagecreatefromjpeg($sourcePath);
+                    break;
+                case 'image/png':
+                    $sourceImage = imagecreatefrompng($sourcePath);
+                    break;
+                case 'image/gif':
+                    $sourceImage = imagecreatefromgif($sourcePath);
+                    break;
+                case 'image/webp':
+                    $sourceImage = imagecreatefromwebp($sourcePath);
+                    break;
+                default:
+                    return false;
+            }
+
+            if (!$sourceImage) {
+                return false;
+            }
+
+            // Crear imagen de destino
+            $thumbnailImage = imagecreatetruecolor($newWidth, $newHeight);
+
+            // Preservar transparencia para PNG y GIF
+            if ($mimeType === 'image/png' || $mimeType === 'image/gif') {
+                imagealphablending($thumbnailImage, false);
+                imagesavealpha($thumbnailImage, true);
+                $transparent = imagecolorallocatealpha($thumbnailImage, 255, 255, 255, 127);
+                imagefill($thumbnailImage, 0, 0, $transparent);
+            }
+
+            // Redimensionar
+            imagecopyresampled(
+                $thumbnailImage, $sourceImage,
+                0, 0, 0, 0,
+                $newWidth, $newHeight,
+                $sourceWidth, $sourceHeight
+            );
+
+            // Guardar thumbnail
+            $success = false;
+            switch ($mimeType) {
+                case 'image/jpeg':
+                    $success = imagejpeg($thumbnailImage, $thumbnailPath, 85);
+                    break;
+                case 'image/png':
+                    $success = imagepng($thumbnailImage, $thumbnailPath, 8);
+                    break;
+                case 'image/gif':
+                    $success = imagegif($thumbnailImage, $thumbnailPath);
+                    break;
+                case 'image/webp':
+                    $success = imagewebp($thumbnailImage, $thumbnailPath, 85);
+                    break;
+            }
+
+            // Limpiar memoria
+            imagedestroy($sourceImage);
+            imagedestroy($thumbnailImage);
+
+            return $success;
+        } catch (\Exception $e) {
+            Log::warning("Error al crear thumbnail: " . $e->getMessage());
+            return false;
         }
     }
 }

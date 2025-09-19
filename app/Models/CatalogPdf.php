@@ -13,17 +13,22 @@ class CatalogPdf extends Model
 
     protected $fillable = [
         'catalog_id',
-        'pdf_path',
-        'pdf_name',
-        'pdf_size',
-        'pdf_mime_type',
-        'page_count',
+        'catalog_name',
+        'image_path',
+        'image_name',
+        'image_size',
+        'image_mime_type',
+        'image_alt',
+        'width',
+        'height',
+        'thumbnail_path',
         'display_order'
     ];
 
     protected $casts = [
         'display_order' => 'integer',
-        'page_count' => 'integer'
+        'width' => 'integer',
+        'height' => 'integer'
     ];
 
     /**
@@ -35,26 +40,44 @@ class CatalogPdf extends Model
     }
 
     /**
-     * Obtener la URL completa del PDF
+     * Obtener la URL completa de la imagen
      */
-    public function getPdfUrlAttribute()
+    public function getImageUrlAttribute()
     {
-        // Si el PDF está en la carpeta public/catalog-pdfs, usar esa ruta
-        if (strpos($this->pdf_path, 'catalog-pdfs/') === 0) {
-            return asset($this->pdf_path);
+        // Usar la URL base correcta para desarrollo
+        $baseUrl = 'http://127.0.0.1:8000';
+        
+        // Si la imagen está en la carpeta public/catalog-images, usar esa ruta
+        if (strpos($this->image_path, 'catalog-images/') === 0) {
+            return $baseUrl . '/' . $this->image_path;
         }
         // Si está en storage, usar el enlace simbólico
-        return asset('storage/' . $this->pdf_path);
+        return $baseUrl . '/storage/' . $this->image_path;
     }
 
     /**
-     * Obtener el tamaño del PDF en formato legible
+     * Obtener la URL completa del thumbnail
+     */
+    public function getThumbnailUrlAttribute()
+    {
+        if (!$this->thumbnail_path) return null;
+        
+        // Si el thumbnail está en la carpeta public/catalog-images/thumbnails, usar esa ruta
+        if (strpos($this->thumbnail_path, 'catalog-images/thumbnails/') === 0) {
+            return asset($this->thumbnail_path);
+        }
+        // Si está en storage, usar el enlace simbólico
+        return asset('storage/' . $this->thumbnail_path);
+    }
+
+    /**
+     * Obtener el tamaño de la imagen en formato legible
      */
     public function getFormattedSizeAttribute()
     {
-        if (!$this->pdf_size) return 'N/A';
+        if (!$this->image_size) return 'N/A';
         
-        $size = (int) $this->pdf_size;
+        $size = (int) $this->image_size;
         $units = ['B', 'KB', 'MB', 'GB'];
         
         for ($i = 0; $size > 1024 && $i < count($units) - 1; $i++) {
@@ -65,11 +88,29 @@ class CatalogPdf extends Model
     }
 
     /**
-     * Verificar si el PDF existe
+     * Verificar si la imagen existe
      */
-    public function pdfExists()
+    public function imageExists()
     {
-        return file_exists(storage_path('app/public/' . $this->pdf_path));
+        return file_exists(storage_path('app/public/' . $this->image_path));
+    }
+
+    /**
+     * Verificar si el thumbnail existe
+     */
+    public function thumbnailExists()
+    {
+        if (!$this->thumbnail_path) return false;
+        return file_exists(storage_path('app/public/' . $this->thumbnail_path));
+    }
+
+    /**
+     * Obtener las dimensiones de la imagen en formato string
+     */
+    public function getDimensionsAttribute()
+    {
+        if (!$this->width || !$this->height) return 'N/A';
+        return $this->width . 'x' . $this->height;
     }
 }
 
