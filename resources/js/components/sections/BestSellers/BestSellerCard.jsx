@@ -12,12 +12,12 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, rati
     if (discount && discount > 0) {
       return Math.round(discount);
     }
-    
+
     // Fallback: calcular usando originalPrice vs price
     if (originalPrice && price && originalPrice > price) {
       return Math.round(((originalPrice - price) / originalPrice) * 100);
     }
-    
+
     return 0;
   };
 
@@ -37,13 +37,13 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, rati
     <div className="best-seller-card" onClick={handleCardClick}>
       {/* Product Image Container */}
       <div className="best-seller-image-container">
-        <img 
-          src={image} 
+        <img
+          src={image}
           alt={title}
           className="best-seller-image"
           loading="lazy"
         />
-        
+
         {/* Offer badge if product has discount */}
         {hasOffer && (
           <span className="best-seller-offer-badge">
@@ -52,37 +52,34 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, rati
         )}
 
         {/* Favorite Button */}
-        <FavoriteButton 
+        {/* <FavoriteButton
           productId={id}
           productTitle={title}
           productImage={image}
           productPrice={price}
           onToggle={onFavoriteToggle}
           size="medium"
-        />
+        /> */}
       </div>
 
       {/* Product Info */}
       <div className="best-seller-info">
-        {/* Description */}
-        <p className="best-seller-description">{description}</p>
-        
         {/* Title */}
         <h3 className="best-seller-title">{title}</h3>
-        
-        {/* Rating */}
+
+        {/* Description */}
+        <p className="best-seller-description">{description}</p>
+
+        {/* Rating and Price Row */}
         <div className="best-seller-rating">
           <StarRating rating={rating} />
-        </div>
-        
-        {/* Price */}
-        <div className="best-seller-price">
-          <span className="price-label">Desde:</span>
-          <div className="best-seller-price-container">
-            {hasOffer && originalPrice && (
-              <span className="best-seller-original-price">{formatPrice(originalPrice)}</span>
-            )}
-            <span className="price-value">{formatPrice(price)}</span>
+
+          {/* Price */}
+          <div className="best-seller-price">
+            <span className="price-label">Desde:</span>
+            <div className="best-seller-price-container">
+              <span className="price-value">${price.toFixed(2)}</span>
+            </div>
           </div>
         </div>
       </div>

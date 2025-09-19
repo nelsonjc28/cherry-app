@@ -17,7 +17,8 @@ const ProductSlider = ({
   viewAllText = 'Ver Más', 
   slidesPerView = { desktop: 4, tablet: 2, mobile: 1.2 },
   showTitle = true,
-  showFavoriteButton = false
+  showFavoriteButton = false,
+  renderCard = null
 }) => {
   return (
     <div className="product-slider-container">
@@ -54,7 +55,11 @@ const ProductSlider = ({
       >
         {products.map((product) => (
           <SwiperSlide key={product.id} className="product-slide">
-            <ProductCard product={product} showFavoriteButton={showFavoriteButton} />
+            {renderCard ? (
+              renderCard(product)
+            ) : (
+              <ProductCard product={product} showFavoriteButton={showFavoriteButton} />
+            )}
           </SwiperSlide>
         ))}
       </Swiper>
