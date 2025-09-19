@@ -37,6 +37,9 @@ class ColorConverter {
       ['militar', '#4B5320'],
       ['olivo', '#808000'],
       ['tangerina', '#F28500'],
+      ['plumbago', '#593F47'],
+      ['shedron', '#D94F00'],
+      ['topo', '#8A897C'],
       
       // Variaciones de colores
       ['rojo oscuro', '#8B0000'],
