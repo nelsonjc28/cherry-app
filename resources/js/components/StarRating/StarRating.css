@@ -42,6 +42,7 @@
 .star-rating__star.no-ratings {
   color: #e0e0e0;
   opacity: 0.5;
+  font-size: 1.3rem;
 }
 
 .star-rating__star.no-ratings.filled {
@@ -88,7 +89,7 @@
 
 @media (max-width: 480px) {
   .star-rating__star.medium {
-    font-size: 14px;
+    font-size: 1.3rem;
   }
   
   .star-rating__star.large {
