@@ -33,6 +33,26 @@
   gap: 4rem;
   padding: 0;
   margin-top: 25px;
+  position: relative;
+}
+
+/* Estilo para las cards */
+.best-seller-card {
+  position: relative;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.best-seller-card:not(:nth-child(3n)) {
+  border-right: 0.1px solid #f973892c;
+  padding-right: 2rem; 
+  margin-right: -2rem; 
+}
+
+/* Asegurar que la última tarjeta de cada fila no tenga borde */
+.best-seller-card:nth-child(3n) {
+  padding-right: 0;
+  margin-right: 0;
 }
 
 .best-sellers-description {

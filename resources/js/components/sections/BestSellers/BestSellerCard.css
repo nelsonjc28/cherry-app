@@ -1,9 +1,6 @@
 /* Best Seller Card Styles */
 .best-seller-card {
-  background-color: #ffffff;
-  border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
