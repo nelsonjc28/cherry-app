@@ -11,11 +11,9 @@ api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     
-    // NO agregar token a rutas públicas
+    // NO agregar token a rutas públicas específicas
     const publicRoutes = [
-      '/catalogs',
-      '/catalogs/',
-      '/catalogs-with-images',
+      '/public/',
       '/home-catalogs',
       '/categories',
       '/products',
@@ -25,10 +23,15 @@ api.interceptors.request.use(
       '/terms-conditions'
     ];
     
-    const isPublicRoute = publicRoutes.some(route => 
-      config.url.includes(route) || 
-      (route.endsWith('/') && config.url.startsWith(route))
-    );
+    // Rutas públicas exactas (sin incluir admin)
+    const exactPublicRoutes = [
+      '/catalogs',
+      '/catalogs-with-images'
+    ];
+    
+    const isPublicRoute = publicRoutes.some(route => config.url.includes(route)) ||
+                         exactPublicRoutes.some(route => config.url === route || config.url.startsWith(route + '/')) ||
+                         (config.url.startsWith('/catalogs/') && config.url.match(/^\/catalogs\/\d+/));
     
     if (token && !isPublicRoute) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -53,7 +56,8 @@ api.interceptors.response.use(
   },
   (error) => {
     // NO redirigir automáticamente para rutas públicas
-    const isPublicRoute = error.config?.url?.includes('/catalogs') || 
+    const isPublicRoute = error.config?.url?.includes('/public/') ||
+                         (error.config?.url?.includes('/catalogs') && !error.config?.url?.includes('/admin/')) ||
                          error.config?.url?.includes('/categories') ||
                          error.config?.url?.includes('/welcome-sections') ||
                          error.config?.url?.includes('/contact-info') ||
@@ -470,9 +474,29 @@ export const publicCatalogService = {
   // Obtener todos los catálogos con imágenes para selección
   getCatalogsWithImages: async () => {
     try {
-      const response = await api.get('/catalogs-with-images', {
+      const response = await api.get('/public/catalogs-with-images', {
 
       });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Obtener grupos de imágenes de un catálogo
+  getCatalogImageGroups: async (catalogId) => {
+    try {
+      const response = await api.get(`/catalogs/${catalogId}/image-groups`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Obtener imágenes de un grupo específico
+  getImageGroupImages: async (catalogId, groupId, page = 1) => {
+    try {
+      const response = await api.get(`/catalogs/${catalogId}/image-groups/${groupId}/images?page=${page}`);
       return response;
     } catch (error) {
       throw error;
