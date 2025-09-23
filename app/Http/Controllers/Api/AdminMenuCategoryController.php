@@ -18,7 +18,6 @@ class AdminMenuCategoryController extends Controller
     {
         try {
             $menuCategories = MenuCategory::with('category')
-                ->where('is_active', true)
                 ->orderBy('order')
                 ->get()
                 ->pluck('category');
@@ -175,7 +174,6 @@ class AdminMenuCategoryController extends Controller
             $menuCategoryIds = MenuCategory::pluck('category_id');
             
             $availableCategories = Category::whereNotIn('id', $menuCategoryIds)
-                ->where('is_active', true)
                 ->get();
 
             return response()->json([

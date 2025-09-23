@@ -27,7 +27,6 @@ class PublicMenuCategoryController extends Controller
             // Obtener categorías del menú sin relaciones
             $menuCategories = DB::table('menu_categories')
                 ->join('categories', 'menu_categories.category_id', '=', 'categories.id')
-                ->where('menu_categories.is_active', true)
                 ->orderBy('menu_categories.order')
                 ->select('categories.*')
                 ->get();

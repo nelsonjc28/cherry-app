@@ -21,106 +21,6 @@
   color: var(--color-text-secondary);
 }
 
-.promociones-banner {
-  display: flex;
-  align-items: center;
-  gap: 3rem;
-  margin-bottom: 3rem;
-  padding: 2rem;
-  background: linear-gradient(135deg, var(--color-primary) 0%, #d63384 100%);
-  color: white;
-  border-radius: 1rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-}
-
-.banner-content {
-  flex: 1;
-}
-
-.banner-content h2 {
-  font-size: 2rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-}
-
-.banner-content p {
-  font-size: 1.1rem;
-  margin-bottom: 1.5rem;
-  opacity: 0.9;
-}
-
-.banner-actions {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.banner-image {
-  flex: 0 0 200px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.banner-image img {
-  width: 150px;
-  height: 150px;
-  opacity: 0.8;
-}
-
-.promociones-filtros {
-  margin-bottom: 3rem;
-}
-
-.promociones-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-}
-
-.promo-btn {
-  background: white;
-  border: 2px solid #e9ecef;
-  border-radius: 1rem;
-  padding: 1.5rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-align: left;
-}
-
-.promo-btn:hover {
-  border-color: var(--color-primary);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-.promo-btn.active {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-  color: white;
-}
-
-.promo-content h3 {
-  font-size: 1.2rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
-
-.promo-content p {
-  font-size: 0.9rem;
-  opacity: 0.8;
-  margin-bottom: 0.5rem;
-}
-
-.promo-discount {
-  display: inline-block;
-  background: var(--color-primary);
-  color: white;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
 
 .promociones-content {
   background: white;
@@ -235,26 +135,8 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-  .promociones-banner {
-    flex-direction: column;
-    text-align: center;
-    padding: 1.5rem;
-  }
-
   .promociones-header h1 {
     font-size: 2rem;
-  }
-
-  .banner-content h2 {
-    font-size: 1.5rem;
-  }
-
-  .banner-actions {
-    justify-content: center;
-  }
-
-  .promociones-grid {
-    grid-template-columns: 1fr;
   }
 
   .promociones-header-section {
