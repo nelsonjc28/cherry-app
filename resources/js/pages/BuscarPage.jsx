@@ -68,14 +68,9 @@ const BuscarPage = () => {
         console.log('🔍 BuscarPage: Datos de catálogos extraídos:', catalogsData);
         
         if (catalogsData && catalogsData.length > 0) {
-          // Filtrar catálogos activos
-          const availableCatalogs = catalogsData.filter(catalog => 
-            catalog.is_active === true || catalog.is_active === 1 || 
-            catalog.status === 'active' || catalog.status === 1 || 
-            !catalog.hasOwnProperty('is_active') && !catalog.hasOwnProperty('status')
-          );
-          console.log('🔍 BuscarPage: Catálogos disponibles:', availableCatalogs);
-          setCatalogs(availableCatalogs);
+          // Mostrar todos los catálogos sin filtrar por estado activo
+          console.log('🔍 BuscarPage: Catálogos disponibles:', catalogsData);
+          setCatalogs(catalogsData);
           
           // No establecer automáticamente un catálogo, dejar "Seleccione"
           console.log('🔍 BuscarPage: Catálogos cargados, manteniendo "Seleccione"');

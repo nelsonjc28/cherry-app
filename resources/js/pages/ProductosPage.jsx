@@ -54,12 +54,8 @@ const ProductosPage = () => {
         }
         
         if (catalogsData && catalogsData.length > 0) {
-          const availableCatalogs = catalogsData.filter(catalog => 
-            catalog.is_active === true || catalog.is_active === 1 || 
-            catalog.status === 'active' || catalog.status === 1 || 
-            !catalog.hasOwnProperty('is_active') && !catalog.hasOwnProperty('status')
-          );
-          setCatalogs(availableCatalogs);
+          // Mostrar todos los catálogos sin filtrar por estado activo
+          setCatalogs(catalogsData);
           
           // No establecer automáticamente un catálogo, dejar "Seleccione"
         } else {

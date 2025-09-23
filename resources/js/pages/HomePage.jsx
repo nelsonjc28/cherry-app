@@ -136,8 +136,6 @@ const HomePage = () => {
           <FeaturedCategories />
         </section>
 
-
-
         {/* Affiliate Section - Solo visible cuando no hay sesión activa */}
         {!user && (
           <section className="affiliate-banner" aria-labelledby="affiliate-heading">

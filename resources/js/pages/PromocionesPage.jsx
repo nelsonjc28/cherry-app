@@ -128,47 +128,6 @@ const PromocionesPage = () => {
             <p>Descubre las mejores ofertas en moda femenina</p>
           </div>
 
-          {/* Banner principal */}
-          <div className="promociones-banner">
-            <div className="banner-content">
-              <h2>¡Ofertas Especiales!</h2>
-              <p>Hasta 60% de descuento en productos seleccionados</p>
-              <div className="banner-actions">
-                <CherryButton variant="red" size="large">
-                  Ver todas las ofertas
-                </CherryButton>
-                <Link to="/catalogo">
-                  <CherryButton variant="outline" size="large">
-                    Ver catálogo completo
-                  </CherryButton>
-                </Link>
-              </div>
-            </div>
-            <div className="banner-image">
-              <img src={getIconPath('Bullhorn.svg')} alt="Promociones" />
-            </div>
-          </div>
-
-          {/* Filtros de promociones */}
-          <div className="promociones-filtros">
-            <div className="promociones-grid">
-              {promociones.map((promo) => (
-                <button
-                  key={promo.id}
-                  className={`promo-btn ${activePromo === promo.id ? 'active' : ''}`}
-                  onClick={() => handlePromoClick(promo.id)}
-                >
-                  <div className="promo-content">
-                    <h3>{promo.name}</h3>
-                    <p>{promo.description}</p>
-                    {promo.discount && (
-                      <span className="promo-discount">-{promo.discount}%</span>
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* Productos promocionales */}
           <div className="promociones-content">

@@ -138,15 +138,14 @@ export const getAllProducts = async (catalog = 'Cherry 2025 - 2026') => {
       }
     }
     
-    // Filtrar productos activos (activo: 1) y habilitados para web
-    const activeProducts = productsArray.filter(product => {
-      const isActive = product.activo === 1;
+    // Filtrar productos habilitados para web
+    const webEnabledProducts = productsArray.filter(product => {
       const isWebEnabled = product.opc_web === 'S';
       
-      return isActive && isWebEnabled;
+      return isWebEnabled;
     });
     
-    return activeProducts;
+    return webEnabledProducts;
   } catch (error) {
     console.error('❌ Error en getAllProducts:', error);
     return [];
@@ -349,7 +348,7 @@ export const getFeaturedProducts = async (limit = 8) => {
   try {
     const products = await getAllProducts();
     const featured = products
-      .filter(product => product.activo === 1 && product.inventario > 0)
+      .filter(product => product.inventario > 0)
       .slice(0, limit);
     
     // Mapear productos de forma asíncrona
@@ -381,17 +380,16 @@ export const getRandomProducts = async (limit = 5) => {
       return [];
     }
     
-    // Filtrar productos activos (activo: 1) y con stock (inventario > 0)
-    const activeProducts = products.filter(product => {
-      const isActive = product.activo === 1;
+    // Filtrar productos con stock (inventario > 0) y habilitados para web
+    const availableProducts = products.filter(product => {
       const hasStock = product.inventario > 0;
       const isWebEnabled = product.opc_web === 'S';
       
-      return isActive && hasStock && isWebEnabled;
+      return hasStock && isWebEnabled;
     });
     
-    if (activeProducts.length === 0) {
-      // Si no hay productos activos, usar productos con stock
+    if (availableProducts.length === 0) {
+      // Si no hay productos disponibles, usar productos con stock
       const productsWithStock = products.filter(product => product.inventario > 0);
       
       if (productsWithStock.length === 0) {
@@ -414,7 +412,7 @@ export const getRandomProducts = async (limit = 5) => {
     }
     
     // Mezclar el array de productos para obtener una selección aleatoria
-    const shuffled = activeProducts.sort(() => 0.5 - Math.random());
+    const shuffled = availableProducts.sort(() => 0.5 - Math.random());
     
     // Tomar solo los primeros 'limit' productos
     const selectedProducts = shuffled.slice(0, limit);
@@ -503,26 +501,30 @@ export const getPromoProducts = async (limit = 5) => {
       return [];
     }
     
-    // Filtrar productos habilitados para web y con stock
+    // Filtrar productos habilitados para web, con stock y EN PROMOCIÓN
     const activeProducts = products.filter(product => {
       const hasStock = product.inventario > 0;
       const isWebEnabled = product.opc_web === 'S';
+      const isInPromo = (product.desc_promo > 0) || (product.opc_promo === 'S');
       
-      return hasStock && isWebEnabled;
+      return hasStock && isWebEnabled && isInPromo;
     });
     
     if (activeProducts.length === 0) {
-      const productsWithStock = products.filter(product => product.inventario > 0);
-      
-      if (productsWithStock.length === 0) {
-        const shuffled = products.sort(() => 0.5 - Math.random());
-        const selectedProducts = shuffled.slice(0, limit);
+      // Si no hay productos en promoción con stock, buscar productos en promoción sin stock
+      const promoProductsNoStock = products.filter(product => {
+        const isWebEnabled = product.opc_web === 'S';
+        const isInPromo = (product.desc_promo > 0) || (product.opc_promo === 'S');
         
-        const promoProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
-        return promoProducts.filter(p => p !== null);
+        return isWebEnabled && isInPromo;
+      });
+      
+      if (promoProductsNoStock.length === 0) {
+        // Si no hay productos en promoción, devolver array vacío
+        return [];
       }
       
-      const shuffled = productsWithStock.sort(() => 0.5 - Math.random());
+      const shuffled = promoProductsNoStock.sort(() => 0.5 - Math.random());
       const selectedProducts = shuffled.slice(0, limit);
       
       const promoProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
@@ -639,16 +641,15 @@ export const getProductsByCategory = async (category, catalog = 'Cherry 2025 - 2
       });
     }
     
-    // Filtrar productos activos (activo: 1) y habilitados para web antes del mapeo
-    const activeProducts = filteredRawProducts.filter(product => {
-      const isActive = product.activo === 1;
+    // Filtrar productos habilitados para web antes del mapeo
+    const webEnabledProducts = filteredRawProducts.filter(product => {
       const isWebEnabled = product.opc_web === 'S';
       
-      return isActive && isWebEnabled;
+      return isWebEnabled;
     });
     
     // Mapear los productos filtrados al formato de la app de forma asíncrona
-    const mappedProducts = await Promise.all(activeProducts.map(mapApiProductToAppProduct));
+    const mappedProducts = await Promise.all(webEnabledProducts.map(mapApiProductToAppProduct));
     
     return mappedProducts.filter(p => p !== null);
   } catch (error) {

@@ -48,6 +48,7 @@ import Header from './Header/Header';
 import Footer from './Footer/Footer';
 import AdminRoute from './AdminRoute';
 import CustomToastContainer from './Toast/ToastContainer';
+import ScrollToTop from './ScrollToTop/ScrollToTop';
 
 // PWA Components
 import PWAInstallToast from './PWAInstaller/PWAInstallToast';
@@ -59,6 +60,7 @@ const SimpleApp = () => {
     <HelmetProvider>
       <FavoritesProvider>
         <Router>
+          <ScrollToTop />
           <ExternalApiProvider>
             <div className="App app-container">
               <Header />

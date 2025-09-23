@@ -307,6 +307,22 @@ const Header = () => {
     }
   };
 
+  // Función para manejar clic en categorías del menú desplegable
+  const handleCategoryClick = (categoryName) => {
+    // Establecer el término de búsqueda con el nombre de la categoría
+    setSearchTerm(categoryName);
+    
+    // Cerrar el menú desplegable
+    setActiveMenu(null);
+    
+    // Ejecutar la búsqueda automáticamente después de un breve delay
+    setTimeout(() => {
+      const searchParams = new URLSearchParams();
+      searchParams.set('q', categoryName);
+      navigate(`/buscar?${searchParams.toString()}`);
+    }, 150);
+  };
+
   // Cargar usuario al montar si hay token
   useEffect(() => {
     if (!user && localStorage.getItem('token')) fetchUser();
@@ -630,7 +646,12 @@ const Header = () => {
                         <ul className="column-items">
                           {column.items.map((item, itemIndex) => (
                             <li key={itemIndex}>
-                              <Link to={item.link}>{item.name}</Link>
+                              <Link 
+                                to={item.link}
+                                onClick={() => handleCategoryClick(item.name)}
+                              >
+                                {item.name}
+                              </Link>
                             </li>
                           ))}
                         </ul>
