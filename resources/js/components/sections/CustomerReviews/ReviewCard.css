@@ -38,7 +38,7 @@
 /* Rating Stars Styles */
 .rating {
   color: #ffb22d;
-  font-size: 1.4rem;
+  font-size: 1.9rem;
   margin-bottom: 6px;
   letter-spacing: 1px;
   position: relative;
@@ -81,10 +81,6 @@
   
   .reviewer {
     font-size: 1.05rem;
-  }
-  
-  .rating {
-    font-size: 1.3rem;
   }
   
   .review-text {
