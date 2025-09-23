@@ -13,6 +13,8 @@ import CatalogOffersModule from '../components/AdminCatalogManager/CatalogOffers
 import AdminCategoryManager from '../components/AdminCategoryManager/AdminCategoryManager';
 import AdminMenuCategoryOrderManager from '../components/AdminMenuCategoryOrderManager/AdminMenuCategoryOrderManager';
 import AdminHomeCatalogManager from '../components/AdminHomeCatalogManager/AdminHomeCatalogManager';
+import AdminOrders from './admin/AdminOrders';
+import AdminDashboard from './admin/AdminDashboard';
 
 import useUserStore from '../store/userStore';
 import '../index.css';
@@ -45,6 +47,7 @@ function AdminPanelPage() {
     '/admin/secciones-bienvenida': 'welcome-sections',
     '/admin/catalogos-home': 'home-catalogs',
     '/admin/catalogos': 'catalogs',
+    '/admin/ordenes': 'orders',
     '/admin/contacto': 'contact-info',
     '/admin/privacidad': 'privacy-policy',
     '/admin/descuentos': 'discounts'
@@ -61,6 +64,7 @@ function AdminPanelPage() {
     'welcome-sections': '/admin/secciones-bienvenida',
     'home-catalogs': '/admin/catalogos-home',
     'catalogs': '/admin/catalogos',
+    'orders': '/admin/ordenes',
     'contact-info': '/admin/contacto',
     'privacy-policy': '/admin/privacidad',
     'discounts': '/admin/descuentos'
@@ -137,87 +141,53 @@ function AdminPanelPage() {
           <button className={`admin-panel__sidebar-link${selectedMenu==='welcome-sections'?' active':''}`} onClick={()=>handleMenuChange('welcome-sections')}>Secciones de Bienvenida</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='home-catalogs'?' active':''}`} onClick={()=>handleMenuChange('home-catalogs')}>Catálogos del Home</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='catalogs'?' active':''}`} onClick={()=>handleMenuChange('catalogs')}>Catálogos</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='orders'?' active':''}`} onClick={()=>handleMenuChange('orders')}>Gestión de Órdenes</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='contact-info'?' active':''}`} onClick={()=>handleMenuChange('contact-info')}>Información de Contacto</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='privacy-policy'?' active':''}`} onClick={()=>handleMenuChange('privacy-policy')}>Políticas de Privacidad</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='discounts'?' active':''}`} onClick={()=>handleMenuChange('discounts')}>Descuentos</button>
           <button className="admin-panel__sidebar-link" onClick={handleLogout}>Volver al sitio</button>
         </nav>
       </aside>
-      <main className="admin-panel__main-content">
+      <main className={`admin-panel__main-content ${selectedMenu === 'home' && isAdmin() ? 'admin-panel__main-content--dashboard' : ''}`}>
         {selectedMenu === 'home' && (
           <section>
-            <h2 className="section-title mb-3">
-              {isAdmin() ? 'Panel de Administración' : 'Dashboard de Usuario'}
-            </h2>
-            <div className="admin-panel__welcome mb-4">
-              <h3>Bienvenido, {user?.first_name}!</h3>
-              <p>Rol: {user?.role?.name === 'admin' ? 'Administrador' : 'Cliente'}</p>
-              <p>Email: {user?.email}</p>
-            </div>
-            
             {isAdmin() ? (
-              // Contenido para administradores
-              <>
-                <div className="admin-panel__crud-list">
-                  {homeData.map(item => (
-                    <div key={item.id} className="admin-panel__crud-item d-flex justify-content-between align-items-center mb-2 p-2">
-                      <div>
-                        <div className="fw-bold">{item.title}</div>
-                        <div className="fs-sm text-secondary">Estado: {item.status}</div>
-                      </div>
-                      <div className="d-flex align-items-center">
-                        <CherryButton size="small" variant="outline" onClick={()=>{
-                          if (window.showToast) {
-                            window.showToast('Función de editar no implementada', 'warning');
-                          }
-                        }}>Editar</CherryButton>
-                        <CherryButton size="small" variant="red" onClick={()=>handleDelete(item.id)}>Eliminar</CherryButton>
-                      </div>
-                    </div>
-                  ))}
-                  {homeData.length === 0 && <div className="text-center text-secondary py-3">No hay elementos.</div>}
-                </div>
-                <div className="mt-3">
-                  <CherryButton 
-                    size="medium" 
-                    variant="red" 
-                    className="admin-panel__add-section-btn"
-                    onClick={()=>{
-                      if (window.showToast) {
-                        window.showToast('Función de crear nueva sección no implementada', 'warning');
-                      }
-                    }}
-                  >
-                    Agregar sección
-                  </CherryButton>
-                </div>
-              </>
+              // Dashboard con gráficas para administradores
+              <AdminDashboard />
             ) : (
               // Contenido para clientes
-              <div className="admin-panel__client-content">
-                <div className="admin-panel__stats-grid">
-                  <div className="admin-panel__stat-card">
-                    <h4>Mis Pedidos</h4>
-                    <p className="stat-number">0</p>
-                    <p className="stat-label">Pedidos realizados</p>
+              <>
+                <h2 className="section-title mb-3">Dashboard de Usuario</h2>
+                <div className="admin-panel__welcome mb-4">
+                  <h3>Bienvenido, {user?.first_name}!</h3>
+                  <p>Rol: {user?.role?.name === 'admin' ? 'Administrador' : 'Cliente'}</p>
+                  <p>Email: {user?.email}</p>
+                </div>
+                <div className="admin-panel__client-content">
+                  <div className="admin-panel__stats-grid">
+                    <div className="admin-panel__stat-card">
+                      <h4>Mis Pedidos</h4>
+                      <p className="stat-number">0</p>
+                      <p className="stat-label">Pedidos realizados</p>
+                    </div>
+                    <div className="admin-panel__stat-card">
+                      <h4>Favoritos</h4>
+                      <p className="stat-number">0</p>
+                      <p className="stat-label">Productos favoritos</p>
+                    </div>
+                    <div className="admin-panel__stat-card">
+                      <h4>Última Visita</h4>
+                      <p className="stat-number">Hoy</p>
+                      <p className="stat-label">Actividad reciente</p>
+                    </div>
                   </div>
-                  <div className="admin-panel__stat-card">
-                    <h4>Favoritos</h4>
-                    <p className="stat-number">0</p>
-                    <p className="stat-label">Productos favoritos</p>
-                  </div>
-                  <div className="admin-panel__stat-card">
-                    <h4>Última Visita</h4>
-                    <p className="stat-number">Hoy</p>
-                    <p className="stat-label">Actividad reciente</p>
+                  <div className="mt-4">
+                    <CherryButton size="medium" variant="red" onClick={() => navigate('/')}>
+                      Ir al Catálogo
+                    </CherryButton>
                   </div>
                 </div>
-                <div className="mt-4">
-                  <CherryButton size="medium" variant="red" onClick={() => navigate('/')}>
-                    Ir al Catálogo
-                  </CherryButton>
-                </div>
-              </div>
+              </>
             )}
           </section>
         )}
@@ -267,6 +237,12 @@ function AdminPanelPage() {
         {selectedMenu === 'catalogs' && isAdmin() && (
           <section>
             <AdminCatalogManager />
+          </section>
+        )}
+
+        {selectedMenu === 'orders' && isAdmin() && (
+          <section>
+            <AdminOrders />
           </section>
         )}
 

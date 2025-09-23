@@ -33,6 +33,7 @@ import ProductosPage from '../pages/ProductosPage';
 import DestacadosOfertasPage from '../pages/DestacadosOfertasPage';
 import FavoritosPage from '../pages/FavoritosPage';
 import AdminPanelPage from '../pages/AdminPanelPage';
+import ReviewFormPage from '../pages/ReviewFormPage';
 
 // Profile pages
 import ProfileLayout from '../pages/profile/ProfileLayout';
@@ -113,6 +114,9 @@ const SimpleApp = () => {
                   <Route path="/productos" element={<ProductosPage />} />
                   <Route path="/destacados-ofertas" element={<DestacadosOfertasPage />} />
                   <Route path="/favoritos" element={<FavoritosPage />} />
+                  
+                  {/* Review routes */}
+                  <Route path="/escribir-resena/:orderId/:productId" element={<ReviewFormPage />} />
                   
                   {/* Admin routes */}
                   <Route path="/admin/*" element={

@@ -67,7 +67,19 @@ class ProfileController extends Controller
             ];
             
             $monthIndex = array_search($request->birth_month, $months);
-            $birthDate = \Carbon\Carbon::createFromDate($request->birth_year, $monthIndex + 1, $request->birth_day);
+            
+            // Validar que el mes sea válido y convertir valores a enteros
+            if ($monthIndex === false) {
+                return response()->json([
+                    'message' => 'Mes de nacimiento inválido'
+                ], 422);
+            }
+            
+            $year = (int) $request->birth_year;
+            $month = (int) ($monthIndex + 1);
+            $day = (int) $request->birth_day;
+            
+            $birthDate = \Carbon\Carbon::createFromDate($year, $month, $day);
             $age = $birthDate->age;
             
             if ($age < 18) {

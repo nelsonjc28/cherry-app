@@ -1,0 +1,132 @@
+/* Personalización completa de calendarios - Color rojo de la plataforma */
+
+/* IMPORTANTE: Estos estilos intentan personalizar los elementos internos del calendario del navegador */
+/* Algunos navegadores limitan la personalización por seguridad, pero intentamos todas las aproximaciones */
+
+/* Accent color - La propiedad más efectiva para personalizar calendarios */
+input[type="date"] {
+  accent-color: #EA2630 !important;
+  -webkit-accent-color: #EA2630 !important;
+  -moz-accent-color: #EA2630 !important;
+  -ms-accent-color: #EA2630 !important;
+}
+
+/* Personalización específica por navegador */
+
+/* Chrome, Safari, Edge (WebKit) */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  background-color: #EA2630 !important;
+  color: white !important;
+  border-radius: 3px !important;
+  padding: 2px !important;
+  cursor: pointer !important;
+}
+
+/* Firefox */
+input[type="date"]::-moz-calendar-picker-indicator {
+  background-color: #EA2630 !important;
+  color: white !important;
+  border-radius: 3px !important;
+  padding: 2px !important;
+  cursor: pointer !important;
+}
+
+/* Personalización avanzada para WebKit */
+input[type="date"]::-webkit-datetime-edit {
+  color: inherit;
+}
+
+input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+  background: transparent;
+}
+
+input[type="date"]::-webkit-datetime-edit-text {
+  color: inherit;
+  padding: 0 1px;
+}
+
+input[type="date"]::-webkit-datetime-edit-month-field,
+input[type="date"]::-webkit-datetime-edit-day-field,
+input[type="date"]::-webkit-datetime-edit-year-field {
+  color: inherit;
+}
+
+/* Estados de focus y hover */
+input[type="date"]:focus {
+  accent-color: #EA2630 !important;
+}
+
+input[type="date"]:hover {
+  accent-color: #EA2630 !important;
+}
+
+/* Personalización del icono del calendario */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3e%3cpath d='M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z'/%3e%3c/svg%3e") !important;
+  background-size: 14px 14px !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-color: #EA2630 !important;
+  border-radius: 3px !important;
+  width: 20px !important;
+  height: 20px !important;
+  padding: 3px !important;
+  margin-left: 4px !important;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  background-color: #d11e28 !important;
+  opacity: 1 !important;
+}
+
+/* Variables CSS para navegadores que las soporten */
+input[type="date"] {
+  --calendar-selected-bg: #EA2630;
+  --calendar-selected-color: white;
+  --calendar-button-bg: #EA2630;
+  --calendar-button-color: white;
+  --calendar-today-bg: #EA2630;
+  --calendar-today-color: white;
+  --calendar-hover-bg: #d11e28;
+  --calendar-hover-color: white;
+}
+
+/* Intento de personalización del popup del calendario */
+/* Nota: Estos selectores pueden no funcionar en todos los navegadores debido al Shadow DOM */
+input[type="date"]::-webkit-calendar-picker-indicator::before {
+  background-color: #EA2630 !important;
+}
+
+/* Para navegadores que soporten estas propiedades experimentales */
+@supports (accent-color: #EA2630) {
+  input[type="date"] {
+    accent-color: #EA2630 !important;
+  }
+}
+
+/* Media query para modo oscuro */
+@media (prefers-color-scheme: dark) {
+  input[type="date"] {
+    accent-color: #EA2630 !important;
+    color-scheme: dark;
+  }
+  
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    background-color: #EA2630 !important;
+    filter: brightness(1.1);
+  }
+}
+
+/* Personalización específica para diferentes clases */
+.date-input,
+.date-field,
+input[type="date"][class*="date"] {
+  accent-color: #EA2630 !important;
+}
+
+.date-input::-webkit-calendar-picker-indicator,
+.date-field::-webkit-calendar-picker-indicator,
+input[type="date"][class*="date"]::-webkit-calendar-picker-indicator {
+  background-color: #EA2630 !important;
+  color: white !important;
+}
