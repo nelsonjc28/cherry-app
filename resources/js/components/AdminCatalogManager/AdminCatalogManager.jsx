@@ -418,6 +418,9 @@ const AdminCatalogManager = () => {
             <div className="admin-catalog-manager__form-group">
               <label htmlFor="image">
                 Imagen {!editingCatalog && '*'}
+                <span className="image-dimensions-hint">
+                  (Tamaño recomendado: 305 × 407 píxeles)
+                </span>
               </label>
               <input
                 type="file"
