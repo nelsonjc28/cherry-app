@@ -10,8 +10,6 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    console.log('🔍 Interceptor ejecutado para:', config.url);
-    console.log('🎫 Token en localStorage:', token ? `${token.substring(0, 20)}...` : 'NULL');
     
     // NO agregar token a rutas públicas específicas
     const publicRoutes = [
@@ -50,28 +48,9 @@ api.interceptors.request.use(
     
     const isPublicRoute = isBasicPublicRoute || isExactPublicRoute || isPublicCatalogRoute;
     
-    // Debug detallado
-    console.log('🔍 Analizando ruta:', {
-      url: config.url,
-      method: config.method,
-      isBasicPublicRoute,
-      isExactPublicRoute,
-      isPublicCatalogRoute,
-      isPublicRoute,
-      exactRouteChecks: exactPublicRoutes.map(route => ({
-        route,
-        exactMatch: config.url === route,
-        startsWithOld: config.url.startsWith(route + '/')
-      }))
-    });
     
     if (token && !isPublicRoute) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('🔐 Token agregado a la petición:', config.url);
-    } else if (!token) {
-      console.log('⚠️ No hay token disponible para:', config.url);
-    } else if (isPublicRoute) {
-      console.log('🌍 Ruta pública, no se requiere token:', config.url);
     }
 
     // NO establecer Content-Type si es FormData
@@ -543,16 +522,9 @@ export const publicCatalogService = {
   // Crear un nuevo grupo de imágenes
   createImageGroup: async (catalogId, groupData) => {
     try {
-      console.log('🌐 API Service: Enviando petición POST');
-      console.log('📍 URL:', `/catalogs/${catalogId}/image-groups`);
-      console.log('📦 Datos:', groupData);
-      
       const response = await api.post(`/catalogs/${catalogId}/image-groups`, groupData);
-      
-      console.log('📨 API Service: Respuesta recibida:', response);
       return response;
     } catch (error) {
-      console.error('💥 API Service: Error en petición:', error);
       throw error;
     }
   },

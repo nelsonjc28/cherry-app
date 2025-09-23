@@ -53,15 +53,12 @@ class CatalogPdf extends Model
      */
     public function getImageUrlAttribute()
     {
-        // Usar la URL base correcta para desarrollo
-        $baseUrl = 'http://127.0.0.1:8000';
-        
         // Si la imagen está en la carpeta public/catalog-images, usar esa ruta
         if (strpos($this->image_path, 'catalog-images/') === 0) {
-            return $baseUrl . '/' . $this->image_path;
+            return asset($this->image_path);
         }
         // Si está en storage, usar el enlace simbólico
-        return $baseUrl . '/storage/' . $this->image_path;
+        return asset('storage/' . $this->image_path);
     }
 
     /**

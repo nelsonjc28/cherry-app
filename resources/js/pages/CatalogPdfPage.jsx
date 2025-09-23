@@ -718,7 +718,7 @@ const CatalogPdfPage = () => {
                         className="catalog-pdf__image-wrapper"
                       >
                          <img
-                           src={image.image_url || image.thumbnail_url || `http://127.0.0.1:8000/${image.image_path}`}
+                           src={image.image_url || image.thumbnail_url || `${window.location.origin}/${image.image_path}`}
                            alt={image.image_alt || image.image_name || selectedCatalog?.name + ' página ' + (index + 1)}
                            className={`catalog-pdf__image ${getImageOrientation(index)}`}
                            onLoad={(e) => handleImageLoad(e, index)}

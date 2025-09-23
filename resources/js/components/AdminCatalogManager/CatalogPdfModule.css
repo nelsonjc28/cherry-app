@@ -309,11 +309,11 @@
 }
 
 .catalog-pdf-module__add-btn {
-  background: #dc3545;
+  background: var(--color-primary, #EA2630);
 }
 
 .catalog-pdf-module__add-btn:hover:not(:disabled) {
-  background: #c82333;
+  background: #c21828;
 }
 
 .catalog-pdf-module__add-btn.disabled {
@@ -647,12 +647,14 @@
 }
 
 .catalog-pdf-module__group-form .btn-primary {
-  background: #007bff;
+  background: var(--color-primary, #EA2630);
   color: white;
 }
 
 .catalog-pdf-module__group-form .btn-primary:hover {
-  background: #0056b3;
+  background: #c21828;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(234, 38, 48, 0.3);
 }
 
 .catalog-pdf-module__group-form .btn-secondary {
@@ -778,7 +780,7 @@
 /* Estilos para el botón de crear nuevo grupo */
 .catalog-pdf-module__actions .catalog-pdf-module__add-btn,
 .catalog-pdf-module__add-btn {
-  background: #dc3545 !important;
+  background: var(--color-primary, #EA2630) !important;
   color: white !important;
   border: none !important;
   padding: 12px 20px !important;
@@ -795,9 +797,9 @@
 
 .catalog-pdf-module__actions .catalog-pdf-module__add-btn:hover,
 .catalog-pdf-module__add-btn:hover {
-  background: #c82333 !important;
+  background: #c21828 !important;
   transform: translateY(-1px) !important;
-  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3) !important;
+  box-shadow: 0 4px 12px rgba(234, 38, 48, 0.3) !important;
 }
 
 .catalog-pdf-module__loading {

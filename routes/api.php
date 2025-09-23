@@ -258,13 +258,4 @@ Route::get('/catalogs/{catalogId}/image-groups/{groupId}/images', [AdminCatalogC
 // Admin routes for image groups (authentication required)
 Route::middleware(['auth:api'])->group(function () {
     Route::post('/catalogs/{catalogId}/image-groups', [AdminCatalogController::class, 'createImageGroup']);
-    
-    // Debug route to check current user
-    Route::get('/debug/user', function () {
-        return response()->json([
-            'success' => true,
-            'user' => auth()->user(),
-            'token_valid' => auth()->check()
-        ]);
-    });
 }); 
