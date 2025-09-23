@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useCartStore from '../store/cartStore';
+import api from '../config/axios';
 import './CartDetailsPage.css';
 import CartDetailsProductCard from '../components/CartDetailsProductCard';
 import CartOrderSummary from '../components/CartOrderSummary/CartOrderSummary';
@@ -21,6 +22,9 @@ const CartDetailsPage = () => {
 
   // State for selected address
   const [selectedAddress, setSelectedAddress] = useState(null);
+  
+  // State for selected payment card
+  const [selectedPaymentCard, setSelectedPaymentCard] = useState(null);
 
   // Initialize cart from localStorage
   useEffect(() => {
@@ -122,15 +126,118 @@ const CartDetailsPage = () => {
     setSelectedAddress(address);
   };
 
-  // Handle generate order
-  const handleGenerateOrder = () => {
+  // Handle generate order with MercadoPago
+  const handleGenerateOrder = async () => {
     if (!selectedAddress) {
       if (window.showToast) {
         window.showToast('Por favor selecciona una dirección de entrega', 'warning');
       }
       return;
     }
-    navigate('/compra-exitosa');
+
+    if (cartItems.length === 0) {
+      if (window.showToast) {
+        window.showToast('No hay productos en el carrito', 'warning');
+      }
+      return;
+    }
+
+    try {
+      // Mostrar loading
+      if (window.showToast) {
+        window.showToast('Creando preferencia de pago...', 'info');
+      }
+
+      // Preparar datos para MercadoPago
+      const paymentData = {
+        items: cartItems.map(item => {
+          const mappedItem = {
+            product_id: item.id_articulo || item.product_id || item.id,
+            name: item.title || item.name,
+            quantity: item.quantity,
+            price: item.precio || item.price
+          };
+          
+          // Debug: verificar que todos los campos requeridos estén presentes
+          if (!mappedItem.product_id) {
+            console.error('Item sin product_id:', item);
+          }
+          
+          return mappedItem;
+        }),
+        address_id: selectedAddress.id,
+        total_amount: totalPrice
+      };
+
+      console.log('Datos de pago preparados:', paymentData);
+
+      const response = await api.post('/payment/create-preference', paymentData);
+
+      if (response.data.success) {
+        const { data } = response.data;
+        
+        if (window.showToast) {
+          window.showToast('¡Redirigiendo a MercadoPago!', 'success');
+        }
+
+        // Guardar información del pedido en localStorage para cuando regrese
+        localStorage.setItem('pending_order', JSON.stringify({
+          orderId: data.order_id,
+          externalReference: data.external_reference,
+          totalAmount: totalPrice
+        }));
+
+        // Redirigir a MercadoPago
+        setTimeout(() => {
+          window.location.href = data.init_point || data.sandbox_init_point || data.payment_url;
+        }, 1500);
+        
+      } else {
+        throw new Error(response.data.message || 'Error al crear la preferencia de pago');
+      }
+
+    } catch (error) {
+      console.error('Error creating payment preference:', error);
+      
+      const errorMessage = error.response?.data?.message || error.message || 'Error al procesar el pago';
+      
+      if (window.showToast) {
+        window.showToast(errorMessage, 'error');
+      }
+    }
+  };
+
+  // Handle integrated payment success
+  const handleIntegratedPaymentSuccess = (paymentData) => {
+    console.log('Pago integrado exitoso:', paymentData);
+    
+    // Limpiar carrito
+    clearCart();
+    
+    // Mostrar mensaje de éxito
+    if (window.showToast) {
+      window.showToast('¡Pago procesado exitosamente!', 'success');
+    }
+    
+    // Redirigir a página de éxito
+    setTimeout(() => {
+      navigate('/compra-exitosa', { 
+        state: { 
+          paymentData,
+          orderInfo: {
+            items: cartItems,
+            total: totalPrice,
+            address: selectedAddress
+          }
+        }
+      });
+    }, 1500);
+  };
+
+  // Handle integrated payment error
+  const handleIntegratedPaymentError = (error) => {
+    console.error('Error en pago integrado:', error);
+    // El error ya se maneja en el componente IntegratedCheckout
   };
 
   // Order summary data
@@ -140,9 +247,9 @@ const CartDetailsPage = () => {
     discount1: 0,
     discount2: 0,
     pieces: totalItems,
-    subtotal: totalPrice.toFixed(2),
+    subtotal: (totalPrice && typeof totalPrice === 'number') ? totalPrice.toFixed(2) : '0.00',
     discountTotal: '0.00',
-    total: totalPrice.toFixed(2),
+    total: (totalPrice && typeof totalPrice === 'number') ? totalPrice.toFixed(2) : '0.00',
     selectedAddress: selectedAddress,
     onGenerateOrder: handleGenerateOrder,
     onClearCart: handleClearCart
@@ -191,7 +298,17 @@ const CartDetailsPage = () => {
               onAddressChange={handleAddressChange}
               className="cart-details__address-selector"
             />
-            <CartOrderSummary {...orderSummary} />
+            
+            {/* Resumen de la orden con formulario integrado */}
+            <CartOrderSummary 
+              {...orderSummary}
+              cartItems={cartItems}
+              selectedAddress={selectedAddress}
+              selectedPaymentCard={selectedPaymentCard}
+              onPaymentCardChange={setSelectedPaymentCard}
+              onIntegratedPaymentSuccess={handleIntegratedPaymentSuccess}
+              onIntegratedPaymentError={handleIntegratedPaymentError}
+            />
           </div>
         </div>
       )}

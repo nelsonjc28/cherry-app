@@ -2,6 +2,7 @@ body, .cart-details__container {
   background: var(--color-background-light);
 }
 
+
 .cart-details__container {
   min-height: 100vh;
   padding: 15px 20px;

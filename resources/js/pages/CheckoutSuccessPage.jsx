@@ -1,10 +1,23 @@
 import CustomButton from '../components/CustomButton';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import './CheckoutSuccessPage.css';
 import { getIconPath } from '../utils/assetPaths';
 
 export default function CheckoutSuccessPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Obtener datos del pago desde el state de navegación
+  const orderData = location.state?.orderData;
+  const paymentStatus = location.state?.paymentStatus;
+
+  useEffect(() => {
+    // Si no hay datos del pedido, redirigir al inicio
+    if (!orderData) {
+      navigate('/', { replace: true });
+    }
+  }, [orderData, navigate]);
 
   return (
     <div className="container checkout-success-page">

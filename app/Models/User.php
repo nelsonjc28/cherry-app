@@ -7,7 +7,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Address> $addresses
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\PaymentCard> $paymentCards
+ * @property-read \App\Models\Address|null $defaultAddress
+ * @property-read \App\Models\PaymentCard|null $defaultPaymentCard
+ */
 class User extends Authenticatable implements JWTSubject
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
@@ -104,7 +111,7 @@ class User extends Authenticatable implements JWTSubject
     /**
      * Get the addresses for the user.
      */
-    public function addresses()
+    public function addresses(): HasMany
     {
         return $this->hasMany(Address::class);
     }
@@ -120,7 +127,7 @@ class User extends Authenticatable implements JWTSubject
     /**
      * Get the payment cards for the user.
      */
-    public function paymentCards()
+    public function paymentCards(): HasMany
     {
         return $this->hasMany(PaymentCard::class);
     }

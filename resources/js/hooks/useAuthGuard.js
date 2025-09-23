@@ -23,17 +23,30 @@ const useAuthGuard = (requireAuth = true, redirectTo = '/login') => {
     try {
       // Verificar si el token no ha expirado (JWT básico)
       const tokenData = JSON.parse(atob(token.split('.')[1]));
-      const currentTime = Date.now() / 1000;
+      const currentTime = Math.floor(Date.now() / 1000);
       
-      if (tokenData.exp && tokenData.exp < currentTime) {
-        // Token expirado
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        return false;
+      // Agregar un margen de 5 minutos para evitar expiración prematura por diferencias de tiempo
+      const expirationBuffer = 5 * 60; // 5 minutos en segundos
+      
+      if (tokenData.exp && (tokenData.exp - expirationBuffer) < currentTime) {
+        console.log('Token expirará pronto o ya expiró:', {
+          exp: tokenData.exp,
+          current: currentTime,
+          expiresIn: tokenData.exp - currentTime,
+          expiresInMinutes: Math.floor((tokenData.exp - currentTime) / 60)
+        });
+        
+        // Solo eliminar si realmente ha expirado (sin buffer)
+        if (tokenData.exp < currentTime) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          return false;
+        }
       }
       
       return true;
     } catch (error) {
+
       // Error al parsear el token, considerarlo inválido
       localStorage.removeItem('token');
       localStorage.removeItem('user');
@@ -93,14 +106,14 @@ const useAuthGuard = (requireAuth = true, redirectTo = '/login') => {
         }
       } catch (error) {
         // Si hay error de red, mantener la sesión local
-        console.warn('Error al verificar autenticación con el servidor:', error);
+
       }
     };
 
     checkAuth();
 
-    // Verificar autenticación cada 5 minutos
-    const interval = setInterval(checkAuth, 5 * 60 * 1000);
+    // Verificar autenticación cada 24 horas (para sesiones de 30 días)
+    const interval = setInterval(checkAuth, 24 * 60 * 60 * 1000);
 
     return () => clearInterval(interval);
   }, [requireAuth, isAuthenticated, checkServerAuth, redirectToLogin]);
@@ -130,7 +143,7 @@ const useAuthGuard = (requireAuth = true, redirectTo = '/login') => {
       }
       return false;
     } catch (error) {
-      console.error('Error al extender la sesión:', error);
+
       return false;
     }
   }, []);

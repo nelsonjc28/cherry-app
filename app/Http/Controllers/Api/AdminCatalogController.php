@@ -848,7 +848,6 @@ class AdminCatalogController extends Controller
                 'data' => $catalogs
             ]);
         } catch (\Exception $e) {
-            Log::error('Error en getCatalogsWithImages: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener catálogos: ' . $e->getMessage()
@@ -1029,7 +1028,6 @@ class AdminCatalogController extends Controller
 
             return $success;
         } catch (\Exception $e) {
-            Log::warning("Error al crear thumbnail: " . $e->getMessage());
             return false;
         }
     }

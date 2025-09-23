@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\PaymentCard;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 
@@ -80,7 +81,7 @@ class TestUserSeeder extends Seeder
         ];
 
         foreach ($clienteUsers as $userData) {
-            User::updateOrCreate(
+            $user = User::updateOrCreate(
                 [ 'email' => $userData['email'] ],
                 [
                     'first_name' => $userData['first_name'],
@@ -91,6 +92,43 @@ class TestUserSeeder extends Seeder
                     'role_id' => 2, // cliente role
                 ]
             );
+
+            // Agregar tarjeta de prueba para el primer usuario
+            if ($userData['email'] === 'cliente@cherrycentral.com') {
+                PaymentCard::updateOrCreate(
+                    ['user_id' => $user->id, 'last_four' => '1111'],
+                    [
+                        'cardholder_name' => 'JUAN PEREZ TEST',
+                        'card_number' => '4111111111111111',
+                        'expiry_month' => '12',
+                        'expiry_year' => '2025',
+                        'cvv' => '123',
+                        'brand' => 'visa',
+                        'first_two' => '41',
+                        'last_four' => '1111',
+                        'card_type' => 'credit',
+                        'is_default' => true,
+                        'is_active' => true
+                    ]
+                );
+
+                PaymentCard::updateOrCreate(
+                    ['user_id' => $user->id, 'last_four' => '4242'],
+                    [
+                        'cardholder_name' => 'MARIA GARCIA',
+                        'card_number' => '4242424242424242',
+                        'expiry_month' => '06',
+                        'expiry_year' => '2026',
+                        'cvv' => '456',
+                        'brand' => 'visa',
+                        'first_two' => '42',
+                        'last_four' => '4242',
+                        'card_type' => 'credit',
+                        'is_default' => false,
+                        'is_active' => true
+                    ]
+                );
+            }
         }
     }
 }

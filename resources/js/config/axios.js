@@ -3,7 +3,7 @@ import axios from 'axios';
 // Crear instancia de axios con configuración base
 const api = axios.create({
   baseURL: '/api',
-  timeout: 5000, // Reducido de 10s a 5s para respuestas más rápidas
+  timeout: 15000, // Aumentado a 15s para evitar timeouts
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'

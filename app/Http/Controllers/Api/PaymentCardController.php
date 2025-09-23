@@ -29,7 +29,10 @@ class PaymentCardController extends Controller
                     'card_type' => $card->card_type,
                     'card_type_display_name' => $card->card_type_display_name,
                     'masked_number' => $card->masked_card_number,
+                    'last_four' => $card->last_four,
+                    'full_number' => $card->card_number, // Número completo para auto-completar
                     'expiry_date' => $card->expiry_date,
+                    'cvv' => $card->cvv, // CVV para auto-completar
                     'is_default' => $card->is_default,
                     'is_expired' => $card->isExpired(),
                     'created_at' => $card->created_at
@@ -89,10 +92,10 @@ class PaymentCardController extends Controller
         // Crear la tarjeta
         $card = $user->paymentCards()->create([
             'cardholder_name' => $request->cardholder_name,
-            'card_number' => Hash::make($request->card_number), // Encriptar número
+            'card_number' => $request->card_number, // Guardar sin encriptar
             'expiry_month' => $request->expiry_month,
             'expiry_year' => $request->expiry_year,
-            'cvv' => Hash::make($request->cvv), // Encriptar CVV
+            'cvv' => $request->cvv, // Guardar sin encriptar
             'brand' => $request->brand,
             'first_two' => $firstTwo,
             'last_four' => $lastFour,
@@ -111,7 +114,10 @@ class PaymentCardController extends Controller
                 'card_type' => $card->card_type,
                 'card_type_display_name' => $card->card_type_display_name,
                 'masked_number' => $card->masked_card_number,
+                'last_four' => $card->last_four,
+                'full_number' => $card->card_number, // Número completo para auto-completar
                 'expiry_date' => $card->expiry_date,
+                'cvv' => $card->cvv, // CVV para auto-completar
                 'is_default' => $card->is_default,
                 'is_expired' => $card->isExpired(),
                 'created_at' => $card->created_at

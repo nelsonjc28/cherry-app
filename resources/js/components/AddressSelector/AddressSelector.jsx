@@ -20,24 +20,58 @@ const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' })
   const fetchAddresses = async () => {
     try {
       setLoading(true);
+
+      // Verificar si hay token de autenticación
+      const token = localStorage.getItem('token');
+
       const response = await api.get('/addresses');
-      
-      if (response.data.success) {
-        setAddresses(response.data.data);
+
+      // Verificar diferentes formatos de respuesta
+      if (response.data.addresses && Array.isArray(response.data.addresses)) {
+
+        setAddresses(response.data.addresses);
         
         // Si hay una dirección seleccionada, asegurar que esté en la lista
         if (selectedAddressId && !addresses.find(addr => addr.id === selectedAddressId)) {
-          const selectedAddress = response.data.data.find(addr => addr.id === selectedAddressId);
+          const selectedAddress = response.data.addresses.find(addr => addr.id === selectedAddressId);
           if (selectedAddress && onAddressChange) {
             onAddressChange(selectedAddress);
           }
         }
+      } else if (Array.isArray(response.data)) {
+
+        setAddresses(response.data);
       } else {
-        setError('Error al cargar las direcciones');
+
+        setError('No se encontraron direcciones');
       }
     } catch (error) {
-      console.error('Error fetching addresses:', error);
-      setError('Error al cargar las direcciones');
+
+      let errorMessage = 'Error al cargar las direcciones';
+      
+      if (error.code === 'ECONNABORTED') {
+        errorMessage = 'La conexión tardó demasiado. Verifica tu conexión a internet.';
+
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Sesión expirada. Por favor, inicia sesión nuevamente.';
+
+      } else if (error.response?.status === 403) {
+        errorMessage = 'No tienes permisos para acceder a las direcciones.';
+
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Error interno del servidor. Intenta nuevamente.';
+
+      } else if (!error.response) {
+        errorMessage = 'No se pudo conectar con el servidor. Verifica tu conexión.';
+
+      }
+      
+      setError(errorMessage);
+      
+      // Mostrar toast si está disponible
+      if (window.showToast) {
+        window.showToast(errorMessage, 'error');
+      }
     } finally {
       setLoading(false);
     }
@@ -128,5 +162,4 @@ const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' })
 };
 
 export default AddressSelector;
-
 

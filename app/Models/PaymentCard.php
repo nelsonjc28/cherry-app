@@ -45,7 +45,7 @@ class PaymentCard extends Model
      */
     public function getMaskedCardNumberAttribute(): string
     {
-        return $this->first_two . '*******' . $this->last_four;
+        return $this->first_two . str_repeat('*', 8) . $this->last_four;
     }
 
     /**
@@ -78,8 +78,9 @@ class PaymentCard extends Model
      */
     public function getExpiryDateAttribute(): string
     {
-        return $this->expiry_month . '/' . $this->expiry_year;
+        return $this->expiry_month . '/' . substr($this->expiry_year, -2);
     }
+
 
     /**
      * Scope to get only active cards.
@@ -138,6 +139,8 @@ class PaymentCard extends Model
         return false;
     }
 }
+
+
 
 
 

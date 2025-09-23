@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'mercadopago' => [
+        'access_token' => env('MP_TOKEN'),
+        'public_key' => env('MP_key'),
+        'environment' => env('MERCADOPAGO_ENVIRONMENT', 'sandbox'), // sandbox or production
+        'currency_id' => env('MERCADOPAGO_CURRENCY_ID', 'ARS'), // ARS, MXN, BRL, etc.
+    ],
+
 ];

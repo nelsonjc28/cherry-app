@@ -40,13 +40,6 @@ const BuyerInfo = ({ className = '' }) => {
             <span className="buyer-info__value">{user.phone}</span>
           </div>
         )}
-        
-        <div className="buyer-info__field">
-          <span className="buyer-info__label">Tipo de usuario:</span>
-          <span className="buyer-info__value">
-            {user.role?.name === 'admin' ? 'Administrador' : 'Cliente'}
-          </span>
-        </div>
       </div>
     </div>
   );

@@ -36,6 +36,7 @@ class AddressController extends Controller
         $addresses = $user->addresses()->orderBy('is_default', 'desc')->orderBy('created_at', 'desc')->get();
 
         return response()->json([
+            'success' => true,
             'message' => 'Direcciones obtenidas correctamente',
             'addresses' => $addresses
         ], 200);

@@ -28,7 +28,7 @@ function DesktopView({
           <div className="cart-details-product-card__title">{title}</div>
           <div className="cart-details-product-card__price-block">
             <div className="cart-details-product-card__unit-price-label">Precio unidad</div>
-            <div className="cart-details-product-card__unit-price-value">{price.toFixed(2)}</div>
+            <div className="cart-details-product-card__unit-price-value">{(price && typeof price === 'number') ? price.toFixed(2) : '0.00'}</div>
           </div>
           <div className="cart-details-product-card__variants-summary-row">
             <div className="cart-details-product-card__variants-table-wrapper">

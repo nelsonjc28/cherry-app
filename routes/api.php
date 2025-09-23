@@ -19,6 +19,8 @@ use App\Http\Controllers\Api\AdminCatalogController;
 use App\Http\Controllers\Api\AdminCatalogOfferController;
 use App\Http\Controllers\Api\AddressController;
 use App\Http\Controllers\Api\PaymentCardController;
+use App\Http\Controllers\Api\CheckoutController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Api\UserTermsController;
 use App\Http\Controllers\Api\TermsConditionsController;
 
@@ -50,6 +52,20 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('/payment-cards/{id}', [PaymentCardController::class, 'update']);
     Route::delete('/payment-cards/{id}', [PaymentCardController::class, 'destroy']);
     Route::patch('/payment-cards/{id}/set-default', [PaymentCardController::class, 'setDefault']);
+    
+    // Checkout routes
+    Route::get('/checkout/data', [CheckoutController::class, 'getCheckoutData']);
+    Route::post('/checkout/process', [CheckoutController::class, 'processPayment']);
+    Route::get('/checkout/test', [CheckoutController::class, 'test']);
+    
+    // MercadoPago Payment routes
+    Route::post('/payment/create-preference', [PaymentController::class, 'createPaymentPreference']);
+    Route::post('/payment/process-integrated', [PaymentController::class, 'processIntegratedPayment']);
+    Route::get('/payment/status/{orderId}', [PaymentController::class, 'getPaymentStatus']);
+    
+    // Order management routes
+    Route::put('/orders/{orderId}/status', [PaymentController::class, 'updateOrderStatus']); // Solo admin
+    Route::post('/orders/{orderId}/mark-delivered', [PaymentController::class, 'markAsDelivered']); // Solo cliente propietario
     
     // Profile routes
     Route::get('/profile', [ProfileController::class, 'show']);
@@ -227,6 +243,12 @@ Route::get('/home-catalogs/{id}', [App\Http\Controllers\Api\HomeCatalogControlle
 Route::get('/catalogs', [AdminCatalogController::class, 'getPublicCatalogs']);
 Route::get('/catalogs/{id}', [AdminCatalogController::class, 'getPublicCatalog']);
 Route::get('/catalogs/{id}/products', [AdminCatalogController::class, 'getPublicCatalogProducts']);
+
+// MercadoPago webhook (no authentication required)
+Route::post('/mercadopago/webhook', [PaymentController::class, 'webhook']);
+
+// MercadoPago configuration (no authentication required)
+Route::get('/mercadopago/config', [PaymentController::class, 'getMercadoPagoConfig']);
 
 // Public catalog images routes (no authentication required)
 Route::get('/catalogs/{id}/pdfs', [AdminCatalogController::class, 'getPublicCatalogPdfs']);

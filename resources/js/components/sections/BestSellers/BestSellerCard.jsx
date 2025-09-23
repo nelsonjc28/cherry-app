@@ -78,7 +78,7 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, rati
           <div className="best-seller-price">
             <span className="price-label">Desde:</span>
             <div className="best-seller-price-container">
-              <span className="price-value">${price.toFixed(2)}</span>
+              <span className="price-value">${(price && typeof price === 'number') ? price.toFixed(2) : '0.00'}</span>
             </div>
           </div>
         </div>

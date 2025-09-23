@@ -7,10 +7,10 @@ const SessionExpiryAlert = ({ onExtendSession, onExpire }) => {
   const [isExtending, setIsExtending] = useState(false);
 
   useEffect(() => {
-    // Verificar el token cada minuto
+    // Verificar el token cada hora
     const checkTokenInterval = setInterval(() => {
       checkTokenExpiry();
-    }, 60000); // 1 minuto
+    }, 3600000); // 1 hora
 
     // Verificar inmediatamente al montar
     checkTokenExpiry();
@@ -33,16 +33,24 @@ const SessionExpiryAlert = ({ onExtendSession, onExpire }) => {
       const currentTime = Date.now();
       const timeUntilExpiry = expiryTime - currentTime;
 
-      // Si faltan menos de 5 minutos para expirar, mostrar la alerta
-      if (timeUntilExpiry <= 300000 && timeUntilExpiry > 0) { // 5 minutos = 300,000 ms
-        setTimeLeft(Math.ceil(timeUntilExpiry / 60000)); // Convertir a minutos
+      console.log('Verificando expiración del token:', {
+        expiryTime: new Date(expiryTime),
+        currentTime: new Date(currentTime),
+        timeUntilExpiryHours: Math.floor(timeUntilExpiry / (1000 * 60 * 60)),
+        timeUntilExpiryDays: Math.floor(timeUntilExpiry / (1000 * 60 * 60 * 24))
+      });
+
+      // Si faltan menos de 24 horas para expirar, mostrar la alerta
+      if (timeUntilExpiry <= 86400000 && timeUntilExpiry > 0) { // 24 horas = 86,400,000 ms
+        setTimeLeft(Math.ceil(timeUntilExpiry / 3600000)); // Convertir a horas
         setIsVisible(true);
       } else if (timeUntilExpiry <= 0) {
         // La sesión ya expiró
+
         handleSessionExpired();
       }
     } catch (error) {
-      // Error silencioso para evitar spam en consola
+
     }
   };
 
@@ -90,7 +98,7 @@ const SessionExpiryAlert = ({ onExtendSession, onExpire }) => {
         
         <div className="session-expiry-alert__body">
           <p>
-            Tu sesión expirará en <strong>{timeLeft} minuto{timeLeft !== 1 ? 's' : ''}</strong>.
+            Tu sesión expirará en <strong>{timeLeft} hora{timeLeft !== 1 ? 's' : ''}</strong>.
           </p>
           <p>¿Deseas extender tu sesión para continuar trabajando?</p>
         </div>
