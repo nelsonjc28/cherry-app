@@ -84,12 +84,6 @@ const StarRating = ({
           )}
         </div>
       )}
-      
-      {!readonly && (
-        <div className="star-rating__hint">
-          Haz clic para calificar
-        </div>
-      )}
     </div>
   );
 };

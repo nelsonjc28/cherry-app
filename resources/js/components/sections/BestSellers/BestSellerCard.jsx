@@ -34,9 +34,9 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, rati
   };
 
   return (
-    <div className="best-seller-card" onClick={handleCardClick}>
+    <div className="best-seller-card">
       {/* Product Image Container */}
-      <div className="best-seller-image-container">
+      <div className="best-seller-image-container" onClick={handleCardClick}>
         <img
           src={image}
           alt={title}
@@ -72,7 +72,7 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, rati
 
         {/* Rating and Price Row */}
         <div className="best-seller-rating">
-          <StarRating rating={rating} />
+          <StarRating rating={rating} readonly={true} />
 
           {/* Price */}
           <div className="best-seller-price">
