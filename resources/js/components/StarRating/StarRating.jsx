@@ -58,7 +58,7 @@ const StarRating = ({
           onClick={() => handleClick(i)}
           style={{ cursor: readonly ? 'default' : 'pointer' }}
         >
-          {isHalf ? '★' : '☆'}
+          {isHalf ? '★' : '★'}
         </span>
       );
     }

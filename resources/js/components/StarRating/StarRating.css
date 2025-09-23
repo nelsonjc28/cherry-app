@@ -23,7 +23,7 @@
 }
 
 .star-rating__star.medium {
-  font-size: 18px;
+  font-size: 2rem;
 }
 
 .star-rating__star.large {
@@ -31,18 +31,18 @@
 }
 
 .star-rating__star.filled {
-  color: #ffd700;
+  color: #ffb22d;
 }
 
 .star-rating__star.half {
-  color: #ffd700;
+  color: #ffb22d;
 }
 
 /* Estrellas opacas cuando no hay calificaciones */
 .star-rating__star.no-ratings {
   color: #e0e0e0;
   opacity: 0.5;
-  font-size: 1.3rem;
+  font-size: 2rem;
 }
 
 .star-rating__star.no-ratings.filled {
@@ -78,20 +78,12 @@
 
 /* Responsive design */
 @media (max-width: 768px) {
-  .star-rating__star.medium {
-    font-size: 16px;
-  }
-  
   .star-rating__star.large {
     font-size: 20px;
   }
 }
 
 @media (max-width: 480px) {
-  .star-rating__star.medium {
-    font-size: 1.3rem;
-  }
-  
   .star-rating__star.large {
     font-size: 18px;
   }
