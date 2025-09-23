@@ -4,6 +4,8 @@ import PdfThumbnail from '../PdfThumbnail/PdfThumbnail';
 import './CatalogPdfModule.css';
 
 const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
+  console.log('🔧 CatalogPdfModule montado con:', { onBack, initialCatalog });
+  
   const [catalogs, setCatalogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -93,30 +95,60 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
   };
 
   const handleCreateGroup = async (e) => {
+    console.log('🎯 EVENTO CAPTURADO - handleCreateGroup ejecutado');
+    console.log('📋 Evento:', e);
+    
     e.preventDefault();
+    console.log('✋ preventDefault() ejecutado');
+    
     if (!groupFormData.name.trim()) {
+      console.log('❌ Validación falló: nombre vacío');
       setError('El nombre del grupo es obligatorio');
       return;
     }
+    
+    console.log('✅ Validación pasó');
+    console.log('🚀 Iniciando creación de grupo...');
+    console.log('📝 Datos del formulario:', groupFormData);
+    console.log('🏷️ Catálogo seleccionado:', selectedCatalog);
 
     try {
-      // Por ahora vamos a crear un grupo básico
-      // Aquí necesitarías implementar el endpoint de creación de grupos
-      const newGroup = {
-        id: Date.now(), // Temporal
-        name: groupFormData.name,
-        description: groupFormData.description,
-        is_active: groupFormData.is_active,
-        display_order: imageGroups.length + 1,
-        images_count: 0
-      };
-
-      setImageGroups([...imageGroups, newGroup]);
-      setGroupFormData({ name: '', description: '', is_active: true, display_order: 0 });
-      setShowGroupForm(false);
-      window.showToast('Grupo creado exitosamente', 'success');
+      setGroupsLoading(true);
+      setError('');
+      
+      console.log('📡 Enviando petición al backend...');
+      
+      // Hacer petición al backend para crear el grupo
+      const response = await publicCatalogService.createImageGroup(selectedCatalog.id, groupFormData);
+      
+      console.log('✅ Respuesta recibida:', response);
+      
+      if (response.data.success) {
+        console.log('🎉 Grupo creado exitosamente:', response.data.data);
+        
+        // Agregar el nuevo grupo a la lista
+        setImageGroups([...imageGroups, response.data.data]);
+        setGroupFormData({ name: '', description: '', is_active: true, display_order: 0 });
+        setShowGroupForm(false);
+        window.showToast('Grupo creado exitosamente', 'success');
+      } else {
+        console.log('⚠️ Error en la respuesta:', response.data.message);
+        setError(response.data.message || 'Error al crear el grupo');
+      }
     } catch (error) {
-      setError('Error al crear el grupo');
+      console.error('❌ Error capturado:', error);
+      console.error('📄 Detalles del error:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: error.config
+      });
+      
+      const errorMessage = error.response?.data?.message || 'Error al crear el grupo';
+      setError(errorMessage);
+      window.showToast(errorMessage, 'error');
+    } finally {
+      setGroupsLoading(false);
     }
   };
 
@@ -487,7 +519,16 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
                 />
               </div>
               <div className="form-actions">
-                <button type="submit" className="btn btn-primary">Crear Grupo</button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary"
+                  onClick={(e) => {
+                    console.log('🖱️ BOTÓN CLICKEADO - Crear Grupo');
+                    // No hacer preventDefault aquí, dejar que el form maneje el submit
+                  }}
+                >
+                  Crear Grupo
+                </button>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowGroupForm(false)}>
                   Cancelar
                 </button>
@@ -501,7 +542,12 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
           <div className="catalog-pdf-module__actions">
             <button 
               className="catalog-pdf-module__add-btn"
-              onClick={() => setShowGroupForm(true)}
+              onClick={() => {
+                console.log('🖱️ BOTÓN CLICKEADO - Mostrar formulario');
+                console.log('📊 Estado actual showGroupForm:', showGroupForm);
+                setShowGroupForm(true);
+                console.log('📊 Cambiando showGroupForm a: true');
+              }}
             >
               + Crear Nuevo Grupo
             </button>

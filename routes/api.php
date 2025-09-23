@@ -253,4 +253,18 @@ Route::get('/mercadopago/config', [PaymentController::class, 'getMercadoPagoConf
 // Public catalog images routes (no authentication required)
 Route::get('/catalogs/{id}/pdfs', [AdminCatalogController::class, 'getPublicCatalogPdfs']);
 Route::get('/catalogs/{id}/image-groups', [AdminCatalogController::class, 'getCatalogImageGroups']);
-Route::get('/catalogs/{catalogId}/image-groups/{groupId}/images', [AdminCatalogController::class, 'getImageGroupImages']); 
+Route::get('/catalogs/{catalogId}/image-groups/{groupId}/images', [AdminCatalogController::class, 'getImageGroupImages']);
+
+// Admin routes for image groups (authentication required)
+Route::middleware(['auth:api'])->group(function () {
+    Route::post('/catalogs/{catalogId}/image-groups', [AdminCatalogController::class, 'createImageGroup']);
+    
+    // Debug route to check current user
+    Route::get('/debug/user', function () {
+        return response()->json([
+            'success' => true,
+            'user' => auth()->user(),
+            'token_valid' => auth()->check()
+        ]);
+    });
+}); 

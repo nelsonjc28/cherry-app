@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Smalot\PdfParser\Parser;
 
 
@@ -940,6 +941,75 @@ class AdminCatalogController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener grupos de imágenes: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Crear un nuevo grupo de imágenes
+     */
+    public function createImageGroup(Request $request, $catalogId)
+    {
+        try {
+            // Validar que el catálogo existe
+            $catalog = Catalog::findOrFail($catalogId);
+            
+            // Validar los datos del grupo
+            $validator = Validator::make($request->all(), [
+                'name' => 'required|string|max:255',
+                'description' => 'nullable|string|max:500',
+                'is_active' => 'boolean',
+                'display_order' => 'nullable|integer|min:0'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error de validación',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Obtener el siguiente display_order si no se proporciona
+            $displayOrder = $request->display_order;
+            if ($displayOrder === null) {
+                $displayOrder = CatalogImageGroup::where('catalog_id', $catalogId)->max('display_order') + 1;
+            }
+
+            // Crear el grupo de imágenes
+            $imageGroup = CatalogImageGroup::create([
+                'catalog_id' => $catalogId,
+                'name' => $request->name,
+                'description' => $request->description,
+                'slug' => Str::slug($request->name),
+                'is_active' => $request->is_active ?? true,
+                'display_order' => $displayOrder
+            ]);
+
+            // Cargar el conteo de imágenes (será 0 para un grupo nuevo)
+            $imageGroup->loadCount('images');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Grupo de imágenes creado exitosamente',
+                'data' => [
+                    'id' => $imageGroup->id,
+                    'name' => $imageGroup->name,
+                    'description' => $imageGroup->description,
+                    'slug' => $imageGroup->slug,
+                    'images_count' => 0,
+                    'display_order' => $imageGroup->display_order,
+                    'is_active' => $imageGroup->is_active,
+                    'catalog_id' => $imageGroup->catalog_id,
+                    'created_at' => $imageGroup->created_at,
+                    'updated_at' => $imageGroup->updated_at
+                ]
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear el grupo de imágenes: ' . $e->getMessage()
             ], 500);
         }
     }
