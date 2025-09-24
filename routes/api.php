@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\PrivacyPolicyController;
 use App\Http\Controllers\Api\AdminCatalogController;
 use App\Http\Controllers\Api\AdminCatalogOfferController;
 use App\Http\Controllers\Api\AddressController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\PaymentCardController;
 use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\PaymentController;
@@ -64,8 +65,35 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/payment/status/{orderId}', [PaymentController::class, 'getPaymentStatus']);
     
     // Order management routes
+    Route::get('/orders', [PaymentController::class, 'getUserOrders']); // Obtener órdenes del usuario
     Route::put('/orders/{orderId}/status', [PaymentController::class, 'updateOrderStatus']); // Solo admin
     Route::post('/orders/{orderId}/mark-delivered', [PaymentController::class, 'markAsDelivered']); // Solo cliente propietario
+
+// Admin routes - protected by admin middleware
+Route::middleware(['auth:api', 'admin'])->prefix('admin')->group(function () {
+    Route::get('/orders', [App\Http\Controllers\Admin\AdminOrderController::class, 'index']);
+    Route::get('/orders/{orderId}', [App\Http\Controllers\Admin\AdminOrderController::class, 'show']);
+    Route::put('/orders/{orderId}/status', [App\Http\Controllers\Admin\AdminOrderController::class, 'updateStatus']);
+    Route::get('/notifications', [App\Http\Controllers\NotificationController::class, 'getAdminNotifications']);
+});
+
+// Notification routes
+Route::middleware(['auth:api'])->group(function () {
+    Route::get('/notifications', [App\Http\Controllers\NotificationController::class, 'getUserNotifications']);
+    Route::get('/notifications/unread-count', [App\Http\Controllers\NotificationController::class, 'getUnreadCount']);
+    Route::post('/notifications/{notificationId}/mark-read', [App\Http\Controllers\NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-read', [App\Http\Controllers\NotificationController::class, 'markAllAsRead']);
+});
+
+// Review routes
+Route::middleware(['auth:api'])->group(function () {
+    Route::post('/reviews', [App\Http\Controllers\ReviewController::class, 'store']);
+    Route::get('/reviews/my-reviews', [App\Http\Controllers\ReviewController::class, 'getUserReviews']);
+    Route::get('/reviews/can-review/{orderId}/{productId}', [App\Http\Controllers\ReviewController::class, 'canReview']);
+});
+
+// Public review routes (no auth required)
+Route::get('/reviews/product/{productId}', [App\Http\Controllers\ReviewController::class, 'getProductReviews']);
     
     // Profile routes
     Route::get('/profile', [ProfileController::class, 'show']);
@@ -258,4 +286,11 @@ Route::get('/catalogs/{catalogId}/image-groups/{groupId}/images', [AdminCatalogC
 // Admin routes for image groups (authentication required)
 Route::middleware(['auth:api'])->group(function () {
     Route::post('/catalogs/{catalogId}/image-groups', [AdminCatalogController::class, 'createImageGroup']);
+});
+
+// Dashboard routes (admin authentication required)
+Route::middleware(['auth:api', 'admin'])->group(function () {
+    Route::get('/dashboard/sales-by-month', [DashboardController::class, 'getSalesByMonth']);
+    Route::get('/dashboard/top-selling-products', [DashboardController::class, 'getTopSellingProducts']);
+    Route::get('/dashboard/summary', [DashboardController::class, 'getDashboardSummary']);
 }); 

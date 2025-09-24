@@ -212,6 +212,15 @@
   min-height: 80vh;
 }
 
+/* Excepción para el dashboard - ancho completo */
+.admin-panel__main-content--dashboard {
+  max-width: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 2.5rem 0 0 0 !important;
+}
+
 @media (max-width: 900px) {
   .admin-panel__main-content {
     max-width: 100%;
@@ -219,6 +228,11 @@
     border-radius: 0;
     box-shadow: none;
     padding: 1.2rem 0.5rem;
+  }
+  
+  .admin-panel__main-content--dashboard {
+    padding: 0 !important;
+    margin: 1.2rem 0 0 0 !important;
   }
 }
 

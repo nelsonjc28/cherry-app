@@ -31,6 +31,149 @@
   box-sizing: border-box;
 }
 
+/* Estilos globales para calendarios de fecha */
+input[type="date"] {
+  accent-color: var(--color-primary) !important;
+  color-scheme: light;
+}
+
+/* Forzar accent-color en todos los navegadores */
+input[type="date"] {
+  accent-color: #EA2630 !important;
+}
+
+/* Para Chrome y navegadores WebKit */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  accent-color: #EA2630 !important;
+}
+
+/* Para Firefox */
+input[type="date"] {
+  -moz-accent-color: #EA2630 !important;
+}
+
+/* Forzar el color rojo en todos los elementos del calendario */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  color: var(--color-primary);
+  background-color: var(--color-primary);
+}
+
+/* Para navegadores que soportan estas propiedades */
+input[type="date"] {
+  --datepicker-selected-bg: var(--color-primary);
+  --datepicker-selected-color: white;
+  --datepicker-button-bg: var(--color-primary);
+  --datepicker-button-color: white;
+  --datepicker-today-bg: var(--color-primary);
+  --datepicker-today-color: white;
+}
+
+/* Personalización global del calendario del navegador */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23EA2630'%3e%3cpath d='M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z'/%3e%3c/svg%3e");
+  background-size: 16px 16px;
+  background-repeat: no-repeat;
+  background-position: center;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* Para Firefox */
+input[type="date"]::-moz-calendar-picker-indicator {
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23EA2630'%3e%3cpath d='M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z'/%3e%3c/svg%3e");
+  background-size: 16px 16px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+input[type="date"]::-moz-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* Personalización de los botones internos del calendario */
+/* Para WebKit (Chrome, Safari, Edge) */
+input[type="date"]::-webkit-datetime-edit {
+  color: var(--color-text);
+}
+
+input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+  background-color: transparent;
+}
+
+input[type="date"]::-webkit-datetime-edit-text {
+  color: var(--color-text);
+}
+
+input[type="date"]::-webkit-datetime-edit-month-field,
+input[type="date"]::-webkit-datetime-edit-day-field,
+input[type="date"]::-webkit-datetime-edit-year-field {
+  color: var(--color-text);
+}
+
+/* Personalización del calendario emergente */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(14%) sepia(93%) saturate(7151%) hue-rotate(356deg) brightness(91%) contrast(118%);
+}
+
+/* Estilos adicionales para forzar el color rojo en el calendario */
+input[type="date"] {
+  --webkit-calendar-picker-indicator-color: #EA2630;
+}
+
+/* Intentar personalizar los elementos internos del calendario */
+/* Esto funciona en algunos navegadores */
+input[type="date"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+
+/* Estilos para el calendario emergente */
+input[type="date"]:focus::-webkit-calendar-picker-indicator {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+/* Personalización específica para Chrome/Edge */
+@supports (-webkit-appearance: none) {
+  input[type="date"] {
+    position: relative;
+  }
+  
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    background: var(--color-primary);
+    color: white;
+    border-radius: 3px;
+    padding: 2px;
+  }
+}
+
+/* Personalización para Firefox */
+@-moz-document url-prefix() {
+  input[type="date"] {
+    accent-color: var(--color-primary);
+  }
+}
+
+/* Estilos globales para spinners - Color rojo de la plataforma */
+.loading-spinner,
+.spinner,
+.admin-loading__spinner,
+.product-page__loading-spinner,
+.product-gallery__loading-spinner {
+  border-top-color: var(--color-primary) !important;
+}
+
+/* Asegurar que todos los spinners usen el color rojo */
+[class*="spinner"],
+[class*="loading"] {
+  border-top-color: var(--color-primary);
+}
+
 body {
   font-family: var(--font-primary);
   color: var(--color-text);

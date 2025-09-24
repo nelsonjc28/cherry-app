@@ -10,27 +10,27 @@ const ProfileSidebar = () => {
     {
       path: '/perfil/datos-personales',
       label: 'Datos Personales',
-      icon: 'User.svg'
+      icon: 'Red User.svg'
     },
     {
       path: '/perfil/mis-pedidos',
       label: 'Mis Pedidos',
-      icon: 'Package.svg'
+      icon: 'Red Box.svg'
     },
     {
       path: '/perfil/favoritos',
       label: 'Favoritos',
-      icon: 'Heart.svg'
+      icon: 'Red Star.svg'
     },
     {
       path: '/perfil/direcciones',
       label: 'Direcciones',
-      icon: 'Map Marker.svg'
+      icon: 'Red Home.svg'
     },
     {
       path: '/perfil/metodos-pago',
       label: 'Métodos de Pago',
-      icon: 'Credit Card.svg'
+      icon: 'Red Bill.svg'
     },
     {
       path: '/perfil/privacidad-seguridad',

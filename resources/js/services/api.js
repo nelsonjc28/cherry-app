@@ -1252,4 +1252,136 @@ export const formDataUtils = {
   }
 };
 
+// Servicios para órdenes del usuario
+export const orderService = {
+  // Obtener todas las órdenes del usuario autenticado
+  getUserOrders: async () => {
+    try {
+      const response = await api.get('/orders');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+};
+
+// Servicios para administración de órdenes
+export const adminOrderService = {
+  // Obtener todas las órdenes (admin)
+  getAllOrders: async () => {
+    try {
+      const response = await api.get('/admin/orders');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Actualizar estado de orden (admin)
+  updateOrderStatus: async (orderId, status) => {
+    try {
+      const response = await api.put(`/admin/orders/${orderId}/status`, { status });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Obtener detalles de orden específica (admin)
+  getOrderDetails: async (orderId) => {
+    try {
+      const response = await api.get(`/admin/orders/${orderId}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+};
+
+// Servicios para notificaciones del admin
+export const adminNotificationService = {
+  // Obtener notificaciones del admin
+  getAdminNotifications: async () => {
+    try {
+      const response = await api.get('/admin/notifications');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Marcar notificación como leída
+  markAsRead: async (notificationId) => {
+    try {
+      const response = await api.post(`/notifications/${notificationId}/mark-read`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Marcar todas las notificaciones como leídas
+  markAllAsRead: async () => {
+    try {
+      const response = await api.post('/notifications/mark-all-read');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Obtener contador de notificaciones no leídas
+  getUnreadCount: async () => {
+    try {
+      const response = await api.get('/notifications/unread-count');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+};
+
+// Servicios para notificaciones del usuario
+export const userNotificationService = {
+  // Obtener notificaciones del usuario
+  getUserNotifications: async () => {
+    try {
+      const response = await api.get('/notifications');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Marcar notificación como leída
+  markAsRead: async (notificationId) => {
+    try {
+      const response = await api.post(`/notifications/${notificationId}/mark-read`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Marcar todas las notificaciones como leídas
+  markAllAsRead: async () => {
+    try {
+      const response = await api.post('/notifications/mark-all-read');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Obtener contador de notificaciones no leídas
+  getUnreadCount: async () => {
+    try {
+      const response = await api.get('/notifications/unread-count');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+};
+
 export default api;

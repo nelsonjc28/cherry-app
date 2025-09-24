@@ -13,6 +13,7 @@ use App\Models\OrderItem;
 use App\Models\Address;
 use App\Models\PaymentCard;
 use App\Models\User;
+use App\Models\Notification;
 
 class PaymentController extends Controller
 {
@@ -361,6 +362,9 @@ class PaymentController extends Controller
     private function notifyAdminPaymentReceived(Order $order, User $customer)
     {
         try {
+            // Crear notificación en la base de datos
+            Notification::createPaymentNotification($order);
+            
             // Aquí puedes implementar el envío de email, SMS, o notificación push
             
             // Ejemplo de estructura para futuro email:
@@ -384,6 +388,9 @@ class PaymentController extends Controller
     private function notifyCustomerStatusChange(Order $order, string $newStatus, string $message = null)
     {
         try {
+            // Crear notificación en la base de datos
+            Notification::createOrderStatusNotification($order, $order->status, $newStatus);
+            
             // Aquí puedes implementar el envío de email, SMS, o notificación push
             
             // Ejemplo de estructura para futuro email:
@@ -597,6 +604,168 @@ class PaymentController extends Controller
         ];
 
         return in_array($newStatus, $validTransitions[$oldStatus] ?? []);
+    }
+
+    /**
+     * Get user orders
+     */
+    public function getUserOrders(Request $request)
+    {
+        try {
+            /** @var User $user */
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no autenticado'
+                ], 401);
+            }
+
+            // Obtener órdenes del usuario con items relacionados
+            $orders = Order::where('user_id', $user->id)
+                ->with(['items', 'address'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            // Mapear órdenes al formato esperado por el frontend
+            $formattedOrders = $orders->map(function ($order) {
+                return [
+                    'id' => $order->id,
+                    'date' => $order->created_at->format('d \d\e F Y'),
+                    'orderNumber' => str_pad($order->id, 8, '0', STR_PAD_LEFT),
+                    'status' => $this->mapOrderStatus($order->status),
+                    'statusColor' => $this->getStatusColor($order->status),
+                    'items' => $order->items->map(function ($item) {
+                        // Generar URL de imagen basada en el product_id
+                        $imageUrl = $this->getProductImageUrl($item->product_id);
+                        
+                        return [
+                            'id' => $item->id,
+                            'product_id' => $item->product_id,
+                            'title' => $item->name ?? 'Producto',
+                            'quantity' => (int) $item->quantity,
+                            'price' => (float) $item->price,
+                            'subtotal' => (float) $item->subtotal,
+                            'image' => $imageUrl
+                        ];
+                    }),
+                    'totalAmount' => (float) $order->total_amount,
+                    'address' => $order->address ? [
+                        'street' => $order->address->street_address,
+                        'city' => $order->address->city,
+                        'state' => $order->address->state,
+                        'postal_code' => $order->address->postal_code
+                    ] : null
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'orders' => $formattedOrders
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener las órdenes: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Map order status to display text
+     */
+    private function mapOrderStatus($status)
+    {
+        $statusMap = [
+            'pending' => 'Pendiente',
+            'processing' => 'Procesando',
+            'shipped' => 'En vía',
+            'delivered' => 'Entregado',
+            'cancelled' => 'Cancelado',
+            'pagado' => 'Pagado',
+            'en_espera_envio' => 'En espera de envío',
+            'enviado' => 'Enviado',
+            'entregado' => 'Entregado'
+        ];
+
+        return $statusMap[$status] ?? ucfirst($status);
+    }
+
+    /**
+     * Get status color for display
+     */
+    private function getStatusColor($status)
+    {
+        $colorMap = [
+            'pending' => 'yellow',
+            'processing' => 'blue',
+            'shipped' => 'orange',
+            'delivered' => 'green',
+            'cancelled' => 'red',
+            'pagado' => 'blue',
+            'en_espera_envio' => 'blue',
+            'enviado' => 'orange',
+            'entregado' => 'green'
+        ];
+
+        return $colorMap[$status] ?? 'gray';
+    }
+
+    /**
+     * Get product image URL based on product ID
+     * Tries both formatted and original ID formats to find the correct image
+     */
+    private function getProductImageUrl($productId)
+    {
+        if (!$productId) {
+            return asset('images/placeholder-product.png');
+        }
+        
+        // Primero probar con el ID original (sin ceros)
+        $originalUrl = "https://cherry-fotos.s3.amazonaws.com/shopify/{$productId}/{$productId}_1.jpg";
+        
+        // Verificar rápidamente si la imagen original existe
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $originalUrl);
+        curl_setopt($ch, CURLOPT_NOBODY, true);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 2);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        
+        curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        // Si la imagen original existe, usarla
+        if ($httpCode === 200) {
+            return $originalUrl;
+        }
+        
+        // Si no existe, probar con formato con ceros a la izquierda
+        $formattedId = str_pad($productId, 11, '0', STR_PAD_LEFT);
+        $formattedUrl = "https://cherry-fotos.s3.amazonaws.com/shopify/{$formattedId}/{$formattedId}_1.jpg";
+        
+        // Verificar si la imagen formateada existe
+        $ch2 = curl_init();
+        curl_setopt($ch2, CURLOPT_URL, $formattedUrl);
+        curl_setopt($ch2, CURLOPT_NOBODY, true);
+        curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch2, CURLOPT_TIMEOUT, 2);
+        curl_setopt($ch2, CURLOPT_SSL_VERIFYPEER, false);
+        
+        curl_exec($ch2);
+        $httpCode2 = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+        curl_close($ch2);
+        
+        // Si la imagen formateada existe, usarla
+        if ($httpCode2 === 200) {
+            return $formattedUrl;
+        }
+        
+        // Si ninguna existe, devolver la original (será manejada por el fallback del frontend)
+        return $originalUrl;
     }
 
     /**

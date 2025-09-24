@@ -4,7 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Facades\Auth;
 
 class AdminMiddleware
 {
@@ -17,23 +17,24 @@ class AdminMiddleware
      */
     public function handle(Request $request, Closure $next)
     {
-        $user = $request->user();
-
-        if (!$user) {
+        // Verificar que el usuario esté autenticado
+        if (!Auth::check()) {
             return response()->json([
                 'success' => false,
-                'error' => 'Usuario no autenticado'
+                'message' => 'No autenticado'
             ], 401);
         }
 
-        if (!$user->isAdmin()) {
+        $user = Auth::user();
+
+        // Verificar que el usuario tenga rol de admin
+        if (!$user->hasRole('admin')) {
             return response()->json([
                 'success' => false,
-                'error' => 'Acceso denegado. Se requieren permisos de administrador.',
-                'user_role' => $user->role ? $user->role->name : 'sin rol'
+                'message' => 'Acceso denegado. Se requieren permisos de administrador.'
             ], 403);
         }
 
         return $next($request);
     }
-} 
+}

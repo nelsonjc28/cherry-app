@@ -1,79 +1,65 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './ProfileSection.css';
 import './MyOrders.css';
 import CherryButton from '../../components/CherryButton/CherryButton';
 import Pagination from '../../components/Pagination/Pagination';
-import { getIconPath } from '../../utils/assetPaths';
+import OrderDetailModal from '../../components/OrderDetailModal/OrderDetailModal';
+import { orderService } from '../../services/api';
+import api from '../../config/axios';
 
 const MyOrders = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState('recent');
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const navigate = useNavigate();
 
-  // Mock data para los pedidos
-  const mockOrders = [
-    {
-      id: 1,
-      date: '30 de junio 2024',
-      orderNumber: '39732-8039',
-      status: 'Entregado',
-      statusColor: 'green',
-      image: '/images/catalogProductImages/Rectangle 4922.png',
-      title: 'Chamarra de mezclilla con detalles bordados',
-      quantity: 4,
-      totalWithoutDiscount: 1899.00,
-      totalWithDiscount: 1329.30
-    },
-    {
-      id: 2,
-      date: '30 de junio 2024',
-      orderNumber: '39732-8039',
-      status: 'En vía',
-      statusColor: 'orange',
-      image: '/images/catalogProductImages/Rectangle 4922 (1).png',
-      title: 'Chamarra de mezclilla con detalles bordados',
-      quantity: 4,
-      totalWithoutDiscount: 1899.00,
-      totalWithDiscount: 1329.30
-    },
-    {
-      id: 3,
-      date: '30 de junio 2024',
-      orderNumber: '39732-8039',
-      status: 'En vía',
-      statusColor: 'orange',
-      image: '/images/catalogProductImages/Rectangle 4922.png',
-      title: 'Chamarra de mezclilla con detalles bordados',
-      quantity: 4,
-      totalWithoutDiscount: 1899.00,
-      totalWithDiscount: 1329.30
-    },
-    {
-      id: 4,
-      date: '30 de junio 2024',
-      orderNumber: '39732-8039',
-      status: 'Entregado',
-      statusColor: 'green',
-      image: '/images/catalogProductImages/Rectangle 4922 (1).png',
-      title: 'Chamarra de mezclilla con detalles bordados',
-      quantity: 4,
-      totalWithoutDiscount: 1899.00,
-      totalWithDiscount: 1329.30
-    },
-    {
-      id: 5,
-      date: '30 de junio 2024',
-      orderNumber: '39732-8039',
-      status: 'Entregado',
-      statusColor: 'green',
-      image: '/images/catalogProductImages/Rectangle 4922.png',
-      title: 'Chamarra de mezclilla con detalles bordados',
-      quantity: 4,
-      totalWithoutDiscount: 1899.00,
-      totalWithDiscount: 1329.30
+  // Cargar órdenes del usuario
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await orderService.getUserOrders();
+        
+        if (response.data.success) {
+          setOrders(response.data.orders || []);
+        } else {
+          setError(response.data.message || 'Error al cargar las órdenes');
+        }
+      } catch (err) {
+        setError('Error de conexión al cargar las órdenes');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, []);
+
+  // Ordenar órdenes según el filtro seleccionado
+  const sortedOrders = [...orders].sort((a, b) => {
+    switch (sortBy) {
+      case 'recent':
+        return new Date(b.date) - new Date(a.date);
+      case 'oldest':
+        return new Date(a.date) - new Date(b.date);
+      case 'status':
+        return a.status.localeCompare(b.status);
+      default:
+        return 0;
     }
-  ];
+  });
 
-  const totalPages = 12;
+  // Paginación
+  const itemsPerPage = 5;
+  const totalPages = Math.ceil(sortedOrders.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedOrders = sortedOrders.slice(startIndex, startIndex + itemsPerPage);
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
@@ -81,6 +67,49 @@ const MyOrders = () => {
 
   const handleSortChange = (e) => {
     setSortBy(e.target.value);
+    setCurrentPage(1); // Reset to first page when sorting
+  };
+
+  const handleWriteReview = (orderId, productId) => {
+    navigate(`/escribir-resena/${orderId}/${productId}`);
+  };
+
+  const handleMarkAsReceived = async (orderId) => {
+    try {
+      const response = await api.post(`/orders/${orderId}/mark-delivered`);
+      
+      if (response.data.success) {
+        // Actualizar la orden en el estado local
+        setOrders(orders.map(order => 
+          order.id === orderId 
+            ? { ...order, status: 'entregado', statusDisplay: 'Entregado' }
+            : order
+        ));
+        
+        if (window.showToast) {
+          window.showToast('Pedido marcado como recibido correctamente', 'success');
+        }
+      } else {
+        if (window.showToast) {
+          window.showToast(response.data.message || 'Error al marcar como recibido', 'error');
+        }
+      }
+    } catch (error) {
+      console.error('Error marking order as received:', error);
+      if (window.showToast) {
+        window.showToast('Error de conexión al marcar como recibido', 'error');
+      }
+    }
+  };
+
+  const handleViewOrder = (order) => {
+    setSelectedOrder(order);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedOrder(null);
   };
 
   return (
@@ -104,7 +133,34 @@ const MyOrders = () => {
         </div>
 
         <div className="my-orders__list">
-          {mockOrders.map((order) => (
+          {loading ? (
+            <div className="my-orders__loading">
+              <p>Cargando órdenes...</p>
+            </div>
+          ) : error ? (
+            <div className="my-orders__error">
+              <p>Error: {error}</p>
+              <CherryButton 
+                variant="outline" 
+                size="small" 
+                onClick={() => window.location.reload()}
+              >
+                Reintentar
+              </CherryButton>
+            </div>
+          ) : paginatedOrders.length === 0 ? (
+            <div className="my-orders__empty">
+              <p>No tienes órdenes aún.</p>
+              <CherryButton 
+                variant="red" 
+                size="medium" 
+                onClick={() => navigate('/')}
+              >
+                Empezar a comprar
+              </CherryButton>
+            </div>
+          ) : (
+            paginatedOrders.map((order) => (
             <div key={order.id} className="order-card">
               <div className="order-card__header">
                 <div className="order-card__date">{order.date}</div>
@@ -114,7 +170,13 @@ const MyOrders = () => {
               <div className="order-card__content">
                 <div className="order-card__main-content">
                   <div className="order-card__image">
-                    <img src={order.image} alt={order.title} />
+                    <img 
+                      src={order.items?.[0]?.image || '/images/catalogProductImages/Rectangle 4922.png'} 
+                      alt={order.items?.[0]?.title || 'Producto'}
+                      onError={(e) => {
+                        e.target.src = '/images/catalogProductImages/Rectangle 4922.png';
+                      }}
+                    />
                   </div>
 
                   <div className="order-card__details">
@@ -124,18 +186,41 @@ const MyOrders = () => {
                       </span>
                     </div>
 
-                    <h3 className="order-card__title">{order.title}</h3>
+                    <h3 className="order-card__title">
+                      {order.items?.[0]?.title || 'Producto'}
+                    </h3>
 
                     <div className="order-card__info">
-                      <div className="order-card__quantity">
-                        Cantidad de piezas: <span>{order.quantity}</span>
+                      <div className="order-card__product-details">
+                        <div className="order-card__product-id">
+                          ID: <span>{order.items?.[0]?.product_id || 'N/A'}</span>
+                        </div>
+                        <div className="order-card__product-quantity">
+                          Cantidad: <span>{order.items?.[0]?.quantity || 0}</span>
+                        </div>
+                        <div className="order-card__product-price">
+                          Precio unitario: <span>${(parseFloat(order.items?.[0]?.price) || 0).toFixed(2)}</span>
+                        </div>
+                        <div className="order-card__product-subtotal">
+                          Subtotal: <span>${(parseFloat(order.items?.[0]?.subtotal) || 0).toFixed(2)}</span>
+                        </div>
                       </div>
-                      <div className="order-card__price-line">
-                        Total sin descuento: <span>${order.totalWithoutDiscount.toFixed(2)}</span>
+                      
+                      {order.items?.length > 1 && (
+                        <div className="order-card__more-items">
+                          + {order.items.length - 1} producto(s) más
+                        </div>
+                      )}
+                      
+                      <div className="order-card__total-line">
+                        <strong>Total del pedido: <span>${(parseFloat(order.totalAmount) || 0).toFixed(2)}</span></strong>
                       </div>
-                      <div className="order-card__price-line">
-                        Total con descuento: <span>${order.totalWithDiscount.toFixed(2)}</span>
+                      
+                      {order.address && (
+                        <div className="order-card__address">
+                          Dirección: <span>{order.address.street}, {order.address.city}</span>
                       </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -145,24 +230,49 @@ const MyOrders = () => {
                     variant="outline"
                     size="small"
                     className="order-card__btn"
+                    onClick={() => handleViewOrder(order)}
                     icon={
-                      <img src={getIconPath('Document.svg')} alt="Ver compra" style={{ width: 14, height: 14 }} />
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M13.3392 5.15096L12.0111 1.19263C11.8548 0.697835 11.3861 0.333252 10.8392 0.333252H2.63607C2.08919 0.333252 1.62044 0.697835 1.46419 1.19263L0.136068 5.15096C0.0839844 5.28117 0.0839844 5.41138 0.0839844 5.54158V12.4166C0.0839844 13.1197 0.630859 13.6666 1.33398 13.6666H12.1673C12.8444 13.6666 13.4173 13.1197 13.4173 12.4166V5.54158C13.4173 5.41138 13.3913 5.28117 13.3392 5.15096ZM12.0892 5.33325H7.37565V1.58325H10.8392L12.0892 5.33325ZM2.63607 1.58325H6.12565V5.33325H1.38607L2.63607 1.58325ZM1.33398 12.4166V6.58325H12.1673V12.4166H1.33398Z" fill="#333333" />
+                      </svg>
                     }
                     iconPosition="left"
                   >
                     Ver compra
                   </CherryButton>
+                  {(order.status === 'enviado') && (
+                    <CherryButton
+                      variant="green"
+                      size="small"
+                      className="order-card__btn"
+                      onClick={() => handleMarkAsReceived(order.id)}
+                    >
+                      Marcar como recibido
+                    </CherryButton>
+                  )}
+                  {(order.status === 'Entregado' || order.status === 'entregado') && (
+                    <CherryButton
+                      variant="outline"
+                      size="small"
+                      className="order-card__btn order-card__btn--review"
+                      onClick={() => handleWriteReview(order.id, order.id)}
+                    >
+                      Comentario
+                    </CherryButton>
+                  )}
                   <CherryButton
                     variant="red"
                     size="small"
                     className="order-card__btn"
+                    onClick={() => navigate('/catalogos')}
                   >
                     Volver a comprar
                   </CherryButton>
                 </div>
               </div>
             </div>
-          ))}
+          ))
+          )}
         </div>
 
         <div className="my-orders__pagination">
@@ -173,6 +283,13 @@ const MyOrders = () => {
           />
         </div>
       </div>
+
+      {/* Modal de detalle de orden */}
+      <OrderDetailModal 
+        order={selectedOrder}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+      />
     </div>
   );
 };
