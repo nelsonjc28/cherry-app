@@ -9,6 +9,7 @@ import FavoriteButton from '../components/FavoriteButton/FavoriteButton';
 import FeaturedProducts from '../components/sections/FeaturedProducts/FeaturedProducts';
 import ProductGallery from '../components/ProductGallery/ProductGallery';
 import StarRating from '../components/StarRating/StarRating';
+import ProductReviews from '../components/ProductReviews/ProductReviews';
 
 
 // Hooks
@@ -597,6 +598,10 @@ const ProductPage = () => {
               className="product-page__gallery-favorite"
               size="large"
             />
+            {/* Product Reviews - Desktop View */}
+            <div className="product-page__desktop-reviews show-desktop">
+              <ProductReviews />
+            </div>
           </div>
 
           {/* Product Info */}
@@ -893,6 +898,11 @@ const ProductPage = () => {
           alwaysShowTitle={true}
         />
       )}
+
+      {/* Product Reviews Section - Mobile View */}
+        <div className="container show-mobile">
+          <ProductReviews />
+        </div>
     </>
   );
 };
