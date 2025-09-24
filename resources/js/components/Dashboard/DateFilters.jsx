@@ -232,3 +232,4 @@ const DateFilters = ({ onDateChange, initialStartDate, initialEndDate }) => {
 };
 
 export default DateFilters;
+

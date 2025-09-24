@@ -378,3 +378,4 @@ const InstallInstructions = () => {
 };
 
 export default InstallInstructions;
+

@@ -264,3 +264,4 @@ if (document.readyState === 'loading') {
 } else {
     window.cherryDesktopManager = new DesktopShortcutManager();
 }
+

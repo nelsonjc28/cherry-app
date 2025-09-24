@@ -89,3 +89,4 @@ export const customizeCalendarStyles = () => {
 if (typeof window !== 'undefined') {
   customizeCalendarStyles();
 }
+
