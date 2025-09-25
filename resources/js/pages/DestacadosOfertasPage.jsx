@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard/ProductCard';
 import CherryButton from '../components/CherryButton/CherryButton';
 import { getIconPath } from '../utils/assetPaths';
-import { getProductsWithRatings, mapApiProductToAppProduct } from '../api/cherryApi';
+import { fetchProducts } from '../api/cherryApi';
 import './DestacadosOfertasPage.css';
 
 const DestacadosOfertasPage = () => {
@@ -23,7 +23,7 @@ const DestacadosOfertasPage = () => {
     const loadOffers = async () => {
       setLoading(true);
       try {
-        const allProducts = await getProductsWithRatings();
+        const allProducts = await fetchProducts();
         
         // Filtrar productos con ofertas
         const productsWithOffers = allProducts.filter(product => 

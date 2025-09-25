@@ -18,6 +18,8 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true }) =
     price, 
     originalPrice,
     discount,
+    userOffer, // Nuevo: oferta personalizada del usuario
+    hasUserOffer = false, // Nuevo: flag para oferta personalizada
     colors = [], 
     isNew = false, 
     rating = 0, 
@@ -61,14 +63,19 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true }) =
     }
   };
 
-  // Calculate discount percentage - Nueva lógica usando desc_promo
+  // Calculate discount percentage - Priorizar oferta personalizada
   const calculateDiscountPercentage = () => {
-    // Si ya viene calculado desde la API (desc_promo), usarlo
+    // PRIORIDAD 1: Oferta personalizada del usuario
+    if (hasUserOffer && userOffer && userOffer.percentage > 0) {
+      return Math.round(userOffer.percentage);
+    }
+    
+    // PRIORIDAD 2: Descuento general desde la API (desc_promo)
     if (discount && discount > 0) {
       return Math.round(discount);
     }
     
-    // Fallback: calcular usando originalPrice vs price
+    // PRIORIDAD 3: Fallback usando originalPrice vs price
     if (originalPrice && price && originalPrice > price) {
       return Math.round(((originalPrice - price) / originalPrice) * 100);
     }
@@ -78,6 +85,12 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true }) =
 
   const discountPercentage = calculateDiscountPercentage();
   const hasOffer = discountPercentage > 0;
+  
+  // Determinar el tipo de descuento para mostrar etiqueta apropiada
+  const getDiscountLabel = () => {
+    // Siempre mostrar "Oferta X%" independientemente del tipo de descuento
+    return `Oferta ${discountPercentage}%`;
+  };
 
   // Handle share functionality
   const handleShare = () => {
@@ -144,8 +157,8 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true }) =
 
         {/* Offer badge if product has discount */}
         {hasOffer && (
-          <span className="offer-badge">
-            Oferta {discountPercentage}%
+          <span className={`offer-badge ${hasUserOffer ? 'user-offer' : ''}`}>
+            {getDiscountLabel()}
           </span>
         )}
 

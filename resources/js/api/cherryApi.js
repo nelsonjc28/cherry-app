@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { applyUserOffersToProducts } from './userOffers';
 
 const CHERRY_API_URL = 'https://cherryapi.estrategiadmgs.com.mx/cherryApi/';
 
@@ -86,8 +87,6 @@ const CATALOG_MAPPING = {
 export const getAllProducts = async (catalog = 'Cherry 2025 - 2026') => {
   try {
     const response = await axios.get(CHERRY_API_URL);
-    
-    
     const products = response.data;
     
     // Verificar si products es válido
@@ -175,8 +174,14 @@ export const getProductsWithRatings = async (catalog = 'Cherry 2025 - 2026') => 
       rawProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
     );
     
-    return mappedProducts.filter(p => p !== null);
+    const validProducts = mappedProducts.filter(p => p !== null);
+    
+    // Aplicar ofertas personalizadas del usuario
+    const productsWithUserOffers = await applyUserOffersToProducts(validProducts);
+    
+    return productsWithUserOffers;
   } catch (error) {
+    console.error('❌ getProductsWithRatings: Error:', error);
     return [];
   }
 };
@@ -423,7 +428,12 @@ export const getRandomProducts = async (limit = 5) => {
       selectedProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
     );
     
-    return randomProducts.filter(p => p !== null);
+    const validProducts = randomProducts.filter(p => p !== null);
+    
+    // Aplicar ofertas personalizadas del usuario
+    const productsWithUserOffers = await applyUserOffersToProducts(validProducts);
+    
+    return productsWithUserOffers;
   } catch (error) {
     return [];
   }
@@ -486,7 +496,12 @@ export const getNewProducts = async (limit = 5) => {
       selectedProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
     );
     
-    return newProducts.filter(p => p !== null);
+    const validProducts = newProducts.filter(p => p !== null);
+    
+    // Aplicar ofertas personalizadas del usuario
+    const productsWithUserOffers = await applyUserOffersToProducts(validProducts);
+    
+    return productsWithUserOffers;
   } catch (error) {
     return [];
   }
@@ -530,24 +545,71 @@ export const getPromoProducts = async (limit = 5) => {
       });
       
       if (promoProductsNoStock.length === 0) {
-        // Si no hay productos en promoción, devolver array vacío
-        return [];
+        // FALLBACK: Si no hay productos en promoción, devolver productos aleatorios habilitados para web
+        const fallbackProducts = products.filter(product => product.opc_web === 'S').slice(0, limit);
+        
+        if (fallbackProducts.length === 0) {
+          return [];
+        }
+        
+        // Obtener IDs de productos para ratings
+        const productIds = fallbackProducts.map(product => 
+          product.id_articulo || product.id || product.codigo
+        ).filter(Boolean);
+        
+        // Obtener ratings en bulk
+        const ratingsCache = await getBulkRatings(productIds);
+        
+        // Mapear productos de forma asíncrona CON ratings
+        const mappedProducts = await Promise.all(
+          fallbackProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
+        );
+        
+        return mappedProducts.filter(p => p !== null);
       }
       
       const shuffled = promoProductsNoStock.sort(() => 0.5 - Math.random());
       const selectedProducts = shuffled.slice(0, limit);
       
-      const promoProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
+      // Obtener IDs de productos para ratings
+      const productIds = selectedProducts.map(product => 
+        product.id_articulo || product.id || product.codigo
+      ).filter(Boolean);
+      
+      // Obtener ratings en bulk
+      const ratingsCache = await getBulkRatings(productIds);
+      
+      // Mapear productos de forma asíncrona CON ratings
+      const promoProducts = await Promise.all(
+        selectedProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
+      );
       return promoProducts.filter(p => p !== null);
     }
     
     const shuffled = activeProducts.sort(() => 0.5 - Math.random());
     const selectedProducts = shuffled.slice(0, limit);
     
-    const promoProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
+    // Obtener IDs de productos para ratings
+    const productIds = selectedProducts.map(product => 
+      product.id_articulo || product.id || product.codigo
+    ).filter(Boolean);
     
-    return promoProducts.filter(p => p !== null);
+    // Obtener ratings en bulk
+    const ratingsCache = await getBulkRatings(productIds);
+    
+    // Mapear productos de forma asíncrona CON ratings
+    const promoProducts = await Promise.all(
+      selectedProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
+    );
+    
+    const validProducts = promoProducts.filter(p => p !== null);
+    
+    // Aplicar ofertas personalizadas del usuario
+    const productsWithUserOffers = await applyUserOffersToProducts(validProducts);
+    
+    return productsWithUserOffers;
   } catch (error) {
+    console.error('❌ getPromoProducts: Error al cargar productos con descuentos:', error);
     return [];
   }
 };
@@ -671,7 +733,12 @@ export const getProductsByCategory = async (category, catalog = 'Cherry 2025 - 2
       webEnabledProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
     );
     
-    return mappedProducts.filter(p => p !== null);
+    const validProducts = mappedProducts.filter(p => p !== null);
+    
+    // Aplicar ofertas personalizadas del usuario
+    const productsWithUserOffers = await applyUserOffersToProducts(validProducts);
+    
+    return productsWithUserOffers;
   } catch (error) {
     return [];
   }
@@ -694,7 +761,13 @@ export const fetchProducts = async (catalog = 'Cherry 2025 - 2026') => {
     const mappedProducts = await Promise.all(
       products.map(product => mapApiProductToAppProduct(product, ratingsCache))
     );
-    return mappedProducts.filter(p => p !== null);
+    
+    const validProducts = mappedProducts.filter(p => p !== null);
+    
+    // Aplicar ofertas personalizadas del usuario
+    const productsWithUserOffers = await applyUserOffersToProducts(validProducts);
+    
+    return productsWithUserOffers;
   } catch (error) {
     return [];
   }
@@ -740,7 +813,13 @@ export const getProductsByAvailability = async (availability, catalog = 'Cherry 
     const mappedProducts = await Promise.all(
       filteredProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
     );
-    return mappedProducts.filter(p => p !== null);
+    
+    const validProducts = mappedProducts.filter(p => p !== null);
+    
+    // Aplicar ofertas personalizadas del usuario
+    const productsWithUserOffers = await applyUserOffersToProducts(validProducts);
+    
+    return productsWithUserOffers;
   } catch (error) {
     return [];
   }
@@ -902,7 +981,13 @@ export const searchProductsAdvanced = async (query, filters = {}, catalog = 'Che
     const mappedProducts = await Promise.all(
       finalProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
     );
-    return mappedProducts.filter(p => p !== null);
+    
+    const validProducts = mappedProducts.filter(p => p !== null);
+    
+    // Aplicar ofertas personalizadas del usuario
+    const productsWithUserOffers = await applyUserOffersToProducts(validProducts);
+    
+    return productsWithUserOffers;
   } catch (error) {
     return [];
   }
@@ -1000,14 +1085,19 @@ export const getProductById = async (productId) => {
     // 🔥 IMPORTANTE: Aplicar el mapeo para que funcionen las ofertas CON ratings
     const mappedProduct = mapApiProductToAppProduct(product, ratingsCache);
     
+    // Aplicar ofertas personalizadas del usuario
+    const productsWithUserOffers = await applyUserOffersToProducts([mappedProduct]);
+    const finalProduct = productsWithUserOffers[0] || mappedProduct;
     
     // Retornar el producto original con los campos mapeados agregados
     return {
       ...product,
       // Agregar campos mapeados para las ofertas
-      mappedDiscount: mappedProduct?.discount,
-      mappedPrice: mappedProduct?.price,
-      mappedOriginalPrice: mappedProduct?.originalPrice,
+      mappedDiscount: finalProduct?.discount,
+      mappedPrice: finalProduct?.price,
+      mappedOriginalPrice: finalProduct?.originalPrice,
+      userDiscount: finalProduct?.userDiscount,
+      hasUserDiscount: finalProduct?.hasUserDiscount,
       // Mantener desc_promo original de la API
       desc_promo: product.desc_promo || 0
     };

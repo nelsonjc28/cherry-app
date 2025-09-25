@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import BestSellerCard from './BestSellerCard';
 import ProductSlider from '../../ProductSlider/ProductSlider';
 import { getHeroIconPath } from '../../../utils/assetPaths';
-import { useExternalApiContext } from '../../../contexts/ExternalApiContext';
+import { getRandomProducts } from '../../../api/cherryApi';
 import './BestSellers.css';
 
 const BestSellers = ({
@@ -11,7 +11,6 @@ const BestSellers = ({
   description = "Perfectos para ocasiones especiales, con diseños que realzan la figura",
   useApi = true
 }) => {
-  const { getRandomProductsCached, loading } = useExternalApiContext();
   const [apiProducts, setApiProducts] = useState([]);
   const [localLoading, setLocalLoading] = useState(false);
 
@@ -20,7 +19,8 @@ const BestSellers = ({
     const loadRandomProducts = async () => {
       try {
         setLocalLoading(true);
-        const productsData = await getRandomProductsCached(6);
+        // Usar la nueva función que incluye ofertas personalizadas
+        const productsData = await getRandomProducts(6);
 
         if (productsData && productsData.length > 0) {
           setApiProducts(productsData);
@@ -80,6 +80,10 @@ const BestSellers = ({
               title={product.title}
               image={product.image}
               price={product.price}
+              originalPrice={product.originalPrice}
+              discount={product.discount}
+              userOffer={product.userOffer}
+              hasUserOffer={product.hasUserOffer}
               rating={product.rating}
               description={product.description}
               onFavoriteToggle={handleFavoriteToggle}
@@ -103,6 +107,10 @@ const BestSellers = ({
                 title={product.title}
                 image={product.image}
                 price={product.price}
+                originalPrice={product.originalPrice}
+                discount={product.discount}
+                userOffer={product.userOffer}
+                hasUserOffer={product.hasUserOffer}
                 rating={product.rating}
                 description={product.description}
                 onFavoriteToggle={handleFavoriteToggle}

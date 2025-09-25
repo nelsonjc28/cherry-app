@@ -6,8 +6,7 @@ import { getIconPath } from '../utils/assetPaths';
 import CustomButton from '../components/CustomButton';
 import './CatalogPage.css';
 import { 
-  getProductsWithRatings,
-  mapApiProductToAppProduct,
+  getNewProducts,
   getAvailableColors,
   getAvailableSizes
 } from '../api/cherryApi';
@@ -286,114 +285,16 @@ const NuevosPage = () => {
     loadFiltersData();
   }, []);
 
-  // Load products - only new products
+  // Load products - only new products with user offers
   useEffect(() => {
     const loadProducts = async () => {
       setLoading(true);
       try {
-        // Obtener todos los productos de la API externa
-        const response = await fetch('https://cherryapi.estrategiadmgs.com.mx/cherryApi/');
-        const externalData = await response.json();
+        // Usar la función getNewProducts que ya incluye ofertas personalizadas
+        const newProducts = await getNewProducts(100); // Obtener hasta 100 productos nuevos
         
-        // Filtrar solo productos nuevos (opc_nuevo === 'S')
-        const newProducts = externalData.filter(product => product.opc_nuevo === 'S');
-        
-        // Mapear productos nuevos
-        const mappedNewProducts = newProducts.map(product => {
-          const numericPrice = parseFloat(product.precio1) || 0;
-          const originalPrice = parseFloat(product.precio2) || numericPrice;
-          const discountPercentage = originalPrice > numericPrice ? 
-            Math.round(((originalPrice - numericPrice) / originalPrice) * 100) : 0;
-          
-          // Obtener colores disponibles
-          const availableColors = [];
-          if (product.colores) {
-            try {
-              const colorsData = JSON.parse(product.colores);
-              if (Array.isArray(colorsData)) {
-                colorsData.forEach(color => {
-                  if (color && color.trim()) {
-                    availableColors.push(color.trim());
-                  }
-                });
-              }
-            } catch (e) {
-              // Si no se puede parsear, usar el valor directo
-              if (product.colores.trim()) {
-                availableColors.push(product.colores.trim());
-              }
-            }
-          }
-          
-          // Obtener tallas disponibles
-          const availableSizes = [];
-          if (product.tallas) {
-            try {
-              const sizesData = JSON.parse(product.tallas);
-              if (Array.isArray(sizesData)) {
-                sizesData.forEach(size => {
-                  if (size && size.trim()) {
-                    availableSizes.push(size.trim());
-                  }
-                });
-              }
-            } catch (e) {
-              // Si no se puede parsear, usar el valor directo
-              if (product.tallas.trim()) {
-                availableSizes.push(product.tallas.trim());
-              }
-            }
-          }
-          
-          // Determinar si es producto nuevo
-          const isNewProduct = product.opc_nuevo === 'S';
-          
-          return {
-            id: product.id_articulo,
-            title: product.descripcion || 'Sin nombre',
-            description: product.descripcion || 'Sin descripción',
-            price: numericPrice,
-            originalPrice: originalPrice,
-            discount: discountPercentage,
-            image: getProductImageUrl(product.id_articulo),
-            brand: product.marca || 'Sin marca',
-            category: product.linea?.nombre || 'Sin categoría',
-            stock: product.inventario || 0,
-            colors: availableColors,
-            colores: availableColors,
-            tallas: availableSizes,
-            isNew: isNewProduct,
-            rating: 0,
-            ratingCount: 0,
-            linea: product.linea,
-            fechaAlta: product.fecha_alta,
-            fechaAct: product.fechaAct,
-            temporada: product.temporada,
-            opcNuevo: product.opc_nuevo,
-            opcPromo: product.opc_promo,
-            descPromo: product.desc_promo
-          };
-        });
-        
-        setAllProducts(mappedNewProducts);
-        setFilteredProducts(mappedNewProducts);
-        
-        // Actualizar filtros disponibles
-        if (mappedNewProducts.length > 0) {
-          const availableColors = getAvailableColors(mappedNewProducts);
-          const availableSizes = getAvailableSizes(mappedNewProducts);
-          const availableCategories = getAvailableCategories(mappedNewProducts);
-          const availableDepartments = getAvailableDepartments(mappedNewProducts);
-          const availableSectors = getAvailableSectors(mappedNewProducts);
-          const priceRange = getPriceRange(mappedNewProducts);
-          
-          setFilters(prev => ({
-            ...prev,
-            colors: availableColors,
-            sizes: availableSizes,
-            priceRange: priceRange
-          }));
-        }
+        setAllProducts(newProducts);
+        setFilteredProducts(newProducts);
         
       } catch (error) {
         console.error('Error loading new products:', error);

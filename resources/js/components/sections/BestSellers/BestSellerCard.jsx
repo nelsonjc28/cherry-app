@@ -5,15 +5,20 @@ import StarRating from '../../StarRating/StarRating';
 import { formatPrice } from '../../../utils/formatters';
 import './BestSellerCard.css';
 
-const BestSellerCard = ({ id, title, image, price, originalPrice, discount, rating, description, onFavoriteToggle }) => {
-  // Calculate discount percentage - Nueva lógica usando desc_promo
+const BestSellerCard = ({ id, title, image, price, originalPrice, discount, userOffer, hasUserOffer, rating, description, onFavoriteToggle }) => {
+  // Calculate discount percentage - Priorizar oferta personalizada
   const calculateDiscountPercentage = () => {
-    // Si ya viene calculado desde la API (desc_promo), usarlo
+    // PRIORIDAD 1: Oferta personalizada del usuario
+    if (hasUserOffer && userOffer && userOffer.percentage > 0) {
+      return Math.round(userOffer.percentage);
+    }
+    
+    // PRIORIDAD 2: Descuento general desde la API (desc_promo)
     if (discount && discount > 0) {
       return Math.round(discount);
     }
 
-    // Fallback: calcular usando originalPrice vs price
+    // PRIORIDAD 3: Fallback usando originalPrice vs price
     if (originalPrice && price && originalPrice > price) {
       return Math.round(((originalPrice - price) / originalPrice) * 100);
     }

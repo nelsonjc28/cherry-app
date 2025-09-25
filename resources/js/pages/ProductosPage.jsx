@@ -5,7 +5,7 @@ import ProductCard from '../components/ProductCard/ProductCard';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import CherryButton from '../components/CherryButton/CherryButton';
 import { getIconPath } from '../utils/assetPaths';
-import { getProductsWithRatings, mapApiProductToAppProduct, getAvailableColors, getAvailableSizes } from '../api/cherryApi';
+import { fetchProducts, getAvailableColors, getAvailableSizes } from '../api/cherryApi';
 import { publicCatalogService } from '../services/api';
 import './ProductosPage.css';
 
@@ -97,7 +97,7 @@ const ProductosPage = () => {
     const loadProducts = async () => {
       setLoading(true);
       try {
-        const allProducts = await getProductsWithRatings();
+        const allProducts = await fetchProducts();
         setProducts(allProducts);
         setFilteredProducts(allProducts);
       } catch (error) {

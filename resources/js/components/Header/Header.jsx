@@ -307,20 +307,34 @@ const Header = () => {
     }
   };
 
-  // Función para manejar clic en categorías del menú desplegable
-  const handleCategoryClick = (categoryName) => {
-    // Establecer el término de búsqueda con el nombre de la categoría
-    setSearchTerm(categoryName);
-    
+  // Función para manejar clic en elementos del menú
+  const handleMenuClick = (item, activeMenuType) => {
     // Cerrar el menú desplegable
     setActiveMenu(null);
     
-    // Ejecutar la búsqueda automáticamente después de un breve delay
-    setTimeout(() => {
-      const searchParams = new URLSearchParams();
-      searchParams.set('q', categoryName);
-      navigate(`/buscar?${searchParams.toString()}`);
-    }, 150);
+    // Solo aplicar búsqueda para categorías individuales, no para enlaces directos
+    const isDirectLink = item.name.includes('Todas') || item.name.includes('Todos') || 
+                        item.link.startsWith('/catalogo/') || 
+                        item.link === '/categorias' || 
+                        item.link === '/catalogos' ||
+                        item.link.startsWith('/destacados') ||
+                        item.link.startsWith('/promociones') ||
+                        item.link.startsWith('/nuevos');
+    
+    // Si es un enlace directo, no hacer nada adicional (el Link se encarga)
+    if (isDirectLink) {
+      return;
+    }
+    
+    // Para categorías individuales, hacer búsqueda
+    if (activeMenuType === 'categorias' && item.link.startsWith('/categoria/')) {
+      setSearchTerm(item.name);
+      setTimeout(() => {
+        const searchParams = new URLSearchParams();
+        searchParams.set('q', item.name);
+        navigate(`/buscar?${searchParams.toString()}`);
+      }, 150);
+    }
   };
 
   // Cargar usuario al montar si hay token
@@ -648,7 +662,7 @@ const Header = () => {
                             <li key={itemIndex}>
                               <Link 
                                 to={item.link}
-                                onClick={() => handleCategoryClick(item.name)}
+                                onClick={() => handleMenuClick(item, activeMenu)}
                               >
                                 {item.name}
                               </Link>

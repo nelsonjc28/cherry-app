@@ -61,6 +61,14 @@
   box-shadow: 0 2px 4px rgba(255, 68, 68, 0.3);
 }
 
+/* User offer badge - mismo estilo que ofertas generales */
+.offer-badge.user-offer {
+  background: #ff4444;
+  color: white;
+  box-shadow: 0 2px 4px rgba(255, 68, 68, 0.3);
+  /* Sin diferencias visuales con las ofertas normales */
+}
+
 /* New badge */
 .new-badge {
   position: absolute;

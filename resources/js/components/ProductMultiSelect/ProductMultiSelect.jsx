@@ -30,9 +30,12 @@ const ProductMultiSelect = ({
     } else {
       const filtered = products.filter(product => {
         const searchLower = searchTerm.toLowerCase();
+        const productName = product.descripcion || product.title || product.name || '';
+        const productId = product.id_articulo || product.id || product.codigo || '';
+        
         return (
-          product.descripcion?.toLowerCase().includes(searchLower) ||
-          product.id_articulo?.toString().includes(searchLower) ||
+          productName.toLowerCase().includes(searchLower) ||
+          productId.toString().includes(searchLower) ||
           product.marca?.toLowerCase().includes(searchLower) ||
           product.linea?.descripcion?.toLowerCase().includes(searchLower) ||
           product.sector?.descripcion?.toLowerCase().includes(searchLower) ||
@@ -64,19 +67,26 @@ const ProductMultiSelect = ({
       
       const allProducts = await getProductsWithRatings();
       
+      if (!allProducts || allProducts.length === 0) {
+        setProducts([]);
+        setFilteredProducts([]);
+        return;
+      }
+      
       // Filtrar productos - mostrar todos los que tengan campos básicos
       const filteredProducts = allProducts.filter(product => {
-        // Solo verificar que el producto tenga los campos básicos
-        const hasBasicFields = product.id_articulo && product.descripcion;
-        
+        // Verificar múltiples posibles campos de ID y descripción
+        const hasId = product.id_articulo || product.id || product.codigo;
+        const hasDescription = product.descripcion || product.title || product.name;
+        const hasBasicFields = hasId && hasDescription;
         
         return hasBasicFields;
       });
       
-      
       setProducts(filteredProducts);
       setFilteredProducts(filteredProducts);
     } catch (err) {
+      console.error('❌ ProductMultiSelect: Error al cargar productos:', err);
       setError('Error al cargar productos: ' + err.message);
     } finally {
       setLoading(false);
@@ -90,12 +100,18 @@ const ProductMultiSelect = ({
     }
   };
 
+  // Helper function to get unique product ID
+  const getProductId = (product) => {
+    return product.id_articulo || product.id || product.codigo;
+  };
+
   const handleProductSelect = (product) => {
-    const isSelected = selectedProducts.some(p => p.id_articulo === product.id_articulo);
+    const productId = getProductId(product);
+    const isSelected = selectedProducts.some(p => getProductId(p) === productId);
     
     if (isSelected) {
       // Remover producto
-      const newSelected = selectedProducts.filter(p => p.id_articulo !== product.id_articulo);
+      const newSelected = selectedProducts.filter(p => getProductId(p) !== productId);
       onProductsChange(newSelected);
     } else {
       // Agregar producto
@@ -105,7 +121,7 @@ const ProductMultiSelect = ({
   };
 
   const handleRemoveProduct = (productId) => {
-    const newSelected = selectedProducts.filter(p => p.id_articulo !== productId);
+    const newSelected = selectedProducts.filter(p => getProductId(p) !== productId);
     onProductsChange(newSelected);
   };
 
@@ -121,7 +137,8 @@ const ProductMultiSelect = ({
   };
 
   const isProductSelected = (product) => {
-    return selectedProducts.some(p => p.id_articulo === product.id_articulo);
+    const productId = getProductId(product);
+    return selectedProducts.some(p => getProductId(p) === productId);
   };
 
   const formatPrice = (price) => {
@@ -142,24 +159,24 @@ const ProductMultiSelect = ({
           </div>
           <div className="product-multi-select__selected-list">
             {selectedProducts.map(product => (
-              <div key={product.id_articulo} className="product-multi-select__selected-item">
+              <div key={getProductId(product)} className="product-multi-select__selected-item">
                 <div className="product-multi-select__selected-info">
                   <div className="product-multi-select__selected-details">
                     <span className="product-multi-select__selected-name">
-                      {product.descripcion}
+                      {product.descripcion || product.title || product.name || 'Sin nombre'}
                     </span>
                     <span className="product-multi-select__selected-id">
-                      ID: {product.id_articulo}
+                      ID: {getProductId(product) || 'N/A'}
                     </span>
                     <span className="product-multi-select__selected-price">
-                      {formatPrice(product.precio1)}
+                      {formatPrice(product.precio1 || product.price || 0)}
                     </span>
                   </div>
                 </div>
                 <button
                   type="button"
                   className="product-multi-select__remove-btn"
-                  onClick={() => handleRemoveProduct(product.id_articulo)}
+                  onClick={() => handleRemoveProduct(getProductId(product))}
                   disabled={disabled}
                   title="Remover producto"
                 >
@@ -239,7 +256,7 @@ const ProductMultiSelect = ({
             <div className="product-multi-select__list">
               {filteredProducts.map(product => (
                 <div
-                  key={product.id_articulo}
+                  key={getProductId(product) || Math.random()}
                   className={`product-multi-select__item ${
                     isProductSelected(product) ? 'selected' : ''
                   }`}
@@ -256,15 +273,15 @@ const ProductMultiSelect = ({
                   
                   <div className="product-multi-select__item-info">
                     <div className="product-multi-select__item-name">
-                      {product.descripcion}
+                      {product.descripcion || product.title || product.name || 'Sin nombre'}
                     </div>
                     <div className="product-multi-select__item-details">
                       <span className="product-multi-select__item-id">
-                        ID: {product.id_articulo}
+                        ID: {product.id_articulo || product.id || product.codigo || 'N/A'}
                       </span>
                     </div>
                     <div className="product-multi-select__item-price">
-                      {formatPrice(product.precio1)}
+                      {formatPrice(product.precio1 || product.price || 0)}
                     </div>
                   </div>
                 </div>

@@ -600,7 +600,7 @@ const ProductPage = () => {
             />
             {/* Product Reviews - Desktop View */}
             <div className="product-page__desktop-reviews show-desktop">
-              <ProductReviews />
+              <ProductReviews productId={productId} />
             </div>
           </div>
 
@@ -901,7 +901,7 @@ const ProductPage = () => {
 
       {/* Product Reviews Section - Mobile View */}
         <div className="container show-mobile">
-          <ProductReviews />
+          <ProductReviews productId={productId} />
         </div>
     </>
   );
