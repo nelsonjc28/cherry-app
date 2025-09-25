@@ -1,11 +1,55 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import axios from 'axios';
 import './ProductReviews.css';
 import StarRating from '../StarRating/StarRating';
 
-const ProductReviews = () => {
+const ProductReviews = ({ productId: propProductId }) => {
+  const { productId: paramProductId } = useParams();
+  const productId = propProductId || paramProductId;
+  
   const [sortBy] = useState('recent');
+  const [reviews, setReviews] = useState([]);
+  const [stats, setStats] = useState({
+    average: 0,
+    total: 0,
+    distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Mock reviews data
+  // Load reviews from API
+  useEffect(() => {
+    const loadReviews = async () => {
+      if (!productId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await axios.get(`/api/reviews/product/${productId}`);
+        
+        if (response.data.success) {
+          setReviews(response.data.reviews);
+          setStats(response.data.stats);
+        } else {
+          setError('Error al cargar las reseñas');
+        }
+      } catch (err) {
+        setError('Error al cargar las reseñas');
+        console.error('Error loading reviews:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadReviews();
+  }, [productId]);
+
+  // Mock reviews data (fallback - will be removed)
   const mockReviews = [
     {
       id: 1,
@@ -41,12 +85,18 @@ const ProductReviews = () => {
     }
   ];
 
-  const averageRating = mockReviews.reduce((sum, review) => sum + review.rating, 0) / mockReviews.length;
-
+  // Use real data or fallback to mock data
+  const currentReviews = reviews.length > 0 ? reviews : mockReviews;
+  const averageRating = stats.average || (currentReviews.length > 0 ? currentReviews.reduce((sum, review) => sum + review.rating, 0) / currentReviews.length : 0);
+  const totalReviews = stats.total || currentReviews.length;
 
   const getRatingDistribution = () => {
+    if (stats.distribution && Object.keys(stats.distribution).length > 0) {
+      return stats.distribution;
+    }
+    // Fallback to calculate from current reviews
     const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-    mockReviews.forEach(review => {
+    currentReviews.forEach(review => {
       distribution[review.rating]++;
     });
     return distribution;
@@ -54,12 +104,12 @@ const ProductReviews = () => {
 
   const ratingDistribution = getRatingDistribution();
 
-  const sortedReviews = [...mockReviews].sort((a, b) => {
+  const sortedReviews = [...currentReviews].sort((a, b) => {
     switch (sortBy) {
       case 'recent':
-        return new Date(b.date) - new Date(a.date);
+        return new Date(b.created_at || b.date) - new Date(a.created_at || a.date);
       case 'oldest':
-        return new Date(a.date) - new Date(b.date);
+        return new Date(a.created_at || a.date) - new Date(b.created_at || b.date);
       case 'highest':
         return b.rating - a.rating;
       case 'lowest':
@@ -68,6 +118,30 @@ const ProductReviews = () => {
         return 0;
     }
   });
+
+  if (loading) {
+    return (
+      <div className="product-reviews">
+        <div className="product-reviews__container">
+          <div className="product-reviews__loading">
+            <p>Cargando reseñas...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="product-reviews">
+        <div className="product-reviews__container">
+          <div className="product-reviews__error">
+            <p>{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="product-reviews">
@@ -81,7 +155,7 @@ const ProductReviews = () => {
               {averageRating.toFixed(1)}
             </div>
             <div className="product-reviews__total-reviews">
-              {mockReviews.length} reseñas
+              {totalReviews} reseñas
             </div>
             <div className="product-reviews__average-stars">
               <StarRating 
@@ -104,12 +178,12 @@ const ProductReviews = () => {
                   <div 
                     className="product-reviews__distribution-fill"
                     style={{ 
-                      width: `${mockReviews.length > 0 ? (ratingDistribution[rating] / mockReviews.length) * 100 : 0}%` 
+                      width: `${totalReviews > 0 ? (typeof ratingDistribution[rating] === 'object' ? ratingDistribution[rating].percentage : (ratingDistribution[rating] / totalReviews) * 100) : 0}%` 
                     }}
                   ></div>
                 </div>
                 <span className="product-reviews__distribution-count">
-                  {ratingDistribution[rating]}
+                  {typeof ratingDistribution[rating] === 'object' ? ratingDistribution[rating].count : ratingDistribution[rating]}
                 </span>
               </div>
             ))}
@@ -123,13 +197,13 @@ const ProductReviews = () => {
             <div className="product-reviews__item-header">
               <div className="product-reviews__user-info">
                 <div className="product-reviews__user-avatar">
-                  {review.userName.charAt(0).toUpperCase()}
+                  {(review.user?.name || review.userName || 'Usuario').charAt(0).toUpperCase()}
                 </div>
                 <div className="product-reviews__user-details">
                   <div className="product-reviews__user-name">
-                    {review.userName}
+                    {review.user?.name || review.userName || 'Usuario'}
                   </div>
-                  <div className="product-reviews__date">{review.date}</div>
+                  <div className="product-reviews__date">{review.created_at || review.date}</div>
                 </div>
               </div>
               <div className="product-reviews__rating">
@@ -164,13 +238,14 @@ const ProductReviews = () => {
         ))}
       </div>
 
-        {mockReviews.length === 0 && (
+        {currentReviews.length === 0 && (
           <div className="product-reviews__empty">
             <div className="product-reviews__empty-icon">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 2L13.09 8.26L22 9L13.09 9.74L12 16L10.91 9.74L2 9L10.91 8.26L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
               </svg>
             </div>
+            <p>Este producto aún no tiene reseñas.</p>
           </div>
         )}
       </div>

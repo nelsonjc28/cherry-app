@@ -28,6 +28,9 @@ use App\Http\Controllers\Api\TermsConditionsController;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api');
+
+// Public review routes (no auth required)
+Route::get('/reviews/product/{productId}', [App\Http\Controllers\ReviewController::class, 'getProductReviews']);
 Route::get('/me', [AuthController::class, 'me'])->middleware('auth:api');
 Route::get('/debug', [AuthController::class, 'debug'])->middleware('auth:api');
 
@@ -99,9 +102,6 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/reviews/can-review/{orderId}/{productId}', [App\Http\Controllers\ReviewController::class, 'canReview']);
 });
 
-// Public review routes (no auth required)
-Route::get('/reviews/product/{productId}', [App\Http\Controllers\ReviewController::class, 'getProductReviews']);
-    
     // Profile routes
     Route::get('/profile', [ProfileController::class, 'show']);
     

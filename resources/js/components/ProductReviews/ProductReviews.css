@@ -367,3 +367,25 @@
     padding: 3rem 2rem;
   }
 }
+
+/* Loading and Error States */
+.product-reviews__loading,
+.product-reviews__error {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #666;
+}
+
+.product-reviews__error {
+  color: #e74c3c;
+  background-color: #fdf2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+.product-reviews__loading p,
+.product-reviews__error p {
+  margin: 0;
+  font-size: 1rem;
+}
