@@ -635,6 +635,7 @@ class PaymentController extends Controller
                     'date' => $order->created_at->format('d \d\e F Y'),
                     'orderNumber' => str_pad($order->id, 8, '0', STR_PAD_LEFT),
                     'status' => $this->mapOrderStatus($order->status),
+                    'statusRaw' => $order->status, // Estado original para comparaciones en el frontend
                     'statusColor' => $this->getStatusColor($order->status),
                     'items' => $order->items->map(function ($item) {
                         // Generar URL de imagen basada en el product_id

@@ -31,8 +31,9 @@
   display: grid;
   grid-template-columns: 300px 1fr;
   gap: 2rem;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
+  padding: 0 1rem;
 }
 
 .buscar-filters {
@@ -49,7 +50,8 @@
   background: white;
   border-radius: 1rem;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  padding: 2rem;
+  padding: 1.5rem;
+  min-height: 500px;
 }
 
 .buscar-loading {
@@ -107,9 +109,10 @@
 
 .buscar-products-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
   margin-bottom: 2rem;
+  padding: 0;
 }
 
 /* Responsive */
@@ -130,6 +133,11 @@
 
   .buscar-results-section {
     order: 1;
+  }
+
+  .buscar-products-grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
   }
 }
 

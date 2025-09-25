@@ -24,10 +24,9 @@ const DestacadosPage = () => {
       setLoading(true);
       try {
         const allProducts = await getProductsWithRatings();
-        const mappedProducts = allProducts.map(mapApiProductToAppProduct);
         
         // Filtrar productos destacados (nuevos, populares, etc.)
-        const featured = mappedProducts.filter(product => 
+        const featured = allProducts.filter(product => 
           product.isNew || product.isPromo || product.rating >= 4
         );
         

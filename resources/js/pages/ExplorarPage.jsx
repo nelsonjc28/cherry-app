@@ -27,8 +27,7 @@ const ExplorarPage = () => {
       setLoading(true);
       try {
         const allProducts = await getProductsWithRatings();
-        const mappedProducts = allProducts.map(mapApiProductToAppProduct);
-        setProducts(mappedProducts);
+        setProducts(allProducts);
       } catch (error) {
 
         setProducts([]);

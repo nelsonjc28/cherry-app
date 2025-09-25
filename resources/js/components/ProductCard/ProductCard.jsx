@@ -124,7 +124,7 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true }) =
           <img 
             src={getCurrentImage()} 
             alt={title} 
-            className="product-image" 
+            className="catalog-product-image" 
             loading="lazy" 
           />
         </Link>

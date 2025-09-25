@@ -98,9 +98,8 @@ const ProductosPage = () => {
       setLoading(true);
       try {
         const allProducts = await getProductsWithRatings();
-        const mappedProducts = allProducts.map(mapApiProductToAppProduct);
-        setProducts(mappedProducts);
-        setFilteredProducts(mappedProducts);
+        setProducts(allProducts);
+        setFilteredProducts(allProducts);
       } catch (error) {
 
         setProducts([]);

@@ -44,10 +44,9 @@ const PromocionesPage = () => {
       setLoading(true);
       try {
         const allProducts = await getProductsWithRatings();
-        const mappedProducts = allProducts.map(mapApiProductToAppProduct);
         
         // Filtrar productos promocionales
-        const promotional = mappedProducts.filter(product => 
+        const promotional = allProducts.filter(product => 
           product.discount && product.discount > 0
         );
         

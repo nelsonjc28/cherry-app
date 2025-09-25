@@ -15,7 +15,8 @@ import {
   searchProductsAdvanced,
   getProductsWithRatings,
   getAvailableColors,
-  getAvailableSizes
+  getAvailableSizes,
+  getBulkRatings
 } from '../api/cherryApi';
 import { catalogService, publicCatalogService } from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
@@ -315,13 +316,21 @@ const CatalogPage = ({ catalogId }) => {
                   externalApiData = await externalApiResponse.json();
                 }
                 
+                // Obtener IDs de productos para ratings
+                const localProductIds = localResponse.data.data.products.map(product => 
+                  product.external_product_id
+                ).filter(Boolean);
+                
+                // Obtener ratings en bulk para productos locales
+                const localRatingsCache = await getBulkRatings(localProductIds);
+                
                 localProducts = localResponse.data.data.products.map(product => {
                   // Buscar el producto completo en la API externa usando el external_product_id
                   const fullProduct = externalApiData.find(p => p.id_articulo === product.external_product_id);
                   
                   if (fullProduct) {
-                    // Usar la función de mapeo actualizada con datos completos
-                    const mappedProduct = mapApiProductToAppProduct(fullProduct);
+                    // Usar la función de mapeo actualizada con datos completos CON ratings
+                    const mappedProduct = mapApiProductToAppProduct(fullProduct, localRatingsCache);
                     if (mappedProduct) {
                       return {
                         ...mappedProduct,
@@ -331,20 +340,29 @@ const CatalogPage = ({ catalogId }) => {
                     }
                   }
                   
-                  // Fallback: mapeo básico sin ofertas
+                  // Fallback: mapeo básico con ratings del cache
+                  const productId = product.external_product_id;
+                  let rating = 0;
+                  let ratingCount = 0;
+                  
+                  if (localRatingsCache[productId]) {
+                    rating = localRatingsCache[productId].average || 0;
+                    ratingCount = localRatingsCache[productId].count || 0;
+                  }
+                  
                   return {
-                  id: product.external_product_id,
+                  id: productId,
                   title: product.product_name,
                   description: product.product_description,
                   price: product.product_price,
-                  image: getProductImageUrl(product.external_product_id),
+                  image: getProductImageUrl(productId),
                   brand: product.product_metadata?.marca,
                   category: product.product_category,
                   stock: product.product_metadata?.inventario || 0,
                   colors: [],
                   isNew: false,
-                  rating: 0,
-                  ratingCount: 0,
+                  rating: rating,
+                  ratingCount: ratingCount,
                     source: 'local',
                     originalPrice: null,
                     discount: null
@@ -366,9 +384,17 @@ const CatalogPage = ({ catalogId }) => {
                 const catalogCode = catalogResponse.data.success ? catalogResponse.data.data.code : null;
                 
                 if (catalogCode) {
-                  externalProducts = externalData
-                    .filter(product => product.catalogoId == catalogCode)
-                    .map(product => {
+                  const filteredExternalData = externalData.filter(product => product.catalogoId == catalogCode);
+                  
+                  // Obtener IDs de productos para ratings
+                  const externalProductIds = filteredExternalData.map(product => 
+                    product.id_articulo || product.id || product.codigo
+                  ).filter(Boolean);
+                  
+                  // Obtener ratings en bulk para productos externos
+                  const externalRatingsCache = await getBulkRatings(externalProductIds);
+                  
+                  externalProducts = filteredExternalData.map(product => {
                       // CONSOLE LOG ESPECÍFICO PARA DETALLES EN CATÁLOGO
 
 
@@ -396,8 +422,8 @@ const CatalogPage = ({ catalogId }) => {
                       
                       // Debug específico para productos externos
                       
-                      // Usar la función de mapeo actualizada que incluye la lógica de ofertas
-                      const mappedProduct = mapApiProductToAppProduct(product);
+                      // Usar la función de mapeo actualizada que incluye la lógica de ofertas CON ratings
+                      const mappedProduct = mapApiProductToAppProduct(product, externalRatingsCache);
                       if (mappedProduct) {
                       
                       return {
@@ -426,9 +452,17 @@ const CatalogPage = ({ catalogId }) => {
                   const fallbackData = await fallbackResponse.json();
                   
                   // Filtrar por temporada (nombre del catálogo)
-                  const fallbackProducts = fallbackData
-                    .filter(product => product.temporada === catalogName)
-                    .map(product => {
+                  const filteredFallbackData = fallbackData.filter(product => product.temporada === catalogName);
+                  
+                  // Obtener IDs de productos para ratings
+                  const fallbackProductIds = filteredFallbackData.map(product => 
+                    product.id_articulo || product.id || product.codigo
+                  ).filter(Boolean);
+                  
+                  // Obtener ratings en bulk para productos fallback
+                  const fallbackRatingsCache = await getBulkRatings(fallbackProductIds);
+                  
+                  const fallbackProducts = filteredFallbackData.map(product => {
                       // CONSOLE LOG ESPECÍFICO PARA DETALLES EN FALLBACK
 
 
@@ -456,8 +490,8 @@ const CatalogPage = ({ catalogId }) => {
                       
                       // Debug específico para productos fallback
                       
-                      // Usar la función de mapeo actualizada que incluye la lógica de ofertas
-                      const mappedProduct = mapApiProductToAppProduct(product);
+                      // Usar la función de mapeo actualizada que incluye la lógica de ofertas CON ratings
+                      const mappedProduct = mapApiProductToAppProduct(product, fallbackRatingsCache);
                       if (mappedProduct) {
                       
                       return {

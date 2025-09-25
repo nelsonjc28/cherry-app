@@ -6,32 +6,37 @@ const StarRating = ({
   maxRating = 5, 
   size = 'medium', 
   readonly = false, 
+  readOnly = false, // Alternative prop name for compatibility
   showAverage = false,
   averageRating = 0,
   totalRatings = 0,
-  onRatingChange = null 
+  onRatingChange = null,
+  showText = false
 }) => {
   const [hoverRating, setHoverRating] = useState(0);
   const [currentRating, setCurrentRating] = useState(rating);
+  
+  // Use either readonly or readOnly prop
+  const isReadonly = readonly || readOnly;
 
   useEffect(() => {
     setCurrentRating(rating);
   }, [rating]);
 
   const handleMouseEnter = (starIndex) => {
-    if (!readonly) {
+    if (!isReadonly) {
       setHoverRating(starIndex + 1);
     }
   };
 
   const handleMouseLeave = () => {
-    if (!readonly) {
+    if (!isReadonly) {
       setHoverRating(0);
     }
   };
 
   const handleClick = (starIndex) => {
-    if (!readonly && onRatingChange) {
+    if (!isReadonly && onRatingChange) {
       const newRating = starIndex + 1;
       setCurrentRating(newRating);
       onRatingChange(newRating);
@@ -40,14 +45,15 @@ const StarRating = ({
 
   const renderStars = () => {
     const stars = [];
-    const displayRating = readonly ? currentRating : hoverRating || currentRating;
+    const displayRating = isReadonly ? currentRating : hoverRating || currentRating;
     const hasRatings = totalRatings > 0;
 
     for (let i = 0; i < maxRating; i++) {
       const starClass = `star-rating__star ${size}`;
       const isFilled = i < displayRating;
       const isHalf = !isFilled && displayRating > i && displayRating < i + 1;
-      const isNoRatings = !hasRatings;
+      // Solo mostrar como "no-ratings" si es readonly, no hay ratings totales Y no hay rating actual
+      const isNoRatings = isReadonly && !hasRatings && displayRating === 0;
 
       stars.push(
         <span
@@ -56,14 +62,25 @@ const StarRating = ({
           onMouseEnter={() => handleMouseEnter(i)}
           onMouseLeave={handleMouseLeave}
           onClick={() => handleClick(i)}
-          style={{ cursor: readonly ? 'default' : 'pointer' }}
+          style={{ cursor: isReadonly ? 'default' : 'pointer' }}
         >
-          {isHalf ? '★' : '★'}
+          ★
         </span>
       );
     }
 
     return stars;
+  };
+
+  const getRatingText = () => {
+    const ratingTexts = {
+      1: 'Muy malo',
+      2: 'Malo', 
+      3: 'Regular',
+      4: 'Bueno',
+      5: 'Excelente'
+    };
+    return ratingTexts[hoverRating || currentRating] || '';
   };
 
   return (
@@ -72,22 +89,27 @@ const StarRating = ({
         {renderStars()}
       </div>
       
+      {showText && !isReadonly && (
+        <div className="star-rating__text">
+          {getRatingText()}
+        </div>
+      )}
+      
       {showAverage && (
         <div className="star-rating__info">
           <span className="star-rating__average">
-            {averageRating.toFixed(1)}
+            {averageRating > 0 ? averageRating.toFixed(1) : '0.0'}
           </span>
           {totalRatings > 0 && (
             <span className="star-rating__count">
               ({totalRatings} {totalRatings === 1 ? 'calificación' : 'calificaciones'})
             </span>
           )}
-        </div>
-      )}
-      
-      {!readonly && (
-        <div className="star-rating__hint">
-          Haz clic para calificar
+          {totalRatings === 0 && (
+            <span className="star-rating__count">
+              (Sin calificaciones)
+            </span>
+          )}
         </div>
       )}
     </div>

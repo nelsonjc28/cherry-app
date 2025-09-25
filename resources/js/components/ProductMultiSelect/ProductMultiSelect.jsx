@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getAllProducts } from '../../api/cherryApi';
+import { getProductsWithRatings } from '../../api/cherryApi';
 import './ProductMultiSelect.css';
 
 const ProductMultiSelect = ({ 
@@ -62,7 +62,7 @@ const ProductMultiSelect = ({
       setLoading(true);
       setError('');
       
-      const allProducts = await getAllProducts();
+      const allProducts = await getProductsWithRatings();
       
       // Filtrar productos - mostrar todos los que tengan campos básicos
       const filteredProducts = allProducts.filter(product => {

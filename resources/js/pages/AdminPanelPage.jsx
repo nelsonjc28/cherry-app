@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import CherryButton from '../components/CherryButton/CherryButton';
 import AdminUserManager from '../components/AdminUserManager/AdminUserManager';
 import ClientManager from '../components/ClientManager/ClientManager';
+import AdminReviews from '../components/AdminReviews/AdminReviews';
 
 import CategoryOrderManager from '../components/CategoryOrderManager/CategoryOrderManager';
 import AdminWelcomeSectionManager from '../components/AdminWelcomeSectionManager/AdminWelcomeSectionManager';
@@ -48,6 +49,7 @@ function AdminPanelPage() {
     '/admin/catalogos-home': 'home-catalogs',
     '/admin/catalogos': 'catalogs',
     '/admin/ordenes': 'orders',
+    '/admin/resenas': 'reviews',
     '/admin/contacto': 'contact-info',
     '/admin/privacidad': 'privacy-policy',
     '/admin/descuentos': 'discounts'
@@ -65,6 +67,7 @@ function AdminPanelPage() {
     'home-catalogs': '/admin/catalogos-home',
     'catalogs': '/admin/catalogos',
     'orders': '/admin/ordenes',
+    'reviews': '/admin/resenas',
     'contact-info': '/admin/contacto',
     'privacy-policy': '/admin/privacidad',
     'discounts': '/admin/descuentos'
@@ -142,6 +145,7 @@ function AdminPanelPage() {
           <button className={`admin-panel__sidebar-link${selectedMenu==='home-catalogs'?' active':''}`} onClick={()=>handleMenuChange('home-catalogs')}>Catálogos del Home</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='catalogs'?' active':''}`} onClick={()=>handleMenuChange('catalogs')}>Catálogos</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='orders'?' active':''}`} onClick={()=>handleMenuChange('orders')}>Gestión de Órdenes</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='reviews'?' active':''}`} onClick={()=>handleMenuChange('reviews')}>Gestión de Reseñas</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='contact-info'?' active':''}`} onClick={()=>handleMenuChange('contact-info')}>Información de Contacto</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='privacy-policy'?' active':''}`} onClick={()=>handleMenuChange('privacy-policy')}>Políticas de Privacidad</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='discounts'?' active':''}`} onClick={()=>handleMenuChange('discounts')}>Descuentos</button>
@@ -243,6 +247,12 @@ function AdminPanelPage() {
         {selectedMenu === 'orders' && isAdmin() && (
           <section>
             <AdminOrders />
+          </section>
+        )}
+
+        {selectedMenu === 'reviews' && isAdmin() && (
+          <section>
+            <AdminReviews />
           </section>
         )}
 

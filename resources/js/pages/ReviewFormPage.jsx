@@ -19,6 +19,7 @@ const ReviewFormPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [product, setProduct] = useState(null);
+  const [order, setOrder] = useState(null);
   const [canReview, setCanReview] = useState(false);
 
   // Verificar si el usuario puede escribir una reseña
@@ -36,16 +37,24 @@ const ReviewFormPage = () => {
       if (response.data.success) {
         setCanReview(response.data.can_review);
         setProduct(response.data.product);
+        setOrder(response.data.order);
+        
+        // Debug: Log para ver los datos del producto y orden
+        console.log('Full API response:', response.data);
+        console.log('Product data received:', response.data.product);
+        console.log('Order data received:', response.data.order);
         
         if (!response.data.can_review) {
           setError(response.data.message);
         }
       } else {
+        console.error('API returned success: false', response.data);
         setError(response.data.message || 'Error al verificar permisos');
       }
     } catch (err) {
       console.error('Error checking review permissions:', err);
-      setError('Error de conexión al verificar permisos');
+      console.error('Error details:', err.response?.data);
+      setError(`Error de conexión: ${err.response?.data?.message || err.message}`);
     } finally {
       setLoading(false);
     }
@@ -204,13 +213,67 @@ const ReviewFormPage = () => {
 
             <div className="review-form__product">
               <img 
-                src={mockProduct.image} 
-                alt={mockProduct.title}
+                src={product?.image || '/images/catalogProductImages/Rectangle 4922.png'} 
+                alt={product?.title || 'Producto'}
                 className="review-form__product-image"
+                onError={(e) => {
+                  e.target.src = '/images/catalogProductImages/Rectangle 4922.png';
+                }}
               />
               <div className="review-form__product-info">
-                <h2 className="review-form__product-title">{mockProduct.title}</h2>
-                <p className="review-form__product-order">Pedido #{mockProduct.orderNumber}</p>
+                <h2 className="review-form__product-title">{product?.title || 'Producto'}</h2>
+                
+                {/* Información de la orden */}
+                <div className="review-form__order-info">
+                  <p className="review-form__product-order">
+                    Pedido #{order?.order_number || orderId} • {order?.date}
+                  </p>
+                  {order?.status && (
+                    <span className="review-form__order-status">
+                      Estado: {order.status === 'entregado' ? 'Entregado' : order.status}
+                    </span>
+                  )}
+                </div>
+
+                {/* Información del producto */}
+                <div className="review-form__product-details">
+                  {product?.description && (
+                    <p className="review-form__product-description">
+                      {product.description}
+                    </p>
+                  )}
+                  
+                  <div className="review-form__product-specs">
+                    <div className="spec-item">
+                      <span className="spec-label">ID del producto:</span>
+                      <span className="spec-value">{product?.id}</span>
+                    </div>
+                    
+                    {product?.category && (
+                      <div className="spec-item">
+                        <span className="spec-label">Categoría:</span>
+                        <span className="spec-value">{product.category}</span>
+                      </div>
+                    )}
+                    
+                    <div className="spec-item">
+                      <span className="spec-label">Cantidad comprada:</span>
+                      <span className="spec-value">{product?.quantity || 1}</span>
+                    </div>
+                    
+                    <div className="spec-item">
+                      <span className="spec-label">Precio unitario:</span>
+                      <span className="spec-value">${product?.price?.toFixed(2) || '0.00'}</span>
+                    </div>
+                    
+                    <div className="spec-item">
+                      <span className="spec-label">Total pagado:</span>
+                      <span className="spec-value spec-value--total">
+                        ${product?.subtotal?.toFixed(2) || '0.00'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 

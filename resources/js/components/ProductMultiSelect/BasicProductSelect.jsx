@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAllProducts } from '../../api/cherryApi';
+import { getProductsWithRatings } from '../../api/cherryApi';
 
 const BasicProductSelect = () => {
   const [products, setProducts] = useState([]);
@@ -14,7 +14,7 @@ const BasicProductSelect = () => {
       setError('');
 
       
-      const allProducts = await getAllProducts();
+      const allProducts = await getProductsWithRatings();
 
       
       // Mostrar todos los productos sin filtros

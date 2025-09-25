@@ -75,6 +75,13 @@ Route::middleware(['auth:api', 'admin'])->prefix('admin')->group(function () {
     Route::get('/orders/{orderId}', [App\Http\Controllers\Admin\AdminOrderController::class, 'show']);
     Route::put('/orders/{orderId}/status', [App\Http\Controllers\Admin\AdminOrderController::class, 'updateStatus']);
     Route::get('/notifications', [App\Http\Controllers\NotificationController::class, 'getAdminNotifications']);
+    
+    // Admin Reviews routes
+    Route::get('/reviews', [App\Http\Controllers\Admin\AdminReviewController::class, 'index']);
+    Route::get('/reviews/stats', [App\Http\Controllers\Admin\AdminReviewController::class, 'getStats']);
+    Route::post('/reviews/{reviewId}/approve', [App\Http\Controllers\Admin\AdminReviewController::class, 'approve']);
+    Route::post('/reviews/{reviewId}/reject', [App\Http\Controllers\Admin\AdminReviewController::class, 'reject']);
+    Route::delete('/reviews/{reviewId}', [App\Http\Controllers\Admin\AdminReviewController::class, 'destroy']);
 });
 
 // Notification routes

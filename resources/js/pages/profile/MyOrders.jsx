@@ -82,7 +82,7 @@ const MyOrders = () => {
         // Actualizar la orden en el estado local
         setOrders(orders.map(order => 
           order.id === orderId 
-            ? { ...order, status: 'entregado', statusDisplay: 'Entregado' }
+            ? { ...order, status: 'Entregado', statusRaw: 'entregado' }
             : order
         ));
         
@@ -240,7 +240,7 @@ const MyOrders = () => {
                   >
                     Ver compra
                   </CherryButton>
-                  {(order.status === 'enviado') && (
+                  {(order.statusRaw === 'enviado') && (
                     <CherryButton
                       variant="green"
                       size="small"
@@ -250,12 +250,12 @@ const MyOrders = () => {
                       Marcar como recibido
                     </CherryButton>
                   )}
-                  {(order.status === 'Entregado' || order.status === 'entregado') && (
+                  {(order.statusRaw === 'entregado') && order.items?.[0] && (
                     <CherryButton
                       variant="outline"
                       size="small"
                       className="order-card__btn order-card__btn--review"
-                      onClick={() => handleWriteReview(order.id, order.id)}
+                      onClick={() => handleWriteReview(order.id, order.items[0].product_id)}
                     >
                       Comentario
                     </CherryButton>

@@ -21,6 +21,7 @@
   height: 0;
   padding-bottom: 100%; 
   border-radius: 8px 8px 0 0;
+  cursor: pointer;
 }
 
 .best-seller-image {
@@ -28,10 +29,10 @@
   top: 0;
   left: 0;
   width: 100%;
-  height: auto;
   object-position: center;
   transition: transform 0.5s ease;
   border-radius: 8px 8px 0 0;
+  cursor: pointer;
 }
 
 .best-seller-card:hover .best-seller-image {

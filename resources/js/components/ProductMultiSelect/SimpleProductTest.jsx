@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAllProducts } from '../../api/cherryApi';
+import { getProductsWithRatings } from '../../api/cherryApi';
 
 const SimpleProductTest = () => {
   const [products, setProducts] = useState([]);
@@ -13,7 +13,7 @@ const SimpleProductTest = () => {
       setError('');
 
       
-      const allProducts = await getAllProducts();
+      const allProducts = await getProductsWithRatings();
 
       
       setProducts(allProducts || []);

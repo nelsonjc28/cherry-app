@@ -135,9 +135,8 @@ const BuscarPage = () => {
         } else {
           // Load all products if no search parameters
           const allProducts = await getProductsWithRatings();
-          const mappedProducts = allProducts.map(mapApiProductToAppProduct);
-          setProducts(mappedProducts);
-          setFilteredProducts(mappedProducts);
+          setProducts(allProducts);
+          setFilteredProducts(allProducts);
         }
       } catch (error) {
         setProducts([]);

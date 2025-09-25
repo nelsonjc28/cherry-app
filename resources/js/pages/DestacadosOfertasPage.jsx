@@ -24,10 +24,9 @@ const DestacadosOfertasPage = () => {
       setLoading(true);
       try {
         const allProducts = await getProductsWithRatings();
-        const mappedProducts = allProducts.map(mapApiProductToAppProduct);
         
         // Filtrar productos con ofertas
-        const productsWithOffers = mappedProducts.filter(product => 
+        const productsWithOffers = allProducts.filter(product => 
           product.discount && product.discount > 0
         );
         

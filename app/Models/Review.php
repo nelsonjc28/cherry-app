@@ -27,6 +27,11 @@ class Review extends Model
         'updated_at' => 'datetime'
     ];
 
+    protected $attributes = [
+        'is_approved' => null, // Por defecto las reseñas están pendientes
+        'is_featured' => false
+    ];
+
     /**
      * Get the user that wrote this review
      */

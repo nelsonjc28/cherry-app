@@ -6,7 +6,6 @@ import { getIconPath } from '../utils/assetPaths';
 import CustomButton from '../components/CustomButton';
 import './CatalogPage.css';
 import { 
-  getAllProducts, 
   getProductsWithRatings,
   mapApiProductToAppProduct,
   getAvailableColors,

@@ -307,11 +307,11 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
   const category = apiProduct.linea?.descripcion || apiProduct.categoria || apiProduct.category || 'Sin categoría';
   
   // Obtener calificación del cache o usar valores por defecto
-  let rating = 5;
+  let rating = 0;
   let ratingCount = 0;
   
   if (ratingsCache[id]) {
-    rating = ratingsCache[id].average || 5;
+    rating = ratingsCache[id].average || 0;
     ratingCount = ratingsCache[id].count || 0;
   }
   
@@ -388,6 +388,8 @@ export const getRandomProducts = async (limit = 5) => {
       return hasStock && isWebEnabled;
     });
     
+    let selectedProducts = [];
+    
     if (availableProducts.length === 0) {
       // Si no hay productos disponibles, usar productos con stock
       const productsWithStock = products.filter(product => product.inventario > 0);
@@ -395,30 +397,31 @@ export const getRandomProducts = async (limit = 5) => {
       if (productsWithStock.length === 0) {
         // Si no hay productos con stock, usar todos
         const shuffled = products.sort(() => 0.5 - Math.random());
-        const selectedProducts = shuffled.slice(0, limit);
-        
-        // Mapear productos de forma asíncrona
-        const randomProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
-        return randomProducts.filter(p => p !== null);
+        selectedProducts = shuffled.slice(0, limit);
+      } else {
+        // Mezclar productos con stock
+        const shuffled = productsWithStock.sort(() => 0.5 - Math.random());
+        selectedProducts = shuffled.slice(0, limit);
       }
-      
-      // Mezclar productos con stock
-      const shuffled = productsWithStock.sort(() => 0.5 - Math.random());
-      const selectedProducts = shuffled.slice(0, limit);
-      
-      // Mapear productos de forma asíncrona
-      const randomProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
-      return randomProducts.filter(p => p !== null);
+    } else {
+      // Mezclar el array de productos para obtener una selección aleatoria
+      const shuffled = availableProducts.sort(() => 0.5 - Math.random());
+      // Tomar solo los primeros 'limit' productos
+      selectedProducts = shuffled.slice(0, limit);
     }
     
-    // Mezclar el array de productos para obtener una selección aleatoria
-    const shuffled = availableProducts.sort(() => 0.5 - Math.random());
+    // Obtener IDs de productos para ratings
+    const productIds = selectedProducts.map(product => 
+      product.id_articulo || product.id || product.codigo
+    ).filter(Boolean);
     
-    // Tomar solo los primeros 'limit' productos
-    const selectedProducts = shuffled.slice(0, limit);
+    // Obtener ratings en bulk
+    const ratingsCache = await getBulkRatings(productIds);
     
-    // Mapear productos de forma asíncrona
-    const randomProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
+    // Mapear productos de forma asíncrona CON ratings
+    const randomProducts = await Promise.all(
+      selectedProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
+    );
     
     return randomProducts.filter(p => p !== null);
   } catch (error) {
@@ -453,28 +456,35 @@ export const getNewProducts = async (limit = 5) => {
       return hasStock && isWebEnabled;
     });
     
+    let selectedProducts = [];
+    
     if (activeProducts.length === 0) {
       const productsWithStock = products.filter(product => product.inventario > 0);
       
       if (productsWithStock.length === 0) {
         const shuffled = products.sort(() => 0.5 - Math.random());
-        const selectedProducts = shuffled.slice(0, limit);
-        
-        const newProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
-        return newProducts.filter(p => p !== null);
+        selectedProducts = shuffled.slice(0, limit);
+      } else {
+        const shuffled = productsWithStock.sort(() => 0.5 - Math.random());
+        selectedProducts = shuffled.slice(0, limit);
       }
-      
-      const shuffled = productsWithStock.sort(() => 0.5 - Math.random());
-      const selectedProducts = shuffled.slice(0, limit);
-      
-      const newProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
-      return newProducts.filter(p => p !== null);
+    } else {
+      const shuffled = activeProducts.sort(() => 0.5 - Math.random());
+      selectedProducts = shuffled.slice(0, limit);
     }
     
-    const shuffled = activeProducts.sort(() => 0.5 - Math.random());
-    const selectedProducts = shuffled.slice(0, limit);
+    // Obtener IDs de productos para ratings
+    const productIds = selectedProducts.map(product => 
+      product.id_articulo || product.id || product.codigo
+    ).filter(Boolean);
     
-    const newProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
+    // Obtener ratings en bulk
+    const ratingsCache = await getBulkRatings(productIds);
+    
+    // Mapear productos de forma asíncrona CON ratings
+    const newProducts = await Promise.all(
+      selectedProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
+    );
     
     return newProducts.filter(p => p !== null);
   } catch (error) {
@@ -648,8 +658,18 @@ export const getProductsByCategory = async (category, catalog = 'Cherry 2025 - 2
       return isWebEnabled;
     });
     
-    // Mapear los productos filtrados al formato de la app de forma asíncrona
-    const mappedProducts = await Promise.all(webEnabledProducts.map(mapApiProductToAppProduct));
+    // Obtener IDs de productos para ratings
+    const productIds = webEnabledProducts.map(product => 
+      product.id_articulo || product.id || product.codigo
+    ).filter(Boolean);
+    
+    // Obtener ratings en bulk
+    const ratingsCache = await getBulkRatings(productIds);
+    
+    // Mapear los productos filtrados al formato de la app con ratings
+    const mappedProducts = await Promise.all(
+      webEnabledProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
+    );
     
     return mappedProducts.filter(p => p !== null);
   } catch (error) {
@@ -661,7 +681,19 @@ export const getProductsByCategory = async (category, catalog = 'Cherry 2025 - 2
 export const fetchProducts = async (catalog = 'Cherry 2025 - 2026') => {
   try {
     const products = await getAllProducts(catalog);
-    const mappedProducts = await Promise.all(products.map(mapApiProductToAppProduct));
+    
+    // Obtener IDs de productos para ratings
+    const productIds = products.map(product => 
+      product.id_articulo || product.id || product.codigo
+    ).filter(Boolean);
+    
+    // Obtener ratings en bulk
+    const ratingsCache = await getBulkRatings(productIds);
+    
+    // Mapear productos con ratings
+    const mappedProducts = await Promise.all(
+      products.map(product => mapApiProductToAppProduct(product, ratingsCache))
+    );
     return mappedProducts.filter(p => p !== null);
   } catch (error) {
     return [];
@@ -696,8 +728,18 @@ export const getProductsByAvailability = async (availability, catalog = 'Cherry 
       filteredProducts = filteredProducts.filter(product => product.inventario > 0);
     }
     
-    // Mapear productos al formato de la app
-    const mappedProducts = await Promise.all(filteredProducts.map(mapApiProductToAppProduct));
+    // Obtener IDs de productos para ratings
+    const productIds = filteredProducts.map(product => 
+      product.id_articulo || product.id || product.codigo
+    ).filter(Boolean);
+    
+    // Obtener ratings en bulk
+    const ratingsCache = await getBulkRatings(productIds);
+    
+    // Mapear productos al formato de la app con ratings
+    const mappedProducts = await Promise.all(
+      filteredProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
+    );
     return mappedProducts.filter(p => p !== null);
   } catch (error) {
     return [];
@@ -848,8 +890,18 @@ export const searchProductsAdvanced = async (query, filters = {}, catalog = 'Che
       });
     }
 
-    // Mapear los productos al formato de la app
-    const mappedProducts = await Promise.all(finalProducts.map(mapApiProductToAppProduct));
+    // Obtener IDs de productos para ratings
+    const productIds = finalProducts.map(product => 
+      product.id_articulo || product.id || product.codigo
+    ).filter(Boolean);
+    
+    // Obtener ratings en bulk
+    const ratingsCache = await getBulkRatings(productIds);
+    
+    // Mapear los productos al formato de la app con ratings
+    const mappedProducts = await Promise.all(
+      finalProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
+    );
     return mappedProducts.filter(p => p !== null);
   } catch (error) {
     return [];
@@ -942,9 +994,11 @@ export const getProductById = async (productId) => {
       throw new Error(`Producto con ID ${productId} no encontrado en la respuesta`);
     }
     
+    // Obtener rating para este producto específico
+    const ratingsCache = await getBulkRatings([productId]);
     
-    // 🔥 IMPORTANTE: Aplicar el mapeo para que funcionen las ofertas
-    const mappedProduct = mapApiProductToAppProduct(product);
+    // 🔥 IMPORTANTE: Aplicar el mapeo para que funcionen las ofertas CON ratings
+    const mappedProduct = mapApiProductToAppProduct(product, ratingsCache);
     
     
     // Retornar el producto original con los campos mapeados agregados

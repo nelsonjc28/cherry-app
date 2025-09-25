@@ -21,14 +21,25 @@ class RatingController extends Controller
 
             $productId = $request->product_id;
             
-            $averageRating = Rating::getAverageRating($productId);
+            // Obtener calificaciones desde las reseñas aprobadas
+            $reviewRating = \App\Models\Review::getRatingDistribution($productId);
             
-            $recentRatings = Rating::getProductRatings($productId, 5);
+            // Obtener reseñas recientes aprobadas
+            $recentReviews = \App\Models\Review::forProduct($productId)
+                ->approved()
+                ->with('user')
+                ->orderBy('created_at', 'desc')
+                ->limit(5)
+                ->get();
 
             return response()->json([
                 'success' => true,
-                'average_rating' => $averageRating,
-                'recent_ratings' => $recentRatings
+                'average_rating' => [
+                    'average' => $reviewRating['average'],
+                    'count' => $reviewRating['total'],
+                    'distribution' => $reviewRating['distribution']
+                ],
+                'recent_ratings' => $recentReviews
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -121,7 +132,12 @@ class RatingController extends Controller
 
             $ratings = [];
             foreach ($request->product_ids as $productId) {
-                $ratings[$productId] = Rating::getAverageRating($productId);
+                // Obtener calificaciones desde las reseñas aprobadas
+                $reviewRating = \App\Models\Review::getRatingDistribution($productId);
+                $ratings[$productId] = [
+                    'average' => $reviewRating['average'],
+                    'count' => $reviewRating['total']
+                ];
             }
 
             return response()->json([

@@ -558,7 +558,12 @@ const AdminWelcomeSectionManager = () => {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="image">Imagen de la Sección *</label>
+                  <label htmlFor="image">
+                    Imagen de la Sección *
+                    <span className="image-dimensions-hint">
+                      (Tamaño recomendado: 650 × 570 píxeles)
+                    </span>
+                  </label>
                   <input
                     type="file"
                     id="image"

@@ -266,6 +266,14 @@
   justify-content: flex-end;
 }
 
+/* Estilos para el texto de dimensiones de imagen */
+.image-dimensions-hint {
+  margin-left: 8px;
+  font-size: 0.9em;
+  color: #6c757d;
+  font-weight: normal;
+}
+
 /* Formulario */
 .admin-welcome-manager__form-overlay {
   position: fixed;
