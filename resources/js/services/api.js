@@ -15,6 +15,7 @@ api.interceptors.request.use(
     const publicRoutes = [
       '/public/',
       '/home-catalogs',
+      '/home-categories',
       '/categories',
       '/products',
       '/welcome-sections',
@@ -43,14 +44,39 @@ api.interceptors.request.use(
     );
     
     // Verificar rutas públicas con más precisión
-    const isBasicPublicRoute = publicRoutes.some(route => config.url.includes(route));
-    const isExactPublicRoute = exactPublicRoutes.some(route => config.url === route);
+    // IMPORTANTE: Las rutas admin NUNCA son públicas, incluso si contienen palabras públicas
+    const isAdminRoute = config.url.includes('/admin/');
+    
+    const isBasicPublicRoute = !isAdminRoute && publicRoutes.some(route => config.url.includes(route));
+    const isExactPublicRoute = !isAdminRoute && exactPublicRoutes.some(route => config.url === route);
     
     const isPublicRoute = isBasicPublicRoute || isExactPublicRoute || isPublicCatalogRoute;
     
-    
+    // Solo agregar token si existe, la ruta no es pública Y el token es válido
     if (token && !isPublicRoute) {
-      config.headers.Authorization = `Bearer ${token}`;
+      // Intentar verificar si el token no ha expirado antes de enviarlo
+      let shouldSendToken = true;
+      
+      try {
+        const tokenData = JSON.parse(atob(token.split('.')[1]));
+        const currentTime = Math.floor(Date.now() / 1000);
+        
+        // Si el token ha expirado, no lo enviamos y lo eliminamos
+        if (tokenData.exp && tokenData.exp < currentTime) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          shouldSendToken = false;
+        }
+      } catch (error) {
+        // Si hay error al parsear el token, aún así lo enviamos
+        // El servidor decidirá si es válido o no
+        console.warn('Error parsing token, but sending anyway:', error.message);
+      }
+      
+      // Enviar token si debe enviarse
+      if (shouldSendToken) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
 
     // NO establecer Content-Type si es FormData
@@ -72,13 +98,20 @@ api.interceptors.response.use(
   },
   (error) => {
     // NO redirigir automáticamente para rutas públicas
-    const isPublicRoute = error.config?.url?.includes('/public/') ||
+    // IMPORTANTE: Las rutas admin NUNCA son públicas
+    const isAdminRoute = error.config?.url?.includes('/admin/');
+    
+    const isPublicRoute = !isAdminRoute && (
+                         error.config?.url?.includes('/public/') ||
                          (error.config?.url?.includes('/catalogs') && !error.config?.url?.includes('/admin/')) ||
                          error.config?.url?.includes('/categories') ||
                          error.config?.url?.includes('/welcome-sections') ||
                          error.config?.url?.includes('/contact-info') ||
                          error.config?.url?.includes('/privacy-policy') ||
-                         error.config?.url?.includes('/home-catalogs');
+                         error.config?.url?.includes('/home-catalogs') ||
+                         error.config?.url?.includes('/home-categories') ||
+                         error.config?.url?.includes('/terms-conditions')
+                       );
     
     // Manejar casos específicos de error
     if (error.response) {
@@ -87,8 +120,17 @@ api.interceptors.response.use(
           // Token expirado o inválido - solo redirigir si NO es una ruta pública
           if (!isPublicRoute) {
             localStorage.removeItem('token');
+            localStorage.removeItem('user');
             if (window.location.pathname !== '/login') {
               window.location.href = '/login';
+            }
+          } else {
+            // Para rutas públicas con error 401, limpiar token inválido y reintentar
+            if (localStorage.getItem('token')) {
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              // Reintentar la petición sin token
+              return api.request(error.config);
             }
           }
           break;

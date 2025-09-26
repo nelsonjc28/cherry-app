@@ -43,7 +43,7 @@ const Header = () => {
       return [];
     }
 
-    // Priorizar las categorías del menú si están disponibles
+    // Si está cargando las categorías del menú
     if (menuCategoriesLoading) {
       return [
         {
@@ -55,7 +55,7 @@ const Header = () => {
       ];
     }
 
-    // Si hay categorías del menú configuradas, usarlas
+    // Solo mostrar las categorías del menú configuradas
     if (menuCategories && menuCategories.length > 0) {
       // Dividir las categorías del menú en grupos de 5 para mejor organización
       const groups = [];
@@ -83,42 +83,15 @@ const Header = () => {
       return groups;
     }
 
-    // Fallback a categorías generales si no hay categorías del menú
-    if (categoriesLoading || !categories.length) {
-      return [
-        {
-          title: 'Cargando...',
-          items: [
-            { name: 'Cargando categorías...', link: '/categorias' }
-          ]
-        }
-      ];
-    }
-
-    // Dividir las categorías generales en grupos de 5 para mejor organización
-    const groups = [];
-    const itemsPerGroup = 5;
-
-    for (let i = 0; i < categories.length; i += itemsPerGroup) {
-      const group = categories.slice(i, i + itemsPerGroup);
-      groups.push({
-        title: '',
-        items: group.map(cat => ({
-          name: cat.name,
-          link: `/categoria/${cat.slug}`
-        }))
-      });
-    }
-
-    // Agregar grupo "Ver todas" al final
-    groups.push({
-      title: 'Ver todas',
-      items: [
-        { name: 'Todas las categorías', link: '/categorias' }
-      ]
-    });
-
-    return groups;
+    // Si no hay categorías del menú configuradas, solo mostrar "Todas las categorías"
+    return [
+      {
+        title: 'Ver todas',
+        items: [
+          { name: 'Todas las categorías', link: '/categorias' }
+        ]
+      }
+    ];
   };
 
   const menuData = {

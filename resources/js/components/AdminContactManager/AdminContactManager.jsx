@@ -42,6 +42,23 @@ const AdminContactManager = () => {
     { key: 'sunday', label: 'Domingo' }
   ];
 
+  // Función para fusionar horarios asegurando que no haya valores null
+  const mergeHours = (defaultHours, apiHours) => {
+    if (!apiHours) return defaultHours;
+    
+    const merged = { ...defaultHours };
+    Object.keys(apiHours).forEach(day => {
+      if (apiHours[day]) {
+        merged[day] = {
+          open: apiHours[day].open || '',
+          close: apiHours[day].close || '',
+          closed: apiHours[day].closed || false
+        };
+      }
+    });
+    return merged;
+  };
+
   // Cargar información de contacto al montar el componente
   useEffect(() => {
     fetchContactInfo();
@@ -78,15 +95,14 @@ const AdminContactManager = () => {
           
           setContactInfo(prev => ({
             ...prev,
-            ...data.data,
-            store_hours: {
-              ...defaultStoreHours,
-              ...(data.data.store_hours || {})
-            },
-            online_hours: {
-              ...defaultOnlineHours,
-              ...(data.data.online_hours || {})
-            }
+            // Asegurar que todos los campos string no sean null
+            address_street: data.data.address_street || '',
+            address_city: data.data.address_city || '',
+            phone: data.data.phone || '',
+            email: data.data.email || '',
+            map_url: data.data.map_url || '',
+            store_hours: mergeHours(defaultStoreHours, data.data.store_hours),
+            online_hours: mergeHours(defaultOnlineHours, data.data.online_hours)
           }));
         }
       }

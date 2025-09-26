@@ -278,6 +278,9 @@ Route::middleware(['auth:api', 'admin'])->group(function () {
 // Public home categories route (no authentication required)
 Route::get('/home-categories', [HomeCategoryController::class, 'getHomeCategories']);
 
+// Public menu categories route (no authentication required)
+Route::get('/menu-categories', [App\Http\Controllers\Api\PublicMenuCategoryController::class, 'index']);
+
 // Public home catalogs route (no authentication required)
 Route::get('/home-catalogs', [App\Http\Controllers\Api\HomeCatalogController::class, 'index']);
 Route::get('/home-catalogs/{id}', [App\Http\Controllers\Api\HomeCatalogController::class, 'show']);

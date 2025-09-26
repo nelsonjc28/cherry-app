@@ -78,3 +78,4 @@ class CatalogOfferSeeder extends Seeder
     }
 }
 
+
