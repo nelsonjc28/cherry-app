@@ -86,16 +86,31 @@ class UserDiscountController extends Controller
                         $targetUsers = $offer->target_users ?? [];
                         
                         if (empty($targetUsers) || in_array($userId, $targetUsers)) {
-                            $discounts[$productId] = [
+                            // Construir respuesta base
+                            $discountData = [
                                 'offer_id' => $offer->id,
                                 'title' => $offer->title,
-                                'discount_percentage' => $offer->discount_percentage,
-                                'discount_type' => $offer->discount_type,
                                 'discount_category' => $offer->discount_category,
-                                'max_discount_amount' => $offer->max_discount_amount,
-                                'min_purchase_amount' => $offer->min_purchase_amount,
                                 'end_date' => $offer->end_date->format('Y-m-d H:i:s')
                             ];
+
+                            // Agregar campos específicos según el tipo de oferta
+                            if ($offer->discount_category === 'buy_x_get_y') {
+                                $discountData['buy_quantity'] = $offer->buy_quantity;
+                                $discountData['get_quantity'] = $offer->get_quantity;
+                                $discountData['discount_type'] = 'buy_x_get_y';
+                                $discountData['discount_percentage'] = 0; // No hay porcentaje para Buy X Get Y
+                            } elseif ($offer->discount_category === 'free_shipping') {
+                                $discountData['discount_type'] = 'free_shipping';
+                                $discountData['discount_percentage'] = 0; // No hay porcentaje para envío gratis
+                            } else {
+                                $discountData['discount_percentage'] = $offer->discount_percentage;
+                                $discountData['discount_type'] = $offer->discount_type;
+                                $discountData['max_discount_amount'] = $offer->max_discount_amount;
+                                $discountData['min_purchase_amount'] = $offer->min_purchase_amount;
+                            }
+
+                            $discounts[$productId] = $discountData;
                             break; // Aplicar solo el primer descuento encontrado por producto
                         }
                     }
@@ -114,7 +129,7 @@ class UserDiscountController extends Controller
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
-            \Log::error('Error en checkUserDiscounts: ' . $e->getMessage(), [
+            \Illuminate\Support\Facades\Log::error('Error en checkUserDiscounts: ' . $e->getMessage(), [
                 'user_id' => auth('api')->id(),
                 'trace' => $e->getTraceAsString()
             ]);

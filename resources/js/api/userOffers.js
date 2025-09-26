@@ -41,23 +41,18 @@ export const getUserOffers = async () => {
  */
 export const checkProductsWithUserOffers = async (productIds) => {
   try {
-    console.log('🔍 checkProductsWithUserOffers: Iniciando con IDs:', productIds.slice(0, 5), '...');
     
     if (!Array.isArray(productIds) || productIds.length === 0) {
-      console.log('❌ checkProductsWithUserOffers: Sin IDs válidos');
       return {};
     }
     
     // Obtener token del localStorage
     const token = localStorage.getItem('token');
-    console.log('🔑 checkProductsWithUserOffers: Token encontrado:', !!token);
     
     if (!token) {
-      console.log('❌ checkProductsWithUserOffers: Sin token');
       return {};
     }
 
-    console.log('📡 checkProductsWithUserOffers: Haciendo llamada a API...');
     
     const response = await axios.post(`${API_BASE_URL}/user-offers/products`, {
       product_ids: productIds
@@ -69,14 +64,11 @@ export const checkProductsWithUserOffers = async (productIds) => {
       timeout: 10000
     });
 
-    console.log('✅ checkProductsWithUserOffers: Respuesta recibida:', response.data);
 
     if (response && response.data && response.data.success) {
-      console.log('🎯 checkProductsWithUserOffers: Productos con ofertas:', response.data.products_with_offers);
       return response.data.products_with_offers || {};
     }
 
-    console.log('❌ checkProductsWithUserOffers: Sin éxito en respuesta');
     return {};
   } catch (error) {
     if (error.response && error.response.status !== 401) {
@@ -92,10 +84,8 @@ export const checkProductsWithUserOffers = async (productIds) => {
  * Esta función reemplaza la lógica anterior de descuentos personalizados
  */
 export const applyUserOffersToProducts = async (products) => {
-  console.log('🎯 applyUserOffersToProducts: Iniciando con', products.length, 'productos');
   
   if (!products || products.length === 0) {
-    console.log('❌ applyUserOffersToProducts: Sin productos');
     return products || [];
   }
 
@@ -105,21 +95,17 @@ export const applyUserOffersToProducts = async (products) => {
       product.id_articulo || product.id || product.codigo
     ).filter(Boolean);
 
-    console.log('📋 applyUserOffersToProducts: IDs extraídos:', productIds.slice(0, 5), '...');
 
     if (productIds.length === 0) {
-      console.log('❌ applyUserOffersToProducts: Sin IDs válidos');
       return products;
     }
 
     // Verificar ofertas del usuario
-    console.log('📞 applyUserOffersToProducts: Llamando a checkProductsWithUserOffers...');
     
     // Si hay muchos productos, procesarlos por lotes
     let productsWithOffers = {};
     
     if (productIds.length > 1500) {
-      console.log('🔄 applyUserOffersToProducts: Procesando por lotes (productos > 1500)');
       const chunkSize = 1500;
       const chunks = [];
       
@@ -142,7 +128,6 @@ export const applyUserOffersToProducts = async (products) => {
       ]);
     }
 
-    console.log('💰 applyUserOffersToProducts: Ofertas recibidas:', productsWithOffers);
 
     // Aplicar ofertas a los productos
     const finalProducts = products.map(product => {
@@ -150,7 +135,6 @@ export const applyUserOffersToProducts = async (products) => {
       const userOffer = productsWithOffers[productId];
 
       if (userOffer) {
-        console.log(`✅ applyUserOffersToProducts: Aplicando oferta a ${productId}:`, userOffer);
         const originalPrice = product.price || product.precio1 || 0;
         let discountedPrice = originalPrice;
         
@@ -181,19 +165,18 @@ export const applyUserOffersToProducts = async (products) => {
         };
       }
 
-      // Si no tiene oferta personalizada, mantener solo precio1 (precio original)
+      // Si no tiene oferta personalizada, mantener precio y descuento original de la API
       return {
         ...product,
-        price: product.precio1 || product.price || 0,
-        originalPrice: null,
-        discount: null,
+        price: product.price || product.precio1 || 0,
+        // Mantener originalPrice y discount si ya existen (productos de API con desc_promo)
+        originalPrice: product.originalPrice || null,
+        discount: product.discount || null,
         hasUserOffer: false
       };
     });
     
     const finalProductsWithOffers = finalProducts.filter(p => p.hasUserOffer);
-    console.log('🏁 applyUserOffersToProducts: Productos finales con ofertas:', finalProductsWithOffers.length);
-    console.log('🏁 applyUserOffersToProducts: Total productos devueltos:', finalProducts.length);
     
     return finalProducts;
   } catch (error) {

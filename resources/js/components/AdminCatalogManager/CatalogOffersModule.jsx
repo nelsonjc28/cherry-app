@@ -61,6 +61,7 @@ const CatalogOffersModule = ({ onBack }) => {
   // Función para cargar usuarios completos basándose en IDs
   const loadSelectedUsers = async (userIds) => {
     try {
+      
       const response = await axios.get('/api/admin/clients', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -72,11 +73,13 @@ const CatalogOffersModule = ({ onBack }) => {
         const selectedUsers = response.data.users.filter(user => 
           userIds.includes(user.id)
         );
+        
         setSelectedUsers(selectedUsers);
       } else {
         setSelectedUsers([]);
       }
     } catch (error) {
+      console.error('❌ Error cargando usuarios:', error);
       setSelectedUsers([]);
     }
   };
@@ -125,9 +128,11 @@ const CatalogOffersModule = ({ onBack }) => {
     setError('');
   };
 
-  const handleShowForm = (offer = null) => {
+  const handleShowForm = async (offer = null) => {
     if (offer) {
       setEditingOffer(offer);
+      
+      // Primero configurar el formData
       setFormData({
         catalog_id: offer.catalog_id || 1,
         title: offer.title,
@@ -145,13 +150,19 @@ const CatalogOffersModule = ({ onBack }) => {
         target_users: offer.target_users || [],
         target_products: offer.target_products || []
       });
+      
       // Cargar usuarios seleccionados para edición
       // offer.target_users contiene IDs, necesitamos cargar los usuarios completos
       if (offer.target_users && offer.target_users.length > 0) {
-        loadSelectedUsers(offer.target_users);
+        await loadSelectedUsers(offer.target_users);
       } else {
         setSelectedUsers([]);
       }
+      
+      // Los productos ya vienen completos desde la base de datos, no necesitan carga adicional
+      
+      // Abrir modal después de cargar usuarios
+      setShowForm(true);
     } else {
       setEditingOffer(null);
       setFormData({
@@ -172,8 +183,10 @@ const CatalogOffersModule = ({ onBack }) => {
         target_products: []
       });
       setSelectedUsers([]);
+      
+      // Abrir modal para nueva oferta
+      setShowForm(true);
     }
-    setShowForm(true);
   };
 
   const handleInputChange = (e) => {
@@ -219,27 +232,26 @@ const CatalogOffersModule = ({ onBack }) => {
     
     try {
       
-             const submitData = new FormData();
-       Object.keys(formData).forEach(key => {
-         if (formData[key] !== null && formData[key] !== '') {
-           // Para checkboxes, asegurar que se envíe como boolean
-           if (key === 'is_active') {
-             submitData.append(key, formData[key] ? '1' : '0');
-          } else if (key === 'target_products') {
-            // Para productos, enviar como JSON string (incluso si está vacío)
-            const productsArray = Array.isArray(formData[key]) ? formData[key] : [];
-            submitData.append(key, JSON.stringify(productsArray));
-          } else if (key === 'target_users') {
-            // Para usuarios, enviar como JSON string
-            const usersArray = selectedUsers
-              .filter(user => user && user.id) // Filtrar usuarios válidos
-              .map(user => user.id);
-            submitData.append(key, JSON.stringify(usersArray));
-           } else {
-             submitData.append(key, formData[key]);
-           }
-         }
-       });
+      const submitData = new FormData();
+      Object.keys(formData).forEach(key => {
+        // Para target_products y target_users, siempre enviar (incluso si están vacíos)
+        if (key === 'target_products') {
+          const productsArray = Array.isArray(formData[key]) ? formData[key] : [];
+          submitData.append(key, JSON.stringify(productsArray));
+        } else if (key === 'target_users') {
+          const usersArray = selectedUsers
+            .filter(user => user && user.id) // Filtrar usuarios válidos
+            .map(user => user.id);
+          submitData.append(key, JSON.stringify(usersArray));
+        } else if (formData[key] !== null && formData[key] !== '') {
+          // Para checkboxes, asegurar que se envíe como boolean
+          if (key === 'is_active') {
+            submitData.append(key, formData[key] ? '1' : '0');
+          } else {
+            submitData.append(key, formData[key]);
+          }
+        }
+      });
 
       let response;
       if (editingOffer) {
@@ -617,11 +629,13 @@ const CatalogOffersModule = ({ onBack }) => {
                 </div>
               </div>
 
-              {/* Selección de productos para descuento - No mostrar para envío gratis */}
-              {formData.discount_category !== 'free_shipping' && (
+              {/* Selección de productos para descuento */}
+              {formData.discount_category !== 'order_discount' && (
                 <div className="catalog-offers-module__form-row">
                   <div className="catalog-offers-module__form-group catalog-offers-module__form-group--full">
-                    <label>Productos con descuento *</label>
+                    <label>
+                      {formData.discount_category === 'free_shipping' ? 'Productos con envío gratis *' : 'Productos con descuento *'}
+                    </label>
                     <ProductMultiSelect
                       selectedProducts={formData.target_products}
                       onProductsChange={handleProductsChange}
@@ -637,6 +651,9 @@ const CatalogOffersModule = ({ onBack }) => {
                       }
                       {formData.discount_category === 'order_discount' && 
                         'Selecciona los productos que deben estar en el pedido para aplicar el descuento al TOTAL de la compra. El descuento se aplicará al monto total del pedido, no a productos individuales.'
+                      }
+                      {formData.discount_category === 'free_shipping' && 
+                        'Selecciona los productos específicos que tendrán envío gratis. Los clientes no pagarán costo de envío para estos productos.'
                       }
                     </small>
                   </div>

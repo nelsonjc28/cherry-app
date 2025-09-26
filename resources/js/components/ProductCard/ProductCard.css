@@ -69,6 +69,89 @@
   /* Sin diferencias visuales con las ofertas normales */
 }
 
+/* Buy X Get Y offer badge - estilo amarillo */
+.offer-badge.buy-x-get-y {
+  background: #ffd700; /* Amarillo */
+  color: #333;
+  font-weight: 700;
+  font-size: 0.7rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+  box-shadow: 0 3px 6px rgba(255, 215, 0, 0.4);
+  animation: pulse-glow-yellow 2s infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 3px 6px rgba(255, 107, 107, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(255, 107, 107, 0.6);
+  }
+}
+
+/* Animación amarilla para Buy X Get Y */
+@keyframes pulse-glow-yellow {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 3px 6px rgba(255, 215, 0, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(255, 215, 0, 0.6);
+  }
+}
+
+/* Order discount offer badge - estilo azul */
+.offer-badge.order-discount {
+  background: #007bff; /* Azul */
+  color: white;
+  font-weight: 700;
+  font-size: 0.7rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+  box-shadow: 0 3px 6px rgba(0, 123, 255, 0.4);
+  animation: pulse-glow-blue 2s infinite;
+}
+
+/* Animación azul para descuento en el pedido */
+@keyframes pulse-glow-blue {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 3px 6px rgba(0, 123, 255, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.6);
+  }
+}
+
+/* Free shipping offer badge - estilo verde */
+.offer-badge.free-shipping {
+  background: #28a745; /* Verde */
+  color: white;
+  font-weight: 700;
+  font-size: 0.7rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+  box-shadow: 0 3px 6px rgba(40, 167, 69, 0.4);
+  animation: pulse-glow-green 2s infinite;
+}
+
+/* Animación verde para envío gratis */
+@keyframes pulse-glow-green {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 3px 6px rgba(40, 167, 69, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.6);
+  }
+}
+
 /* New badge */
 .new-badge {
   position: absolute;

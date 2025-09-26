@@ -8,6 +8,8 @@ const UserMultiSelect = ({
   placeholder = "Buscar usuarios...",
   maxHeight = "300px"
 }) => {
+  
+  // Debug: Mostrar usuarios seleccionados recibidos
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');

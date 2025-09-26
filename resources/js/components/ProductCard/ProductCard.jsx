@@ -5,6 +5,7 @@ import StarRating from '../StarRating/StarRating';
 import { formatPrice } from '../../utils/formatters';
 import { getIconPath } from '../../utils/assetPaths';
 import colorConverter from '../../services/colorConverter';
+import { useUserDiscounts } from '../../hooks/useUserDiscounts';
 import './ProductCard.css';
 
 const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true }) => {
@@ -18,8 +19,6 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true }) =
     price, 
     originalPrice,
     discount,
-    userOffer, // Nuevo: oferta personalizada del usuario
-    hasUserOffer = false, // Nuevo: flag para oferta personalizada
     colors = [], 
     isNew = false, 
     rating = 0, 
@@ -27,12 +26,18 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true }) =
     description,
     brand,
     category,
-    stock = 0
+    stock = 0,
+    userOffer, // Información del descuento del usuario (puede venir como prop)
+    hasUserOffer = false // Flag que indica si tiene descuento del usuario (puede venir como prop)
   } = product;
   
+  // Hook para obtener descuentos personalizados del usuario (solo si no vienen como props)
+  const { userDiscounts } = useUserDiscounts(hasUserOffer ? [] : [id]);
   
-
-
+  // Usar la información que viene como props o la del hook
+  const finalUserOffer = userOffer || userDiscounts[id];
+  const finalHasUserOffer = hasUserOffer || Boolean(userDiscounts[id]);
+  
   
   // TEMPORAL: Forzar colores de prueba si no hay colores
   const testColors = colors && colors.length > 0 ? colors : ['white', 'black', 'navy'];
@@ -66,8 +71,8 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true }) =
   // Calculate discount percentage - Priorizar oferta personalizada
   const calculateDiscountPercentage = () => {
     // PRIORIDAD 1: Oferta personalizada del usuario
-    if (hasUserOffer && userOffer && userOffer.percentage > 0) {
-      return Math.round(userOffer.percentage);
+    if (finalHasUserOffer && finalUserOffer && finalUserOffer.discount_percentage > 0) {
+      return Math.round(finalUserOffer.discount_percentage);
     }
     
     // PRIORIDAD 2: Descuento general desde la API (desc_promo)
@@ -84,11 +89,34 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true }) =
   };
 
   const discountPercentage = calculateDiscountPercentage();
-  const hasOffer = discountPercentage > 0;
+  
+  
+  // Determinar si hay oferta (incluyendo ofertas especiales que no tienen porcentaje)
+  const hasOffer = discountPercentage > 0 || (finalHasUserOffer && finalUserOffer && (finalUserOffer.discount_category === 'buy_x_get_y' || finalUserOffer.discount_category === 'order_discount' || finalUserOffer.discount_category === 'free_shipping'));
   
   // Determinar el tipo de descuento para mostrar etiqueta apropiada
   const getDiscountLabel = () => {
-    // Siempre mostrar "Oferta X%" independientemente del tipo de descuento
+    // PRIORIDAD 1: Si hay oferta personalizada del usuario, mostrar su etiqueta específica
+    if (finalHasUserOffer && finalUserOffer) {
+      // Para ofertas Buy X Get Y
+      if (finalUserOffer.discount_category === 'buy_x_get_y') {
+        return `🎁 Compra ${finalUserOffer.buy_quantity} lleva ${finalUserOffer.get_quantity}`;
+      }
+      // Para ofertas de descuento en el pedido
+      if (finalUserOffer.discount_category === 'order_discount') {
+        return `💰 Descuento en pedido ${Math.round(finalUserOffer.discount_percentage)}%`;
+      }
+      // Para ofertas de envío gratis
+      if (finalUserOffer.discount_category === 'free_shipping') {
+        return `🚚 Envío gratis`;
+      }
+      // Para otras ofertas personalizadas, mostrar el porcentaje de descuento
+      if (finalUserOffer.discount_percentage && finalUserOffer.discount_percentage > 0) {
+        return `Oferta ${Math.round(finalUserOffer.discount_percentage)}%`;
+      }
+    }
+    
+    // PRIORIDAD 2: Descuento general - mostrar "Oferta X%"
     return `Oferta ${discountPercentage}%`;
   };
 
@@ -157,10 +185,15 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true }) =
 
         {/* Offer badge if product has discount */}
         {hasOffer && (
-          <span className={`offer-badge ${hasUserOffer ? 'user-offer' : ''}`}>
+          <span className={`offer-badge ${finalHasUserOffer ? 'user-offer' : ''} ${
+            finalHasUserOffer && finalUserOffer && finalUserOffer.discount_category === 'buy_x_get_y' ? 'buy-x-get-y' : 
+            finalHasUserOffer && finalUserOffer && finalUserOffer.discount_category === 'order_discount' ? 'order-discount' : 
+            finalHasUserOffer && finalUserOffer && finalUserOffer.discount_category === 'free_shipping' ? 'free-shipping' : ''
+          }`}>
             {getDiscountLabel()}
           </span>
         )}
+
 
         {/* New badge if product is new */}
         {isNew && !hasOffer && (

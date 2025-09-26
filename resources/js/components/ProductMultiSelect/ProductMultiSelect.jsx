@@ -9,6 +9,8 @@ const ProductMultiSelect = ({
   maxHeight = "300px",
   disabled = false 
 }) => {
+  
+  // Debug: Mostrar productos seleccionados recibidos
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');

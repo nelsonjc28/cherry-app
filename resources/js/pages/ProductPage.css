@@ -284,6 +284,87 @@
   box-shadow: 0 2px 6px rgba(255, 68, 68, 0.3);
 }
 
+/* User offer badge */
+.product-page__offer-badge.user-offer {
+  background: #ff4444;
+  color: white;
+  box-shadow: 0 2px 6px rgba(255, 68, 68, 0.3);
+}
+
+/* Buy X Get Y offer badge */
+.product-page__offer-badge.buy-x-get-y {
+  background: #ffd700; /* Amarillo */
+  color: #333;
+  font-weight: 700;
+  box-shadow: 0 4px 8px rgba(255, 215, 0, 0.4);
+  animation: pulse-glow-yellow-page 2s infinite;
+}
+
+@keyframes pulse-glow-page {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 8px rgba(255, 107, 107, 0.4);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 6px 12px rgba(255, 107, 107, 0.6);
+  }
+}
+
+/* Animación amarilla para Buy X Get Y en página de producto */
+@keyframes pulse-glow-yellow-page {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 8px rgba(255, 215, 0, 0.4);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 6px 12px rgba(255, 215, 0, 0.6);
+  }
+}
+
+/* Order discount offer badge */
+.product-page__offer-badge.order-discount {
+  background: #007bff; /* Azul */
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.4);
+  animation: pulse-glow-blue-page 2s infinite;
+}
+
+/* Animación azul para descuento en el pedido en página de producto */
+@keyframes pulse-glow-blue-page {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.4);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 6px 12px rgba(0, 123, 255, 0.6);
+  }
+}
+
+/* Free shipping offer badge */
+.product-page__offer-badge.free-shipping {
+  background: #28a745; /* Verde */
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
+  animation: pulse-glow-green-page 2s infinite;
+}
+
+/* Animación verde para envío gratis en página de producto */
+@keyframes pulse-glow-green-page {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 6px 12px rgba(40, 167, 69, 0.6);
+  }
+}
+
 /* Price container */
 .product-page__price-container {
   display: flex;
@@ -334,6 +415,81 @@
   font-size: 14px;
   color: #666;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Buy X Get Y info */
+.product-page__buy-x-get-y-info {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+  background: linear-gradient(135deg, #fff3cd, #d4edda);
+  padding: 12px;
+  border-radius: 8px;
+  border: 2px solid #ffd93d;
+  box-shadow: 0 2px 4px rgba(255, 217, 61, 0.3);
+  margin-bottom: 12px;
+}
+
+/* Additional offer badge container */
+.product-page__additional-offer-badge {
+  text-align: center;
+}
+
+/* Yellow badge for Buy X Get Y */
+.product-page__yellow-badge {
+  display: inline-block;
+  background: #ffd700;
+  color: #333;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(255, 215, 0, 0.4);
+}
+
+/* Order discount info */
+.product-page__order-discount-info {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+  padding: 12px;
+  border-radius: 8px;
+  border: 2px solid #007bff;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+/* Min purchase info */
+.product-page__min-purchase {
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+/* Free shipping info */
+.product-page__free-shipping-info {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+  background: linear-gradient(135deg, #d4edda, #c3e6cb);
+  padding: 12px;
+  border-radius: 8px;
+  border: 2px solid #28a745;
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+}
+
+/* Shipping savings info */
+.product-page__shipping-savings {
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  margin-top: 8px;
+  font-style: italic;
 }
 
 .product-page__info-sku {

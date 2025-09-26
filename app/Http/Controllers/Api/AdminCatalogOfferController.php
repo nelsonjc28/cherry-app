@@ -8,6 +8,7 @@ use App\Models\CatalogOffer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 
 class AdminCatalogOfferController extends Controller
@@ -104,25 +105,30 @@ class AdminCatalogOfferController extends Controller
                 // Para Buy X Get Y, no necesitamos discount_percentage ni discount_type
                 unset($data['discount_percentage']);
                 unset($data['discount_type']);
+            } elseif ($data['discount_category'] === 'free_shipping') {
+                // Para envío gratis, no necesitamos discount_percentage, discount_type, buy_quantity ni get_quantity
+                unset($data['discount_percentage']);
+                unset($data['discount_type']);
+                unset($data['buy_quantity']);
+                unset($data['get_quantity']);
             } else {
                 // Para otros tipos, no necesitamos buy_quantity ni get_quantity
                 unset($data['buy_quantity']);
                 unset($data['get_quantity']);
             }
             
-            // Para Envío gratis, limpiar campos de descuento y productos
-            if ($data['discount_category'] === 'free_shipping') {
-                unset($data['discount_percentage']);
-                unset($data['discount_type']);
-                $data['target_products'] = []; // Array vacío para envío gratis
-            }
+            // Nota: Los campos innecesarios ya se limpiaron arriba según el tipo de descuento
             
             // Procesar JSON strings para target_products y target_users
             if (isset($data['target_products']) && is_string($data['target_products'])) {
+                Log::info('📦 Procesando target_products (string):', ['raw' => $data['target_products']]);
                 $data['target_products'] = json_decode($data['target_products'], true);
+                Log::info('📦 target_products después de json_decode:', ['parsed' => $data['target_products']]);
             }
             if (isset($data['target_users']) && is_string($data['target_users'])) {
+                Log::info('👥 Procesando target_users (string):', ['raw' => $data['target_users']]);
                 $data['target_users'] = json_decode($data['target_users'], true);
+                Log::info('👥 target_users después de json_decode:', ['parsed' => $data['target_users']]);
             }
             
             // Manejar la imagen del banner
@@ -208,25 +214,30 @@ class AdminCatalogOfferController extends Controller
                 // Para Buy X Get Y, no necesitamos discount_percentage ni discount_type
                 unset($data['discount_percentage']);
                 unset($data['discount_type']);
+            } elseif ($data['discount_category'] === 'free_shipping') {
+                // Para envío gratis, no necesitamos discount_percentage, discount_type, buy_quantity ni get_quantity
+                unset($data['discount_percentage']);
+                unset($data['discount_type']);
+                unset($data['buy_quantity']);
+                unset($data['get_quantity']);
             } else {
                 // Para otros tipos, no necesitamos buy_quantity ni get_quantity
                 unset($data['buy_quantity']);
                 unset($data['get_quantity']);
             }
             
-            // Para Envío gratis, limpiar campos de descuento y productos
-            if ($data['discount_category'] === 'free_shipping') {
-                unset($data['discount_percentage']);
-                unset($data['discount_type']);
-                $data['target_products'] = []; // Array vacío para envío gratis
-            }
+            // Nota: Los campos innecesarios ya se limpiaron arriba según el tipo de descuento
             
             // Procesar JSON strings para target_products y target_users
             if (isset($data['target_products']) && is_string($data['target_products'])) {
+                Log::info('📦 Procesando target_products (string):', ['raw' => $data['target_products']]);
                 $data['target_products'] = json_decode($data['target_products'], true);
+                Log::info('📦 target_products después de json_decode:', ['parsed' => $data['target_products']]);
             }
             if (isset($data['target_users']) && is_string($data['target_users'])) {
+                Log::info('👥 Procesando target_users (string):', ['raw' => $data['target_users']]);
                 $data['target_users'] = json_decode($data['target_users'], true);
+                Log::info('👥 target_users después de json_decode:', ['parsed' => $data['target_users']]);
             }
             
             // Manejar la imagen del banner

@@ -29,18 +29,30 @@ export const checkUserDiscounts = async (productIds) => {
       timeout: 10000 // 10 segundos de timeout
     });
 
-    if (response && response.data && response.data.success) {
-      return response.data.discounts || {};
+    if (response && response.data) {
+      return {
+        success: response.data.success || true,
+        discounts: response.data.discounts || {},
+        error: response.data.error || null
+      };
     }
 
-    return {};
+    return {
+      success: false,
+      discounts: {},
+      error: 'No response data'
+    };
   } catch (error) {
     // Solo loggear errores importantes en producción
     if (error.response && error.response.status !== 401) {
       console.warn('Error verificando descuentos:', error.response.status);
     }
     
-    return {};
+    return {
+      success: false,
+      discounts: {},
+      error: error.message || 'Error desconocido'
+    };
   }
 };
 

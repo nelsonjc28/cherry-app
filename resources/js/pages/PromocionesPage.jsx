@@ -4,108 +4,176 @@ import { Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard/ProductCard';
 import CherryButton from '../components/CherryButton/CherryButton';
 import { getIconPath } from '../utils/assetPaths';
-import { getUserOffers, isUserLoggedIn } from '../api/userOffers';
-import { fetchProducts } from '../api/cherryApi';
+import { fetchProducts, getPromoProducts } from '../api/cherryApi';
+import { checkUserDiscounts } from '../api/userDiscounts';
+import useUserStore from '../store/userStore';
 import './PromocionesPage.css';
 
 const PromocionesPage = () => {
-  const [userOffers, setUserOffers] = useState([]);
   const [productsWithOffers, setProductsWithOffers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { user, token } = useUserStore();
+  const isLoggedIn = !!(user && token);
 
   useEffect(() => {
-    const loadUserOffersAndProducts = async () => {
+    const loadProductsWithDiscounts = async () => {
       setLoading(true);
       try {
-        // Verificar si el usuario está logueado
-        const loggedIn = isUserLoggedIn();
-        console.log('🔐 Usuario logueado:', loggedIn);
-        console.log('🔑 Token en localStorage:', !!localStorage.getItem('token'));
         
-        setIsLoggedIn(loggedIn);
-        
-        if (loggedIn) {
-          // Obtener ofertas específicas para el usuario
-          console.log('📞 Llamando a getUserOffers...');
-          const offers = await getUserOffers();
-          console.log('📋 Ofertas recibidas:', offers);
-          setUserOffers(offers);
+        if (isLoggedIn) {
           
-          if (offers.length > 0) {
-            // Obtener todos los productos de la API
-            const allProducts = await fetchProducts();
+          // Probar con TODOS los productos de TODAS las ofertas
+          const allOfferProductIds = [
+            // Oferta 1 (descuento 30%)
+            '515422585712', '40552080604', '9755184512', '50552258912',
+            // Oferta 5 (buy x get y)
+            '415580090408', '50552257112', '9755194006', '50552252707',
+            // Oferta 6 (descuento en el pedido 20%)
+            '9755959704', '50552254404', '40552090804',
+            // Oferta 7 (envío gratis)
+            '515422525006', '415588090708', '46552510107'
+          ];
+          
+          try {
+            const testDiscountsResponse = await checkUserDiscounts(allOfferProductIds);
             
-            // Extraer todos los IDs de productos de las ofertas del usuario
-            const offerProductIds = [];
-            
-            console.log('🔍 Procesando ofertas del usuario:', offers);
-            
-            offers.forEach(offer => {
-              console.log('📋 Procesando oferta:', offer.title);
+                    if (testDiscountsResponse.success && Object.keys(testDiscountsResponse.discounts || {}).length > 0) {
+                      
+                      // Obtener todos los productos de la API
+                      const allProducts = await fetchProducts();
+                      
+                      // También obtener productos con promoción desde la API externa
+                      const promoProducts = await getPromoProducts(50); // Obtener hasta 50 productos en promoción
               
-              if (offer.target_products && offer.target_products.length > 0) {
-                console.log('   - Productos específicos encontrados:', offer.target_products.length);
+              if (allProducts.length > 0 || promoProducts.length > 0) {
+                // 1. Filtrar productos con descuentos de usuario
+                const productsWithUserDiscounts = allProducts
+                  .filter(product => {
+                    const productId = product.id || product.id_articulo || product.codigo;
+                    return !!testDiscountsResponse.discounts[productId];
+                  })
+                  .map(product => {
+                    const productId = product.id || product.id_articulo || product.codigo;
+                    const discount = testDiscountsResponse.discounts[productId];
+                    
+                    
+                    return {
+                      ...product,
+                      userOffer: discount,
+                      hasUserOffer: true,
+                      offerType: 'user_discount'
+                    };
+                  });
                 
-                offer.target_products.forEach((targetProduct, index) => {
-                  if (typeof targetProduct === 'string') {
-                    console.log(`   - [${index}] String ID: ${targetProduct}`);
-                    offerProductIds.push(targetProduct);
-                  } else if (targetProduct && targetProduct.id) {
-                    console.log(`   - [${index}] Objeto ID: ${targetProduct.id}`);
-                    offerProductIds.push(targetProduct.id);
-                  } else {
-                    console.log(`   - [${index}] Formato no reconocido:`, targetProduct);
-                  }
-                });
+                // 2. Filtrar productos con desc_promo de la API (que no estén ya en descuentos de usuario)
+                const userDiscountProductIds = new Set(productsWithUserDiscounts.map(p => p.id || p.id_articulo || p.codigo));
+                
+                const productsWithApiPromo = promoProducts
+                  .filter(product => {
+                    const productId = product.id || product.id_articulo || product.codigo;
+                    const hasApiDiscount = (product.desc_promo && product.desc_promo > 0);
+                    const notInUserDiscounts = !userDiscountProductIds.has(productId);
+                    
+                    return hasApiDiscount && notInUserDiscounts;
+                  })
+                  .map(product => {
+                    
+                    return {
+                      ...product,
+                      hasUserOffer: false,
+                      offerType: 'api_promo'
+                    };
+                  });
+                
+                // 3. Combinar ambos tipos de productos
+                const allPromotionalProducts = [...productsWithUserDiscounts, ...productsWithApiPromo];
+                
+                
+                setProductsWithOffers(allPromotionalProducts);
               } else {
-                console.log('   - Aplica a TODOS los productos');
-                // Si target_products está vacío, la oferta aplica a todos los productos
-                allProducts.forEach(product => {
-                  if (product.hasUserOffer) {
-                    offerProductIds.push(product.id || product.id_articulo);
-                  }
-                });
+                setProductsWithOffers([]);
               }
-            });
-            
-            const uniqueProductIds = [...new Set(offerProductIds)];
-            console.log('🎯 IDs únicos de productos en ofertas:', uniqueProductIds);
-            
-            // Filtrar productos que están en las ofertas del usuario
-            const productsInUserOffers = allProducts.filter(product => {
-              const productId = product.id || product.id_articulo || product.codigo;
-              const isInOffer = uniqueProductIds.includes(productId);
-              const hasOffer = product.hasUserOffer;
+            } else {
               
-              console.log(`🔍 Producto ${productId}:`, {
-                isInOffer,
-                hasOffer,
-                willShow: isInOffer && hasOffer
-              });
-              
-              return isInOffer && hasOffer;
-            });
-            
-            setProductsWithOffers(productsInUserOffers);
+                      // Fallback: obtener todos los productos y verificar descuentos
+                      const allProducts = await fetchProducts();
+                      
+                      // También obtener productos con promoción desde la API externa
+                      const promoProducts = await getPromoProducts(50);
+                      
+                      if (allProducts.length > 0 || promoProducts.length > 0) {
+                        // Verificar descuentos de usuario
+                        let productsWithUserDiscounts = [];
+                        if (allProducts.length > 0) {
+                          const productIds = allProducts.map(product => 
+                            product.id || product.id_articulo || product.codigo
+                          ).filter(Boolean);
+                          
+                          const discountsResponse = await checkUserDiscounts(productIds);
+                          
+                          if (discountsResponse.success && discountsResponse.discounts) {
+                            productsWithUserDiscounts = allProducts
+                              .filter(product => {
+                                const productId = product.id || product.id_articulo || product.codigo;
+                                return !!discountsResponse.discounts[productId];
+                              })
+                              .map(product => {
+                                const productId = product.id || product.id_articulo || product.codigo;
+                                const discount = discountsResponse.discounts[productId];
+                                
+                                return {
+                                  ...product,
+                                  userOffer: discount,
+                                  hasUserOffer: true,
+                                  offerType: 'user_discount'
+                                };
+                              });
+                          }
+                        }
+                        
+                        // Filtrar productos con desc_promo de la API
+                        const userDiscountProductIds = new Set(productsWithUserDiscounts.map(p => p.id || p.id_articulo || p.codigo));
+                        const productsWithApiPromo = promoProducts
+                          .filter(product => {
+                            const productId = product.id || product.id_articulo || product.codigo;
+                            const hasApiDiscount = (product.desc_promo && product.desc_promo > 0);
+                            const notInUserDiscounts = !userDiscountProductIds.has(productId);
+                            
+                            return hasApiDiscount && notInUserDiscounts;
+                          })
+                          .map(product => {
+                            
+                            return {
+                              ...product,
+                              hasUserOffer: false,
+                              offerType: 'api_promo'
+                            };
+                          });
+                        
+                        // Combinar ambos tipos
+                        const allPromotionalProducts = [...productsWithUserDiscounts, ...productsWithApiPromo];
+                        setProductsWithOffers(allPromotionalProducts);
           } else {
+                setProductsWithOffers([]);
+              }
+            }
+          } catch (error) {
+            console.error('❌ Error en verificación de descuentos:', error);
             setProductsWithOffers([]);
           }
         } else {
-          setUserOffers([]);
           setProductsWithOffers([]);
         }
       } catch (error) {
-        console.error('Error cargando ofertas de usuario:', error);
-        setUserOffers([]);
+        console.error('❌ Error cargando productos con descuentos:', error);
         setProductsWithOffers([]);
       } finally {
         setLoading(false);
       }
     };
 
-    loadUserOffersAndProducts();
-  }, []);
+    loadProductsWithDiscounts();
+  }, [isLoggedIn, user?.id, token]);
 
   const handleFavoriteToggle = (productId) => {
     // Implementar lógica de favoritos si es necesario
