@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { catalogService, publicCatalogService } from '../../services/api';
 import PdfThumbnail from '../PdfThumbnail/PdfThumbnail';
+import Swal from 'sweetalert2';
 import './CatalogPdfModule.css';
 
 const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
@@ -130,6 +131,61 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
     fetchGroupImages(selectedCatalog.id, group.id);
   };
 
+  const handleDeleteGroup = async (groupId) => {
+    const result = await Swal.fire({
+      title: '¿Eliminar grupo?',
+      text: 'Esta acción no se puede deshacer y eliminará todas las imágenes asociadas al grupo.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    try {
+      setGroupsLoading(true);
+      setError('');
+      
+      const response = await catalogService.deleteImageGroup(selectedCatalog.id, groupId);
+      
+      if (response.data.success) {
+        // Remover el grupo de la lista local
+        setImageGroups(imageGroups.filter(group => group.id !== groupId));
+        
+        Swal.fire({
+          title: '¡Eliminado!',
+          text: 'El grupo ha sido eliminado exitosamente.',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false
+        });
+      } else {
+        setError(response.data.message || 'Error al eliminar el grupo');
+        Swal.fire({
+          title: 'Error',
+          text: response.data.message || 'Error al eliminar el grupo',
+          icon: 'error'
+        });
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Error al eliminar el grupo';
+      setError(errorMessage);
+      Swal.fire({
+        title: 'Error',
+        text: errorMessage,
+        icon: 'error'
+      });
+    } finally {
+      setGroupsLoading(false);
+    }
+  };
+
   // Función para cargar las imágenes de un grupo específico
   const fetchGroupImages = async (catalogId, groupId) => {
     try {
@@ -227,7 +283,19 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
   };
 
   const handleRemovePdf = async (pdfId) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar esta imagen?')) {
+    const result = await Swal.fire({
+      title: '¿Eliminar imagen?',
+      text: 'Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true
+    });
+
+    if (!result.isConfirmed) {
       return;
     }
 
@@ -235,15 +303,31 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
       const response = await catalogService.removePdf(selectedCatalog.id, pdfId);
       
       if (response.data.success) {
-        window.showToast('Imagen eliminada exitosamente', 'success');
-        
         // Actualizar el estado local inmediatamente removiendo la imagen
         setGroupImages(prev => prev.filter(pdf => pdf.id !== pdfId));
+        
+        Swal.fire({
+          title: '¡Eliminada!',
+          text: 'La imagen ha sido eliminada exitosamente.',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false
+        });
       } else {
         setError(response.data.message || 'Error al eliminar imagen');
+        Swal.fire({
+          title: 'Error',
+          text: response.data.message || 'Error al eliminar imagen',
+          icon: 'error'
+        });
       }
     } catch (error) {
       setError('Error al eliminar imagen');
+      Swal.fire({
+        title: 'Error',
+        text: 'Error al eliminar imagen',
+        icon: 'error'
+      });
     }
   };
 
@@ -550,6 +634,13 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
                       title="Gestionar imágenes de este grupo"
                     >
                       📁 Gestionar Imágenes
+                    </button>
+                    <button
+                      className="catalog-pdf-module__action-btn catalog-pdf-module__action-btn--delete"
+                      onClick={() => handleDeleteGroup(group.id)}
+                      title="Eliminar grupo"
+                    >
+                      🗑️ Eliminar
                     </button>
                   </div>
                 </div>

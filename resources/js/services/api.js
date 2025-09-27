@@ -1204,6 +1204,16 @@ export const catalogService = {
       throw error;
     }
   },
+
+  // Eliminar grupo de imágenes (admin)
+  deleteImageGroup: async (catalogId, groupId) => {
+    try {
+      const response = await api.delete(`/admin/catalogs/${catalogId}/image-groups/${groupId}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 // Servicio de autenticación

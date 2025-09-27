@@ -1015,6 +1015,59 @@ class AdminCatalogController extends Controller
     }
 
     /**
+     * Eliminar un grupo de imágenes
+     */
+    public function deleteImageGroup($catalogId, $groupId)
+    {
+        try {
+            // Validar que el catálogo existe
+            $catalog = Catalog::findOrFail($catalogId);
+            
+            // Buscar el grupo de imágenes
+            $imageGroup = CatalogImageGroup::where('catalog_id', $catalogId)
+                ->where('id', $groupId)
+                ->first();
+
+            if (!$imageGroup) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Grupo de imágenes no encontrado'
+                ], 404);
+            }
+
+            // Eliminar todas las imágenes asociadas al grupo
+            $images = CatalogPdf::where('image_group_id', $groupId)->get();
+            
+            foreach ($images as $image) {
+                // Eliminar archivos físicos del storage
+                if ($image->file_path && Storage::disk('public')->exists($image->file_path)) {
+                    Storage::disk('public')->delete($image->file_path);
+                }
+                if ($image->thumbnail_path && Storage::disk('public')->exists($image->thumbnail_path)) {
+                    Storage::disk('public')->delete($image->thumbnail_path);
+                }
+                
+                // Eliminar registro de la base de datos
+                $image->delete();
+            }
+
+            // Eliminar el grupo de imágenes
+            $imageGroup->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Grupo de imágenes eliminado exitosamente'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar el grupo de imágenes: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Crear thumbnail de una imagen
      */
     private function createThumbnail($sourcePath, $thumbnailPath, $maxWidth = 300, $maxHeight = 300)

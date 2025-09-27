@@ -767,6 +767,18 @@
   box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
 }
 
+/* Botón de eliminar grupo */
+.catalog-pdf-module__action-btn--delete {
+  background: #dc3545 !important;
+  color: white !important;
+  min-width: 120px !important;
+}
+
+.catalog-pdf-module__action-btn--delete:hover {
+  background: #c82333 !important;
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4) !important;
+}
+
 /* Estilos para la sección de acciones */
 .catalog-pdf-module__actions {
   background: white;
