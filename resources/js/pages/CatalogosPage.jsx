@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { getProductsByCategory, mapApiProductToAppProduct, getAvailableColors, getAvailableSizes } from '../api/cherryApi';
+import { applyUserOffersToProducts } from '../api/userOffers';
 import ProductGrid from '../components/ProductGrid/ProductGrid';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import { publicCatalogService } from '../services/api';
@@ -112,9 +113,13 @@ const CatalogosPage = () => {
         };
         const category = categoryMap[productCatalog] || 'vestidos';
         const response = await getProductsByCategory(category);
-        setProducts(response);
-        setFilteredProducts(response);
-        setTotalResults(response.length);
+        
+        // Aplicar ofertas de usuario a todos los productos
+        const productsWithOffers = await applyUserOffersToProducts(response);
+        
+        setProducts(productsWithOffers);
+        setFilteredProducts(productsWithOffers);
+        setTotalResults(productsWithOffers.length);
       } catch (err) {
         setError('Error al cargar los productos del catálogo');
         setProducts([]);

@@ -5,58 +5,224 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Catalog;
 use App\Models\CatalogOffer;
+use App\Models\CatalogOfferProduct;
+use App\Models\CatalogOfferUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
-
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 class AdminCatalogOfferController extends Controller
 {
     /**
-     * Obtener todas las ofertas
+     * Obtener información completa de un producto desde la API externa
+     */
+    private function getProductInfoFromApi(string $productId): array
+    {
+        try {
+            // URL de la API externa Cherry (usar mismo formato que el frontend)
+            $apiUrl = 'https://cherryapi.estrategiadmgs.com.mx/cherryApi/';
+            
+            Log::info("🔍 Obteniendo producto desde API: {$productId}");
+            
+            // Probar con id_articulo (como en el frontend)
+            $response = Http::withoutVerifying()->timeout(15)->get($apiUrl, [
+                'id_articulo' => $productId
+            ]);
+            
+            Log::info("📡 Respuesta API para {$productId}: " . $response->status());
+            
+            if ($response->successful()) {
+                $data = $response->json();
+                Log::info("📦 Datos recibidos para {$productId}: " . json_encode($data));
+                
+                // La API puede devolver un array directo o un objeto con productos
+                $products = [];
+                if (is_array($data) && !empty($data)) {
+                    $products = $data;
+                } elseif (isset($data['productos']) && !empty($data['productos'])) {
+                    $products = $data['productos'];
+                }
+                
+                if (!empty($products)) {
+                    $product = $products[0];
+                    $productInfo = [
+                        'name' => $product['descripcion'] ?? $product['nombre'] ?? "Producto {$productId}",
+                        'price' => floatval($product['precio1'] ?? $product['precio'] ?? 0),
+                        'image' => $product['imagen'] ?? $product['image'] ?? null,
+                        'description' => $product['descripcion'] ?? $product['nombre'] ?? null
+                    ];
+                    
+                    Log::info("✅ Información extraída para {$productId}: " . json_encode($productInfo));
+                    return $productInfo;
+                }
+            }
+            
+            // Si no funciona con id_articulo, probar con codigo
+            Log::info("🔄 Probando con parámetro 'codigo' para {$productId}");
+            $response = Http::withoutVerifying()->timeout(15)->get($apiUrl, [
+                'codigo' => $productId
+            ]);
+            
+            if ($response->successful()) {
+                $data = $response->json();
+                Log::info("📦 Datos recibidos (codigo) para {$productId}: " . json_encode($data));
+                
+                $products = [];
+                if (is_array($data) && !empty($data)) {
+                    $products = $data;
+                } elseif (isset($data['productos']) && !empty($data['productos'])) {
+                    $products = $data['productos'];
+                }
+                
+                if (!empty($products)) {
+                    $product = $products[0];
+                    $productInfo = [
+                        'name' => $product['descripcion'] ?? $product['nombre'] ?? "Producto {$productId}",
+                        'price' => floatval($product['precio1'] ?? $product['precio'] ?? 0),
+                        'image' => $product['imagen'] ?? $product['image'] ?? null,
+                        'description' => $product['descripcion'] ?? $product['nombre'] ?? null
+                    ];
+                    
+                    Log::info("✅ Información extraída (codigo) para {$productId}: " . json_encode($productInfo));
+                    return $productInfo;
+                }
+            }
+            
+        } catch (\Exception $e) {
+            Log::error("❌ Error obteniendo producto {$productId}: " . $e->getMessage());
+        }
+        
+        Log::warning("⚠️ Usando datos por defecto para producto {$productId}");
+        
+        // Fallback: datos por defecto
+        return [
+            'name' => "Producto {$productId}",
+            'price' => 0,
+            'image' => null,
+            'description' => null
+        ];
+    }
+
+    /**
+     * Obtener información completa de productos desde la base de datos
+     */
+    private function getProductsInfoFromDB(array $productIds): array
+    {
+        if (empty($productIds)) {
+            return [];
+        }
+
+        // Obtener productos desde la base de datos
+        $products = CatalogOfferProduct::whereIn('product_id', $productIds)
+            ->select('product_id', 'product_name', 'product_price', 'product_image', 'product_description')
+            ->get()
+            ->keyBy('product_id');
+
+        $productsInfo = [];
+        
+        foreach ($productIds as $productId) {
+            $product = $products->get($productId);
+            
+            if ($product) {
+                // Producto encontrado en BD
+                $productsInfo[] = [
+                    'id' => $productId,
+                    'product_id' => $productId,
+                    'title' => $product->product_name,
+                    'name' => $product->product_name,
+                    'price' => $product->product_price,
+                    'precio1' => $product->product_price,
+                    'image' => $product->product_image,
+                    'codigo' => $productId,
+                    'description' => $product->product_description
+                ];
+            } else {
+                // Producto no encontrado, usar datos por defecto
+                $productsInfo[] = [
+                    'id' => $productId,
+                    'product_id' => $productId,
+                    'title' => "Producto {$productId}",
+                    'name' => "Producto {$productId}",
+                    'price' => 0,
+                    'precio1' => 0,
+                    'image' => null,
+                    'codigo' => $productId,
+                    'description' => null
+                ];
+            }
+        }
+        
+        return $productsInfo;
+    }
+
+    /**
+     * Obtener todas las ofertas con sus relaciones
      */
     public function index()
     {
         try {
-            $offers = CatalogOffer::with(['catalog'])
-                ->ordered()
+            $offers = CatalogOffer::with(['catalog', 'offerProducts', 'offerUsers'])
+                ->orderBy('display_order')
+                ->orderBy('created_at', 'desc')
                 ->get();
 
+            // Formatear datos para compatibilidad con el frontend
+            $formattedOffers = $offers->map(function ($offer) {
+                // Obtener IDs de productos
+                $productIds = $offer->offerProducts->pluck('product_id')->toArray();
+                
+                // Obtener información completa de productos desde la BD
+                $productsInfo = $this->getProductsInfoFromDB($productIds);
+                
+                return [
+                    'id' => $offer->id,
+                    'catalog_id' => $offer->catalog_id,
+                    'title' => $offer->title,
+                    'description' => $offer->description,
+                    'discount_percentage' => $offer->discount_percentage,
+                    'discount_type' => $offer->discount_type,
+                    'discount_category' => $offer->discount_category,
+                    'start_date' => $offer->start_date,
+                    'end_date' => $offer->end_date,
+                    'is_active' => $offer->is_active,
+                    'display_order' => $offer->display_order,
+                    'banner_image' => $offer->banner_image,
+                    'offer_code' => $offer->offer_code,
+                    'max_uses' => $offer->max_uses,
+                    'current_uses' => $offer->current_uses,
+                    'min_purchase_amount' => $offer->min_purchase_amount,
+                    'max_discount_amount' => $offer->max_discount_amount,
+                    'buy_quantity' => $offer->buy_quantity,
+                    'get_quantity' => $offer->get_quantity,
+                    'created_at' => $offer->created_at,
+                    'updated_at' => $offer->updated_at,
+                    // Compatibilidad con frontend - IDs para compatibilidad
+                    'target_products' => $productIds,
+                    'target_users' => $offer->offerUsers->pluck('user_id')->toArray(),
+                    // Información completa de productos para el frontend
+                    'products_info' => $productsInfo,
+                    'catalog' => $offer->catalog
+                ];
+            });
+
             return response()->json([
                 'success' => true,
-                'data' => $offers
+                'data' => $formattedOffers
             ]);
         } catch (\Exception $e) {
+            Log::error('Error obteniendo ofertas: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener las ofertas: ' . $e->getMessage()
+                'message' => 'Error interno del servidor'
             ], 500);
         }
     }
 
     /**
-     * Obtener una oferta específica
-     */
-    public function show($id)
-    {
-        try {
-            $offer = CatalogOffer::with(['catalog'])->findOrFail($id);
-
-            return response()->json([
-                'success' => true,
-                'data' => $offer
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al obtener la oferta: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Crear una nueva oferta
+     * Crear nueva oferta con relaciones optimizadas
      */
     public function store(Request $request)
     {
@@ -100,76 +266,153 @@ class AdminCatalogOfferController extends Controller
 
             $data = $request->all();
             
-            // Limpiar campos según el tipo de descuento
-            if ($data['discount_category'] === 'buy_x_get_y') {
-                // Para Buy X Get Y, no necesitamos discount_percentage ni discount_type
-                unset($data['discount_percentage']);
-                unset($data['discount_type']);
-            } elseif ($data['discount_category'] === 'free_shipping') {
-                // Para envío gratis, no necesitamos discount_percentage, discount_type, buy_quantity ni get_quantity
-                unset($data['discount_percentage']);
-                unset($data['discount_type']);
-                unset($data['buy_quantity']);
-                unset($data['get_quantity']);
-            } else {
-                // Para otros tipos, no necesitamos buy_quantity ni get_quantity
-                unset($data['buy_quantity']);
-                unset($data['get_quantity']);
-            }
+            // Extraer y procesar productos y usuarios
+            $targetProducts = [];
+            $targetUsers = [];
             
-            // Nota: Los campos innecesarios ya se limpiaron arriba según el tipo de descuento
-            
-            // Procesar JSON strings para target_products y target_users
             if (isset($data['target_products']) && is_string($data['target_products'])) {
-                Log::info('📦 Procesando target_products (string):', ['raw' => $data['target_products']]);
-                $data['target_products'] = json_decode($data['target_products'], true);
-                Log::info('📦 target_products después de json_decode:', ['parsed' => $data['target_products']]);
+                $targetProducts = json_decode($data['target_products'], true) ?: [];
+                Log::info('📦 Productos decodificados (store):', ['products' => $targetProducts]);
             }
             if (isset($data['target_users']) && is_string($data['target_users'])) {
-                Log::info('👥 Procesando target_users (string):', ['raw' => $data['target_users']]);
-                $data['target_users'] = json_decode($data['target_users'], true);
-                Log::info('👥 target_users después de json_decode:', ['parsed' => $data['target_users']]);
+                $targetUsers = json_decode($data['target_users'], true) ?: [];
+                Log::info('👥 Usuarios decodificados (store):', ['users' => $targetUsers]);
             }
             
-            // Manejar la imagen del banner
+            // Remover de los datos principales
+            unset($data['target_products'], $data['target_users']);
+            
+            // Limpiar campos según el tipo de descuento
+            if ($data['discount_category'] === 'buy_x_get_y') {
+                unset($data['discount_percentage'], $data['discount_type']);
+            } elseif ($data['discount_category'] === 'free_shipping') {
+                unset($data['discount_percentage'], $data['discount_type'], $data['buy_quantity'], $data['get_quantity']);
+            } else {
+                unset($data['buy_quantity'], $data['get_quantity']);
+            }
+            
+            // Manejar imagen
             if ($request->hasFile('banner_image')) {
                 $image = $request->file('banner_image');
                 $imageName = time() . '_' . $image->getClientOriginalName();
                 $imagePath = 'catalog-offers/' . $imageName;
                 
-                // Crear directorio si no existe
-                if (!file_exists(public_path('catalog-offers'))) {
-                    mkdir(public_path('catalog-offers'), 0755, true);
+                if (!Storage::disk('public')->exists('catalog-offers')) {
+                    Storage::disk('public')->makeDirectory('catalog-offers');
                 }
                 
-                // Mover imagen a carpeta pública
-                $image->move(public_path('catalog-offers'), $imageName);
+                Storage::disk('public')->put($imagePath, file_get_contents($image));
                 $data['banner_image'] = $imagePath;
             }
 
-            $offer = CatalogOffer::create($data);
+            // 🚀 Transacción para crear oferta y relaciones
+            DB::beginTransaction();
+            
+            try {
+                // Crear oferta principal
+                $offer = CatalogOffer::create($data);
+                
+                // Crear relaciones de productos con información completa
+                if (!empty($targetProducts)) {
+                    foreach ($targetProducts as $product) {
+                        // Manejar tanto strings como objetos/arrays
+                        $productId = null;
+                        $productInfo = null;
+                        
+                        if (is_string($product)) {
+                            $productId = $product;
+                        } elseif (is_array($product)) {
+                            $productId = $product['id'] ?? $product['product_id'] ?? $product['id_articulo'] ?? $product['codigo'] ?? null;
+                            
+                            // Si el producto ya tiene información completa (del frontend)
+                            if (isset($product['descripcion']) || isset($product['name']) || isset($product['title'])) {
+                                $productInfo = [
+                                    'name' => $product['descripcion'] ?? $product['name'] ?? $product['title'] ?? "Producto {$productId}",
+                                    'price' => floatval($product['precio1'] ?? $product['price'] ?? $product['precio'] ?? 0),
+                                    'image' => $product['imagen'] ?? $product['image'] ?? null,
+                                    'description' => $product['descripcion'] ?? $product['description'] ?? null
+                                ];
+                                Log::info("✅ Usando información del frontend para producto {$productId}: " . json_encode($productInfo));
+                            }
+                        }
+                        
+                        // Convertir a string si es necesario
+                        if ($productId !== null && !is_string($productId)) {
+                            $productId = (string) $productId;
+                        }
+                        
+                        if (!empty($productId) && is_string($productId)) {
+                            // Si no tenemos información del frontend, obtener desde la API
+                            if (!$productInfo) {
+                                Log::info("🌐 Obteniendo información desde API para producto {$productId}");
+                                $productInfo = $this->getProductInfoFromApi($productId);
+                            }
+                            
+                            // Crear registro con información completa
+                            CatalogOfferProduct::create([
+                                'offer_id' => $offer->id,
+                                'product_id' => $productId,
+                                'product_name' => $productInfo['name'],
+                                'product_price' => $productInfo['price'],
+                                'product_image' => $productInfo['image'],
+                                'product_description' => $productInfo['description']
+                            ]);
+                        }
+                    }
+                }
+                
+                // Crear relaciones de usuarios (súper eficiente)
+                if (!empty($targetUsers)) {
+                    $userData = [];
+                    foreach ($targetUsers as $userId) {
+                        if (is_numeric($userId)) {
+                            $userData[] = [
+                                'offer_id' => $offer->id,
+                                'user_id' => $userId,
+                                'created_at' => now(),
+                                'updated_at' => now()
+                            ];
+                        }
+                    }
+                    if (!empty($userData)) {
+                        CatalogOfferUser::insert($userData);
+                    }
+                }
+                
+                DB::commit();
+                
+                // Cargar relaciones para respuesta
+                $offer->load(['offerProducts', 'offerUsers']);
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Oferta creada exitosamente',
+                    'data' => $offer
+                ], 201);
+                
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Oferta creada exitosamente',
-                'data' => $offer->load('catalog')
-            ]);
         } catch (\Exception $e) {
+            Log::error('Error creando oferta: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error al crear la oferta: ' . $e->getMessage()
+                'message' => 'Error interno del servidor',
+                'error' => $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Actualizar una oferta existente
+     * Actualizar oferta existente
      */
     public function update(Request $request, $id)
     {
         try {
             $offer = CatalogOffer::findOrFail($id);
-
+            
             $validator = Validator::make($request->all(), [
                 'catalog_id' => 'required|exists:catalogs,id',
                 'title' => 'required|string|max:255',
@@ -187,16 +430,9 @@ class AdminCatalogOfferController extends Controller
                 'max_discount_amount' => 'nullable|numeric|min:0',
                 'buy_quantity' => 'required_if:discount_category,buy_x_get_y|integer|min:1',
                 'get_quantity' => 'required_if:discount_category,buy_x_get_y|integer|min:1',
-                'target_products' => 'nullable|string', // JSON string
-                'target_users' => 'nullable|string', // JSON string
+                'target_products' => 'nullable|string',
+                'target_users' => 'nullable|string',
                 'banner_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp'
-            ], [
-                'banner_image.mimes' => 'La imagen no cumple con los formatos permitidos. Formatos permitidos: JPEG, JPG, PNG, GIF, WebP',
-                'banner_image.image' => 'El archivo debe ser una imagen válida',
-                'buy_quantity.required_if' => 'La cantidad a comprar es requerida para promociones Buy X Get Y',
-                'get_quantity.required_if' => 'La cantidad gratis es requerida para promociones Buy X Get Y',
-                'discount_percentage.required_if' => 'El descuento es requerido para este tipo de oferta',
-                'discount_type.required_if' => 'El tipo de descuento es requerido para este tipo de oferta'
             ]);
 
             if ($validator->fails()) {
@@ -209,187 +445,243 @@ class AdminCatalogOfferController extends Controller
 
             $data = $request->all();
             
-            // Limpiar campos según el tipo de descuento
-            if ($data['discount_category'] === 'buy_x_get_y') {
-                // Para Buy X Get Y, no necesitamos discount_percentage ni discount_type
-                unset($data['discount_percentage']);
-                unset($data['discount_type']);
-            } elseif ($data['discount_category'] === 'free_shipping') {
-                // Para envío gratis, no necesitamos discount_percentage, discount_type, buy_quantity ni get_quantity
-                unset($data['discount_percentage']);
-                unset($data['discount_type']);
-                unset($data['buy_quantity']);
-                unset($data['get_quantity']);
-            } else {
-                // Para otros tipos, no necesitamos buy_quantity ni get_quantity
-                unset($data['buy_quantity']);
-                unset($data['get_quantity']);
-            }
+            // Extraer productos y usuarios
+            $targetProducts = [];
+            $targetUsers = [];
             
-            // Nota: Los campos innecesarios ya se limpiaron arriba según el tipo de descuento
-            
-            // Procesar JSON strings para target_products y target_users
             if (isset($data['target_products']) && is_string($data['target_products'])) {
-                Log::info('📦 Procesando target_products (string):', ['raw' => $data['target_products']]);
-                $data['target_products'] = json_decode($data['target_products'], true);
-                Log::info('📦 target_products después de json_decode:', ['parsed' => $data['target_products']]);
+                $targetProducts = json_decode($data['target_products'], true) ?: [];
             }
             if (isset($data['target_users']) && is_string($data['target_users'])) {
-                Log::info('👥 Procesando target_users (string):', ['raw' => $data['target_users']]);
-                $data['target_users'] = json_decode($data['target_users'], true);
-                Log::info('👥 target_users después de json_decode:', ['parsed' => $data['target_users']]);
+                $targetUsers = json_decode($data['target_users'], true) ?: [];
             }
             
-            // Manejar la imagen del banner
+            unset($data['target_products'], $data['target_users']);
+            
+            // Limpiar campos según tipo
+            if ($data['discount_category'] === 'buy_x_get_y') {
+                unset($data['discount_percentage'], $data['discount_type']);
+            } elseif ($data['discount_category'] === 'free_shipping') {
+                unset($data['discount_percentage'], $data['discount_type'], $data['buy_quantity'], $data['get_quantity']);
+            } else {
+                unset($data['buy_quantity'], $data['get_quantity']);
+            }
+            
+            // Manejar imagen
             if ($request->hasFile('banner_image')) {
-                // Eliminar imagen anterior si existe
-                if ($offer->banner_image) {
-                    $oldImagePath = public_path($offer->banner_image);
-                    if (file_exists($oldImagePath)) {
-                        unlink($oldImagePath);
-                    }
+                // Eliminar imagen anterior
+                if ($offer->banner_image && Storage::disk('public')->exists($offer->banner_image)) {
+                    Storage::disk('public')->delete($offer->banner_image);
                 }
                 
                 $image = $request->file('banner_image');
                 $imageName = time() . '_' . $image->getClientOriginalName();
                 $imagePath = 'catalog-offers/' . $imageName;
                 
-                // Crear directorio si no existe
-                if (!file_exists(public_path('catalog-offers'))) {
-                    mkdir(public_path('catalog-offers'), 0755, true);
+                if (!Storage::disk('public')->exists('catalog-offers')) {
+                    Storage::disk('public')->makeDirectory('catalog-offers');
                 }
                 
-                // Mover imagen a carpeta pública
-                $image->move(public_path('catalog-offers'), $imageName);
+                Storage::disk('public')->put($imagePath, file_get_contents($image));
                 $data['banner_image'] = $imagePath;
             }
 
-            $offer->update($data);
+            // 🚀 Transacción para actualizar
+            DB::beginTransaction();
+            
+            try {
+                // Actualizar oferta principal
+                $offer->update($data);
+                
+                // Actualizar relaciones de productos (eliminar y recrear con información completa)
+                CatalogOfferProduct::where('offer_id', $offer->id)->delete();
+                if (!empty($targetProducts)) {
+                    foreach ($targetProducts as $product) {
+                        // Manejar tanto strings como objetos/arrays
+                        $productId = null;
+                        $productInfo = null;
+                        
+                        if (is_string($product)) {
+                            $productId = $product;
+                        } elseif (is_array($product)) {
+                            $productId = $product['id'] ?? $product['product_id'] ?? $product['id_articulo'] ?? $product['codigo'] ?? null;
+                            
+                            // Si el producto ya tiene información completa (del frontend)
+                            if (isset($product['descripcion']) || isset($product['name']) || isset($product['title'])) {
+                                $productInfo = [
+                                    'name' => $product['descripcion'] ?? $product['name'] ?? $product['title'] ?? "Producto {$productId}",
+                                    'price' => floatval($product['precio1'] ?? $product['price'] ?? $product['precio'] ?? 0),
+                                    'image' => $product['imagen'] ?? $product['image'] ?? null,
+                                    'description' => $product['descripcion'] ?? $product['description'] ?? null
+                                ];
+                                Log::info("✅ Usando información del frontend para producto {$productId} (update): " . json_encode($productInfo));
+                            }
+                        }
+                        
+                        // Convertir a string si es necesario
+                        if ($productId !== null && !is_string($productId)) {
+                            $productId = (string) $productId;
+                        }
+                        
+                        if (!empty($productId) && is_string($productId)) {
+                            // Si no tenemos información del frontend, obtener desde la API
+                            if (!$productInfo) {
+                                Log::info("🌐 Obteniendo información desde API para producto {$productId} (update)");
+                                $productInfo = $this->getProductInfoFromApi($productId);
+                            }
+                            
+                            // Crear registro con información completa
+                            CatalogOfferProduct::create([
+                                'offer_id' => $offer->id,
+                                'product_id' => $productId,
+                                'product_name' => $productInfo['name'],
+                                'product_price' => $productInfo['price'],
+                                'product_image' => $productInfo['image'],
+                                'product_description' => $productInfo['description']
+                            ]);
+                        }
+                    }
+                }
+                
+                // Actualizar relaciones de usuarios
+                CatalogOfferUser::where('offer_id', $offer->id)->delete();
+                if (!empty($targetUsers)) {
+                    $userData = [];
+                    foreach ($targetUsers as $userId) {
+                        if (is_numeric($userId)) {
+                            $userData[] = [
+                                'offer_id' => $offer->id,
+                                'user_id' => $userId,
+                                'created_at' => now(),
+                                'updated_at' => now()
+                            ];
+                        }
+                    }
+                    if (!empty($userData)) {
+                        CatalogOfferUser::insert($userData);
+                    }
+                }
+                
+                DB::commit();
+                
+                // Cargar relaciones actualizadas
+                $offer->load(['offerProducts', 'offerUsers']);
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Oferta actualizada exitosamente',
+                    'data' => $offer
+                ]);
+                
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Oferta actualizada exitosamente',
-                'data' => $offer->load('catalog')
-            ]);
         } catch (\Exception $e) {
+            Log::error('Error actualizando oferta: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error al actualizar la oferta: ' . $e->getMessage()
+                'message' => 'Error interno del servidor',
+                'error' => $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Eliminar una oferta
+     * Eliminar oferta
      */
     public function destroy($id)
     {
         try {
             $offer = CatalogOffer::findOrFail($id);
             
-            // Eliminar imagen del banner si existe
-            if ($offer->banner_image) {
-                $imagePath = public_path($offer->banner_image);
-                if (file_exists($imagePath)) {
-                    unlink($imagePath);
-                }
-            }
+            DB::beginTransaction();
             
-            $offer->delete();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Oferta eliminada exitosamente'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al eliminar la oferta: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Cambiar estado de una oferta
-     */
-    public function toggleStatus($id)
-    {
-        try {
-            $offer = CatalogOffer::findOrFail($id);
-            $offer->is_active = !$offer->is_active;
-            $offer->save();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Estado de la oferta actualizado exitosamente',
-                'data' => $offer
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al cambiar el estado: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Reordenar ofertas
-     */
-    public function reorder(Request $request)
-    {
-        try {
-            $validator = Validator::make($request->all(), [
-                'offers' => 'required|array',
-                'offers.*.id' => 'required|exists:catalog_offers,id',
-                'offers.*.display_order' => 'required|integer|min:0'
-            ]);
-
-            if ($validator->fails()) {
+            try {
+                // Las relaciones se eliminan automáticamente por CASCADE
+                // Eliminar imagen si existe
+                if ($offer->banner_image && Storage::disk('public')->exists($offer->banner_image)) {
+                    Storage::disk('public')->delete($offer->banner_image);
+                }
+                
+                $offer->delete();
+                
+                DB::commit();
+                
                 return response()->json([
-                    'success' => false,
-                    'message' => 'Error de validación',
-                    'errors' => $validator->errors()
-                ], 422);
+                    'success' => true,
+                    'message' => 'Oferta eliminada exitosamente'
+                ]);
+                
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
             }
 
-            foreach ($request->offers as $offerData) {
-                CatalogOffer::where('id', $offerData['id'])
-                    ->update(['display_order' => $offerData['display_order']]);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Orden de ofertas actualizado exitosamente'
-            ]);
         } catch (\Exception $e) {
+            Log::error('Error eliminando oferta: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error al actualizar el orden: ' . $e->getMessage()
+                'message' => 'Error interno del servidor'
             ], 500);
         }
     }
 
     /**
-     * Obtener ofertas por catálogo
+     * Obtener oferta específica
      */
-    public function getOffersByCatalog($catalogId)
+    public function show($id)
     {
         try {
-            $offers = CatalogOffer::where('catalog_id', $catalogId)
-                ->ordered()
-                ->get();
+            $offer = CatalogOffer::with(['catalog', 'offerProducts', 'offerUsers'])->findOrFail($id);
+            
+            // Obtener IDs de productos
+            $productIds = $offer->offerProducts->pluck('product_id')->toArray();
+            
+            // Obtener información completa de productos desde la BD
+            $productsInfo = $this->getProductsInfoFromDB($productIds);
+            
+            // Formatear para compatibilidad
+            $formattedOffer = [
+                'id' => $offer->id,
+                'catalog_id' => $offer->catalog_id,
+                'title' => $offer->title,
+                'description' => $offer->description,
+                'discount_percentage' => $offer->discount_percentage,
+                'discount_type' => $offer->discount_type,
+                'discount_category' => $offer->discount_category,
+                'start_date' => $offer->start_date,
+                'end_date' => $offer->end_date,
+                'is_active' => $offer->is_active,
+                'display_order' => $offer->display_order,
+                'banner_image' => $offer->banner_image,
+                'offer_code' => $offer->offer_code,
+                'max_uses' => $offer->max_uses,
+                'current_uses' => $offer->current_uses,
+                'min_purchase_amount' => $offer->min_purchase_amount,
+                'max_discount_amount' => $offer->max_discount_amount,
+                'buy_quantity' => $offer->buy_quantity,
+                'get_quantity' => $offer->get_quantity,
+                'created_at' => $offer->created_at,
+                'updated_at' => $offer->updated_at,
+                'target_products' => $productIds,
+                'target_users' => $offer->offerUsers->pluck('user_id')->toArray(),
+                // Información completa de productos para el frontend
+                'products_info' => $productsInfo,
+                'catalog' => $offer->catalog
+            ];
 
             return response()->json([
                 'success' => true,
-                'data' => $offers
+                'data' => $formattedOffer
             ]);
         } catch (\Exception $e) {
+            Log::error('Error obteniendo oferta: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener las ofertas del catálogo: ' . $e->getMessage()
-            ], 500);
+                'message' => 'Oferta no encontrada'
+            ], 404);
         }
     }
 }
-
-

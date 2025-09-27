@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class CatalogOffer extends Model
 {
@@ -115,6 +117,67 @@ class CatalogOffer extends Model
     public function hasFreeShipping()
     {
         return $this->discount_category === 'free_shipping';
+    }
+
+    /**
+     * Get the products associated with this offer
+     */
+    public function offerProducts(): HasMany
+    {
+        return $this->hasMany(CatalogOfferProduct::class, 'offer_id');
+    }
+
+    /**
+     * Get the users associated with this offer
+     */
+    public function offerUsers(): HasMany
+    {
+        return $this->hasMany(CatalogOfferUser::class, 'offer_id');
+    }
+
+    /**
+     * Get users through the pivot table
+     */
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'catalog_offer_users', 'offer_id', 'user_id')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Check if offer applies to specific product
+     */
+    public function appliesToProduct(string $productId): bool
+    {
+        return $this->offerProducts()->where('product_id', $productId)->exists();
+    }
+
+    /**
+     * Check if offer applies to specific user
+     */
+    public function appliesToUser(int $userId): bool
+    {
+        return $this->offerUsers()->where('user_id', $userId)->exists();
+    }
+
+    /**
+     * Scope to filter offers by product ID
+     */
+    public function scopeForProduct($query, string $productId)
+    {
+        return $query->whereHas('offerProducts', function ($q) use ($productId) {
+            $q->where('product_id', $productId);
+        });
+    }
+
+    /**
+     * Scope to filter offers by user ID
+     */
+    public function scopeForUser($query, int $userId)
+    {
+        return $query->whereHas('offerUsers', function ($q) use ($userId) {
+            $q->where('user_id', $userId);
+        });
     }
 }
 

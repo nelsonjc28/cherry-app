@@ -18,6 +18,7 @@ import {
   getAvailableSizes,
   getBulkRatings
 } from '../api/cherryApi';
+import { applyUserOffersToProducts } from '../api/userOffers';
 import { catalogService, publicCatalogService } from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
 
@@ -533,20 +534,11 @@ const CatalogPage = ({ catalogId }) => {
         // Filtrar productos nulos
         const validProducts = productsData.filter(p => p !== null);
         
-        // Debug: Verificar productos cargados
-        console.log('🔍 DEBUG CatalogPage - Productos cargados:', validProducts.length);
-        console.log('🔍 DEBUG CatalogPage - Catálogo:', filters.catalog);
-        console.log('🔍 DEBUG CatalogPage - Categoría:', category);
+        // Aplicar ofertas de usuario a todos los productos
+        const productsWithOffers = await applyUserOffersToProducts(validProducts);
         
-        // Debug: Mostrar estructura de los primeros productos
-        if (validProducts.length > 0) {
-          console.log('🔍 DEBUG CatalogPage - Estructura del primer producto:', validProducts[0]);
-          console.log('🔍 DEBUG CatalogPage - Categorías disponibles:', validProducts.slice(0, 5).map(p => p.category));
-          console.log('🔍 DEBUG CatalogPage - Colores disponibles:', validProducts.slice(0, 3).map(p => ({ id: p.id, colors: p.colors })));
-        }
-        
-        setAllProducts(validProducts);
-        setFilteredProducts(validProducts);
+        setAllProducts(productsWithOffers);
+        setFilteredProducts(productsWithOffers);
       } catch (error) {
         setAllProducts([]);
       } finally {

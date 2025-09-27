@@ -6,6 +6,7 @@ import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import CherryButton from '../components/CherryButton/CherryButton';
 import { getIconPath } from '../utils/assetPaths';
 import { fetchProducts, getAvailableColors, getAvailableSizes } from '../api/cherryApi';
+import { applyUserOffersToProducts } from '../api/userOffers';
 import { publicCatalogService } from '../services/api';
 import './ProductosPage.css';
 
@@ -98,10 +99,13 @@ const ProductosPage = () => {
       setLoading(true);
       try {
         const allProducts = await fetchProducts();
-        setProducts(allProducts);
-        setFilteredProducts(allProducts);
+        
+        // Aplicar ofertas de usuario a todos los productos
+        const productsWithOffers = await applyUserOffersToProducts(allProducts);
+        
+        setProducts(productsWithOffers);
+        setFilteredProducts(productsWithOffers);
       } catch (error) {
-
         setProducts([]);
         setFilteredProducts([]);
       } finally {

@@ -39,9 +39,9 @@ const PromocionesPage = () => {
             
                     if (testDiscountsResponse.success && Object.keys(testDiscountsResponse.discounts || {}).length > 0) {
                       
-                      // Obtener todos los productos de la API
-                      const allProducts = await fetchProducts();
-                      
+            // Obtener todos los productos de la API
+            const allProducts = await fetchProducts();
+            
                       // También obtener productos con promoción desde la API externa
                       const promoProducts = await getPromoProducts(50); // Obtener hasta 50 productos en promoción
               
@@ -118,7 +118,7 @@ const PromocionesPage = () => {
                                 return !!discountsResponse.discounts[productId];
                               })
                               .map(product => {
-                                const productId = product.id || product.id_articulo || product.codigo;
+              const productId = product.id || product.id_articulo || product.codigo;
                                 const discount = discountsResponse.discounts[productId];
                                 
                                 return {

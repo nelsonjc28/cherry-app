@@ -431,6 +431,24 @@
   margin-bottom: 12px;
 }
 
+.product-page__offer-example {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  font-style: italic;
+}
+
+.product-page__offer-note {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #555;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 6px 8px;
+  border-radius: 4px;
+}
+
 /* Additional offer badge container */
 .product-page__additional-offer-badge {
   text-align: center;

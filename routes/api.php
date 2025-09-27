@@ -33,12 +33,12 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api'
 // Public review routes (no auth required)
 Route::get('/reviews/product/{productId}', [App\Http\Controllers\ReviewController::class, 'getProductReviews']);
 
-// User discount routes (requires auth)
-Route::middleware('auth:api')->post('/user-discounts/check', [App\Http\Controllers\Api\UserDiscountController::class, 'checkUserDiscounts']);
+// User discount routes (requires auth - flexible)
+Route::middleware(['auth:api,web'])->post('/user-discounts/check', [App\Http\Controllers\Api\UserDiscountController::class, 'checkUserDiscounts']);
 
 // User Offers Routes
-Route::middleware('auth:api')->get('/user-offers', [App\Http\Controllers\Api\UserOfferController::class, 'getUserOffers']);
-Route::middleware('auth:api')->post('/user-offers/products', [App\Http\Controllers\Api\UserOfferController::class, 'getProductsWithUserOffers']);
+Route::middleware(['auth:api,web'])->get('/user-offers', [App\Http\Controllers\Api\UserOfferController::class, 'getUserOffers']);
+Route::middleware(['auth:api,web'])->post('/user-offers/products', [App\Http\Controllers\Api\UserOfferController::class, 'getProductsWithUserOffers']);
 Route::get('/me', [AuthController::class, 'me'])->middleware('auth:api');
 Route::get('/debug', [AuthController::class, 'debug'])->middleware('auth:api');
 

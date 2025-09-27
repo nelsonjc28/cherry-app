@@ -15,7 +15,8 @@ class UserOfferController extends Controller
     public function getUserOffers(Request $request): JsonResponse
     {
         try {
-            $userId = auth('api')->id();
+            // Intentar obtener el usuario desde diferentes guards
+            $userId = auth('api')->id() ?? auth('web')->id() ?? auth()->id();
             
             if (!$userId) {
                 return response()->json([
@@ -63,7 +64,7 @@ class UserOfferController extends Controller
 
         } catch (\Exception $e) {
             \Log::error('Error en getUserOffers: ' . $e->getMessage(), [
-                'user_id' => auth('api')->id(),
+                'user_id' => auth('api')->id() ?? auth('web')->id() ?? auth()->id(),
                 'trace' => $e->getTraceAsString()
             ]);
             
@@ -85,7 +86,8 @@ class UserOfferController extends Controller
                 'product_ids.*' => 'string|max:50'
             ]);
 
-            $userId = auth('api')->id();
+            // Intentar obtener el usuario desde diferentes guards
+            $userId = auth('api')->id() ?? auth('web')->id() ?? auth()->id();
             $productIds = $validated['product_ids'];
             
             if (!$userId) {
@@ -150,7 +152,7 @@ class UserOfferController extends Controller
 
         } catch (\Exception $e) {
             \Log::error('Error en getProductsWithUserOffers: ' . $e->getMessage(), [
-                'user_id' => auth('api')->id(),
+                'user_id' => auth('api')->id() ?? auth('web')->id() ?? auth()->id(),
                 'trace' => $e->getTraceAsString()
             ]);
             

@@ -6,6 +6,7 @@ import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import CherryButton from '../components/CherryButton/CherryButton';
 import { getIconPath } from '../utils/assetPaths';
 import { searchProductsAdvanced, getProductsWithRatings, mapApiProductToAppProduct, getAvailableColors, getAvailableSizes } from '../api/cherryApi';
+import { applyUserOffersToProducts } from '../api/userOffers';
 import { publicCatalogService } from '../services/api';
 import './BuscarPage.css';
 
@@ -122,6 +123,8 @@ const BuscarPage = () => {
     const loadProducts = async () => {
       setLoading(true);
       try {
+        let productsData;
+        
         // Use advanced search if we have search parameters
         if (query || colorFilter || skuFilter) {
           const searchFilters = {
@@ -129,15 +132,17 @@ const BuscarPage = () => {
             codigo: skuFilter,
             colors: colorFilter ? colorFilter.split(',').map(c => c.trim()) : []
           };
-          const searchResults = await searchProductsAdvanced(query, searchFilters);
-          setProducts(searchResults);
-          setFilteredProducts(searchResults);
+          productsData = await searchProductsAdvanced(query, searchFilters);
         } else {
           // Load all products if no search parameters
-          const allProducts = await getProductsWithRatings();
-          setProducts(allProducts);
-          setFilteredProducts(allProducts);
+          productsData = await getProductsWithRatings();
         }
+        
+        // Aplicar ofertas de usuario a todos los productos
+        const productsWithOffers = await applyUserOffersToProducts(productsData);
+        
+        setProducts(productsWithOffers);
+        setFilteredProducts(productsWithOffers);
       } catch (error) {
         setProducts([]);
         setFilteredProducts([]);

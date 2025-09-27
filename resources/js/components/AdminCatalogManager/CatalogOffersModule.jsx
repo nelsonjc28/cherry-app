@@ -132,7 +132,12 @@ const CatalogOffersModule = ({ onBack }) => {
     if (offer) {
       setEditingOffer(offer);
       
-      // Primero configurar el formData
+      // Configurar productos: usar información completa si está disponible
+      const targetProducts = offer.products_info && offer.products_info.length > 0 
+        ? offer.products_info 
+        : offer.target_products || [];
+
+      // Configurar el formData
       setFormData({
         catalog_id: offer.catalog_id || 1,
         title: offer.title,
@@ -148,7 +153,7 @@ const CatalogOffersModule = ({ onBack }) => {
         buy_quantity: offer.buy_quantity || '',
         get_quantity: offer.get_quantity || '',
         target_users: offer.target_users || [],
-        target_products: offer.target_products || []
+        target_products: targetProducts
       });
       
       // Cargar usuarios seleccionados para edición
@@ -158,8 +163,6 @@ const CatalogOffersModule = ({ onBack }) => {
       } else {
         setSelectedUsers([]);
       }
-      
-      // Los productos ya vienen completos desde la base de datos, no necesitan carga adicional
       
       // Abrir modal después de cargar usuarios
       setShowForm(true);

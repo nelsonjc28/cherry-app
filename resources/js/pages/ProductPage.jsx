@@ -17,6 +17,7 @@ import { useUserDiscounts } from '../hooks/useUserDiscounts';
 
 // API and Store
 import { getProductById, generateS3ImageUrl } from '../api/cherryApi';
+import { applyUserOffersToProducts } from '../api/userOffers';
 import useCartStore from '../store/cartStore';
 import useUserStore from '../store/userStore';
 
@@ -73,7 +74,12 @@ const ProductPage = () => {
       setError(null);
       try {
         const productData = await getProductById(productId);
-        setProduct(productData);
+        
+        // Aplicar ofertas de usuario al producto
+        const productsWithOffers = await applyUserOffersToProducts([productData]);
+        const productWithOffer = productsWithOffers[0] || productData;
+        
+        setProduct(productWithOffer);
         // Set default color/size if available
         if (productData.detalles && productData.detalles.length > 0) {
           const availableColors = [...new Set(productData.detalles.map(d => d.nombreColor).filter(Boolean))];
@@ -290,10 +296,42 @@ const ProductPage = () => {
           selectedColor,
           selectedSize: talla,
           quantity: cantidad,
-          colors: [selectedColor]
+          colors: [selectedColor],
+          // Información de ofertas especiales
+          userOffer: hasUserOffer ? {
+            type: userOffer.discount_category,
+            title: userOffer.title,
+            discount_percentage: userOffer.discount_percentage,
+            buy_quantity: userOffer.buy_quantity,
+            get_quantity: userOffer.get_quantity,
+            min_purchase_amount: userOffer.min_purchase_amount
+          } : null
         };
 
         addToCart(productToAdd, cantidad);
+        
+        // Para ofertas Buy X Get Y, agregar productos gratis
+        if (hasUserOffer && userOffer.discount_category === 'buy_x_get_y') {
+          const buyQuantity = userOffer.buy_quantity || 1;
+          const getQuantity = userOffer.get_quantity || 1;
+          
+          // Calcular cuántos productos gratis corresponden
+          const freeItems = Math.floor(cantidad / buyQuantity) * getQuantity;
+          
+          if (freeItems > 0) {
+            const freeProductToAdd = {
+              ...productToAdd,
+              price: 0, // Producto gratis
+              precio: 0,
+              originalPrice: finalPrice,
+              quantity: freeItems,
+              isFreeItem: true, // Marcar como producto gratis
+              freeItemReason: `🎁 Gratis por oferta: Compra ${buyQuantity} lleva ${getQuantity}`
+            };
+            
+            addToCart(freeProductToAdd, freeItems);
+          }
+        }
       }
 
       if (window.showToast) {
@@ -302,9 +340,21 @@ const ProductPage = () => {
         
         if (hasOffer) {
           if (hasUserOffer && userOffer && userOffer.discount_category === 'buy_x_get_y') {
+            const totalFreeItems = tallasConCantidades.reduce((total, { cantidad }) => {
+              const buyQuantity = userOffer.buy_quantity || 1;
+              const getQuantity = userOffer.get_quantity || 1;
+              return total + Math.floor(cantidad / buyQuantity) * getQuantity;
+            }, 0);
             message += ` 🎁 Oferta: Compra ${userOffer.buy_quantity} lleva ${userOffer.get_quantity}`;
+            if (totalFreeItems > 0) {
+              message += ` - ¡${totalFreeItems} producto${totalFreeItems > 1 ? 's' : ''} gratis agregado${totalFreeItems > 1 ? 's' : ''}!`;
+            }
+          } else if (hasUserOffer && userOffer && userOffer.discount_category === 'order_discount') {
+            message += ` 💰 Descuento del ${Math.round(userOffer.discount_percentage)}% se aplicará al total del pedido`;
+          } else if (hasUserOffer && userOffer && userOffer.discount_category === 'free_shipping') {
+            message += ` 🚚 ¡Envío gratis incluido!`;
           } else if (discountPercentage > 0) {
-            message += ` 🏷️ Con ${discountPercentage}% de descuento - Ahorras ${formatPrice(precio1 - finalPrice)}`;
+          message += ` 🏷️ Con ${discountPercentage}% de descuento - Ahorras ${formatPrice(precio1 - finalPrice)}`;
           }
         }
         
@@ -466,20 +516,25 @@ const ProductPage = () => {
 
 
   // Obtener información del descuento del usuario para este producto
-  const userOffer = product ? userDiscounts[product.id_articulo] : null;
-  const hasUserOffer = Boolean(userOffer);
+  // Usar datos procesados por applyUserOffersToProducts si están disponibles
+  const userOffer = product?.userOffer || (product ? userDiscounts[product.id_articulo] : null);
+  const hasUserOffer = Boolean(product?.hasUserOffer || userOffer);
 
   // Calcular descuento con prioridades
   const calculateDiscountPercentage = () => {
-    // PRIORIDAD 1: Descuento personalizado del usuario
+    // PRIORIDAD 1: Descuento personalizado del usuario (ya procesado)
     if (hasUserOffer && userOffer && userOffer.discount_percentage > 0) {
       return Math.round(userOffer.discount_percentage);
     }
     
-    // PRIORIDAD 2: Descuento general desde la API (desc_promo)
-    const descPromo = product.desc_promo || 0;
-    if (descPromo > 0) {
-      return Math.round(descPromo);
+    // PRIORIDAD 2: Descuento general desde la API (desc_promo) - ya procesado en product.discount
+    if (product?.discount && product.discount > 0) {
+      return Math.round(product.discount);
+    }
+    
+    // PRIORIDAD 3: Fallback usando originalPrice vs price
+    if (product?.originalPrice && product?.price && product.originalPrice > product.price) {
+      return Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
     }
     
     return 0;
@@ -490,10 +545,10 @@ const ProductPage = () => {
   // Determinar si hay oferta (incluyendo ofertas especiales que no tienen porcentaje)
   const hasOffer = discountPercentage > 0 || (hasUserOffer && userOffer && (userOffer.discount_category === 'buy_x_get_y' || userOffer.discount_category === 'free_shipping'));
   
-  // Calcular precio final
-  const finalPrice = hasOffer && discountPercentage > 0 ? 
+  // Calcular precio final - usar precio ya procesado si está disponible
+  const finalPrice = product?.price || (hasOffer && discountPercentage > 0 ? 
     precio1 - (precio1 * (discountPercentage / 100)) : 
-    precio1;
+    precio1);
 
   // Función para obtener el stock disponible por talla y color
   const getStockBySizeAndColor = (talla, color) => {
@@ -683,9 +738,9 @@ const ProductPage = () => {
               <div className="product-page__price-container">
                 {hasOffer && discountPercentage > 0 && (
                   <>
-                    <div className="product-page__original-price">{formatPrice(precio1)}</div>
+                    <div className="product-page__original-price">{formatPrice(product?.originalPrice || precio1)}</div>
                     <div className="product-page__savings">
-                      💰 Ahorras {formatPrice(precio1 - finalPrice)}
+                      💰 Ahorras {formatPrice((product?.originalPrice || precio1) - finalPrice)}
                     </div>
                   </>
                 )}
@@ -701,28 +756,40 @@ const ProductPage = () => {
               {hasUserOffer && userOffer && userOffer.discount_category === 'buy_x_get_y' && (
                 <div className="product-page__offer-details">
                   <div className="product-page__buy-x-get-y-info">
-                    🎁 Por cada {userOffer.buy_quantity} productos que compres, recibirás {userOffer.get_quantity} gratis
+                    🎁 <strong>Oferta Especial:</strong> Por cada {userOffer.buy_quantity} producto{userOffer.buy_quantity > 1 ? 's' : ''} que compres, recibirás {userOffer.get_quantity} gratis
+                    <div className="product-page__offer-example">
+                      💡 <em>Ejemplo:</em> Si compras {userOffer.buy_quantity * 2} productos, recibirás {userOffer.get_quantity * 2} gratis
+                    </div>
+                    <div className="product-page__offer-note">
+                      ℹ️ Los productos gratis se agregarán automáticamente al carrito
+                    </div>
                   </div>
                 </div>
               )}
               {hasUserOffer && userOffer && userOffer.discount_category === 'order_discount' && (
                 <div className="product-page__offer-details">
                   <div className="product-page__order-discount-info">
-                    💰 Descuento del {Math.round(userOffer.discount_percentage)}% aplicado al total de tu pedido
+                    💰 <strong>Descuento en Pedido:</strong> {Math.round(userOffer.discount_percentage)}% de descuento aplicado al total de tu pedido
                     {userOffer.min_purchase_amount && (
                       <div className="product-page__min-purchase">
-                        Compra mínima: {formatPrice(userOffer.min_purchase_amount)}
+                        📋 Compra mínima requerida: {formatPrice(userOffer.min_purchase_amount)}
                       </div>
                     )}
+                    <div className="product-page__offer-note">
+                      ℹ️ El descuento se aplicará automáticamente en el checkout
+                    </div>
                   </div>
                 </div>
               )}
               {hasUserOffer && userOffer && userOffer.discount_category === 'free_shipping' && (
                 <div className="product-page__offer-details">
                   <div className="product-page__free-shipping-info">
-                    🚚 Este producto incluye envío gratis
+                    🚚 <strong>Envío Gratis:</strong> Este producto incluye envío gratuito
                     <div className="product-page__shipping-savings">
-                      ¡Ahorra en costos de envío!
+                      💰 ¡Ahorra en costos de envío! No se aplicarán cargos adicionales por envío
+                    </div>
+                    <div className="product-page__offer-note">
+                      ℹ️ El envío gratis se aplicará automáticamente en el checkout
                     </div>
                   </div>
                 </div>
