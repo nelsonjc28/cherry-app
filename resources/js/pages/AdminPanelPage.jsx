@@ -23,7 +23,7 @@ import './AdminPanelPage.css';
 
 const dummyHomeData = [
   { id: 1, title: 'Banner principal', status: 'Activo' },
-  { id: 2, title: 'Sección destacados', status: 'Activo' },
+  { id: 2, title: 'Sección más vendidos', status: 'Activo' },
   { id: 3, title: 'Testimonios', status: 'Inactivo' },
 ];
 

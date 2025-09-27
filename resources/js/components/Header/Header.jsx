@@ -119,7 +119,7 @@ const Header = () => {
         {
           title: 'Colecciones',
           items: [
-            { name: 'Destacados', link: '/nuevos?tipo=destacados' },
+            { name: 'Más Vendidos', link: '/nuevos?tipo=destacados' },
             { name: 'Colección limitada', link: '/nuevos?tipo=coleccion-limitada' },
             { name: 'Edición especial', link: '/nuevos?tipo=edicion-especial' }
           ]
@@ -127,7 +127,7 @@ const Header = () => {
       ]
     },
     destacados: {
-      title: 'Destacados',
+      title: 'Más Vendidos',
       columns: [
         {
           title: 'Productos populares',
@@ -580,8 +580,8 @@ const Header = () => {
               <li className="nav-item nav-divider"></li>
               <li className="nav-item" onMouseEnter={() => setActiveMenu(null)}>
                 <Link to="/destacados" className="nav-link">
-                  <img src={getIconPath('Award.svg')} alt="Destacados" />
-                  Destacados
+                  <img src={getIconPath('Award.svg')} alt="Más Vendidos" />
+                  Más Vendidos
                 </Link>
               </li>
               <li className="nav-item nav-divider"></li>
@@ -723,8 +723,8 @@ const Header = () => {
 
               <li className="mobile-menu-item">
                 <Link to="/destacados" className="mobile-menu-link" onClick={() => setMobileMenuOpen(false)}>
-                  <img src={getIconPath('Award.svg')} alt="Destacados" />
-                  <span>Destacados</span>
+                  <img src={getIconPath('Award.svg')} alt="Más Vendidos" />
+                  <span>Más Vendidos</span>
                 </Link>
               </li>
 

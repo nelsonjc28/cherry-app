@@ -308,6 +308,9 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('/catalogs/{catalogId}/image-groups', [AdminCatalogController::class, 'createImageGroup']);
 });
 
+// Public route for featured products (no authentication required)
+Route::get('/featured/top-selling-products', [DashboardController::class, 'getTopSellingProductsForFeatured']);
+
 // Dashboard routes (admin authentication required)
 Route::middleware(['auth:api', 'admin'])->group(function () {
     Route::get('/dashboard/sales-by-month', [DashboardController::class, 'getSalesByMonth']);

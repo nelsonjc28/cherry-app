@@ -306,4 +306,96 @@
     flex-direction: column;
     align-items: center;
   }
+}
+
+/* Estilos para el ranking de productos */
+.product-ranking-item {
+  position: relative;
+}
+
+.ranking-badge {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+  color: #333;
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 6px 10px;
+  border-radius: 50px;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+  z-index: 10;
+  border: 2px solid white;
+}
+
+.ranking-badge:nth-child(1) {
+  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); /* Oro */
+}
+
+.product-ranking-item:nth-child(2) .ranking-badge {
+  background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 100%); /* Plata */
+}
+
+.product-ranking-item:nth-child(3) .ranking-badge {
+  background: linear-gradient(135deg, #cd7f32 0%, #daa520 100%); /* Bronce */
+}
+
+/* Badge de sesión de usuario */
+.user-session-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, var(--color-primary) 0%, #d63384 100%);
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-left: 12px;
+  box-shadow: 0 2px 6px rgba(249, 115, 138, 0.3);
+}
+
+/* Estilos para error */
+.destacados-error {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.destacados-error .error-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1rem;
+  opacity: 0.6;
+}
+
+.destacados-error h3 {
+  color: #dc3545;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.destacados-error p {
+  color: var(--color-text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+/* Responsive para ranking badges */
+@media (max-width: 768px) {
+  .ranking-badge {
+    font-size: 0.8rem;
+    padding: 4px 8px;
+    top: -6px;
+    left: -6px;
+  }
+  
+  .user-session-badge {
+    display: block;
+    margin: 8px 0 0 0;
+    text-align: center;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+  }
 } 

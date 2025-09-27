@@ -215,4 +215,52 @@ class DashboardController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get top selling products of current month for featured section
+     */
+    public function getTopSellingProductsForFeatured(Request $request)
+    {
+        try {
+            // Siempre usar el mes actual completo
+            $startDate = now()->startOfMonth();
+            $endDate = now()->endOfMonth();
+            $limit = $request->get('limit', 20);
+
+            // Obtener IDs de productos más vendidos del mes actual
+            $topProductIds = OrderItem::select(
+                    'order_items.product_id',
+                    DB::raw('SUM(order_items.quantity) as total_quantity')
+                )
+                ->join('orders', 'order_items.order_id', '=', 'orders.id')
+                ->where('orders.status', '!=', 'cancelled')
+                ->whereBetween('orders.created_at', [$startDate, $endDate])
+                ->whereNotNull('order_items.product_id')
+                ->where('order_items.product_id', '!=', '')
+                ->groupBy('order_items.product_id')
+                ->orderBy('total_quantity', 'desc')
+                ->limit($limit)
+                ->pluck('order_items.product_id')
+                ->toArray();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'product_ids' => $topProductIds,
+                    'count' => count($topProductIds),
+                    'period' => [
+                        'start' => $startDate->format('Y-m-d'),
+                        'end' => $endDate->format('Y-m-d'),
+                        'month' => $startDate->format('F Y')
+                    ]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener productos más vendidos: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

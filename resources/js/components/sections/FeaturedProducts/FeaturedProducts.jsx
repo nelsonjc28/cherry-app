@@ -97,7 +97,7 @@ const FeaturedProducts = ({
       <section className={`featured-products ${className}`}>
         <div className="container">
           <div className="loading-spinner">
-            <p>Cargando productos destacados...</p>
+            <p>Cargando productos más vendidos...</p>
           </div>
         </div>
       </section>

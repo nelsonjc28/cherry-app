@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { applyUserOffersToProducts } from './userOffers';
 
 const CHERRY_API_URL = 'https://cherryapi.estrategiadmgs.com.mx/cherryApi/';
 
@@ -87,6 +86,8 @@ const CATALOG_MAPPING = {
 export const getAllProducts = async (catalog = 'Cherry 2025 - 2026') => {
   try {
     const response = await axios.get(CHERRY_API_URL);
+    
+    
     const products = response.data;
     
     // Verificar si products es válido
@@ -137,14 +138,8 @@ export const getAllProducts = async (catalog = 'Cherry 2025 - 2026') => {
       }
     }
     
-    // Filtrar productos habilitados para web
-    const webEnabledProducts = productsArray.filter(product => {
-      const isWebEnabled = product.opc_web === 'S';
       
-      return isWebEnabled;
-    });
-    
-    return webEnabledProducts;
+    return productsArray;
   } catch (error) {
     console.error('❌ Error en getAllProducts:', error);
     return [];
@@ -174,14 +169,8 @@ export const getProductsWithRatings = async (catalog = 'Cherry 2025 - 2026') => 
       rawProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
     );
     
-    const validProducts = mappedProducts.filter(p => p !== null);
-    
-    // Aplicar ofertas personalizadas del usuario
-    const productsWithUserOffers = await applyUserOffersToProducts(validProducts);
-    
-    return productsWithUserOffers;
+    return mappedProducts.filter(p => p !== null);
   } catch (error) {
-    console.error('❌ getProductsWithRatings: Error:', error);
     return [];
   }
 };
@@ -270,6 +259,9 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
   if (discountPromo > 0 && originalPrice > 0) {
     discountPercentage = Math.round(discountPromo);
     finalPrice = originalPrice - (originalPrice * (discountPromo / 100));
+    console.log(`✅ DESCUENTO - Producto ${id}: ${discountPercentage}% | ${originalPrice} → ${finalPrice}`);
+  } else {
+    console.log(`ℹ️ SIN DESCUENTO - Producto ${id}: desc_promo=${discountPromo}`);
   }
   
   // Generar URL de imagen S3 usando el id_articulo
@@ -291,32 +283,16 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
   if (!colors || colors.length === 0) {
     colors = ['white', 'black', 'navy'];
   }
-
-  // Obtener tallas únicas de los detalles
-  let sizes = [];
-  
-  if (apiProduct.detalles && Array.isArray(apiProduct.detalles)) {
-    sizes = [...new Set(apiProduct.detalles.map(d => d.detalle).filter(Boolean))];
-  } else if (apiProduct.tallas && Array.isArray(apiProduct.tallas)) {
-    sizes = apiProduct.tallas;
-  } else if (apiProduct.sizes && Array.isArray(apiProduct.sizes)) {
-    sizes = apiProduct.sizes;
-  }
-  
-  // TEMPORAL: Si no hay tallas, agregar tallas de prueba
-  if (!sizes || sizes.length === 0) {
-    sizes = ['S', 'M', 'L'];
-  }
   
   // Obtener categoría de la línea
   const category = apiProduct.linea?.descripcion || apiProduct.categoria || apiProduct.category || 'Sin categoría';
   
   // Obtener calificación del cache o usar valores por defecto
-  let rating = 0;
+  let rating = 5;
   let ratingCount = 0;
   
   if (ratingsCache[id]) {
-    rating = ratingsCache[id].average || 0;
+    rating = ratingsCache[id].average || 5;
     ratingCount = ratingsCache[id].count || 0;
   }
   
@@ -333,7 +309,6 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
     brand: apiProduct.marca || apiProduct.brand || 'Cherry',
     category: category,
     colors: colors,
-    sizes: sizes,
     stock: apiProduct.inventario || apiProduct.stock || 0,
     isActive: apiProduct.activo === 1 || apiProduct.active === true,
     isNew: apiProduct.opc_nuevo === 'S' || apiProduct.is_new === true,
@@ -348,12 +323,12 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
   return mappedProduct;
 };
 
-// Función para obtener productos destacados
+// Función para obtener productos más vendidos
 export const getFeaturedProducts = async (limit = 8) => {
   try {
     const products = await getAllProducts();
     const featured = products
-      .filter(product => product.inventario > 0)
+      .filter(product => product.activo === 1 && product.inventario > 0)
       .slice(0, limit);
     
     // Mapear productos de forma asíncrona
@@ -385,138 +360,50 @@ export const getRandomProducts = async (limit = 5) => {
       return [];
     }
     
-    // Filtrar productos con stock (inventario > 0) y habilitados para web
-    const availableProducts = products.filter(product => {
+    // Filtrar productos activos (activo: 1) y con stock (inventario > 0)
+    const activeProducts = products.filter(product => {
+      const isActive = product.activo === 1;
       const hasStock = product.inventario > 0;
       const isWebEnabled = product.opc_web === 'S';
       
-      return hasStock && isWebEnabled;
+      return isActive && hasStock && isWebEnabled;
     });
     
-    let selectedProducts = [];
-    
-    if (availableProducts.length === 0) {
-      // Si no hay productos disponibles, usar productos con stock
+    if (activeProducts.length === 0) {
+      // Si no hay productos activos, usar productos con stock
       const productsWithStock = products.filter(product => product.inventario > 0);
       
       if (productsWithStock.length === 0) {
         // Si no hay productos con stock, usar todos
         const shuffled = products.sort(() => 0.5 - Math.random());
-        selectedProducts = shuffled.slice(0, limit);
-      } else {
+        const selectedProducts = shuffled.slice(0, limit);
+        
+        // Mapear productos de forma asíncrona
+        const randomProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
+        return randomProducts.filter(p => p !== null);
+      }
+      
         // Mezclar productos con stock
         const shuffled = productsWithStock.sort(() => 0.5 - Math.random());
-        selectedProducts = shuffled.slice(0, limit);
-      }
-    } else {
-      // Mezclar productos disponibles
-      const shuffled = availableProducts.sort(() => 0.5 - Math.random());
-      selectedProducts = shuffled.slice(0, limit);
-    }
-    
-    // Obtener IDs de productos para ratings
-    const productIds = selectedProducts.map(product => 
-      product.id_articulo || product.id || product.codigo
-    ).filter(Boolean);
-    
-    // Obtener ratings en bulk
-    const ratingsCache = await getBulkRatings(productIds);
-    
-    // Mapear productos de forma asíncrona CON ratings
-    const randomProducts = await Promise.all(
-      selectedProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
-    );
-    
-    const validProducts = randomProducts.filter(p => p !== null);
-    
-    // Aplicar ofertas personalizadas del usuario
-    const productsWithUserOffers = await applyUserOffersToProducts(validProducts);
-    
-    return productsWithUserOffers;
-  } catch (error) {
-    return [];
-  }
-};
-
-// Función para obtener productos aleatorios SIN ofertas de usuario (sin sesión)
-export const getExternalRandomProducts = async (limit = 5) => {
-  try {
-    // Llamar directamente a la API en lugar de usar getAllProducts para evitar bucles
-    const response = await axios.get(CHERRY_API_URL);
-    const data = response.data;
-    
-    // La API devuelve un array directo, no un objeto con clave 'productos'
-    let products = [];
-    if (Array.isArray(data)) {
-      products = data;
-    } else if (data && data.productos && Array.isArray(data.productos)) {
-      products = data.productos;
-    } else {
-      return [];
-    }
-    
-    if (products.length === 0) {
-      return [];
-    }
-    
-    // Filtrar productos con stock (inventario > 0) y habilitados para web
-    const availableProducts = products.filter(product => {
-      const hasStock = product.inventario > 0;
-      const isWebEnabled = product.opc_web === 'S';
+      const selectedProducts = shuffled.slice(0, limit);
       
-      return hasStock && isWebEnabled;
-    });
-    
-    let selectedProducts = [];
-    
-    if (availableProducts.length === 0) {
-      // Si no hay productos disponibles, usar productos con stock
-      const productsWithStock = products.filter(product => product.inventario > 0);
-      
-      if (productsWithStock.length === 0) {
-        // Si no hay productos con stock, usar todos
-        const shuffled = products.sort(() => 0.5 - Math.random());
-        selectedProducts = shuffled.slice(0, limit);
-      } else {
-        // Mezclar productos con stock
-        const shuffled = productsWithStock.sort(() => 0.5 - Math.random());
-        selectedProducts = shuffled.slice(0, limit);
-      }
-    } else {
-      // Mezclar productos disponibles
-      const shuffled = availableProducts.sort(() => 0.5 - Math.random());
-      selectedProducts = shuffled.slice(0, limit);
+      // Mapear productos de forma asíncrona
+      const randomProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
+      return randomProducts.filter(p => p !== null);
     }
     
-    // Obtener IDs de productos para ratings
-    const productIds = selectedProducts.map(product => 
-      product.id_articulo || product.id || product.codigo
-    ).filter(Boolean);
+      // Mezclar el array de productos para obtener una selección aleatoria
+    const shuffled = activeProducts.sort(() => 0.5 - Math.random());
     
-    // Obtener ratings en bulk
-    const ratingsCache = await getBulkRatings(productIds);
+      // Tomar solo los primeros 'limit' productos
+    const selectedProducts = shuffled.slice(0, limit);
     
-    // Mapear productos de forma asíncrona CON ratings PERO SIN ofertas de usuario
-    const randomProducts = await Promise.all(
-      selectedProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
-    );
+    // Mapear productos de forma asíncrona
+    const randomProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
     
     return randomProducts.filter(p => p !== null);
   } catch (error) {
     return [];
-  }
-};
-
-// Función inteligente para productos aleatorios que elige automáticamente
-export const getSmartRandomProducts = async (limit = 5) => {
-  const hasActiveSession = isUserSessionActive();
-  
-  if (hasActiveSession) {
-    console.log('🔐 getSmartRandomProducts: Sesión activa - usando ofertas personalizadas');
-    return await getRandomProducts(limit);
-  } else {
-    console.log('🔓 getSmartRandomProducts: Sin sesión - usando ofertas externas');
-    return await getExternalRandomProducts(limit);
   }
 };
 
@@ -539,303 +426,116 @@ export const getNewProducts = async (limit = 5) => {
       return [];
     }
     
-    // Filtrar productos habilitados para web y con stock
+    // Filtrar productos activos y con stock
     const activeProducts = products.filter(product => {
+      const isActive = product.activo === 1;
       const hasStock = product.inventario > 0;
       const isWebEnabled = product.opc_web === 'S';
       
-      return hasStock && isWebEnabled;
+      return isActive && hasStock && isWebEnabled;
     });
-    
-    let selectedProducts = [];
     
     if (activeProducts.length === 0) {
       const productsWithStock = products.filter(product => product.inventario > 0);
       
       if (productsWithStock.length === 0) {
         const shuffled = products.sort(() => 0.5 - Math.random());
-        selectedProducts = shuffled.slice(0, limit);
-      } else {
-        const shuffled = productsWithStock.sort(() => 0.5 - Math.random());
-        selectedProducts = shuffled.slice(0, limit);
+        const selectedProducts = shuffled.slice(0, limit);
+        
+        const newProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
+        return newProducts.filter(p => p !== null);
       }
-    } else {
-      const shuffled = activeProducts.sort(() => 0.5 - Math.random());
-      selectedProducts = shuffled.slice(0, limit);
+      
+      const shuffled = productsWithStock.sort(() => 0.5 - Math.random());
+      const selectedProducts = shuffled.slice(0, limit);
+      
+      const newProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
+      return newProducts.filter(p => p !== null);
     }
     
-    // Obtener IDs de productos para ratings
-    const productIds = selectedProducts.map(product => 
-      product.id_articulo || product.id || product.codigo
-    ).filter(Boolean);
+    const shuffled = activeProducts.sort(() => 0.5 - Math.random());
+    const selectedProducts = shuffled.slice(0, limit);
     
-    // Obtener ratings en bulk
-    const ratingsCache = await getBulkRatings(productIds);
+    const newProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
     
-    // Mapear productos de forma asíncrona CON ratings
-    const newProducts = await Promise.all(
-      selectedProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
-    );
-    
-    const validProducts = newProducts.filter(p => p !== null);
-    
-    // Aplicar ofertas personalizadas del usuario
-    const productsWithUserOffers = await applyUserOffersToProducts(validProducts);
-    
-    return productsWithUserOffers;
+    return newProducts.filter(p => p !== null);
   } catch (error) {
     return [];
   }
 };
 
-// 🌐 FUNCIÓN CLAVE: SOLO productos de API EXTERNA (SIN SESIÓN - SIN OFERTAS PERSONALIZADAS)
-export const getExternalPromoProducts = async (limit = 50) => {
-  try {
-    console.log('🌐 getExternalPromoProducts: SOLO API EXTERNA - SIN OFERTAS PERSONALIZADAS');
-    const response = await axios.get(CHERRY_API_URL);
-    const data = response.data;
-    
-    let products = [];
-    if (Array.isArray(data)) {
-      products = data;
-    } else if (data && data.productos && Array.isArray(data.productos)) {
-      products = data.productos;
-    } else {
-      console.log('❌ getExternalPromoProducts: Estructura de datos no reconocida');
-      return [];
-    }
-    
-    console.log(`📊 getExternalPromoProducts: ${products.length} productos recibidos de la API externa`);
-    
-    if (products.length === 0) {
-      return [];
-    }
-    
-    // Filtrar SOLO productos con desc_promo > 0 de la API externa
-    const productsWithDescPromo = products.filter(product => {
-      const hasApiDiscount = (product.desc_promo && product.desc_promo > 0);
-      return hasApiDiscount;
-    });
-    
-    console.log(`🎯 getExternalPromoProducts: ${productsWithDescPromo.length} productos con desc_promo > 0 de API externa`);
-    
-    if (productsWithDescPromo.length === 0) {
-      console.log('❌ getExternalPromoProducts: No hay productos con promociones en API externa');
-    return [];
-  }
-    
-    const limitedProducts = productsWithDescPromo.slice(0, limit);
-    console.log(`✅ getExternalPromoProducts: Devolviendo ${limitedProducts.length} productos SOLO de API externa`);
-        
-        // Obtener IDs de productos para ratings
-    const productIds = limitedProducts.map(product => 
-          product.id_articulo || product.id || product.codigo
-        ).filter(Boolean);
-        
-        // Obtener ratings en bulk
-        const ratingsCache = await getBulkRatings(productIds);
-        
-    // Mapear productos de forma asíncrona CON ratings PERO SIN ofertas de usuario
-        const mappedProducts = await Promise.all(
-      limitedProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
-    );
-    
-    const validProducts = mappedProducts.filter(p => p !== null);
-    console.log(`🎉 getExternalPromoProducts: FINAL - ${validProducts.length} productos SOLO de API externa`);
-    
-    // ⚠️ IMPORTANTE: NO aplicar ofertas personalizadas - solo devolver productos de API externa
-    return validProducts;
-    
-  } catch (error) {
-    console.error('❌ getExternalPromoProducts: Error al cargar productos con descuentos:', error);
-    return [];
-  }
-};
-
-// 🔑 FUNCIÓN CLAVE: PRODUCTOS CON DESCUENTOS (API EXTERNA O OFERTAS PERSONALIZADAS)
+// Función para obtener productos en promoción (CON ofertas personalizadas)
 export const getPromoProducts = async (limit = 50) => {
   try {
-    console.log('🔑 getPromoProducts: PRODUCTOS CON DESCUENTOS (API EXTERNA O OFERTAS PERSONALIZADAS)');
+    console.log('🔍 getPromoProducts: Iniciando ofertas con sesión activa...');
     
-    // PASO 1: Obtener productos de API externa con promociones (desc_promo > 0)
+    // Primero obtener productos de la API externa
     const externalProducts = await getExternalPromoProducts(limit);
     console.log(`📊 getPromoProducts: ${externalProducts.length} productos de API externa con desc_promo > 0`);
     
-    // PASO 2: Obtener productos con ofertas personalizadas ACTIVAS del usuario
+    // Obtener productos con ofertas personalizadas del usuario
+    console.log('🎁 getUserOfferProducts: Obteniendo productos con ofertas personalizadas...');
     const userOfferProducts = await getUserOfferProducts();
     console.log(`🎯 getPromoProducts: ${userOfferProducts.length} productos con ofertas personalizadas activas`);
     
-    // PASO 3: Combinar productos únicos (evitar duplicados)
-    const allProducts = [...externalProducts];
+    // Combinar productos externos con productos de ofertas personalizadas
+    const combinedProducts = [...externalProducts];
     
-    // Agregar productos con ofertas personalizadas que no estén ya en la lista
-    const externalProductIds = new Set(externalProducts.map(p => p.id || p.id_articulo || p.codigo));
-    
+    // Agregar productos que solo tienen ofertas personalizadas (no están en externos)
     for (const userProduct of userOfferProducts) {
-      const productId = userProduct.id || userProduct.id_articulo || userProduct.codigo;
-      if (!externalProductIds.has(productId)) {
-        allProducts.push(userProduct);
-        console.log(`➕ getPromoProducts: Agregando producto ${productId} (solo tiene oferta personalizada)`);
+      const existsInExternal = externalProducts.some(extProduct => 
+        extProduct.id === userProduct.id || 
+        extProduct.codigo === userProduct.codigo ||
+        extProduct.id_articulo === userProduct.id_articulo
+      );
+      
+      if (!existsInExternal) {
+        console.log(`➕ getPromoProducts: Agregando producto ${userProduct.id} (solo tiene oferta personalizada)`);
+        combinedProducts.push(userProduct);
       }
     }
     
-    console.log(`🎉 getPromoProducts: COMBINADOS - ${allProducts.length} productos únicos (${externalProducts.length} API externa + ${allProducts.length - externalProducts.length} solo ofertas personalizadas)`);
+    console.log(`🎉 getPromoProducts: COMBINADOS - ${combinedProducts.length} productos únicos (${externalProducts.length} API externa + ${combinedProducts.length - externalProducts.length} solo ofertas personalizadas)`);
     
-    // PASO 4: Aplicar ofertas personalizadas a TODOS los productos
-    const finalProducts = await applyUserOffersToProducts(allProducts);
+    if (combinedProducts.length === 0) {
+      return [];
+    }
     
-    // PASO 5: Filtrar solo productos que tienen algún tipo de descuento u oferta
-    const productsWithDiscounts = finalProducts.filter(product => {
-      const hasExternalDiscount = product.desc_promo && product.desc_promo > 0;
-      const hasUserOffer = product.hasUserOffer && product.userOffer;
-      const hasCalculatedDiscount = product.discount && product.discount > 0;
+    // Aplicar ofertas personalizadas a todos los productos
+    const { applyUserOffersToProducts } = await import('./userOffers');
+    const productsWithUserOffers = await applyUserOffersToProducts(combinedProducts);
+    
+    // Filtrar solo productos que tienen algún tipo de descuento
+    const productsWithDiscounts = productsWithUserOffers.filter(product => {
+      const hasExternalDiscount = product.desc_promo && parseFloat(product.desc_promo) > 0;
+      const hasUserOffer = product.hasUserOffer;
+      const hasCalculatedDiscount = product.discount && parseFloat(product.discount) > 0;
       
-      const shouldInclude = hasExternalDiscount || hasUserOffer || hasCalculatedDiscount;
-      
-      // Log específico para productos con ofertas personalizadas
-      if (product.hasUserOffer) {
-        console.log(`🔍 FILTRO - Producto con oferta personalizada: ${product.id}`, {
-          hasUserOffer: product.hasUserOffer,
-          userOffer: product.userOffer,
-          userOfferDiscountPercentage: product.userOffer?.discount_percentage,
-          discount: product.discount,
-          desc_promo: product.desc_promo,
-          shouldInclude
-        });
-      }
-      
-      return shouldInclude;
+      return hasExternalDiscount || hasUserOffer || hasCalculatedDiscount;
     });
     
     console.log(`🔍 getPromoProducts: FILTRADOS - ${productsWithDiscounts.length} productos con descuentos reales`);
     
-    // PASO 6: Priorizar productos con ofertas personalizadas
-    const filteredUserOfferProducts = productsWithDiscounts.filter(p => p.hasUserOffer);
-    const externalOnlyProducts = productsWithDiscounts.filter(p => !p.hasUserOffer);
+    // Separar productos con ofertas personalizadas para priorizarlos
+    const userOfferProductsFiltered = productsWithDiscounts.filter(product => product.hasUserOffer);
+    const otherProducts = productsWithDiscounts.filter(product => !product.hasUserOffer);
     
-    console.log(`🎯 getPromoProducts: ${filteredUserOfferProducts.length} productos con ofertas personalizadas pasaron el filtro`);
+    console.log(`🎯 getPromoProducts: ${userOfferProductsFiltered.length} productos con ofertas personalizadas pasaron el filtro`);
     
-    // Combinar priorizando ofertas personalizadas
-    const prioritizedProducts = [...filteredUserOfferProducts, ...externalOnlyProducts];
+    // Priorizar productos con ofertas personalizadas
+    const finalProducts = [...userOfferProductsFiltered, ...otherProducts];
     
-    // PASO 7: Limitar resultado final
-    const limitedFinalProducts = prioritizedProducts.slice(0, limit);
+    // Limitar al número solicitado
+    const limitedProducts = finalProducts.slice(0, limit);
     
-    console.log(`✅ getPromoProducts: FINAL - ${limitedFinalProducts.length} productos mostrados`);
-    console.log(`🎯 getPromoProducts: ${filteredUserOfferProducts.length} productos con ofertas personalizadas incluidos en el resultado final`);
+    console.log(`🎯 getPromoProducts: ${userOfferProductsFiltered.length} productos con ofertas personalizadas incluidos en el resultado final`);
+    console.log(`✅ getPromoProducts: FINAL - ${limitedProducts.length} productos mostrados`);
     
-    return limitedFinalProducts;
+    return limitedProducts;
     
   } catch (error) {
-    console.error('❌ getPromoProducts: Error al cargar productos con descuentos:', error);
-    return [];
-  }
-};
-
-// 🎁 FUNCIÓN PARA OBTENER PRODUCTOS CON OFERTAS PERSONALIZADAS DEL USUARIO
-export const getUserOfferProducts = async () => {
-  try {
-    // Verificar si hay sesión activa
-    if (!isUserSessionActive()) {
-      console.log('🔓 getUserOfferProducts: Sin sesión activa - no hay ofertas personalizadas');
-      return [];
-    }
-
-    console.log('🎁 getUserOfferProducts: Obteniendo productos con ofertas personalizadas...');
-
-    // Obtener los IDs de productos que tienen ofertas para este usuario
-    const response = await fetch('/api/user-offer-products', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    console.log('🔍 getUserOfferProducts: Respuesta del endpoint:', {
-      status: response.status,
-      ok: response.ok
-    });
-
-    if (!response.ok) {
-      console.log('❌ getUserOfferProducts: Error en respuesta del servidor:', response.status);
-      const errorText = await response.text();
-      console.log('❌ getUserOfferProducts: Detalle del error:', errorText);
-      return [];
-    }
-
-    const data = await response.json();
-    console.log('📋 getUserOfferProducts: Datos recibidos:', data);
-    
-    if (!data.success || !data.product_ids || data.product_ids.length === 0) {
-      console.log('🔍 getUserOfferProducts: No hay productos con ofertas personalizadas');
-      return [];
-    }
-
-    console.log(`📋 getUserOfferProducts: ${data.product_ids.length} productos con ofertas encontrados`);
-
-    // Obtener los datos completos de estos productos desde la API externa
-    const apiResponse = await axios.get(CHERRY_API_URL);
-    const apiData = apiResponse.data;
-    
-    let allApiProducts = [];
-    if (Array.isArray(apiData)) {
-      allApiProducts = apiData;
-    } else if (apiData && apiData.productos && Array.isArray(apiData.productos)) {
-      allApiProducts = apiData.productos;
-    }
-
-    // Filtrar solo los productos que tienen ofertas personalizadas
-    const userOfferProducts = allApiProducts.filter(product => {
-      const productId = product.id_articulo || product.id || product.codigo;
-      return data.product_ids.includes(productId);
-    });
-
-    console.log(`🎯 getUserOfferProducts: ${userOfferProducts.length} productos encontrados en API externa`);
-
-    if (userOfferProducts.length === 0) {
-      return [];
-    }
-
-    // Obtener IDs para ratings
-    const productIds = userOfferProducts.map(product => 
-      product.id_articulo || product.id || product.codigo
-    ).filter(Boolean);
-
-    // Obtener ratings en bulk
-    const ratingsCache = await getBulkRatings(productIds);
-
-    // Mapear productos
-    const mappedProducts = await Promise.all(
-      userOfferProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
-    );
-
-    const validProducts = mappedProducts.filter(p => p !== null);
-    console.log(`✅ getUserOfferProducts: ${validProducts.length} productos con ofertas personalizadas mapeados`);
-
-    return validProducts;
-
-  } catch (error) {
-    console.error('❌ getUserOfferProducts: Error al obtener productos con ofertas:', error);
-    return [];
-  }
-};
-
-// Función auxiliar para verificar si hay sesión activa
-export const isUserSessionActive = () => {
-  const token = localStorage.getItem('token');
-  return token && token.trim() !== '';
-};
-
-// 🧠 FUNCIÓN INTELIGENTE: Elige automáticamente la función correcta según la sesión
-export const getSmartPromoProducts = async (limit = 50) => {
-  const hasActiveSession = isUserSessionActive();
-  
-  if (hasActiveSession) {
-    console.log('🔐 getSmartPromoProducts: SESIÓN ACTIVA - API EXTERNA + OFERTAS PERSONALIZADAS');
-    return await getPromoProducts(limit);
-  } else {
-    console.log('🔓 getSmartPromoProducts: SIN SESIÓN - SOLO API EXTERNA');
+    console.error('❌ getPromoProducts: Error al obtener productos con ofertas personalizadas:', error);
+    // Fallback a ofertas externas
     return await getExternalPromoProducts(limit);
   }
 };
@@ -939,32 +639,10 @@ export const getProductsByCategory = async (category, catalog = 'Cherry 2025 - 2
       });
     }
     
-    // Filtrar productos habilitados para web antes del mapeo
-    const webEnabledProducts = filteredRawProducts.filter(product => {
-      const isWebEnabled = product.opc_web === 'S';
-      
-      return isWebEnabled;
-    });
+    // Mapear los productos filtrados al formato de la app de forma asíncrona
+    const mappedProducts = await Promise.all(filteredRawProducts.map(mapApiProductToAppProduct));
     
-    // Obtener IDs de productos para ratings
-    const productIds = webEnabledProducts.map(product => 
-      product.id_articulo || product.id || product.codigo
-    ).filter(Boolean);
-    
-    // Obtener ratings en bulk
-    const ratingsCache = await getBulkRatings(productIds);
-    
-    // Mapear los productos filtrados al formato de la app con ratings
-    const mappedProducts = await Promise.all(
-      webEnabledProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
-    );
-    
-    const validProducts = mappedProducts.filter(p => p !== null);
-    
-    // Aplicar ofertas personalizadas del usuario
-    const productsWithUserOffers = await applyUserOffersToProducts(validProducts);
-    
-    return productsWithUserOffers;
+    return mappedProducts.filter(p => p !== null);
   } catch (error) {
     return [];
   }
@@ -974,26 +652,8 @@ export const getProductsByCategory = async (category, catalog = 'Cherry 2025 - 2
 export const fetchProducts = async (catalog = 'Cherry 2025 - 2026') => {
   try {
     const products = await getAllProducts(catalog);
-    
-    // Obtener IDs de productos para ratings
-    const productIds = products.map(product => 
-      product.id_articulo || product.id || product.codigo
-    ).filter(Boolean);
-    
-    // Obtener ratings en bulk
-    const ratingsCache = await getBulkRatings(productIds);
-    
-    // Mapear productos con ratings
-    const mappedProducts = await Promise.all(
-      products.map(product => mapApiProductToAppProduct(product, ratingsCache))
-    );
-    
-    const validProducts = mappedProducts.filter(p => p !== null);
-    
-    // Aplicar ofertas personalizadas del usuario
-    const productsWithUserOffers = await applyUserOffersToProducts(validProducts);
-    
-    return productsWithUserOffers;
+    const mappedProducts = await Promise.all(products.map(mapApiProductToAppProduct));
+    return mappedProducts.filter(p => p !== null);
   } catch (error) {
     return [];
   }
@@ -1027,25 +687,9 @@ export const getProductsByAvailability = async (availability, catalog = 'Cherry 
       filteredProducts = filteredProducts.filter(product => product.inventario > 0);
     }
     
-    // Obtener IDs de productos para ratings
-    const productIds = filteredProducts.map(product => 
-      product.id_articulo || product.id || product.codigo
-    ).filter(Boolean);
-    
-    // Obtener ratings en bulk
-    const ratingsCache = await getBulkRatings(productIds);
-    
-    // Mapear productos al formato de la app con ratings
-    const mappedProducts = await Promise.all(
-      filteredProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
-    );
-    
-    const validProducts = mappedProducts.filter(p => p !== null);
-    
-    // Aplicar ofertas personalizadas del usuario
-    const productsWithUserOffers = await applyUserOffersToProducts(validProducts);
-    
-    return productsWithUserOffers;
+    // Mapear productos al formato de la app
+    const mappedProducts = await Promise.all(filteredProducts.map(mapApiProductToAppProduct));
+    return mappedProducts.filter(p => p !== null);
   } catch (error) {
     return [];
   }
@@ -1195,25 +839,9 @@ export const searchProductsAdvanced = async (query, filters = {}, catalog = 'Che
       });
     }
 
-    // Obtener IDs de productos para ratings
-    const productIds = finalProducts.map(product => 
-      product.id_articulo || product.id || product.codigo
-    ).filter(Boolean);
-    
-    // Obtener ratings en bulk
-    const ratingsCache = await getBulkRatings(productIds);
-    
-    // Mapear los productos al formato de la app con ratings
-    const mappedProducts = await Promise.all(
-      finalProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
-    );
-    
-    const validProducts = mappedProducts.filter(p => p !== null);
-    
-    // Aplicar ofertas personalizadas del usuario
-    const productsWithUserOffers = await applyUserOffersToProducts(validProducts);
-    
-    return productsWithUserOffers;
+    // Mapear los productos al formato de la app
+    const mappedProducts = await Promise.all(finalProducts.map(mapApiProductToAppProduct));
+    return mappedProducts.filter(p => p !== null);
   } catch (error) {
     return [];
   }
@@ -1250,19 +878,33 @@ export const getAvailableSizes = async (catalog = 'Cherry 2025 - 2026') => {
     products.forEach(product => {
       if (product.detalles && product.detalles.length > 0) {
         product.detalles.forEach(detalle => {
-          if (detalle.detalle && detalle.detalle.toString().trim()) {
-            sizeSet.add(detalle.detalle.toString().trim());
+          if (detalle.talla && detalle.talla.trim()) {
+            sizeSet.add(detalle.talla.trim());
           }
         });
       }
     });
     
-    // Ordenar las tallas de manera inteligente (números primero, luego letras)
-    const sizesArray = Array.from(sizeSet);
-    const numericSizes = sizesArray.filter(size => !isNaN(size)).sort((a, b) => Number(a) - Number(b));
-    const letterSizes = sizesArray.filter(size => isNaN(size)).sort();
+    // Ordenar tallas de manera lógica (XS, S, M, L, XL, XXL, etc.)
+    const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+    const sizes = Array.from(sizeSet);
     
-    return [...numericSizes, ...letterSizes];
+    return sizes.sort((a, b) => {
+      const indexA = sizeOrder.indexOf(a.toUpperCase());
+      const indexB = sizeOrder.indexOf(b.toUpperCase());
+      
+      // Si ambas tallas están en el orden predefinido
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
+      
+      // Si solo una está en el orden predefinido, esa va primero
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      
+      // Si ninguna está en el orden predefinido, ordenar alfabéticamente
+      return a.localeCompare(b);
+    });
   } catch (error) {
     return [];
   }
@@ -1289,6 +931,7 @@ export const getAvailableCategoriesFromAPI = async (catalog = 'Cherry 2025 - 202
 // Función para obtener un producto específico por ID
 export const getProductById = async (productId) => {
   try {
+    console.log(`🔍 OBTENIENDO PRODUCTO POR ID: ${productId}`);
     
     // Make direct API call with specific product ID
     const response = await axios.get(`https://cherryapi.estrategiadmgs.com.mx/cherryApi/?id_articulo=${productId}`);
@@ -1305,19 +948,20 @@ export const getProductById = async (productId) => {
       throw new Error(`Producto con ID ${productId} no encontrado en la respuesta`);
     }
     
-    // Obtener rating para este producto específico
-    const ratingsCache = await getBulkRatings([productId]);
+    console.log(`✅ PRODUCTO ENCONTRADO: ${product.descripcion}, precio1: ${product.precio1}, desc_promo: ${product.desc_promo}`);
     
-    // 🔥 IMPORTANTE: Solo aplicar el mapeo básico, las ofertas se manejan en ProductPage
-    const mappedProduct = mapApiProductToAppProduct(product, ratingsCache);
+    // 🔥 IMPORTANTE: Aplicar el mapeo para que funcionen las ofertas
+    const mappedProduct = mapApiProductToAppProduct(product);
     
-    // Retornar el producto con el mapeo básico aplicado
+    console.log(`🎯 PRODUCTO MAPEADO: discount: ${mappedProduct?.discount}%, price: ${mappedProduct?.price}, originalPrice: ${mappedProduct?.originalPrice}`);
+    
+    // Retornar el producto original con los campos mapeados agregados
     return {
       ...product,
-      // Agregar campos del mapeo básico
-      price: mappedProduct?.price || product.precio1,
-      originalPrice: mappedProduct?.originalPrice,
-      discount: mappedProduct?.discount,
+      // Agregar campos mapeados para las ofertas
+      mappedDiscount: mappedProduct?.discount,
+      mappedPrice: mappedProduct?.price,
+      mappedOriginalPrice: mappedProduct?.originalPrice,
       // Mantener desc_promo original de la API
       desc_promo: product.desc_promo || 0
     };
@@ -1362,4 +1006,309 @@ export const testWithPublicApi = async () => {
     success: false,
     error: 'API pública no funcionó'
   };
+};
+
+/**
+ * Obtener los productos más vendidos del mes actual
+ */
+export const getTopSellingProducts = async (limit = 20) => {
+  try {
+    console.log('🏆 getTopSellingProducts: Obteniendo productos más vendidos del mes...');
+    
+    // Obtener IDs de productos más vendidos del backend
+    const response = await fetch('/api/featured/top-selling-products?limit=' + limit);
+    
+    if (!response.ok) {
+      console.log('❌ getTopSellingProducts: Error en respuesta del backend:', response.status);
+      return [];
+    }
+    
+    const data = await response.json();
+    
+    if (!data.success || !data.data.product_ids || data.data.product_ids.length === 0) {
+      console.log('🔍 getTopSellingProducts: No hay productos más vendidos este mes');
+      return [];
+    }
+    
+    const productIds = data.data.product_ids;
+    console.log(`📊 getTopSellingProducts: ${productIds.length} productos más vendidos encontrados para ${data.data.period.month}`);
+    
+    // Obtener datos completos de la API externa
+    const apiResponse = await axios.get(CHERRY_API_URL);
+    const apiData = apiResponse.data;
+    
+    let allApiProducts = [];
+    if (Array.isArray(apiData)) {
+      allApiProducts = apiData;
+    } else if (apiData && apiData.productos && Array.isArray(apiData.productos)) {
+      allApiProducts = apiData.productos;
+    }
+    
+    // Filtrar y ordenar productos según el ranking de ventas
+    const topSellingProducts = [];
+    
+    for (const productId of productIds) {
+      const product = allApiProducts.find(p => 
+        (p.id_articulo && p.id_articulo.toString() === productId.toString()) ||
+        (p.id && p.id.toString() === productId.toString()) ||
+        (p.codigo && p.codigo.toString() === productId.toString())
+      );
+      
+      if (product) {
+        topSellingProducts.push(product);
+      }
+    }
+    
+    console.log(`🎯 getTopSellingProducts: ${topSellingProducts.length} productos encontrados en API externa`);
+    
+    if (topSellingProducts.length === 0) {
+      return [];
+    }
+    
+    // Obtener IDs para ratings
+    const productIdsForRatings = topSellingProducts.map(product => 
+      product.id_articulo || product.id || product.codigo
+    ).filter(Boolean);
+    
+    // Obtener ratings en bulk
+    const ratingsCache = await getBulkRatings(productIdsForRatings);
+    
+    // Mapear productos manteniendo el orden de ventas
+    const mappedProducts = await Promise.all(
+      topSellingProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
+    );
+    
+    const validProducts = mappedProducts.filter(p => p !== null);
+    console.log(`✅ getTopSellingProducts: ${validProducts.length} productos más vendidos mapeados`);
+    
+    return validProducts;
+    
+  } catch (error) {
+    console.error('❌ getTopSellingProducts: Error al obtener productos más vendidos:', error);
+    return [];
+  }
+};
+
+/**
+ * Verificar si hay una sesión de usuario activa
+ */
+export const isUserSessionActive = () => {
+  try {
+    // Verificar si hay token en localStorage
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      return false;
+    }
+    
+    // Verificar si el token no está vacío
+    if (token.trim() === '') {
+      return false;
+    }
+    
+    // TODO: Aquí se podría agregar validación adicional del token
+    // como verificar si no ha expirado, pero por ahora con que exista es suficiente
+    
+    return true;
+  } catch (error) {
+    console.error('❌ isUserSessionActive: Error al verificar sesión:', error);
+    return false;
+  }
+};
+
+/**
+ * Obtener productos promocionales externos (sin ofertas personalizadas)
+ */
+export const getExternalPromoProducts = async (limit = 50) => {
+  try {
+    console.log('🔓 getExternalPromoProducts: PRODUCTOS SOLO DE API EXTERNA (sin ofertas personalizadas)');
+    
+    const response = await axios.get(CHERRY_API_URL);
+    const data = response.data;
+    
+    let allProducts = [];
+    if (Array.isArray(data)) {
+      allProducts = data;
+    } else if (data && data.productos && Array.isArray(data.productos)) {
+      allProducts = data.productos;
+    } else {
+      console.log('❌ getExternalPromoProducts: No se encontraron productos en la API');
+      return [];
+    }
+
+    console.log(`📊 getExternalPromoProducts: ${allProducts.length} productos recibidos de la API`);
+
+    // Filtrar productos con desc_promo > 0 (ofertas reales de la API externa)
+    const promoProducts = allProducts.filter(product => {
+      const hasPromoDiscount = product.desc_promo && parseFloat(product.desc_promo) > 0;
+      const isActive = product.activo === 1;
+      const isWebEnabled = product.opc_web === 'S';
+      
+      return hasPromoDiscount && isActive && isWebEnabled;
+    });
+
+    console.log(`🎯 getExternalPromoProducts: ${promoProducts.length} productos con desc_promo > 0`);
+
+    // Si no hay productos con desc_promo, usar productos con opc_promo = 'S'
+    let finalProducts = promoProducts;
+    if (finalProducts.length === 0) {
+      console.log('🔍 getExternalPromoProducts: No hay productos con desc_promo, buscando opc_promo = "S"');
+      
+      finalProducts = allProducts.filter(product => {
+        const hasPromoOption = product.opc_promo === 'S';
+        const isActive = product.activo === 1;
+        const isWebEnabled = product.opc_web === 'S';
+        
+        return hasPromoOption && isActive && isWebEnabled;
+      });
+
+      console.log(`🎯 getExternalPromoProducts: ${finalProducts.length} productos con opc_promo = "S"`);
+    }
+
+    if (finalProducts.length === 0) {
+      console.log('❌ getExternalPromoProducts: No se encontraron productos promocionales');
+      return [];
+    }
+
+    // Mezclar y limitar
+    const shuffled = finalProducts.sort(() => 0.5 - Math.random());
+    const selectedProducts = shuffled.slice(0, limit);
+
+    // Obtener IDs para ratings
+    const productIds = selectedProducts.map(product => 
+      product.id_articulo || product.id || product.codigo
+    ).filter(Boolean);
+
+    // Obtener ratings en bulk
+    const ratingsCache = await getBulkRatings(productIds);
+
+    // Mapear productos (SIN aplicar ofertas personalizadas)
+    const mappedProducts = await Promise.all(
+      selectedProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
+    );
+
+    const validProducts = mappedProducts.filter(p => p !== null);
+    console.log(`🎉 getExternalPromoProducts: FINAL - ${validProducts.length} productos SOLO de API externa`);
+
+    return validProducts;
+
+  } catch (error) {
+    console.error('❌ getExternalPromoProducts: Error al obtener productos externos:', error);
+    return [];
+  }
+};
+
+/**
+ * Obtener productos que tienen ofertas personalizadas activas para el usuario
+ */
+export const getUserOfferProducts = async () => {
+  try {
+    // Verificar si hay sesión activa
+    if (!isUserSessionActive()) {
+      console.log('❌ getUserOfferProducts: No hay sesión activa');
+      return [];
+    }
+
+    console.log('🔍 getUserOfferProducts: Obteniendo IDs de productos con ofertas...');
+    
+    // Obtener IDs de productos con ofertas personalizadas del backend
+    const response = await fetch('/api/user-offer-products');
+    
+    if (!response.ok) {
+      console.log('❌ getUserOfferProducts: Error en respuesta del backend:', response.status);
+      return [];
+    }
+
+    console.log('🔍 getUserOfferProducts: Respuesta del endpoint:', { status: response.status, ok: response.ok });
+
+    const data = await response.json();
+    
+    console.log('📋 getUserOfferProducts: Datos recibidos:', data);
+
+    if (!data.success || !data.product_ids || data.product_ids.length === 0) {
+      console.log('🔍 getUserOfferProducts: No hay productos con ofertas personalizadas');
+      return [];
+    }
+
+    const productIds = data.product_ids;
+    console.log(`📋 getUserOfferProducts: ${productIds.length} productos con ofertas encontrados`);
+
+    // Obtener datos completos de la API externa
+    const apiResponse = await axios.get(CHERRY_API_URL);
+    const apiData = apiResponse.data;
+    
+    let allApiProducts = [];
+    if (Array.isArray(apiData)) {
+      allApiProducts = apiData;
+    } else if (apiData && apiData.productos && Array.isArray(apiData.productos)) {
+      allApiProducts = apiData.productos;
+    }
+
+    // Filtrar productos que coincidan con los IDs de ofertas
+    const userOfferProducts = [];
+    
+    for (const productId of productIds) {
+      const product = allApiProducts.find(p => 
+        (p.id_articulo && p.id_articulo.toString() === productId.toString()) ||
+        (p.id && p.id.toString() === productId.toString()) ||
+        (p.codigo && p.codigo.toString() === productId.toString())
+      );
+      
+      if (product) {
+        userOfferProducts.push(product);
+      }
+    }
+
+    console.log(`🎯 getUserOfferProducts: ${userOfferProducts.length} productos encontrados en API externa`);
+
+    if (userOfferProducts.length === 0) {
+      return [];
+    }
+
+    // Obtener IDs para ratings
+    const productIdsForRatings = userOfferProducts.map(product => 
+      product.id_articulo || product.id || product.codigo
+    ).filter(Boolean);
+
+    // Obtener ratings en bulk
+    const ratingsCache = await getBulkRatings(productIdsForRatings);
+
+    // Mapear productos
+    const mappedProducts = await Promise.all(
+      userOfferProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
+    );
+
+    const validProducts = mappedProducts.filter(p => p !== null);
+    console.log(`✅ getUserOfferProducts: ${validProducts.length} productos con ofertas personalizadas mapeados`);
+
+    return validProducts;
+
+  } catch (error) {
+    console.error('❌ getUserOfferProducts: Error al obtener productos con ofertas:', error);
+    return [];
+  }
+};
+
+/**
+ * Función inteligente que elige automáticamente entre ofertas con o sin sesión
+ */
+export const getSmartPromoProducts = async (limit = 50) => {
+  try {
+    const hasActiveSession = isUserSessionActive();
+    
+    console.log(`🤖 getSmartPromoProducts: Modo inteligente - Sesión ${hasActiveSession ? 'ACTIVA' : 'INACTIVA'}`);
+    
+    if (hasActiveSession) {
+      console.log('🔐 getSmartPromoProducts: Sesión activa detectada - usando ofertas personalizadas');
+      return await getPromoProducts(limit);
+    } else {
+      console.log('🔓 getSmartPromoProducts: Sin sesión - usando ofertas externas únicamente');
+      return await getExternalPromoProducts(limit);
+    }
+    
+  } catch (error) {
+    console.error('❌ getSmartPromoProducts: Error en función inteligente:', error);
+    // Fallback a ofertas externas en caso de error
+    return await getExternalPromoProducts(limit);
+  }
 }; 

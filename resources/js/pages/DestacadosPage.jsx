@@ -4,84 +4,76 @@ import { Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard/ProductCard';
 import CherryButton from '../components/CherryButton/CherryButton';
 import { getIconPath } from '../utils/assetPaths';
-import { fetchProducts } from '../api/cherryApi';
+import { getTopSellingProducts } from '../api/cherryApi';
+import { applyUserOffersToProducts } from '../api/userOffers';
+import useUserStore from '../store/userStore';
 import './DestacadosPage.css';
 
 const DestacadosPage = () => {
-  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const { user } = useUserStore();
+  const [topSellingProducts, setTopSellingProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedFilter, setSelectedFilter] = useState('all');
-
-  const filters = [
-    { id: 'all', name: 'Todos los destacados', icon: 'Award.svg' },
-    { id: 'new', name: 'Novedades', icon: 'Bell.svg' },
-    { id: 'popular', name: 'Más populares', icon: 'Bullhorn.svg' },
-    { id: 'trending', name: 'Tendencias', icon: 'Shopping Cart.svg' }
-  ];
+  const [currentMonth, setCurrentMonth] = useState('');
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const loadFeaturedProducts = async () => {
+    const loadTopSellingProducts = async () => {
       setLoading(true);
+      setError(null);
+      
       try {
-        const allProducts = await fetchProducts();
+        console.log('🏆 DestacadosPage: Cargando productos más vendidos del mes...');
         
-        // Filtrar productos destacados (nuevos, populares, etc.)
-        const featured = allProducts.filter(product => 
-          product.isNew || product.isPromo || product.rating >= 4
-        );
+        // Obtener productos más vendidos del mes actual
+        const products = await getTopSellingProducts(20);
         
-        setFeaturedProducts(featured);
+        if (products.length === 0) {
+          console.log('📊 DestacadosPage: No hay productos más vendidos este mes');
+          setTopSellingProducts([]);
+          setCurrentMonth(new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }));
+          return;
+        }
+        
+        // Aplicar ofertas personalizadas si hay usuario logueado
+        let finalProducts = products;
+        if (user) {
+          console.log('👤 DestacadosPage: Aplicando ofertas personalizadas...');
+          finalProducts = await applyUserOffersToProducts(products);
+        }
+        
+        setTopSellingProducts(finalProducts);
+        setCurrentMonth(new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }));
+        
+        console.log(`✅ DestacadosPage: ${finalProducts.length} productos más vendidos cargados`);
+        
       } catch (error) {
-
-        setFeaturedProducts([]);
+        console.error('❌ DestacadosPage: Error al cargar productos más vendidos:', error);
+        setError('Error al cargar los productos más vendidos');
+        setTopSellingProducts([]);
       } finally {
         setLoading(false);
       }
     };
 
-    loadFeaturedProducts();
-  }, []);
-
-  const getFilteredProducts = () => {
-    if (selectedFilter === 'all') {
-      return featuredProducts;
-    }
-
-    return featuredProducts.filter(product => {
-      switch (selectedFilter) {
-        case 'new':
-          return product.isNew;
-        case 'popular':
-          return product.rating >= 4;
-        case 'trending':
-          return product.isPromo || product.discount > 0;
-        default:
-          return true;
-      }
-    });
-  };
-
-  const handleFilterClick = (filterId) => {
-    setSelectedFilter(filterId);
-  };
+    loadTopSellingProducts();
+  }, [user]);
 
   const handleFavoriteToggle = (productId) => {
-    };
-
-  const filteredProducts = getFilteredProducts();
+    // TODO: Implementar toggle de favoritos
+  };
 
   if (loading) {
     return (
       <>
         <Helmet>
-          <title>Destacados - Cherry Central</title>
+          <title>Más Vendidos - Cherry Central</title>
         </Helmet>
         
         <main className="destacados-page">
           <div className="container">
             <div className="destacados-loading">
               <div className="loading-spinner"></div>
-              <p>Cargando productos destacados...</p>
+              <p>Cargando productos más vendidos...</p>
             </div>
           </div>
         </main>
@@ -92,82 +84,52 @@ const DestacadosPage = () => {
   return (
     <>
       <Helmet>
-        <title>Destacados - Cherry Central</title>
-        <meta name="description" content="Descubre los productos más destacados de Cherry Central. Novedades, tendencias y los más populares." />
+        <title>Productos Más Vendidos - Cherry Central</title>
+        <meta name="description" content="Descubre los 20 productos más vendidos del mes en Cherry Central. Los favoritos de nuestros clientes." />
       </Helmet>
 
       <main className="destacados-page">
         <div className="container">
           {/* Header */}
           <div className="destacados-header">
-            <h1>Productos Destacados</h1>
-            <p>Descubre las mejores selecciones de moda femenina</p>
+            <h1>Productos Más Vendidos</h1>
+            <p>Los 20 productos favoritos de nuestros clientes en {currentMonth}</p>
           </div>
 
-          {/* Banner destacado */}
-          <div className="destacados-banner">
-            <div className="banner-content">
-              <h2>Selección Especial</h2>
-              <p>Los productos más populares y novedades de la temporada</p>
-              <div className="banner-stats">
-                <div className="stat-item">
-                  <span className="stat-number">{featuredProducts.length}</span>
-                  <span className="stat-label">Productos destacados</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-number">4.8</span>
-                  <span className="stat-label">Calificación promedio</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-number">1000+</span>
-                  <span className="stat-label">Clientes satisfechos</span>
-                </div>
-              </div>
-            </div>
-            <div className="banner-image">
-              <img src={getIconPath('Award.svg')} alt="Productos destacados" />
-            </div>
-          </div>
 
-          {/* Filtros */}
-          <div className="destacados-filtros">
-            <div className="filtros-grid">
-              {filters.map((filter) => (
-                <button
-                  key={filter.id}
-                  className={`filtro-btn ${selectedFilter === filter.id ? 'active' : ''}`}
-                  onClick={() => handleFilterClick(filter.id)}
-                >
-                  <div className="filtro-icon">
-                    <img src={getIconPath(filter.icon)} alt={filter.name} />
-                  </div>
-                  <span>{filter.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Productos destacados */}
+          {/* Productos más vendidos */}
           <div className="destacados-content">
             <div className="destacados-header-section">
-              <h2>
-                {filters.find(f => f.id === selectedFilter)?.name}
-              </h2>
-              <p>{filteredProducts.length} productos encontrados</p>
+              <h2>Ranking de Ventas - {currentMonth}</h2>
+              <p>
+                {topSellingProducts.length} productos más vendidos
+              </p>
             </div>
 
-            {filteredProducts.length === 0 ? (
+            {error && (
+              <div className="destacados-error">
+                <div className="error-icon">
+                  <img src={getIconPath('Alert.svg')} alt="Error" />
+                </div>
+                <h3>Error al cargar productos</h3>
+                <p>{error}</p>
+                <CherryButton 
+                  variant="outline" 
+                  size="medium"
+                  onClick={() => window.location.reload()}
+                >
+                  Reintentar
+                </CherryButton>
+              </div>
+            )}
+
+            {!error && topSellingProducts.length === 0 ? (
               <div className="destacados-empty">
                 <div className="empty-icon">
-                  <img src={getIconPath('Award.svg')} alt="Sin destacados" />
+                  <img src={getIconPath('Bullhorn.svg')} alt="Sin ventas" />
                 </div>
-                <h3>No hay productos destacados</h3>
-                <p>
-                  {selectedFilter === 'all' 
-                    ? 'No hay productos destacados en este momento'
-                    : `No hay productos en la categoría "${filters.find(f => f.id === selectedFilter)?.name}"`
-                  }
-                </p>
+                <h3>No hay datos de ventas</h3>
+                <p>No se encontraron productos vendidos en {currentMonth}</p>
                 <Link to="/catalogo">
                   <CherryButton variant="outline" size="medium">
                     Ver catálogo completo
@@ -176,12 +138,16 @@ const DestacadosPage = () => {
               </div>
             ) : (
               <div className="destacados-products-grid">
-                {filteredProducts.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onFavoriteToggle={handleFavoriteToggle}
-                  />
+                {topSellingProducts.map((product, index) => (
+                  <div key={product.id} className="product-ranking-item">
+                    <div className="ranking-badge">
+                      #{index + 1}
+                    </div>
+                    <ProductCard
+                      product={product}
+                      onFavoriteToggle={handleFavoriteToggle}
+                    />
+                  </div>
                 ))}
               </div>
             )}
@@ -190,54 +156,35 @@ const DestacadosPage = () => {
           {/* Sección de información */}
           <div className="destacados-info">
             <div className="info-section">
-              <h3>¿Por qué estos productos son destacados?</h3>
+              <h3>¿Por qué estos productos son los más vendidos?</h3>
               <div className="info-grid">
                 <div className="info-item">
                   <div className="info-icon">
-                    <img src={getIconPath('Bell.svg')} alt="Novedades" />
+                    <img src={getIconPath('Bullhorn.svg')} alt="Demanda" />
                   </div>
-                  <h4>Novedades</h4>
-                  <p>Productos recién llegados y las últimas tendencias</p>
+                  <h4>Alta demanda</h4>
+                  <p>Productos con mayor número de ventas en {currentMonth}</p>
                 </div>
                 
                 <div className="info-item">
                   <div className="info-icon">
                     <img src={getIconPath('Award.svg')} alt="Calidad" />
                   </div>
-                  <h4>Alta calidad</h4>
-                  <p>Productos con las mejores calificaciones de nuestros clientes</p>
+                  <h4>Calidad comprobada</h4>
+                  <p>Productos que nuestros clientes eligen una y otra vez</p>
                 </div>
                 
                 <div className="info-item">
                   <div className="info-icon">
-                    <img src={getIconPath('Bullhorn.svg')} alt="Popularidad" />
+                    <img src={getIconPath('Shopping Cart.svg')} alt="Tendencia" />
                   </div>
-                  <h4>Más populares</h4>
-                  <p>Los productos más vendidos y solicitados</p>
+                  <h4>Tendencia actual</h4>
+                  <p>Los favoritos del mes que marcan la moda</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* CTA Section */}
-          <div className="destacados-cta">
-            <div className="cta-content">
-              <h2>¿Quieres ver más productos?</h2>
-              <p>Explora nuestro catálogo completo para encontrar todo lo que buscas</p>
-              <div className="cta-actions">
-                <Link to="/catalogo">
-                  <CherryButton variant="red" size="large">
-                    Ver catálogo completo
-                  </CherryButton>
-                </Link>
-                <Link to="/categorias">
-                  <CherryButton variant="outline" size="large">
-                    Explorar categorías
-                  </CherryButton>
-                </Link>
-              </div>
-            </div>
-          </div>
         </div>
       </main>
     </>
@@ -245,3 +192,4 @@ const DestacadosPage = () => {
 };
 
 export default DestacadosPage; 
+

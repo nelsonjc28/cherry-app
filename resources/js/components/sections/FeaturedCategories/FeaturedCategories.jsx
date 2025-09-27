@@ -127,7 +127,7 @@ const FeaturedCategories = () => {
         {/* Section Header */}
         <div className="featured-categories__header">
           <h2 className="featured-categories__title">
-            Descubre nuestros productos destacados que realzan tu estilo y personalidad.
+            Descubre nuestros productos más vendidos que realzan tu estilo y personalidad.
           </h2>
           <p className="featured-categories__subtitle">
             Explora estas 3 categorías seleccionadas especialmente para ti
