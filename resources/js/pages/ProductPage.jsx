@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import './ProductPage.css';
+import './ProductPageOfferIndicators.css';
 
 // Components
 import CherryButton from '../components/CherryButton/CherryButton';
@@ -16,7 +17,7 @@ import ProductReviews from '../components/ProductReviews/ProductReviews';
 import { useUserDiscounts } from '../hooks/useUserDiscounts';
 
 // API and Store
-import { getProductById, generateS3ImageUrl } from '../api/cherryApi';
+import { getProductById, generateS3ImageUrl, isUserSessionActive } from '../api/cherryApi';
 import { applyUserOffersToProducts } from '../api/userOffers';
 import useCartStore from '../store/cartStore';
 import useUserStore from '../store/userStore';
@@ -75,9 +76,45 @@ const ProductPage = () => {
       try {
         const productData = await getProductById(productId);
         
-        // Aplicar ofertas de usuario al producto
-        const productsWithOffers = await applyUserOffersToProducts([productData]);
-        const productWithOffer = productsWithOffers[0] || productData;
+        // Aplicar ofertas usando el sistema inteligente (con o sin sesión)
+        const hasActiveSession = isUserSessionActive();
+        let productWithOffer = productData;
+        
+        console.log('📊 ProductPage: Datos del producto recibidos:', {
+          id: productData.id_articulo,
+          desc_promo: productData.desc_promo,
+          precio1: productData.precio1,
+          price: productData.price,
+          discount: productData.discount,
+          originalPrice: productData.originalPrice
+        });
+        
+        if (hasActiveSession) {
+          // Si hay sesión activa, aplicar ofertas personalizadas
+          console.log('🔐 ProductPage: Sesión activa - aplicando ofertas personalizadas');
+          const productsWithOffers = await applyUserOffersToProducts([productData]);
+          productWithOffer = productsWithOffers[0] || productData;
+          
+          console.log('✅ ProductPage: Producto después de aplicar ofertas:', {
+            id: productWithOffer.id_articulo,
+            price: productWithOffer.price,
+            originalPrice: productWithOffer.originalPrice,
+            discount: productWithOffer.discount,
+            hasUserOffer: productWithOffer.hasUserOffer,
+            userOffer: productWithOffer.userOffer
+          });
+        } else {
+          // Si no hay sesión, usar solo las ofertas externas (ya incluidas en getProductById)
+          console.log('🔓 ProductPage: Sin sesión - usando solo ofertas externas');
+          productWithOffer = productData;
+          
+          console.log('✅ ProductPage: Producto sin ofertas personalizadas:', {
+            id: productWithOffer.id_articulo,
+            price: productWithOffer.price,
+            originalPrice: productWithOffer.originalPrice,
+            discount: productWithOffer.discount
+          });
+        }
         
         setProduct(productWithOffer);
         // Set default color/size if available
@@ -522,21 +559,42 @@ const ProductPage = () => {
 
   // Calcular descuento con prioridades
   const calculateDiscountPercentage = () => {
+    console.log('🔍 calculateDiscountPercentage - Datos disponibles:', {
+      hasUserOffer,
+      userOffer,
+      productDiscount: product?.discount,
+      descPromo: product?.desc_promo,
+      originalPrice: product?.originalPrice,
+      price: product?.price,
+      precio1: product?.precio1
+    });
+    
     // PRIORIDAD 1: Descuento personalizado del usuario (ya procesado)
     if (hasUserOffer && userOffer && userOffer.discount_percentage > 0) {
+      console.log('✅ Usando descuento personalizado:', userOffer.discount_percentage);
       return Math.round(userOffer.discount_percentage);
     }
     
-    // PRIORIDAD 2: Descuento general desde la API (desc_promo) - ya procesado en product.discount
+    // PRIORIDAD 2: Descuento general desde la API (desc_promo) - usar directamente desc_promo
+    if (product?.desc_promo && product.desc_promo > 0) {
+      console.log('✅ Usando desc_promo de la API:', product.desc_promo);
+      return Math.round(product.desc_promo);
+    }
+    
+    // PRIORIDAD 3: Descuento ya procesado en product.discount
     if (product?.discount && product.discount > 0) {
+      console.log('✅ Usando product.discount:', product.discount);
       return Math.round(product.discount);
     }
     
-    // PRIORIDAD 3: Fallback usando originalPrice vs price
+    // PRIORIDAD 4: Fallback usando originalPrice vs price
     if (product?.originalPrice && product?.price && product.originalPrice > product.price) {
-      return Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
+      const calculatedDiscount = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
+      console.log('✅ Usando descuento calculado:', calculatedDiscount);
+      return calculatedDiscount;
     }
     
+    console.log('❌ No se encontró descuento');
     return 0;
   };
 
@@ -545,10 +603,32 @@ const ProductPage = () => {
   // Determinar si hay oferta (incluyendo ofertas especiales que no tienen porcentaje)
   const hasOffer = discountPercentage > 0 || (hasUserOffer && userOffer && (userOffer.discount_category === 'buy_x_get_y' || userOffer.discount_category === 'free_shipping'));
   
-  // Calcular precio final - usar precio ya procesado si está disponible
-  const finalPrice = product?.price || (hasOffer && discountPercentage > 0 ? 
-    precio1 - (precio1 * (discountPercentage / 100)) : 
-    precio1);
+  // Calcular precio final con logs para debugging
+  const calculateFinalPrice = () => {
+    const basePrice = precio1 || 0;
+    
+    // Si ya hay un precio procesado, usarlo
+    if (product?.price && product.price !== basePrice) {
+      console.log('✅ Usando precio ya procesado:', product.price);
+      return product.price;
+    }
+    
+    // Si hay descuento, calcularlo
+    if (discountPercentage > 0 && basePrice > 0) {
+      const discountedPrice = basePrice - (basePrice * (discountPercentage / 100));
+      console.log('✅ Calculando precio con descuento:', {
+        basePrice,
+        discountPercentage,
+        discountedPrice
+      });
+      return discountedPrice;
+    }
+    
+    console.log('✅ Usando precio base:', basePrice);
+    return basePrice;
+  };
+  
+  const finalPrice = calculateFinalPrice();
 
   // Función para obtener el stock disponible por talla y color
   const getStockBySizeAndColor = (talla, color) => {
@@ -735,6 +815,8 @@ const ProductPage = () => {
                   }
                 </div>
               )}
+              
+              
               <div className="product-page__price-container">
                 {hasOffer && discountPercentage > 0 && (
                   <>

@@ -268,4 +268,102 @@
   .info-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Nuevos estilos para el sistema de ofertas separado */
+.user-session-badge {
+  background: linear-gradient(135deg, #4ade80, #22c55e);
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  margin-left: 0.5rem;
+  font-weight: 500;
+}
+
+.offer-types-info {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.offer-type-badge {
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid;
+}
+
+.offer-type-badge.external {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fbbf24;
+}
+
+.offer-type-badge.user {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #22c55e;
+}
+
+
+.login-cta {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  text-align: center;
+  margin: 2rem 0;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.login-cta h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: white;
+}
+
+.login-cta p {
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+  opacity: 0.9;
+  color: white;
+}
+
+.cta-content {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* Responsive adicional para móviles */
+@media (max-width: 768px) {
+  .offer-types-info {
+    flex-direction: column;
+  }
+  
+  .offer-type-badge {
+    text-align: center;
+  }
+  
+  .user-session-badge {
+    display: block;
+    margin-left: 0;
+    margin-top: 0.5rem;
+    text-align: center;
+  }
+  
+  .login-cta {
+    padding: 1.5rem;
+  }
+  
+  .login-cta h3 {
+    font-size: 1.25rem;
+  }
+  
+  .promociones-info {
+    margin-top: 2rem;
+  }
 } 

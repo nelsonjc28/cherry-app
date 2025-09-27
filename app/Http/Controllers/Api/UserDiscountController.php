@@ -21,8 +21,8 @@ class UserDiscountController extends Controller
                 'product_ids.*' => 'string|max:50' // Limitar longitud de IDs
             ]);
 
-            // Intentar obtener el usuario desde diferentes guards
-            $userId = auth('api')->id() ?? auth('web')->id() ?? auth()->id();
+            // Obtener el usuario autenticado
+            $userId = $request->user()?->id;
             $productIds = $validated['product_ids'];
             
             if (!$userId) {
@@ -58,6 +58,7 @@ class UserDiscountController extends Controller
                 ->where('catalog_offers.start_date', '<=', now())
                 ->where('catalog_offers.end_date', '>=', now())
                 ->get();
+
 
             $discounts = [];
 
@@ -99,6 +100,50 @@ class UserDiscountController extends Controller
                 'success' => false,
                 'error' => 'Error al verificar descuentos',
                 'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener IDs de productos que tienen ofertas para el usuario actual
+     */
+    public function getUserOfferProducts(Request $request): JsonResponse
+    {
+        try {
+            // Obtener el usuario autenticado
+            $userId = $request->user()?->id;
+            
+            if (!$userId) {
+                return response()->json([
+                    'success' => true,
+                    'product_ids' => []
+                ]);
+            }
+
+            // Obtener IDs de productos que tienen ofertas ACTIVAS para este usuario
+            // Solo productos con descuentos personalizados activos deben aparecer
+            $productIds = CatalogOffer::select('cop.product_id')
+                ->join('catalog_offer_products as cop', 'catalog_offers.id', '=', 'cop.offer_id')
+                ->join('catalog_offer_users as cou', 'catalog_offers.id', '=', 'cou.offer_id')
+                ->where('cou.user_id', $userId)
+                ->where('catalog_offers.is_active', true)
+                ->where('catalog_offers.start_date', '<=', now())
+                ->where('catalog_offers.end_date', '>=', now())
+                ->distinct()
+                ->pluck('cop.product_id')
+                ->toArray();
+
+            return response()->json([
+                'success' => true,
+                'product_ids' => $productIds,
+                'count' => count($productIds)
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error interno del servidor',
+                'error' => $e->getMessage()
             ], 500);
         }
     }

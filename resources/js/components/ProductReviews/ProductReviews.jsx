@@ -85,21 +85,17 @@ const ProductReviews = ({ productId: propProductId }) => {
     }
   ];
 
-  // Use real data or fallback to mock data
-  const currentReviews = reviews.length > 0 ? reviews : mockReviews;
-  const averageRating = stats.average || (currentReviews.length > 0 ? currentReviews.reduce((sum, review) => sum + review.rating, 0) / currentReviews.length : 0);
-  const totalReviews = stats.total || currentReviews.length;
+  // Use only real approved reviews - no mock data
+  const currentReviews = reviews.length > 0 ? reviews : [];
+  const averageRating = stats.average || 0;
+  const totalReviews = stats.total || 0;
 
   const getRatingDistribution = () => {
     if (stats.distribution && Object.keys(stats.distribution).length > 0) {
       return stats.distribution;
     }
-    // Fallback to calculate from current reviews
-    const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-    currentReviews.forEach(review => {
-      distribution[review.rating]++;
-    });
-    return distribution;
+    // Return empty distribution if no real reviews
+    return { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
   };
 
   const ratingDistribution = getRatingDistribution();

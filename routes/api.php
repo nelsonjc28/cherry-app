@@ -35,6 +35,7 @@ Route::get('/reviews/product/{productId}', [App\Http\Controllers\ReviewControlle
 
 // User discount routes (requires auth - flexible)
 Route::middleware(['auth:api,web'])->post('/user-discounts/check', [App\Http\Controllers\Api\UserDiscountController::class, 'checkUserDiscounts']);
+Route::middleware(['auth:api,web'])->get('/user-offer-products', [App\Http\Controllers\Api\UserDiscountController::class, 'getUserOfferProducts']);
 
 // User Offers Routes
 Route::middleware(['auth:api,web'])->get('/user-offers', [App\Http\Controllers\Api\UserOfferController::class, 'getUserOffers']);

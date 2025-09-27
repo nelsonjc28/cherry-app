@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\CatalogOffer;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class CatalogOfferSeeder extends Seeder
@@ -77,6 +78,7 @@ class CatalogOfferSeeder extends Seeder
         ]);
     }
 }
+
 
 
 

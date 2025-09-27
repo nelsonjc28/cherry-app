@@ -121,3 +121,4 @@ export const applyUserOffersToProducts = async (products) => {
     return products;
   }
 };
+
