@@ -6,6 +6,15 @@
 @import './components/Header/HeaderAffiliateBanner.css';
 @import './components/Footer/Footer.css';
 
+/* Import admin component styles */
+@import './components/AdminRoute/AdminRoute.css';
+@import './components/AdminNotifications/AdminNotifications.css';
+@import './components/AdminCatalogManager/AdminCatalogManager.css';
+@import './components/AdminCategoryManager/AdminCategoryManager.css';
+@import './components/AdminUserManager/AdminUserManager.css';
+@import './components/AdminReviews/AdminReviews.css';
+@import './components/AdminContactManager/AdminContactManager.css';
+
 /* Import page styles to ensure they're included in build */
 @import './pages/DestacadosPage.css';
 @import './pages/HomePage.css';
@@ -21,6 +30,7 @@
 @import './pages/CatalogPdfPage.css';
 @import './pages/LoginPage.css';
 @import './pages/RegisterPage.css';
+@import './pages/AdminPanelPage.css';
 
 /* Variables CSS para consistencia en toda la aplicación */
 :root {
