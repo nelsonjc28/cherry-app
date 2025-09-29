@@ -14,10 +14,31 @@
 @import './components/AdminUserManager/AdminUserManager.css';
 @import './components/AdminReviews/AdminReviews.css';
 @import './components/AdminContactManager/AdminContactManager.css';
+@import './components/AdminHomeCatalogManager/AdminHomeCatalogManager.css';
+@import './components/AdminHomeCategoryOrderManager/AdminHomeCategoryOrderManager.css';
+@import './components/AdminMenuCategoryOrderManager/AdminMenuCategoryOrderManager.css';
+@import './components/AdminPrivacyPolicyManager/AdminPrivacyPolicyManager.css';
+@import './components/AdminWelcomeSectionManager/AdminWelcomeSectionManager.css';
 
 /* Import auth component styles */
 @import './components/AuthForms/LoginForm.css';
 @import './components/AuthForms/RegisterForm.css';
+
+/* Import dashboard and charts components */
+@import './components/Dashboard/DateFilters.css';
+@import './components/Dashboard/ProductsChart.css';
+@import './components/Dashboard/SalesChart.css';
+
+/* Import order and client management components */
+@import './components/OrderDetailModal/OrderDetailModal.css';
+@import './components/OrderSummaryTable/OrderSummaryTable.css';
+@import './components/ClientManager/ClientManager.css';
+@import './components/CategoryOrderManager/CategoryOrderManager.css';
+@import './components/CartOrderSummary/CartOrderSummary.css';
+
+/* Import customer reviews components */
+@import './components/sections/CustomerReviews/CustomerReviews.css';
+@import './components/sections/CustomerReviews/ReviewCard.css';
 
 /* Import page styles to ensure they're included in build */
 @import './pages/DestacadosPage.css';
