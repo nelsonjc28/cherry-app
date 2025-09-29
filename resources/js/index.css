@@ -107,6 +107,12 @@
 @import './pages/admin/AdminDashboard.css';
 @import './pages/admin/AdminOrders.css';
 
+/* Import payment and checkout components */
+@import './pages/profile/PaymentMethods.css';
+@import './pages/checkout/CheckoutForm.css';
+@import './components/IntegratedCheckout/IntegratedCheckout.css';
+@import './pages/CheckoutSuccessPage.css';
+
 /* Variables CSS para consistencia en toda la aplicación */
 :root {
   --color-primary: #EA2630;
