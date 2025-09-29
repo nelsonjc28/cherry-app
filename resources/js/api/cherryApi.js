@@ -259,9 +259,7 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
   if (discountPromo > 0 && originalPrice > 0) {
     discountPercentage = Math.round(discountPromo);
     finalPrice = originalPrice - (originalPrice * (discountPromo / 100));
-    console.log(`✅ DESCUENTO - Producto ${id}: ${discountPercentage}% | ${originalPrice} → ${finalPrice}`);
   } else {
-    console.log(`ℹ️ SIN DESCUENTO - Producto ${id}: desc_promo=${discountPromo}`);
   }
   
   // Generar URL de imagen S3 usando el id_articulo
@@ -1013,7 +1011,6 @@ export const testWithPublicApi = async () => {
  */
 export const getTopSellingProducts = async (limit = 20) => {
   try {
-    console.log('🏆 getTopSellingProducts: Obteniendo productos más vendidos del mes...');
     
     // Obtener IDs de productos más vendidos del backend
     const response = await fetch('/api/featured/top-selling-products?limit=' + limit);
@@ -1031,7 +1028,6 @@ export const getTopSellingProducts = async (limit = 20) => {
     }
     
     const productIds = data.data.product_ids;
-    console.log(`📊 getTopSellingProducts: ${productIds.length} productos más vendidos encontrados para ${data.data.period.month}`);
     
     // Obtener datos completos de la API externa
     const apiResponse = await axios.get(CHERRY_API_URL);
@@ -1059,7 +1055,6 @@ export const getTopSellingProducts = async (limit = 20) => {
       }
     }
     
-    console.log(`🎯 getTopSellingProducts: ${topSellingProducts.length} productos encontrados en API externa`);
     
     if (topSellingProducts.length === 0) {
       return [];
@@ -1079,7 +1074,6 @@ export const getTopSellingProducts = async (limit = 20) => {
     );
     
     const validProducts = mappedProducts.filter(p => p !== null);
-    console.log(`✅ getTopSellingProducts: ${validProducts.length} productos más vendidos mapeados`);
     
     return validProducts;
     

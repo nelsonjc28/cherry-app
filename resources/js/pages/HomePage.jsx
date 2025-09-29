@@ -26,7 +26,6 @@ const HomePage = () => {
       setLoadingTopSelling(true);
       
       try {
-        console.log('🏆 HomePage: Cargando 6 productos más vendidos del mes...');
         
         // Obtener productos más vendidos del mes actual (limitado a 6)
         const products = await getTopSellingProducts(6);
@@ -40,13 +39,11 @@ const HomePage = () => {
         // Aplicar ofertas personalizadas si hay usuario logueado
         let finalProducts = products;
         if (user) {
-          console.log('👤 HomePage: Aplicando ofertas personalizadas a productos más vendidos...');
           finalProducts = await applyUserOffersToProducts(products);
         }
         
         setTopSellingProducts(finalProducts);
         
-        console.log(`✅ HomePage: ${finalProducts.length} productos más vendidos cargados para home`);
         
       } catch (error) {
         console.error('❌ HomePage: Error al cargar productos más vendidos:', error);

@@ -41,11 +41,9 @@ const BuscarPage = () => {
   // Cargar catálogos
   useEffect(() => {
     const loadCatalogs = async () => {
-      console.log('🔍 BuscarPage: Iniciando carga de catálogos...');
       setCatalogLoading(true);
       try {
         const response = await publicCatalogService.getAll();
-        console.log('🔍 BuscarPage: Respuesta completa:', response);
         
         // Manejar diferentes estructuras de respuesta
         let catalogsData = [];
@@ -66,17 +64,13 @@ const BuscarPage = () => {
           }
         }
         
-        console.log('🔍 BuscarPage: Datos de catálogos extraídos:', catalogsData);
         
         if (catalogsData && catalogsData.length > 0) {
           // Mostrar todos los catálogos sin filtrar por estado activo
-          console.log('🔍 BuscarPage: Catálogos disponibles:', catalogsData);
           setCatalogs(catalogsData);
           
           // No establecer automáticamente un catálogo, dejar "Seleccione"
-          console.log('🔍 BuscarPage: Catálogos cargados, manteniendo "Seleccione"');
         } else {
-          console.log('🔍 BuscarPage: No se encontraron catálogos');
           setCatalogs([]);
         }
       } catch (error) {
@@ -84,7 +78,6 @@ const BuscarPage = () => {
         setCatalogs([]);
       } finally {
         setCatalogLoading(false);
-        console.log('🔍 BuscarPage: Carga de catálogos finalizada');
       }
     };
 
@@ -160,8 +153,6 @@ const BuscarPage = () => {
 
     // Filtrar por catálogo
     if (filters.catalog && filters.catalog !== 'Todos los catálogos' && filters.catalog !== 'Seleccione') {
-      console.log('🔍 BuscarPage: Filtrando por catálogo:', filters.catalog);
-      console.log('🔍 BuscarPage: Productos antes del filtro:', filtered.length);
       
       filtered = filtered.filter(product => {
         // Verificar si el producto pertenece al catálogo seleccionado
@@ -173,7 +164,6 @@ const BuscarPage = () => {
         return matches;
       });
       
-      console.log('🔍 BuscarPage: Productos después del filtro:', filtered.length);
     }
 
     // Aplicar filtros adicionales

@@ -7,10 +7,6 @@ const API_BASE_URL = '/api';
  * VERSIÓN OPTIMIZADA - Sin límites ni timeouts
  */
 export const checkProductsWithUserOffers = async (productIds) => {
-  console.log('🔍 checkProductsWithUserOffers: Iniciando verificación...', {
-    productIds,
-    hasToken: !!localStorage.getItem('token')
-  });
   
   try {
     if (!Array.isArray(productIds) || productIds.length === 0) {
@@ -25,10 +21,6 @@ export const checkProductsWithUserOffers = async (productIds) => {
       return {};
     }
 
-    console.log('🚀 checkProductsWithUserOffers: Haciendo llamada a la API...', {
-      url: `${API_BASE_URL}/user-discounts/check`,
-      productIds: productIds
-    });
 
     // 🚀 UNA SOLA LLAMADA - Sin límites, sin lotes, sin timeouts
     const response = await axios.post(`${API_BASE_URL}/user-discounts/check`, {
@@ -40,12 +32,6 @@ export const checkProductsWithUserOffers = async (productIds) => {
       }
     });
 
-    console.log('✅ checkProductsWithUserOffers: Respuesta recibida:', {
-      status: response.status,
-      success: response.data?.success,
-      discountsCount: Object.keys(response.data?.discounts || {}).length,
-      data: response.data
-    });
     
     // Log especial para el usuario cliente@cherrycentral.com
     if (token) {
@@ -90,13 +76,8 @@ export const checkProductsWithUserOffers = async (productIds) => {
  * VERSIÓN SÚPER SIMPLIFICADA - Sin lotes, sin límites, sin timeouts
  */
 export const applyUserOffersToProducts = async (products) => {
-  console.log('🔍 applyUserOffersToProducts: Iniciando...', {
-    productsCount: products?.length || 0,
-    hasToken: !!localStorage.getItem('token')
-  });
   
   if (!products || products.length === 0) {
-    console.log('❌ applyUserOffersToProducts: No hay productos');
     return products;
   }
 
@@ -105,29 +86,16 @@ export const applyUserOffersToProducts = async (products) => {
     product.id_articulo || product.id || product.codigo
   ).filter(Boolean);
 
-  console.log('📊 applyUserOffersToProducts: IDs de productos extraídos:', productIds);
 
   if (productIds.length === 0) {
-    console.log('❌ applyUserOffersToProducts: No se pudieron extraer IDs');
     return products;
   }
 
   // 🚀 UNA SOLA CONSULTA SÚPER EFICIENTE
   try {
-    console.log('🔍 applyUserOffersToProducts: Consultando ofertas del usuario...');
     const productsWithOffers = await checkProductsWithUserOffers(productIds);
     
-    console.log('✅ applyUserOffersToProducts: Ofertas recibidas:', {
-      offersCount: Object.keys(productsWithOffers).length,
-      offers: productsWithOffers
-    });
 
-    // Log específico de productos con ofertas
-    if (Object.keys(productsWithOffers).length > 0) {
-      console.log(`🎯 applyUserOffersToProducts: ${Object.keys(productsWithOffers).length} productos con ofertas encontradas`);
-    } else {
-      console.log('❌ applyUserOffersToProducts: No se encontraron ofertas para ningún producto');
-    }
 
     // Aplicar ofertas a los productos
     const processedProducts = products.map(product => {
@@ -200,7 +168,6 @@ export const applyUserOffersToProducts = async (products) => {
 
     // Log final de productos procesados
     const productsWithUserOffers = processedProducts.filter(p => p.hasUserOffer);
-    console.log(`🎯 applyUserOffersToProducts: RESULTADO FINAL - ${productsWithUserOffers.length} de ${processedProducts.length} productos tienen ofertas personalizadas`);
     
     return processedProducts;
   } catch (error) {

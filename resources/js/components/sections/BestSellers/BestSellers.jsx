@@ -122,7 +122,7 @@ const BestSellers = ({
 
         {/* View More Link */}
         <div className="best-sellers-footer">
-          <a href="/productos/mas-vendidos" className="view-more-link">
+          <a href="/destacados" className="view-more-link">
             Ver Más
             <img
               src={getHeroIconPath('Chevron Right.svg')}
