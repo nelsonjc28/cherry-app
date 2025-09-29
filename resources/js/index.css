@@ -14,6 +14,13 @@
 @import './pages/BuscarPage.css';
 @import './pages/CatalogPage.css';
 @import './pages/CatalogosPage.css';
+@import './pages/CategoriasPage.css';
+@import './pages/CategoryDetailPage.css';
+@import './pages/FavoritosPage.css';
+@import './pages/CartDetailsPage.css';
+@import './pages/CatalogPdfPage.css';
+@import './pages/LoginPage.css';
+@import './pages/RegisterPage.css';
 
 /* Variables CSS para consistencia en toda la aplicación */
 :root {
