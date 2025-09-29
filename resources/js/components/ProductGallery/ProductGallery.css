@@ -131,6 +131,18 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+/* Swiper pagination customization */
+.product-gallery__swiper .swiper-pagination-bullet {
+  background-color: #cccccc;
+  opacity: 0.5;
+  transition: all 0.3s ease;
+}
+
+.product-gallery__swiper .swiper-pagination-bullet-active {
+  background-color: var(--color-primary, #e74c3c);
+  opacity: 1;
+}
+
 .product-gallery__swiper .swiper-button-next:after,
 .product-gallery__swiper .swiper-button-prev:after {
   font-size: 18px;

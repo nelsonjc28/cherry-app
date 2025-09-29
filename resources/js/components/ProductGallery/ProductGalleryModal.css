@@ -242,11 +242,13 @@
 }
 
 .product-gallery-modal__swiper .swiper-pagination-bullet {
-  background-color: #333;
+  background-color: #cccccc;
   opacity: 0.5;
+  transition: all 0.3s ease;
 }
 
 .product-gallery-modal__swiper .swiper-pagination-bullet-active {
+  background-color: var(--color-primary, #e74c3c);
   opacity: 1;
 }
 
