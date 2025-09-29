@@ -254,27 +254,27 @@
 }
 
 .admin-welcome-manager__section-actions .btn-outline-primary {
-  background: transparent !important;
-  color: #007bff !important;
-  border-color: #007bff !important;
+  background: #ffc107 !important;
+  color: #fff !important;
+  border-color: #ffc107 !important;
 }
 
 .admin-welcome-manager__section-actions .btn-outline-primary:hover {
-  background: #007bff !important;
+  background: #e0a800 !important;
   color: #fff !important;
-  border-color: #007bff !important;
+  border-color: #e0a800 !important;
 }
 
 .admin-welcome-manager__section-actions .btn-outline-danger {
-  background: transparent !important;
-  color: #dc3545 !important;
+  background: #dc3545 !important;
+  color: #fff !important;
   border-color: #dc3545 !important;
 }
 
 .admin-welcome-manager__section-actions .btn-outline-danger:hover {
-  background: #dc3545 !important;
+  background: #c82333 !important;
   color: #fff !important;
-  border-color: #dc3545 !important;
+  border-color: #c82333 !important;
 }
 
 .admin-welcome-manager__section-actions .btn-outline-warning {
@@ -308,7 +308,7 @@
 }
 
 .admin-welcome-manager__section-actions .btn-outline-primary img {
-  filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%) !important;
+  filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(100%) !important;
 }
 
 .admin-welcome-manager__section-actions .btn-outline-primary:hover img {
@@ -316,10 +316,115 @@
 }
 
 .admin-welcome-manager__section-actions .btn-outline-danger img {
-  filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%) !important;
+  filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(100%) !important;
 }
 
 .admin-welcome-manager__section-actions .btn-outline-danger:hover img {
+  filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(100%) !important;
+}
+
+/* Estilos globales para botones de editar y eliminar en toda la plataforma */
+button[title*="Editar"],
+button[title*="editar"],
+.btn-edit,
+.edit-btn,
+.action-edit,
+a[href*="edit"],
+button:has(img[alt*="Editar"]),
+button:has(img[alt*="editar"]) {
+  background: #ffc107 !important;
+  color: #fff !important;
+  border-color: #ffc107 !important;
+  border: 1px solid #ffc107 !important;
+}
+
+button[title*="Editar"]:hover,
+button[title*="editar"]:hover,
+.btn-edit:hover,
+.edit-btn:hover,
+.action-edit:hover,
+a[href*="edit"]:hover,
+button:has(img[alt*="Editar"]):hover,
+button:has(img[alt*="editar"]):hover {
+  background: #e0a800 !important;
+  color: #fff !important;
+  border-color: #e0a800 !important;
+}
+
+button[title*="Eliminar"],
+button[title*="eliminar"],
+button[title*="Delete"],
+button[title*="delete"],
+.btn-delete,
+.delete-btn,
+.action-delete,
+a[href*="delete"],
+button:has(img[alt*="Eliminar"]),
+button:has(img[alt*="eliminar"]),
+button:has(img[alt*="Delete"]),
+button:has(img[alt*="delete"]) {
+  background: #dc3545 !important;
+  color: #fff !important;
+  border-color: #dc3545 !important;
+  border: 1px solid #dc3545 !important;
+}
+
+button[title*="Eliminar"]:hover,
+button[title*="eliminar"]:hover,
+button[title*="Delete"]:hover,
+button[title*="delete"]:hover,
+.btn-delete:hover,
+.delete-btn:hover,
+.action-delete:hover,
+a[href*="delete"]:hover,
+button:has(img[alt*="Eliminar"]):hover,
+button:has(img[alt*="eliminar"]):hover,
+button:has(img[alt*="Delete"]):hover,
+button:has(img[alt*="delete"]):hover {
+  background: #c82333 !important;
+  color: #fff !important;
+  border-color: #c82333 !important;
+}
+
+/* Asegurar que los iconos en botones de editar/eliminar sean blancos */
+button[title*="Editar"] img,
+button[title*="editar"] img,
+.btn-edit img,
+.edit-btn img,
+.action-edit img,
+button:has(img[alt*="Editar"]) img,
+button:has(img[alt*="editar"]) img,
+button[title*="Eliminar"] img,
+button[title*="eliminar"] img,
+button[title*="Delete"] img,
+button[title*="delete"] img,
+.btn-delete img,
+.delete-btn img,
+.action-delete img,
+button:has(img[alt*="Eliminar"]) img,
+button:has(img[alt*="eliminar"]) img,
+button:has(img[alt*="Delete"]) img,
+button:has(img[alt*="delete"]) img {
+  filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(100%) !important;
+}
+
+/* Estilos específicos para AdminOrders */
+.admin-orders .status-change-btn {
+  background: #ffc107 !important;
+  color: #fff !important;
+  border-color: #ffc107 !important;
+  border: 1px solid #ffc107 !important;
+  padding: 6px 12px !important;
+  border-radius: 4px !important;
+}
+
+.admin-orders .status-change-btn:hover {
+  background: #e0a800 !important;
+  color: #fff !important;
+  border-color: #e0a800 !important;
+}
+
+.admin-orders .status-change-btn img {
   filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(100%) !important;
 }
 
