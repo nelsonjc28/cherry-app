@@ -169,6 +169,76 @@
   gap: 15px !important;
 }
 
+/* Fix para botones de secciones de bienvenida */
+.hero-banner .btn-explore,
+.banner-actions .btn-explore {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 16px 32px !important;
+  background-color: var(--color-primary, #EA2630) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  text-decoration: none !important;
+  transition: all 0.3s ease !important;
+  cursor: pointer !important;
+  gap: 8px !important;
+}
+
+.hero-banner .btn-explore:hover,
+.banner-actions .btn-explore:hover {
+  background-color: #d4202a !important;
+  color: white !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(234, 38, 48, 0.15) !important;
+}
+
+.hero-banner .btn-explore img,
+.banner-actions .btn-explore img {
+  width: 20px !important;
+  height: 20px !important;
+  filter: brightness(0) invert(1) !important;
+  transition: transform 0.3s ease !important;
+}
+
+.hero-banner .btn-explore:hover img,
+.banner-actions .btn-explore:hover img {
+  transform: translateX(5px) !important;
+}
+
+.hero-banner .btn-affiliate {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 16px 32px !important;
+  background-color: white !important;
+  color: var(--color-primary, #EA2630) !important;
+  border: 2px solid var(--color-primary, #EA2630) !important;
+  border-radius: 8px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  text-decoration: none !important;
+  transition: all 0.3s ease !important;
+  cursor: pointer !important;
+  gap: 8px !important;
+}
+
+.hero-banner .btn-affiliate:hover {
+  background-color: var(--color-primary, #EA2630) !important;
+  color: white !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(234, 38, 48, 0.15) !important;
+}
+
+.hero-banner .btn-affiliate img {
+  width: 20px !important;
+  height: 20px !important;
+  transition: all 0.3s ease !important;
+}
+
 /* Variables CSS para consistencia en toda la aplicación */
 :root {
   --color-primary: #EA2630;
