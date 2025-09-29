@@ -113,6 +113,7 @@ const BestSellers = ({
                 userOffer={product.userOffer}
                 hasUserOffer={product.hasUserOffer}
                 rating={product.rating}
+                totalRatings={product.totalRatings}
                 description={product.description}
                 onFavoriteToggle={handleFavoriteToggle}
               />

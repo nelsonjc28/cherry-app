@@ -303,6 +303,7 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
     discount: discountPercentage > 0 ? discountPercentage : null,
     rating: rating,
     ratingCount: ratingCount,
+    totalRatings: ratingCount, // Agregar totalRatings para compatibilidad con StarRating
     description: apiProduct.descripcion || apiProduct.descripcion_corta || title,
     brand: apiProduct.marca || apiProduct.brand || 'Cherry',
     category: category,
