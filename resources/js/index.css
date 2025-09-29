@@ -6,6 +6,15 @@
 @import './components/Header/HeaderAffiliateBanner.css';
 @import './components/Footer/Footer.css';
 
+/* Import page styles to ensure they're included in build */
+@import './pages/DestacadosPage.css';
+@import './pages/HomePage.css';
+@import './pages/ProductosPage.css';
+@import './pages/PromocionesPage.css';
+@import './pages/BuscarPage.css';
+@import './pages/CatalogPage.css';
+@import './pages/CatalogosPage.css';
+
 /* Variables CSS para consistencia en toda la aplicación */
 :root {
   --color-primary: #EA2630;
