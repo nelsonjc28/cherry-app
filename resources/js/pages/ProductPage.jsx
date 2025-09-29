@@ -49,9 +49,6 @@ const ProductPage = () => {
     count: 0,
     distribution: [0, 0, 0, 0, 0]
   });
-  const [userRating, setUserRating] = useState(0);
-  const [showRatingModal, setShowRatingModal] = useState(false);
-  const [ratingComment, setRatingComment] = useState('');
   
   // Description state
   const [showFullDescription, setShowFullDescription] = useState(false);
@@ -141,9 +138,6 @@ const ProductPage = () => {
         
         // Fetch rating data
         fetchRatingData();
-        if (user) {
-          fetchUserRating();
-        }
       } catch (err) {
         if (window.showToast) {
           window.showToast('Error al cargar el producto', 'error');
@@ -217,75 +211,6 @@ const ProductPage = () => {
     }
   };
 
-  // Fetch user's rating for the product
-  const fetchUserRating = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        return;
-      }
-
-      const response = await fetch(`/api/ratings/user?product_id=${productId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.rating) {
-          setUserRating(data.rating.rating);
-        }
-      }
-    } catch (error) {
-      // Error fetching user rating
-    }
-  };
-
-  // Handle rating submission
-  const handleRatingSubmit = async (rating) => {
-    if (!user) {
-      if (window.showToast) {
-        window.showToast('Debes iniciar sesión para calificar productos', 'error');
-      }
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/ratings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          product_id: productId,
-          rating: rating,
-          comment: ratingComment
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setUserRating(rating);
-        setRatingData(data.average_rating);
-        setRatingComment('');
-        setShowRatingModal(false);
-        if (window.showToast) {
-          window.showToast('Gracias por calificar el producto', 'success');
-        }
-      } else {
-        throw new Error('Error al enviar calificación');
-      }
-    } catch (error) {
-      if (window.showToast) {
-        window.showToast('Error al enviar calificación', 'error');
-      }
-    }
-  };
 
   // Handle add to cart
   const handleAddToCart = async () => {
@@ -781,11 +706,10 @@ const ProductPage = () => {
                 <StarRating
                   rating={ratingData.average}
                   size="medium"
-                  readonly={false}
+                  readonly={true}
                   showAverage={true}
                   averageRating={ratingData.average}
                   totalRatings={ratingData.count}
-                  onRatingChange={handleRatingSubmit}
                 />
               </div>
               <div className="product-page__info-stock">
@@ -902,11 +826,17 @@ const ProductPage = () => {
               <div className="product-page__specifications">
                 <h4>Especificaciones del Producto:</h4>
                 <div className="product-page__specifications-content">
-                  {especificaciones.split(',').map((spec, index) => (
-                    <div key={index} className="product-page__specification-item">
-                      <strong>{spec.split(':')[0]}:</strong> {spec.split(':')[1] || ''}
-                    </div>
-                  ))}
+                  {especificaciones.split(',')
+                    .filter(spec => {
+                      const specName = spec.split(':')[0]?.trim().toLowerCase();
+                      // Filtrar especificaciones que no queremos mostrar
+                      return !['tipo artículo', 'tipo articulo', 'activo', 'catalogo', 'shopify', 'proveedor', 'web mayoristas', 'agotado', 'virtual/local'].includes(specName);
+                    })
+                    .map((spec, index) => (
+                      <div key={index} className="product-page__specification-item">
+                        <strong>{spec.split(':')[0]}:</strong> {spec.split(':')[1] || ''}
+                      </div>
+                    ))}
                 </div>
               </div>
             )}

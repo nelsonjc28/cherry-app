@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import './HomePage.css';
 import HeroBanner from '../components/sections/HeroBanner/HeroBanner';
@@ -12,10 +12,52 @@ import BestSellers from '../components/sections/BestSellers/BestSellers';
 import AffiliateSection from '../components/sections/AffiliateSection/AffiliateSection';
 
 import useUserStore from '../store/userStore';
+import { getTopSellingProducts } from '../api/cherryApi';
+import { applyUserOffersToProducts } from '../api/userOffers';
 
 const HomePage = () => {
   const { user, initialized } = useUserStore();
-  
+  const [topSellingProducts, setTopSellingProducts] = useState([]);
+  const [loadingTopSelling, setLoadingTopSelling] = useState(true);
+
+  // Cargar productos más vendidos (6 productos)
+  useEffect(() => {
+    const loadTopSellingProducts = async () => {
+      setLoadingTopSelling(true);
+      
+      try {
+        console.log('🏆 HomePage: Cargando 6 productos más vendidos del mes...');
+        
+        // Obtener productos más vendidos del mes actual (limitado a 6)
+        const products = await getTopSellingProducts(6);
+        
+        if (products.length === 0) {
+          console.log('📊 HomePage: No hay productos más vendidos este mes');
+          setTopSellingProducts([]);
+          return;
+        }
+        
+        // Aplicar ofertas personalizadas si hay usuario logueado
+        let finalProducts = products;
+        if (user) {
+          console.log('👤 HomePage: Aplicando ofertas personalizadas a productos más vendidos...');
+          finalProducts = await applyUserOffersToProducts(products);
+        }
+        
+        setTopSellingProducts(finalProducts);
+        
+        console.log(`✅ HomePage: ${finalProducts.length} productos más vendidos cargados para home`);
+        
+      } catch (error) {
+        console.error('❌ HomePage: Error al cargar productos más vendidos:', error);
+        setTopSellingProducts([]);
+      } finally {
+        setLoadingTopSelling(false);
+      }
+    };
+
+    loadTopSellingProducts();
+  }, [user]);
 
   
   const featuredProducts = [
@@ -143,8 +185,8 @@ const HomePage = () => {
           </section>
         )}
 
-        {/* Customer Testimonials */}
-        <section aria-labelledby="reviews-heading">
+        {/* Customer Testimonials - OCULTO */}
+        <section aria-labelledby="reviews-heading" style={{ display: 'none' }}>
           <h2 id="reviews-heading" className="sr-only">Opiniones de Nuestros Clientes</h2>
           <CustomerReviews />
         </section>
@@ -153,10 +195,11 @@ const HomePage = () => {
         <section aria-labelledby="best-sellers-heading">
           <h2 id="best-sellers-heading" className="sr-only">Productos Más Vendidos</h2>
           <BestSellers 
-            products={featuredProducts}
+            products={topSellingProducts}
             title="Productos más vendidos"
-            description="Perfectos para ocasiones especiales, con diseños que realzan la figura"
-            useApi={true}
+            description="Los 6 productos favoritos de nuestros clientes este mes"
+            loading={loadingTopSelling}
+            useApi={false}
           />
         </section>
       </main>

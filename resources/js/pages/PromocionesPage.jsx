@@ -184,11 +184,11 @@ const PromocionesPage = () => {
                   }
                   
                   return productsWithOffers.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      onFavoriteToggle={handleFavoriteToggle}
-                    />
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onFavoriteToggle={handleFavoriteToggle}
+                  />
                   ));
                 })()}
               </div>

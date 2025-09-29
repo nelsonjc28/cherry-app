@@ -5,7 +5,7 @@ import StarRating from '../../StarRating/StarRating';
 import { formatPrice } from '../../../utils/formatters';
 import './BestSellerCard.css';
 
-const BestSellerCard = ({ id, title, image, price, originalPrice, discount, userOffer, hasUserOffer, rating, description, onFavoriteToggle }) => {
+const BestSellerCard = ({ id, title, image, price, originalPrice, discount, userOffer, hasUserOffer, rating, totalRatings, description, onFavoriteToggle }) => {
   // Calculate discount percentage - Priorizar oferta personalizada
   const calculateDiscountPercentage = () => {
     // PRIORIDAD 1: Oferta personalizada del usuario
@@ -77,7 +77,11 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
 
         {/* Rating and Price Row */}
         <div className="best-seller-rating">
-          <StarRating rating={rating} readonly={true} />
+          <StarRating 
+            rating={rating || 0} 
+            totalRatings={totalRatings || 0}
+            readonly={true} 
+          />
 
           {/* Price */}
           <div className="best-seller-price">
