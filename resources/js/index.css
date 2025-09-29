@@ -103,6 +103,7 @@
 @import './pages/RegisterPage.css';
 @import './pages/auth/RegisterPage.css';
 @import './pages/AdminPanelPage.css';
+@import './pages/ProductPageOfferIndicators.css';
 
 /* Variables CSS para consistencia en toda la aplicación */
 :root {
