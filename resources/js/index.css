@@ -58,6 +58,33 @@
 @import './components/sections/PromotionsSection/PromotionsSection.css';
 @import './components/sections/RecentCatalogs/RecentCatalogs.css';
 
+/* Import UI components */
+@import './components/CherryButton/CherryButton.css';
+@import './components/CustomButton/CustomButton.css';
+@import './components/CartModal/CartModal.css';
+@import './components/ProductGrid/ProductGrid.css';
+@import './components/ProductSlider/ProductSlider.css';
+@import './components/StarRating/StarRating.css';
+@import './components/Pagination/Pagination.css';
+@import './components/Spinner/Spinner.css';
+@import './components/Toast/Toast.css';
+@import './components/Toast/ToastContainer.css';
+
+/* Import form and interaction components */
+@import './components/ProductReviews/ProductReviews.css';
+@import './components/FavoriteButton/FavoriteButton.css';
+@import './components/ColorSwatch/ColorSwatch.css';
+@import './components/CatalogFilter/CatalogFilter.css';
+@import './components/ProductGallery/ProductGallery.css';
+@import './components/ProductGallery/ProductGalleryModal.css';
+
+/* Import additional admin components */
+@import './components/AdminCatalogManager/CatalogOffersModule.css';
+@import './components/AdminCatalogManager/CatalogPdfManager.css';
+@import './components/AdminCatalogManager/CatalogPdfModule.css';
+@import './components/AdminCatalogManager/CatalogProductManager.css';
+@import './components/AdminCategoryManager/CategoryProductManager.css';
+
 /* Import page styles to ensure they're included in build */
 @import './pages/DestacadosPage.css';
 @import './pages/HomePage.css';
