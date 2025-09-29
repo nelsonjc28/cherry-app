@@ -166,8 +166,8 @@ const FeaturedCategories = () => {
               </Link>
               
               <div className="category-card__action">
-                <Link to="/catalogos" className="view-more-link">
-                  Ver todos los catálogos
+                <Link to={category.link} className="view-more-link">
+                  Ver categoría
                   <img 
                     src={getHeroIconPath('Chevron Right.svg')} 
                     alt="Ver más" 

@@ -95,37 +95,6 @@ const Header = () => {
   };
 
   const menuData = {
-    nuevos: {
-      title: 'Nuevos',
-      columns: [
-        {
-          title: 'Lanzamientos',
-          items: [
-            { name: 'Recién llegados', link: '/nuevos?tipo=recien-llegado' },
-            { name: 'Colección primavera', link: '/nuevos?temporada=primavera' },
-            { name: 'Últimas tendencias', link: '/nuevos?tipo=tendencias' },
-            { name: 'Lo más vendido', link: '/nuevos?orden=mas-vendido' }
-          ]
-        },
-        {
-          title: 'Categorías',
-          items: [
-            { name: 'Categorías nuevas', link: '/nuevos?tipo=categorias-nuevas' },
-            { name: 'Accesorios', link: '/nuevos?categoria=accesorios' },
-            { name: 'Maquillaje', link: '/nuevos?categoria=maquillaje' },
-            { name: 'Cuidado personal', link: '/nuevos?categoria=cuidado-personal' }
-          ]
-        },
-        {
-          title: 'Colecciones',
-          items: [
-            { name: 'Más Vendidos', link: '/nuevos?tipo=destacados' },
-            { name: 'Colección limitada', link: '/nuevos?tipo=coleccion-limitada' },
-            { name: 'Edición especial', link: '/nuevos?tipo=edicion-especial' }
-          ]
-        }
-      ]
-    },
     destacados: {
       title: 'Más Vendidos',
       columns: [
@@ -177,27 +146,6 @@ const Header = () => {
           title: 'Ver todos',
           items: [
             { name: 'Todos los catálogos', link: '/catalogos' }
-          ]
-        }
-      ]
-    },
-    promociones: {
-      title: 'Promociones',
-      columns: [
-        {
-          title: 'Ofertas actuales',
-          items: [
-            { name: 'Descuentos del mes', link: '/promociones/descuentos-mes' },
-            { name: 'Ofertas relámpago', link: '/promociones/ofertas-relampago' },
-            { name: '2x1 en seleccionados', link: '/promociones/2x1' }
-          ]
-        },
-        {
-          title: 'Promociones especiales',
-          items: [
-            { name: 'Cumpleaños', link: '/promociones/cumpleanos' },
-            { name: 'Días festivos', link: '/promociones/festivos' },
-            { name: 'Temporada', link: '/promociones/temporada' }
           ]
         }
       ]
@@ -569,13 +517,11 @@ const Header = () => {
           <div className="nav-container">
             <ul className="nav-menu">
 
-              <li className={`nav-item new-items ${activeMenu === 'nuevos' ? 'active' : ''}`} onMouseEnter={() => handleMouseEnter('nuevos')}>
+              <li className="nav-item new-items" onMouseEnter={() => setActiveMenu(null)}>
                 <Link to="/nuevos" className="nav-link" data-discover="true">
                   <img src={getIconPath('Cart Plus.svg')} alt="Nuevos" />
                   Nuevos
-                  <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
                 </Link>
-
               </li>
               <li className="nav-item nav-divider"></li>
               <li className="nav-item" onMouseEnter={() => setActiveMenu(null)}>
@@ -601,11 +547,10 @@ const Header = () => {
                 </Link>
               </li>
               <li className="nav-item nav-divider"></li>
-              <li className={`nav-item ${activeMenu === 'promociones' ? 'active' : ''}`} onMouseEnter={() => handleMouseEnter('promociones')}>
+              <li className="nav-item" onMouseEnter={() => setActiveMenu(null)}>
                 <Link to="/promociones" className="nav-link">
                   <img src={getIconPath('Bullhorn.svg')} alt="Promociones" />
                   Promociones
-                  <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
                 </Link>
               </li>
               <li className="nav-item nav-divider"></li>
