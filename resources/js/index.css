@@ -105,6 +105,7 @@
 @import './pages/AdminPanelPage.css';
 @import './pages/ProductPageOfferIndicators.css';
 @import './pages/admin/AdminDashboard.css';
+@import './pages/admin/AdminOrders.css';
 
 /* Variables CSS para consistencia en toda la aplicación */
 :root {
