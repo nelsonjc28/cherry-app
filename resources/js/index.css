@@ -40,6 +40,24 @@
 @import './components/sections/CustomerReviews/CustomerReviews.css';
 @import './components/sections/CustomerReviews/ReviewCard.css';
 
+/* Import product card components */
+@import './components/ProductCard/ProductCard.css';
+@import './components/sections/BestSellers/BestSellerCard.css';
+@import './components/CartDetailsProductCard/CartDetailsProductCard.css';
+@import './components/CartItemCard/CartItemCard.css';
+@import './components/CatalogProductCard/CatalogProductCard.css';
+@import './components/ExternalProductCard/ExternalProductCard.css';
+
+/* Import section components */
+@import './components/sections/BestSellers/BestSellers.css';
+@import './components/sections/FeaturedProducts/FeaturedProducts.css';
+@import './components/sections/FeaturedCategories/FeaturedCategories.css';
+@import './components/sections/CategorySection/CategorySection.css';
+@import './components/sections/HeroBanner/HeroBanner.css';
+@import './components/sections/AffiliateSection/AffiliateSection.css';
+@import './components/sections/PromotionsSection/PromotionsSection.css';
+@import './components/sections/RecentCatalogs/RecentCatalogs.css';
+
 /* Import page styles to ensure they're included in build */
 @import './pages/DestacadosPage.css';
 @import './pages/HomePage.css';
