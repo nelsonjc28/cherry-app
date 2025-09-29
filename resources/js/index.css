@@ -1,6 +1,11 @@
 /* Import Google Fonts first - must be at the top */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
 
+/* Import critical component styles to ensure they're included in build */
+@import './components/Header/Header.css';
+@import './components/Header/HeaderAffiliateBanner.css';
+@import './components/Footer/Footer.css';
+
 /* Variables CSS para consistencia en toda la aplicación */
 :root {
   --color-primary: #EA2630;
