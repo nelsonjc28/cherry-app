@@ -15,6 +15,10 @@
 @import './components/AdminReviews/AdminReviews.css';
 @import './components/AdminContactManager/AdminContactManager.css';
 
+/* Import auth component styles */
+@import './components/AuthForms/LoginForm.css';
+@import './components/AuthForms/RegisterForm.css';
+
 /* Import page styles to ensure they're included in build */
 @import './pages/DestacadosPage.css';
 @import './pages/HomePage.css';
@@ -29,7 +33,9 @@
 @import './pages/CartDetailsPage.css';
 @import './pages/CatalogPdfPage.css';
 @import './pages/LoginPage.css';
+@import './pages/auth/LoginPage.css';
 @import './pages/RegisterPage.css';
+@import './pages/auth/RegisterPage.css';
 @import './pages/AdminPanelPage.css';
 
 /* Variables CSS para consistencia en toda la aplicación */
