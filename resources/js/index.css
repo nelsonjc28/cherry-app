@@ -97,6 +97,16 @@
 @import './pages/CategoriasPage.css';
 @import './pages/CategoryDetailPage.css';
 @import './pages/FavoritosPage.css';
+
+/* Import profile page styles */
+@import './pages/profile/ProfileLayout.css';
+@import './pages/profile/ProfileSection.css';
+@import './components/ProfileSidebar/ProfileSidebar.css';
+@import './pages/profile/PersonalData.css';
+@import './pages/profile/Addresses.css';
+@import './pages/profile/PaymentMethods.css';
+@import './pages/profile/MyOrders.css';
+@import './pages/profile/Favorites.css';
 @import './pages/CartDetailsPage.css';
 @import './pages/CatalogPdfPage.css';
 @import './pages/LoginPage.css';
