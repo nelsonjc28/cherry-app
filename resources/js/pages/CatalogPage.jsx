@@ -775,7 +775,7 @@ const CatalogPage = ({ catalogId }) => {
                     iconLeft={<span style={{ fontSize: '16px' }}>🖼️</span>}
                     onClick={() => window.location.href = `/catalogo-pdf?id=${catalogId}`}
                   >
-                    <span className="catalog-page__pdf-text">Catálogo de Imágenes</span>
+                    <span className="catalog-page__pdf-text">Catálogo digital</span>
                   </CustomButton>
                 )}
                 <CustomButton
