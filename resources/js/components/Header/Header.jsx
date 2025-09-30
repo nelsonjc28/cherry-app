@@ -5,6 +5,8 @@ import { formatPrice } from '../../utils/formatters';
 import useUserStore from '../../store/userStore';
 import useCartStore from '../../store/cartStore';
 import CartModal from '../CartModal/CartModal';
+import AdminNotifications from '../AdminNotifications/AdminNotifications';
+import { adminNotificationService } from '../../services/api';
 import useCategories from '../../hooks/useCategories';
 import useMenuCategories from '../../hooks/useMenuCategories';
 import useHomeCatalogs from '../../hooks/useHomeCatalogs';
@@ -34,7 +36,32 @@ const Header = () => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [cartModalOpen, setCartModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const userMenuRef = useRef(null);
+
+  // Cargar notificaciones no leídas para admins
+  useEffect(() => {
+    const fetchUnreadNotifications = async () => {
+      if (user && isAdmin()) {
+        try {
+          const response = await adminNotificationService.getAdminNotifications();
+          if (response.data.success) {
+            setUnreadNotifications(response.data.unread_count || 0);
+          }
+        } catch (error) {
+          console.error('Error fetching notifications:', error);
+        }
+      }
+    };
+
+    fetchUnreadNotifications();
+    
+    // Actualizar cada 30 segundos
+    const interval = setInterval(fetchUnreadNotifications, 30000);
+    
+    return () => clearInterval(interval);
+  }, [user, isAdmin]);
 
   // Organizar categorías en grupos para el menú
   const getCategoryGroups = () => {
@@ -490,12 +517,26 @@ const Header = () => {
               </>
             )}
 
-            <Link to="/notificaciones" className="user-action icon-only">
-              <div className="icon-badge">
-                <img src={getIconPath('Bell.svg')} alt="Notificaciones" />
-                <span className="badge notification-badge">1</span>
-              </div>
-            </Link>
+            {user && isAdmin() ? (
+              <button 
+                type="button" 
+                className="user-action icon-only"
+                onClick={() => setNotificationsOpen(true)}
+              >
+                <div className="icon-badge">
+                  <img src={getIconPath('Bell.svg')} alt="Notificaciones" />
+                  {unreadNotifications > 0 && (
+                    <span className="badge notification-badge">{unreadNotifications}</span>
+                  )}
+                </div>
+              </button>
+            ) : (
+              <Link to="/notificaciones" className="user-action icon-only">
+                <div className="icon-badge">
+                  <img src={getIconPath('Bell.svg')} alt="Notificaciones" />
+                </div>
+              </Link>
+            )}
 
 
 
@@ -779,6 +820,13 @@ const Header = () => {
         onViewCart={() => { setCartModalOpen(false); navigate('/carrito-detalle'); }}
         onCheckout={() => { setCartModalOpen(false); navigate('/carrito-detalle'); }}
       />
+      
+      {user && isAdmin() && (
+        <AdminNotifications
+          isOpen={notificationsOpen}
+          onClose={() => setNotificationsOpen(false)}
+        />
+      )}
     </header>
   );
 };
