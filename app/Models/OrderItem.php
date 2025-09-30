@@ -14,6 +14,10 @@ class OrderItem extends Model
         'order_id',
         'product_id',
         'name',
+        'size',
+        'color',
+        'barcode',
+        'product_details',
         'quantity',
         'price',
         'subtotal'
@@ -22,7 +26,8 @@ class OrderItem extends Model
     protected $casts = [
         'quantity' => 'integer',
         'price' => 'decimal:2',
-        'subtotal' => 'decimal:2'
+        'subtotal' => 'decimal:2',
+        'product_details' => 'array'
     ];
 
     /**

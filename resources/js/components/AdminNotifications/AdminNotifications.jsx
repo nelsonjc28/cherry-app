@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { adminNotificationService } from '../../services/api';
 import { getIconPath } from '../../utils/assetPaths';
 import CherryButton from '../CherryButton/CherryButton';
 import './AdminNotifications.css';
 
 const AdminNotifications = ({ isOpen, onClose }) => {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -93,6 +95,19 @@ const AdminNotifications = ({ isOpen, onClose }) => {
     return timeString; // Ya viene formateado desde el backend con diffForHumans()
   };
 
+  const handleNotificationClick = async (notification) => {
+    // Marcar como leída si no está leída
+    if (!notification.is_read) {
+      await markAsRead(notification.id);
+    }
+
+    // Si tiene orden asociada, navegar a la página de órdenes con filtro
+    if (notification.order && notification.order.id) {
+      onClose(); // Cerrar el panel de notificaciones
+      navigate(`/admin/ordenes?highlight=${notification.order.id}`);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -144,8 +159,8 @@ const AdminNotifications = ({ isOpen, onClose }) => {
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`notification-item ${notification.is_read ? 'read' : 'unread'}`}
-                  onClick={() => !notification.is_read && markAsRead(notification.id)}
+                  className={`notification-item ${notification.is_read ? 'read' : 'unread'} ${notification.order ? 'clickable' : ''}`}
+                  onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="notification-icon">
                     <img 

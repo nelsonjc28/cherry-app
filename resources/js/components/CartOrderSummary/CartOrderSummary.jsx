@@ -451,7 +451,10 @@ const CartOrderSummary = ({
           product_id: parsedProductId,
           name: item.title || item.name,
           quantity: parseInt(item.quantity, 10),
-          price: parseFloat(item.precio || item.price)
+          price: parseFloat(item.precio || item.price),
+          size: item.selectedSize || null,
+          color: item.selectedColor || null,
+          barcode: item.barcode || null
         };
       }),
       address_id: parseInt(selectedAddress.id, 10)

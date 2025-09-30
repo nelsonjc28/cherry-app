@@ -193,6 +193,15 @@
   background: linear-gradient(90deg, rgba(234, 38, 48, 0.08) 0%, rgba(248, 249, 250, 1) 100%);
 }
 
+.notification-item.clickable {
+  cursor: pointer;
+}
+
+.notification-item.clickable:hover {
+  background: #f0f8ff;
+  transform: translateX(2px);
+}
+
 /* Notification Icon */
 .notification-icon {
   flex-shrink: 0;

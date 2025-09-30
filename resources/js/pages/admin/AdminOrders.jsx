@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import CherryButton from '../../components/CherryButton/CherryButton';
 import Pagination from '../../components/Pagination/Pagination';
 import AdminNotifications from '../../components/AdminNotifications/AdminNotifications';
@@ -20,7 +20,9 @@ const AdminOrders = () => {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [highlightedOrderId, setHighlightedOrderId] = useState(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const itemsPerPage = 10;
 
@@ -33,6 +35,25 @@ const AdminOrders = () => {
     const interval = setInterval(fetchUnreadCount, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Manejar parámetro highlight de la URL
+  useEffect(() => {
+    const highlightId = searchParams.get('highlight');
+    if (highlightId) {
+      setHighlightedOrderId(parseInt(highlightId));
+      
+      // Limpiar el highlight después de 5 segundos
+      const timeout = setTimeout(() => {
+        setHighlightedOrderId(null);
+        // Limpiar el parámetro de la URL
+        const newSearchParams = new URLSearchParams(searchParams);
+        newSearchParams.delete('highlight');
+        navigate(`/admin/ordenes?${newSearchParams.toString()}`, { replace: true });
+      }, 5000);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [searchParams, navigate]);
 
   const fetchOrders = async () => {
     try {
@@ -253,7 +274,10 @@ const AdminOrders = () => {
           </div>
         ) : (
           paginatedOrders.map((order) => (
-            <div key={order.id} className="order-admin-card">
+            <div 
+              key={order.id} 
+              className={`order-admin-card ${highlightedOrderId === order.id ? 'highlighted' : ''}`}
+            >
               <div className="order-admin-card__header">
                 <div className="order-info">
                   <div className="order-number">#{order.orderNumber}</div>
@@ -319,6 +343,11 @@ const AdminOrders = () => {
                             <span>ID: {item.product_id}</span>
                             <span>Cantidad: {item.quantity}</span>
                             <span>Precio: {formatCurrency(item.price)}</span>
+                          </div>
+                          <div className="product-attributes">
+                            {item.size && <span className="attribute-badge size">Talla: {item.size}</span>}
+                            {item.color && <span className="attribute-badge color">Color: {item.color}</span>}
+                            {item.barcode && <span className="attribute-badge barcode">Código: {item.barcode}</span>}
                           </div>
                         </div>
                       </div>

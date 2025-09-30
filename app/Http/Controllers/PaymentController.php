@@ -35,6 +35,9 @@ class PaymentController extends Controller
             'items.*.name' => 'required|string',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.price' => 'required|numeric|min:0',
+            'items.*.size' => 'nullable|string',
+            'items.*.color' => 'nullable|string',
+            'items.*.barcode' => 'nullable|string',
             'address_id' => 'required|exists:addresses,id',
             'total_amount' => 'required|numeric|min:0.01'
         ]);
@@ -85,6 +88,9 @@ class PaymentController extends Controller
                     'order_id' => $order->id,
                     'product_id' => $item['product_id'],
                     'name' => $item['name'],
+                    'size' => $item['size'] ?? null,
+                    'color' => $item['color'] ?? null,
+                    'barcode' => $item['barcode'] ?? null,
                     'quantity' => $item['quantity'],
                     'price' => $item['price'],
                     'subtotal' => $item['quantity'] * $item['price']
@@ -227,6 +233,9 @@ class PaymentController extends Controller
             'items.*.name' => 'required|string',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.price' => 'required|numeric|min:0',
+            'items.*.size' => 'nullable|string',
+            'items.*.color' => 'nullable|string',
+            'items.*.barcode' => 'nullable|string',
             'address_id' => 'required|exists:addresses,id'
         ]);
 
@@ -303,6 +312,9 @@ class PaymentController extends Controller
                         'order_id' => $order->id,
                         'product_id' => $item['product_id'],
                         'name' => $item['name'],
+                        'size' => $item['size'] ?? null,
+                        'color' => $item['color'] ?? null,
+                        'barcode' => $item['barcode'] ?? null,
                         'quantity' => $item['quantity'],
                         'price' => $item['price'],
                         'subtotal' => $item['quantity'] * $item['price']

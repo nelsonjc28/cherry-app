@@ -155,7 +155,10 @@ const CartDetailsPage = () => {
             product_id: item.id_articulo || item.product_id || item.id,
             name: item.title || item.name,
             quantity: item.quantity,
-            price: item.precio || item.price
+            price: item.precio || item.price,
+            size: item.selectedSize || null,
+            color: item.selectedColor || null,
+            barcode: item.barcode || null
           };
           
           // Debug: verificar que todos los campos requeridos estén presentes

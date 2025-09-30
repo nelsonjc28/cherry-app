@@ -313,6 +313,7 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
     isNew: apiProduct.opc_nuevo === 'S' || apiProduct.is_new === true,
     isPromo: apiProduct.opc_promo === 'S' || apiProduct.is_promo === true,
     codigo: id,
+    barcode: apiProduct.ean || apiProduct.sku || apiProduct.codigo_barras || id, // Código de barras
     dtu: apiProduct.DTU || apiProduct.dtu,
     // Campos adicionales para debugging
     precio1: apiProduct.precio1,
