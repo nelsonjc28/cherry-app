@@ -308,6 +308,17 @@ class PaymentController extends Controller
 
                 // Crear los items del pedido
                 foreach ($requestData['items'] as $item) {
+                    // DEBUG: Log de datos recibidos
+                    Log::info('PaymentController - Item data received:', [
+                        'product_id' => $item['product_id'],
+                        'name' => $item['name'],
+                        'size' => $item['size'] ?? 'NULL',
+                        'color' => $item['color'] ?? 'NULL',
+                        'barcode' => $item['barcode'] ?? 'NULL',
+                        'quantity' => $item['quantity'],
+                        'price' => $item['price']
+                    ]);
+                    
                     OrderItem::create([
                         'order_id' => $order->id,
                         'product_id' => $item['product_id'],

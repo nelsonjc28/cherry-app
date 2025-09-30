@@ -446,8 +446,7 @@ const CartOrderSummary = ({
         const productId = item.id_articulo || item.product_id || item.id;
         const parsedProductId = parseInt(productId, 10);
         
-        
-        return {
+        const mappedItem = {
           product_id: parsedProductId,
           name: item.title || item.name,
           quantity: parseInt(item.quantity, 10),
@@ -456,6 +455,20 @@ const CartOrderSummary = ({
           color: item.selectedColor || null,
           barcode: item.barcode || null
         };
+        
+        // DEBUG: Log para ver qué datos se están enviando
+        console.log('🔍 CartOrderSummary - Enviando item:', {
+          original: {
+            id_articulo: item.id_articulo,
+            title: item.title,
+            selectedSize: item.selectedSize,
+            selectedColor: item.selectedColor,
+            barcode: item.barcode
+          },
+          mapped: mappedItem
+        });
+        
+        return mappedItem;
       }),
       address_id: parseInt(selectedAddress.id, 10)
     };

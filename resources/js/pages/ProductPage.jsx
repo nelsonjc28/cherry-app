@@ -259,6 +259,7 @@ const ProductPage = () => {
           selectedSize: talla,
           quantity: cantidad,
           colors: [selectedColor],
+          barcode: product.ean || product.sku || product.codigo_barras || product.id_articulo, // Código de barras
           // Información de ofertas especiales
           userOffer: hasUserOffer ? {
             type: userOffer.discount_category,
