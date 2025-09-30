@@ -286,11 +286,11 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
   const category = apiProduct.linea?.descripcion || apiProduct.categoria || apiProduct.category || 'Sin categoría';
   
   // Obtener calificación del cache o usar valores por defecto
-  let rating = 5;
+  let rating = 0;
   let ratingCount = 0;
   
   if (ratingsCache[id]) {
-    rating = ratingsCache[id].average || 5;
+    rating = ratingsCache[id].average || 0;
     ratingCount = ratingsCache[id].count || 0;
   }
   
