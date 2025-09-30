@@ -115,6 +115,11 @@
 @import './pages/auth/RegisterPage.css';
 @import './pages/AdminPanelPage.css';
 @import './pages/TerminosPage.css';
+@import './pages/PrivacidadPage.css';
+@import './pages/CookiesPage.css';
+@import './pages/NotificacionesPage.css';
+@import './pages/AfiliatePage.css';
+@import './pages/profile/PrivacySecurity.css';
 @import './pages/ProductPageOfferIndicators.css';
 @import './pages/admin/AdminDashboard.css';
 @import './pages/admin/AdminOrders.css';
