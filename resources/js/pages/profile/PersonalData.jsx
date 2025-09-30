@@ -286,7 +286,7 @@ const PersonalData = () => {
 
       <div className="personal-data__actions">
         <CherryButton
-          variant="outline"
+          variant="red"
           onClick={handleSave}
           disabled={isSubmitting}
           className="cherry-button--edit-changes"
