@@ -10,9 +10,7 @@
   border-radius: 8px;
 }
 
-.category-icon:hover,
-.category-icon:active,
-.category-icon.active {
+.category-icon:hover {
   transform: translateY(-5px);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
 }
@@ -30,9 +28,7 @@
   transition: all 0.3s ease;
 }
 
-.category-icon:hover .icon-container,
-.category-icon:active .icon-container,
-.category-icon.active .icon-container {
+.category-icon:hover .icon-container {
   background-color: #FF7B92;
 }
 
@@ -43,9 +39,7 @@
   transition: all 0.3s ease;
 }
 
-.category-icon:hover .category-image,
-.category-icon:active .category-image,
-.category-icon.active .category-image {
+.category-icon:hover .category-image {
   transform: scale(1.1);
 }
 
@@ -57,9 +51,7 @@
   transition: all 0.3s ease;
 }
 
-.category-icon:hover .category-name,
-.category-icon:active .category-name,
-.category-icon.active .category-name {
+.category-icon:hover .category-name {
   color: var(--color-primary);
 }
 

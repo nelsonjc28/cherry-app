@@ -89,7 +89,7 @@ const ProductPage = () => {
         if (hasActiveSession) {
           // Si hay sesión activa, aplicar ofertas personalizadas
           console.log('🔐 ProductPage: Sesión activa - aplicando ofertas personalizadas');
-          const productsWithOffers = await applyUserOffersToProducts([productData]);
+        const productsWithOffers = await applyUserOffersToProducts([productData]);
           productWithOffer = productsWithOffers[0] || productData;
           
           console.log('✅ ProductPage: Producto después de aplicar ofertas:', {
@@ -833,10 +833,10 @@ const ProductPage = () => {
                       return !['tipo artículo', 'tipo articulo', 'activo', 'catalogo', 'shopify', 'proveedor', 'web mayoristas', 'agotado', 'virtual/local'].includes(specName);
                     })
                     .map((spec, index) => (
-                      <div key={index} className="product-page__specification-item">
-                        <strong>{spec.split(':')[0]}:</strong> {spec.split(':')[1] || ''}
-                      </div>
-                    ))}
+                    <div key={index} className="product-page__specification-item">
+                      <strong>{spec.split(':')[0]}:</strong> {spec.split(':')[1] || ''}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
