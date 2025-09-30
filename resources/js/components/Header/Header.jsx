@@ -777,7 +777,7 @@ const Header = () => {
         cartItems={cartItemCards}
         subtotal={formatPrice(totalPrice)}
         onViewCart={() => { setCartModalOpen(false); navigate('/carrito-detalle'); }}
-        onCheckout={() => { setCartModalOpen(false); navigate('/compra-exitosa'); }}
+        onCheckout={() => { setCartModalOpen(false); navigate('/carrito-detalle'); }}
       />
     </header>
   );
