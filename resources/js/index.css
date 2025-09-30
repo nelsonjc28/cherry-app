@@ -448,6 +448,29 @@ button:has(img[alt*="delete"]) img {
   border-color: #e0a800 !important;
 }
 
+/* Fix para botón de afiliados - mantener colores originales */
+.affiliate-bar .affiliate-button,
+.affiliate-container .affiliate-button,
+a.affiliate-button {
+  background: #E91E63 !important;
+  color: white !important;
+  border: none !important;
+  padding: 8px 20px !important;
+  border-radius: 6px !important;
+  text-decoration: none !important;
+  font-weight: 600 !important;
+  font-size: 0.9rem !important;
+  transition: background-color 0.3s ease !important;
+  white-space: nowrap !important;
+}
+
+.affiliate-bar .affiliate-button:hover,
+.affiliate-container .affiliate-button:hover,
+a.affiliate-button:hover {
+  background: #C2185B !important;
+  color: white !important;
+}
+
 /* Variables CSS para consistencia en toda la aplicación */
 :root {
   --color-primary: #EA2630;

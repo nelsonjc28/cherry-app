@@ -1,5 +1,5 @@
 .affiliate-container {
-  background: #000000;
+  /* background: #000000;*/
   color: white;
   padding: 15px 0;
   width: 100%;
@@ -44,7 +44,7 @@
     gap: 15px;
     text-align: center;
   }
-  
+
   .affiliate-text {
     font-size: 1rem;
   }
@@ -54,7 +54,7 @@
   .affiliate-container {
     padding: 0 15px;
   }
-  
+
   .affiliate-text {
     font-size: 0.9rem;
   }

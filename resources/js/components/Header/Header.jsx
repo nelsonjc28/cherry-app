@@ -232,21 +232,21 @@ const Header = () => {
   const handleMenuClick = (item, activeMenuType) => {
     // Cerrar el menú desplegable
     setActiveMenu(null);
-    
+
     // Solo aplicar búsqueda para categorías individuales, no para enlaces directos
-    const isDirectLink = item.name.includes('Todas') || item.name.includes('Todos') || 
-                        item.link.startsWith('/catalogo/') || 
-                        item.link === '/categorias' || 
-                        item.link === '/catalogos' ||
-                        item.link.startsWith('/destacados') ||
-                        item.link.startsWith('/promociones') ||
-                        item.link.startsWith('/nuevos');
-    
+    const isDirectLink = item.name.includes('Todas') || item.name.includes('Todos') ||
+      item.link.startsWith('/catalogo/') ||
+      item.link === '/categorias' ||
+      item.link === '/catalogos' ||
+      item.link.startsWith('/destacados') ||
+      item.link.startsWith('/promociones') ||
+      item.link.startsWith('/nuevos');
+
     // Si es un enlace directo, no hacer nada adicional (el Link se encarga)
     if (isDirectLink) {
       return;
     }
-    
+
     // Para categorías individuales, hacer búsqueda
     if (activeMenuType === 'categorias' && item.link.startsWith('/categoria/')) {
       setSearchTerm(item.name);
@@ -320,7 +320,7 @@ const Header = () => {
   const MobileMenuItem = ({ menuKey, title, icon }) => {
     const isOpen = openMobileSubMenu === menuKey;
     const navigate = useNavigate();
-    
+
     const handleMainClick = () => {
       setMobileMenuOpen(false);
       if (menuKey === 'nuevos') {
@@ -333,12 +333,12 @@ const Header = () => {
         navigate('/promociones');
       }
     };
-    
+
     const handleToggleClick = (e) => {
       e.stopPropagation();
       toggleSubMenu(menuKey);
     };
-    
+
     return (
       <li className="mobile-menu-item">
         <div className="mobile-menu-header">
@@ -578,7 +578,7 @@ const Header = () => {
                         <ul className="column-items">
                           {column.items.map((item, itemIndex) => (
                             <li key={itemIndex}>
-                              <Link 
+                              <Link
                                 to={item.link}
                                 onClick={() => handleMenuClick(item, activeMenu)}
                               >
