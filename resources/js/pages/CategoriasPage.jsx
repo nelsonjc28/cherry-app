@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import CategoryIcon from '../components/CategoryIcon/CategoryIcon';
 import CherryButton from '../components/CherryButton/CherryButton';
 import { getCategoryIconPath, getIconPath } from '../utils/assetPaths';
@@ -9,12 +9,23 @@ import useMenuCategories from '../hooks/useMenuCategories';
 import './CategoriasPage.css';
 
 const CategoriasPage = () => {
+  const navigate = useNavigate();
   const { categories, loading, error } = useCategories();
   const { menuCategories, loading: menuLoading } = useMenuCategories();
   
   // Priorizar las categorías del menú si están disponibles
   const displayCategories = menuCategories.length > 0 ? menuCategories : categories;
   const displayLoading = menuLoading || loading;
+
+  // Función para manejar clic en categoría (igual que en el header)
+  const handleCategoryClick = (category, e) => {
+    e.preventDefault();
+    
+    // Hacer búsqueda por nombre de categoría (igual que en el menú hover)
+    const searchParams = new URLSearchParams();
+    searchParams.set('q', category.name);
+    navigate(`/buscar?${searchParams.toString()}`);
+  };
 
 
   if (displayLoading) {
@@ -58,7 +69,10 @@ const CategoriasPage = () => {
               const iconPath = getCategoryIconPath(category.slug || category.name);
               return (
                 <div key={category.id} className="categoria-icon-wrapper">
-                  <Link to={`/categoria/${category.slug || category.name}`}>
+                  <Link 
+                    to={`/categoria/${category.slug || category.name}`}
+                    onClick={(e) => handleCategoryClick(category, e)}
+                  >
                     <CategoryIcon 
                       name={category.name} 
                       icon={iconPath} 
