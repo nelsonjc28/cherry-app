@@ -6,7 +6,6 @@ import CustomButton from '../CustomButton';
 import api from '../../config/axios';
 
 const CartOrderSummary = ({
-  responsable,
   creditDays,
   discount1,
   discount2,
@@ -529,25 +528,6 @@ const CartOrderSummary = ({
 
   return (
   <aside className="cart-order-summary">
-    <div className="cart-order-summary__section">
-      <div className="cart-order-summary__section-title">Responsable</div>
-      <div className="cart-order-summary__section-content">
-        <div className="cart-order-summary__responsable-name">{responsable}</div>
-        <div className="cart-order-summary__row">
-          <span>Plazo crédito</span>
-          <span>{creditDays} días</span>
-        </div>
-        <div className="cart-order-summary__row">
-          <span>Descuento 1</span>
-          <span>{discount1}%</span>
-        </div>
-        <div className="cart-order-summary__row">
-          <span>Descuento 2</span>
-          <span>{discount2}%</span>
-        </div>
-      </div>
-    </div>
-    <div className="cart-order-summary__divider" />
     {selectedAddress && (
       <>
         <div className="cart-order-summary__section">
@@ -835,7 +815,6 @@ CartOrderSummary.propTypes = {
   onClearCart: PropTypes.func.isRequired,
   onGenerateOrder: PropTypes.func.isRequired,
   pieces: PropTypes.number.isRequired,
-  responsable: PropTypes.string.isRequired,
   selectedAddress: PropTypes.object,
   subtotal: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
   total: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,

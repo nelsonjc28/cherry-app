@@ -242,7 +242,6 @@ const CartDetailsPage = () => {
 
   // Order summary data
   const orderSummary = {
-    responsable: '', // Add user info if available
     creditDays: '',
     discount1: 0,
     discount2: 0,

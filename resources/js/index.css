@@ -35,6 +35,7 @@
 @import './components/ClientManager/ClientManager.css';
 @import './components/CategoryOrderManager/CategoryOrderManager.css';
 @import './components/CartOrderSummary/CartOrderSummary.css';
+@import './components/AddressSelector/AddressSelector.css';
 
 /* Import customer reviews components */
 @import './components/sections/CustomerReviews/CustomerReviews.css';
