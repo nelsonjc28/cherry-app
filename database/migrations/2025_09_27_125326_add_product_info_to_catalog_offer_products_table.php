@@ -12,6 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('catalog_offer_products', function (Blueprint $table) {
+            // Primero agregar product_id si no existe
+            if (!Schema::hasColumn('catalog_offer_products', 'product_id')) {
+                $table->string('product_id')->nullable()->after('id');
+            }
+            
             // Agregar campos para almacenar información del producto
             $table->string('product_name')->nullable()->after('product_id');
             $table->decimal('product_price', 10, 2)->nullable()->after('product_name');
@@ -34,6 +39,7 @@ return new class extends Migration
             
             // Eliminar campos
             $table->dropColumn([
+                'product_id',
                 'product_name',
                 'product_price', 
                 'product_image',
