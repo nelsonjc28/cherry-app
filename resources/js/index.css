@@ -448,11 +448,11 @@ button:has(img[alt*="delete"]) img {
   border-color: #e0a800 !important;
 }
 
-/* Fix para botón de afiliados - mantener colores originales */
+/* Fix para botón de afiliados - debe ser negro */
 .affiliate-bar .affiliate-button,
 .affiliate-container .affiliate-button,
 a.affiliate-button {
-  background: #E91E63 !important;
+  background: #000000 !important;
   color: white !important;
   border: none !important;
   padding: 8px 20px !important;
@@ -467,7 +467,7 @@ a.affiliate-button {
 .affiliate-bar .affiliate-button:hover,
 .affiliate-container .affiliate-button:hover,
 a.affiliate-button:hover {
-  background: #C2185B !important;
+  background: #333333 !important;
   color: white !important;
 }
 
