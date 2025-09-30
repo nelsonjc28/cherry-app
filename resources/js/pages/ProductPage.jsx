@@ -259,7 +259,7 @@ const ProductPage = () => {
           selectedSize: talla,
           quantity: cantidad,
           colors: [selectedColor],
-          barcode: product.ean || product.sku || product.codigo_barras || product.id_articulo, // Código de barras
+          barcode: getBarcodeBySizeAndColor(talla, selectedColor) || product.ean || product.sku || product.codigo_barras || product.id_articulo, // Código de barras específico por talla/color
           // Información de ofertas especiales
           userOffer: hasUserOffer ? {
             type: userOffer.discount_category,
@@ -322,6 +322,11 @@ const ProductPage = () => {
         }
         
         window.showToast(message, 'success');
+        
+        // Resetear las cantidades después de agregar exitosamente al carrito
+        setQuantitiesBySize({});
+        setQuantity(1);
+        setSelectedSize('');
       }
     } catch (err) {
       if (window.showToast) {
@@ -570,13 +575,20 @@ const ProductPage = () => {
       return product.inventario || product.stock || 0;
     }
     
-    // Si el detalle tiene stock específico, usarlo
-    if (detalle.piezas !== undefined && detalle.piezas > 0) {
-      return detalle.piezas;
-    }
+    // Usar inventario_d del detalle específico
+    return detalle.inventario_d || 0;
+  };
+
+  // Función para obtener el código de barras por talla y color
+  const getBarcodeBySizeAndColor = (talla, color) => {
+    if (!detalles || detalles.length === 0) return null;
     
-    // Si no, usar el stock general
-    return product.inventario || product.stock || 0;
+    // Buscar el detalle específico que coincida con talla y color
+    const detalle = detalles.find(d => 
+      d.detalle === talla && d.nombreColor === color
+    );
+    
+    return detalle ? detalle.codbarra : null;
   };
 
   // Filtrar solo tallas con stock disponible para el color seleccionado
@@ -598,6 +610,12 @@ const ProductPage = () => {
   const getStockForSize = (talla) => {
     if (!selectedColor) return product.inventario || product.stock || 99;
     return getStockBySizeAndColor(talla, selectedColor);
+  };
+
+  // Función para obtener el código de barras de la talla y color seleccionados
+  const getCurrentBarcode = () => {
+    if (!selectedSize || !selectedColor) return null;
+    return getBarcodeBySizeAndColor(selectedSize, selectedColor);
   };
 
   // Función para truncar la descripción

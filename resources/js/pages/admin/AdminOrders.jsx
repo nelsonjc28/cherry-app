@@ -7,6 +7,25 @@ import { adminOrderService, adminNotificationService } from '../../services/api'
 import { getIconPath } from '../../utils/assetPaths';
 import './AdminOrders.css';
 
+// Función para determinar el color del texto según el color de fondo
+const getContrastColor = (hexColor) => {
+  if (!hexColor) return '#333';
+  
+  // Si el color no tiene #, agregarlo
+  const hex = hexColor.startsWith('#') ? hexColor : `#${hexColor}`;
+  
+  // Convertir hex a RGB
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  
+  // Calcular luminancia
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  
+  // Retornar blanco o negro según la luminancia
+  return luminance > 0.5 ? '#000' : '#fff';
+};
+
 const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -346,7 +365,17 @@ const AdminOrders = () => {
                           </div>
                           <div className="product-attributes">
                             {item.size && <span className="attribute-badge size">Talla: {item.size}</span>}
-                            {item.color && <span className="attribute-badge color">Color: {item.color}</span>}
+                            {item.color && (
+                              <span 
+                                className="attribute-badge color" 
+                                style={{ 
+                                  '--color-value': item.color,
+                                  '--text-color': getContrastColor(item.color)
+                                }}
+                              >
+                                Color: {item.color}
+                              </span>
+                            )}
                             {item.barcode && <span className="attribute-badge barcode">Código: {item.barcode}</span>}
                           </div>
                         </div>

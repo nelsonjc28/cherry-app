@@ -8,6 +8,25 @@ import OrderDetailModal from '../../components/OrderDetailModal/OrderDetailModal
 import { orderService } from '../../services/api';
 import api from '../../config/axios';
 
+// Función para determinar el color del texto según el color de fondo
+const getContrastColor = (hexColor) => {
+  if (!hexColor) return '#333';
+  
+  // Si el color no tiene #, agregarlo
+  const hex = hexColor.startsWith('#') ? hexColor : `#${hexColor}`;
+  
+  // Convertir hex a RGB
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  
+  // Calcular luminancia
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  
+  // Retornar blanco o negro según la luminancia
+  return luminance > 0.5 ? '#000' : '#fff';
+};
+
 const MyOrders = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState('recent');
@@ -205,6 +224,41 @@ const MyOrders = () => {
                           Subtotal: <span>${(parseFloat(order.items?.[0]?.subtotal) || 0).toFixed(2)}</span>
                         </div>
                       </div>
+                      
+                      {/* Campos de color, talla y código de barras */}
+                      {(order.items?.[0]?.size || order.items?.[0]?.color || order.items?.[0]?.barcode) && (
+                        <div className="order-card__product-attributes">
+                          {order.items?.[0]?.size && (
+                            <div className="order-card__attribute">
+                              <span className="attribute-label">Talla:</span>
+                              <span className="attribute-value size">{order.items[0].size}</span>
+                            </div>
+                          )}
+                          {order.items?.[0]?.color && (
+                            <div className="order-card__attribute">
+                              <span className="attribute-label">Color:</span>
+                              <span 
+                                className="attribute-value color"
+                                style={{ 
+                                  backgroundColor: order.items[0].color,
+                                  color: getContrastColor(order.items[0].color),
+                                  padding: '2px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '12px'
+                                }}
+                              >
+                                {order.items[0].color}
+                              </span>
+                            </div>
+                          )}
+                          {order.items?.[0]?.barcode && (
+                            <div className="order-card__attribute">
+                              <span className="attribute-label">Código:</span>
+                              <span className="attribute-value barcode">{order.items[0].barcode}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                       
                       {order.items?.length > 1 && (
                         <div className="order-card__more-items">

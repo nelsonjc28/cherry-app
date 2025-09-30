@@ -6,7 +6,8 @@ import useUserStore from '../../store/userStore';
 import useCartStore from '../../store/cartStore';
 import CartModal from '../CartModal/CartModal';
 import AdminNotifications from '../AdminNotifications/AdminNotifications';
-import { adminNotificationService } from '../../services/api';
+import UserNotifications from '../UserNotifications/UserNotifications';
+import { adminNotificationService, userNotificationService } from '../../services/api';
 import useCategories from '../../hooks/useCategories';
 import useMenuCategories from '../../hooks/useMenuCategories';
 import useHomeCatalogs from '../../hooks/useHomeCatalogs';
@@ -40,12 +41,18 @@ const Header = () => {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const userMenuRef = useRef(null);
 
-  // Cargar notificaciones no leídas para admins
+  // Cargar notificaciones no leídas para admins y usuarios
   useEffect(() => {
     const fetchUnreadNotifications = async () => {
-      if (user && isAdmin()) {
+      if (user) {
         try {
-          const response = await adminNotificationService.getAdminNotifications();
+          let response;
+          if (isAdmin()) {
+            response = await adminNotificationService.getAdminNotifications();
+          } else {
+            response = await userNotificationService.getUnreadCount();
+          }
+          
           if (response.data.success) {
             setUnreadNotifications(response.data.unread_count || 0);
           }
@@ -517,7 +524,7 @@ const Header = () => {
               </>
             )}
 
-            {user && isAdmin() ? (
+            {user ? (
               <button 
                 type="button" 
                 className="user-action icon-only"
@@ -823,6 +830,13 @@ const Header = () => {
       
       {user && isAdmin() && (
         <AdminNotifications
+          isOpen={notificationsOpen}
+          onClose={() => setNotificationsOpen(false)}
+        />
+      )}
+      
+      {user && !isAdmin() && (
+        <UserNotifications
           isOpen={notificationsOpen}
           onClose={() => setNotificationsOpen(false)}
         />

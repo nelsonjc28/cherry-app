@@ -9,9 +9,16 @@
 
 .profile-sidebar__header {
   margin-bottom: 32px;
-  text-align: center;
   padding-bottom: 24px;
   border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.profile-sidebar__title-section {
+  text-align: left;
+  flex: 1;
 }
 
 .profile-sidebar__title {
@@ -106,5 +113,62 @@
   .profile-sidebar__icon {
     margin-right: 0;
     margin-bottom: 8px;
+  }
+}
+
+/* Notifications Button */
+.profile-sidebar__notifications-btn {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.2s ease;
+  margin-left: 12px;
+}
+
+.profile-sidebar__notifications-btn:hover {
+  background: #e9ecef;
+  border-color: #dee2e6;
+}
+
+.profile-sidebar__notifications-btn img {
+  width: 20px;
+  height: 20px;
+}
+
+.profile-sidebar__notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--color-primary, #EA2630);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Responsive adjustments for notifications */
+@media (max-width: 768px) {
+  .profile-sidebar__notifications-btn {
+    margin-left: 8px;
+    padding: 6px;
+  }
+  
+  .profile-sidebar__notifications-btn img {
+    width: 18px;
+    height: 18px;
   }
 } 

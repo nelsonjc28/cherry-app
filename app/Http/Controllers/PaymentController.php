@@ -671,7 +671,10 @@ class PaymentController extends Controller
                             'quantity' => (int) $item->quantity,
                             'price' => (float) $item->price,
                             'subtotal' => (float) $item->subtotal,
-                            'image' => $imageUrl
+                            'image' => $imageUrl,
+                            'size' => $item->size,
+                            'color' => $item->color,
+                            'barcode' => $item->barcode
                         ];
                     }),
                     'totalAmount' => (float) $order->total_amount,

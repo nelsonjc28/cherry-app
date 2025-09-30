@@ -1,10 +1,30 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { getIconPath } from '../../utils/assetPaths';
+import { userNotificationService } from '../../services/api';
+import UserNotifications from '../UserNotifications/UserNotifications';
 import './ProfileSidebar.css';
 
 const ProfileSidebar = () => {
   const location = useLocation();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Cargar contador de notificaciones no leídas
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const response = await userNotificationService.getUnreadCount();
+        if (response.data.success) {
+          setUnreadCount(response.data.unread_count || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching unread count:', error);
+      }
+    };
+
+    fetchUnreadCount();
+  }, []);
 
   const menuItems = [
     {
@@ -47,8 +67,22 @@ const ProfileSidebar = () => {
   return (
     <aside className="profile-sidebar">
       <div className="profile-sidebar__header">
-        <h2 className="profile-sidebar__title">Mi Perfil</h2>
-        <p className="profile-sidebar__subtitle">Gestiona tu cuenta</p>
+        <div className="profile-sidebar__title-section">
+          <h2 className="profile-sidebar__title">Mi Perfil</h2>
+          <p className="profile-sidebar__subtitle">Gestiona tu cuenta</p>
+        </div>
+        <button 
+          className="profile-sidebar__notifications-btn"
+          onClick={() => setShowNotifications(true)}
+          title="Notificaciones"
+        >
+          <img src={getIconPath('Bell.svg')} alt="Notificaciones" />
+          {unreadCount > 0 && (
+            <span className="profile-sidebar__notification-badge">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </button>
       </div>
 
       <nav className="profile-sidebar__nav">
@@ -72,6 +106,11 @@ const ProfileSidebar = () => {
           ))}
         </ul>
       </nav>
+
+      <UserNotifications 
+        isOpen={showNotifications}
+        onClose={() => setShowNotifications(false)}
+      />
     </aside>
   );
 };

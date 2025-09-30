@@ -43,7 +43,10 @@ class AdminOrderController extends Controller
                             'quantity' => (int) $item->quantity,
                             'price' => (float) $item->price,
                             'subtotal' => (float) $item->subtotal,
-                            'image' => $this->getProductImageUrl($item->product_id)
+                            'image' => $this->getProductImageUrl($item->product_id),
+                            'size' => $item->size,
+                            'color' => $item->color,
+                            'barcode' => $item->barcode
                         ];
                     }),
                     'address' => $order->address ? [
@@ -155,7 +158,10 @@ class AdminOrderController extends Controller
                         'quantity' => (int) $item->quantity,
                         'price' => (float) $item->price,
                         'subtotal' => (float) $item->subtotal,
-                        'image' => $this->getProductImageUrl($item->product_id)
+                        'image' => $this->getProductImageUrl($item->product_id),
+                        'size' => $item->size,
+                        'color' => $item->color,
+                        'barcode' => $item->barcode
                     ];
                 }),
                 'address' => $order->address ? [
