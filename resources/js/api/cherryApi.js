@@ -327,7 +327,7 @@ export const getFeaturedProducts = async (limit = 8) => {
   try {
     const products = await getAllProducts();
     const featured = products
-      .filter(product => product.activo === 1 && product.inventario > 0)
+      .filter(product => product.inventario > 0)
       .slice(0, limit);
     
     // Mapear productos de forma asíncrona
@@ -359,13 +359,12 @@ export const getRandomProducts = async (limit = 5) => {
       return [];
     }
     
-    // Filtrar productos activos (activo: 1) y con stock (inventario > 0)
+    // Filtrar productos con stock (inventario > 0) y habilitados para web
     const activeProducts = products.filter(product => {
-      const isActive = product.activo === 1;
       const hasStock = product.inventario > 0;
       const isWebEnabled = product.opc_web === 'S';
       
-      return isActive && hasStock && isWebEnabled;
+      return hasStock && isWebEnabled;
     });
     
     if (activeProducts.length === 0) {
@@ -425,13 +424,12 @@ export const getNewProducts = async (limit = 5) => {
       return [];
     }
     
-    // Filtrar productos activos y con stock
+    // Filtrar productos con stock y habilitados para web
     const activeProducts = products.filter(product => {
-      const isActive = product.activo === 1;
       const hasStock = product.inventario > 0;
       const isWebEnabled = product.opc_web === 'S';
       
-      return isActive && hasStock && isWebEnabled;
+      return hasStock && isWebEnabled;
     });
     
     if (activeProducts.length === 0) {
@@ -1136,10 +1134,9 @@ export const getExternalPromoProducts = async (limit = 50) => {
     // Filtrar productos con desc_promo > 0 (ofertas reales de la API externa)
     const promoProducts = allProducts.filter(product => {
       const hasPromoDiscount = product.desc_promo && parseFloat(product.desc_promo) > 0;
-      const isActive = product.activo === 1;
       const isWebEnabled = product.opc_web === 'S';
       
-      return hasPromoDiscount && isActive && isWebEnabled;
+      return hasPromoDiscount && isWebEnabled;
     });
 
     console.log(`🎯 getExternalPromoProducts: ${promoProducts.length} productos con desc_promo > 0`);
@@ -1151,10 +1148,9 @@ export const getExternalPromoProducts = async (limit = 50) => {
       
       finalProducts = allProducts.filter(product => {
         const hasPromoOption = product.opc_promo === 'S';
-        const isActive = product.activo === 1;
         const isWebEnabled = product.opc_web === 'S';
         
-        return hasPromoOption && isActive && isWebEnabled;
+        return hasPromoOption && isWebEnabled;
       });
 
       console.log(`🎯 getExternalPromoProducts: ${finalProducts.length} productos con opc_promo = "S"`);
