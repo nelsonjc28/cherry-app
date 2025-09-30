@@ -450,7 +450,7 @@
 }
 
 .btn-primary:hover {
-  background-color: var(--color-primary-dark, #d41f21);
+  background-color: #d41f21;
   transform: translateY(-1px);
 }
 
