@@ -267,19 +267,25 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
   
   // Obtener colores únicos de los detalles
   let colors = [];
-  
+  let sizes = [];
   
   if (apiProduct.detalles && Array.isArray(apiProduct.detalles)) {
     colors = [...new Set(apiProduct.detalles.map(d => d.nombreColor).filter(Boolean))];
+    sizes = [...new Set(apiProduct.detalles.map(d => d.detalle).filter(Boolean))];
   } else if (apiProduct.colores && Array.isArray(apiProduct.colores)) {
     colors = apiProduct.colores;
   } else if (apiProduct.colors && Array.isArray(apiProduct.colors)) {
     colors = apiProduct.colors;
   }
   
-  // TEMPORAL: Si no hay colores, agregar colores de prueba
+  // Si no hay colores, agregar colores de prueba
   if (!colors || colors.length === 0) {
     colors = ['white', 'black', 'navy'];
+  }
+  
+  // Si no hay tallas, agregar tallas de prueba
+  if (!sizes || sizes.length === 0) {
+    sizes = ['S', 'M', 'L'];
   }
   
   // Obtener categoría de la línea
@@ -308,6 +314,7 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
     brand: apiProduct.marca || apiProduct.brand || 'Cherry',
     category: category,
     colors: colors,
+    sizes: sizes,
     stock: apiProduct.inventario || apiProduct.stock || 0,
     isActive: apiProduct.activo === 1 || apiProduct.active === true,
     isNew: apiProduct.opc_nuevo === 'S' || apiProduct.is_new === true,
@@ -317,7 +324,9 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
     dtu: apiProduct.DTU || apiProduct.dtu,
     // Campos adicionales para debugging
     precio1: apiProduct.precio1,
-    desc_promo: apiProduct.desc_promo
+    desc_promo: apiProduct.desc_promo,
+    // Mantener detalles originales para filtros
+    detalles: apiProduct.detalles || []
   };
   
   return mappedProduct;
@@ -711,52 +720,63 @@ export const searchProductsAdvanced = async (query, filters = {}, catalog = 'Che
         return true;
       }
 
-      // Crear un texto de búsqueda que incluya todos los campos relevantes
-      const searchableFields = [
-        product.descripcion || '',
-        product.marca || '',
-        product.linea?.descripcion || '',
-        product.sector?.descripcion || '',
-        product.genero?.descripcion || '',
-        product.DTU || product.dtu || '',
-        product.id_articulo?.toString() || '',
-        product.sku || '',
-        product.ean || '',
-        // Incluir colores de los detalles
-        ...(product.detalles?.map(d => d.nombreColor) || []),
-        // Incluir códigos de color
-        ...(product.detalles?.map(d => d.codigoColor) || []),
-        // Incluir especificaciones
-        product.especificaciones || '',
-        // Incluir notas
-        product.notas || ''
-      ];
-
-      const searchText = searchableFields.join(' ').toLowerCase();
-
-      // Verificar si al menos uno de los términos de búsqueda coincide
-      const anyTermMatches = searchTerms.some(term => {
-        return searchText.includes(term) || 
-               product.descripcion?.toLowerCase().includes(term) ||
-               product.marca?.toLowerCase().includes(term) ||
-               product.linea?.descripcion?.toLowerCase().includes(term) ||
-               product.sector?.descripcion?.toLowerCase().includes(term) ||
-               product.genero?.descripcion?.toLowerCase().includes(term) ||
-               (product.DTU && product.DTU.toLowerCase().includes(term)) ||
-               (product.dtu && product.dtu.toLowerCase().includes(term)) ||
-               (product.id_articulo && product.id_articulo.toString().includes(term)) ||
-               (product.sku && product.sku.toLowerCase().includes(term)) ||
-               (product.ean && product.ean.toLowerCase().includes(term)) ||
-               (product.especificaciones && product.especificaciones.toLowerCase().includes(term)) ||
-               (product.notas && product.notas.toLowerCase().includes(term)) ||
-               // Buscar en colores
-               product.detalles?.some(d => 
-                 d.nombreColor?.toLowerCase().includes(term) ||
-                 d.codigoColor?.toLowerCase().includes(term)
-               );
-      });
-
-      return anyTermMatches;
+      // LÓGICA INTELIGENTE DE BÚSQUEDA
+      if (searchTerms.length === 1) {
+        // UNA PALABRA: Buscar en todos los campos (color, talla, ID, SKU, etc.)
+        const singleTerm = searchTerms[0];
+        
+        return (
+          // Búsqueda en descripción/nombre
+          (product.descripcion && product.descripcion.toLowerCase().includes(singleTerm)) ||
+          (product.marca && product.marca.toLowerCase().includes(singleTerm)) ||
+          (product.linea?.descripcion && product.linea.descripcion.toLowerCase().includes(singleTerm)) ||
+          (product.sector?.descripcion && product.sector.descripcion.toLowerCase().includes(singleTerm)) ||
+          (product.genero?.descripcion && product.genero.descripcion.toLowerCase().includes(singleTerm)) ||
+          // Búsqueda en códigos
+          (product.DTU && product.DTU.toLowerCase().includes(singleTerm)) ||
+          (product.dtu && product.dtu.toLowerCase().includes(singleTerm)) ||
+          (product.id_articulo && product.id_articulo.toString().includes(singleTerm)) ||
+          (product.sku && product.sku.toLowerCase().includes(singleTerm)) ||
+          (product.ean && product.ean.toLowerCase().includes(singleTerm)) ||
+          // Búsqueda en especificaciones y notas
+          (product.especificaciones && product.especificaciones.toLowerCase().includes(singleTerm)) ||
+          (product.notas && product.notas.toLowerCase().includes(singleTerm)) ||
+          // Búsqueda en colores
+          product.detalles?.some(d => 
+            d.nombreColor?.toLowerCase().includes(singleTerm) ||
+            d.codigoColor?.toLowerCase().includes(singleTerm)
+          ) ||
+          // Búsqueda en tallas
+          product.detalles?.some(d => 
+            d.detalle?.toLowerCase().includes(singleTerm)
+          )
+        );
+      } else {
+        // MÚLTIPLES PALABRAS: Buscar principalmente en nombre/descripción del producto
+        const productName = (product.descripcion || '').toLowerCase();
+        const productBrand = (product.marca || '').toLowerCase();
+        const productCategory = (product.linea?.descripcion || '').toLowerCase();
+        
+        // Crear texto combinado del nombre del producto
+        const productText = `${productName} ${productBrand} ${productCategory}`.trim();
+        
+        // Verificar si TODAS las palabras están en el nombre del producto
+        const allTermsInName = searchTerms.every(term => 
+          productText.includes(term)
+        );
+        
+        // Si todas las palabras están en el nombre, es una coincidencia fuerte
+        if (allTermsInName) {
+          return true;
+        }
+        
+        // Si no, buscar en descripción específicamente
+        const descriptionMatch = searchTerms.every(term => 
+          productName.includes(term)
+        );
+        
+        return descriptionMatch;
+      }
     });
 
     // Aplicar filtros adicionales si se proporcionan
@@ -839,7 +859,17 @@ export const searchProductsAdvanced = async (query, filters = {}, catalog = 'Che
 
     // Mapear los productos al formato de la app
     const mappedProducts = await Promise.all(finalProducts.map(mapApiProductToAppProduct));
-    return mappedProducts.filter(p => p !== null);
+    const validProducts = mappedProducts.filter(p => p !== null);
+    
+    console.log('🔍 DEBUG searchProductsAdvanced - Productos finales mapeados:', validProducts.length);
+    if (validProducts.length > 0) {
+      console.log('🔍 DEBUG searchProductsAdvanced - Primer producto mapeado:', validProducts[0]);
+      console.log('🔍 DEBUG searchProductsAdvanced - Colores del primer producto:', validProducts[0].colors);
+      console.log('🔍 DEBUG searchProductsAdvanced - Tallas del primer producto:', validProducts[0].sizes);
+      console.log('🔍 DEBUG searchProductsAdvanced - Detalles del primer producto:', validProducts[0].detalles);
+    }
+    
+    return validProducts;
   } catch (error) {
     return [];
   }
@@ -876,8 +906,8 @@ export const getAvailableSizes = async (catalog = 'Cherry 2025 - 2026') => {
     products.forEach(product => {
       if (product.detalles && product.detalles.length > 0) {
         product.detalles.forEach(detalle => {
-          if (detalle.talla && detalle.talla.trim()) {
-            sizeSet.add(detalle.talla.trim());
+          if (detalle.detalle && detalle.detalle.trim()) {
+            sizeSet.add(detalle.detalle.trim());
           }
         });
       }

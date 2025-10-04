@@ -213,39 +213,9 @@ const Header = () => {
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchTerm.trim()) {
-      // Parse search term for different types of filters
-      const searchParts = searchTerm.trim().split(' ');
-      const colorFilters = [];
-      const skuFilters = [];
-      const generalTerms = [];
-
-      searchParts.forEach(term => {
-        const lowerTerm = term.toLowerCase();
-        // Check if it's a color (common color names in Spanish)
-        if (['rojo', 'azul', 'verde', 'amarillo', 'negro', 'blanco', 'rosa', 'morado', 'naranja', 'gris', 'beige', 'cafe', 'marron', 'violeta', 'celeste', 'turquesa', 'coral', 'dorado', 'plateado', 'bronce'].includes(lowerTerm)) {
-          colorFilters.push(term);
-        }
-        // Check if it's a SKU (usually alphanumeric codes, 6+ characters)
-        else if (/^[A-Z0-9]{6,}$/.test(term.toUpperCase())) {
-          skuFilters.push(term);
-        }
-        // Otherwise it's a general search term (product name, description, etc.)
-        else {
-          generalTerms.push(term);
-        }
-      });
-
-      // Build search query with filters
+      // Enviar el string completo como término de búsqueda general
       const searchParams = new URLSearchParams();
-      if (generalTerms.length > 0) {
-        searchParams.set('q', generalTerms.join(' '));
-      }
-      if (colorFilters.length > 0) {
-        searchParams.set('color', colorFilters.join(','));
-      }
-      if (skuFilters.length > 0) {
-        searchParams.set('sku', skuFilters.join(','));
-      }
+      searchParams.set('q', searchTerm.trim());
 
       navigate(`/buscar?${searchParams.toString()}`);
       setSearchTerm('');

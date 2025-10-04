@@ -51,26 +51,66 @@ const CatalogPage = ({ catalogId }) => {
     priceRange: { min: 0, max: 0 }
   });
 
-  // Cargar colores y tallas disponibles
+  // Cargar colores y tallas disponibles desde productos cargados
   useEffect(() => {
-    const loadFiltersData = async () => {
+    const extractFiltersFromProducts = () => {
       try {
-        const [colors, sizes] = await Promise.all([
-          getAvailableColors(),
-          getAvailableSizes()
-        ]);
+        // Extraer colores únicos de los productos cargados
+        const colorSet = new Set();
+        const sizeSet = new Set();
         
-        setAvailableColors(colors);
-        setAvailableSizes(sizes);
+        allProducts.forEach(product => {
+          // PRIORIDAD 1: Extraer de detalles (donde están realmente las tallas)
+          if (product.detalles && product.detalles.length > 0) {
+            product.detalles.forEach(detalle => {
+              if (detalle.nombreColor && detalle.nombreColor.trim()) {
+                colorSet.add(detalle.nombreColor.trim());
+              }
+              if (detalle.detalle && detalle.detalle.trim()) {
+                sizeSet.add(detalle.detalle.trim());
+              }
+            });
+          }
+          
+          // PRIORIDAD 2: Extraer de sizes como fallback
+          if (product.sizes && product.sizes.length > 0) {
+            product.sizes.forEach(size => {
+              if (size && size.trim()) {
+                sizeSet.add(size.trim());
+              }
+            });
+          }
+        });
+        
+        // Ordenar tallas de manera lógica
+        const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+        const sizes = Array.from(sizeSet);
+        const sortedSizes = sizes.sort((a, b) => {
+          const indexA = sizeOrder.indexOf(a.toUpperCase());
+          const indexB = sizeOrder.indexOf(b.toUpperCase());
+          
+          if (indexA !== -1 && indexB !== -1) {
+            return indexA - indexB;
+          }
+          if (indexA !== -1) return -1;
+          if (indexB !== -1) return 1;
+          return a.localeCompare(b);
+        });
+        
+        setAvailableColors(Array.from(colorSet).sort());
+        setAvailableSizes(sortedSizes);
       } catch (error) {
-        console.error('Error cargando datos de filtros:', error);
+        console.error('Error extrayendo datos de filtros:', error);
         setAvailableColors([]);
         setAvailableSizes([]);
       }
     };
 
-    loadFiltersData();
-  }, []);
+    // Solo extraer filtros si hay productos cargados
+    if (allProducts.length > 0) {
+      extractFiltersFromProducts();
+    }
+  }, [allProducts]);
 
   // Function to filter products based on current filters - Memoized
   const filterProducts = useCallback((products, currentFilters) => {

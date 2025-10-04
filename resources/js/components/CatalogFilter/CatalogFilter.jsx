@@ -98,6 +98,10 @@ const CatalogFilter = ({
 
   // Get available sizes from props instead of static array
   const sizes = availableSizes.length > 0 ? availableSizes : ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  
+  console.log('🔍 DEBUG CatalogFilter - availableSizes recibidos:', availableSizes);
+  console.log('🔍 DEBUG CatalogFilter - sizes finales:', sizes);
+  console.log('🔍 DEBUG CatalogFilter - availableColors recibidos:', availableColors);
 
   // Create color options from props data with real hex values
   const colors = availableColors.map(color => ({
