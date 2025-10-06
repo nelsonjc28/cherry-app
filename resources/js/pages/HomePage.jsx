@@ -182,8 +182,8 @@ const HomePage = () => {
           </section>
         )}
 
-        {/* Customer Testimonials - OCULTO */}
-        <section aria-labelledby="reviews-heading" style={{ display: 'none' }}>
+        {/* Customer Testimonials */}
+        <section aria-labelledby="reviews-heading">
           <h2 id="reviews-heading" className="sr-only">Opiniones de Nuestros Clientes</h2>
           <CustomerReviews />
         </section>

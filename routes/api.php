@@ -32,6 +32,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api'
 
 // Public review routes (no auth required)
 Route::get('/reviews/product/{productId}', [App\Http\Controllers\ReviewController::class, 'getProductReviews']);
+Route::get('/reviews/approved', [App\Http\Controllers\ReviewController::class, 'getApprovedReviews']);
 
 // User discount routes (requires auth - flexible)
 Route::middleware(['auth:api,web'])->post('/user-discounts/check', [App\Http\Controllers\Api\UserDiscountController::class, 'checkUserDiscounts']);

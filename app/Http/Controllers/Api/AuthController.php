@@ -18,8 +18,9 @@ class AuthController extends Controller
             'first_name'    => 'required|string|max:255',
             'last_name'     => 'required|string|max:255',
             'middle_name'   => 'nullable|string|max:255',
-            'phone'         => 'nullable|string|max:20',
-            'email'         => 'required|string|email|max:255|unique:users',
+            'phone'         => 'required|string|max:20|unique:users',
+            'username'      => 'required|string|max:255|unique:users',
+            'email'         => 'nullable|string|email|max:255|unique:users',
             'password'      => [
                 'required',
                 'string',
@@ -30,7 +31,10 @@ class AuthController extends Controller
                 'regex:/[^a-zA-Z0-9]/', // caracter especial
             ],
         ], [
-            'password.regex' => 'La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial.'
+            'password.regex' => 'La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial.',
+            'phone.unique' => 'Este número de teléfono ya está registrado.',
+            'username.unique' => 'Este nombre de usuario ya está en uso.',
+            'email.unique' => 'Este correo electrónico ya está registrado.'
         ]);
 
         if ($validator->fails()) {
@@ -42,6 +46,7 @@ class AuthController extends Controller
             'last_name'     => $request->last_name,
             'middle_name'   => $request->middle_name,
             'phone'         => $request->phone,
+            'username'      => $request->username,
             'email'         => $request->email,
             'password'      => Hash::make($request->password),
             'role_id'       => 2, // Default to cliente role

@@ -169,6 +169,42 @@ class ReviewController extends Controller
     }
 
     /**
+     * Get approved reviews for homepage
+     */
+    public function getApprovedReviews()
+    {
+        try {
+            $reviews = Review::approved()
+                            ->with('user')
+                            ->orderBy('created_at', 'desc')
+                            ->limit(3)
+                            ->get();
+
+            $formattedReviews = $reviews->map(function ($review) {
+                return [
+                    'id' => $review->id,
+                    'name' => $review->user->first_name . ' ' . substr($review->user->last_name, 0, 1) . '.',
+                    'avatar' => 'https://ui-avatars.com/api/?name=' . urlencode($review->user->first_name . ' ' . $review->user->last_name) . '&background=random',
+                    'rating' => $review->rating,
+                    'text' => $review->comment,
+                    'created_at' => $review->created_at->format('d/m/Y')
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'reviews' => $formattedReviews
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener reseñas aprobadas: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Get user's reviews
      */
     public function getUserReviews()

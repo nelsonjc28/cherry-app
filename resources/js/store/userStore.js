@@ -113,13 +113,27 @@ const useUserStore = create((set, get) => ({
         body: JSON.stringify(userData)
       });
       const data = await res.json();
+      console.log('Backend response:', { status: res.status, data });
+      
       if (!res.ok) {
         let errorMessage = 'Error en el registro.';
         if (data.errors) {
-          errorMessage = Object.values(data.errors).flat().join(' ');
+          console.log('Validation errors:', data.errors);
+          // Mostrar todos los errores concatenados
+          const allErrors = [];
+          Object.keys(data.errors).forEach(key => {
+            const fieldErrors = data.errors[key];
+            if (Array.isArray(fieldErrors)) {
+              allErrors.push(...fieldErrors);
+            } else {
+              allErrors.push(fieldErrors);
+            }
+          });
+          errorMessage = allErrors.join('. ');
         } else if (data.error) {
           errorMessage = data.error;
         }
+        console.log('Final error message:', errorMessage);
         set({ error: errorMessage, loading: false });
         return null;
       }
