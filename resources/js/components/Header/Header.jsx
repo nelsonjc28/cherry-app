@@ -391,10 +391,10 @@ const Header = () => {
     <header className="site-header">
       {/* Top Affiliate Bar - Solo mostrar si no hay usuario logueado */}
       {!user && (
-        <div className="affiliate-bar">
-          <div className="affiliate-container">
-            <p className="affiliate-text">¡Afiliate ahora mismo y comienza tu propio negocio!</p>
-            <Link to="/afiliate" className="affiliate-button">Afiliate aquí</Link>
+        <div className="affiliate-bar-header">
+          <div className="affiliate-container-header">
+            <p className="affiliate-text-header">¡Afiliate ahora mismo y comienza tu propio negocio!</p>
+            <Link to="/afiliate" className="affiliate-button-header">Afiliate aquí</Link>
           </div>
         </div>
       )}

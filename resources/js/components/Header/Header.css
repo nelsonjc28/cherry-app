@@ -8,29 +8,29 @@
 }
 
 /* Affiliate Bar */
-.affiliate-bar {
+.affiliate-bar-header {
   background-color: #333333;
   color: white;
   padding: 8px 0;
   text-align: center;
 }
 
-.affiliate-container {
+.affiliate-container-header {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 15px;
   max-width: 1300px;
   margin: 0 auto;
-  padding: 0 15px;
+  padding: 0 10px;
 }
 
-.affiliate-text {
+.affiliate-text-header {
   margin: 0;
   font-size: 14px;
 }
 
-.affiliate-button {
+.affiliate-button-header {
   width: fit-content;
   white-space: nowrap;
   background-color: transparent;
@@ -43,7 +43,7 @@
   transition: all 0.3s ease;
 }
 
-.affiliate-button:hover {
+.affiliate-button-header:hover {
   background-color: white;
   color: #333333;
 }
@@ -546,7 +546,7 @@
 }
 
 @media (max-width: 768px) {
-  .affiliate-container {
+  .affiliate-container-header {
     padding: 0 10px;
   }
   
@@ -593,11 +593,11 @@
 }
 
 @media (max-width: 576px) {
-  .affiliate-text {
+  .affiliate-text-header {
     font-size: 12px;
   }
   
-  .affiliate-button {
+  .affiliate-button-header {
     padding: 4px 12px;
     font-size: 12px;
   }
