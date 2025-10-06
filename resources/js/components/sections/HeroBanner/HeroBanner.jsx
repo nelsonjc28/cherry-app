@@ -114,11 +114,11 @@ const HeroBanner = () => {
                 Explora nuestra colección única y actualizada que resalta tu estilo personal.
               </p>
               <div className="banner-actions">
-                <a 
-                  className="btn-explore" 
-                  title={currentBanner.buttonText} 
-                  aria-label={currentBanner.buttonText} 
-                  href={currentBanner.buttonUrl} 
+                <a
+                  className="btn-explore"
+                  title={currentBanner.buttonText}
+                  aria-label={currentBanner.buttonText}
+                  href={currentBanner.buttonUrl}
                   data-discover="true"
                   style={{
                     backgroundColor: '#EA2630',
@@ -137,10 +137,10 @@ const HeroBanner = () => {
                     transition: 'all 0.3s ease'
                   }}
                 >
-                  <img 
-                    alt="Icono de catálogo" 
-                    width="20" 
-                    height="20" 
+                  <img
+                    alt="Icono de catálogo"
+                    width="20"
+                    height="20"
                     src="./icons/hero/Users.svg"
                     style={{ filter: 'brightness(0) invert(1)' }}
                   />
@@ -149,8 +149,8 @@ const HeroBanner = () => {
               </div>
             </div>
             <div className="banner-image-container">
-              <img 
-                src={getHeroSliderImagePath('hero-slider1-girl.png')} 
+              <img
+                src={getHeroSliderImagePath('hero-slider1-girl.png')}
                 alt="Mujer joven modelando vestido elegante de la colección Cherry Central, estilo moderno y sofisticado"
                 className="banner-image"
                 onClick={() => navigate('/catalogo')}
@@ -170,21 +170,34 @@ const HeroBanner = () => {
       <div className="banner-container">
         <div className="banner-content">
           <div className="banner-text-container">
+            {/* Slider Navigation - Solo mostrar si hay múltiples banners */}
+            {banners.length > 1 && (
+              <div className="slider-navigation">
+                {banners.map((_, index) => (
+                  <button
+                    key={index}
+                    className={`slider-dot ${currentSlide === index ? 'active' : ''}`}
+                    onClick={() => goToSlide(index)}
+                    aria-label={`Ir al slide ${index + 1}`}
+                  />
+                ))}
+              </div>
+            )}
             <h1 className="banner-title">
               <span className="title-part1">{currentBanner.titlePart1}</span>
               <span className="title-part2">{currentBanner.titlePart2}</span>
             </h1>
-            
+
             <p className="banner-description">
               {currentBanner.description}
             </p>
-            
+
             <div className="banner-actions">
-              <a 
-                className="btn-explore" 
-                title={currentBanner.buttonText} 
-                aria-label={currentBanner.buttonText} 
-                href={currentBanner.buttonUrl} 
+              <a
+                className="btn-explore"
+                title={currentBanner.buttonText}
+                aria-label={currentBanner.buttonText}
+                href={currentBanner.buttonUrl}
                 data-discover="true"
                 style={{
                   backgroundColor: '#EA2630',
@@ -203,10 +216,10 @@ const HeroBanner = () => {
                   transition: 'all 0.3s ease'
                 }}
               >
-                <img 
-                  alt="Icono de catálogo" 
-                  width="20" 
-                  height="20" 
+                <img
+                  alt="Icono de catálogo"
+                  width="20"
+                  height="20"
                   src="./icons/hero/Users.svg"
                   style={{ filter: 'brightness(0) invert(1)' }}
                 />
@@ -214,10 +227,10 @@ const HeroBanner = () => {
               </a>
             </div>
           </div>
-          
+
           <div className="banner-image-container">
-            <img 
-              src={currentBanner.image} 
+            <img
+              src={currentBanner.image}
               alt={currentBanner.imageAlt}
               className="banner-image"
               onClick={() => handleImageClick(currentBanner)}
@@ -227,20 +240,6 @@ const HeroBanner = () => {
           </div>
         </div>
       </div>
-
-      {/* Slider Navigation - Solo mostrar si hay múltiples banners */}
-      {banners.length > 1 && (
-        <div className="slider-navigation">
-          {banners.map((_, index) => (
-            <button
-              key={index}
-              className={`slider-dot ${currentSlide === index ? 'active' : ''}`}
-              onClick={() => goToSlide(index)}
-              aria-label={`Ir al slide ${index + 1}`}
-            />
-          ))}
-        </div>
-      )}
     </section>
   );
 };

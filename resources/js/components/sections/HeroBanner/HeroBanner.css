@@ -213,14 +213,17 @@
 }
 
 /* Líneas cortas y oscuras */
-.line-1, .line-3, .line-5 {
+.line-1,
+.line-3,
+.line-5 {
   width: 14px;
   height: 40%;
   opacity: 1;
 }
 
 /* Líneas largas y claras */
-.line-2, .line-4 {
+.line-2,
+.line-4 {
   width: 14px;
   height: 65%;
   opacity: 0.5;
@@ -288,18 +291,6 @@
 .indicator.empty {
   background-color: transparent;
   border: 1.5px solid #FFFFFF;
-}
-
-/* Slider Navigation */
-.slider-navigation {
-  position: absolute;
-  bottom: 30px;
-  left: 0;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  z-index: 10;
 }
 
 .slider-dot {
@@ -380,7 +371,24 @@
   transform: scale(1.02);
 }
 
+.slider-navigation {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    gap: 8px;
+    z-index: 10;
+  }
+
 /* Responsive Styles */
+@media (min-width: 768px) {
+  .slider-navigation {
+    position: absolute;
+    bottom: 30px;
+    left: 0;
+    gap: 16px;
+  }
+}
+
 @media (max-width: 992px) {
   .banner-content {
     padding: 0;
@@ -427,7 +435,7 @@
     width: 100%;
     padding: 5px 20px;
   }
-  
+
   .banner-image-container {
     width: 100vw;
     height: auto;
