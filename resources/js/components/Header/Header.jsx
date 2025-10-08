@@ -40,6 +40,7 @@ const Header = () => {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const userMenuRef = useRef(null);
+  const mobileSearchInputRef = useRef(null);
 
   // Cargar notificaciones no leídas para admins y usuarios
   useEffect(() => {
@@ -204,6 +205,21 @@ const Header = () => {
     }
   };
 
+  // Handler for mobile search button
+  const handleMobileSearchClick = () => {
+    // If menu is closed, open it
+    if (!mobileMenuOpen) {
+      setMobileMenuOpen(true);
+    }
+    
+    // Focus on search input after a small delay to ensure menu is rendered
+    setTimeout(() => {
+      if (mobileSearchInputRef.current) {
+        mobileSearchInputRef.current.focus();
+      }
+    }, 100);
+  };
+
   // Handler for opening/closing mobile submenus
   const toggleSubMenu = (key) => {
     setOpenMobileSubMenu(openMobileSubMenu === key ? null : key);
@@ -216,6 +232,11 @@ const Header = () => {
       // Enviar el string completo como término de búsqueda general
       const searchParams = new URLSearchParams();
       searchParams.set('q', searchTerm.trim());
+
+      // Cerrar el menú móvil si está abierto
+      if (mobileMenuOpen) {
+        setMobileMenuOpen(false);
+      }
 
       navigate(`/buscar?${searchParams.toString()}`);
       setSearchTerm('');
@@ -391,10 +412,10 @@ const Header = () => {
     <header className="site-header">
       {/* Top Affiliate Bar - Solo mostrar si no hay usuario logueado */}
       {!user && (
-        <div className="affiliate-bar">
-          <div className="affiliate-container">
-            <p className="affiliate-text">¡Afiliate ahora mismo y comienza tu propio negocio!</p>
-            <Link to="/afiliate" className="affiliate-button">Afiliate aquí</Link>
+        <div className="affiliate-bar-header">
+          <div className="affiliate-container-header">
+            <p className="affiliate-text-header">¡Afiliate ahora mismo y comienza tu propio negocio!</p>
+            <Link to="/afiliate" className="affiliate-button-header">Afiliate aquí</Link>
           </div>
         </div>
       )}
@@ -637,6 +658,16 @@ const Header = () => {
             <span>Menú</span>
           </button>
 
+          <button 
+            id="btn-buscar" 
+            className="mobile-search-button-trigger" 
+            onClick={handleMobileSearchClick}
+            aria-label="Buscar"
+          >
+            <img src={getIconPath('Search.svg')} alt="Buscar" />
+            <span>Buscar</span>
+          </button>
+
           <Link to="/contacto" className="mobile-contact">
             <img src={getIconPath('Phone.svg')} alt="Contacto" />
             <span>Contacto</span>
@@ -662,6 +693,8 @@ const Header = () => {
               {!isAdminPage && (
                 <>
                   <input
+                    id="campo-buscador-menu"
+                    ref={mobileSearchInputRef}
                     type="text"
                     placeholder="Buscar producto"
                     className="mobile-search-input"
@@ -677,12 +710,12 @@ const Header = () => {
             </div>
 
             <ul className="mobile-menu-list">
-
-              <MobileMenuItem
-                menuKey="nuevos"
-                title="Nuevos"
-                icon={<img src={getIconPath('Cart Plus.svg')} alt="Nuevos" />}
-              />
+              <li className="mobile-menu-item">
+                <Link to="/nuevos" className="mobile-menu-link" onClick={() => setMobileMenuOpen(false)}>
+                  <img src={getIconPath('Cart Plus.svg')} alt="Nuevos" />
+                  <span>Nuevos</span>
+                </Link>
+              </li>
 
               <li className="mobile-menu-item">
                 <Link to="/destacados" className="mobile-menu-link" onClick={() => setMobileMenuOpen(false)}>
@@ -703,11 +736,12 @@ const Header = () => {
                 icon={<img src={getIconPath('File Alt.svg')} alt="Catálogos" />}
               />
 
-              <MobileMenuItem
-                menuKey="promociones"
-                title="Promociones"
-                icon={<img src={getIconPath('Bullhorn.svg')} alt="Promociones" />}
-              />
+              <li className="mobile-menu-item">
+                <Link to="/promociones" className="mobile-menu-link" onClick={() => setMobileMenuOpen(false)}>
+                  <img src={getIconPath('Bullhorn.svg')} alt="Promociones" />
+                  <span>Promociones</span>
+                </Link>
+              </li>
 
               <li className="mobile-menu-item">
                 <Link to="/contacto" className="mobile-menu-link" onClick={() => setMobileMenuOpen(false)}>

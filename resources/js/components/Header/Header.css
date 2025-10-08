@@ -8,29 +8,29 @@
 }
 
 /* Affiliate Bar */
-.affiliate-bar {
+.affiliate-bar-header {
   background-color: #333333;
   color: white;
-  padding: 8px 0;
+  padding: 3px 0;
   text-align: center;
 }
 
-.affiliate-container {
+.affiliate-container-header {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 15px;
   max-width: 1300px;
   margin: 0 auto;
-  padding: 0 15px;
+  padding: 0 10px;
 }
 
-.affiliate-text {
+.affiliate-text-header {
   margin: 0;
   font-size: 14px;
 }
 
-.affiliate-button {
+.affiliate-button-header {
   width: fit-content;
   white-space: nowrap;
   background-color: transparent;
@@ -43,7 +43,7 @@
   transition: all 0.3s ease;
 }
 
-.affiliate-button:hover {
+.affiliate-button-header:hover {
   background-color: white;
   color: #333333;
 }
@@ -478,10 +478,6 @@
   color: white;
 }
 
-.new-items .nav-link img {
-  filter: brightness(0) invert(1);
-}
-
 /* Estilo para el item activo */
 .nav-item.active .nav-link::after {
   width: 80%;
@@ -504,23 +500,37 @@
 }
 
 .menu-button, 
-.mobile-contact {
+.mobile-contact,
+.mobile-search-button-trigger {
   background: none;
   border: none;
   display: flex;
   align-items: center;
   gap: 5px;
   color: #333333;
-  font-size: 14px;
+  font-size: 13px;
   text-decoration: none;
   cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.menu-button:hover,
+.mobile-contact:hover,
+.mobile-search-button-trigger:hover {
+  color: var(--color-primary);
 }
 
 .menu-button img, 
-.mobile-contact img {
-  width: 20px;
-  height: 20px;
+.mobile-contact img,
+.mobile-search-button-trigger img {
+  width: 23px;
+  height: 23px;
   object-fit: contain;
+}
+
+/* Hide mobile search button by default */
+.mobile-search-button-trigger {
+  display: none;
 }
 
 /* Responsive Styles */
@@ -531,7 +541,7 @@
   }
   
   .user-action span {
-    font-size: 11px;
+    font-size: 13px;
   }
 }
 
@@ -546,7 +556,7 @@
 }
 
 @media (max-width: 768px) {
-  .affiliate-container {
+  .affiliate-container-header {
     padding: 0 10px;
   }
   
@@ -566,6 +576,11 @@
     display: flex;
   }
   
+  /* Show mobile search button on mobile devices */
+  .mobile-search-button-trigger {
+    display: flex;
+  }
+  
   .user-actions {
     gap: 15px;
   }
@@ -579,8 +594,8 @@
   }
   
   .icon-badge img {
-    width: 22px;
-    height: 22px;
+    width: 28px;
+    height: 28px;
   }
   
   .badge {
@@ -590,20 +605,33 @@
     top: -4px;
     right: -4px;
   }
+
+  .new-items .nav-link img {
+    filter: brightness(0.3) saturate(100%);
+  }
+
+  /* Filtro solo para el icono Cart Plus en el menú móvil */
+  .mobile-menu-link[href="/nuevos"] img {
+    filter: brightness(0.3) saturate(100%);
+  }
 }
 
 @media (max-width: 576px) {
-  .affiliate-text {
+  .affiliate-text-header {
     font-size: 12px;
   }
   
-  .affiliate-button {
+  .affiliate-button-header {
     padding: 4px 12px;
     font-size: 12px;
   }
   
   .header-logo h1 {
     font-size: 24px;
+  }
+
+  .user-action {
+    height: 35px;
   }
 }
 

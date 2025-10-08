@@ -13,8 +13,8 @@ const HeaderAffiliateBanner = () => {
   return (
     
     <div className="affiliate-container">
-      <p className="affiliate-text">¡Afiliate ahora mismo y comienza tu propio negocio!</p>
-      <a className="affiliate-button" href="/afiliate" data-discover="true">Afiliate aquí</a>
+      <p className="affiliate-text-header">¡Afiliate ahora mismo y comienza tu propio negocio!</p>
+      <a className="affiliate-button-header" href="/afiliate" data-discover="true">Afiliate aquí</a>
     </div>
   );
 };

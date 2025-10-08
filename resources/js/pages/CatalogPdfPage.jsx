@@ -734,53 +734,6 @@ const CatalogPdfPage = () => {
               </>
             )}
           </main>
-
-          {!isDesktop && currentView === 'images' && (
-            <section className="catalog-pdf__thumbnails mobile">
-              {/* Miniaturas del grupo actual - móvil */}
-              {selectedImageGroup && (
-                <>
-                  <div className="catalog-pdf__thumbnails-header">
-                    <span className="catalog-pdf__thumbnails-title">Imágenes - {selectedImageGroup.name}</span>
-                    <div className="catalog-pdf__thumbnails-sort">
-                      <label htmlFor="catalog-pdf__sort-select-mobile" className="catalog-pdf__sort-label">Ordenar por:</label>
-                      <select
-                        id="sort-select-mobile"
-                        className="catalog-pdf__sort-select"
-                      >
-                        <option value="más recientes">más recientes</option>
-                        <option value="precio-menor">Precio: menor a mayor</option>
-                        <option value="precio-mayor">Precio: mayor a menor</option>
-                        <option value="nombre-az">Nombre: A-Z</option>
-                        <option value="nombre-za">Nombre: Z-A</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="catalog-pdf__thumbnails-list" ref={thumbnailListRef}>
-                    <PdfThumbnailsList
-                      products={pageThumbnails}
-                      selectedIndex={pageIndex}
-                      onSelect={handleThumbnailSelect}
-                    />
-                  </div>
-                  
-                  {/* Botón cargar más - móvil */}
-                  {hasMore && (
-                    <div className="catalog-pdf__load-more">
-                      <CustomButton
-                        variant="outline"
-                        size="medium"
-                        onClick={handleLoadMore}
-                        disabled={loadingMore}
-                      >
-                        {loadingMore ? 'Cargando...' : 'Cargar más imágenes'}
-                      </CustomButton>
-                    </div>
-                  )}
-                </>
-              )}
-            </section>
-          )}
         </div>
       </div>
     </div>
