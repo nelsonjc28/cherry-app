@@ -255,6 +255,12 @@
     <!-- PWA Install Helper - Enhanced installation support -->
     <script src="/pwa-install-helper.js"></script>
     
+    <!-- PWA Registration Script - Universal installer -->
+    <script src="/pwa-register.js"></script>
+    
+    <!-- PWA Debug Script - Para diagnosticar problemas -->
+    <script src="/debug-pwa-installer.js"></script>
+    
     <!-- Favicon Generator Script - For creating Cherry favicons -->
     
     
