@@ -11,7 +11,7 @@
 .affiliate-bar-header {
   background-color: #333333;
   color: white;
-  padding: 8px 0;
+  padding: 3px 0;
   text-align: center;
 }
 
@@ -504,23 +504,37 @@
 }
 
 .menu-button, 
-.mobile-contact {
+.mobile-contact,
+.mobile-search-button-trigger {
   background: none;
   border: none;
   display: flex;
   align-items: center;
   gap: 5px;
   color: #333333;
-  font-size: 14px;
+  font-size: 13px;
   text-decoration: none;
   cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.menu-button:hover,
+.mobile-contact:hover,
+.mobile-search-button-trigger:hover {
+  color: var(--color-primary);
 }
 
 .menu-button img, 
-.mobile-contact img {
-  width: 20px;
-  height: 20px;
+.mobile-contact img,
+.mobile-search-button-trigger img {
+  width: 23px;
+  height: 23px;
   object-fit: contain;
+}
+
+/* Hide mobile search button by default */
+.mobile-search-button-trigger {
+  display: none;
 }
 
 /* Responsive Styles */
@@ -531,7 +545,7 @@
   }
   
   .user-action span {
-    font-size: 11px;
+    font-size: 13px;
   }
 }
 
@@ -566,6 +580,11 @@
     display: flex;
   }
   
+  /* Show mobile search button on mobile devices */
+  .mobile-search-button-trigger {
+    display: flex;
+  }
+  
   .user-actions {
     gap: 15px;
   }
@@ -579,8 +598,8 @@
   }
   
   .icon-badge img {
-    width: 22px;
-    height: 22px;
+    width: 28px;
+    height: 28px;
   }
   
   .badge {
@@ -604,6 +623,10 @@
   
   .header-logo h1 {
     font-size: 24px;
+  }
+
+  .user-action {
+    height: 35px;
   }
 }
 

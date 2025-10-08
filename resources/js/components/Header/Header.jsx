@@ -40,6 +40,7 @@ const Header = () => {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const userMenuRef = useRef(null);
+  const mobileSearchInputRef = useRef(null);
 
   // Cargar notificaciones no leídas para admins y usuarios
   useEffect(() => {
@@ -202,6 +203,21 @@ const Header = () => {
     if (mobileMenuOpen) {
       setOpenMobileSubMenu(null);
     }
+  };
+
+  // Handler for mobile search button
+  const handleMobileSearchClick = () => {
+    // If menu is closed, open it
+    if (!mobileMenuOpen) {
+      setMobileMenuOpen(true);
+    }
+    
+    // Focus on search input after a small delay to ensure menu is rendered
+    setTimeout(() => {
+      if (mobileSearchInputRef.current) {
+        mobileSearchInputRef.current.focus();
+      }
+    }, 100);
   };
 
   // Handler for opening/closing mobile submenus
@@ -637,6 +653,16 @@ const Header = () => {
             <span>Menú</span>
           </button>
 
+          <button 
+            id="btn-buscar" 
+            className="mobile-search-button-trigger" 
+            onClick={handleMobileSearchClick}
+            aria-label="Buscar"
+          >
+            <img src={getIconPath('Search.svg')} alt="Buscar" />
+            <span>Buscar</span>
+          </button>
+
           <Link to="/contacto" className="mobile-contact">
             <img src={getIconPath('Phone.svg')} alt="Contacto" />
             <span>Contacto</span>
@@ -662,6 +688,8 @@ const Header = () => {
               {!isAdminPage && (
                 <>
                   <input
+                    id="campo-buscador-menu"
+                    ref={mobileSearchInputRef}
                     type="text"
                     placeholder="Buscar producto"
                     className="mobile-search-input"
