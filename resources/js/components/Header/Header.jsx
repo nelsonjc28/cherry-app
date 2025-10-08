@@ -233,6 +233,11 @@ const Header = () => {
       const searchParams = new URLSearchParams();
       searchParams.set('q', searchTerm.trim());
 
+      // Cerrar el menú móvil si está abierto
+      if (mobileMenuOpen) {
+        setMobileMenuOpen(false);
+      }
+
       navigate(`/buscar?${searchParams.toString()}`);
       setSearchTerm('');
     }
