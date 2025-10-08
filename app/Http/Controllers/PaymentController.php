@@ -431,6 +431,7 @@ class PaymentController extends Controller
         }
     }
 
+
     /**
      * Obtener estado del pago
      */
@@ -738,6 +739,77 @@ class PaymentController extends Controller
         ];
 
         return $colorMap[$status] ?? 'gray';
+    }
+
+    /**
+     * Get orders pending review for the authenticated user
+     */
+    public function getPendingReviews(Request $request)
+    {
+        try {
+            /** @var User $user */
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no autenticado'
+                ], 401);
+            }
+
+            // Obtener órdenes entregadas que no han sido calificadas
+            $orders = Order::where('user_id', $user->id)
+                ->where('status', 'entregado')
+                ->with(['items'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            // Filtrar órdenes que tienen productos sin calificar
+            $pendingOrders = $orders->filter(function ($order) {
+                foreach ($order->items as $item) {
+                    // Verificar si existe una reseña para este producto en esta orden
+                    $hasReview = \App\Models\Review::where('user_id', $order->user_id)
+                        ->where('order_id', $order->id)
+                        ->where('product_id', $item->product_id)
+                        ->exists();
+                    
+                    if (!$hasReview) {
+                        return true; // Esta orden tiene productos sin calificar
+                    }
+                }
+                return false;
+            });
+
+            $formattedOrders = $pendingOrders->map(function ($order) {
+                return [
+                    'id' => $order->id,
+                    'orderNumber' => str_pad($order->id, 8, '0', STR_PAD_LEFT),
+                    'date' => $order->created_at->format('d/m/Y'),
+                    'totalAmount' => (float) $order->total_amount,
+                    'items' => $order->items->map(function ($item) {
+                        return [
+                            'id' => $item->id,
+                            'product_id' => $item->product_id,
+                            'name' => $item->name,
+                            'quantity' => $item->quantity,
+                            'price' => (float) $item->price,
+                            'image' => $this->getProductImageUrl($item->product_id)
+                        ];
+                    })
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'orders' => $formattedOrders->values()->toArray()
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener órdenes pendientes de calificación: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

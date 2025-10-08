@@ -9,26 +9,30 @@ const PWAInstallToast = () => {
 
 
   useEffect(() => {
+    console.log('PWAInstallToast: Inicializando...');
+    
     // Modo debug: mostrar siempre si está en la URL
     const isDebugMode = window.location.search.includes('debug-pwa') || window.location.search.includes('show-toast');
     
     if (isDebugMode) {
+      console.log('PWAInstallToast: Modo debug activado');
       setShowToast(true);
       return;
     }
     
     // Verificar si ya se mostró el toast
     const toastShown = localStorage.getItem('pwa-install-toast-shown') === 'true';
-
+    console.log('PWAInstallToast: Toast ya mostrado?', toastShown);
     
     if (toastShown) {
       setHasShownToast(true);
+      console.log('PWAInstallToast: Toast ya se mostró antes, no mostrar');
       // No hacer return aquí - seguir escuchando eventos para permitir reset
     }
 
     // Escuchar el evento personalizado desde Blade
     const handleInstallAvailable = (event) => {
-      
+      console.log('PWAInstallToast: Evento pwa-install-available recibido', event.detail);
       setDeferredPrompt(event.detail.deferredPrompt);
       
       // Verificar nuevamente el localStorage por si se limpió
@@ -36,6 +40,7 @@ const PWAInstallToast = () => {
       
       // Mostrar toast después de 2 segundos si no se ha mostrado
       if (!currentToastShown) {
+        console.log('PWAInstallToast: Mostrando toast en 2 segundos...');
         setTimeout(() => {
           setShowToast(true);
         }, 2000);
@@ -47,9 +52,9 @@ const PWAInstallToast = () => {
 
     // Mostrar toast automáticamente después de 3 segundos (fallback)
     const fallbackTimer = setTimeout(() => {
-
+      console.log('PWAInstallToast: Fallback timer ejecutado, toastShown:', toastShown);
       if (!toastShown) {
-
+        console.log('PWAInstallToast: Mostrando toast por fallback');
         setShowToast(true);
       }
     }, 3000);
@@ -110,96 +115,92 @@ const PWAInstallToast = () => {
     const isMac = /Mac|macOS/.test(userAgent);
     const isWindows = /Windows/.test(userAgent);
     
-
+    console.log('Intentando instalación alternativa para:', { isIOS, isAndroid, isMac, isWindows });
     
     if (isIOS) {
-      // Para iOS, intentar abrir el modal de instalación
-
-      // Simular el evento de instalación para iOS
-      window.dispatchEvent(new CustomEvent('ios-install-request'));
+      // Para iOS, mostrar instrucciones específicas
+      showIOSInstructions();
       setShowToast(false);
     } else if (isAndroid) {
       // Para Android, intentar instalación automática
-
       tryAndroidInstall();
     } else if (isMac || isWindows) {
       // Para desktop, intentar instalación automática
-
       tryDesktopInstall();
     } else {
-
+      // Para otros dispositivos, mostrar instrucciones generales
+      showGeneralInstructions();
       setShowToast(false);
     }
+  };
+
+  const showIOSInstructions = () => {
+    const message = `
+📱 Instalar Cherry App en iOS:
+
+1. Toca el botón "Compartir" (📤) en la parte inferior
+2. Desplázate hacia abajo y selecciona "Agregar a pantalla de inicio"
+3. Personaliza el nombre si deseas
+4. Toca "Agregar" en la esquina superior derecha
+
+¡Listo! Cherry App aparecerá en tu pantalla de inicio.
+    `;
+    
+    alert(message);
+  };
+
+  const showGeneralInstructions = () => {
+    const message = `
+📱 Instalar Cherry App:
+
+• Android: Busca el ícono ⊕ en la barra de direcciones
+• iOS: Usa el botón "Compartir" → "Agregar a pantalla de inicio"
+• Desktop: Busca el ícono ⊕ en la barra de direcciones
+
+¡Instala Cherry App para acceso rápido!
+    `;
+    
+    alert(message);
   };
 
   const tryAndroidInstall = () => {
-    // Para Android, intentar instalación automática
-
+    // Para Android, mostrar instrucciones específicas
+    console.log('Intentando instalación en Android');
     
-    // Verificar si el navegador soporta instalación
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then((registration) => {
+    const message = `
+📱 Instalar Cherry App en Android:
 
-        
-        // Intentar activar la instalación automática
-        if (registration.active) {
+1. Busca el ícono ⊕ en la barra de direcciones
+2. Toca "Instalar Cherry App" o "Agregar a pantalla de inicio"
+3. Confirma la instalación
 
-          
-          // Simular el proceso de instalación
-          setTimeout(() => {
-
-            setShowToast(false);
-            
-            // Disparar evento de instalación exitosa
-            window.dispatchEvent(new CustomEvent('pwa-installed', {
-              detail: { platform: 'android', method: 'serviceWorker' }
-            }));
-          }, 2000);
-        }
-      }).catch((error) => {
-        console.error('Error en Service Worker:', error);
-        setShowToast(false);
-      });
-    } else {
-
-      setShowToast(false);
-    }
+O alternativamente:
+• Toca el menú ⋮ (tres puntos)
+• Selecciona "Agregar a pantalla de inicio"
+    `;
+    
+    alert(message);
+    setShowToast(false);
   };
 
   const tryDesktopInstall = () => {
-    // Para desktop, intentar instalación automática
-
+    // Para desktop, mostrar instrucciones específicas
+    console.log('Intentando instalación en Desktop');
     
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then((registration) => {
+    const message = `
+💻 Instalar Cherry App en Escritorio:
 
-        
-        // Verificar si ya está instalado
-        if (window.matchMedia('(display-mode: standalone)').matches) {
+1. Busca el ícono ⊕ en la barra de direcciones
+2. Haz clic en "Instalar Cherry App"
+3. Confirma la instalación
 
-          setShowToast(false);
-          return;
-        }
-        
-        // Intentar instalación automática
-        setTimeout(() => {
-
-          setShowToast(false);
-          
-          // Disparar evento de instalación exitosa
-          window.dispatchEvent(new CustomEvent('pwa-installed', {
-            detail: { platform: 'desktop', method: 'serviceWorker' }
-          }));
-        }, 2000);
-        
-      }).catch((error) => {
-        console.error('Error en Service Worker desktop:', error);
-        setShowToast(false);
-      });
-    } else {
-
-      setShowToast(false);
-    }
+O alternativamente:
+• Menú ⋮ → "Instalar Cherry App"
+• O usa Ctrl+Shift+I → Application → Install
+    `;
+    
+    alert(message);
+    setShowToast(false);
   };
 
   const handleDismiss = () => {
@@ -211,16 +212,26 @@ const PWAInstallToast = () => {
   // Función global para forzar mostrar el toast (para testing)
   useEffect(() => {
     window.forceShowPWAToast = () => {
-
+      console.log('PWAInstallToast: Forzando mostrar toast...');
       localStorage.removeItem('pwa-install-toast-shown');
       setHasShownToast(false);
       setShowToast(true);
     };
     
     window.clearPWAInstallCache = () => {
+      console.log('PWAInstallToast: Limpiando cache...');
       localStorage.removeItem('pwa-install-toast-shown');
       localStorage.removeItem('pwa-modal-shown');
-
+      localStorage.removeItem('pwa-manually-installed');
+      localStorage.removeItem('pwa-installed');
+      setHasShownToast(false);
+      setShowToast(false);
+    };
+    
+    // Función para mostrar el toast inmediatamente
+    window.showPWAToastNow = () => {
+      console.log('PWAInstallToast: Mostrando toast inmediatamente...');
+      setShowToast(true);
     };
   }, []);
 
@@ -235,12 +246,19 @@ const PWAInstallToast = () => {
 
   return (
     <div className="pwa-install-toast">
+      <button 
+        className="pwa-install-toast__close"
+        onClick={handleDismiss}
+        aria-label="Cerrar"
+      >
+        ×
+      </button>
       <div className="pwa-install-toast__content">
         <div className="pwa-install-toast__icon">
           <img src="/images/logo.svg" alt="Cherry App" />
         </div>
         <div className="pwa-install-toast__text">
-          <h4>¡Instala Cherry App en tu dispositivo!</h4>
+          <h4>¡Instala Cherry App!</h4>
           <p>Accede más rápido desde tu pantalla de inicio</p>
         </div>
         <div className="pwa-install-toast__actions">

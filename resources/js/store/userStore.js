@@ -43,24 +43,39 @@ const useUserStore = create((set, get) => ({
     return user.role?.name === 'admin' ? '/admin' : '/';
   },
   
-  login: async (email, password) => {
+  login: async (username, password) => {
     set({ loading: true, error: null });
     try {
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ username, password })
       });
       
       const data = await res.json();
+      console.log('Login response:', { status: res.status, data });
       
       if (!res.ok) {
         let errorMessage = 'Error al iniciar sesión.';
         if (data.errors) {
-          errorMessage = Object.values(data.errors).flat().join(' ');
+          console.log('Validation errors:', data.errors);
+          // Mostrar todos los errores concatenados
+          const allErrors = [];
+          Object.keys(data.errors).forEach(key => {
+            const fieldErrors = data.errors[key];
+            if (Array.isArray(fieldErrors)) {
+              allErrors.push(...fieldErrors);
+            } else {
+              allErrors.push(fieldErrors);
+            }
+          });
+          errorMessage = allErrors.join('. ');
         } else if (data.error) {
+          console.log('Backend error:', data.error);
+          // Usar el mensaje exacto del backend
           errorMessage = data.error;
         }
+        console.log('Final error message:', errorMessage);
         set({ error: errorMessage, loading: false });
         return null;
       }

@@ -63,10 +63,10 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         try {
-            $credentials = $request->only(['email', 'password']);
+            $credentials = $request->only(['username', 'password']);
 
             $validator = Validator::make($credentials, [
-                'email'    => 'required|email',
+                'username' => 'required|string',
                 'password' => 'required|string',
             ]);
 
@@ -74,9 +74,14 @@ class AuthController extends Controller
                 return response()->json(['errors' => $validator->errors()], 422);
             }
 
-            if (!$token = JWTAuth::attempt($credentials)) {
+            // Buscar usuario por username
+            $user = User::where('username', $credentials['username'])->first();
+            
+            if (!$user || !Hash::check($credentials['password'], $user->password)) {
                 return response()->json(['error' => 'Credenciales inválidas'], 401);
             }
+
+            $token = JWTAuth::fromUser($user);
 
             $user = JWTAuth::setToken($token)->toUser();
             

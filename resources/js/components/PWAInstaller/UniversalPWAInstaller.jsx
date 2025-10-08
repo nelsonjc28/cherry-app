@@ -1,0 +1,288 @@
+import React, { useState, useEffect } from 'react';
+import './UniversalPWAInstaller.css';
+
+const UniversalPWAInstaller = () => {
+  const [showInstaller, setShowInstaller] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [deviceInfo, setDeviceInfo] = useState({});
+  const [installMethod, setInstallMethod] = useState('');
+  const [isInstalling, setIsInstalling] = useState(false);
+
+  useEffect(() => {
+    // Detectar información del dispositivo
+    const detectDevice = () => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isIOS = /iphone|ipad|ipod/.test(userAgent);
+      const isAndroid = /android/.test(userAgent);
+      const isWindows = /windows/.test(userAgent);
+      const isMac = /macintosh|mac os x/.test(userAgent);
+      const isLinux = /linux/.test(userAgent);
+      const isMobile = /mobile|android|iphone|ipad/.test(userAgent);
+      
+      // Detectar navegador
+      let browser = 'unknown';
+      if (userAgent.includes('chrome') && !userAgent.includes('edge')) browser = 'chrome';
+      else if (userAgent.includes('firefox')) browser = 'firefox';
+      else if (userAgent.includes('safari') && !userAgent.includes('chrome')) browser = 'safari';
+      else if (userAgent.includes('edge')) browser = 'edge';
+      else if (userAgent.includes('opera')) browser = 'opera';
+
+      return {
+        isIOS,
+        isAndroid,
+        isWindows,
+        isMac,
+        isLinux,
+        isMobile,
+        browser,
+        userAgent
+      };
+    };
+
+    const device = detectDevice();
+    setDeviceInfo(device);
+
+    // Verificar si ya está instalada
+    const isAlreadyInstalled = 
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true ||
+      localStorage.getItem('pwa-installed') === 'true';
+
+    if (isAlreadyInstalled) {
+      return;
+    }
+
+    // Escuchar beforeinstallprompt para Android/Desktop
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setInstallMethod('native');
+      setShowInstaller(true);
+    };
+
+    // Escuchar appinstalled
+    const handleAppInstalled = () => {
+      localStorage.setItem('pwa-installed', 'true');
+      setShowInstaller(false);
+      showSuccessMessage();
+    };
+
+    // Para iOS, mostrar instrucciones después de un delay
+    if (device.isIOS) {
+      const timer = setTimeout(() => {
+        setInstallMethod('ios');
+        setShowInstaller(true);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+
+    // Para Android/Desktop, escuchar eventos nativos
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    // Fallback: mostrar después de 5 segundos si no hay prompt nativo
+    const fallbackTimer = setTimeout(() => {
+      if (!deferredPrompt && !isAlreadyInstalled) {
+        setInstallMethod('manual');
+        setShowInstaller(true);
+      }
+    }, 5000);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+      clearTimeout(fallbackTimer);
+    };
+  }, []);
+
+  const handleInstall = async () => {
+    setIsInstalling(true);
+
+    try {
+      if (deferredPrompt && installMethod === 'native') {
+        // Instalación nativa para Android/Desktop
+        await deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        
+        if (outcome === 'accepted') {
+          localStorage.setItem('pwa-installed', 'true');
+          setShowInstaller(false);
+          showSuccessMessage();
+        }
+        setDeferredPrompt(null);
+      } else if (installMethod === 'ios') {
+        // Para iOS, mostrar instrucciones
+        showIOSInstructions();
+      } else {
+        // Instalación manual
+        showManualInstructions();
+      }
+    } catch (error) {
+      console.error('Error durante la instalación:', error);
+      showErrorMessage('Error durante la instalación. Intenta nuevamente.');
+    } finally {
+      setIsInstalling(false);
+    }
+  };
+
+  const showIOSInstructions = () => {
+    const message = `
+📱 Instalar Cherry App en iOS:
+
+1. Toca el botón "Compartir" (📤) en la parte inferior
+2. Desplázate hacia abajo y selecciona "Agregar a pantalla de inicio"
+3. Personaliza el nombre si deseas
+4. Toca "Agregar" en la esquina superior derecha
+
+¡Listo! Cherry App aparecerá en tu pantalla de inicio.
+    `;
+    
+    alert(message);
+    setShowInstaller(false);
+  };
+
+  const showManualInstructions = () => {
+    let message = '';
+    
+    if (deviceInfo.isAndroid) {
+      message = `
+📱 Instalar Cherry App en Android:
+
+1. Busca el ícono ⊕ en la barra de direcciones
+2. Toca "Instalar Cherry App" o "Agregar a pantalla de inicio"
+3. Confirma la instalación
+
+O alternativamente:
+• Toca el menú ⋮ (tres puntos)
+• Selecciona "Agregar a pantalla de inicio"
+      `;
+    } else if (deviceInfo.isWindows || deviceInfo.isMac || deviceInfo.isLinux) {
+      message = `
+💻 Instalar Cherry App en Escritorio:
+
+1. Busca el ícono ⊕ en la barra de direcciones
+2. Haz clic en "Instalar Cherry App"
+3. Confirma la instalación
+
+O alternativamente:
+• Menú ⋮ → "Instalar Cherry App"
+• O usa Ctrl+Shift+I → Application → Install
+      `;
+    }
+    
+    alert(message);
+    setShowInstaller(false);
+  };
+
+  const showSuccessMessage = () => {
+    const message = `
+🎉 ¡Cherry App instalada exitosamente!
+
+La aplicación se ha agregado a tu dispositivo y puedes acceder a ella desde:
+• Pantalla de inicio (móvil)
+• Menú de aplicaciones (escritorio)
+• Barra de tareas (Windows)
+
+¡Disfruta de una experiencia más rápida y conveniente!
+    `;
+    
+    alert(message);
+  };
+
+  const showErrorMessage = (message) => {
+    alert(`❌ ${message}`);
+  };
+
+  const handleDismiss = () => {
+    setShowInstaller(false);
+    localStorage.setItem('pwa-install-dismissed', 'true');
+  };
+
+  const getInstallButtonText = () => {
+    if (isInstalling) return 'Instalando...';
+    if (installMethod === 'ios') return 'Ver Instrucciones';
+    if (installMethod === 'manual') return 'Ver Instrucciones';
+    return 'Instalar App';
+  };
+
+  const getInstallDescription = () => {
+    if (installMethod === 'ios') {
+      return 'Toca para ver las instrucciones de instalación en iOS';
+    }
+    if (installMethod === 'manual') {
+      return 'Toca para ver las instrucciones de instalación';
+    }
+    return 'Instala Cherry App para acceso rápido desde tu pantalla de inicio';
+  };
+
+  if (!showInstaller) return null;
+
+  return (
+    <div className="universal-pwa-installer">
+      <div className="universal-pwa-installer__backdrop" onClick={handleDismiss}></div>
+      <div className="universal-pwa-installer__modal">
+        <div className="universal-pwa-installer__header">
+          <div className="universal-pwa-installer__icon">
+            <img src="/images/logo.svg" alt="Cherry App" />
+          </div>
+          <div className="universal-pwa-installer__title">
+            <h3>¡Instala Cherry App!</h3>
+            <p>{getInstallDescription()}</p>
+          </div>
+          <button 
+            className="universal-pwa-installer__close"
+            onClick={handleDismiss}
+            aria-label="Cerrar"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="universal-pwa-installer__content">
+          <div className="universal-pwa-installer__benefits">
+            <div className="benefit-item">
+              <span className="benefit-icon">⚡</span>
+              <span>Acceso más rápido</span>
+            </div>
+            <div className="benefit-item">
+              <span className="benefit-icon">📱</span>
+              <span>Experiencia nativa</span>
+            </div>
+            <div className="benefit-item">
+              <span className="benefit-icon">🔔</span>
+              <span>Notificaciones</span>
+            </div>
+            <div className="benefit-item">
+              <span className="benefit-icon">💾</span>
+              <span>Funciona offline</span>
+            </div>
+          </div>
+
+          <div className="universal-pwa-installer__actions">
+            <button 
+              className="universal-pwa-installer__button universal-pwa-installer__button--primary"
+              onClick={handleInstall}
+              disabled={isInstalling}
+            >
+              {getInstallButtonText()}
+            </button>
+            <button 
+              className="universal-pwa-installer__button universal-pwa-installer__button--secondary"
+              onClick={handleDismiss}
+            >
+              Más tarde
+            </button>
+          </div>
+        </div>
+
+        {installMethod === 'ios' && (
+          <div className="universal-pwa-installer__ios-hint">
+            <p>💡 <strong>Tip:</strong> En iOS, busca el botón "Compartir" en la parte inferior de la pantalla</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default UniversalPWAInstaller;

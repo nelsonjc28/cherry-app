@@ -37,7 +37,8 @@ const CartOrderSummary = ({
   });
   const [modalCardData, setModalCardData] = useState({
     cardNumber: '',
-    expirationDate: '',
+    expirationMonth: '',
+    expirationYear: '',
     securityCode: '',
     cardholderName: ''
   });
@@ -171,9 +172,9 @@ const CartOrderSummary = ({
     try {
       setIsSavingCard(true);
 
-      // Separar mes y año de la fecha de expiración
-      const [month, year] = cardDataToSave.expirationDate.split('/');
-      const fullYear = '20' + year; // Convertir YY a YYYY
+      // Usar mes y año directamente de los campos separados
+      const month = cardDataToSave.expirationMonth;
+      const year = '20' + cardDataToSave.expirationYear; // Convertir YY a YYYY
       
       // Detectar marca de la tarjeta basado en el número
       const cardNumber = cardDataToSave.cardNumber.replace(/\s/g, '');
@@ -259,8 +260,13 @@ const CartOrderSummary = ({
       newErrors.cardNumber = 'Número de tarjeta inválido';
     }
 
-    if (!modalCardData.expirationDate || !/^\d{2}\/\d{2}$/.test(modalCardData.expirationDate)) {
-      newErrors.expirationDate = 'Fecha de vencimiento inválida (MM/YY)';
+    if (!modalCardData.expirationMonth || !/^\d{2}$/.test(modalCardData.expirationMonth) || 
+        parseInt(modalCardData.expirationMonth) < 1 || parseInt(modalCardData.expirationMonth) > 12) {
+      newErrors.expirationMonth = 'Mes inválido (01-12)';
+    }
+
+    if (!modalCardData.expirationYear || !/^\d{2}$/.test(modalCardData.expirationYear)) {
+      newErrors.expirationYear = 'Año inválido (debe ser 2 dígitos)';
     }
 
     if (!modalCardData.securityCode || modalCardData.securityCode.length < 3) {
@@ -285,7 +291,8 @@ const CartOrderSummary = ({
       // Limpiar formulario del modal después de guardar
       setModalCardData({
         cardNumber: '',
-        expirationDate: '',
+        expirationMonth: '',
+        expirationYear: '',
         securityCode: '',
         cardholderName: ''
       });
@@ -300,7 +307,8 @@ const CartOrderSummary = ({
     // Opcionalmente limpiar datos del modal
     setModalCardData({
       cardNumber: '',
-      expirationDate: '',
+      expirationMonth: '',
+      expirationYear: '',
       securityCode: '',
       cardholderName: ''
     });
@@ -542,6 +550,16 @@ const CartOrderSummary = ({
     return v;
   };
 
+  const formatExpirationMonth = (value) => {
+    const v = value.replace(/\D/g, '');
+    return v.substring(0, 2);
+  };
+
+  const formatExpirationYear = (value) => {
+    const v = value.replace(/\D/g, '');
+    return v.substring(0, 2);
+  };
+
   return (
   <aside className="cart-order-summary">
     {selectedAddress && (
@@ -736,16 +754,29 @@ const CartOrderSummary = ({
 
             <div className="form-row">
               <div className="form-group">
-                <label htmlFor="modalExpirationDate">Vencimiento</label>
+                <label htmlFor="modalExpirationMonth">Mes</label>
                 <input
                   type="text"
-                  id="modalExpirationDate"
-                  value={modalCardData.expirationDate}
-                  onChange={(e) => handleModalInputChange('expirationDate', formatExpirationDate(e.target.value))}
-                  placeholder="MM/YY"
-                  maxLength="5"
+                  id="modalExpirationMonth"
+                  value={modalCardData.expirationMonth}
+                  onChange={(e) => handleModalInputChange('expirationMonth', formatExpirationMonth(e.target.value))}
+                  placeholder="MM"
+                  maxLength="2"
                 />
-                {modalErrors.expirationDate && <span className="error-message">{modalErrors.expirationDate}</span>}
+                {modalErrors.expirationMonth && <span className="error-message">{modalErrors.expirationMonth}</span>}
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="modalExpirationYear">Año</label>
+                <input
+                  type="text"
+                  id="modalExpirationYear"
+                  value={modalCardData.expirationYear}
+                  onChange={(e) => handleModalInputChange('expirationYear', formatExpirationYear(e.target.value))}
+                  placeholder="YY"
+                  maxLength="2"
+                />
+                {modalErrors.expirationYear && <span className="error-message">{modalErrors.expirationYear}</span>}
               </div>
               
               <div className="form-group">

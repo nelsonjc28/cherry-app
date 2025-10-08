@@ -82,8 +82,15 @@ const UserNotifications = ({ isOpen, onClose }) => {
       markAsRead(notification.id);
     }
 
-    // Navegar a Mis Pedidos
-    navigate('/perfil/mis-pedidos');
+    // Manejar notificaciones de calificación
+    if (notification.type === 'review_request') {
+      // Navegar a Mis Pedidos para calificar
+      navigate('/perfil/mis-pedidos');
+    } else {
+      // Navegar a Mis Pedidos para otras notificaciones
+      navigate('/perfil/mis-pedidos');
+    }
+    
     onClose();
   };
 
@@ -93,6 +100,8 @@ const UserNotifications = ({ isOpen, onClose }) => {
         return getIconPath('Package.svg');
       case 'payment_received':
         return getIconPath('CreditCard.svg');
+      case 'review_request':
+        return '⭐'; // Ícono de estrella para calificaciones
       default:
         return getIconPath('Bell.svg');
     }
@@ -104,6 +113,8 @@ const UserNotifications = ({ isOpen, onClose }) => {
         return '#2196F3';
       case 'payment_received':
         return '#4CAF50';
+      case 'review_request':
+        return '#FF6B6B'; // Color rojo para calificaciones
       default:
         return '#FF9800';
     }
@@ -159,13 +170,22 @@ const UserNotifications = ({ isOpen, onClose }) => {
                   onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="user-notification-icon">
-                    <img 
-                      src={getStatusIcon(notification.type)} 
-                      alt="Notificación"
-                      style={{ 
-                        filter: `hue-rotate(${getStatusColor(notification.type)}deg)` 
-                      }}
-                    />
+                    {notification.type === 'review_request' ? (
+                      <span style={{ 
+                        fontSize: '20px',
+                        color: getStatusColor(notification.type)
+                      }}>
+                        {getStatusIcon(notification.type)}
+                      </span>
+                    ) : (
+                      <img 
+                        src={getStatusIcon(notification.type)} 
+                        alt="Notificación"
+                        style={{ 
+                          filter: `hue-rotate(${getStatusColor(notification.type)}deg)` 
+                        }}
+                      />
+                    )}
                   </div>
                   <div className="user-notification-content">
                     <div className="user-notification-header">

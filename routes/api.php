@@ -79,6 +79,7 @@ Route::middleware(['auth:api'])->group(function () {
     
     // Order management routes
     Route::get('/orders', [PaymentController::class, 'getUserOrders']); // Obtener órdenes del usuario
+    Route::get('/orders/pending-reviews', [PaymentController::class, 'getPendingReviews']); // Obtener órdenes pendientes de calificación
     Route::put('/orders/{orderId}/status', [PaymentController::class, 'updateOrderStatus']); // Solo admin
     Route::post('/orders/{orderId}/mark-delivered', [PaymentController::class, 'markAsDelivered']); // Solo cliente propietario
 

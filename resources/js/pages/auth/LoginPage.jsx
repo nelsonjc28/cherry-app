@@ -12,7 +12,7 @@ const LoginPage = () => {
   const { login, loading, error, user, initialized } = useUserStore();
 
   const [formData, setFormData] = useState({
-    email: "",
+    username: "",
     password: "",
   });
 
@@ -30,7 +30,7 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.email || !formData.password) {
+    if (!formData.username || !formData.password) {
       if (window.showToast) {
         window.showToast('Por favor completa todos los campos', 'error');
       }
@@ -40,9 +40,11 @@ const LoginPage = () => {
     setIsSubmitting(true);
     
     try {
-      const user = await login(formData.email, formData.password);
+      console.log('Attempting login with:', { username: formData.username });
+      const user = await login(formData.username, formData.password);
       
       if (user) {
+        console.log('Login successful:', user);
         if (window.showToast) {
           window.showToast('¡Bienvenido!', 'success');
         }
@@ -54,11 +56,16 @@ const LoginPage = () => {
           navigate('/');
         }
       } else {
+        console.log('Login failed, error:', error);
+        // Obtener el error actual del store
+        const currentError = useUserStore.getState().error;
+        console.log('Current error from store:', currentError);
         if (window.showToast) {
-          window.showToast(error || 'Error al iniciar sesión', 'error');
+          window.showToast(currentError || error || 'Error al iniciar sesión', 'error');
         }
       }
     } catch (err) {
+      console.error('Login error:', err);
       if (window.showToast) {
         window.showToast('Error de conexión', 'error');
       }
@@ -153,18 +160,18 @@ const LoginPage = () => {
 
                 <form onSubmit={handleSubmit} className="login-form">
                   <div className="login-form-group">
-                    <label>Email</label>
+                    <label>Nombre de usuario</label>
                     <div className="login-input-container">
                       <img
                         src={getIconPath('User.svg')}
-                        alt="Email"
+                        alt="Usuario"
                         className="login-input-icon"
                       />
                       <input
-                        type="email"
-                        name="email"
-                        placeholder="Ingresa tu email"
-                        value={formData.email}
+                        type="text"
+                        name="username"
+                        placeholder="Ingresa tu nombre de usuario"
+                        value={formData.username}
                         onChange={handleInputChange}
                         required
                       />

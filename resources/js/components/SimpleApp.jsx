@@ -52,7 +52,7 @@ import CustomToastContainer from './Toast/ToastContainer';
 import ScrollToTop from './ScrollToTop/ScrollToTop';
 
 // PWA Components
-import PWAInstallToast from './PWAInstaller/PWAInstallToast';
+import SimplePWAInstaller from './PWAInstaller/SimplePWAInstaller';
 import PWAInstallAlerts from './PWAInstaller/PWAInstallAlerts';
 import PWADiagnostics from './PWAInstaller/PWADiagnostics';
 
@@ -130,10 +130,10 @@ const SimpleApp = () => {
                 </Routes>
               </main>
               <Footer />
-              <CustomToastContainer />
+        <CustomToastContainer />
               
               {/* PWA Install Components */}
-              <PWAInstallToast />
+              <SimplePWAInstaller />
               <PWAInstallAlerts />
               <PWADiagnostics />
             </div>

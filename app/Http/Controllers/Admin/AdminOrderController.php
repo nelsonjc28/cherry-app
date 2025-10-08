@@ -106,6 +106,7 @@ class AdminOrderController extends Controller
             // Notificar al cliente sobre el cambio de estado
             $this->notifyCustomerStatusChange($order, $oldStatus, $newStatus);
 
+
             // Si el estado es 'pagado', notificar al admin (esto se manejará con notificaciones)
             if ($newStatus === 'pagado') {
                 $this->notifyAdminPaymentReceived($order);
@@ -292,4 +293,5 @@ class AdminOrderController extends Controller
         // TODO: Implementar notificación al admin
         // Por ahora solo logging
     }
+
 }
