@@ -28,8 +28,9 @@ class TestUserSeeder extends Seeder
             ]
         );
 
-        // Create cliente users
-        $clienteUsers = [
+        // Create cliente user
+        User::updateOrCreate(
+            [ 'email' => 'cliente@cherrycentral.com' ],
             [
                 'email' => 'cliente@cherrycentral.com',
                 'first_name' => 'Cliente',
