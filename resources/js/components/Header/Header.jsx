@@ -710,12 +710,12 @@ const Header = () => {
             </div>
 
             <ul className="mobile-menu-list">
-
-              <MobileMenuItem
-                menuKey="nuevos"
-                title="Nuevos"
-                icon={<img src={getIconPath('Cart Plus.svg')} alt="Nuevos" />}
-              />
+              <li className="mobile-menu-item">
+                <Link to="/nuevos" className="mobile-menu-link" onClick={() => setMobileMenuOpen(false)}>
+                  <img src={getIconPath('Cart Plus.svg')} alt="Nuevos" />
+                  <span>Nuevos</span>
+                </Link>
+              </li>
 
               <li className="mobile-menu-item">
                 <Link to="/destacados" className="mobile-menu-link" onClick={() => setMobileMenuOpen(false)}>
@@ -736,11 +736,12 @@ const Header = () => {
                 icon={<img src={getIconPath('File Alt.svg')} alt="Catálogos" />}
               />
 
-              <MobileMenuItem
-                menuKey="promociones"
-                title="Promociones"
-                icon={<img src={getIconPath('Bullhorn.svg')} alt="Promociones" />}
-              />
+              <li className="mobile-menu-item">
+                <Link to="/promociones" className="mobile-menu-link" onClick={() => setMobileMenuOpen(false)}>
+                  <img src={getIconPath('Bullhorn.svg')} alt="Promociones" />
+                  <span>Promociones</span>
+                </Link>
+              </li>
 
               <li className="mobile-menu-item">
                 <Link to="/contacto" className="mobile-menu-link" onClick={() => setMobileMenuOpen(false)}>

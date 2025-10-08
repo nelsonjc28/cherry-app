@@ -478,10 +478,6 @@
   color: white;
 }
 
-.new-items .nav-link img {
-  filter: brightness(0) invert(1);
-}
-
 /* Estilo para el item activo */
 .nav-item.active .nav-link::after {
   width: 80%;
@@ -608,6 +604,15 @@
     font-size: 9px;
     top: -4px;
     right: -4px;
+  }
+
+  .new-items .nav-link img {
+    filter: brightness(0.3) saturate(100%);
+  }
+
+  /* Filtro solo para el icono Cart Plus en el menú móvil */
+  .mobile-menu-link[href="/nuevos"] img {
+    filter: brightness(0.3) saturate(100%);
   }
 }
 
