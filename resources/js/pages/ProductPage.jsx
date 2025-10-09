@@ -75,42 +75,15 @@ const ProductPage = () => {
         
         // Aplicar ofertas usando el sistema inteligente (con o sin sesión)
         const hasActiveSession = isUserSessionActive();
-        let productWithOffer = productData;
-        
-        console.log('📊 ProductPage: Datos del producto recibidos:', {
-          id: productData.id_articulo,
-          desc_promo: productData.desc_promo,
-          precio1: productData.precio1,
-          price: productData.price,
-          discount: productData.discount,
-          originalPrice: productData.originalPrice
-        });
+        let productWithOffer = productData;;
         
         if (hasActiveSession) {
           // Si hay sesión activa, aplicar ofertas personalizadas
-          console.log('🔐 ProductPage: Sesión activa - aplicando ofertas personalizadas');
-        const productsWithOffers = await applyUserOffersToProducts([productData]);
-          productWithOffer = productsWithOffers[0] || productData;
-          
-          console.log('✅ ProductPage: Producto después de aplicar ofertas:', {
-            id: productWithOffer.id_articulo,
-            price: productWithOffer.price,
-            originalPrice: productWithOffer.originalPrice,
-            discount: productWithOffer.discount,
-            hasUserOffer: productWithOffer.hasUserOffer,
-            userOffer: productWithOffer.userOffer
-          });
+          const productsWithOffers = await applyUserOffersToProducts([productData]);
+          productWithOffer = productsWithOffers[0] || productData;;
         } else {
           // Si no hay sesión, usar solo las ofertas externas (ya incluidas en getProductById)
-          console.log('🔓 ProductPage: Sin sesión - usando solo ofertas externas');
-          productWithOffer = productData;
-          
-          console.log('✅ ProductPage: Producto sin ofertas personalizadas:', {
-            id: productWithOffer.id_articulo,
-            price: productWithOffer.price,
-            originalPrice: productWithOffer.originalPrice,
-            discount: productWithOffer.discount
-          });
+          productWithOffer = productData;;
         }
         
         setProduct(productWithOffer);
@@ -291,6 +264,14 @@ const ProductPage = () => {
               isFreeItem: true, // Marcar como producto gratis
               freeItemReason: `🎁 Gratis por oferta: Compra ${buyQuantity} lleva ${getQuantity}`
             };
+            
+            console.log('🎁 Agregando producto GRATIS al carrito:', {
+              productId: freeProductToAdd.id_articulo,
+              quantity: freeItems,
+              price: freeProductToAdd.price,
+              isFreeItem: freeProductToAdd.isFreeItem,
+              reason: freeProductToAdd.freeItemReason
+            });
             
             addToCart(freeProductToAdd, freeItems);
           }
@@ -490,42 +471,27 @@ const ProductPage = () => {
 
   // Calcular descuento con prioridades
   const calculateDiscountPercentage = () => {
-    console.log('🔍 calculateDiscountPercentage - Datos disponibles:', {
-      hasUserOffer,
-      userOffer,
-      productDiscount: product?.discount,
-      descPromo: product?.desc_promo,
-      originalPrice: product?.originalPrice,
-      price: product?.price,
-      precio1: product?.precio1
-    });
-    
     // PRIORIDAD 1: Descuento personalizado del usuario (ya procesado)
     if (hasUserOffer && userOffer && userOffer.discount_percentage > 0) {
-      console.log('✅ Usando descuento personalizado:', userOffer.discount_percentage);
       return Math.round(userOffer.discount_percentage);
     }
     
     // PRIORIDAD 2: Descuento general desde la API (desc_promo) - usar directamente desc_promo
     if (product?.desc_promo && product.desc_promo > 0) {
-      console.log('✅ Usando desc_promo de la API:', product.desc_promo);
       return Math.round(product.desc_promo);
     }
     
     // PRIORIDAD 3: Descuento ya procesado en product.discount
     if (product?.discount && product.discount > 0) {
-      console.log('✅ Usando product.discount:', product.discount);
       return Math.round(product.discount);
     }
     
     // PRIORIDAD 4: Fallback usando originalPrice vs price
     if (product?.originalPrice && product?.price && product.originalPrice > product.price) {
-      const calculatedDiscount = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
-      console.log('✅ Usando descuento calculado:', calculatedDiscount);
+      const calculatedDiscount = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);;
       return calculatedDiscount;
     }
     
-    console.log('❌ No se encontró descuento');
     return 0;
   };
 
@@ -540,26 +506,35 @@ const ProductPage = () => {
     
     // Si ya hay un precio procesado, usarlo
     if (product?.price && product.price !== basePrice) {
-      console.log('✅ Usando precio ya procesado:', product.price);
       return product.price;
     }
     
     // Si hay descuento, calcularlo
     if (discountPercentage > 0 && basePrice > 0) {
-      const discountedPrice = basePrice - (basePrice * (discountPercentage / 100));
-      console.log('✅ Calculando precio con descuento:', {
-        basePrice,
-        discountPercentage,
-        discountedPrice
-      });
+      const discountedPrice = basePrice - (basePrice * (discountPercentage / 100));;
       return discountedPrice;
     }
     
-    console.log('✅ Usando precio base:', basePrice);
     return basePrice;
   };
   
   const finalPrice = calculateFinalPrice();
+  
+  // Debug: Verificar datos del producto
+  console.log('🔍 ProductPage Debug - Producto:', {
+    id: product?.id_articulo,
+    title: product?.descripcion,
+    precio1: precio1,
+    originalPrice: product?.originalPrice,
+    price: product?.price,
+    finalPrice: finalPrice,
+    hasUserOffer: hasUserOffer,
+    userOffer: userOffer,
+    discountPercentage: discountPercentage
+  });
+  
+  // Debug: Mostrar objeto original completo del producto
+  console.log('📦 Objeto Original Completo del Producto:', product);
 
   // Función para obtener el stock disponible por talla y color
   const getStockBySizeAndColor = (talla, color) => {
@@ -751,7 +726,7 @@ const ProductPage = () => {
                     hasUserOffer && userOffer && userOffer.discount_category === 'order_discount' ? 
                       `💰 Descuento en pedido ${Math.round(userOffer.discount_percentage)}%` :
                     hasUserOffer && userOffer && userOffer.discount_category === 'free_shipping' ? 
-                      `🚚 Envío gratis` :
+                      (discountPercentage > 0 ? `🏷️ ${discountPercentage}% + 🚚 Envío gratis` : `🚚 Envío gratis`) :
                     hasUserOffer && userOffer && userOffer.discount_percentage > 0 ? 
                       `Oferta ${Math.round(userOffer.discount_percentage)}%` :
                       `🏷️ Oferta ${discountPercentage}%`

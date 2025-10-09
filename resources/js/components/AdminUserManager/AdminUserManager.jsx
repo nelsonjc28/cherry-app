@@ -16,6 +16,7 @@ const AdminUserManager = () => {
     middle_name: '',
     email: '',
     phone: '',
+    username: '',
     password: '',
     role_id: '1' // Default to admin role (ID: 1)
   });
@@ -74,10 +75,19 @@ const AdminUserManager = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [name]: value
+      };
+      
+      // Si se cambia el teléfono, actualizar automáticamente el username
+      if (name === 'phone') {
+        newData.username = value;
+      }
+      
+      return newData;
+    });
   };
 
   const resetForm = () => {
@@ -87,6 +97,7 @@ const AdminUserManager = () => {
       middle_name: '',
       email: '',
       phone: '',
+      username: '',
       password: '',
       role_id: '1' // Default to admin role (ID: 1)
     });
@@ -148,6 +159,7 @@ const AdminUserManager = () => {
       middle_name: user.middle_name,
       email: user.email,
       phone: user.phone || '',
+      username: user.username || '',
       password: '',
       role_id: user.role_id
     });
@@ -268,26 +280,38 @@ const AdminUserManager = () => {
               
               <div className="admin-user-manager__form-row">
                 <div className="admin-user-manager__form-group">
-                  <label htmlFor="email">Email *</label>
+                  <label htmlFor="email">Email</label>
                   <input
                     type="email"
                     id="email"
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    required
                   />
                 </div>
                 <div className="admin-user-manager__form-group">
-                  <label htmlFor="phone">Teléfono</label>
+                  <label htmlFor="phone">Teléfono *</label>
                   <input
                     type="text"
                     id="phone"
                     name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
+                    required
                   />
                 </div>
+              </div>
+              
+              <div className="admin-user-manager__form-group">
+                <label htmlFor="username">Nombre de Usuario *</label>
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleInputChange}
+                  required
+                />
               </div>
               
               <div className="admin-user-manager__form-row">
@@ -304,6 +328,11 @@ const AdminUserManager = () => {
                     required={!editingUser}
                     minLength="8"
                   />
+                  {!editingUser && (
+                    <p className="admin-user-manager__password-hint">
+                      Tu contraseña debe tener mínimo 8 caracteres y al menos una letra y un número
+                    </p>
+                  )}
                 </div>
               </div>
               

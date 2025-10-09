@@ -47,7 +47,6 @@ const InstallPWA = () => {
 
         // Escuchar evento beforeinstallprompt
         const handleBeforeInstallPrompt = (e) => {
-            console.log('beforeinstallprompt disparado');
             e.preventDefault();
             setDeferredPrompt(e);
             
@@ -59,7 +58,6 @@ const InstallPWA = () => {
 
         // Escuchar cuando la app se instala
         const handleAppInstalled = () => {
-            console.log('PWA instalada exitosamente');
             setIsInstalled(true);
             setShowInstallBanner(false);
             setDeferredPrompt(null);
@@ -92,18 +90,15 @@ const InstallPWA = () => {
 
         try {
             // Mostrar el prompt de instalación
-            const result = await deferredPrompt.prompt();
-            console.log('Resultado del prompt:', result);
+            const result = await deferredPrompt.prompt();;
 
             if (result.outcome === 'accepted') {
-                console.log('Usuario aceptó instalar la PWA');
                 toast.info('Instalando Cherry App...', {
                     position: "top-center",
                     autoClose: 2000,
                 });
             } else {
-                console.log('Usuario rechazó instalar la PWA');
-            }
+                }
 
             setDeferredPrompt(null);
             setShowInstallBanner(false);

@@ -68,8 +68,9 @@ class ClientController extends Controller
                 'first_name' => 'required|string|max:255',
                 'last_name' => 'required|string|max:255',
                 'middle_name' => 'nullable|string|max:255',
-                'email' => 'required|string|email|max:255|unique:users',
-                'phone' => 'nullable|string|max:20',
+                'email' => 'nullable|string|email|max:255|unique:users',
+                'phone' => 'required|string|max:20|unique:users',
+                'username' => 'required|string|max:255|unique:users',
                 'password' => [
                     'required',
                     'string',
@@ -81,7 +82,9 @@ class ClientController extends Controller
                 ]
             ], [
                 'password.regex' => 'La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial.',
-                'email.unique' => 'Este correo electrónico ya está registrado.'
+                'email.unique' => 'Este correo electrónico ya está registrado.',
+                'phone.unique' => 'Este número de teléfono ya está registrado.',
+                'username.unique' => 'Este nombre de usuario ya está en uso.'
             ]);
 
             if ($validator->fails()) {
@@ -97,6 +100,7 @@ class ClientController extends Controller
                 'middle_name' => $request->middle_name,
                 'email' => $request->email,
                 'phone' => $request->phone,
+                'username' => $request->username,
                 'password' => Hash::make($request->password),
                 'role_id' => 2 // Always create as client
             ]);
@@ -133,15 +137,26 @@ class ClientController extends Controller
             $validator = Validator::make($request->all(), [
                 'first_name' => 'required|string|max:255',
                 'last_name' => 'required|string|max:255',
-                'middle_name' => 'required|string|max:255',
+                'middle_name' => 'nullable|string|max:255',
                 'email' => [
-                    'required',
+                    'nullable',
                     'string',
                     'email',
                     'max:255',
                     Rule::unique('users')->ignore($id)
                 ],
-                'phone' => 'nullable|string|max:20',
+                'phone' => [
+                    'required',
+                    'string',
+                    'max:20',
+                    Rule::unique('users')->ignore($id)
+                ],
+                'username' => [
+                    'required',
+                    'string',
+                    'max:255',
+                    Rule::unique('users')->ignore($id)
+                ],
                 'password' => [
                     'nullable',
                     'string',
@@ -153,7 +168,9 @@ class ClientController extends Controller
                 ]
             ], [
                 'password.regex' => 'La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial.',
-                'email.unique' => 'Este correo electrónico ya está registrado.'
+                'email.unique' => 'Este correo electrónico ya está registrado.',
+                'phone.unique' => 'Este número de teléfono ya está registrado.',
+                'username.unique' => 'Este nombre de usuario ya está en uso.'
             ]);
 
             if ($validator->fails()) {
@@ -169,6 +186,7 @@ class ClientController extends Controller
                 'middle_name' => $request->middle_name,
                 'email' => $request->email,
                 'phone' => $request->phone,
+                'username' => $request->username,
                 'role_id' => 2 // Always keep as client
             ];
 

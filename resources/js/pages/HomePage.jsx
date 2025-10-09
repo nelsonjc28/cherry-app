@@ -31,7 +31,6 @@ const HomePage = () => {
         const products = await getTopSellingProducts(6);
         
         if (products.length === 0) {
-          console.log('📊 HomePage: No hay productos más vendidos este mes');
           setTopSellingProducts([]);
           return;
         }

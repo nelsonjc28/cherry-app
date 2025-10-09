@@ -40,9 +40,7 @@ const ReviewFormPage = () => {
         setOrder(response.data.order);
         
         // Debug: Log para ver los datos del producto y orden
-        console.log('Full API response:', response.data);
-        console.log('Product data received:', response.data.product);
-        console.log('Order data received:', response.data.order);
+        ;;
         
         if (!response.data.can_review) {
           setError(response.data.message);

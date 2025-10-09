@@ -21,16 +21,12 @@ const UserNotifications = ({ isOpen, onClose }) => {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      setError(null);
-      
-      console.log('Fetching notifications...');
-      const response = await userNotificationService.getUserNotifications();
-      console.log('Notifications response:', response);
+      setError(null);;
+      const response = await userNotificationService.getUserNotifications();;
       
       if (response.data.success) {
         setNotifications(response.data.notifications || []);
-        setUnreadCount(response.data.unread_count || 0);
-        console.log('Notifications loaded:', response.data.notifications?.length || 0);
+        setUnreadCount(response.data.unread_count || 0);;
       } else {
         setError(response.data.message || 'Error al cargar notificaciones');
         console.error('API error:', response.data.message);

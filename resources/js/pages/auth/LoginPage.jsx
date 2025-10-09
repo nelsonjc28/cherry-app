@@ -40,11 +40,9 @@ const LoginPage = () => {
     setIsSubmitting(true);
     
     try {
-      console.log('Attempting login with:', { username: formData.username });
       const user = await login(formData.username, formData.password);
       
       if (user) {
-        console.log('Login successful:', user);
         if (window.showToast) {
           window.showToast('¡Bienvenido!', 'success');
         }
@@ -56,10 +54,8 @@ const LoginPage = () => {
           navigate('/');
         }
       } else {
-        console.log('Login failed, error:', error);
         // Obtener el error actual del store
-        const currentError = useUserStore.getState().error;
-        console.log('Current error from store:', currentError);
+        const currentError = useUserStore.getState().error;;
         if (window.showToast) {
           window.showToast(currentError || error || 'Error al iniciar sesión', 'error');
         }

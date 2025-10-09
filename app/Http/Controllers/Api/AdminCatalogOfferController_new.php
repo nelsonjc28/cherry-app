@@ -309,11 +309,32 @@ class AdminCatalogOfferController extends Controller
                 // Actualizar oferta principal
                 $offer->update($data);
                 
-                // Actualizar relaciones de productos (eliminar y recrear)
-                CatalogOfferProduct::where('offer_id', $offer->id)->delete();
-                if (!empty($targetProducts)) {
+                // Obtener productos actuales de la oferta
+                $currentProducts = CatalogOfferProduct::where('offer_id', $offer->id)
+                    ->pluck('product_id')
+                    ->toArray();
+                
+                // Convertir targetProducts a array de strings para comparación
+                $newProducts = array_map('strval', $targetProducts);
+                $currentProducts = array_map('strval', $currentProducts);
+                
+                // Productos a eliminar (están en BD pero no en el formulario)
+                $productsToDelete = array_diff($currentProducts, $newProducts);
+                
+                // Productos a agregar (están en el formulario pero no en BD)
+                $productsToAdd = array_diff($newProducts, $currentProducts);
+                
+                // Eliminar productos que ya no están en el formulario
+                if (!empty($productsToDelete)) {
+                    CatalogOfferProduct::where('offer_id', $offer->id)
+                        ->whereIn('product_id', $productsToDelete)
+                        ->delete();
+                }
+                
+                // Agregar productos nuevos
+                if (!empty($productsToAdd)) {
                     $productData = [];
-                    foreach ($targetProducts as $productId) {
+                    foreach ($productsToAdd as $productId) {
                         if (!empty($productId)) {
                             $productData[] = [
                                 'offer_id' => $offer->id,
@@ -328,11 +349,32 @@ class AdminCatalogOfferController extends Controller
                     }
                 }
                 
-                // Actualizar relaciones de usuarios
-                CatalogOfferUser::where('offer_id', $offer->id)->delete();
-                if (!empty($targetUsers)) {
+                // Obtener usuarios actuales de la oferta
+                $currentUsers = CatalogOfferUser::where('offer_id', $offer->id)
+                    ->pluck('user_id')
+                    ->toArray();
+                
+                // Convertir targetUsers a array de strings para comparación
+                $newUsers = array_map('strval', $targetUsers);
+                $currentUsers = array_map('strval', $currentUsers);
+                
+                // Usuarios a eliminar (están en BD pero no en el formulario)
+                $usersToDelete = array_diff($currentUsers, $newUsers);
+                
+                // Usuarios a agregar (están en el formulario pero no en BD)
+                $usersToAdd = array_diff($newUsers, $currentUsers);
+                
+                // Eliminar usuarios que ya no están en el formulario
+                if (!empty($usersToDelete)) {
+                    CatalogOfferUser::where('offer_id', $offer->id)
+                        ->whereIn('user_id', $usersToDelete)
+                        ->delete();
+                }
+                
+                // Agregar usuarios nuevos
+                if (!empty($usersToAdd)) {
                     $userData = [];
-                    foreach ($targetUsers as $userId) {
+                    foreach ($usersToAdd as $userId) {
                         if (is_numeric($userId)) {
                             $userData[] = [
                                 'offer_id' => $offer->id,
@@ -412,6 +454,7 @@ class AdminCatalogOfferController extends Controller
             ], 500);
         }
     }
+
 
     /**
      * Obtener oferta específica

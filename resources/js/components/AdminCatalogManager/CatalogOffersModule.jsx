@@ -230,6 +230,7 @@ const CatalogOffersModule = ({ onBack }) => {
     }));
   };
 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -881,11 +882,11 @@ const CatalogOffersModule = ({ onBack }) => {
                       <span>Inicio: {formatDate(offer.start_date)}</span>
                       <span>Fin: {formatDate(offer.end_date)}</span>
                     </div>
-                                         <div className="catalog-offers-module__offer-usage">
-                       {offer.min_purchase_amount && offer.discount_category !== 'buy_x_get_y' && (
-                         <span>Mín: ${offer.min_purchase_amount}</span>
-                       )}
-                     </div>
+                    <div className="catalog-offers-module__offer-usage">
+                      {offer.min_purchase_amount && offer.discount_category !== 'buy_x_get_y' && (
+                        <span>Mín: ${offer.min_purchase_amount}</span>
+                      )}
+                    </div>
                   </div>
                   
                   <div className="catalog-offers-module__offer-actions">

@@ -36,8 +36,7 @@ const ProductosPage = () => {
     const loadCatalogs = async () => {
       setCatalogLoading(true);
       try {
-        const response = await publicCatalogService.getAll();
-        console.log('🔍 ProductosPage: Respuesta de catálogos:', response);
+        const response = await publicCatalogService.getAll();;
         
         // Manejar diferentes estructuras de respuesta
         let catalogsData = [];

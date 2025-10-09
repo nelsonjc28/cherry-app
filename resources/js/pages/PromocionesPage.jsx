@@ -19,22 +19,11 @@ const PromocionesPage = () => {
     const loadPromoProducts = async () => {
       setLoading(true);
       try {
-        console.log('🔍 Cargando promociones...', { 
-          isLoggedIn, 
-          hasActiveSession,
-          userStoreHasUser: !!user,
-          userStoreHasToken: !!token,
-          localStorageToken: !!localStorage.getItem('token')
-        });
         
         
         // Usar la función inteligente que maneja automáticamente sesión activa o no
         const promoProducts = await getSmartPromoProducts(50);
-        
-        console.log('✅ Productos con promociones cargados:', {
-          total: promoProducts.length,
-          hasSession: hasActiveSession,
-          sampleProducts: promoProducts.slice(0, 3).map(p => ({
+        const processedProducts = promoProducts.map(p => ({
             id: p.id,
             title: p.title,
             price: p.price,
@@ -42,28 +31,8 @@ const PromocionesPage = () => {
             discount: p.discount,
             hasUserOffer: p.hasUserOffer,
             userDiscount: p.userDiscount
-          }))
-        });
+          }));
 
-        // Log detallado separando productos de API externa vs ofertas personalizadas
-        if (promoProducts.length > 0) {
-          console.log('🔍 PromocionesPage: SEPARANDO productos por tipo:');
-          
-          const externalProducts = promoProducts.filter(p => !p.hasUserOffer);
-          const userOfferProducts = promoProducts.filter(p => p.hasUserOffer);
-          
-          console.log(`📊 Productos de API externa (${externalProducts.length}):`);
-          externalProducts.slice(0, 5).forEach((product, index) => {
-            console.log(`  ${index + 1}. ID: ${product.id || product.id_articulo}, Título: ${product.title || product.nombre}, Precio: ${product.price}, Descuento: ${product.discount}%`);
-          });
-          
-          console.log(`🎯 Productos con ofertas personalizadas (${userOfferProducts.length}):`);
-          userOfferProducts.forEach((product, index) => {
-            console.log(`  ${index + 1}. ID: ${product.id || product.id_articulo}, Título: ${product.title || product.nombre}, Precio: ${product.price}, Descuento: ${product.discount}%, UserOffer: ${product.userOffer?.title}`);
-          });
-        } else {
-          console.log('❌ PromocionesPage: NO se recibieron productos - array vacío');
-        }
         
         setProductsWithOffers(promoProducts);
       } catch (error) {
@@ -79,18 +48,9 @@ const PromocionesPage = () => {
 
   const handleFavoriteToggle = (productId) => {
     // Implementar lógica de favoritos si es necesario
-    console.log('Toggle favorite for product:', productId);
-  };
+    };
 
   // Log del estado actual para debugging
-  console.log('🔍 PromocionesPage: Estado actual del render:', {
-    loading,
-    productsCount: productsWithOffers?.length || 0,
-    isLoggedIn,
-    hasActiveSession,
-    hasProducts: productsWithOffers && productsWithOffers.length > 0
-  });
-
   if (loading) {
     return (
       <>
@@ -165,32 +125,13 @@ const PromocionesPage = () => {
 
               {/* Grid de productos con ofertas */}
               <div className="promociones-products-grid">
-                {(() => {
-                  console.log('🔍 PromocionesPage: Renderizando productos:', {
-                    productsCount: productsWithOffers?.length || 0,
-                    userOfferProductsCount: productsWithOffers?.filter(p => p.hasUserOffer)?.length || 0,
-                    externalProductsCount: productsWithOffers?.filter(p => !p.hasUserOffer)?.length || 0
-                  });
-                  
-                  // Log específico de productos con ofertas personalizadas que se van a renderizar
-                  const userOfferProducts = productsWithOffers?.filter(p => p.hasUserOffer) || [];
-                  if (userOfferProducts.length > 0) {
-                    console.log('🎯 PromocionesPage: Productos con ofertas personalizadas a renderizar:');
-                    userOfferProducts.forEach((product, index) => {
-                      console.log(`  ${index + 1}. ID: ${product.id}, hasUserOffer: ${product.hasUserOffer}, userOffer: ${product.userOffer?.title}`);
-                    });
-                  } else {
-                    console.log('❌ PromocionesPage: NO hay productos con ofertas personalizadas para renderizar');
-                  }
-                  
-                  return productsWithOffers.map((product) => (
+                {productsWithOffers.map((product) => (
                   <ProductCard
                     key={product.id}
                     product={product}
                     onFavoriteToggle={handleFavoriteToggle}
                   />
-                  ));
-                })()}
+                ))}
               </div>
             </div>
           )}

@@ -22,13 +22,10 @@ const DestacadosPage = () => {
       setError(null);
       
       try {
-        console.log('🏆 DestacadosPage: Cargando productos más vendidos del mes...');
-        
         // Obtener productos más vendidos del mes actual
         const products = await getTopSellingProducts(20);
         
         if (products.length === 0) {
-          console.log('📊 DestacadosPage: No hay productos más vendidos este mes');
           setTopSellingProducts([]);
           setCurrentMonth(new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }));
           return;
@@ -37,14 +34,11 @@ const DestacadosPage = () => {
         // Aplicar ofertas personalizadas si hay usuario logueado
         let finalProducts = products;
         if (user) {
-          console.log('👤 DestacadosPage: Aplicando ofertas personalizadas...');
           finalProducts = await applyUserOffersToProducts(products);
         }
         
         setTopSellingProducts(finalProducts);
-        setCurrentMonth(new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }));
-        
-        console.log(`✅ DestacadosPage: ${finalProducts.length} productos más vendidos cargados`);
+        setCurrentMonth(new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }));;
         
       } catch (error) {
         console.error('❌ DestacadosPage: Error al cargar productos más vendidos:', error);

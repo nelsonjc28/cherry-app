@@ -136,12 +136,10 @@ const RegisterPage = () => {
           setCurrentStep(2);
         } else {
           // Mostrar el error específico del backend
-          console.log('Showing error toast:', error);
-          console.log('window.showToast available:', typeof window.showToast);
+          ;
           
           if (window.showToast) {
-            window.showToast(error || 'Error en el registro', 'error');
-            console.log('Toast called successfully');
+            window.showToast(error || 'Error en el registro', 'error');;
           } else {
             console.error('window.showToast is not available');
             // Fallback: mostrar alert

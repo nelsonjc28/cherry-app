@@ -156,8 +156,7 @@ const AdminCatalogManager = () => {
     
     // 🚀 SCROLL AUTOMÁTICO HACIA ARRIBA al editar catálogo
     setTimeout(() => {
-      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
-      console.log('📍 Scroll automático - Editando catálogo:', catalog.name);
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });;
     }, 100);
   };
 
@@ -340,8 +339,7 @@ const AdminCatalogManager = () => {
               
               // 🚀 SCROLL AUTOMÁTICO HACIA ARRIBA al crear nuevo catálogo
               setTimeout(() => {
-                window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
-                console.log('📍 Scroll automático - Creando nuevo catálogo');
+                window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });;
               }, 100);
             }}
           >

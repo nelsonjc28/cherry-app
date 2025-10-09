@@ -4,69 +4,70 @@ const API_BASE_URL = '/api';
 
 /**
  * Verificar si productos específicos tienen ofertas para el usuario
- * VERSIÓN OPTIMIZADA - Sin límites ni timeouts
+ * VERSIÓN OPTIMIZADA - Usando el endpoint correcto
  */
 export const checkProductsWithUserOffers = async (productIds) => {
   
   try {
     if (!Array.isArray(productIds) || productIds.length === 0) {
-      console.log('❌ checkProductsWithUserOffers: ProductIds inválidos');
       return {};
     }
     
     // Obtener token del localStorage
     const token = localStorage.getItem('token');
     if (!token) {
-      console.log('❌ checkProductsWithUserOffers: No hay token');
       return {};
     }
 
-
-    // 🚀 UNA SOLA LLAMADA - Sin límites, sin lotes, sin timeouts
-    const response = await axios.post(`${API_BASE_URL}/user-discounts/check`, {
-      product_ids: productIds
-    }, {
+    // Usar el endpoint correcto que ya está funcionando
+    const response = await fetch('/api/user-offer-products', {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     });
 
+    if (!response.ok) {
+      return {};
+    }
+
+    const data = await response.json();
     
-    // Log especial para el usuario cliente@cherrycentral.com
-    if (token) {
-      try {
-        const tokenPayload = JSON.parse(atob(token.split('.')[1]));
-        if (tokenPayload.email === 'cliente@cherrycentral.com') {
-          console.log('🔍 DEBUGGING usuario cliente@cherrycentral.com:', {
-            email: tokenPayload.email,
-            userId: tokenPayload.sub,
-            productIds: productIds,
-            discounts: response.data?.discounts,
-            hasDiscounts: Object.keys(response.data?.discounts || {}).length > 0
-          });
-        }
-      } catch (tokenError) {
-        console.log('⚠️ No se pudo decodificar el token para debugging');
+    if (!data.success || !data.product_ids || data.product_ids.length === 0) {
+      return {};
+    }
+
+    // Obtener datos completos de las ofertas del backend
+    try {
+      const detailsResponse = await fetch('/api/user-discounts/check', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          product_ids: data.product_ids
+        })
+      });
+      
+      if (!detailsResponse.ok) {
+        return {};
       }
-    }
 
-    if (response && response.data && response.data.success) {
-      return response.data.discounts || {};
-    }
+      const detailsData = await detailsResponse.json();
+      
+      if (!detailsData.success || !detailsData.discounts) {
+        return {};
+      }
 
-    console.log('⚠️ checkProductsWithUserOffers: Respuesta no exitosa');
-    return {};
-  } catch (error) {
-    console.error('❌ checkProductsWithUserOffers: Error en la llamada:', {
-      status: error.response?.status,
-      message: error.message,
-      data: error.response?.data
-    });
+      return detailsData.discounts;
+    } catch (error) {
+      console.error('❌ checkProductsWithUserOffers: Error obteniendo detalles:', error);
+      return {};
+    }
     
-    if (error.response && error.response.status !== 401) {
-      console.warn('Error verificando productos con ofertas:', error.response.status);
-    }
+  } catch (error) {
+    console.error('❌ checkProductsWithUserOffers: Error en la llamada:', error);
     return {};
   }
 };
@@ -75,30 +76,41 @@ export const checkProductsWithUserOffers = async (productIds) => {
  * Aplicar ofertas de usuario a una lista de productos
  * VERSIÓN SÚPER SIMPLIFICADA - Sin lotes, sin límites, sin timeouts
  */
-export const applyUserOffersToProducts = async (products) => {
+export const applyUserOffersToProducts = async (products, userOfferMap = null) => {
   
   if (!products || products.length === 0) {
     return products;
   }
 
-  // Extraer IDs de productos
-  const productIds = products.map(product => 
-    product.id_articulo || product.id || product.codigo
-  ).filter(Boolean);
+  // Si se proporciona un mapa de ofertas personalizadas, usarlo directamente
+  let productsWithOffers = {};
+  
+  if (userOfferMap && userOfferMap.size > 0) {
+    // Convertir Map a objeto
+    userOfferMap.forEach((value, key) => {
+      productsWithOffers[key] = value;
+    });
+  } else {
+    // Extraer IDs de productos
+    const productIds = products.map(product => 
+      product.id_articulo || product.id || product.codigo
+    ).filter(Boolean);
 
+    if (productIds.length === 0) {
+      return products;
+    }
 
-  if (productIds.length === 0) {
-    return products;
+    // 🚀 UNA SOLA CONSULTA SÚPER EFICIENTE
+    try {
+      productsWithOffers = await checkProductsWithUserOffers(productIds);
+    } catch (error) {
+      console.warn('Error obteniendo ofertas de usuario:', error);
+      return products;
+    }
   }
 
-  // 🚀 UNA SOLA CONSULTA SÚPER EFICIENTE
-  try {
-    const productsWithOffers = await checkProductsWithUserOffers(productIds);
-    
-
-
-    // Aplicar ofertas a los productos
-    const processedProducts = products.map(product => {
+  // Aplicar ofertas a los productos
+  const processedProducts = products.map(product => {
       const productId = product.id_articulo || product.id || product.codigo;
       const userOffer = productsWithOffers[productId];
       
@@ -166,12 +178,8 @@ export const applyUserOffersToProducts = async (products) => {
       };
     });
 
-    // Log final de productos procesados
-    const productsWithUserOffers = processedProducts.filter(p => p.hasUserOffer);
-    
-    return processedProducts;
-  } catch (error) {
-    console.warn('Error aplicando ofertas de usuario:', error);
-    return products;
-  }
+  // Log final de productos procesados
+  const productsWithUserOffers = processedProducts.filter(p => p.hasUserOffer);
+  
+  return processedProducts;
 };

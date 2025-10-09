@@ -86,8 +86,6 @@ const BuscarPage = () => {
 
   // Cargar colores y tallas disponibles desde productos cargados
   useEffect(() => {
-    console.log('🔍 DEBUG BuscarPage - useEffect de extracción de filtros ejecutándose, productos:', products.length);
-    
     const extractFiltersFromProducts = () => {
       setColorsLoading(true);
       setSizesLoading(true);
@@ -98,18 +96,15 @@ const BuscarPage = () => {
         const sizeSet = new Set();
         
         products.forEach(product => {
-          console.log('🔍 DEBUG BuscarPage - Procesando producto:', product.id);
-          console.log('🔍 DEBUG BuscarPage - product.detalles:', product.detalles);
+          ;
           
           // PRIORIDAD 1: Extraer de detalles (donde están realmente las tallas)
           if (product.detalles && product.detalles.length > 0) {
             product.detalles.forEach(detalle => {
-              console.log('🔍 DEBUG BuscarPage - Procesando detalle:', detalle);
               if (detalle.nombreColor && detalle.nombreColor.trim()) {
                 colorSet.add(detalle.nombreColor.trim());
               }
               if (detalle.detalle && detalle.detalle.trim()) {
-                console.log('🔍 DEBUG BuscarPage - Agregando talla desde detalles:', detalle.detalle);
                 sizeSet.add(detalle.detalle.trim());
               }
             });
@@ -117,10 +112,8 @@ const BuscarPage = () => {
           
           // PRIORIDAD 2: Extraer de sizes como fallback
           if (product.sizes && product.sizes.length > 0) {
-            console.log('🔍 DEBUG BuscarPage - Agregando tallas desde product.sizes (fallback):', product.sizes);
             product.sizes.forEach(size => {
               if (size && size.trim()) {
-                console.log('🔍 DEBUG BuscarPage - Agregando talla individual (fallback):', size);
                 sizeSet.add(size.trim());
               }
             });
@@ -145,15 +138,8 @@ const BuscarPage = () => {
         const finalColors = Array.from(colorSet).sort();
         const finalSizes = sortedSizes;
         
-        console.log('🔍 DEBUG BuscarPage - Colores extraídos:', finalColors);
-        console.log('🔍 DEBUG BuscarPage - Tallas extraídas:', finalSizes);
-        console.log('🔍 DEBUG BuscarPage - Tamaño del Set de tallas:', sizeSet.size);
-        console.log('🔍 DEBUG BuscarPage - Contenido del Set de tallas:', Array.from(sizeSet));
-        
         setAvailableColors(finalColors);
         setAvailableSizes(finalSizes);
-        
-        console.log('🔍 DEBUG BuscarPage - Estados actualizados - availableColors:', finalColors.length, 'availableSizes:', finalSizes.length);
       } catch (error) {
         console.error('Error extrayendo datos de filtros:', error);
         setAvailableColors([]);
@@ -166,12 +152,10 @@ const BuscarPage = () => {
 
     // Solo extraer filtros si hay productos cargados
     if (products.length > 0) {
-      console.log('🔍 DEBUG BuscarPage - Ejecutando extracción de filtros para', products.length, 'productos');
-      console.log('🔍 DEBUG BuscarPage - Primer producto para verificar estructura:', products[0]);
+      ;
       extractFiltersFromProducts();
     } else {
-      console.log('🔍 DEBUG BuscarPage - No hay productos cargados, saltando extracción de filtros');
-    }
+      }
   }, [products]);
 
   // Cargar productos
@@ -183,28 +167,21 @@ const BuscarPage = () => {
         
         // Use advanced search if we have search parameters
         if (query || colorFilter || skuFilter) {
-          console.log('🔍 DEBUG BuscarPage - Realizando búsqueda avanzada con query:', query);
           const searchFilters = {
             ...filters,
             codigo: skuFilter,
             colors: colorFilter ? colorFilter.split(',').map(c => c.trim()) : []
           };
-          productsData = await searchProductsAdvanced(query, searchFilters);
-          console.log('🔍 DEBUG BuscarPage - Productos devueltos por búsqueda:', productsData.length);
+          productsData = await searchProductsAdvanced(query, searchFilters);;
         } else {
           // Load all products if no search parameters
           productsData = await getProductsWithRatings();
         }
         
         // Aplicar ofertas de usuario a todos los productos
-        const productsWithOffers = await applyUserOffersToProducts(productsData);
-        
-        console.log('🔍 DEBUG BuscarPage - Productos encontrados:', productsWithOffers.length);
-        console.log('🔍 DEBUG BuscarPage - Primer producto:', productsWithOffers[0]);
+        const productsWithOffers = await applyUserOffersToProducts(productsData);;;
         if (productsWithOffers[0]) {
-          console.log('🔍 DEBUG BuscarPage - Colores del primer producto:', productsWithOffers[0].colors);
-          console.log('🔍 DEBUG BuscarPage - Tallas del primer producto:', productsWithOffers[0].sizes);
-          console.log('🔍 DEBUG BuscarPage - Detalles del primer producto:', productsWithOffers[0].detalles);
+          ;;
         }
         
         setProducts(productsWithOffers);

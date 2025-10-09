@@ -20,7 +20,15 @@ const useCartStore = create(
       initCart: () => {
         const { items } = get();
         const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-        const totalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const totalPrice = items.reduce((sum, item) => {
+          // Para productos gratis (isFreeItem), no sumar al total
+          if (item.isFreeItem) {
+            return sum;
+          }
+          // Usar el precio correcto (price o precio)
+          const itemPrice = item.price || item.precio || 0;
+          return sum + (itemPrice * item.quantity);
+        }, 0);
         set({ totalItems, totalPrice });
       },
 
@@ -31,11 +39,12 @@ const useCartStore = create(
         // Create a unique key for the item based on product ID, color, and size
         const itemKey = `${product.id_articulo}-${product.selectedColor}-${product.selectedSize}`;
         
-        // Check if item already exists in cart
+        // Check if item already exists in cart (considering if it's a free item)
         const existingItemIndex = items.findIndex(item => 
           item.id_articulo === product.id_articulo &&
           item.selectedColor === product.selectedColor &&
-          item.selectedSize === product.selectedSize
+          item.selectedSize === product.selectedSize &&
+          item.isFreeItem === product.isFreeItem
         );
 
         let updatedItems;
@@ -58,7 +67,28 @@ const useCartStore = create(
 
         // Calculate totals
         const totalItems = updatedItems.reduce((sum, item) => sum + item.quantity, 0);
-        const totalPrice = updatedItems.reduce((sum, item) => sum + (item.precio * item.quantity), 0);
+        const totalPrice = updatedItems.reduce((sum, item) => {
+          // Para productos gratis (isFreeItem), no sumar al total
+          if (item.isFreeItem) {
+            console.log('🆓 Producto GRATIS excluido del total:', {
+              productId: item.id_articulo,
+              quantity: item.quantity,
+              price: item.price,
+              isFreeItem: item.isFreeItem,
+              reason: item.freeItemReason
+            });
+            return sum;
+          }
+          // Usar el precio correcto (price o precio)
+          const itemPrice = item.price || item.precio || 0;
+          console.log('💰 Producto PAGO incluido en total:', {
+            productId: item.id_articulo,
+            quantity: item.quantity,
+            price: itemPrice,
+            subtotal: itemPrice * item.quantity
+          });
+          return sum + (itemPrice * item.quantity);
+        }, 0);
 
         set({
           items: updatedItems,
@@ -81,7 +111,15 @@ const useCartStore = create(
         );
 
         const totalItems = updatedItems.reduce((sum, item) => sum + item.quantity, 0);
-        const totalPrice = updatedItems.reduce((sum, item) => sum + (item.precio * item.quantity), 0);
+        const totalPrice = updatedItems.reduce((sum, item) => {
+          // Para productos gratis (isFreeItem), no sumar al total
+          if (item.isFreeItem) {
+            return sum;
+          }
+          // Usar el precio correcto (price o precio)
+          const itemPrice = item.price || item.precio || 0;
+          return sum + (itemPrice * item.quantity);
+        }, 0);
 
         set({
           items: updatedItems,
@@ -100,7 +138,15 @@ const useCartStore = create(
         );
 
         const totalItems = updatedItems.reduce((sum, item) => sum + item.quantity, 0);
-        const totalPrice = updatedItems.reduce((sum, item) => sum + (item.precio * item.quantity), 0);
+        const totalPrice = updatedItems.reduce((sum, item) => {
+          // Para productos gratis (isFreeItem), no sumar al total
+          if (item.isFreeItem) {
+            return sum;
+          }
+          // Usar el precio correcto (price o precio)
+          const itemPrice = item.price || item.precio || 0;
+          return sum + (itemPrice * item.quantity);
+        }, 0);
 
         set({
           items: updatedItems,
@@ -119,6 +165,22 @@ const useCartStore = create(
           discount: 0,
           isLoading: false
         });
+      },
+
+      // Recalculate totals (useful for debugging)
+      recalculateTotals: () => {
+        const { items } = get();
+        const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+        const totalPrice = items.reduce((sum, item) => {
+          // Para productos gratis (isFreeItem), no sumar al total
+          if (item.isFreeItem) {
+            return sum;
+          }
+          // Usar el precio correcto (price o precio)
+          const itemPrice = item.price || item.precio || 0;
+          return sum + (itemPrice * item.quantity);
+        }, 0);
+        set({ totalItems, totalPrice });
       },
     }),
     {

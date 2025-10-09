@@ -29,7 +29,6 @@ const useAuthGuard = (requireAuth = true, redirectTo = '/login') => {
       const expirationBuffer = 5 * 60; // 5 minutos en segundos
       
       if (tokenData.exp && (tokenData.exp - expirationBuffer) < currentTime) {
-        console.log('Token expirará pronto o ya expiró:', {
           exp: tokenData.exp,
           current: currentTime,
           expiresIn: tokenData.exp - currentTime,

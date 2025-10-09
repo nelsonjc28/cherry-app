@@ -28,21 +28,18 @@ const OffersExample = () => {
       switch (selectedMode) {
         case 'smart':
           // Modo recomendado: automático según sesión
-          result = await getSmartPromoProducts(20);
-          console.log('🤖 Modo inteligente - ofertas cargadas automáticamente');
+          result = await getSmartPromoProducts(20);;
           break;
           
         case 'external':
           // Solo ofertas externas (sin sesión)
-          result = await getExternalPromoProducts(20);
-          console.log('🔓 Modo externo - solo ofertas de API externa');
+          result = await getExternalPromoProducts(20);;
           break;
           
         case 'user':
           // Ofertas con sesión (incluye personalizadas)
           if (sessionActive) {
-            result = await getPromoProducts(20);
-            console.log('🔐 Modo usuario - ofertas con descuentos personalizados');
+            result = await getPromoProducts(20);;
           } else {
             console.warn('⚠️ No hay sesión activa, usando ofertas externas');
             result = await getExternalPromoProducts(20);

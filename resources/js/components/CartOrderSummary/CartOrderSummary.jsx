@@ -465,17 +465,6 @@ const CartOrderSummary = ({
         };
         
         // DEBUG: Log para ver qué datos se están enviando
-        console.log('🔍 CartOrderSummary - Enviando item:', {
-          original: {
-            id_articulo: item.id_articulo,
-            title: item.title,
-            selectedSize: item.selectedSize,
-            selectedColor: item.selectedColor,
-            barcode: item.barcode
-          },
-          mapped: mappedItem
-        });
-        
         return mappedItem;
       }),
       address_id: parseInt(selectedAddress.id, 10)

@@ -415,7 +415,7 @@ const Header = () => {
         <div className="affiliate-bar-header">
           <div className="affiliate-container-header">
             <p className="affiliate-text-header">¡Afiliate ahora mismo y comienza tu propio negocio!</p>
-            <Link to="/afiliate" className="affiliate-button-header">Afiliate aquí</Link>
+            <Link to="/registro" className="affiliate-button-header">Afiliate aquí</Link>
           </div>
         </div>
       )}

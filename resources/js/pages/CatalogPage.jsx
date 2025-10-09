@@ -116,19 +116,15 @@ const CatalogPage = ({ catalogId }) => {
   const filterProducts = useCallback((products, currentFilters) => {
     
     if (!products || products.length === 0) {
-      console.log('🔍 DEBUG filterProducts - No hay productos para filtrar');
       return [];
     }
 
-    console.log('🔍 DEBUG filterProducts - Iniciando con', products.length, 'productos');
-    console.log('🔍 DEBUG filterProducts - Filtros recibidos:', JSON.stringify(currentFilters, null, 2));
     let filtered = [...products];
 
 
     // Filter by category (if not "Todas las categorías")
     if (currentFilters.category && currentFilters.category !== 'Todas las categorías') {
-      const categoryLower = currentFilters.category.toLowerCase();
-      console.log('🔍 DEBUG filterProducts - Filtro de categoría:', categoryLower);
+      const categoryLower = currentFilters.category.toLowerCase();;
       const beforeCategory = filtered.length;
       filtered = filtered.filter(product => {
         const productCategory = product.category?.toLowerCase() || '';
@@ -138,8 +134,7 @@ const CatalogPage = ({ catalogId }) => {
         return productCategory.includes(categoryLower) || 
                productTitle.includes(categoryLower) ||
                productDescription.includes(categoryLower);
-      });
-      console.log(`🔍 DEBUG filterProducts - Después de filtro categoría: ${beforeCategory} -> ${filtered.length}`);
+      });;
     }
 
     // Filter by department (if not "Todos los departamentos")
@@ -170,7 +165,6 @@ const CatalogPage = ({ catalogId }) => {
 
     // Filter by price range
     if (currentFilters.priceRange && (currentFilters.priceRange.min > 0 || currentFilters.priceRange.max > 0)) {
-      console.log('🔍 DEBUG filterProducts - Filtro de precio:', currentFilters.priceRange);
       const beforePrice = filtered.length;
       filtered = filtered.filter(product => {
         const price = product.price || 0;
@@ -185,12 +179,10 @@ const CatalogPage = ({ catalogId }) => {
         }
         
         if (!passes) {
-          console.log('🔍 DEBUG filterProducts - Precio fuera de rango:', product.id, 'precio:', price, 'rango:', minPrice, '-', maxPrice);
-        }
+          }
         
         return passes;
-      });
-      console.log(`🔍 DEBUG filterProducts - Después de filtro precio: ${beforePrice} -> ${filtered.length}`);
+      });;
     }
 
     // Filter by availability
@@ -202,11 +194,9 @@ const CatalogPage = ({ catalogId }) => {
 
     // Filter by colors
     if (currentFilters.colors && currentFilters.colors.length > 0) {
-      console.log('🔍 DEBUG filterProducts - Filtro de colores:', currentFilters.colors);
       const beforeColors = filtered.length;
       filtered = filtered.filter(product => {
         if (!product.colors || product.colors.length === 0) {
-          console.log('🔍 DEBUG filterProducts - Producto sin colores:', product.id, product.title);
           return false;
         }
         
@@ -218,28 +208,23 @@ const CatalogPage = ({ catalogId }) => {
                          productColorLower.includes(filterColorLower) ||
                          filterColorLower.includes(productColorLower);
             if (match) {
-              console.log('🔍 DEBUG filterProducts - Color match:', filterColor, '<=>', productColor);
-            }
+              }
             return match;
           });
         });
         
         if (!matches) {
-          console.log('🔍 DEBUG filterProducts - No color match para:', product.id, 'colores:', product.colors, 'vs filtros:', currentFilters.colors);
-        }
+          }
         
         return matches;
-      });
-      console.log(`🔍 DEBUG filterProducts - Después de filtro colores: ${beforeColors} -> ${filtered.length}`);
+      });;
     }
 
     // Filter by sizes
     if (currentFilters.sizes && currentFilters.sizes.length > 0) {
-      console.log('🔍 DEBUG filterProducts - Filtro de tallas:', currentFilters.sizes);
       const beforeSizes = filtered.length;
       filtered = filtered.filter(product => {
         if (!product.sizes || product.sizes.length === 0) {
-          console.log('🔍 DEBUG filterProducts - Producto sin tallas:', product.id, product.title);
           return false;
         }
         
@@ -251,22 +236,18 @@ const CatalogPage = ({ catalogId }) => {
                          productSizeLower.includes(filterSizeLower) ||
                          filterSizeLower.includes(productSizeLower);
             if (match) {
-              console.log('🔍 DEBUG filterProducts - Size match:', filterSize, '<=>', productSize);
-            }
+              }
             return match;
           });
         });
         
         if (!matches) {
-          console.log('🔍 DEBUG filterProducts - No size match para:', product.id, 'tallas:', product.sizes, 'vs filtros:', currentFilters.sizes);
-        }
+          }
         
         return matches;
-      });
-      console.log(`🔍 DEBUG filterProducts - Después de filtro tallas: ${beforeSizes} -> ${filtered.length}`);
+      });;
     }
 
-    console.log('🔍 DEBUG filterProducts - RESULTADO FINAL:', filtered.length, 'productos filtrados');
     return filtered;
   }, []);
 
@@ -593,20 +574,16 @@ const CatalogPage = ({ catalogId }) => {
   const processedProducts = useMemo(() => {
     
     if (allProducts.length === 0) {
-      console.log('🔍 DEBUG - allProducts está vacío');
       return [];
     }
     
-    console.log('🔍 DEBUG - Aplicando filtros a', allProducts.length, 'productos');
-    console.log('🔍 DEBUG - Filtros actuales:', filters);
+    ;
     
-    let filtered = filterProducts(allProducts, filters);
-    console.log('🔍 DEBUG - Productos después de filtros básicos:', filtered.length);
+    let filtered = filterProducts(allProducts, filters);;
     
     // Apply color filter from URL
     if (colorFilter) {
-      const colorFilters = colorFilter.split(',').map(c => c.trim());
-      console.log('🔍 DEBUG - Filtro de color desde URL:', colorFilters);
+      const colorFilters = colorFilter.split(',').map(c => c.trim());;
       filtered = filtered.filter(product => {
         if (!product.colors || product.colors.length === 0) return false;
         
@@ -619,14 +596,12 @@ const CatalogPage = ({ catalogId }) => {
                    filterColorLower.includes(productColorLower);
           });
         });
-      });
-      console.log('🔍 DEBUG - Productos después de filtro de color URL:', filtered.length);
+      });;
     }
     
     // Apply DTU filter from URL
     if (dtuFilter) {
-      const dtuFilters = dtuFilter.split(',').map(d => d.trim());
-      console.log('🔍 DEBUG - Filtro DTU desde URL:', dtuFilters);
+      const dtuFilters = dtuFilter.split(',').map(d => d.trim());;
       filtered = filtered.filter(product => {
         return dtuFilters.some(filterDtu => {
           const filterDtuLower = filterDtu.toLowerCase();
@@ -635,12 +610,10 @@ const CatalogPage = ({ catalogId }) => {
             (product.DTU && product.DTU.toLowerCase().includes(filterDtuLower))
           );
         });
-      });
-      console.log('🔍 DEBUG - Productos después de filtro DTU:', filtered.length);
+      });;
     }
     
-    const sorted = sortProducts(filtered, sortBy);
-    console.log('🔍 DEBUG - Productos finales después de ordenar:', sorted.length);
+    const sorted = sortProducts(filtered, sortBy);;
 
     return sorted;
   }, [allProducts, filters, colorFilter, dtuFilter, sortBy, filterProducts, sortProducts]);

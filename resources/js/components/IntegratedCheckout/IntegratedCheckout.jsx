@@ -177,9 +177,7 @@ const IntegratedCheckout = ({
           price: item.precio || item.price
         })),
         address_id: selectedAddress.id
-      };
-
-      console.log('Enviando datos de pago:', paymentData);
+      };;
 
       // Enviar al backend
       const response = await api.post('/payment/process-integrated', paymentData);

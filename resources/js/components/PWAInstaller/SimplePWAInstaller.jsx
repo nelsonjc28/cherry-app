@@ -17,45 +17,36 @@ const SimplePWAInstaller = () => {
     const isAlreadyInstalled = 
       window.matchMedia('(display-mode: standalone)').matches ||
       window.navigator.standalone === true ||
-      localStorage.getItem('pwa-installed') === 'true';
-    
-    console.log('SimplePWAInstaller: ¿Ya instalado?', isAlreadyInstalled);
+      localStorage.getItem('pwa-installed') === 'true';;
     
     if (isAlreadyInstalled) {
-      console.log('SimplePWAInstaller: PWA ya está instalada, no mostrar');
       return;
     }
     
     // Verificar si ya se mostró el toast
-    const toastShown = localStorage.getItem('pwa-install-toast-shown') === 'true';
-    console.log('SimplePWAInstaller: ¿Toast ya mostrado?', toastShown);
+    const toastShown = localStorage.getItem('pwa-install-toast-shown') === 'true';;
     
     // Modo debug: ignorar localStorage si está en la URL
     const isDebugMode = window.location.search.includes('debug-pwa') || window.location.search.includes('show-installer');
     
     if (toastShown && !isDebugMode) {
-      console.log('SimplePWAInstaller: Toast ya se mostró, no mostrar');
       return;
     }
     
     if (isDebugMode) {
-      console.log('SimplePWAInstaller: Modo debug activado, ignorando localStorage');
-    }
+      }
     
     // Escuchar el evento beforeinstallprompt para instalación nativa
     const handleBeforeInstallPrompt = (e) => {
-      console.log('SimplePWAInstaller: beforeinstallprompt recibido');
       e.preventDefault();
       window.deferredPrompt = e;
       
       // Mostrar el toast inmediatamente cuando hay prompt disponible
-      console.log('SimplePWAInstaller: Prompt nativo disponible, mostrando toast...');
       setShowToast(true);
     };
     
     // Escuchar el evento appinstalled
     const handleAppInstalled = () => {
-      console.log('SimplePWAInstaller: PWA instalada exitosamente');
       setShowToast(false);
       localStorage.setItem('pwa-installed', 'true');
       localStorage.setItem('pwa-install-toast-shown', 'true');
@@ -69,11 +60,9 @@ const SimplePWAInstaller = () => {
     const timer = setTimeout(() => {
       // Solo mostrar si no hay prompt nativo disponible
       if (!window.deferredPrompt) {
-        console.log('SimplePWAInstaller: Mostrando toast (sin prompt nativo)...');
         setShowToast(true);
       } else {
-        console.log('SimplePWAInstaller: Prompt nativo disponible, no mostrar toast automático');
-      }
+        }
     }, 2000);
 
     return () => {
@@ -92,22 +81,15 @@ const SimplePWAInstaller = () => {
   };
 
   const handleInstall = async () => {
-    console.log('SimplePWAInstaller: Iniciando instalación automática...');
-    
     try {
       // Verificar si hay un prompt de instalación pendiente
       if (window.deferredPrompt) {
-        console.log('SimplePWAInstaller: Usando prompt nativo...');
-        
         try {
           // Mostrar el prompt nativo del navegador
           await window.deferredPrompt.prompt();
-          const { outcome } = await window.deferredPrompt.userChoice;
-          
-          console.log('SimplePWAInstaller: Resultado del prompt:', outcome);
+          const { outcome } = await window.deferredPrompt.userChoice;;
           
           if (outcome === 'accepted') {
-            console.log('SimplePWAInstaller: Instalación aceptada por el usuario');
             setShowToast(false);
             localStorage.setItem('pwa-installed', 'true');
             localStorage.setItem('pwa-install-toast-shown', 'true');
@@ -117,26 +99,21 @@ const SimplePWAInstaller = () => {
               showSuccessMessage('¡Cherry App instalada exitosamente!\n\nLa aplicación se ha agregado a tu dispositivo.');
             }, 1000);
           } else {
-            console.log('SimplePWAInstaller: Instalación rechazada por el usuario');
             setShowToast(false);
             localStorage.setItem('pwa-install-toast-shown', 'true');
           }
         } catch (error) {
           console.error('SimplePWAInstaller: Error mostrando prompt nativo:', error);
           // Si falla el prompt, intentar instalación automática
-          console.log('SimplePWAInstaller: Prompt falló, intentando instalación automática...');
-        }
+          }
         
         window.deferredPrompt = null;
         return;
       }
       
       // Si no hay prompt nativo, intentar instalación automática silenciosa
-      console.log('SimplePWAInstaller: Intentando instalación automática silenciosa...');
-      
       // Verificar si ya está en modo standalone
       if (window.matchMedia('(display-mode: standalone)').matches) {
-        console.log('SimplePWAInstaller: Ya está en modo standalone');
         setShowToast(false);
         localStorage.setItem('pwa-installed', 'true');
         localStorage.setItem('pwa-install-toast-shown', 'true');
@@ -147,21 +124,17 @@ const SimplePWAInstaller = () => {
       if ('serviceWorker' in navigator) {
         try {
           // Registrar service worker
-          const registration = await navigator.serviceWorker.register('/sw.js');
-          console.log('SimplePWAInstaller: Service Worker registrado');
+          const registration = await navigator.serviceWorker.register('/sw.js');;
           
           // Intentar activar la instalación automática
           if (registration.active) {
-            console.log('SimplePWAInstaller: Service Worker activo, marcando como instalado...');
-            
             // Marcar como instalado automáticamente
             setShowToast(false);
             localStorage.setItem('pwa-installed', 'true');
             localStorage.setItem('pwa-install-toast-shown', 'true');
             
             // NO mostrar mensaje de éxito para instalación automática silenciosa
-            console.log('SimplePWAInstaller: Instalación automática completada silenciosamente');
-          } else {
+            } else {
             throw new Error('Service Worker no activo');
           }
         } catch (error) {
@@ -171,7 +144,6 @@ const SimplePWAInstaller = () => {
           localStorage.setItem('pwa-install-toast-shown', 'true');
         }
       } else {
-        console.log('SimplePWAInstaller: Service Worker no soportado, ocultando toast');
         setShowToast(false);
         localStorage.setItem('pwa-install-toast-shown', 'true');
       }
@@ -195,11 +167,14 @@ const SimplePWAInstaller = () => {
     const hasManifest = !!document.querySelector('link[rel="manifest"]');
     const isHTTPS = location.protocol === 'https:' || location.hostname === 'localhost';
     
-    console.log('SimplePWAInstaller: Soporte PWA:', {
+    console.log('SimplePWAInstaller: Verificando soporte PWA:', {
       hasServiceWorker,
       hasManifest,
       isHTTPS,
-      userAgent: userAgent.substring(0, 50) + '...'
+      isIOS,
+      isAndroid,
+      isWindows,
+      isMacOS
     });
     
     let message = '';
@@ -292,13 +267,11 @@ OPCIÓN 4 - Acceso directo manual:
   // Funciones globales para debugging
   useEffect(() => {
     window.forceShowPWAInstaller = () => {
-      console.log('SimplePWAInstaller: Forzando mostrar instalador...');
       localStorage.removeItem('pwa-install-toast-shown');
       setShowToast(true);
     };
     
     window.clearPWAInstallerCache = () => {
-      console.log('SimplePWAInstaller: Limpiando cache...');
       localStorage.removeItem('pwa-install-toast-shown');
       localStorage.removeItem('pwa-installed');
       localStorage.removeItem('pwa-manually-installed');
@@ -306,13 +279,11 @@ OPCIÓN 4 - Acceso directo manual:
     };
     
     window.showPWAInstallerNow = () => {
-      console.log('SimplePWAInstaller: Mostrando instalador inmediatamente...');
       setShowToast(true);
     };
     
     // Función para resetear completamente
     window.resetPWAInstaller = () => {
-      console.log('SimplePWAInstaller: Reseteando instalador...');
       localStorage.removeItem('pwa-install-toast-shown');
       localStorage.removeItem('pwa-installed');
       localStorage.removeItem('pwa-manually-installed');
@@ -321,21 +292,17 @@ OPCIÓN 4 - Acceso directo manual:
     
     // Función para forzar instalación automática
     window.forcePWAInstall = async () => {
-      console.log('SimplePWAInstaller: Forzando instalación automática...');
-      
       try {
         // Registrar service worker
         if ('serviceWorker' in navigator) {
-          const registration = await navigator.serviceWorker.register('/sw.js');
-          console.log('SimplePWAInstaller: Service Worker registrado forzadamente');
+          const registration = await navigator.serviceWorker.register('/sw.js');;
           
           // Marcar como instalado
           localStorage.setItem('pwa-installed', 'true');
           localStorage.setItem('pwa-install-toast-shown', 'true');
           
           // NO mostrar mensaje automático para instalación forzada
-          console.log('SimplePWAInstaller: Instalación forzada completada silenciosamente');
-        } else {
+          } else {
           alert('❌ Tu navegador no soporta instalación automática de PWA.');
         }
       } catch (error) {
@@ -347,7 +314,6 @@ OPCIÓN 4 - Acceso directo manual:
     // Modo debug: mostrar inmediatamente si está en la URL
     const isDebugMode = window.location.search.includes('debug-pwa') || window.location.search.includes('show-installer');
     if (isDebugMode) {
-      console.log('SimplePWAInstaller: Modo debug activado, mostrando inmediatamente...');
       setShowToast(true);
     }
   }, []);

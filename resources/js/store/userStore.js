@@ -52,13 +52,11 @@ const useUserStore = create((set, get) => ({
         body: JSON.stringify({ username, password })
       });
       
-      const data = await res.json();
-      console.log('Login response:', { status: res.status, data });
+      const data = await res.json();;
       
       if (!res.ok) {
         let errorMessage = 'Error al iniciar sesión.';
         if (data.errors) {
-          console.log('Validation errors:', data.errors);
           // Mostrar todos los errores concatenados
           const allErrors = [];
           Object.keys(data.errors).forEach(key => {
@@ -71,11 +69,9 @@ const useUserStore = create((set, get) => ({
           });
           errorMessage = allErrors.join('. ');
         } else if (data.error) {
-          console.log('Backend error:', data.error);
           // Usar el mensaje exacto del backend
           errorMessage = data.error;
         }
-        console.log('Final error message:', errorMessage);
         set({ error: errorMessage, loading: false });
         return null;
       }
@@ -127,13 +123,11 @@ const useUserStore = create((set, get) => ({
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify(userData)
       });
-      const data = await res.json();
-      console.log('Backend response:', { status: res.status, data });
+      const data = await res.json();;
       
       if (!res.ok) {
         let errorMessage = 'Error en el registro.';
         if (data.errors) {
-          console.log('Validation errors:', data.errors);
           // Mostrar todos los errores concatenados
           const allErrors = [];
           Object.keys(data.errors).forEach(key => {
@@ -148,7 +142,6 @@ const useUserStore = create((set, get) => ({
         } else if (data.error) {
           errorMessage = data.error;
         }
-        console.log('Final error message:', errorMessage);
         set({ error: errorMessage, loading: false });
         return null;
       }

@@ -9,30 +9,24 @@ const PWAInstallToast = () => {
 
 
   useEffect(() => {
-    console.log('PWAInstallToast: Inicializando...');
-    
     // Modo debug: mostrar siempre si está en la URL
     const isDebugMode = window.location.search.includes('debug-pwa') || window.location.search.includes('show-toast');
     
     if (isDebugMode) {
-      console.log('PWAInstallToast: Modo debug activado');
       setShowToast(true);
       return;
     }
     
     // Verificar si ya se mostró el toast
-    const toastShown = localStorage.getItem('pwa-install-toast-shown') === 'true';
-    console.log('PWAInstallToast: Toast ya mostrado?', toastShown);
+    const toastShown = localStorage.getItem('pwa-install-toast-shown') === 'true';;
     
     if (toastShown) {
-      setHasShownToast(true);
-      console.log('PWAInstallToast: Toast ya se mostró antes, no mostrar');
+      setHasShownToast(true);;
       // No hacer return aquí - seguir escuchando eventos para permitir reset
     }
 
     // Escuchar el evento personalizado desde Blade
     const handleInstallAvailable = (event) => {
-      console.log('PWAInstallToast: Evento pwa-install-available recibido', event.detail);
       setDeferredPrompt(event.detail.deferredPrompt);
       
       // Verificar nuevamente el localStorage por si se limpió
@@ -40,7 +34,6 @@ const PWAInstallToast = () => {
       
       // Mostrar toast después de 2 segundos si no se ha mostrado
       if (!currentToastShown) {
-        console.log('PWAInstallToast: Mostrando toast en 2 segundos...');
         setTimeout(() => {
           setShowToast(true);
         }, 2000);
@@ -52,9 +45,7 @@ const PWAInstallToast = () => {
 
     // Mostrar toast automáticamente después de 3 segundos (fallback)
     const fallbackTimer = setTimeout(() => {
-      console.log('PWAInstallToast: Fallback timer ejecutado, toastShown:', toastShown);
       if (!toastShown) {
-        console.log('PWAInstallToast: Mostrando toast por fallback');
         setShowToast(true);
       }
     }, 3000);
@@ -113,9 +104,7 @@ const PWAInstallToast = () => {
     const isIOS = /iPad|iPhone|iPod/.test(userAgent);
     const isAndroid = /Android/.test(userAgent);
     const isMac = /Mac|macOS/.test(userAgent);
-    const isWindows = /Windows/.test(userAgent);
-    
-    console.log('Intentando instalación alternativa para:', { isIOS, isAndroid, isMac, isWindows });
+    const isWindows = /Windows/.test(userAgent);;
     
     if (isIOS) {
       // Para iOS, mostrar instrucciones específicas
@@ -165,8 +154,6 @@ const PWAInstallToast = () => {
 
   const tryAndroidInstall = () => {
     // Para Android, mostrar instrucciones específicas
-    console.log('Intentando instalación en Android');
-    
     const message = `
 📱 Instalar Cherry App en Android:
 
@@ -185,8 +172,6 @@ O alternativamente:
 
   const tryDesktopInstall = () => {
     // Para desktop, mostrar instrucciones específicas
-    console.log('Intentando instalación en Desktop');
-    
     const message = `
 💻 Instalar Cherry App en Escritorio:
 
@@ -212,14 +197,12 @@ O alternativamente:
   // Función global para forzar mostrar el toast (para testing)
   useEffect(() => {
     window.forceShowPWAToast = () => {
-      console.log('PWAInstallToast: Forzando mostrar toast...');
       localStorage.removeItem('pwa-install-toast-shown');
       setHasShownToast(false);
       setShowToast(true);
     };
     
     window.clearPWAInstallCache = () => {
-      console.log('PWAInstallToast: Limpiando cache...');
       localStorage.removeItem('pwa-install-toast-shown');
       localStorage.removeItem('pwa-modal-shown');
       localStorage.removeItem('pwa-manually-installed');
@@ -230,7 +213,6 @@ O alternativamente:
     
     // Función para mostrar el toast inmediatamente
     window.showPWAToastNow = () => {
-      console.log('PWAInstallToast: Mostrando toast inmediatamente...');
       setShowToast(true);
     };
   }, []);

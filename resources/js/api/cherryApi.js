@@ -474,69 +474,137 @@ export const getNewProducts = async (limit = 5) => {
 // Función para obtener productos en promoción (CON ofertas personalizadas)
 export const getPromoProducts = async (limit = 50) => {
   try {
-    console.log('🔍 getPromoProducts: Iniciando ofertas con sesión activa...');
+    // PASO 1: Obtener datos completos de ofertas personalizadas del backend
+    const { productIds: userOfferIds, offerData } = await getUserOfferData();
     
-    // Primero obtener productos de la API externa
-    const externalProducts = await getExternalPromoProducts(limit);
-    console.log(`📊 getPromoProducts: ${externalProducts.length} productos de API externa con desc_promo > 0`);
+    // PASO 2: Obtener TODOS los productos de la API externa (sin filtrar por desc_promo)
+    const allExternalProducts = await getExternalPromoProducts(1000, true); // includeAll = true
     
-    // Obtener productos con ofertas personalizadas del usuario
-    console.log('🎁 getUserOfferProducts: Obteniendo productos con ofertas personalizadas...');
-    const userOfferProducts = await getUserOfferProducts();
-    console.log(`🎯 getPromoProducts: ${userOfferProducts.length} productos con ofertas personalizadas activas`);
+    // PASO 3: Buscar productos con ofertas personalizadas en TODA la API externa
+    const userOfferProducts = [];
     
-    // Combinar productos externos con productos de ofertas personalizadas
-    const combinedProducts = [...externalProducts];
-    
-    // Agregar productos que solo tienen ofertas personalizadas (no están en externos)
-    for (const userProduct of userOfferProducts) {
-      const existsInExternal = externalProducts.some(extProduct => 
-        extProduct.id === userProduct.id || 
-        extProduct.codigo === userProduct.codigo ||
-        extProduct.id_articulo === userProduct.id_articulo
+    for (const productId of userOfferIds) {
+      const product = allExternalProducts.find(p => 
+        p.id === productId || 
+        p.codigo === productId || 
+        p.id_articulo === productId
       );
       
-      if (!existsInExternal) {
-        console.log(`➕ getPromoProducts: Agregando producto ${userProduct.id} (solo tiene oferta personalizada)`);
-        combinedProducts.push(userProduct);
+      if (product) {
+        // Obtener datos reales de la oferta para este producto
+        const offerDataForProduct = offerData[productId];
+        
+        
+        // Marcar como producto con oferta personalizada usando datos reales
+        product.hasUserOffer = true;
+        
+        // Calcular el descuento visual según el tipo
+        let visualDiscount = 0;
+        let discountAmount = 0;
+        let showPriceDiscount = true;
+        
+        const originalPrice = product.price || product.precio1 || 0;
+        let finalPrice = originalPrice;
+        
+        // Para ofertas buy_x_get_y y free_shipping, NO mostrar descuento de precio
+        if (offerDataForProduct.discount_category === 'buy_x_get_y') {
+          visualDiscount = 0; // No mostrar descuento de precio para buy X get Y
+          showPriceDiscount = false;
+          finalPrice = originalPrice; // Mantener precio original
+        } else if (offerDataForProduct.discount_category === 'free_shipping') {
+          visualDiscount = 0; // No mostrar descuento de precio para envío gratis
+          showPriceDiscount = false;
+          finalPrice = originalPrice; // Mantener precio original
+        } else {
+          // Solo para product_discount y order_discount
+          if (offerDataForProduct.discount_type === 'percentage') {
+            visualDiscount = parseFloat(offerDataForProduct.discount_percentage) || 0;
+            discountAmount = originalPrice * (visualDiscount / 100);
+            finalPrice = originalPrice - discountAmount;
+          } else if (offerDataForProduct.discount_type === 'fixed') {
+            // Para descuentos fijos, el discount_percentage contiene el monto en dinero
+            discountAmount = parseFloat(offerDataForProduct.discount_percentage) || 0;
+            finalPrice = Math.max(0, originalPrice - discountAmount);
+            if (originalPrice > 0) {
+              visualDiscount = Math.round((discountAmount / originalPrice) * 100);
+            }
+          }
+          
+          // Aplicar límites de descuento si están configurados
+          if (offerDataForProduct.max_discount_amount && offerDataForProduct.discount_type === 'percentage') {
+            const maxDiscount = parseFloat(offerDataForProduct.max_discount_amount);
+            const calculatedDiscount = originalPrice - finalPrice;
+            if (calculatedDiscount > maxDiscount) {
+              finalPrice = originalPrice - maxDiscount;
+            }
+          }
+        }
+        
+        // Validar fechas de la oferta
+        const now = new Date();
+        const startDate = offerDataForProduct.start_date ? new Date(offerDataForProduct.start_date) : null;
+        const endDate = offerDataForProduct.end_date ? new Date(offerDataForProduct.end_date) : null;
+        
+        let isActive = true;
+        let timeRemaining = null;
+        
+        if (endDate) {
+          isActive = endDate >= now;
+          if (isActive) {
+            const timeDiff = endDate.getTime() - now.getTime();
+            const daysRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+            timeRemaining = daysRemaining;
+          }
+        }
+        
+        
+        product.userOffer = {
+          discount_percentage: visualDiscount, // Porcentaje visual para mostrar
+          discount_amount: discountAmount, // Monto real del descuento
+          discount_type: offerDataForProduct.discount_type,
+          discount_category: offerDataForProduct.discount_category,
+          title: offerDataForProduct.title,
+          start_date: offerDataForProduct.start_date,
+          end_date: offerDataForProduct.end_date,
+          is_active: isActive,
+          days_remaining: timeRemaining,
+          buy_quantity: offerDataForProduct.buy_quantity,
+          get_quantity: offerDataForProduct.get_quantity,
+          max_discount_amount: offerDataForProduct.max_discount_amount,
+          min_purchase_amount: offerDataForProduct.min_purchase_amount,
+          showPriceDiscount: showPriceDiscount // Indicar si debe mostrar descuento de precio
+        };
+        
+        // Asignar userDiscount para compatibilidad con PromocionesPage
+        product.userDiscount = visualDiscount;
+        
+        // Actualizar precios del producto solo si debe mostrar descuento de precio
+        if (showPriceDiscount) {
+          product.originalPrice = originalPrice;
+          product.price = finalPrice;
+          product.discount = visualDiscount;
+        } else {
+          // Para buy_x_get_y y free_shipping, mantener precio original sin descuento visual
+          product.price = originalPrice;
+          product.originalPrice = null; // No mostrar precio tachado
+          product.discount = 0; // No mostrar porcentaje de descuento
+        }
+        userOfferProducts.push(product);
       }
     }
     
-    console.log(`🎉 getPromoProducts: COMBINADOS - ${combinedProducts.length} productos únicos (${externalProducts.length} API externa + ${combinedProducts.length - externalProducts.length} solo ofertas personalizadas)`);
-    
-    if (combinedProducts.length === 0) {
-      return [];
-    }
-    
-    // Aplicar ofertas personalizadas a todos los productos
-    const { applyUserOffersToProducts } = await import('./userOffers');
-    const productsWithUserOffers = await applyUserOffersToProducts(combinedProducts);
-    
-    // Filtrar solo productos que tienen algún tipo de descuento
-    const productsWithDiscounts = productsWithUserOffers.filter(product => {
+    // PASO 4: Filtrar productos externos con desc_promo > 0 que NO tengan ofertas personalizadas
+    const externalPromoProducts = allExternalProducts.filter(product => {
       const hasExternalDiscount = product.desc_promo && parseFloat(product.desc_promo) > 0;
-      const hasUserOffer = product.hasUserOffer;
-      const hasCalculatedDiscount = product.discount && parseFloat(product.discount) > 0;
-      
-      return hasExternalDiscount || hasUserOffer || hasCalculatedDiscount;
+      const hasUserOffer = userOfferIds.includes(product.id || product.codigo || product.id_articulo);
+      return hasExternalDiscount && !hasUserOffer;
     });
     
-    console.log(`🔍 getPromoProducts: FILTRADOS - ${productsWithDiscounts.length} productos con descuentos reales`);
-    
-    // Separar productos con ofertas personalizadas para priorizarlos
-    const userOfferProductsFiltered = productsWithDiscounts.filter(product => product.hasUserOffer);
-    const otherProducts = productsWithDiscounts.filter(product => !product.hasUserOffer);
-    
-    console.log(`🎯 getPromoProducts: ${userOfferProductsFiltered.length} productos con ofertas personalizadas pasaron el filtro`);
-    
-    // Priorizar productos con ofertas personalizadas
-    const finalProducts = [...userOfferProductsFiltered, ...otherProducts];
+    // PASO 5: Combinar productos (primero ofertas personalizadas, luego externas)
+    const finalProducts = [...userOfferProducts, ...externalPromoProducts];
     
     // Limitar al número solicitado
     const limitedProducts = finalProducts.slice(0, limit);
-    
-    console.log(`🎯 getPromoProducts: ${userOfferProductsFiltered.length} productos con ofertas personalizadas incluidos en el resultado final`);
-    console.log(`✅ getPromoProducts: FINAL - ${limitedProducts.length} productos mostrados`);
     
     return limitedProducts;
     
@@ -861,13 +929,6 @@ export const searchProductsAdvanced = async (query, filters = {}, catalog = 'Che
     const mappedProducts = await Promise.all(finalProducts.map(mapApiProductToAppProduct));
     const validProducts = mappedProducts.filter(p => p !== null);
     
-    console.log('🔍 DEBUG searchProductsAdvanced - Productos finales mapeados:', validProducts.length);
-    if (validProducts.length > 0) {
-      console.log('🔍 DEBUG searchProductsAdvanced - Primer producto mapeado:', validProducts[0]);
-      console.log('🔍 DEBUG searchProductsAdvanced - Colores del primer producto:', validProducts[0].colors);
-      console.log('🔍 DEBUG searchProductsAdvanced - Tallas del primer producto:', validProducts[0].sizes);
-      console.log('🔍 DEBUG searchProductsAdvanced - Detalles del primer producto:', validProducts[0].detalles);
-    }
     
     return validProducts;
   } catch (error) {
@@ -959,8 +1020,6 @@ export const getAvailableCategoriesFromAPI = async (catalog = 'Cherry 2025 - 202
 // Función para obtener un producto específico por ID
 export const getProductById = async (productId) => {
   try {
-    console.log(`🔍 OBTENIENDO PRODUCTO POR ID: ${productId}`);
-    
     // Make direct API call with specific product ID
     const response = await axios.get(`https://cherryapi.estrategiadmgs.com.mx/cherryApi/?id_articulo=${productId}`);
     const data = response.data;
@@ -976,12 +1035,8 @@ export const getProductById = async (productId) => {
       throw new Error(`Producto con ID ${productId} no encontrado en la respuesta`);
     }
     
-    console.log(`✅ PRODUCTO ENCONTRADO: ${product.descripcion}, precio1: ${product.precio1}, desc_promo: ${product.desc_promo}`);
-    
     // 🔥 IMPORTANTE: Aplicar el mapeo para que funcionen las ofertas
-    const mappedProduct = mapApiProductToAppProduct(product);
-    
-    console.log(`🎯 PRODUCTO MAPEADO: discount: ${mappedProduct?.discount}%, price: ${mappedProduct?.price}, originalPrice: ${mappedProduct?.originalPrice}`);
+    const mappedProduct = mapApiProductToAppProduct(product);;
     
     // Retornar el producto original con los campos mapeados agregados
     return {
@@ -1046,14 +1101,12 @@ export const getTopSellingProducts = async (limit = 20) => {
     const response = await fetch('/api/featured/top-selling-products?limit=' + limit);
     
     if (!response.ok) {
-      console.log('❌ getTopSellingProducts: Error en respuesta del backend:', response.status);
       return [];
     }
     
     const data = await response.json();
     
     if (!data.success || !data.data.product_ids || data.data.product_ids.length === 0) {
-      console.log('🔍 getTopSellingProducts: No hay productos más vendidos este mes');
       return [];
     }
     
@@ -1143,9 +1196,8 @@ export const isUserSessionActive = () => {
 /**
  * Obtener productos promocionales externos (sin ofertas personalizadas)
  */
-export const getExternalPromoProducts = async (limit = 50) => {
+export const getExternalPromoProducts = async (limit = 50, includeAll = false) => {
   try {
-    console.log('🔓 getExternalPromoProducts: PRODUCTOS SOLO DE API EXTERNA (sin ofertas personalizadas)');
     
     const response = await axios.get(CHERRY_API_URL);
     const data = response.data;
@@ -1156,39 +1208,39 @@ export const getExternalPromoProducts = async (limit = 50) => {
     } else if (data && data.productos && Array.isArray(data.productos)) {
       allProducts = data.productos;
     } else {
-      console.log('❌ getExternalPromoProducts: No se encontraron productos en la API');
       return [];
     }
 
-    console.log(`📊 getExternalPromoProducts: ${allProducts.length} productos recibidos de la API`);
+    let finalProducts = [];
 
+    if (includeAll) {
+      // Si includeAll = true, obtener TODOS los productos (sin filtrar por desc_promo)
+      finalProducts = allProducts.filter(product => {
+        const isWebEnabled = product.opc_web === 'S';
+        return isWebEnabled;
+      });
+    } else {
     // Filtrar productos con desc_promo > 0 (ofertas reales de la API externa)
     const promoProducts = allProducts.filter(product => {
       const hasPromoDiscount = product.desc_promo && parseFloat(product.desc_promo) > 0;
       const isWebEnabled = product.opc_web === 'S';
       
       return hasPromoDiscount && isWebEnabled;
-    });
-
-    console.log(`🎯 getExternalPromoProducts: ${promoProducts.length} productos con desc_promo > 0`);
+    });;
 
     // Si no hay productos con desc_promo, usar productos con opc_promo = 'S'
-    let finalProducts = promoProducts;
+      finalProducts = promoProducts;
     if (finalProducts.length === 0) {
-      console.log('🔍 getExternalPromoProducts: No hay productos con desc_promo, buscando opc_promo = "S"');
-      
       finalProducts = allProducts.filter(product => {
         const hasPromoOption = product.opc_promo === 'S';
         const isWebEnabled = product.opc_web === 'S';
         
         return hasPromoOption && isWebEnabled;
-      });
-
-      console.log(`🎯 getExternalPromoProducts: ${finalProducts.length} productos con opc_promo = "S"`);
+      });;
+      }
     }
 
     if (finalProducts.length === 0) {
-      console.log('❌ getExternalPromoProducts: No se encontraron productos promocionales');
       return [];
     }
 
@@ -1209,14 +1261,78 @@ export const getExternalPromoProducts = async (limit = 50) => {
       selectedProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
     );
 
-    const validProducts = mappedProducts.filter(p => p !== null);
-    console.log(`🎉 getExternalPromoProducts: FINAL - ${validProducts.length} productos SOLO de API externa`);
+    const validProducts = mappedProducts.filter(p => p !== null);;
 
     return validProducts;
 
   } catch (error) {
     console.error('❌ getExternalPromoProducts: Error al obtener productos externos:', error);
     return [];
+  }
+};
+
+
+/**
+ * Obtener datos completos de ofertas personalizadas del backend
+ */
+export const getUserOfferData = async () => {
+  try {
+    // Verificar si hay sesión activa
+    if (!isUserSessionActive()) {
+      return { productIds: [], offerData: {} };
+    }
+
+    // Obtener token del localStorage
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return { productIds: [], offerData: {} };
+    }
+
+    // PASO 1: Obtener IDs de productos con ofertas personalizadas
+    const idsResponse = await fetch('/api/user-offer-products', {
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!idsResponse.ok) {
+      return { productIds: [], offerData: {} };
+    }
+
+    const idsData = await idsResponse.json();
+    
+    if (!idsData.success || !idsData.product_ids || idsData.product_ids.length === 0) {
+      return { productIds: [], offerData: {} };
+    }
+
+    // PASO 2: Obtener datos completos de las ofertas usando el endpoint existente
+    const detailsResponse = await fetch('/api/user-discounts/check', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        product_ids: idsData.product_ids
+      })
+    });
+    
+    if (!detailsResponse.ok) {
+      return { productIds: idsData.product_ids, offerData: {} };
+    }
+
+    const detailsData = await detailsResponse.json();
+    
+    if (!detailsData.success || !detailsData.discounts) {
+      return { productIds: idsData.product_ids, offerData: {} };
+    }
+
+    return { productIds: idsData.product_ids, offerData: detailsData.discounts };
+
+  } catch (error) {
+    console.error('❌ getUserOfferData: Error al obtener datos de ofertas:', error);
+    return { productIds: [], offerData: {} };
   }
 };
 
@@ -1227,33 +1343,34 @@ export const getUserOfferProducts = async () => {
   try {
     // Verificar si hay sesión activa
     if (!isUserSessionActive()) {
-      console.log('❌ getUserOfferProducts: No hay sesión activa');
       return [];
     }
 
-    console.log('🔍 getUserOfferProducts: Obteniendo IDs de productos con ofertas...');
+    // Obtener token del localStorage
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return [];
+    }
     
     // Obtener IDs de productos con ofertas personalizadas del backend
-    const response = await fetch('/api/user-offer-products');
+    const response = await fetch('/api/user-offer-products', {
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      }
+    });
     
     if (!response.ok) {
-      console.log('❌ getUserOfferProducts: Error en respuesta del backend:', response.status);
       return [];
     }
-
-    console.log('🔍 getUserOfferProducts: Respuesta del endpoint:', { status: response.status, ok: response.ok });
 
     const data = await response.json();
-    
-    console.log('📋 getUserOfferProducts: Datos recibidos:', data);
 
     if (!data.success || !data.product_ids || data.product_ids.length === 0) {
-      console.log('🔍 getUserOfferProducts: No hay productos con ofertas personalizadas');
       return [];
     }
 
-    const productIds = data.product_ids;
-    console.log(`📋 getUserOfferProducts: ${productIds.length} productos con ofertas encontrados`);
+    const productIds = data.product_ids;;
 
     // Obtener datos completos de la API externa
     const apiResponse = await axios.get(CHERRY_API_URL);
@@ -1265,23 +1382,28 @@ export const getUserOfferProducts = async () => {
     } else if (apiData && apiData.productos && Array.isArray(apiData.productos)) {
       allApiProducts = apiData.productos;
     }
+    
 
     // Filtrar productos que coincidan con los IDs de ofertas
-    const userOfferProducts = [];
+    const userOfferProducts = [];;;;
     
     for (const productId of productIds) {
-      const product = allApiProducts.find(p => 
-        (p.id_articulo && p.id_articulo.toString() === productId.toString()) ||
+      const product = allApiProducts.find(p => {
+        const matchesId = (p.id_articulo && p.id_articulo.toString() === productId.toString()) ||
         (p.id && p.id.toString() === productId.toString()) ||
-        (p.codigo && p.codigo.toString() === productId.toString())
-      );
+                         (p.codigo && p.codigo.toString() === productId.toString());
+        
+        if (matchesId) {
+          }
+        
+        return matchesId;
+      });
       
       if (product) {
-        userOfferProducts.push(product);
-      }
+        userOfferProducts.push(product);;
+      } else {
+        }
     }
-
-    console.log(`🎯 getUserOfferProducts: ${userOfferProducts.length} productos encontrados en API externa`);
 
     if (userOfferProducts.length === 0) {
       return [];
@@ -1300,8 +1422,7 @@ export const getUserOfferProducts = async () => {
       userOfferProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
     );
 
-    const validProducts = mappedProducts.filter(p => p !== null);
-    console.log(`✅ getUserOfferProducts: ${validProducts.length} productos con ofertas personalizadas mapeados`);
+    const validProducts = mappedProducts.filter(p => p !== null);;
 
     return validProducts;
 
@@ -1318,13 +1439,9 @@ export const getSmartPromoProducts = async (limit = 50) => {
   try {
     const hasActiveSession = isUserSessionActive();
     
-    console.log(`🤖 getSmartPromoProducts: Modo inteligente - Sesión ${hasActiveSession ? 'ACTIVA' : 'INACTIVA'}`);
-    
     if (hasActiveSession) {
-      console.log('🔐 getSmartPromoProducts: Sesión activa detectada - usando ofertas personalizadas');
       return await getPromoProducts(limit);
     } else {
-      console.log('🔓 getSmartPromoProducts: Sin sesión - usando ofertas externas únicamente');
       return await getExternalPromoProducts(limit);
     }
     

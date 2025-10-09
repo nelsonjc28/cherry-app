@@ -22,20 +22,21 @@ class TestUserSeeder extends Seeder
                 'first_name' => 'Admin',
                 'last_name' => 'User',
                 'middle_name' => 'System',
+                'username' => 'admin',
                 'phone' => '5551234567',
                 'password' => Hash::make('Admin1234!'),
                 'role_id' => 1, // admin role
             ]
         );
 
-        // Create cliente user
-        User::updateOrCreate(
-            [ 'email' => 'cliente@cherrycentral.com' ],
+        // Create cliente users array
+        $clienteUsers = [
             [
                 'email' => 'cliente@cherrycentral.com',
                 'first_name' => 'Cliente',
                 'last_name' => 'User',
                 'middle_name' => 'Test',
+                'username' => 'cliente',
                 'phone' => '5559876543',
                 'password' => 'Cliente1234!',
             ],
@@ -44,6 +45,7 @@ class TestUserSeeder extends Seeder
                 'first_name' => 'María',
                 'last_name' => 'García',
                 'middle_name' => 'López',
+                'username' => 'maria.garcia',
                 'phone' => '5551112233',
                 'password' => 'Cliente1234!',
             ],
@@ -52,6 +54,7 @@ class TestUserSeeder extends Seeder
                 'first_name' => 'Juan',
                 'last_name' => 'Rodríguez',
                 'middle_name' => 'Martínez',
+                'username' => 'juan.rodriguez',
                 'phone' => '5552223344',
                 'password' => 'Cliente1234!',
             ],
@@ -60,6 +63,7 @@ class TestUserSeeder extends Seeder
                 'first_name' => 'Ana',
                 'last_name' => 'Martínez',
                 'middle_name' => 'González',
+                'username' => 'ana.martinez',
                 'phone' => '5553334455',
                 'password' => 'Cliente1234!',
             ],
@@ -68,6 +72,7 @@ class TestUserSeeder extends Seeder
                 'first_name' => 'Carlos',
                 'last_name' => 'López',
                 'middle_name' => 'Hernández',
+                'username' => 'carlos.lopez',
                 'phone' => '5554445566',
                 'password' => 'Cliente1234!',
             ],
@@ -76,6 +81,7 @@ class TestUserSeeder extends Seeder
                 'first_name' => 'Laura',
                 'last_name' => 'González',
                 'middle_name' => 'Pérez',
+                'username' => 'laura.gonzalez',
                 'phone' => '5555556677',
                 'password' => 'Cliente1234!',
             ]
@@ -88,6 +94,7 @@ class TestUserSeeder extends Seeder
                     'first_name' => $userData['first_name'],
                     'last_name' => $userData['last_name'],
                     'middle_name' => $userData['middle_name'],
+                    'username' => $userData['username'],
                     'phone' => $userData['phone'],
                     'password' => Hash::make($userData['password']),
                     'role_id' => 2, // cliente role

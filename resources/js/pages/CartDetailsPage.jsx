@@ -170,9 +170,7 @@ const CartDetailsPage = () => {
         }),
         address_id: selectedAddress.id,
         total_amount: totalPrice
-      };
-
-      console.log('Datos de pago preparados:', paymentData);
+      };;
 
       const response = await api.post('/payment/create-preference', paymentData);
 
@@ -212,8 +210,6 @@ const CartDetailsPage = () => {
 
   // Handle integrated payment success
   const handleIntegratedPaymentSuccess = (paymentData) => {
-    console.log('Pago integrado exitoso:', paymentData);
-    
     // Limpiar carrito
     clearCart();
     

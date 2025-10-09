@@ -32,9 +32,8 @@ const SessionExpiryAlert = ({ onExtendSession, onExpire }) => {
       const expiryTime = payload.exp * 1000; // Convertir a milisegundos
       const currentTime = Date.now();
       const timeUntilExpiry = expiryTime - currentTime;
-
-      console.log('Verificando expiración del token:', {
-        expiryTime: new Date(expiryTime),
+      
+      console.log('SessionExpiryAlert: Calculando tiempo de expiración:', {
         currentTime: new Date(currentTime),
         timeUntilExpiryHours: Math.floor(timeUntilExpiry / (1000 * 60 * 60)),
         timeUntilExpiryDays: Math.floor(timeUntilExpiry / (1000 * 60 * 60 * 24))
