@@ -28,10 +28,7 @@ const Favorites = () => {
 
   // Fetch favorites from API
   const fetchFavorites = async (page = 1) => {
-    console.log('🔍 fetchFavorites llamado:', { user: !!user, favoritesContext: favoritesContext?.size, initialized });
-    
     if (!user) {
-      console.log('❌ No hay usuario');
       return;
     }
     
@@ -42,55 +39,29 @@ const Favorites = () => {
       // Usar el contexto de favoritos
       if (favoritesContext && favoritesContext.size > 0) {
         const favoriteIds = Array.from(favoritesContext);
-        console.log('📋 IDs de favoritos del contexto:', favoriteIds);
         
         try {
           // Obtener todos los productos de la API externa directamente
-          console.log('🌐 Cargando productos de API externa...');
           const response = await fetch('https://cherryapi.estrategiadmgs.com.mx/cherryApi/');
           const allProducts = await response.json();
-          console.log('📦 Productos obtenidos:', allProducts?.length);
           
           if (Array.isArray(allProducts)) {
-            // Debug: mostrar algunos IDs de la API para comparar
-            const sampleIds = allProducts.slice(0, 5).map(p => p.id_articulo);
-            console.log('🔍 IDs de muestra de la API:', sampleIds);
-            console.log('🔍 IDs de favoritos buscando:', favoriteIds);
-            
             // Filtrar solo los productos que están en favoritos
             const favoriteProductsData = allProducts.filter(product => 
               favoriteIds.includes(product.id_articulo)
             );
-            console.log('🎯 Productos favoritos encontrados:', favoriteProductsData.length);
-            
-            // Debug adicional: verificar si hay coincidencias parciales
-            const partialMatches = allProducts.filter(product => 
-              favoriteIds.some(favId => product.id_articulo && product.id_articulo.toString().includes(favId))
-            );
-            console.log('🔍 Coincidencias parciales:', partialMatches.length);
             
             // Mapear a el formato esperado por la página
-            const favorites = favoriteProductsData.map(product => {
-              console.log('🔍 Mapeando producto:', {
-                id_articulo: product.id_articulo,
-                descripcion: product.descripcion,
-                imagen: product.imagen,
-                precio1: product.precio1
-              });
-              
-              return {
-                id: product.id_articulo,
-                id_articulo: product.id_articulo, // Asegurar que esté disponible
-                title: product.descripcion || product.title || `Producto ${product.id_articulo}`,
-                image: product.imagen || `https://cherry-fotos.s3.amazonaws.com/shopify/${product.id_articulo}/${product.id_articulo}_1.jpg`,
-                price: parseFloat(product.precio1) || 0,
-                originalPrice: product.originalPrice,
-                discount: product.discount,
-                favoriteId: product.id_articulo
-              };
-            });
-            
-            console.log('✅ Favoritos mapeados:', favorites);
+            const favorites = favoriteProductsData.map(product => ({
+              id: product.id_articulo,
+              id_articulo: product.id_articulo, // Asegurar que esté disponible
+              title: product.descripcion || product.title || `Producto ${product.id_articulo}`,
+              image: product.imagen || `https://cherry-fotos.s3.amazonaws.com/shopify/${product.id_articulo}/${product.id_articulo}_1.jpg`,
+              price: parseFloat(product.precio1) || 0,
+              originalPrice: product.originalPrice,
+              discount: product.discount,
+              favoriteId: product.id_articulo
+            }));
             setFavoriteProducts(favorites);
             setTotalFavorites(favorites.length);
             setCurrentPage(page);
@@ -129,45 +100,36 @@ const Favorites = () => {
 
   // Load favorites when component mounts or user changes
   useEffect(() => {
-    console.log('🔄 useEffect [user]:', { user: !!user, favoritesContext: favoritesContext?.size, initialized });
     if (user && initialized) {
-      console.log('🚀 Usuario y contexto inicializado, cargando favoritos...');
       fetchFavorites(1);
     }
   }, [user, initialized]);
 
   // Sync with favorites context when it changes
   useEffect(() => {
-    console.log('🔄 useEffect [favoritesContext, initialized]:', { 
-      initialized, 
-      favoritesContext: favoritesContext?.size,
-      currentPage 
-    });
-    
     if (initialized && favoritesContext) {
-      // Si el contexto tiene favoritos, recargar la página actual
-      if (favoritesContext.size > 0) {
-        console.log('🔄 Recargando favoritos por cambio en contexto');
-        fetchFavorites(currentPage);
-      } else {
-        // Si no hay favoritos en el contexto, limpiar el estado local
-        console.log('🧹 Limpiando favoritos - no hay en contexto');
+      // Solo limpiar si no hay favoritos en el contexto
+      if (favoritesContext.size === 0) {
         setFavoriteProducts([]);
         setTotalFavorites(0);
         setLoading(false);
       }
+      // No recargar automáticamente cuando hay favoritos para evitar conflictos
     }
   }, [favoritesContext, initialized]);
 
   // Handle favorite toggle callback
   const handleFavoriteToggle = async (productId) => {
     try {
+      // Encontrar el producto para obtener sus datos
+      const product = favoriteProducts.find(p => p.id === productId || p.favoriteId === productId || p.id_articulo === productId);
+      
       // Usar el contexto para remover el favorito
       await toggleFavorite(productId, {
         product_id: productId,
-        product_title: '',
-        product_image: '',
-        product_price: 0
+        product_title: product?.title || '',
+        product_image: product?.image || '',
+        product_price: product?.price || 0
       });
       
       // Remove from selected items if selected
@@ -177,8 +139,12 @@ const Favorites = () => {
         return newSelected;
       });
       
-      // Reload favorites to get updated data
-      fetchFavorites(currentPage);
+      // Actualizar el estado local inmediatamente sin recargar desde API
+      setFavoriteProducts(prev => prev.filter(p => p.id !== productId && p.favoriteId !== productId && p.id_articulo !== productId));
+      setTotalFavorites(prev => prev - 1);
+      
+      // Scroll hacia arriba después de remover
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       console.error('Error removiendo favorito:', err);
     }
@@ -240,8 +206,12 @@ const Favorites = () => {
         // Clear selected items
         setSelectedItems(new Set());
         
-        // Reload favorites to get updated data
-        fetchFavorites(currentPage);
+        // Actualizar el estado local inmediatamente sin recargar desde API
+        setFavoriteProducts(prev => prev.filter(p => !selectedItems.has(p.id) && !selectedItems.has(p.favoriteId) && !selectedItems.has(p.id_articulo)));
+        setTotalFavorites(prev => prev - selectedItems.size);
+        
+        // Scroll hacia arriba después de remover múltiples
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       } catch (err) {
         console.error('Error removiendo productos seleccionados:', err);
         if (window.showToast) {
@@ -269,21 +239,6 @@ const Favorites = () => {
         </div>
         <div className="favorites-page__loading">
           <p>Cargando favoritos...</p>
-          <button 
-            onClick={() => {
-              console.log('🔧 DEBUG: Forzando recarga de favoritos');
-              console.log('Estado actual:', { 
-                user: !!user, 
-                favoritesContext: favoritesContext?.size, 
-                initialized,
-                favoriteProducts: favoriteProducts.length 
-              });
-              fetchFavorites(1);
-            }}
-            style={{ marginTop: '10px', padding: '5px 10px' }}
-          >
-            🔧 Debug: Recargar Favoritos
-          </button>
         </div>
       </div>
     );
@@ -316,22 +271,6 @@ const Favorites = () => {
         <div className="favorites-page__empty">
           <p>No tienes productos favoritos aún.</p>
           <p>¡Agrega productos a tus favoritos para verlos aquí!</p>
-          <button 
-            onClick={() => {
-              console.log('🔧 DEBUG: Estado vacío - Forzando recarga');
-              console.log('Estado actual:', { 
-                user: !!user, 
-                favoritesContext: favoritesContext?.size, 
-                initialized,
-                favoriteProducts: favoriteProducts.length,
-                favoriteIds: favoritesContext ? Array.from(favoritesContext) : []
-              });
-              fetchFavorites(1);
-            }}
-            style={{ marginTop: '10px', padding: '5px 10px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}
-          >
-            🔧 Debug: Recargar Favoritos
-          </button>
         </div>
       </div>
     );
@@ -417,14 +356,7 @@ const Favorites = () => {
                   src={generateS3ImageUrl(product.id_articulo)} 
                   alt={product.title}
                   onError={(e) => {
-                    console.log('❌ Error cargando imagen para producto:', product);
-                    console.log('❌ ID del producto:', product.id_articulo);
-                    console.log('❌ URL generada:', generateS3ImageUrl(product.id_articulo));
                     e.target.src = '/images/FeaturedProducts/example_image_card.png';
-                  }}
-                  onLoad={() => {
-                    console.log('✅ Imagen cargada correctamente para:', product.id_articulo);
-                    console.log('✅ URL:', generateS3ImageUrl(product.id_articulo));
                   }}
                 />
               </div>
@@ -462,7 +394,7 @@ const Favorites = () => {
                 <CherryButton
                   variant="outline"
                   size="small"
-                  onClick={() => handleFavoriteToggle(product.id)}
+                  onClick={() => handleFavoriteToggle(product.favoriteId || product.id_articulo)}
                   className="favorites-page__remove-btn"
                 >
                   Remover

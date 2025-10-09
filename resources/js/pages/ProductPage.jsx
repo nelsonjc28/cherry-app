@@ -265,13 +265,6 @@ const ProductPage = () => {
               freeItemReason: `🎁 Gratis por oferta: Compra ${buyQuantity} lleva ${getQuantity}`
             };
             
-            console.log('🎁 Agregando producto GRATIS al carrito:', {
-              productId: freeProductToAdd.id_articulo,
-              quantity: freeItems,
-              price: freeProductToAdd.price,
-              isFreeItem: freeProductToAdd.isFreeItem,
-              reason: freeProductToAdd.freeItemReason
-            });
             
             addToCart(freeProductToAdd, freeItems);
           }
@@ -520,21 +513,6 @@ const ProductPage = () => {
   
   const finalPrice = calculateFinalPrice();
   
-  // Debug: Verificar datos del producto
-  console.log('🔍 ProductPage Debug - Producto:', {
-    id: product?.id_articulo,
-    title: product?.descripcion,
-    precio1: precio1,
-    originalPrice: product?.originalPrice,
-    price: product?.price,
-    finalPrice: finalPrice,
-    hasUserOffer: hasUserOffer,
-    userOffer: userOffer,
-    discountPercentage: discountPercentage
-  });
-  
-  // Debug: Mostrar objeto original completo del producto
-  console.log('📦 Objeto Original Completo del Producto:', product);
 
   // Función para obtener el stock disponible por talla y color
   const getStockBySizeAndColor = (talla, color) => {

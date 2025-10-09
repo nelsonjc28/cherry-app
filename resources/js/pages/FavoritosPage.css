@@ -120,8 +120,8 @@
 
 .favoritos-page__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 30px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
 }
 
 .favoritos-page__item {
@@ -245,6 +245,12 @@
 }
 
 /* Responsive design */
+@media (max-width: 1024px) {
+  .favoritos-page__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .favoritos-page {
     padding: 15px;
@@ -265,7 +271,7 @@
   }
   
   .favoritos-page__grid {
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 20px;
   }
 }

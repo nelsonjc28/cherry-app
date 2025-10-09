@@ -64,12 +64,15 @@ const FavoritosPage = () => {
 
   const handleRemoveFavorite = async (productId) => {
     try {
+      // Encontrar el producto para obtener sus datos
+      const product = favoriteProducts.find(p => p.id_articulo === productId);
+      
       // Usar el toggle del contexto para remover el favorito
       await toggleFavorite(productId, {
         product_id: productId,
-        product_title: '',
-        product_image: '',
-        product_price: 0
+        product_title: product?.descripcion || product?.title || '',
+        product_image: product?.imagen || '',
+        product_price: product?.precio1 || product?.price || 0
       });
       
       // Actualizar el estado local inmediatamente
@@ -78,6 +81,9 @@ const FavoritosPage = () => {
       if (window.showToast) {
         window.showToast('Producto removido de favoritos', 'success');
       }
+      
+      // Scroll hacia arriba después de remover
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
       if (window.showToast) {
         window.showToast('Error al remover de favoritos', 'error');
@@ -155,14 +161,7 @@ const FavoritosPage = () => {
                     src={generateS3ImageUrl(product.id_articulo)} 
                     alt={product.descripcion || 'Producto'}
                     onError={(e) => {
-                      console.log('❌ Error cargando imagen en FavoritosPage para producto:', product);
-                      console.log('❌ ID del producto:', product.id_articulo);
-                      console.log('❌ URL generada:', generateS3ImageUrl(product.id_articulo));
                       e.target.src = '/placeholder-product.jpg';
-                    }}
-                    onLoad={() => {
-                      console.log('✅ Imagen cargada correctamente en FavoritosPage para:', product.id_articulo);
-                      console.log('✅ URL:', generateS3ImageUrl(product.id_articulo));
                     }}
                   />
                   <div className="favoritos-page__item-overlay">
