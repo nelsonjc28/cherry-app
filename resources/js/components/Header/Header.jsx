@@ -790,11 +790,23 @@ const Header = () => {
                         <span>Mis Órdenes</span>
                       </Link>
                       <Link to="/perfil/favoritos" className="mobile-menu-account" onClick={() => { setMobileMenuOpen(false); setUserMenuOpen(false); }}>
-                        <img src={getIconPath('Heart.svg')} alt="Favoritos" />
+                        <img 
+                          src={getIconPath('Red Star.svg')} 
+                          alt="Favoritos" 
+                          onError={(e) => {
+                            e.target.src = '/icons/Red Star.svg';
+                          }}
+                        />
                         <span>Favoritos</span>
                       </Link>
                       <Link to="/perfil/direcciones" className="mobile-menu-account" onClick={() => { setMobileMenuOpen(false); setUserMenuOpen(false); }}>
-                        <img src={getIconPath('Map Pin.svg')} alt="Direcciones" />
+                        <img 
+                          src={getIconPath('Red Home.svg')} 
+                          alt="Direcciones" 
+                          onError={(e) => {
+                            e.target.src = '/icons/Red Home.svg';
+                          }}
+                        />
                         <span>Mis Direcciones</span>
                       </Link>
                       <Link to="/perfil/metodos-pago" className="mobile-menu-account" onClick={() => { setMobileMenuOpen(false); setUserMenuOpen(false); }}>

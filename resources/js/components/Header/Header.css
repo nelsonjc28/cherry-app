@@ -1164,6 +1164,17 @@
   width: 18px;
   height: 18px;
   object-fit: contain;
+  display: block;
+  flex-shrink: 0;
+}
+
+/* Estilos específicos para iconos de favoritos y direcciones */
+.mobile-menu-account img[alt="Favoritos"],
+.mobile-menu-account img[alt="Direcciones"] {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
 }
 
 /* Mobile Affiliate Action Button - Same as regular mobile-menu-account */
