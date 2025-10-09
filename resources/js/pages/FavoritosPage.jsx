@@ -1,21 +1,87 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useFavorites } from '../hooks/useFavorites';
+import { useFavoritesContext } from '../contexts/FavoritesContext';
+import { getExternalPromoProducts, generateS3ImageUrl } from '../api/cherryApi';
 import './FavoritosPage.css';
 
 const FavoritosPage = () => {
   const { 
-    favoriteProductIds, 
+    favorites, 
     loading, 
-    error, 
-    fetchFavorites,
-    removeFromFavorites 
-  } = useFavorites();
+    initialized,
+    loadFavorites,
+    isFavorited,
+    toggleFavorite
+  } = useFavoritesContext();
+  
+  const [favoriteProducts, setFavoriteProducts] = useState([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const favoriteProductIds = Array.from(favorites || []);
+
+  // Cargar datos completos de los productos favoritos
+  useEffect(() => {
+    const loadFavoriteProducts = async () => {
+      if (!initialized || favoriteProductIds.length === 0) {
+        setFavoriteProducts([]);
+        return;
+      }
+
+      setProductsLoading(true);
+      try {
+        // Obtener todos los productos de la API externa
+        const allProducts = await getExternalPromoProducts(1000, true);
+        
+        if (!Array.isArray(allProducts)) {
+          console.error('Error: allProducts no es un array:', allProducts);
+          setFavoriteProducts([]);
+          return;
+        }
+        
+        // Filtrar solo los productos que están en favoritos
+        const favoriteProductsData = allProducts.filter(product => 
+          favoriteProductIds.includes(product.id_articulo)
+        );
+        
+        console.log('Productos favoritos encontrados:', favoriteProductsData);
+        setFavoriteProducts(favoriteProductsData);
+      } catch (error) {
+        console.error('Error cargando productos favoritos:', error);
+        // En caso de error, crear productos básicos con la información disponible
+        const basicProducts = favoriteProductIds.map(id => ({
+          id_articulo: id,
+          descripcion: `Producto ${id}`,
+          imagen: `https://cherry-fotos.s3.amazonaws.com/shopify/${id}/${id}_1.jpg`,
+          precio1: 0
+        }));
+        setFavoriteProducts(basicProducts);
+      } finally {
+        setProductsLoading(false);
+      }
+    };
+
+    loadFavoriteProducts();
+  }, [favoriteProductIds, initialized]);
 
   const handleRemoveFavorite = async (productId) => {
-    const success = await removeFromFavorites(productId);
-    if (success && window.showToast) {
-      window.showToast('Producto removido de favoritos', 'success');
+    try {
+      // Usar el toggle del contexto para remover el favorito
+      await toggleFavorite(productId, {
+        product_id: productId,
+        product_title: '',
+        product_image: '',
+        product_price: 0
+      });
+      
+      // Actualizar el estado local inmediatamente
+      setFavoriteProducts(prev => prev.filter(product => product.id_articulo !== productId));
+      
+      if (window.showToast) {
+        window.showToast('Producto removido de favoritos', 'success');
+      }
+    } catch (error) {
+      if (window.showToast) {
+        window.showToast('Error al remover de favoritos', 'error');
+      }
     }
   };
 
@@ -23,65 +89,18 @@ const FavoritosPage = () => {
     window.location.href = `/producto/${productId}`;
   };
 
-  if (loading) {
+  if (loading || !initialized || productsLoading) {
     return (
       <div className="favoritos-page">
         <div className="favoritos-page__loading">
           <div className="loading-spinner"></div>
           <h2>Cargando tus favoritos</h2>
           <p>Estamos obteniendo tus productos favoritos...</p>
-
-          
-
-          
-
-          
-
         </div>
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="favoritos-page">
-        <div className="favoritos-page__error">
-          <div className="favoritos-page__error-icon">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-              <line x1="12" y1="9" x2="12" y2="13"></line>
-              <line x1="12" y1="17" x2="12.01" y2="17"></line>
-            </svg>
-          </div>
-          <h2>No se pudieron cargar los favoritos</h2>
-          <p>{error}</p>
-          <div className="favoritos-page__error-actions">
-            {error.includes('iniciar sesión') ? (
-              <button 
-                className="btn btn-primary"
-                onClick={() => window.location.href = '/login'}
-              >
-                Iniciar Sesión
-              </button>
-            ) : (
-              <button 
-                className="btn btn-outline-primary"
-                onClick={fetchFavorites}
-              >
-                Intentar Nuevamente
-              </button>
-            )}
-            <button 
-              className="btn btn-outline-secondary"
-              onClick={() => window.location.href = '/catalogo'}
-            >
-              Explorar Productos
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <>
@@ -95,11 +114,11 @@ const FavoritosPage = () => {
           <div className="favoritos-page__header-content">
             <div>
               <h1>Mis Favoritos</h1>
-              <p>{favoriteProductIds.length} {favoriteProductIds.length === 1 ? 'producto' : 'productos'} guardado{favoriteProductIds.length !== 1 ? 's' : ''}</p>
+              <p>{favoriteProducts.length} {favoriteProducts.length === 1 ? 'producto' : 'productos'} guardado{favoriteProducts.length !== 1 ? 's' : ''}</p>
             </div>
             <button 
               className="btn btn-outline-primary"
-              onClick={fetchFavorites}
+              onClick={loadFavorites}
               disabled={loading}
               title="Recargar favoritos"
             >
@@ -114,7 +133,7 @@ const FavoritosPage = () => {
           </div>
         </div>
 
-        {favoriteProductIds.length === 0 ? (
+        {favoriteProducts.length === 0 ? (
           <div className="favoritos-page__empty">
             <div className="favoritos-page__empty-icon">
               <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -129,14 +148,21 @@ const FavoritosPage = () => {
           </div>
         ) : (
           <div className="favoritos-page__grid">
-            {favoriteProductIds.map((productId) => (
-              <div key={productId} className="favoritos-page__item">
-                <div className="favoritos-page__item-image" onClick={() => handleProductClick(productId)}>
+            {favoriteProducts.map((product) => (
+              <div key={product.id_articulo} className="favoritos-page__item">
+                <div className="favoritos-page__item-image" onClick={() => handleProductClick(product.id_articulo)}>
                   <img 
-                    src="/placeholder-product.jpg" 
-                    alt="Producto"
+                    src={generateS3ImageUrl(product.id_articulo)} 
+                    alt={product.descripcion || 'Producto'}
                     onError={(e) => {
+                      console.log('❌ Error cargando imagen en FavoritosPage para producto:', product);
+                      console.log('❌ ID del producto:', product.id_articulo);
+                      console.log('❌ URL generada:', generateS3ImageUrl(product.id_articulo));
                       e.target.src = '/placeholder-product.jpg';
+                    }}
+                    onLoad={() => {
+                      console.log('✅ Imagen cargada correctamente en FavoritosPage para:', product.id_articulo);
+                      console.log('✅ URL:', generateS3ImageUrl(product.id_articulo));
                     }}
                   />
                   <div className="favoritos-page__item-overlay">
@@ -145,14 +171,20 @@ const FavoritosPage = () => {
                 </div>
                 
                 <div className="favoritos-page__item-content">
-                  <h3 onClick={() => handleProductClick(productId)}>
-                    Producto ID: {productId}
+                  <h3 onClick={() => handleProductClick(product.id_articulo)}>
+                    {product.descripcion || `Producto ${product.id_articulo}`}
                   </h3>
+                  
+                  {product.precio1 && (
+                    <div className="favoritos-page__item-price">
+                      ${product.precio1.toLocaleString()}
+                    </div>
+                  )}
                   
                   <div className="favoritos-page__item-actions">
                     <button 
                       className="btn btn-outline-danger btn-sm"
-                      onClick={() => handleRemoveFavorite(productId)}
+                      onClick={() => handleRemoveFavorite(product.id_articulo)}
                       title="Remover de favoritos"
                     >
                       ❌ Remover
@@ -160,7 +192,7 @@ const FavoritosPage = () => {
                     
                     <button 
                       className="favoritos-page__item-view"
-                      onClick={() => handleProductClick(productId)}
+                      onClick={() => handleProductClick(product.id_articulo)}
                     >
                       Ver Producto
                     </button>
