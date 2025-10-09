@@ -180,6 +180,14 @@
   margin-bottom: 2rem;
 }
 
+/* Móvil - Forzar 2 columnas */
+@media (max-width: 768px) {
+  .catalog-page__products-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem;
+  }
+}
+
 /* Filter modal */
 .catalog-page__filter-modal-overlay {
   position: fixed;
@@ -280,6 +288,14 @@
 
   .catalog-page__results-count {
     margin-top: 10px;
+  }
+}
+
+/* Para pantallas muy pequeñas, mantener 2 columnas */
+@media (max-width: 480px) {
+  .catalog-page__products-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem;
   }
 }
 
