@@ -81,7 +81,13 @@ const AdminNotifications = ({ isOpen, onClose }) => {
     }
   };
 
-  const getNotificationIcon = (type) => {
+  const getNotificationIcon = (type, notification) => {
+    // Si la notificación tiene información de producto, usar su imagen
+    if (notification?.order?.first_product?.image) {
+      return notification.order.first_product.image;
+    }
+    
+    // Fallback a íconos por tipo
     const iconMap = {
       'payment_received': 'Money.svg',
       'order_status_changed': 'Package.svg',
@@ -164,8 +170,19 @@ const AdminNotifications = ({ isOpen, onClose }) => {
                 >
                   <div className="notification-icon">
                     <img 
-                      src={getNotificationIcon(notification.type)} 
-                      alt={notification.type}
+                      src={getNotificationIcon(notification.type, notification)} 
+                      alt={notification?.order?.first_product?.name || notification.type}
+                      style={{
+                        borderRadius: notification?.order?.first_product?.image ? '4px' : 'none',
+                        objectFit: 'cover',
+                        width: '40px',
+                        height: '40px'
+                      }}
+                      onError={(e) => {
+                        // Si la imagen del producto falla, usar el ícono por defecto
+                        e.target.src = getNotificationIcon(notification.type);
+                        e.target.style.borderRadius = 'none';
+                      }}
                     />
                   </div>
                   

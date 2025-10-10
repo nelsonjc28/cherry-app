@@ -603,8 +603,8 @@ export const getPromoProducts = async (limit = 50) => {
     // PASO 5: Combinar productos (primero ofertas personalizadas, luego externas)
     const finalProducts = [...userOfferProducts, ...externalPromoProducts];
     
-    // Limitar al número solicitado
-    const limitedProducts = finalProducts.slice(0, limit);
+    // Limitar al número solicitado (si limit es 0, mostrar todos)
+    const limitedProducts = limit > 0 ? finalProducts.slice(0, limit) : finalProducts;
     
     return limitedProducts;
     
@@ -1244,9 +1244,15 @@ export const getExternalPromoProducts = async (limit = 50, includeAll = false) =
       return [];
     }
 
-    // Mezclar y limitar
-    const shuffled = finalProducts.sort(() => 0.5 - Math.random());
-    const selectedProducts = shuffled.slice(0, limit);
+    // Ordenar por descuento (mayor descuento primero) y mostrar TODOS
+    const sortedProducts = finalProducts.sort((a, b) => {
+      const discountA = parseFloat(a.desc_promo) || 0;
+      const discountB = parseFloat(b.desc_promo) || 0;
+      return discountB - discountA; // Mayor descuento primero
+    });
+    
+    // Si se especifica un límite, aplicarlo; si no, mostrar todos
+    const selectedProducts = limit > 0 ? sortedProducts.slice(0, limit) : sortedProducts;
 
     // Obtener IDs para ratings
     const productIds = selectedProducts.map(product => 
@@ -1435,13 +1441,14 @@ export const getUserOfferProducts = async () => {
 /**
  * Función inteligente que elige automáticamente entre ofertas con o sin sesión
  */
-export const getSmartPromoProducts = async (limit = 50) => {
+export const getSmartPromoProducts = async (limit = 0) => {
   try {
     const hasActiveSession = isUserSessionActive();
     
     if (hasActiveSession) {
       return await getPromoProducts(limit);
     } else {
+      // Si limit es 0, mostrar todos los productos con descuentos
       return await getExternalPromoProducts(limit);
     }
     

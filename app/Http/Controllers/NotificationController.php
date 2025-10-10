@@ -15,7 +15,7 @@ class NotificationController extends Controller
     {
         try {
             $notifications = Notification::forAdmin()
-                ->with('relatedOrder.user')
+                ->with(['relatedOrder.user', 'relatedOrder.items'])
                 ->orderBy('created_at', 'desc')
                 ->take(50)
                 ->get();
@@ -34,7 +34,12 @@ class NotificationController extends Controller
                         'number' => str_pad($notification->relatedOrder->id, 8, '0', STR_PAD_LEFT),
                         'customer_name' => $notification->relatedOrder->user ? 
                             $notification->relatedOrder->user->first_name . ' ' . $notification->relatedOrder->user->last_name : 
-                            'Usuario eliminado'
+                            'Usuario eliminado',
+                        'first_product' => $notification->relatedOrder->items->first() ? [
+                            'id' => $notification->relatedOrder->items->first()->product_id,
+                            'name' => $notification->relatedOrder->items->first()->name,
+                            'image' => $this->getProductImageUrl($notification->relatedOrder->items->first()->product_id)
+                        ] : null
                     ] : null
                 ];
             });
@@ -54,6 +59,60 @@ class NotificationController extends Controller
     }
 
     /**
+     * Get product image URL
+     */
+    private function getProductImageUrl($productId)
+    {
+        if (!$productId) {
+            return asset('images/placeholder-product.png');
+        }
+        
+        // Primero probar con el ID original (sin ceros)
+        $originalUrl = "https://cherry-fotos.s3.amazonaws.com/shopify/{$productId}/{$productId}_1.jpg";
+        
+        // Verificar rápidamente si la imagen original existe
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $originalUrl);
+        curl_setopt($ch, CURLOPT_NOBODY, true);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 2);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        
+        curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        // Si la imagen original existe, usarla
+        if ($httpCode === 200) {
+            return $originalUrl;
+        }
+        
+        // Si no existe, probar con formato con ceros a la izquierda
+        $formattedId = str_pad($productId, 11, '0', STR_PAD_LEFT);
+        $formattedUrl = "https://cherry-fotos.s3.amazonaws.com/shopify/{$formattedId}/{$formattedId}_1.jpg";
+        
+        // Verificar si la imagen formateada existe
+        $ch2 = curl_init();
+        curl_setopt($ch2, CURLOPT_URL, $formattedUrl);
+        curl_setopt($ch2, CURLOPT_NOBODY, true);
+        curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch2, CURLOPT_TIMEOUT, 2);
+        curl_setopt($ch2, CURLOPT_SSL_VERIFYPEER, false);
+        
+        curl_exec($ch2);
+        $httpCode2 = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+        curl_close($ch2);
+        
+        // Si la imagen formateada existe, usarla
+        if ($httpCode2 === 200) {
+            return $formattedUrl;
+        }
+        
+        // Si ninguna existe, devolver la original (será manejada por el fallback del frontend)
+        return $originalUrl;
+    }
+
+    /**
      * Get notifications for specific user
      */
     public function getUserNotifications()
@@ -62,7 +121,7 @@ class NotificationController extends Controller
             $user = Auth::user();
             
             $notifications = Notification::forUser($user->id)
-                ->with('relatedOrder')
+                ->with(['relatedOrder', 'relatedOrder.items'])
                 ->orderBy('created_at', 'desc')
                 ->take(50)
                 ->get();
@@ -77,6 +136,30 @@ class NotificationController extends Controller
             }
 
             $formattedNotifications = $notifications->map(function ($notification) {
+                // Manejar notificaciones de calificación (objetos temporales)
+                if ($notification->type === 'review_request' && isset($notification->relatedOrder)) {
+                    return [
+                        'id' => $notification->id,
+                        'type' => $notification->type,
+                        'title' => $notification->title,
+                        'message' => $notification->message,
+                        'data' => $notification->data,
+                        'is_read' => $notification->is_read,
+                        'created_at' => $notification->created_at->diffForHumans(),
+                        'order' => [
+                            'id' => $notification->relatedOrder->id,
+                            'number' => str_pad($notification->relatedOrder->id, 8, '0', STR_PAD_LEFT),
+                            'status' => $notification->relatedOrder->status,
+                            'first_product' => $notification->relatedOrder->items->first() ? [
+                                'id' => $notification->relatedOrder->items->first()->product_id,
+                                'name' => $notification->relatedOrder->items->first()->name,
+                                'image' => $this->getProductImageUrl($notification->relatedOrder->items->first()->product_id)
+                            ] : null
+                        ]
+                    ];
+                }
+                
+                // Manejar notificaciones normales de la base de datos
                 return [
                     'id' => $notification->id,
                     'type' => $notification->type,
@@ -88,7 +171,12 @@ class NotificationController extends Controller
                     'order' => $notification->relatedOrder ? [
                         'id' => $notification->relatedOrder->id,
                         'number' => str_pad($notification->relatedOrder->id, 8, '0', STR_PAD_LEFT),
-                        'status' => $notification->relatedOrder->status
+                        'status' => $notification->relatedOrder->status,
+                        'first_product' => $notification->relatedOrder->items->first() ? [
+                            'id' => $notification->relatedOrder->items->first()->product_id,
+                            'name' => $notification->relatedOrder->items->first()->name,
+                            'image' => $this->getProductImageUrl($notification->relatedOrder->items->first()->product_id)
+                        ] : null
                     ] : null
                 ];
             });

@@ -90,14 +90,20 @@ const UserNotifications = ({ isOpen, onClose }) => {
     onClose();
   };
 
-  const getStatusIcon = (type) => {
+  const getStatusIcon = (type, notification) => {
+    // Si la notificación tiene información de producto, usar su imagen
+    if (notification?.order?.first_product?.image) {
+      return notification.order.first_product.image;
+    }
+    
+    // Fallback a íconos por tipo
     switch (type) {
       case 'order_status_changed':
         return getIconPath('Package.svg');
       case 'payment_received':
         return getIconPath('CreditCard.svg');
       case 'review_request':
-        return '⭐'; // Ícono de estrella para calificaciones
+        return getIconPath('Star.svg'); // Usar ícono de estrella SVG en lugar de emoji
       default:
         return getIconPath('Bell.svg');
     }
@@ -166,22 +172,23 @@ const UserNotifications = ({ isOpen, onClose }) => {
                   onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="user-notification-icon">
-                    {notification.type === 'review_request' ? (
-                      <span style={{ 
-                        fontSize: '20px',
-                        color: getStatusColor(notification.type)
-                      }}>
-                        {getStatusIcon(notification.type)}
-                      </span>
-                    ) : (
-                      <img 
-                        src={getStatusIcon(notification.type)} 
-                        alt="Notificación"
-                        style={{ 
-                          filter: `hue-rotate(${getStatusColor(notification.type)}deg)` 
-                        }}
-                      />
-                    )}
+                    <img 
+                      src={getStatusIcon(notification.type, notification)} 
+                      alt={notification?.order?.first_product?.name || "Notificación"}
+                      style={{ 
+                        filter: notification?.order?.first_product?.image ? 'none' : `hue-rotate(${getStatusColor(notification.type)}deg)`,
+                        borderRadius: notification?.order?.first_product?.image ? '4px' : 'none',
+                        objectFit: 'cover',
+                        width: '40px',
+                        height: '40px'
+                      }}
+                      onError={(e) => {
+                        // Si la imagen del producto falla, usar el ícono por defecto
+                        e.target.src = getStatusIcon(notification.type);
+                        e.target.style.filter = `hue-rotate(${getStatusColor(notification.type)}deg)`;
+                        e.target.style.borderRadius = 'none';
+                      }}
+                    />
                   </div>
                   <div className="user-notification-content">
                     <div className="user-notification-header">

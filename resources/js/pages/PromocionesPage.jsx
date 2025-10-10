@@ -22,7 +22,8 @@ const PromocionesPage = () => {
         
         
         // Usar la función inteligente que maneja automáticamente sesión activa o no
-        const promoProducts = await getSmartPromoProducts(50);
+        // Pasar 0 para obtener TODOS los productos con descuentos
+        const promoProducts = await getSmartPromoProducts(0);
         const processedProducts = promoProducts.map(p => ({
             id: p.id,
             title: p.title,

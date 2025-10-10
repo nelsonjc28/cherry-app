@@ -99,8 +99,8 @@ const PromotionsSection = () => {
     const loadPromoProducts = async () => {
       setLoading(true);
       try {
-        // Cargar productos en promoción (sin límite para mostrar todos)
-        const promoProducts = await getPromoProducts(50); // Aumentar límite para mostrar más productos
+        // Cargar productos en promoción (mostrar TODOS los productos con descuentos)
+        const promoProducts = await getPromoProducts(0); // 0 = mostrar todos
         setProducts(promoProducts);
         setFilteredProducts(promoProducts);
       } catch (error) {
