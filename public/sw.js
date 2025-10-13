@@ -1,16 +1,12 @@
-const CACHE_NAME = 'cherry-app-v1.2.0';
-const STATIC_CACHE = 'cherry-static-v1.2.0';
-const DYNAMIC_CACHE = 'cherry-dynamic-v1.2.0';
+const CACHE_NAME = 'cherry-app-v1.2.1';
+const STATIC_CACHE = 'cherry-static-v1.2.1';
+const DYNAMIC_CACHE = 'cherry-dynamic-v1.2.1';
 
 const urlsToCache = [
   '/',
   '/manifest.json',
   '/offline.html',
-  '/icons/cherry-icon-144x144.png',
-  '/icons/cherry-icon-192x192.png',
-  '/icons/cherry-icon-512x512.png',
-  '/images/logo.svg',
-  '/images/white-logo.svg'
+  '/images/logo.svg'
 ];
 
 // URLs críticas que siempre deben estar disponibles offline

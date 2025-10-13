@@ -5,7 +5,7 @@ import './PWAInstaller.css';
 const PWAInstaller = () => {
 
   
-  const { deferredPrompt, isInstallable, isIOS, isStandalone, installPWA } = usePWAInstall();
+  const { deferredPrompt, isInstallable, isIOS, isIOSSafari, isStandalone, installPWA } = usePWAInstall();
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [showIOSInstructions, setShowIOSInstructions] = useState(false);
 
@@ -396,24 +396,57 @@ const PWAInstaller = () => {
             </div>
             
             <div className="pwa-installer__modal-content">
+              {isIOS && !isIOSSafari && (
+                <div style={{ 
+                  background: '#f8d7da', 
+                  padding: '12px', 
+                  borderRadius: '8px', 
+                  marginBottom: '16px',
+                  border: '1px solid #f5c6cb'
+                }}>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#721c24', lineHeight: 1.5 }}>
+                    ⛔ <strong>No estás en Safari:</strong> Para instalar la app en iOS, debes abrir esta página en <strong>Safari</strong>. 
+                    Copia esta URL y ábrela en Safari para continuar.
+                  </p>
+                </div>
+              )}
+              {isIOSSafari && (
+                <div style={{ 
+                  background: '#d4edda', 
+                  padding: '12px', 
+                  borderRadius: '8px', 
+                  marginBottom: '16px',
+                  border: '1px solid #c3e6cb'
+                }}>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#155724' }}>
+                    ✅ <strong>Perfecto:</strong> Estás usando Safari. Sigue los pasos a continuación para instalar.
+                  </p>
+                </div>
+              )}
+
               <div className="pwa-installer__step">
                 <div className="pwa-installer__step-number">1</div>
                 <div className="pwa-installer__step-text">
-                  Toca el botón <strong>Compartir</strong> <span className="ios-share">⎋</span> en Safari
+                  Toca el botón <strong>Compartir</strong> <span style={{ 
+                    display: 'inline-block',
+                    fontSize: '20px',
+                    verticalAlign: 'middle',
+                    marginLeft: '4px'
+                  }}>⬆️</span> en la barra inferior de Safari
                 </div>
               </div>
               
               <div className="pwa-installer__step">
                 <div className="pwa-installer__step-number">2</div>
                 <div className="pwa-installer__step-text">
-                  Selecciona <strong>"Agregar a Pantalla de Inicio"</strong>
+                  Desplázate hacia abajo y selecciona <strong>"Agregar a Pantalla de Inicio"</strong> <span style={{ fontSize: '18px' }}>➕</span>
                 </div>
               </div>
               
               <div className="pwa-installer__step">
                 <div className="pwa-installer__step-number">3</div>
                 <div className="pwa-installer__step-text">
-                  Toca <strong>"Agregar"</strong> para confirmar
+                  Personaliza el nombre (opcional) y toca <strong>"Agregar"</strong> para confirmar ✅
                 </div>
               </div>
               

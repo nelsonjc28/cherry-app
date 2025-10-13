@@ -7,25 +7,25 @@ class DesktopShortcutManager {
                 name: 'Cherry App - Inicio',
                 url: '/',
                 description: 'Página principal de Cherry App',
-                icon: '/images/white-logo.svg'
+                icon: '/images/logo.svg'
             },
             {
                 name: 'Cherry App - Categorías',
                 url: '/categorias',
                 description: 'Explorar todas las categorías',
-                icon: '/images/white-logo.svg'
+                icon: '/images/logo.svg'
             },
             {
                 name: 'Cherry App - Carrito',
                 url: '/carrito-detalle',
                 description: 'Ver carrito de compras',
-                icon: '/images/white-logo.svg'
+                icon: '/images/logo.svg'
             },
             {
                 name: 'Cherry App - Mi Perfil',
                 url: '/perfil',
                 description: 'Gestionar cuenta y pedidos',
-                icon: '/images/white-logo.svg'
+                icon: '/images/logo.svg'
             }
         ];
     }
@@ -263,7 +263,9 @@ if (document.readyState === 'loading') {
     });
 } else {
     window.cherryDesktopManager = new DesktopShortcutManager();
+
 }
+
 
 
 

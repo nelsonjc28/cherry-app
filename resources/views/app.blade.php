@@ -18,16 +18,46 @@
     <link rel="icon" type="image/svg+xml" href="/images/logo.svg">
     
     <!-- Modern PWA Meta Tags -->
-    <meta name="theme-color" content="#E91E63">
+    <meta name="theme-color" content="#ffffff">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Cherry App">
     
+    <!-- Apple Touch Icons for splash screen with white background -->
+    <link rel="apple-touch-startup-image" href="/images/logo.svg">
+    <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/images/logo.svg">
+    <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/images/logo.svg">
+    <link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" href="/images/logo.svg">
+    
     <!-- Additional PWA Meta Tags for better installation -->
     <meta name="application-name" content="Cherry App">
     <meta name="msapplication-TileColor" content="#E91E63">
     <meta name="msapplication-TileImage" content="/mstile-144x144.png">
+    
+    <!-- Splash screen background color -->
+    <meta name="msapplication-navbutton-color" content="#ffffff">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: dark)">
+    <style>
+        /* Force white background for splash screen */
+        html, body {
+            background-color: #ffffff !important;
+        }
+        /* PWA splash screen simulation */
+        @media (display-mode: standalone) {
+            body::before {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: #ffffff;
+                z-index: -1;
+            }
+        }
+    </style>
     
     <!-- Toast Styles -->
     <style>
