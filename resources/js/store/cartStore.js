@@ -160,21 +160,66 @@ const useCartStore = create(
       // Remove item from cart (solo local)
       removeItem: (productId, color, size) => {
         const { items } = get();
-        const updatedItems = items.filter(item => 
-          !(item.id_articulo === productId && 
-            item.selectedColor === color && 
-            item.selectedSize === size)
+        
+        // Buscar el item a eliminar
+        const itemToRemove = items.find(item => 
+          item.id_articulo === productId && 
+          item.selectedColor === color && 
+          item.selectedSize === size
         );
 
-        const totalItems = updatedItems.reduce((sum, item) => sum + item.quantity, 0);
+        if (!itemToRemove) {
+          return; // No existe el item, no hacer nada
+        }
+
+        // Verificar si este producto tiene una oferta Buy X Get Y
+        const hasBuyXGetYOffer = itemToRemove.userOffer && itemToRemove.userOffer.type === 'buy_x_get_y';
+        
+        // Verificar si hay productos gratis o con freeItemsCount del mismo id_articulo
+        const hasFreeItems = items.some(item => 
+          item.id_articulo === productId && 
+          (item.isFreeItem || item.freeItemsCount > 0)
+        );
+
+        let updatedItems;
+
+        // Si tiene oferta Buy X Get Y y hay productos gratis, eliminar TODO lo relacionado al productId
+        if (hasBuyXGetYOffer && hasFreeItems) {
+          console.log(`🗑️ Eliminando todos los productos con ID ${productId} (incluyendo gratis)`);
+          updatedItems = items.filter(item => item.id_articulo !== productId);
+        } else {
+          // Eliminar solo el item específico
+          updatedItems = items.filter(item => 
+            !(item.id_articulo === productId && 
+              item.selectedColor === color && 
+              item.selectedSize === size)
+          );
+        }
+
+        // Aplicar lógica de Buy X Get Y después de eliminar
+        updatedItems = get().applyBuyXGetYOffers(updatedItems);
+
+        const totalItems = updatedItems.reduce((sum, item) => {
+          // Sumar la cantidad total incluyendo items gratuitos
+          const baseQuantity = item.quantity || 0;
+          const freeItems = item.freeItemsCount || 0;
+          return sum + baseQuantity + freeItems;
+        }, 0);
         const totalPrice = updatedItems.reduce((sum, item) => {
-          // Para productos gratis (isFreeItem), no sumar al total
+          // Para productos completamente gratis (isFreeItem), no sumar al total
           if (item.isFreeItem) {
             return sum;
           }
-          // Usar el precio correcto (price o precio)
+          // Para productos con algunos items gratuitos, usar el precio ya ajustado
+          if (item.freeItemsCount && item.freeItemsCount > 0) {
+            // El precio ya está ajustado para solo los items pagados
+            const itemPrice = item.price || item.precio || 0;
+            return sum + itemPrice;
+          }
+          // Para productos normales (sin descuentos)
           const itemPrice = item.price || item.precio || 0;
-          return sum + (itemPrice * item.quantity);
+          const paidQuantity = item.quantity || 0;
+          return sum + (itemPrice * paidQuantity);
         }, 0);
 
         set({
@@ -198,12 +243,14 @@ const useCartStore = create(
 
       // Aplicar ofertas Buy X Get Y al carrito
       applyBuyXGetYOffers: (items) => {
-        const updatedItems = [...items];
+        let updatedItems = [...items];
         
         // Primero limpiar todas las ofertas anteriores
-        updatedItems.forEach((item, index) => {
-          if (item.isFreeItem || item.freeItemsCount) {
-            updatedItems[index] = {
+        // También eliminar items completamente gratis para recalcular
+        updatedItems = updatedItems.map(item => {
+          if (item.isFreeItem) {
+            // Resetear item que era completamente gratis
+            return {
               ...item,
               price: item.originalPrice || item.price,
               precio: item.originalPrice || item.precio,
@@ -211,7 +258,17 @@ const useCartStore = create(
               freeItemsCount: 0,
               freeItemReason: null
             };
+          } else if (item.freeItemsCount) {
+            // Resetear items con algunos gratis
+            return {
+              ...item,
+              price: item.originalPrice || item.price,
+              precio: item.originalPrice || item.precio,
+              freeItemsCount: 0,
+              freeItemReason: null
+            };
           }
+          return item;
         });
         
         // Agrupar productos por ID y oferta
