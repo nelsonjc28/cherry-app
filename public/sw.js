@@ -6,10 +6,6 @@ const urlsToCache = [
   '/',
   '/manifest.json',
   '/offline.html',
-  '/icons/cherry-icon-144x144.png',
-  '/icons/cherry-icon-192x192.png',
-  '/icons/cherry-icon-512x512.png',
-  '/images/logo.svg',
   '/images/logo.svg'
 ];
 
