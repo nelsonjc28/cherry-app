@@ -87,7 +87,7 @@ const RegisterPage = () => {
               <div className="register-form-container">
                 <div className="register-form-header">
                   <Link to="/">
-                    <img src={getImagePath('white-logo.svg')} alt="Cherry" />
+                    <img src={getImagePath('logo.svg')} alt="Cherry" />
                   </Link>
                   <h2 className="register-subtitle">Afíliate a nosotros</h2>
                 </div>
