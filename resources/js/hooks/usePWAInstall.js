@@ -4,6 +4,7 @@ export const usePWAInstall = () => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [isIOSSafari, setIsIOSSafari] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [debugLogs, setDebugLogs] = useState([]);
 
@@ -25,11 +26,22 @@ export const usePWAInstall = () => {
     setIsIOS(iOS);
     addDebugLog('iOS detectado', iOS);
 
+    // Detectar si es Safari en iOS (requerido para instalar PWA en iOS)
+    const isSafari = /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
+    const iOSSafari = iOS && isSafari;
+    setIsIOSSafari(iOSSafari);
+    addDebugLog('iOS Safari detectado', iOSSafari);
+
     // Verificar si ya está en modo standalone (instalado)
     const checkStandalone = () => {
-      const standalone = window.matchMedia('(display-mode: standalone)').matches;
+      // Para iOS, usar navigator.standalone
+      // Para otros navegadores, usar display-mode
+      const standalone = iOS 
+        ? (window.navigator.standalone === true)
+        : window.matchMedia('(display-mode: standalone)').matches;
+      
       setIsStandalone(standalone);
-      addDebugLog('Standalone check', standalone);
+      addDebugLog('Standalone check', { standalone, iOS, navigatorStandalone: window.navigator.standalone });
       return standalone;
     };
 
@@ -120,6 +132,7 @@ export const usePWAInstall = () => {
     deferredPrompt,
     isInstallable,
     isIOS,
+    isIOSSafari,
     isStandalone,
     installPWA,
     resetPrompt,
