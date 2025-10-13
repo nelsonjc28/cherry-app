@@ -10,7 +10,7 @@ const urlsToCache = [
   '/icons/cherry-icon-192x192.png',
   '/icons/cherry-icon-512x512.png',
   '/images/logo.svg',
-  '/images/white-logo.svg'
+  '/images/logo.svg'
 ];
 
 // URLs críticas que siempre deben estar disponibles offline

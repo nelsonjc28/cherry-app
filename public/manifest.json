@@ -26,13 +26,13 @@
   ],
   "icons": [
     {
-      "src": "/images/white-logo.svg",
+      "src": "/images/logo.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/images/white-logo.svg",
+      "src": "/images/logo.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "maskable"
@@ -46,7 +46,7 @@
       "url": "/nuevos",
       "icons": [
         {
-          "src": "/images/white-logo.svg",
+          "src": "/images/logo.svg",
           "sizes": "any",
           "type": "image/svg+xml"
         }
@@ -59,7 +59,7 @@
       "url": "/categorias",
       "icons": [
         {
-          "src": "/images/white-logo.svg",
+          "src": "/images/logo.svg",
           "sizes": "any",
           "type": "image/svg+xml"
         }
@@ -72,7 +72,7 @@
       "url": "/carrito-detalle",
       "icons": [
         {
-          "src": "/images/white-logo.svg",
+          "src": "/images/logo.svg",
           "sizes": "any",
           "type": "image/svg+xml"
         }
@@ -85,7 +85,7 @@
       "url": "/perfil",
       "icons": [
         {
-          "src": "/images/white-logo.svg",
+          "src": "/images/logo.svg",
           "sizes": "any",
           "type": "image/svg+xml"
         }
