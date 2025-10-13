@@ -246,29 +246,7 @@ const ProductPage = () => {
 
         addToCart(productToAdd, cantidad);
         
-        // Para ofertas Buy X Get Y, agregar productos gratis
-        if (hasUserOffer && userOffer.discount_category === 'buy_x_get_y') {
-          const buyQuantity = userOffer.buy_quantity || 1;
-          const getQuantity = userOffer.get_quantity || 1;
-          
-          // Calcular cuántos productos gratis corresponden
-          const freeItems = Math.floor(cantidad / buyQuantity) * getQuantity;
-          
-          if (freeItems > 0) {
-            const freeProductToAdd = {
-              ...productToAdd,
-              price: 0, // Producto gratis
-              precio: 0,
-              originalPrice: finalPrice,
-              quantity: freeItems,
-              isFreeItem: true, // Marcar como producto gratis
-              freeItemReason: `🎁 Gratis por oferta: Compra ${buyQuantity} lleva ${getQuantity}`
-            };
-            
-            
-            addToCart(freeProductToAdd, freeItems);
-          }
-        }
+        // La lógica de Buy X Get Y ahora se maneja automáticamente en el cartStore
       }
 
       if (window.showToast) {
@@ -277,15 +255,8 @@ const ProductPage = () => {
         
         if (hasOffer) {
           if (hasUserOffer && userOffer && userOffer.discount_category === 'buy_x_get_y') {
-            const totalFreeItems = tallasConCantidades.reduce((total, { cantidad }) => {
-              const buyQuantity = userOffer.buy_quantity || 1;
-              const getQuantity = userOffer.get_quantity || 1;
-              return total + Math.floor(cantidad / buyQuantity) * getQuantity;
-            }, 0);
-            message += ` 🎁 Oferta: Compra ${userOffer.buy_quantity} lleva ${userOffer.get_quantity}`;
-            if (totalFreeItems > 0) {
-              message += ` - ¡${totalFreeItems} producto${totalFreeItems > 1 ? 's' : ''} gratis agregado${totalFreeItems > 1 ? 's' : ''}!`;
-            }
+            message += ` 🎁 Oferta: Compra ${userOffer.buy_quantity} por el precio de ${userOffer.buy_quantity - userOffer.get_quantity}`;
+            message += ` - Los productos gratis se aplicarán automáticamente según tu carrito`;
           } else if (hasUserOffer && userOffer && userOffer.discount_category === 'order_discount') {
             message += ` 💰 Descuento del ${Math.round(userOffer.discount_percentage)}% se aplicará al total del pedido`;
           } else if (hasUserOffer && userOffer && userOffer.discount_category === 'free_shipping') {
@@ -700,7 +671,7 @@ const ProductPage = () => {
                   hasUserOffer && userOffer && userOffer.discount_category === 'free_shipping' ? 'free-shipping' : ''
                 }`}>
                   {hasUserOffer && userOffer && userOffer.discount_category === 'buy_x_get_y' ? 
-                    `🎁 Compra ${userOffer.buy_quantity} lleva ${userOffer.get_quantity}` :
+                    `🎁 Compra ${userOffer.buy_quantity} por el precio de ${userOffer.buy_quantity - userOffer.get_quantity}` :
                     hasUserOffer && userOffer && userOffer.discount_category === 'order_discount' ? 
                       `💰 Descuento en pedido ${Math.round(userOffer.discount_percentage)}%` :
                     hasUserOffer && userOffer && userOffer.discount_category === 'free_shipping' ? 
@@ -734,9 +705,9 @@ const ProductPage = () => {
               {hasUserOffer && userOffer && userOffer.discount_category === 'buy_x_get_y' && (
                 <div className="product-page__offer-details">
                   <div className="product-page__buy-x-get-y-info">
-                    🎁 <strong>Oferta Especial:</strong> Por cada {userOffer.buy_quantity} producto{userOffer.buy_quantity > 1 ? 's' : ''} que compres, recibirás {userOffer.get_quantity} gratis
+                    🎁 <strong>Oferta Especial:</strong> Compra {userOffer.buy_quantity} por el precio de {userOffer.buy_quantity - userOffer.get_quantity}
                     <div className="product-page__offer-example">
-                      💡 <em>Ejemplo:</em> Si compras {userOffer.buy_quantity * 2} productos, recibirás {userOffer.get_quantity * 2} gratis
+                      💡 <em>Ejemplo:</em> Si compras {userOffer.buy_quantity * 2} productos, pagas por {userOffer.buy_quantity * 2 - userOffer.get_quantity * 2}
                     </div>
                     <div className="product-page__offer-note">
                       ℹ️ Los productos gratis se agregarán automáticamente al carrito

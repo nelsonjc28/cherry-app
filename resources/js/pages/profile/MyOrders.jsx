@@ -93,32 +93,8 @@ const MyOrders = () => {
     navigate(`/escribir-resena/${orderId}/${productId}`);
   };
 
-  const handleMarkAsReceived = async (orderId) => {
-    try {
-      const response = await api.post(`/orders/${orderId}/mark-delivered`);
-      
-      if (response.data.success) {
-        // Actualizar la orden en el estado local
-        setOrders(orders.map(order => 
-          order.id === orderId 
-            ? { ...order, status: 'Entregado', statusRaw: 'entregado' }
-            : order
-        ));
-        
-        if (window.showToast) {
-          window.showToast('Pedido marcado como recibido correctamente', 'success');
-        }
-      } else {
-        if (window.showToast) {
-          window.showToast(response.data.message || 'Error al marcar como recibido', 'error');
-        }
-      }
-    } catch (error) {
-      console.error('Error marking order as received:', error);
-      if (window.showToast) {
-        window.showToast('Error de conexión al marcar como recibido', 'error');
-      }
-    }
+  const handleRateProduct = (orderId, productId) => {
+    navigate(`/escribir-resena/${orderId}/${productId}`);
   };
 
   const handleViewOrder = (order) => {
@@ -294,25 +270,26 @@ const MyOrders = () => {
                   >
                     Ver compra
                   </CherryButton>
-                  {(order.statusRaw === 'enviado') && (
+                  {(order.statusRaw === 'enviado') && order.items?.[0] && !order.items[0].hasReview && (
                     <CherryButton
-                      variant="green"
-                      size="small"
-                      className="order-card__btn"
-                      onClick={() => handleMarkAsReceived(order.id)}
-                    >
-                      Marcar como recibido
-                    </CherryButton>
-                  )}
-                  {(order.statusRaw === 'entregado') && order.items?.[0] && (
-                    <CherryButton
-                      variant="outline"
+                      variant="red"
                       size="small"
                       className="order-card__btn order-card__btn--review"
                       onClick={() => handleWriteReview(order.id, order.items[0].product_id)}
+                      icon={
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M7 0L8.5 5.5L14 7L8.5 8.5L7 14L5.5 8.5L0 7L5.5 5.5L7 0Z" fill="currentColor"/>
+                        </svg>
+                      }
+                      iconPosition="left"
                     >
-                      Comentario
+                      ⭐ Calificar y comentar
                     </CherryButton>
+                  )}
+                  {(order.statusRaw === 'enviado') && order.items?.[0] && order.items[0].hasReview && (
+                    <div className="order-card__reviewed">
+                      <span className="reviewed-text">✅ Ya calificado</span>
+                    </div>
                   )}
                   <CherryButton
                     variant="red"

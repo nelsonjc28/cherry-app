@@ -63,11 +63,11 @@ class ReviewController extends Controller
                 ], 404);
             }
 
-            // Verificar que la orden está entregada
-            if ($order->status !== 'entregado') {
+            // Verificar que la orden está enviada
+            if ($order->status !== 'enviado') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Solo puedes escribir reseñas de productos entregados'
+                    'message' => 'Solo puedes escribir reseñas de productos enviados'
                 ], 400);
             }
 

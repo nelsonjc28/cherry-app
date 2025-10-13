@@ -150,6 +150,25 @@
   color: #856404;
 }
 
+/* Reviewed indicator */
+.order-detail__reviewed {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px;
+  background: #e8f5e8;
+  border: 1px solid #4caf50;
+  border-radius: 6px;
+  font-size: 16px;
+  margin: 8px 0;
+}
+
+.order-detail__reviewed .reviewed-text {
+  color: #2e7d32;
+  font-weight: 600;
+  font-size: 14px;
+}
+
 .status-badge--red {
   background: #f8d7da;
   color: #721c24;
@@ -278,6 +297,7 @@
     flex-direction: column;
   }
 }
+
 
 
 

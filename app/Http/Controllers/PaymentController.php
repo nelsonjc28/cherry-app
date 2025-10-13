@@ -470,7 +470,7 @@ class PaymentController extends Controller
     public function updateOrderStatus(Request $request, $orderId)
     {
         $validator = Validator::make($request->all(), [
-            'status' => 'required|string|in:pagado,en_espera_envio,enviado,entregado',
+            'status' => 'required|string|in:pagado,en_espera_envio,enviado',
             'message' => 'nullable|string|max:500'
         ]);
 
@@ -526,7 +526,7 @@ class PaymentController extends Controller
                     'Tu pedido ha sido confirmado y está siendo preparado para envío.');
             } elseif ($newStatus === 'enviado') {
                 $this->notifyCustomerStatusChange($order, $newStatus, 
-                    'Tu pedido ha sido enviado. Podrás marcarlo como entregado cuando lo recibas.');
+                    'Tu pedido ha sido enviado. Ahora puedes calificar y comentar sobre los productos.');
             }
 
             DB::commit();
@@ -551,69 +551,6 @@ class PaymentController extends Controller
         }
     }
 
-    /**
-     * Cliente marca orden como entregada
-     */
-    public function markAsDelivered(Request $request, $orderId)
-    {
-        /** @var User $user */
-        $user = Auth::user();
-        
-        if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Usuario no autenticado'
-            ], 401);
-        }
-
-        $order = Order::where('id', $orderId)
-                     ->where('user_id', $user->id)
-                     ->first();
-
-        if (!$order) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Orden no encontrada o no pertenece al usuario'
-            ], 404);
-        }
-
-        if ($order->status !== 'enviado') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Solo se pueden marcar como entregadas las órdenes enviadas'
-            ], 422);
-        }
-
-        try {
-            DB::beginTransaction();
-
-            $order->update([
-                'status' => 'entregado',
-                'delivered_at' => now()
-            ]);
-
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => '¡Perfecto! Has confirmado la entrega de tu pedido.',
-                'data' => [
-                    'order_id' => $order->id,
-                    'status' => 'entregado',
-                    'delivered_at' => $order->delivered_at
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al confirmar la entrega'
-            ], 500);
-        }
-    }
 
     /**
      * Validar si la transición de estado es válida
@@ -623,8 +560,7 @@ class PaymentController extends Controller
         $validTransitions = [
             'pagado' => ['en_espera_envio'],
             'en_espera_envio' => ['enviado'],
-            'enviado' => ['entregado'], // Solo el cliente puede hacer esta transición
-            'entregado' => [] // Estado final
+            'enviado' => [] // Estado final - cliente puede calificar
         ];
 
         return in_array($newStatus, $validTransitions[$oldStatus] ?? []);
@@ -653,7 +589,7 @@ class PaymentController extends Controller
                 ->get();
 
             // Mapear órdenes al formato esperado por el frontend
-            $formattedOrders = $orders->map(function ($order) {
+            $formattedOrders = $orders->map(function ($order) use ($user) {
                 return [
                     'id' => $order->id,
                     'date' => $order->created_at->format('d \d\e F Y'),
@@ -661,9 +597,15 @@ class PaymentController extends Controller
                     'status' => $this->mapOrderStatus($order->status),
                     'statusRaw' => $order->status, // Estado original para comparaciones en el frontend
                     'statusColor' => $this->getStatusColor($order->status),
-                    'items' => $order->items->map(function ($item) {
+                    'items' => $order->items->map(function ($item) use ($user, $order) {
                         // Generar URL de imagen basada en el product_id
                         $imageUrl = $this->getProductImageUrl($item->product_id);
+                        
+                        // Verificar si ya existe una reseña para este producto en esta orden
+                        $hasReview = \App\Models\Review::where('user_id', $user->id)
+                            ->where('order_id', $order->id)
+                            ->where('product_id', $item->product_id)
+                            ->exists();
                         
                         return [
                             'id' => $item->id,
@@ -675,7 +617,8 @@ class PaymentController extends Controller
                             'image' => $imageUrl,
                             'size' => $item->size,
                             'color' => $item->color,
-                            'barcode' => $item->barcode
+                            'barcode' => $item->barcode,
+                            'hasReview' => $hasReview
                         ];
                     }),
                     'totalAmount' => (float) $order->total_amount,
@@ -757,9 +700,9 @@ class PaymentController extends Controller
                 ], 401);
             }
 
-            // Obtener órdenes entregadas que no han sido calificadas
+            // Obtener órdenes enviadas que no han sido calificadas
             $orders = Order::where('user_id', $user->id)
-                ->where('status', 'entregado')
+                ->where('status', 'enviado')
                 ->with(['items'])
                 ->orderBy('created_at', 'desc')
                 ->get();

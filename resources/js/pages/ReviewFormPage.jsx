@@ -228,7 +228,7 @@ const ReviewFormPage = () => {
                   </p>
                   {order?.status && (
                     <span className="review-form__order-status">
-                      Estado: {order.status === 'entregado' ? 'Entregado' : order.status}
+                      Estado: {order.status === 'enviado' ? 'Enviado' : order.status}
                     </span>
                   )}
                 </div>

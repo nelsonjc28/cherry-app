@@ -155,7 +155,7 @@ const OrderDetailModal = ({ order, isOpen, onClose }) => {
           >
             Cerrar
           </CherryButton>
-          {(order.status === 'Entregado' || order.status === 'entregado') && (
+          {(order.status === 'Enviado' || order.status === 'enviado') && order.items?.[0] && !order.items[0].hasReview && (
             <CherryButton 
               variant="red" 
               size="medium"
@@ -164,8 +164,13 @@ const OrderDetailModal = ({ order, isOpen, onClose }) => {
                 window.location.href = `/escribir-resena/${order.id}/${order.items?.[0]?.product_id}`;
               }}
             >
-              Escribir reseña
+              ⭐ Calificar y comentar
             </CherryButton>
+          )}
+          {(order.status === 'Enviado' || order.status === 'enviado') && order.items?.[0] && order.items[0].hasReview && (
+            <div className="order-detail__reviewed">
+              <span className="reviewed-text">✅ Ya calificado</span>
+            </div>
           )}
         </div>
       </div>

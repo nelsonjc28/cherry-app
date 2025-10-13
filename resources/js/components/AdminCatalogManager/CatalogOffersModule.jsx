@@ -871,7 +871,7 @@ const CatalogOffersModule = ({ onBack }) => {
                     {offer.discount_category === 'buy_x_get_y' && (
                       <div className="catalog-offers-module__offer-discount">
                         <span className="catalog-offers-module__discount-amount">
-                          Compra {offer.buy_quantity} lleva {offer.get_quantity} gratis
+                          Compra {offer.buy_quantity} por el precio de {offer.buy_quantity - offer.get_quantity}
                         </span>
                       </div>
                     )}

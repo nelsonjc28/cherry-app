@@ -303,7 +303,7 @@ class NotificationController extends Controller
     {
         try {
             $orders = \App\Models\Order::where('user_id', $userId)
-                ->where('status', 'entregado')
+                ->where('status', 'enviado')
                 ->with(['items'])
                 ->get();
 

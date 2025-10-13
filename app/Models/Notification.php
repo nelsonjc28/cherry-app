@@ -100,8 +100,7 @@ class Notification extends Model
     {
         $statusMessages = [
             'en_espera_envio' => 'Tu pedido está siendo preparado para el envío',
-            'enviado' => 'Tu pedido ha sido enviado y está en camino',
-            'entregado' => 'Tu pedido ha sido marcado como entregado'
+            'enviado' => 'Tu pedido ha sido enviado y puedes calificar los productos'
         ];
 
         $message = $statusMessages[$newStatus] ?? "El estado de tu pedido ha cambiado a {$newStatus}";

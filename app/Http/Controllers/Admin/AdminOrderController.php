@@ -77,7 +77,7 @@ class AdminOrderController extends Controller
     public function updateStatus(Request $request, $orderId)
     {
         $validator = Validator::make($request->all(), [
-            'status' => 'required|string|in:pending,pagado,en_espera_envio,enviado,entregado,cancelled,failed'
+            'status' => 'required|string|in:pending,pagado,en_espera_envio,enviado,cancelled,failed'
         ]);
 
         if ($validator->fails()) {
@@ -96,9 +96,10 @@ class AdminOrderController extends Controller
             // Actualizar el estado
             $order->status = $newStatus;
             
-            // Si el estado es entregado, actualizar la fecha
-            if ($newStatus === 'entregado') {
-                $order->delivered_at = now();
+            // Si el estado es enviado, notificar al cliente que puede calificar
+            if ($newStatus === 'enviado') {
+                // El cliente ahora puede calificar los productos
+                $this->notifyCustomerCanRate($order);
             }
 
             $order->save();
@@ -201,7 +202,6 @@ class AdminOrderController extends Controller
             'pagado' => 'Pagado',
             'en_espera_envio' => 'En espera de envío',
             'enviado' => 'Enviado',
-            'entregado' => 'Entregado'
         ];
 
         return $statusMap[$status] ?? ucfirst($status);
@@ -292,6 +292,27 @@ class AdminOrderController extends Controller
     {
         // TODO: Implementar notificación al admin
         // Por ahora solo logging
+    }
+
+    /**
+     * Notify customer that they can rate their order
+     */
+    private function notifyCustomerCanRate($order)
+    {
+        try {
+            // Crear notificación para el cliente
+            $order->user->notifications()->create([
+                'title' => '¡Tu pedido ha sido enviado!',
+                'message' => 'Tu pedido #' . $order->id . ' ha sido enviado. Ahora puedes calificar y comentar sobre los productos.',
+                'type' => 'order_shipped',
+                'data' => [
+                    'order_id' => $order->id,
+                    'can_rate' => true
+                ]
+            ]);
+        } catch (\Exception $e) {
+            // Error silencioso
+        }
     }
 
 }

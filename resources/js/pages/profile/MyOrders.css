@@ -203,6 +203,25 @@
   flex: 1 1 45%;
 }
 
+/* Reviewed indicator */
+.order-card__reviewed {
+  flex: 1 1 45%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  background: #e8f5e8;
+  border: 1px solid #4caf50;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.reviewed-text {
+  color: #2e7d32;
+  font-weight: 600;
+  font-size: 13px;
+}
+
 .order-card__btn:last-child {
   flex-basis: 100%;
   min-width: 160px;

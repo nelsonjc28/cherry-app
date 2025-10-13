@@ -210,6 +210,23 @@ const UserNotifications = ({ isOpen, onClose }) => {
                             Estado: {notification.data.new_status}
                           </span>
                         )}
+                        {notification.data?.can_rate && (
+                          <div className="rating-alert">
+                            <span className="rating-alert-text">
+                              ⭐ ¡Puedes calificar y comentar sobre los productos!
+                            </span>
+                            <CherryButton
+                              variant="red"
+                              size="small"
+                              onClick={() => {
+                                navigate('/mis-ordenes');
+                                onClose();
+                              }}
+                            >
+                              Ver pedido
+                            </CherryButton>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

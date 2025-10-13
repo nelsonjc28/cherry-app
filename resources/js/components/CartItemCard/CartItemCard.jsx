@@ -36,6 +36,16 @@ const CartItemCard = ({
                       <span className="cart-item-card__variant-color">{variant.color}</span>
                       <span className="cart-item-card__variant-size">{variant.size}</span>
                       <span className="cart-item-card__variant-qty">×{variant.quantity}</span>
+                      {variant.freeItemsCount && variant.freeItemsCount > 0 && (
+                        <span className="cart-item-card__free-items">
+                          🎁 {variant.freeItemsCount} gratis
+                        </span>
+                      )}
+                      {variant.isFreeItem && (
+                        <span className="cart-item-card__free-item">
+                          🎁 Gratis
+                        </span>
+                      )}
                     </span>
                   ))}
                 </div>

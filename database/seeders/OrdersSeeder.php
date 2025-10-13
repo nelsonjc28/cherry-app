@@ -105,8 +105,8 @@ class OrdersSeeder extends Seeder
 
     private function getRandomStatus()
     {
-        $statuses = ['pending', 'pagado', 'en_espera_envio', 'enviado', 'entregado'];
-        $weights = [10, 20, 15, 25, 30]; // Más órdenes completadas para las gráficas
+        $statuses = ['pending', 'pagado', 'en_espera_envio', 'enviado'];
+        $weights = [10, 20, 15, 25]; // Más órdenes completadas para las gráficas
         
         $rand = rand(1, 100);
         $cumulative = 0;
@@ -118,6 +118,6 @@ class OrdersSeeder extends Seeder
             }
         }
         
-        return 'entregado';
+        return 'enviado';
     }
 }

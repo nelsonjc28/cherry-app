@@ -100,7 +100,7 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true }) =
     if (finalHasUserOffer && finalUserOffer) {
       // Para ofertas Buy X Get Y
       if (finalUserOffer.discount_category === 'buy_x_get_y') {
-        return `🎁 Compra ${finalUserOffer.buy_quantity} lleva ${finalUserOffer.get_quantity}`;
+        return `🎁 Compra ${finalUserOffer.buy_quantity} por el precio de ${finalUserOffer.buy_quantity - finalUserOffer.get_quantity}`;
       }
       // Para ofertas de descuento en el pedido
       if (finalUserOffer.discount_category === 'order_discount') {

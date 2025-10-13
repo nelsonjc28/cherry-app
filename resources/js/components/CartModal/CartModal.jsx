@@ -47,22 +47,14 @@ const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout 
             <span className="cart-modal__subtotal-value">{subtotal}</span>
           </div>
           <div className="cart-modal__actions">
-            <CustomButton
-              variant="outlined"
+            <CherryButton
+              variant="red"
               size="large"
               onClick={onViewCart}
               iconLeft={<img className="cart-modal__cart-icon" src={getIconPath('Shopping Cart.svg')} alt="Cart" />}
               className="cart-modal__action-btn"
             >
               Ver detalle del carrito
-            </CustomButton>
-            <CherryButton
-              variant="red"
-              size="large"
-              onClick={onCheckout}
-              className="cart-modal__action-btn order-letter-btn"
-            >
-              Generar pedido
             </CherryButton>
           </div>
         </div>

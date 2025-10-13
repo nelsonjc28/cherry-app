@@ -320,12 +320,27 @@ const Header = () => {
       color: item.selectedColor,
       size: item.selectedSize,
       quantity: item.quantity,
-      price: item.precio
+      price: item.precio,
+      isFreeItem: item.isFreeItem,
+      freeItemsCount: item.freeItemsCount,
+      freeItemReason: item.freeItemReason
     });
 
     // Update totals
     groups[key].totalQuantity += item.quantity;
-    groups[key].totalPrice += item.precio * item.quantity;
+    
+    // Considerar items gratuitos en el cálculo del precio
+    if (item.isFreeItem) {
+      // Si el item es completamente gratis, no sumar al precio
+      groups[key].totalPrice += 0;
+    } else if (item.freeItemsCount && item.freeItemsCount > 0) {
+      // Si tiene algunos items gratuitos, solo sumar los pagados
+      const paidQuantity = item.quantity - item.freeItemsCount;
+      groups[key].totalPrice += item.precio * paidQuantity;
+    } else {
+      // Item normal sin ofertas
+      groups[key].totalPrice += item.precio * item.quantity;
+    }
 
     return groups;
   }, {});

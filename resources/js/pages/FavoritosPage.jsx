@@ -42,7 +42,6 @@ const FavoritosPage = () => {
           favoriteProductIds.includes(product.id_articulo)
         );
         
-        console.log('Productos favoritos encontrados:', favoriteProductsData);
         setFavoriteProducts(favoriteProductsData);
       } catch (error) {
         console.error('Error cargando productos favoritos:', error);
@@ -60,6 +59,42 @@ const FavoritosPage = () => {
     };
 
     loadFavoriteProducts();
+  }, [initialized]); // Solo depender de initialized, no de favoriteProductIds
+
+  // Efecto separado para manejar cambios en favoriteProductIds
+  useEffect(() => {
+    if (initialized && favoriteProductIds.length > 0) {
+      const loadFavoriteProducts = async () => {
+        setProductsLoading(true);
+        try {
+          const allProducts = await getExternalPromoProducts(1000, true);
+          
+          if (!Array.isArray(allProducts)) {
+            setFavoriteProducts([]);
+            return;
+          }
+          
+          const favoriteProductsData = allProducts.filter(product => 
+            favoriteProductIds.includes(product.id_articulo)
+          );
+          
+          setFavoriteProducts(favoriteProductsData);
+        } catch (error) {
+          console.error('Error cargando productos favoritos:', error);
+          const basicProducts = favoriteProductIds.map(id => ({
+            id_articulo: id,
+            descripcion: `Producto ${id}`,
+            imagen: `https://cherry-fotos.s3.amazonaws.com/shopify/${id}/${id}_1.jpg`,
+            precio1: 0
+          }));
+          setFavoriteProducts(basicProducts);
+        } finally {
+          setProductsLoading(false);
+        }
+      };
+
+      loadFavoriteProducts();
+    }
   }, [favoriteProductIds, initialized]);
 
   const handleRemoveFavorite = async (productId) => {

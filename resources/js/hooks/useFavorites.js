@@ -1,12 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import { favoriteService } from '../services/api';
+import useUserStore from '../store/userStore';
 
 export const useFavorites = () => {
   const [favoriteProductIds, setFavoriteProductIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { isAdmin } = useUserStore();
 
   const fetchFavorites = useCallback(async () => {
+    // No cargar favoritos si es admin
+    if (isAdmin()) {
+      setFavoriteProductIds([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -21,7 +30,7 @@ export const useFavorites = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAdmin]);
 
   const addToFavorites = useCallback(async (productId, productData) => {
     try {
@@ -63,7 +72,7 @@ export const useFavorites = () => {
 
   useEffect(() => {
     fetchFavorites();
-  }, [fetchFavorites]);
+  }, [fetchFavorites]); // Depender de fetchFavorites que ya tiene isAdmin
 
   return {
     favoriteProductIds,
@@ -76,6 +85,7 @@ export const useFavorites = () => {
     isFavorited
   };
 };
+
 
 
 

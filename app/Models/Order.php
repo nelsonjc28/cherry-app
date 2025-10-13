@@ -66,7 +66,6 @@ class Order extends Model
             'pagado' => 'Pagado',
             'en_espera_envio' => 'En Espera de Envío',
             'enviado' => 'Enviado',
-            'entregado' => 'Entregado',
             // Estados legacy
             'processing' => 'Procesando',
             'completed' => 'Completado',
@@ -81,21 +80,21 @@ class Order extends Model
      */
     public function isPaid(): bool
     {
-        return in_array($this->status, ['pagado', 'en_espera_envio', 'enviado', 'entregado', 'completed']);
+        return in_array($this->status, ['pagado', 'en_espera_envio', 'enviado', 'completed']);
     }
 
     /**
-     * Check if order is delivered.
+     * Check if order is delivered (now based on 'enviado' status).
      */
     public function isDelivered(): bool
     {
-        return $this->status === 'entregado';
+        return $this->status === 'enviado';
     }
 
     /**
-     * Check if order can be marked as delivered by customer.
+     * Check if order can be rated by customer.
      */
-    public function canBeMarkedAsDelivered(): bool
+    public function canBeRated(): bool
     {
         return $this->status === 'enviado';
     }
@@ -116,8 +115,7 @@ class Order extends Model
         return match($this->status) {
             'pagado' => ['en_espera_envio'],
             'en_espera_envio' => ['enviado'],
-            'enviado' => [], // Solo el cliente puede marcar como entregado
-            'entregado' => [], // Estado final
+            'enviado' => [], // Estado final - cliente puede calificar
             default => []
         };
     }

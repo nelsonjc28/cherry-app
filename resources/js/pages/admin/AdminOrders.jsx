@@ -165,8 +165,7 @@ const AdminOrders = () => {
       'pending': 'yellow',
       'pagado': 'green',
       'en_espera_envio': 'blue',
-      'enviado': 'orange',
-      'entregado': 'green',
+      'enviado': 'green',
       'cancelled': 'red',
       'failed': 'red'
     };
@@ -178,8 +177,7 @@ const AdminOrders = () => {
       'pending': ['pagado'],
       'pagado': ['en_espera_envio'],
       'en_espera_envio': ['enviado'],
-      'enviado': ['entregado'],
-      'entregado': [],
+      'enviado': [], // Estado final - cliente puede calificar
       'cancelled': [],
       'failed': ['pending']
     };
@@ -268,7 +266,6 @@ const AdminOrders = () => {
             <option value="pagado">Pagado</option>
             <option value="en_espera_envio">En espera de envío</option>
             <option value="enviado">Enviado</option>
-            <option value="entregado">Entregado</option>
             <option value="cancelled">Cancelado</option>
           </select>
         </div>

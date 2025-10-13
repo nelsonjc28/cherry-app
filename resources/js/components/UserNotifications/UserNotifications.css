@@ -145,6 +145,32 @@
   font-size: 1.1rem;
 }
 
+/* Rating Alert */
+.rating-alert {
+  background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  animation: pulse 2s infinite;
+}
+
+.rating-alert-text {
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+  flex: 1;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
 /* Notifications List */
 .user-notifications-list {
   padding: 0;
@@ -291,6 +317,7 @@
     margin-top: 4px;
   }
 }
+
 
 
 

@@ -31,9 +31,9 @@ const UserMultiSelect = ({
     } else {
       const filtered = users.filter(user => {
         const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
-        const email = user.email.toLowerCase();
+        const username = user.username?.toLowerCase() || '';
         const search = searchTerm.toLowerCase();
-        return fullName.includes(search) || email.includes(search);
+        return fullName.includes(search) || username.includes(search);
       });
       setFilteredUsers(filtered);
     }
@@ -213,7 +213,7 @@ const UserMultiSelect = ({
                         {formatUserName(user)}
                       </div>
                       <div className="user-multi-select__item-email">
-                        {user.email || 'Sin email'}
+                        {user.username || 'Sin usuario'}
                       </div>
                     </div>
                   </div>
