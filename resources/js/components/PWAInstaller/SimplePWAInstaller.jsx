@@ -12,57 +12,57 @@ const SimplePWAInstaller = () => {
       pwaInstalled: localStorage.getItem('pwa-installed'),
       manuallyInstalled: localStorage.getItem('pwa-manually-installed')
     });
-    
+
     // Verificar si ya está instalado
-    const isAlreadyInstalled = 
+    const isAlreadyInstalled =
       window.matchMedia('(display-mode: standalone)').matches ||
       window.navigator.standalone === true ||
       localStorage.getItem('pwa-installed') === 'true';;
-    
+
     if (isAlreadyInstalled) {
       return;
     }
-    
+
     // Verificar si ya se mostró el toast
     const toastShown = localStorage.getItem('pwa-install-toast-shown') === 'true';;
-    
+
     // Modo debug: ignorar localStorage si está en la URL
     const isDebugMode = window.location.search.includes('debug-pwa') || window.location.search.includes('show-installer');
-    
+
     if (toastShown && !isDebugMode) {
       return;
     }
-    
+
     if (isDebugMode) {
-      }
-    
+    }
+
     // Escuchar el evento beforeinstallprompt para instalación nativa
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       window.deferredPrompt = e;
-      
+
       // Mostrar el toast inmediatamente cuando hay prompt disponible
       setShowToast(true);
     };
-    
+
     // Escuchar el evento appinstalled
     const handleAppInstalled = () => {
       setShowToast(false);
       localStorage.setItem('pwa-installed', 'true');
       localStorage.setItem('pwa-install-toast-shown', 'true');
     };
-    
+
     // Agregar listeners
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
-    
+
     // Mostrar toast después de 2 segundos solo si no hay prompt nativo
     const timer = setTimeout(() => {
       // Solo mostrar si no hay prompt nativo disponible
       if (!window.deferredPrompt) {
         setShowToast(true);
       } else {
-        }
+      }
     }, 2000);
 
     return () => {
@@ -88,12 +88,12 @@ const SimplePWAInstaller = () => {
           // Mostrar el prompt nativo del navegador
           await window.deferredPrompt.prompt();
           const { outcome } = await window.deferredPrompt.userChoice;;
-          
+
           if (outcome === 'accepted') {
             setShowToast(false);
             localStorage.setItem('pwa-installed', 'true');
             localStorage.setItem('pwa-install-toast-shown', 'true');
-            
+
             // Mostrar mensaje de éxito con logo solo cuando realmente se instale
             setTimeout(() => {
               showSuccessMessage('¡Cherry App instalada exitosamente!\n\nLa aplicación se ha agregado a tu dispositivo.');
@@ -105,12 +105,12 @@ const SimplePWAInstaller = () => {
         } catch (error) {
           console.error('SimplePWAInstaller: Error mostrando prompt nativo:', error);
           // Si falla el prompt, intentar instalación automática
-          }
-        
+        }
+
         window.deferredPrompt = null;
         return;
       }
-      
+
       // Si no hay prompt nativo, intentar instalación automática silenciosa
       // Verificar si ya está en modo standalone
       if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -119,22 +119,22 @@ const SimplePWAInstaller = () => {
         localStorage.setItem('pwa-install-toast-shown', 'true');
         return;
       }
-      
+
       // Intentar activar instalación automática
       if ('serviceWorker' in navigator) {
         try {
           // Registrar service worker
           const registration = await navigator.serviceWorker.register('/sw.js');;
-          
+
           // Intentar activar la instalación automática
           if (registration.active) {
             // Marcar como instalado automáticamente
             setShowToast(false);
             localStorage.setItem('pwa-installed', 'true');
             localStorage.setItem('pwa-install-toast-shown', 'true');
-            
+
             // NO mostrar mensaje de éxito para instalación automática silenciosa
-            } else {
+          } else {
             throw new Error('Service Worker no activo');
           }
         } catch (error) {
@@ -161,12 +161,12 @@ const SimplePWAInstaller = () => {
     const isAndroid = /Android/.test(userAgent);
     const isMac = /Mac|macOS/.test(userAgent);
     const isWindows = /Windows/.test(userAgent);
-    
+
     // Verificar soporte PWA
     const hasServiceWorker = 'serviceWorker' in navigator;
     const hasManifest = !!document.querySelector('link[rel="manifest"]');
     const isHTTPS = location.protocol === 'https:' || location.hostname === 'localhost';
-    
+
     console.log('SimplePWAInstaller: Verificando soporte PWA:', {
       hasServiceWorker,
       hasManifest,
@@ -176,9 +176,9 @@ const SimplePWAInstaller = () => {
       isWindows,
       isMacOS
     });
-    
+
     let message = '';
-    
+
     if (isIOS) {
       message = `
 📱 Instalar Cherry App en iOS:
@@ -214,7 +214,7 @@ O alternativamente:
       if (!isHTTPS) {
         diagnosticInfo += '\n⚠️ Se requiere HTTPS para instalación PWA (localhost está permitido)';
       }
-      
+
       message = `
 💻 Instalar Cherry App en tu PC:
 
@@ -253,7 +253,7 @@ OPCIÓN 4 - Acceso directo manual:
 ¡Instala Cherry App para acceso rápido!
       `;
     }
-    
+
     alert(message);
     setShowToast(false);
     localStorage.setItem('pwa-install-toast-shown', 'true');
@@ -270,18 +270,18 @@ OPCIÓN 4 - Acceso directo manual:
       localStorage.removeItem('pwa-install-toast-shown');
       setShowToast(true);
     };
-    
+
     window.clearPWAInstallerCache = () => {
       localStorage.removeItem('pwa-install-toast-shown');
       localStorage.removeItem('pwa-installed');
       localStorage.removeItem('pwa-manually-installed');
       setShowToast(false);
     };
-    
+
     window.showPWAInstallerNow = () => {
       setShowToast(true);
     };
-    
+
     // Función para resetear completamente
     window.resetPWAInstaller = () => {
       localStorage.removeItem('pwa-install-toast-shown');
@@ -289,20 +289,20 @@ OPCIÓN 4 - Acceso directo manual:
       localStorage.removeItem('pwa-manually-installed');
       setShowToast(true);
     };
-    
+
     // Función para forzar instalación automática
     window.forcePWAInstall = async () => {
       try {
         // Registrar service worker
         if ('serviceWorker' in navigator) {
           const registration = await navigator.serviceWorker.register('/sw.js');;
-          
+
           // Marcar como instalado
           localStorage.setItem('pwa-installed', 'true');
           localStorage.setItem('pwa-install-toast-shown', 'true');
-          
+
           // NO mostrar mensaje automático para instalación forzada
-          } else {
+        } else {
           alert('❌ Tu navegador no soporta instalación automática de PWA.');
         }
       } catch (error) {
@@ -310,7 +310,7 @@ OPCIÓN 4 - Acceso directo manual:
         alert('❌ Error durante la instalación automática.');
       }
     };
-    
+
     // Modo debug: mostrar inmediatamente si está en la URL
     const isDebugMode = window.location.search.includes('debug-pwa') || window.location.search.includes('show-installer');
     if (isDebugMode) {
@@ -324,7 +324,7 @@ OPCIÓN 4 - Acceso directo manual:
 
   return (
     <div className="pwa-install-toast">
-      <button 
+      <button
         className="pwa-install-toast__close"
         onClick={handleDismiss}
         aria-label="Cerrar"
@@ -332,21 +332,23 @@ OPCIÓN 4 - Acceso directo manual:
         ×
       </button>
       <div className="pwa-install-toast__content">
-        <div className="pwa-install-toast__icon">
-          <img src="/images/logo.svg" alt="Cherry App" />
-        </div>
-        <div className="pwa-install-toast__text">
-          <h4>¡Instala Cherry App!</h4>
-          <p>Accede más rápido desde tu pantalla de inicio</p>
+        <div className="pwa-install-toast__texts-content ">
+          <div className="pwa-install-toast__icon">
+            <img src="/images/logo.svg" alt="Cherry App" />
+          </div>
+          <div className="pwa-install-toast__text">
+            <h4>¡Instala Cherry App!</h4>
+            <p>Accede más rápido desde tu pantalla de inicio</p>
+          </div>
         </div>
         <div className="pwa-install-toast__actions">
-          <button 
+          <button
             className="pwa-install-toast__button pwa-install-toast__button--primary"
             onClick={handleInstall}
           >
             Instalar
           </button>
-          <button 
+          <button
             className="pwa-install-toast__button pwa-install-toast__button--secondary"
             onClick={handleDismiss}
           >
