@@ -15,7 +15,7 @@ const BuscarPage = () => {
   const query = searchParams.get('q') || '';
   const colorFilter = searchParams.get('color') || '';
   const skuFilter = searchParams.get('sku') || '';
-  
+
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,10 +44,10 @@ const BuscarPage = () => {
       setCatalogLoading(true);
       try {
         const response = await publicCatalogService.getAll();
-        
+
         // Manejar diferentes estructuras de respuesta
         let catalogsData = [];
-        
+
         if (response.data) {
           if (response.data.success && Array.isArray(response.data.data)) {
             // Estructura: { data: { success: true, data: [...] } }
@@ -63,12 +63,12 @@ const BuscarPage = () => {
             catalogsData = response.data;
           }
         }
-        
-        
+
+
         if (catalogsData && catalogsData.length > 0) {
           // Mostrar todos los catálogos sin filtrar por estado activo
           setCatalogs(catalogsData);
-          
+
           // No establecer automáticamente un catálogo, dejar "Seleccione"
         } else {
           setCatalogs([]);
@@ -89,15 +89,15 @@ const BuscarPage = () => {
     const extractFiltersFromProducts = () => {
       setColorsLoading(true);
       setSizesLoading(true);
-      
+
       try {
         // Extraer colores únicos de los productos cargados
         const colorSet = new Set();
         const sizeSet = new Set();
-        
+
         products.forEach(product => {
           ;
-          
+
           // PRIORIDAD 1: Extraer de detalles (donde están realmente las tallas)
           if (product.detalles && product.detalles.length > 0) {
             product.detalles.forEach(detalle => {
@@ -109,7 +109,7 @@ const BuscarPage = () => {
               }
             });
           }
-          
+
           // PRIORIDAD 2: Extraer de sizes como fallback
           if (product.sizes && product.sizes.length > 0) {
             product.sizes.forEach(size => {
@@ -119,14 +119,14 @@ const BuscarPage = () => {
             });
           }
         });
-        
+
         // Ordenar tallas de manera lógica
         const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
         const sizes = Array.from(sizeSet);
         const sortedSizes = sizes.sort((a, b) => {
           const indexA = sizeOrder.indexOf(a.toUpperCase());
           const indexB = sizeOrder.indexOf(b.toUpperCase());
-          
+
           if (indexA !== -1 && indexB !== -1) {
             return indexA - indexB;
           }
@@ -134,10 +134,10 @@ const BuscarPage = () => {
           if (indexB !== -1) return 1;
           return a.localeCompare(b);
         });
-        
+
         const finalColors = Array.from(colorSet).sort();
         const finalSizes = sortedSizes;
-        
+
         setAvailableColors(finalColors);
         setAvailableSizes(finalSizes);
       } catch (error) {
@@ -155,7 +155,7 @@ const BuscarPage = () => {
       ;
       extractFiltersFromProducts();
     } else {
-      }
+    }
   }, [products]);
 
   // Cargar productos
@@ -164,7 +164,7 @@ const BuscarPage = () => {
       setLoading(true);
       try {
         let productsData;
-        
+
         // Use advanced search if we have search parameters
         if (query || colorFilter || skuFilter) {
           const searchFilters = {
@@ -177,13 +177,13 @@ const BuscarPage = () => {
           // Load all products if no search parameters
           productsData = await getProductsWithRatings();
         }
-        
+
         // Aplicar ofertas de usuario a todos los productos
         const productsWithOffers = await applyUserOffersToProducts(productsData);;;
         if (productsWithOffers[0]) {
           ;;
         }
-        
+
         setProducts(productsWithOffers);
         setFilteredProducts(productsWithOffers);
       } catch (error) {
@@ -203,17 +203,17 @@ const BuscarPage = () => {
 
     // Filtrar por catálogo
     if (filters.catalog && filters.catalog !== 'Todos los catálogos' && filters.catalog !== 'Seleccione') {
-      
+
       filtered = filtered.filter(product => {
         // Verificar si el producto pertenece al catálogo seleccionado
         const productCatalog = product.catalog || product.catalogue || product.catalogName || '';
         const matches = productCatalog.toLowerCase().includes(filters.catalog.toLowerCase()) ||
-               product.catalogId === filters.catalog ||
-               product.catalog_id === filters.catalog;
-        
+          product.catalogId === filters.catalog ||
+          product.catalog_id === filters.catalog;
+
         return matches;
       });
-      
+
     }
 
     // Aplicar filtros adicionales
@@ -231,7 +231,7 @@ const BuscarPage = () => {
         const price = product.price || 0;
         const minPrice = filters.priceRange.min || 0;
         const maxPrice = filters.priceRange.max || Infinity;
-        
+
         if (maxPrice > 0) {
           return price >= minPrice && price <= maxPrice;
         } else {
@@ -244,13 +244,13 @@ const BuscarPage = () => {
     if (filters.colors && filters.colors.length > 0) {
       filtered = filtered.filter(product => {
         if (!product.colors || product.colors.length === 0) return false;
-        
+
         return filters.colors.some(filterColor => {
           const filterColorLower = filterColor.toLowerCase();
           return product.colors.some(productColor => {
             const productColorLower = productColor.toLowerCase();
-            return productColorLower === filterColorLower || 
-                   productColorLower.includes(filterColorLower);
+            return productColorLower === filterColorLower ||
+              productColorLower.includes(filterColorLower);
           });
         });
       });
@@ -260,13 +260,13 @@ const BuscarPage = () => {
     if (filters.sizes && filters.sizes.length > 0) {
       filtered = filtered.filter(product => {
         if (!product.sizes || product.sizes.length === 0) return false;
-        
+
         return filters.sizes.some(filterSize => {
           const filterSizeLower = filterSize.toLowerCase();
           return product.sizes.some(productSize => {
             const productSizeLower = productSize.toString().toLowerCase();
-            return productSizeLower === filterSizeLower || 
-                   productSizeLower.includes(filterSizeLower);
+            return productSizeLower === filterSizeLower ||
+              productSizeLower.includes(filterSizeLower);
           });
         });
       });
@@ -344,13 +344,13 @@ const BuscarPage = () => {
             <h1>Resultados de búsqueda</h1>
             {(query || colorFilter || skuFilter) && (
               <p className="buscar-query">
-                Buscando: <strong>"{getSearchDescription()}"</strong>
+                <strong>{getSearchDescription()}</strong>
               </p>
             )}
-            <p className="buscar-results">
-              {filteredProducts.length} productos encontrados
-            </p>
           </div>
+          <p className="buscar-results">
+            {filteredProducts.length} productos encontrados
+          </p>
 
           <div className="buscar-content">
             {/* Filtros */}
@@ -380,8 +380,8 @@ const BuscarPage = () => {
                   </div>
                   <h3>No se encontraron productos</h3>
                   <p>Intenta ajustar los términos de búsqueda o usar filtros diferentes</p>
-                  <CherryButton 
-                    variant="outline" 
+                  <CherryButton
+                    variant="outline"
                     size="medium"
                     onClick={handleClearFilters}
                   >
