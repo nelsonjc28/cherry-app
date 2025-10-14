@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { catalogOfferService } from '../../services/api';
-import ProductMultiSelect from '../ProductMultiSelect';
-import UserMultiSelect from '../UserMultiSelect';
+import ProductMultiSelect from '../ProductMultiSelect/ProductMultiSelectInline';
+import UserMultiSelect from '../UserMultiSelect/UserMultiSelectInline';
 import './CatalogOffersModule.css';
 
 const CatalogOffersModule = ({ onBack }) => {
@@ -398,7 +398,6 @@ const CatalogOffersModule = ({ onBack }) => {
     const types = {
       'product_discount': { name: 'Descuento en productos', icon: '🛍️', color: '#28a745' },
       'buy_x_get_y': { name: 'Buy X Get Y', icon: '🎁', color: '#ffc107' },
-      'order_discount': { name: 'Descuentos en el pedido', icon: '💰', color: '#17a2b8' },
       'free_shipping': { name: 'Envío gratis', icon: '🚚', color: '#6f42c1' }
     };
     return types[type] || { name: 'Desconocido', icon: '❓', color: '#6c757d' };
@@ -406,7 +405,7 @@ const CatalogOffersModule = ({ onBack }) => {
 
   // Vista de lista de tipos de descuento
   if (currentView === 'list') {
-    const discountTypes = ['product_discount', 'buy_x_get_y', 'order_discount', 'free_shipping'];
+    const discountTypes = ['product_discount', 'buy_x_get_y', 'free_shipping'];
     
     return (
       <div className="catalog-offers-module">
@@ -612,7 +611,6 @@ const CatalogOffersModule = ({ onBack }) => {
                   >
                     <option value="product_discount">Descuento en productos</option>
                     <option value="buy_x_get_y">Buy X Get Y</option>
-                    <option value="order_discount">Descuentos en el pedido</option>
                     <option value="free_shipping">Envío gratis</option>
                   </select>
                 </div>
@@ -652,9 +650,6 @@ const CatalogOffersModule = ({ onBack }) => {
                       }
                       {formData.discount_category === 'buy_x_get_y' && 
                         'Selecciona los productos que aplican para la promoción Buy X Get Y. Los productos se cargan desde la API de Cherry.'
-                      }
-                      {formData.discount_category === 'order_discount' && 
-                        'Selecciona los productos que deben estar en el pedido para aplicar el descuento al TOTAL de la compra. El descuento se aplicará al monto total del pedido, no a productos individuales.'
                       }
                       {formData.discount_category === 'free_shipping' && 
                         'Selecciona los productos específicos que tendrán envío gratis. Los clientes no pagarán costo de envío para estos productos.'
@@ -727,24 +722,6 @@ const CatalogOffersModule = ({ onBack }) => {
                      </select>
                    </div>
                  </div>
-                 {formData.discount_category === 'order_discount' && (
-                 <div className="catalog-offers-module__form-group">
-                     <label>Compra mínima del pedido ($) *</label>
-                   <input
-                     type="number"
-                     name="min_purchase_amount"
-                       value={formData.min_purchase_amount || ''}
-                     onChange={handleInputChange}
-                       required
-                     min="0"
-                     step="0.01"
-                       placeholder="Ej: 100.00"
-                   />
-                     <small className="catalog-offers-module__form-help">
-                       Monto mínimo que debe tener el pedido para aplicar el descuento al total
-                     </small>
-                 </div>
-                 )}
                </div>
               )}
 
@@ -857,7 +834,6 @@ const CatalogOffersModule = ({ onBack }) => {
                       <span className="catalog-offers-module__category-badge">
                         {offer.discount_category === 'product_discount' && '🛍️ Descuento en productos'}
                         {offer.discount_category === 'buy_x_get_y' && '🎁 Buy X Get Y'}
-                        {offer.discount_category === 'order_discount' && '💰 Descuentos en el pedido'}
                         {offer.discount_category === 'free_shipping' && '🚚 Envío gratis'}
                       </span>
                     </div>

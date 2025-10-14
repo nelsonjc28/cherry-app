@@ -6,6 +6,13 @@ import './styles/calendar-override.css'
 import App from './App.jsx'
 import './utils/calendarStyles.js'
 
+// Importar CSS de componentes críticos para asegurar que se incluyan en el build
+import './components/UserNotifications/UserNotifications.css'
+import './components/AdminNotifications/AdminNotifications.css'
+import './components/UserMultiSelect/UserMultiSelect.css'
+import './components/ProductMultiSelect/ProductMultiSelect.css'
+import './components/AdminCatalogManager/CatalogOffersModule.css'
+
 // Create a client for React Query
 const queryClient = new QueryClient({
   defaultOptions: {
