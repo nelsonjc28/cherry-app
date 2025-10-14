@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Iconos - Cherry App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .preview-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+
+        .preview-item canvas {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background: white;
+        }
+
+        .preview-item p {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .preview-item button {
+            padding: 8px 15px;
+            font-size: 12px;
+            margin: 0;
+        }
+
+        .instructions {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .instructions h3 {
+            color: #1976D2;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+            color: #555;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .logo-preview {
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .logo-preview img {
+            max-width: 200px;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎀 Generador de Iconos - Cherry App</h1>
+        <p class="subtitle">Genera todos los iconos necesarios para iOS desde logo.svg</p>
+
+        <div id="status" class="status"></div>
+
+        <div class="logo-preview">
+            <img id="logoPreview" src="/images/logo.svg" alt="Logo Preview">
+            <p>Logo actual (logo.svg)</p>
+        </div>
+
+        <div class="instructions">
+            <h3>📋 Instrucciones:</h3>
+            <ol>
+                <li>Haz clic en "Generar Todos los Iconos"</li>
+                <li>Se generarán todos los tamaños necesarios para iOS</li>
+                <li>Descarga cada icono usando el botón "Descargar"</li>
+                <li>Guarda los archivos en la carpeta <code>/public/</code> de tu proyecto</li>
+            </ol>
+        </div>
+
+        <button id="generateBtn" onclick="generateAllIcons()">
+            🚀 Generar Todos los Iconos
+        </button>
+
+        <div id="previewGrid" class="preview-grid"></div>
+    </div>
+
+    <script>
+        const iconSizes = [
+            { name: 'favicon-16x16.png', size: 16 },
+            { name: 'favicon-32x32.png', size: 32 },
+            { name: 'apple-touch-icon.png', size: 180 },
+            { name: 'apple-touch-icon-120x120.png', size: 120 },
+            { name: 'apple-touch-icon-152x152.png', size: 152 },
+            { name: 'apple-touch-icon-180x180.png', size: 180 }
+        ];
+
+        let generatedIcons = [];
+
+        async function generateAllIcons() {
+            const btn = document.getElementById('generateBtn');
+            const status = document.getElementById('status');
+            const previewGrid = document.getElementById('previewGrid');
+            
+            btn.disabled = true;
+            btn.textContent = '⏳ Generando iconos...';
+            status.className = 'status';
+            status.style.display = 'none';
+            previewGrid.innerHTML = '';
+            generatedIcons = [];
+
+            try {
+                // Cargar el SVG
+                const response = await fetch('/images/logo.svg');
+                const svgText = await response.text();
+                
+                // Crear un elemento SVG temporal
+                const parser = new DOMParser();
+                const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+                const svgElement = svgDoc.documentElement;
+                
+                // Generar cada tamaño
+                for (const icon of iconSizes) {
+                    const canvas = await generateIcon(svgElement, icon.size);
+                    generatedIcons.push({ canvas, name: icon.name, size: icon.size });
+                    
+                    // Agregar a la vista previa
+                    addPreview(canvas, icon.name, icon.size);
+                }
+                
+                status.className = 'status success';
+                status.textContent = `✅ ¡${iconSizes.length} iconos generados exitosamente! Descarga cada uno y guárdalos en /public/`;
+                status.style.display = 'block';
+                
+                btn.textContent = '🔄 Regenerar Iconos';
+                btn.disabled = false;
+                
+            } catch (error) {
+                console.error('Error generando iconos:', error);
+                status.className = 'status error';
+                status.textContent = '❌ Error al generar iconos: ' + error.message;
+                status.style.display = 'block';
+                
+                btn.textContent = '🔄 Intentar de nuevo';
+                btn.disabled = false;
+            }
+        }
+
+        async function generateIcon(svgElement, size) {
+            return new Promise((resolve, reject) => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = size;
+                    canvas.height = size;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Fondo blanco
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, size, size);
+                    
+                    // Convertir SVG a imagen
+                    const svgString = new XMLSerializer().serializeToString(svgElement);
+                    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                    const url = URL.createObjectURL(svgBlob);
+                    
+                    const img = new Image();
+                    img.onload = () => {
+                        // Calcular dimensiones manteniendo aspecto
+                        const padding = size * 0.1; // 10% de padding
+                        const maxSize = size - (padding * 2);
+                        
+                        let width = img.width;
+                        let height = img.height;
+                        const aspectRatio = width / height;
+                        
+                        if (width > height) {
+                            width = maxSize;
+                            height = maxSize / aspectRatio;
+                        } else {
+                            height = maxSize;
+                            width = maxSize * aspectRatio;
+                        }
+                        
+                        // Centrar la imagen
+                        const x = (size - width) / 2;
+                        const y = (size - height) / 2;
+                        
+                        // Dibujar la imagen
+                        ctx.drawImage(img, x, y, width, height);
+                        
+                        URL.revokeObjectURL(url);
+                        resolve(canvas);
+                    };
+                    
+                    img.onerror = (error) => {
+                        URL.revokeObjectURL(url);
+                        reject(new Error('Error al cargar la imagen SVG'));
+                    };
+                    
+                    img.src = url;
+                    
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        }
+
+        function addPreview(canvas, name, size) {
+            const previewGrid = document.getElementById('previewGrid');
+            
+            const item = document.createElement('div');
+            item.className = 'preview-item';
+            
+            const previewCanvas = canvas.cloneNode(true);
+            
+            const nameP = document.createElement('p');
+            nameP.innerHTML = `<strong>${name}</strong>`;
+            
+            const sizeP = document.createElement('p');
+            sizeP.textContent = `${size}x${size}px`;
+            
+            const downloadBtn = document.createElement('button');
+            downloadBtn.textContent = '⬇️ Descargar';
+            downloadBtn.onclick = () => downloadIcon(canvas, name);
+            
+            item.appendChild(previewCanvas);
+            item.appendChild(nameP);
+            item.appendChild(sizeP);
+            item.appendChild(downloadBtn);
+            
+            previewGrid.appendChild(item);
+        }
+
+        function downloadIcon(canvas, filename) {
+            canvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.click();
+                URL.revokeObjectURL(url);
+                
+                // Mostrar confirmación
+                const status = document.getElementById('status');
+                status.className = 'status success';
+                status.textContent = `✅ ${filename} descargado correctamente`;
+                status.style.display = 'block';
+                
+                setTimeout(() => {
+                    status.style.display = 'none';
+                }, 3000);
+            }, 'image/png');
+        }
+
+        // Cargar logo al inicio
+        window.addEventListener('load', () => {
+            const logoPreview = document.getElementById('logoPreview');
+            logoPreview.onerror = () => {
+                const status = document.getElementById('status');
+                status.className = 'status error';
+                status.textContent = '❌ No se pudo cargar logo.svg. Verifica que existe en /public/images/logo.svg';
+                status.style.display = 'block';
+            };
+        });
+    </script>
+</body>
+</html>
+
+
+

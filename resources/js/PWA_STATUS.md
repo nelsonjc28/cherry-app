@@ -65,3 +65,9 @@ El instalador PWA **NO se vio afectado negativamente** por la solución del prob
 4. Es más confiable y estable
 
 **El instalador PWA está completamente operativo y listo para usar.**
+
+
+
+
+
+
