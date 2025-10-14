@@ -138,9 +138,6 @@ const HomePage = () => {
         </script>
       </Helmet>
 
-      {/* Skip link for accessibility */}
-      <a href="#main-content" className="skip-link">Saltar al contenido principal</a>
-
       <main id="main-content" className="home-page" role="main">
         {/* Hero Section - Contains H1 */}
         <HeroBanner />
