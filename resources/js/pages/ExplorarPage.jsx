@@ -3,6 +3,9 @@ import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard/ProductCard';
 import CherryButton from '../components/CherryButton/CherryButton';
+import InfiniteScrollLoader from '../components/InfiniteScrollLoader/InfiniteScrollLoader';
+import useProductsWithCache from '../hooks/useProductsWithCache';
+import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
 import { fetchProducts } from '../api/cherryApi';
 import './ExplorarPage.css';
@@ -22,22 +25,25 @@ const ExplorarPage = () => {
     { id: 'accesorios', name: 'Accesorios', icon: 'category/vestir 1.svg' }
   ];
 
+  // Cargar productos con caché
+  const {
+    products: cachedProducts,
+    loading: cacheLoading,
+    loadedFromCache
+  } = useProductsWithCache(fetchProducts, []);
+
+  // Actualizar estado cuando cambian los productos
   useEffect(() => {
-    const loadProducts = async () => {
-      setLoading(true);
-      try {
-        const allProducts = await fetchProducts();
-        setProducts(allProducts);
-      } catch (error) {
+    if (cachedProducts && cachedProducts.length > 0) {
+      setProducts(cachedProducts);
+      setLoading(false);
+    }
+  }, [cachedProducts]);
 
-        setProducts([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadProducts();
-  }, []);
+  // Sincronizar loading state
+  useEffect(() => {
+    setLoading(cacheLoading);
+  }, [cacheLoading]);
 
   const getFilteredAndSortedProducts = () => {
     let filtered = [...products];
@@ -82,6 +88,14 @@ const ExplorarPage = () => {
     };
 
   const filteredProducts = getFilteredAndSortedProducts();
+
+  // Infinite scroll
+  const infiniteScroll = useInfiniteScroll(filteredProducts, 20);
+
+  // Reset infinite scroll cuando cambian los productos filtrados
+  useEffect(() => {
+    infiniteScroll.reset();
+  }, [filteredProducts.length]);
 
   if (loading) {
     return (
@@ -179,16 +193,25 @@ const ExplorarPage = () => {
                   Ver todos los productos
                 </CherryButton>
               </div>
-            ) : (
-              <div className="explorar-products-grid">
-                {filteredProducts.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onFavoriteToggle={handleFavoriteToggle}
-                  />
-                ))}
-              </div>
+              ) : (
+              <>
+                <div className="explorar-products-grid">
+                  {infiniteScroll.displayedItems.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onFavoriteToggle={handleFavoriteToggle}
+                    />
+                  ))}
+                </div>
+
+                {/* Infinite Scroll Loader */}
+                <InfiniteScrollLoader
+                  isLoading={infiniteScroll.isLoading}
+                  hasMore={infiniteScroll.hasMore}
+                  observerTarget={infiniteScroll.observerTarget}
+                />
+              </>
             )}
           </div>
 

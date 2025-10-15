@@ -66,8 +66,8 @@
 @import './components/ProductGrid/ProductGrid.css';
 @import './components/ProductSlider/ProductSlider.css';
 @import './components/StarRating/StarRating.css';
-@import './components/Pagination/Pagination.css';
 @import './components/Spinner/Spinner.css';
+@import './components/InfiniteScrollLoader/InfiniteScrollLoader.css';
 @import './components/Toast/Toast.css';
 @import './components/Toast/ToastContainer.css';
 

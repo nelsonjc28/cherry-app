@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Pagination from '../../components/Pagination/Pagination';
 import './Favorites.css';
 import CherryButton from '../../components/CherryButton/CherryButton';
 import useUserStore from '../../store/userStore';
@@ -407,11 +406,27 @@ const Favorites = () => {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-        />
+        <div className="favorites-page__pagination">
+          <div className="pagination-controls">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="pagination-button"
+            >
+              Anterior
+            </button>
+            <span className="pagination-info">
+              Página {currentPage} de {totalPages}
+            </span>
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="pagination-button"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

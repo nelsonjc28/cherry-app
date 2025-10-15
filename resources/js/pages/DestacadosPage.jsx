@@ -3,6 +3,9 @@ import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard/ProductCard';
 import CherryButton from '../components/CherryButton/CherryButton';
+import InfiniteScrollLoader from '../components/InfiniteScrollLoader/InfiniteScrollLoader';
+import useProductsWithCache from '../hooks/useProductsWithCache';
+import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
 import { getTopSellingProducts } from '../api/cherryApi';
 import { applyUserOffersToProducts } from '../api/userOffers';
@@ -16,45 +19,46 @@ const DestacadosPage = () => {
   const [currentMonth, setCurrentMonth] = useState('');
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const loadTopSellingProducts = async () => {
-      setLoading(true);
-      setError(null);
-      
-      try {
-        // Obtener productos más vendidos del mes actual
-        const products = await getTopSellingProducts(20);
-        
-        if (products.length === 0) {
-          setTopSellingProducts([]);
-          setCurrentMonth(new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }));
-          return;
-        }
-        
-        // Aplicar ofertas personalizadas si hay usuario logueado
-        let finalProducts = products;
-        if (user) {
-          finalProducts = await applyUserOffersToProducts(products);
-        }
-        
-        setTopSellingProducts(finalProducts);
-        setCurrentMonth(new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }));;
-        
-      } catch (error) {
-        console.error('❌ DestacadosPage: Error al cargar productos más vendidos:', error);
-        setError('Error al cargar los productos más vendidos');
-        setTopSellingProducts([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadTopSellingProducts();
+  // Cargar productos con caché
+  const {
+    products: cachedTopSelling,
+    loading: cacheLoading,
+    loadedFromCache
+  } = useProductsWithCache(async () => {
+    const products = await getTopSellingProducts(20);
+    const finalProducts = user ? await applyUserOffersToProducts(products) : products;
+    return finalProducts;
   }, [user]);
+
+  // Actualizar estado cuando cambian los productos
+  useEffect(() => {
+    if (cachedTopSelling && cachedTopSelling.length > 0) {
+      setTopSellingProducts(cachedTopSelling);
+      setCurrentMonth(new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }));
+      setLoading(false);
+      setError(null);
+    } else if (!cacheLoading && cachedTopSelling) {
+      setTopSellingProducts([]);
+      setCurrentMonth(new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }));
+    }
+  }, [cachedTopSelling, cacheLoading]);
+
+  // Sincronizar loading state
+  useEffect(() => {
+    setLoading(cacheLoading);
+  }, [cacheLoading]);
 
   const handleFavoriteToggle = (productId) => {
     // TODO: Implementar toggle de favoritos
   };
+
+  // Infinite scroll
+  const infiniteScroll = useInfiniteScroll(topSellingProducts, 20);
+
+  // Reset infinite scroll cuando cambian los productos
+  useEffect(() => {
+    infiniteScroll.reset();
+  }, [topSellingProducts.length]);
 
   if (loading) {
     return (
@@ -131,19 +135,28 @@ const DestacadosPage = () => {
                 </Link>
               </div>
             ) : (
-              <div className="destacados-products-grid">
-                {topSellingProducts.map((product, index) => (
-                  <div key={product.id} className="product-ranking-item">
-                    <div className="ranking-badge">
-                      #{index + 1}
+              <>
+                <div className="destacados-products-grid">
+                  {infiniteScroll.displayedItems.map((product, index) => (
+                    <div key={product.id} className="product-ranking-item">
+                      <div className="ranking-badge">
+                        #{index + 1}
+                      </div>
+                      <ProductCard
+                        product={product}
+                        onFavoriteToggle={handleFavoriteToggle}
+                      />
                     </div>
-                    <ProductCard
-                      product={product}
-                      onFavoriteToggle={handleFavoriteToggle}
-                    />
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+
+                {/* Infinite Scroll Loader */}
+                <InfiniteScrollLoader
+                  isLoading={infiniteScroll.isLoading}
+                  hasMore={infiniteScroll.hasMore}
+                  observerTarget={infiniteScroll.observerTarget}
+                />
+              </>
             )}
           </div>
 

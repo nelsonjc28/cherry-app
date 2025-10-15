@@ -4,6 +4,9 @@ import { useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/ProductCard/ProductCard';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import CherryButton from '../components/CherryButton/CherryButton';
+import InfiniteScrollLoader from '../components/InfiniteScrollLoader/InfiniteScrollLoader';
+import useProductsWithCache from '../hooks/useProductsWithCache';
+import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
 import { searchProductsAdvanced, getProductsWithRatings, mapApiProductToAppProduct, getAvailableColors, getAvailableSizes } from '../api/cherryApi';
 import { applyUserOffersToProducts } from '../api/userOffers';
@@ -158,44 +161,65 @@ const BuscarPage = () => {
     }
   }, [products]);
 
-  // Cargar productos
+  // Cargar productos con caché
+  const {
+    products: cachedProducts,
+    loading: cacheLoading,
+    loadedFromCache
+  } = useProductsWithCache(async () => {
+    const allProducts = await getProductsWithRatings();
+    const productsWithOffers = await applyUserOffersToProducts(allProducts);
+    return productsWithOffers;
+  }, []);
+
+  // Actualizar productos y filtrar según búsqueda
   useEffect(() => {
-    const loadProducts = async () => {
-      setLoading(true);
-      try {
-        let productsData;
+    if (cachedProducts && cachedProducts.length > 0) {
+      setLoading(false);
+      
+      // Aplicar búsqueda/filtros sobre productos cacheados
+      let filtered = cachedProducts;
 
-        // Use advanced search if we have search parameters
-        if (query || colorFilter || skuFilter) {
-          const searchFilters = {
-            ...filters,
-            codigo: skuFilter,
-            colors: colorFilter ? colorFilter.split(',').map(c => c.trim()) : []
-          };
-          productsData = await searchProductsAdvanced(query, searchFilters);;
-        } else {
-          // Load all products if no search parameters
-          productsData = await getProductsWithRatings();
-        }
-
-        // Aplicar ofertas de usuario a todos los productos
-        const productsWithOffers = await applyUserOffersToProducts(productsData);;;
-        if (productsWithOffers[0]) {
-          ;;
-        }
-
-        setProducts(productsWithOffers);
-        setFilteredProducts(productsWithOffers);
-      } catch (error) {
-        setProducts([]);
-        setFilteredProducts([]);
-      } finally {
-        setLoading(false);
+      // Filtrar por query de búsqueda
+      if (query) {
+        const queryLower = query.toLowerCase();
+        filtered = filtered.filter(product => {
+          const title = (product.title || product.descripcion || '').toLowerCase();
+          const description = (product.description || '').toLowerCase();
+          const codigo = (product.codigo || product.id_articulo || '').toString().toLowerCase();
+          return title.includes(queryLower) || description.includes(queryLower) || codigo.includes(queryLower);
+        });
       }
-    };
 
-    loadProducts();
-  }, [query, colorFilter, skuFilter]);
+      // Filtrar por color
+      if (colorFilter) {
+        const colors = colorFilter.split(',').map(c => c.trim().toLowerCase());
+        filtered = filtered.filter(product => {
+          if (!product.detalles || product.detalles.length === 0) return false;
+          return product.detalles.some(detalle => 
+            detalle.nombreColor && colors.includes(detalle.nombreColor.toLowerCase())
+          );
+        });
+      }
+
+      // Filtrar por SKU
+      if (skuFilter) {
+        const skuLower = skuFilter.toLowerCase();
+        filtered = filtered.filter(product => {
+          const codigo = (product.codigo || product.id_articulo || '').toString().toLowerCase();
+          return codigo.includes(skuLower);
+        });
+      }
+
+      setProducts(filtered);
+      setFilteredProducts(filtered);
+    }
+  }, [cachedProducts, query, colorFilter, skuFilter]);
+
+  // Sincronizar loading state
+  useEffect(() => {
+    setLoading(cacheLoading);
+  }, [cacheLoading]);
 
   // Filtrar productos basado en filtros adicionales
   useEffect(() => {
@@ -320,6 +344,13 @@ const BuscarPage = () => {
     // Handle favorite toggle
   };
 
+  // Infinite scroll
+  const infiniteScroll = useInfiniteScroll(filteredProducts, 20);
+
+  // Reset infinite scroll cuando cambian los productos filtrados
+  useEffect(() => {
+    infiniteScroll.reset();
+  }, [filteredProducts.length]);
 
   // Build search description
   const getSearchDescription = () => {
@@ -389,15 +420,24 @@ const BuscarPage = () => {
                   </CherryButton>
                 </div>
               ) : (
-                <div className="buscar-products-grid">
-                  {filteredProducts.map((product, index) => (
-                    <ProductCard
-                      key={product.id || `product-${index}`}
-                      product={product}
-                      onFavoriteToggle={handleFavoriteToggle}
-                    />
-                  ))}
-                </div>
+                <>
+                  <div className="buscar-products-grid">
+                    {infiniteScroll.displayedItems.map((product, index) => (
+                      <ProductCard
+                        key={product.id || `product-${index}`}
+                        product={product}
+                        onFavoriteToggle={handleFavoriteToggle}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Infinite Scroll Loader */}
+                  <InfiniteScrollLoader
+                    isLoading={infiniteScroll.isLoading}
+                    hasMore={infiniteScroll.hasMore}
+                    observerTarget={infiniteScroll.observerTarget}
+                  />
+                </>
               )}
             </div>
           </div>

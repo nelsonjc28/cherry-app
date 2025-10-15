@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import CatalogProductCard from '../components/CatalogProductCard/CatalogProductCard';
+import InfiniteScrollLoader from '../components/InfiniteScrollLoader/InfiniteScrollLoader';
+import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
 import CustomButton from '../components/CustomButton';
 import './CatalogPage.css';
@@ -347,8 +349,13 @@ const NuevosPage = () => {
 
   };
 
-  // Get current products to display
-  const currentProducts = filteredProducts;
+  // Infinite scroll
+  const infiniteScroll = useInfiniteScroll(filteredProducts, 20);
+
+  // Reset infinite scroll cuando cambian los productos filtrados
+  useEffect(() => {
+    infiniteScroll.reset();
+  }, [filteredProducts.length]);
 
   return (
     <>
@@ -367,7 +374,7 @@ const NuevosPage = () => {
             </h1>
             <div className='catalog-page__content-texts'>
               <span className="catalog-page__results-count">
-                ({currentProducts.length})
+                ({filteredProducts.length})
                 <p className="catalog-page__text-results-count">Resultados</p>
               </span>
             </div>
@@ -427,7 +434,7 @@ const NuevosPage = () => {
                 <div className="catalog-page__loading-spinner"></div>
                 <p>Cargando productos nuevos...</p>
                 </div>
-            ) : currentProducts.length === 0 ? (
+            ) : filteredProducts.length === 0 ? (
               <div className="catalog-page__no-results">
                 <h3>No se encontraron productos nuevos</h3>
                 <p>Intenta ajustar los filtros de búsqueda</p>
@@ -435,7 +442,7 @@ const NuevosPage = () => {
             ) : (
               <>
                 <div className="catalog-page__products-grid">
-                  {currentProducts.map((product, index) => {
+                  {infiniteScroll.displayedItems.map((product, index) => {
                     return (
                       <CatalogProductCard
                     key={product.id}
@@ -444,7 +451,14 @@ const NuevosPage = () => {
                   />
                     );
                   })}
-              </div>
+                </div>
+
+                {/* Infinite Scroll Loader */}
+                <InfiniteScrollLoader
+                  isLoading={infiniteScroll.isLoading}
+                  hasMore={infiniteScroll.hasMore}
+                  observerTarget={infiniteScroll.observerTarget}
+                />
               </>
             )}
           </main>

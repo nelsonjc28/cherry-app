@@ -4,6 +4,10 @@ import { Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard/ProductCard';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import CherryButton from '../components/CherryButton/CherryButton';
+import CacheIndicator from '../components/CacheIndicator/CacheIndicator';
+import InfiniteScrollLoader from '../components/InfiniteScrollLoader/InfiniteScrollLoader';
+import useProductsWithCache from '../hooks/useProductsWithCache';
+import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
 import { fetchProducts, getAvailableColors, getAvailableSizes } from '../api/cherryApi';
 import { applyUserOffersToProducts } from '../api/userOffers';
@@ -93,27 +97,30 @@ const ProductosPage = () => {
     loadFiltersData();
   }, []);
 
-  useEffect(() => {
-    const loadProducts = async () => {
-      setLoading(true);
-      try {
-        const allProducts = await fetchProducts();
-        
-        // Aplicar ofertas de usuario a todos los productos
-        const productsWithOffers = await applyUserOffersToProducts(allProducts);
-        
-        setProducts(productsWithOffers);
-        setFilteredProducts(productsWithOffers);
-      } catch (error) {
-        setProducts([]);
-        setFilteredProducts([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadProducts();
+  // Usar hook con caché para cargar productos
+  const {
+    products: cachedProducts,
+    loading: cacheLoading,
+    loadedFromCache
+  } = useProductsWithCache(async () => {
+    const allProducts = await fetchProducts();
+    const productsWithOffers = await applyUserOffersToProducts(allProducts);
+    return productsWithOffers;
   }, []);
+
+  // Actualizar estado cuando cambian los productos del caché
+  useEffect(() => {
+    if (cachedProducts && cachedProducts.length > 0) {
+      setProducts(cachedProducts);
+      setFilteredProducts(cachedProducts);
+      setLoading(false);
+    }
+  }, [cachedProducts]);
+
+  // Sincronizar loading state
+  useEffect(() => {
+    setLoading(cacheLoading);
+  }, [cacheLoading]);
 
   // Filtrar productos
   useEffect(() => {
@@ -234,6 +241,13 @@ const ProductosPage = () => {
     // Handle favorite toggle
   };
 
+  // Infinite scroll
+  const infiniteScroll = useInfiniteScroll(filteredProducts, 20);
+
+  // Reset infinite scroll cuando cambian los productos filtrados
+  useEffect(() => {
+    infiniteScroll.reset();
+  }, [filteredProducts.length]);
 
   if (loading) {
     return (
@@ -260,6 +274,9 @@ const ProductosPage = () => {
         <title>Productos - Cherry Central</title>
         <meta name="description" content="Explora nuestra amplia colección de productos de moda femenina en Cherry Central." />
       </Helmet>
+
+      {/* Indicador de carga desde caché */}
+      <CacheIndicator loadedFromCache={loadedFromCache} />
 
       <main className="productos-page">
         <div className="container">
@@ -306,15 +323,24 @@ const ProductosPage = () => {
                   </CherryButton>
                 </div>
               ) : (
-                <div className="productos-grid">
-                  {filteredProducts.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      onFavoriteToggle={handleFavoriteToggle}
-                    />
-                  ))}
-                </div>
+                <>
+                  <div className="productos-grid">
+                    {infiniteScroll.displayedItems.map((product) => (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        onFavoriteToggle={handleFavoriteToggle}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Infinite Scroll Loader */}
+                  <InfiniteScrollLoader
+                    isLoading={infiniteScroll.isLoading}
+                    hasMore={infiniteScroll.hasMore}
+                    observerTarget={infiniteScroll.observerTarget}
+                  />
+                </>
               )}
             </div>
           </div>

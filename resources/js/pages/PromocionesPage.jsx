@@ -3,6 +3,9 @@ import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard/ProductCard';
 import CherryButton from '../components/CherryButton/CherryButton';
+import InfiniteScrollLoader from '../components/InfiniteScrollLoader/InfiniteScrollLoader';
+import useProductsWithCache from '../hooks/useProductsWithCache';
+import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
 import { getSmartPromoProducts, isUserSessionActive } from '../api/cherryApi';
 import useUserStore from '../store/userStore';
@@ -15,43 +18,41 @@ const PromocionesPage = () => {
   const isLoggedIn = !!(user && token);
   const hasActiveSession = isUserSessionActive();
 
-  useEffect(() => {
-    const loadPromoProducts = async () => {
-      setLoading(true);
-      try {
-        
-        
-        // Usar la función inteligente que maneja automáticamente sesión activa o no
-        // Pasar 0 para obtener TODOS los productos con descuentos
-        const promoProducts = await getSmartPromoProducts(0);
-        const processedProducts = promoProducts.map(p => ({
-            id: p.id,
-            title: p.title,
-            price: p.price,
-            originalPrice: p.originalPrice,
-            discount: p.discount,
-            hasUserOffer: p.hasUserOffer,
-            userDiscount: p.userDiscount
-          }));
-
-        
-        setProductsWithOffers(promoProducts);
-      } catch (error) {
-        console.error('❌ Error al cargar productos con promociones:', error);
-        setProductsWithOffers([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadPromoProducts();
+  // Cargar productos con caché
+  const {
+    products: cachedPromoProducts,
+    loading: cacheLoading,
+    loadedFromCache
+  } = useProductsWithCache(async () => {
+    const promoProducts = await getSmartPromoProducts(0);
+    return promoProducts;
   }, [isLoggedIn, hasActiveSession]);
+
+  // Actualizar estado cuando cambian los productos
+  useEffect(() => {
+    if (cachedPromoProducts && cachedPromoProducts.length > 0) {
+      setProductsWithOffers(cachedPromoProducts);
+      setLoading(false);
+    }
+  }, [cachedPromoProducts]);
+
+  // Sincronizar loading state
+  useEffect(() => {
+    setLoading(cacheLoading);
+  }, [cacheLoading]);
 
   const handleFavoriteToggle = (productId) => {
     // Implementar lógica de favoritos si es necesario
     };
 
-  // Log del estado actual para debugging
+  // Infinite scroll
+  const infiniteScroll = useInfiniteScroll(productsWithOffers, 20);
+
+  // Reset infinite scroll cuando cambian los productos
+  useEffect(() => {
+    infiniteScroll.reset();
+  }, [productsWithOffers.length]);
+
   if (loading) {
     return (
       <>
@@ -126,7 +127,7 @@ const PromocionesPage = () => {
 
               {/* Grid de productos con ofertas */}
               <div className="promociones-products-grid">
-                {productsWithOffers.map((product) => (
+                {infiniteScroll.displayedItems.map((product) => (
                   <ProductCard
                     key={product.id}
                     product={product}
@@ -134,6 +135,13 @@ const PromocionesPage = () => {
                   />
                 ))}
               </div>
+
+              {/* Infinite Scroll Loader */}
+              <InfiniteScrollLoader
+                isLoading={infiniteScroll.isLoading}
+                hasMore={infiniteScroll.hasMore}
+                observerTarget={infiniteScroll.observerTarget}
+              />
             </div>
           )}
 

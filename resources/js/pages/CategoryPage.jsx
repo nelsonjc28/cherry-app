@@ -3,6 +3,8 @@ import { Helmet } from 'react-helmet-async';
 import { useSearchParams } from 'react-router-dom';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import CatalogProductCard from '../components/CatalogProductCard/CatalogProductCard';
+import InfiniteScrollLoader from '../components/InfiniteScrollLoader/InfiniteScrollLoader';
+import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
 import CustomButton from '../components/CustomButton';
 import './CatalogPage.css';
@@ -581,7 +583,14 @@ const CategoryPage = ({ categorySlug }) => {
   };
 
   const totalResults = filteredProducts.length;
-  const currentProducts = filteredProducts;
+
+  // Infinite scroll
+  const infiniteScroll = useInfiniteScroll(filteredProducts, 20);
+
+  // Reset infinite scroll cuando cambian los productos filtrados
+  useEffect(() => {
+    infiniteScroll.reset();
+  }, [filteredProducts.length]);
 
   return (
     <>
@@ -708,7 +717,7 @@ const CategoryPage = ({ categorySlug }) => {
                   <div className="catalog-page__loading-spinner"></div>
                   <p>Cargando productos...</p>
                 </div>
-              ) : currentProducts.length === 0 ? (
+              ) : filteredProducts.length === 0 ? (
                 <div className="catalog-page__no-results">
                   <h3>No se encontraron productos</h3>
                   <p>Intenta ajustar los filtros de búsqueda</p>
@@ -716,7 +725,7 @@ const CategoryPage = ({ categorySlug }) => {
               ) : (
                 <>
                   <div className="catalog-page__products-grid">
-                    {currentProducts.map((product, index) => {
+                    {infiniteScroll.displayedItems.map((product, index) => {
                       return (
                       <CatalogProductCard
                         key={product.id}
@@ -726,7 +735,13 @@ const CategoryPage = ({ categorySlug }) => {
                       );
                     })}
                   </div>
-                  
+
+                  {/* Infinite Scroll Loader */}
+                  <InfiniteScrollLoader
+                    isLoading={infiniteScroll.isLoading}
+                    hasMore={infiniteScroll.hasMore}
+                    observerTarget={infiniteScroll.observerTarget}
+                  />
                 </>
               )}
             </main>

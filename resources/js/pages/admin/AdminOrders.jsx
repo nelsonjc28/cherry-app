@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import CherryButton from '../../components/CherryButton/CherryButton';
-import Pagination from '../../components/Pagination/Pagination';
 import AdminNotifications from '../../components/AdminNotifications/AdminNotifications';
 import { adminOrderService, adminNotificationService } from '../../services/api';
 import { getIconPath } from '../../utils/assetPaths';
@@ -388,11 +387,25 @@ const AdminOrders = () => {
 
       {totalPages > 1 && (
         <div className="admin-orders__pagination">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
+          <div className="pagination-controls">
+            <button
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="pagination-button"
+            >
+              Anterior
+            </button>
+            <span className="pagination-info">
+              Página {currentPage} de {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="pagination-button"
+            >
+              Siguiente
+            </button>
+          </div>
         </div>
       )}
 
