@@ -1,16 +1,77 @@
 import { useState, useEffect } from 'react';
 import './FeaturedCategories.css';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getHeroIconPath, getFeaturedCategoryIconPath } from '../../../utils/assetPaths';
 import { publicCategoryService } from '../../../services/api';
 
 const FeaturedCategories = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  
+  // Función para convertir nombre de categoría de plural a singular
+  const pluralToSingular = (categoryName) => {
+    // Mapeo de plurales a singulares específicos
+    const pluralMap = {
+      'pantalones': 'pantalón',
+      'vestidos': 'vestido',
+      'blusas': 'blusa',
+      'faldas': 'falda',
+      'chaquetas': 'chaqueta',
+      'abrigos': 'abrigo',
+      'trajes': 'traje',
+      'zapatos': 'zapato',
+      'bolsos': 'bolso',
+      'accesorios': 'accesorio',
+      'suéteres': 'suéter',
+      'camisas': 'camisa',
+      'playeras': 'playera',
+      'chamarras': 'chamarra',
+      'shorts': 'short',
+      'calcetines': 'calcetín',
+      'leggins': 'leggin',
+      'jeans': 'jean'
+    };
+
+    const lowerName = categoryName.toLowerCase().trim();
+    
+    // Si existe en el mapeo, retornar el singular
+    if (pluralMap[lowerName]) {
+      return pluralMap[lowerName];
+    }
+    
+    // Reglas generales para español
+    // Si termina en "ones" (como "pantalones"), cambiar a "ón"
+    if (lowerName.endsWith('ones')) {
+      return lowerName.slice(0, -4) + 'ón';
+    }
+    
+    // Si termina en "es" después de consonante, quitar "es"
+    if (lowerName.endsWith('es') && lowerName.length > 3) {
+      const beforeEs = lowerName[lowerName.length - 3];
+      if (!'aeiou'.includes(beforeEs)) {
+        return lowerName.slice(0, -2);
+      }
+    }
+    
+    // Si termina en "s" simple, quitarla
+    if (lowerName.endsWith('s') && !lowerName.endsWith('ss')) {
+      return lowerName.slice(0, -1);
+    }
+    
+    // Si no se puede convertir, retornar el original
+    return categoryName;
+  };
   
   // Función para manejar el clic en una categoría
-  const handleCategoryClick = (category) => {
-
+  const handleCategoryClick = (e, category) => {
+    e.preventDefault();
+    
+    // Convertir a singular y buscar
+    const singularName = pluralToSingular(category.title);
+    const searchParams = new URLSearchParams();
+    searchParams.set('q', singularName);
+    navigate(`/buscar?${searchParams.toString()}`);
   };
   
   // Mapeo de categorías para compatibilidad con la API
@@ -141,7 +202,7 @@ const FeaturedCategories = () => {
               <Link 
                 to={category.link} 
                 className="category-card__link"
-                onClick={() => handleCategoryClick(category)}
+                onClick={(e) => handleCategoryClick(e, category)}
               >
                 <div className="category-card__icon">
                   <div className="image-container">
@@ -166,7 +227,11 @@ const FeaturedCategories = () => {
               </Link>
               
               <div className="category-card__action">
-                <Link to={category.link} className="view-more-link">
+                <Link 
+                  to={category.link} 
+                  className="view-more-link"
+                  onClick={(e) => handleCategoryClick(e, category)}
+                >
                   Ver categoría
                   <img 
                     src={getHeroIconPath('Chevron Right.svg')} 
