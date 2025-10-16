@@ -14,11 +14,22 @@ import AffiliateSection from '../components/sections/AffiliateSection/AffiliateS
 import useUserStore from '../store/userStore';
 import { getTopSellingProducts } from '../api/cherryApi';
 import { applyUserOffersToProducts } from '../api/userOffers';
+import useProductPreload from '../hooks/useProductPreload';
 
 const HomePage = () => {
   const { user, initialized } = useUserStore();
   const [topSellingProducts, setTopSellingProducts] = useState([]);
   const [loadingTopSelling, setLoadingTopSelling] = useState(true);
+  
+  // 🚀 Precargar TODOS los productos en segundo plano para optimizar navegación
+  const preloadStatus = useProductPreload();
+  
+  // Log del estado de precarga (solo en desarrollo)
+  useEffect(() => {
+    if (preloadStatus.isComplete) {
+      console.log(`✅ ${preloadStatus.productsCount} productos disponibles en caché`);
+    }
+  }, [preloadStatus]);
 
   // Cargar productos más vendidos (6 productos)
   useEffect(() => {

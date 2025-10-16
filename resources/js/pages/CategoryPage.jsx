@@ -22,6 +22,7 @@ import {
 import { publicCategoryService } from '../services/api';
 import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
+import { getCachedProducts } from '../utils/productCache';
 
 const CategoryPage = ({ categorySlug }) => {
 
@@ -282,6 +283,40 @@ const CategoryPage = ({ categorySlug }) => {
       setLoading(true);
       try {
         let productsData;
+        
+        // 🚀 OPTIMIZACIÓN: Intentar cargar desde caché primero
+        console.log('⚡ Intentando cargar productos desde caché para categoría...');
+        const cachedProducts = await getCachedProducts();
+        
+        if (cachedProducts && cachedProducts.length > 0 && categorySlug) {
+          // Filtrar productos por categoría desde la caché
+          const categoryCode = categoryCodeMapping[categorySlug];
+          if (categoryCode) {
+            const filteredFromCache = cachedProducts.filter(product => {
+              const productLineaId = product.linea?.id_linea;
+              return productLineaId == categoryCode;
+            });
+            
+            if (filteredFromCache.length > 0) {
+              console.log(`✅ ${filteredFromCache.length} productos de categoría cargados desde caché`);
+              setAllProducts(filteredFromCache);
+              setFilteredProducts(filteredFromCache);
+              
+              // Establecer categoría actual
+              const categoryData = {
+                id: categorySlug,
+                name: categoryNameMapping[categorySlug] || categorySlug,
+                slug: categorySlug,
+                code: categoryCode,
+                description: `Productos de la categoría ${categoryNameMapping[categorySlug] || categorySlug}`
+              };
+              setCurrentCategory(categoryData);
+              setLoading(false);
+              return; // Terminar aquí, usar caché
+            }
+          }
+        }
+        console.log('📡 No hay caché suficiente, cargando desde API...');
         
         // Si se proporciona categorySlug, cargar productos de esa categoría específica
         if (categorySlug) {

@@ -23,6 +23,7 @@ import {
 import { applyUserOffersToProducts } from '../api/userOffers';
 import { catalogService, publicCatalogService } from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
+import { getCachedProducts } from '../utils/productCache';
 
 const CatalogPage = ({ catalogId }) => {
 
@@ -317,6 +318,23 @@ const CatalogPage = ({ catalogId }) => {
       setLoading(true);
       try {
         let productsData;
+        
+        // 🚀 OPTIMIZACIÓN: Intentar cargar desde caché primero (solo si NO es un catálogo específico)
+        if (!catalogId && category === 'all' && !filters.catalog) {
+          console.log('⚡ Intentando cargar productos desde caché...');
+          const cachedProducts = await getCachedProducts();
+          
+          if (cachedProducts && cachedProducts.length > 0) {
+            console.log(`✅ ${cachedProducts.length} productos cargados desde caché instantáneamente`);
+            const productsWithOffers = await applyUserOffersToProducts(cachedProducts);
+            setAllProducts(productsWithOffers);
+            setFilteredProducts(productsWithOffers);
+            setLoading(false);
+            return; // Terminar aquí, usar caché
+          } else {
+            console.log('📡 No hay caché, cargando desde API...');
+          }
+        }
         
         // Si se proporciona catalogId, cargar productos de ese catálogo específico
         if (catalogId) {
