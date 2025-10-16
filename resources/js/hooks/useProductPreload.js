@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getCachedProducts, saveProductsToCache, isCacheExpired } from '../utils/productCache';
-import { publicProductService } from '../services/api';
+import { getProductsWithRatings } from '../api/cherryApi';
+import { applyUserOffersToProducts } from '../api/userOffers';
 
 /**
  * Hook para precargar TODOS los productos en segundo plano
@@ -46,28 +47,25 @@ const useProductPreload = () => {
         // 2. Si no hay caché o está expirado, cargar todos los productos
         console.log('📦 Cargando todos los productos desde API...');
         
-        // Cargar productos con paginación grande para obtener todos
-        const response = await publicProductService.getAll({
-          per_page: 10000, // Número alto para obtener todos los productos
-          include_variants: true,
-          include_images: true
-        });
+        // Cargar productos usando getProductsWithRatings (carga todos los productos)
+        const allProducts = await getProductsWithRatings();
+        
+        // Aplicar ofertas de usuario a los productos
+        const productsWithOffers = await applyUserOffersToProducts(allProducts);
 
-        const allProducts = response.data || [];
-
-        if (allProducts.length > 0) {
+        if (productsWithOffers.length > 0) {
           // 3. Guardar en caché
-          console.log(`💾 Guardando ${allProducts.length} productos en caché...`);
-          await saveProductsToCache(allProducts);
+          console.log(`💾 Guardando ${productsWithOffers.length} productos en caché...`);
+          await saveProductsToCache(productsWithOffers);
           
           setPreloadStatus({
             isPreloading: false,
             isComplete: true,
-            productsCount: allProducts.length,
+            productsCount: productsWithOffers.length,
             error: null
           });
           
-          console.log(`✅ Precarga completada: ${allProducts.length} productos en caché`);
+          console.log(`✅ Precarga completada: ${productsWithOffers.length} productos en caché`);
         } else {
           console.warn('⚠️ No se encontraron productos para precargar');
           setPreloadStatus({
