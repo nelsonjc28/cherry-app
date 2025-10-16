@@ -799,11 +799,8 @@ const ProductPage = () => {
                     Color{selectedColor ? (
                       <>
                         : <span style={{ 
-                          color: colorConverter.getColorHex(selectedColor), 
                           fontWeight: 'bold',
-                          textShadow: colorConverter.isLightColor(colorConverter.getColorHex(selectedColor)) 
-                            ? '1px 1px 2px rgba(0,0,0,0.3)' 
-                            : '1px 1px 2px rgba(255,255,255,0.3)'
+                          color: '#000'
                         }}>
                           {selectedColor.charAt(0).toUpperCase() + selectedColor.slice(1).toLowerCase()}
                         </span> 🎨
