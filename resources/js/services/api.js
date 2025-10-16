@@ -657,10 +657,7 @@ export const categoryService = {
 
   update: async (id, data) => {
     try {
-      const response = await api.post(`/admin/categories/${id}`, {
-        ...data,
-        _method: 'PUT'
-      }, {
+      const response = await api.post(`/admin/categories/${id}`, data, {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
