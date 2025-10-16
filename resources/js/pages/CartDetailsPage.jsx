@@ -67,11 +67,11 @@ const CartDetailsPage = () => {
     image: groupedProduct.image || '/images/placeholder.jpg',
     sku: groupedProduct.id_articulo,
     title: groupedProduct.title,
-    price: groupedProduct.precio,
+    price: parseFloat(groupedProduct.precio).toFixed(2),
     variants: groupedProduct.variants,
     summary: {
       quantity: groupedProduct.totalQuantity,
-      priceWithDiscount: groupedProduct.totalPrice
+      priceWithDiscount: parseFloat(groupedProduct.totalPrice).toFixed(2)
     }
   }));
 
