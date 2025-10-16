@@ -24,6 +24,16 @@ import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
 import { getCachedProducts } from '../utils/productCache';
 
+// Función para mezclar array de forma aleatoria (Fisher-Yates shuffle)
+const shuffleArray = (array) => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 const CategoryPage = ({ categorySlug }) => {
 
   const [searchParams] = useSearchParams();
@@ -299,8 +309,9 @@ const CategoryPage = ({ categorySlug }) => {
             
             if (filteredFromCache.length > 0) {
               console.log(`✅ ${filteredFromCache.length} productos de categoría cargados desde caché`);
-              setAllProducts(filteredFromCache);
-              setFilteredProducts(filteredFromCache);
+              const shuffledProducts = shuffleArray(filteredFromCache); // 🎲 Orden aleatorio
+              setAllProducts(shuffledProducts);
+              setFilteredProducts(shuffledProducts);
               
               // Establecer categoría actual
               const categoryData = {
@@ -488,10 +499,10 @@ const CategoryPage = ({ categorySlug }) => {
         
         // Filtrar productos nulos
         const validProducts = productsData.filter(p => p !== null);
+        const shuffledProducts = shuffleArray(validProducts); // 🎲 Orden aleatorio
         
-        
-        setAllProducts(validProducts);
-        setFilteredProducts(validProducts);
+        setAllProducts(shuffledProducts);
+        setFilteredProducts(shuffledProducts);
         
 
       } catch (error) {
