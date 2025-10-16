@@ -308,34 +308,20 @@ const Header = () => {
   };
 
   // Función para manejar clic en elementos del menú
-  const handleMenuClick = (item, activeMenuType) => {
+  const handleMenuClick = (e, item, activeMenuType) => {
     // Cerrar el menú desplegable
     setActiveMenu(null);
 
-    // Solo aplicar búsqueda para categorías individuales, no para enlaces directos
-    const isDirectLink = item.name.includes('Todas') || item.name.includes('Todos') ||
-      item.link.startsWith('/catalogo/') ||
-      item.link === '/categorias' ||
-      item.link === '/catalogos' ||
-      item.link.startsWith('/destacados') ||
-      item.link.startsWith('/promociones') ||
-      item.link.startsWith('/nuevos');
-
-    // Si es un enlace directo, no hacer nada adicional (el Link se encarga)
-    if (isDirectLink) {
-      return;
-    }
-
-    // Para categorías individuales, hacer búsqueda con nombre en singular
+    // Para categorías individuales, prevenir navegación por defecto y hacer búsqueda con nombre en singular
     if (activeMenuType === 'categorias' && item.link.startsWith('/categoria/')) {
+      e.preventDefault(); // Prevenir la navegación del Link
       const singularName = pluralToSingular(item.name);
       setSearchTerm(singularName);
-      setTimeout(() => {
-        const searchParams = new URLSearchParams();
-        searchParams.set('q', singularName);
-        navigate(`/buscar?${searchParams.toString()}`);
-      }, 150);
+      const searchParams = new URLSearchParams();
+      searchParams.set('q', singularName);
+      navigate(`/buscar?${searchParams.toString()}`);
     }
+    // Para otros casos, dejar que el Link navegue normalmente
   };
 
   // Cargar usuario al montar si hay token
@@ -689,7 +675,7 @@ const Header = () => {
                             <li key={itemIndex}>
                               <Link
                                 to={item.link}
-                                onClick={() => handleMenuClick(item, activeMenu)}
+                                onClick={(e) => handleMenuClick(e, item, activeMenu)}
                               >
                                 {item.name}
                               </Link>
