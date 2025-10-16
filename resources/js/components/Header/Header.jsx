@@ -449,7 +449,10 @@ const Header = () => {
                       <Link
                         to={item.link}
                         className="mobile-submenu-link"
-                        onClick={() => setMobileMenuOpen(false)}
+                        onClick={(e) => {
+                          setMobileMenuOpen(false);
+                          handleMenuClick(e, item, menuKey);
+                        }}
                       >
                         {item.name}
                       </Link>
