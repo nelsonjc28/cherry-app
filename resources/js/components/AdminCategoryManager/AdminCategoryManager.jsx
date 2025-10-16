@@ -51,22 +51,23 @@ const AdminCategoryManager = () => {
     setError('');
 
     try {
-      if (editingCategory) {
+      if (editingCategory && editingCategory.id) {
         const response = await categoryService.update(editingCategory.id, formData);
         if (response.data.success) {
           window.showToast('Categoría actualizada exitosamente', 'success');
-          fetchCategories();
+          await fetchCategories();
           resetForm();
         }
       } else {
         const response = await categoryService.create(formData);
         if (response.data.success) {
           window.showToast('Categoría creada exitosamente', 'success');
-          fetchCategories();
+          await fetchCategories();
           resetForm();
         }
       }
     } catch (error) {
+      console.error('Error al guardar categoría:', error);
       if (error.response?.data?.errors) {
         const errorMessages = Object.values(error.response.data.errors).flat();
         setError(errorMessages.join(', '));
@@ -76,16 +77,17 @@ const AdminCategoryManager = () => {
     }
   };
 
-     const handleEdit = (category) => {
-     setEditingCategory(category);
-     setFormData({
-       name: category.name,
-       description: category.description || '',
-       code: category.code || '',
-       is_active: category.is_active
-     });
-     setShowForm(true);
-   };
+  const handleEdit = (category) => {
+    setError('');
+    setEditingCategory(category);
+    setFormData({
+      name: category.name,
+      description: category.description || '',
+      code: category.code || '',
+      is_active: category.is_active
+    });
+    setShowForm(true);
+  };
 
   const handleDelete = async (category) => {
     if (window.confirm(`¿Estás seguro de que quieres eliminar la categoría "${category.name}"?`)) {
@@ -113,17 +115,17 @@ const AdminCategoryManager = () => {
     }
   };
 
-     const resetForm = () => {
-     setFormData({
-       name: '',
-       description: '',
-       code: '',
-       is_active: true
-     });
-     setEditingCategory(null);
-     setShowForm(false);
-     setError('');
-   };
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      code: '',
+      is_active: true
+    });
+    setEditingCategory(null);
+    setShowForm(false);
+    setError('');
+  };
 
   const openProductManager = (category) => {
     setSelectedCategory(category);
