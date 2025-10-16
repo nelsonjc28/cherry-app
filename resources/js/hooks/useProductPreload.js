@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { getCachedProducts, saveProductsToCache, isCacheExpired } from '../utils/productCache';
-import { getProductsWithRatings } from '../api/cherryApi';
+import { mapApiProductToAppProduct, getBulkRatings } from '../api/cherryApi';
 import { applyUserOffersToProducts } from '../api/userOffers';
+import axios from 'axios';
 
 /**
  * Hook para precargar TODOS los productos en segundo plano
@@ -44,13 +45,49 @@ const useProductPreload = () => {
           }
         }
 
-        // 2. Si no hay caché o está expirado, cargar todos los productos
-        console.log('📦 Cargando todos los productos desde API...');
+        // 2. Si no hay caché o está expirado, cargar TODOS los productos sin filtros
+        console.log('📦 Cargando TODOS los productos desde API externa sin filtros...');
         
-        // Cargar productos usando getProductsWithRatings (carga todos los productos)
-        const allProducts = await getProductsWithRatings();
+        // Obtener TODOS los productos directamente de la API externa (sin filtros de catálogo)
+        const CHERRY_API_URL = 'https://cherryapi.estrategiadmgs.com.mx/cherryApi/';
+        const response = await axios.get(CHERRY_API_URL);
+        const rawProducts = response.data || [];
+        
+        console.log(`📦 ${rawProducts.length} productos crudos obtenidos de API externa`);
+        
+        if (rawProducts.length === 0) {
+          console.warn('⚠️ No se obtuvieron productos de la API externa');
+          setPreloadStatus({
+            isPreloading: false,
+            isComplete: false,
+            productsCount: 0,
+            error: 'No hay productos disponibles'
+          });
+          hasPreloaded.current = true;
+          return;
+        }
+        
+        // Obtener IDs de productos para ratings en bulk
+        const productIds = rawProducts.map(product => 
+          product.id_articulo || product.id || product.codigo
+        ).filter(Boolean);
+        
+        console.log('⭐ Obteniendo ratings para productos...');
+        const ratingsCache = await getBulkRatings(productIds);
+        
+        // Mapear productos con ratings
+        console.log('🔄 Mapeando productos con ratings...');
+        const mappedProducts = await Promise.all(
+          rawProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
+        );
+        
+        // Filtrar productos nulos
+        const allProducts = mappedProducts.filter(p => p !== null);
+        
+        console.log(`✅ ${allProducts.length} productos mapeados exitosamente`);
         
         // Aplicar ofertas de usuario a los productos
+        console.log('💰 Aplicando ofertas personalizadas...');
         const productsWithOffers = await applyUserOffersToProducts(allProducts);
 
         if (productsWithOffers.length > 0) {

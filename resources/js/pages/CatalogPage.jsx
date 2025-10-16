@@ -329,23 +329,46 @@ const CatalogPage = ({ catalogId }) => {
       try {
         let productsData;
         
-        // 🚀 OPTIMIZACIÓN: Intentar cargar desde caché primero (solo si NO es un catálogo específico)
-        if (!catalogId && category === 'all' && !filters.catalog) {
-          console.log('⚡ Intentando cargar productos desde caché...');
-          const cachedProducts = await getCachedProducts();
+        // 🚀 OPTIMIZACIÓN: Intentar cargar desde caché primero
+        console.log('⚡ Intentando cargar productos desde caché...');
+        const cachedProducts = await getCachedProducts();
+        
+        // Si hay caché disponible, usar caché y filtrar según necesidad
+        if (cachedProducts && cachedProducts.length > 0 && !catalogId) {
+          console.log(`✅ ${cachedProducts.length} productos encontrados en caché`);
           
-          if (cachedProducts && cachedProducts.length > 0) {
-            console.log(`✅ ${cachedProducts.length} productos cargados desde caché instantáneamente`);
-            const productsWithOffers = await applyUserOffersToProducts(cachedProducts);
-            const shuffledProducts = shuffleArray(productsWithOffers); // 🎲 Orden aleatorio
+          let filteredFromCache = cachedProducts;
+          
+          // Filtrar por catálogo si se especifica
+          if (filters.catalog && filters.catalog !== 'Seleccione') {
+            console.log(`🔍 Filtrando por catálogo: ${filters.catalog}`);
+            filteredFromCache = cachedProducts.filter(product => {
+              const productCatalog = product.catalog || product.catalogue || product.catalogName || product.temporada || '';
+              return productCatalog.toLowerCase().includes(filters.catalog.toLowerCase());
+            });
+          }
+          
+          // Filtrar por categoría si se especifica
+          if (category && category !== 'all') {
+            console.log(`🔍 Filtrando por categoría: ${category}`);
+            filteredFromCache = filteredFromCache.filter(product => {
+              const productCategory = (product.category || '').toLowerCase();
+              return productCategory.includes(category.toLowerCase());
+            });
+          }
+          
+          console.log(`✅ ${filteredFromCache.length} productos después de filtrar desde caché`);
+          
+          if (filteredFromCache.length > 0) {
+            const shuffledProducts = shuffleArray(filteredFromCache); // 🎲 Orden aleatorio
             setAllProducts(shuffledProducts);
             setFilteredProducts(shuffledProducts);
             setLoading(false);
             return; // Terminar aquí, usar caché
-          } else {
-            console.log('📡 No hay caché, cargando desde API...');
           }
         }
+        
+        console.log('📡 No hay caché o no hay productos después de filtrar, cargando desde API...');
         
         // Si se proporciona catalogId, cargar productos de ese catálogo específico
         if (catalogId) {
