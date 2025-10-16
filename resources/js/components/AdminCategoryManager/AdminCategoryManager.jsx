@@ -50,8 +50,12 @@ const AdminCategoryManager = () => {
     e.preventDefault();
     setError('');
 
+    console.log('EditingCategory:', editingCategory);
+    console.log('Método a usar:', editingCategory && editingCategory.id ? 'PUT (actualizar)' : 'POST (crear)');
+
     try {
       if (editingCategory && editingCategory.id) {
+        console.log('Actualizando categoría con ID:', editingCategory.id);
         const response = await categoryService.update(editingCategory.id, formData);
         if (response.data.success) {
           window.showToast('Categoría actualizada exitosamente', 'success');
@@ -59,6 +63,7 @@ const AdminCategoryManager = () => {
           resetForm();
         }
       } else {
+        console.log('Creando nueva categoría');
         const response = await categoryService.create(formData);
         if (response.data.success) {
           window.showToast('Categoría creada exitosamente', 'success');
@@ -151,20 +156,29 @@ const AdminCategoryManager = () => {
     );
   }
 
+  const handleNewCategory = () => {
+    setFormData({
+      name: '',
+      description: '',
+      code: '',
+      is_active: true
+    });
+    setEditingCategory(null);
+    setError('');
+    setShowForm(true);
+  };
+
   return (
     <div className="admin-category-manager">
       <div className="admin-category-manager__header">
         <h2>Gestionar Categorías</h2>
-                 <button 
-           className="admin-category-manager__add-btn"
-           onClick={() => {
-             resetForm();
-             setShowForm(true);
-           }}
-           data-tooltip="Crear nueva categoría"
-         >
-           + Nueva Categoría
-         </button>
+        <button 
+          className="admin-category-manager__add-btn"
+          onClick={handleNewCategory}
+          data-tooltip="Crear nueva categoría"
+        >
+          + Nueva Categoría
+        </button>
       </div>
 
       {showForm && (
