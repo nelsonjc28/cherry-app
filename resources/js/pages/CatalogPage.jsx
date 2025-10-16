@@ -23,7 +23,6 @@ import {
 import { applyUserOffersToProducts } from '../api/userOffers';
 import { catalogService, publicCatalogService } from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
-import { getCachedProducts } from '../utils/productCache';
 
 // Función para mezclar array de forma aleatoria (Fisher-Yates shuffle)
 const shuffleArray = (array) => {
@@ -328,47 +327,6 @@ const CatalogPage = ({ catalogId }) => {
       setLoading(true);
       try {
         let productsData;
-        
-        // 🚀 OPTIMIZACIÓN: Intentar cargar desde caché primero
-        console.log('⚡ Intentando cargar productos desde caché...');
-        const cachedProducts = await getCachedProducts();
-        
-        // Si hay caché disponible, usar caché y filtrar según necesidad
-        if (cachedProducts && cachedProducts.length > 0 && !catalogId) {
-          console.log(`✅ ${cachedProducts.length} productos encontrados en caché`);
-          
-          let filteredFromCache = cachedProducts;
-          
-          // Filtrar por catálogo si se especifica
-          if (filters.catalog && filters.catalog !== 'Seleccione') {
-            console.log(`🔍 Filtrando por catálogo: ${filters.catalog}`);
-            filteredFromCache = cachedProducts.filter(product => {
-              const productCatalog = product.catalog || product.catalogue || product.catalogName || product.temporada || '';
-              return productCatalog.toLowerCase().includes(filters.catalog.toLowerCase());
-            });
-          }
-          
-          // Filtrar por categoría si se especifica
-          if (category && category !== 'all') {
-            console.log(`🔍 Filtrando por categoría: ${category}`);
-            filteredFromCache = filteredFromCache.filter(product => {
-              const productCategory = (product.category || '').toLowerCase();
-              return productCategory.includes(category.toLowerCase());
-            });
-          }
-          
-          console.log(`✅ ${filteredFromCache.length} productos después de filtrar desde caché`);
-          
-          if (filteredFromCache.length > 0) {
-            const shuffledProducts = shuffleArray(filteredFromCache); // 🎲 Orden aleatorio
-            setAllProducts(shuffledProducts);
-            setFilteredProducts(shuffledProducts);
-            setLoading(false);
-            return; // Terminar aquí, usar caché
-          }
-        }
-        
-        console.log('📡 No hay caché o no hay productos después de filtrar, cargando desde API...');
         
         // Si se proporciona catalogId, cargar productos de ese catálogo específico
         if (catalogId) {

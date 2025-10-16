@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard/ProductCard';
 import CherryButton from '../components/CherryButton/CherryButton';
 import InfiniteScrollLoader from '../components/InfiniteScrollLoader/InfiniteScrollLoader';
-import useProductsWithCache from '../hooks/useProductsWithCache';
 import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
 import { getTopSellingProducts } from '../api/cherryApi';
@@ -19,34 +18,30 @@ const DestacadosPage = () => {
   const [currentMonth, setCurrentMonth] = useState('');
   const [error, setError] = useState(null);
 
-  // Cargar productos con caché
-  const {
-    products: cachedTopSelling,
-    loading: cacheLoading,
-    loadedFromCache
-  } = useProductsWithCache(async () => {
-    const products = await getTopSellingProducts(20);
-    const finalProducts = user ? await applyUserOffersToProducts(products) : products;
-    return finalProducts;
+  // Cargar productos más vendidos (SIN caché para no sobrescribir la caché principal)
+  useEffect(() => {
+    const loadTopSellingProducts = async () => {
+      setLoading(true);
+      try {
+        console.log('📊 Cargando productos más vendidos...');
+        const products = await getTopSellingProducts(20);
+        const finalProducts = user ? await applyUserOffersToProducts(products) : products;
+        
+        setTopSellingProducts(finalProducts);
+        setCurrentMonth(new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }));
+        setError(null);
+        console.log(`✅ ${finalProducts.length} productos más vendidos cargados`);
+      } catch (err) {
+        console.error('❌ Error al cargar productos más vendidos:', err);
+        setError('Error al cargar productos más vendidos');
+        setTopSellingProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTopSellingProducts();
   }, [user]);
-
-  // Actualizar estado cuando cambian los productos
-  useEffect(() => {
-    if (cachedTopSelling && cachedTopSelling.length > 0) {
-      setTopSellingProducts(cachedTopSelling);
-      setCurrentMonth(new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }));
-      setLoading(false);
-      setError(null);
-    } else if (!cacheLoading && cachedTopSelling) {
-      setTopSellingProducts([]);
-      setCurrentMonth(new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }));
-    }
-  }, [cachedTopSelling, cacheLoading]);
-
-  // Sincronizar loading state
-  useEffect(() => {
-    setLoading(cacheLoading);
-  }, [cacheLoading]);
 
   const handleFavoriteToggle = (productId) => {
     // TODO: Implementar toggle de favoritos
