@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { catalogService } from '../../services/api';
 import PdfThumbnail from '../PdfThumbnail/PdfThumbnail';
+import Swal from 'sweetalert2';
 import './CatalogPdfManager.css';
 
 const CatalogPdfManager = ({ catalog, onClose, onPdfUpdated }) => {
@@ -96,7 +97,18 @@ const CatalogPdfManager = ({ catalog, onClose, onPdfUpdated }) => {
   };
 
   const handleRemoveImage = async (imageId) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar esta imagen?')) {
+    const result = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: '¿Quieres eliminar esta imagen? Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (!result.isConfirmed) {
       return;
     }
 

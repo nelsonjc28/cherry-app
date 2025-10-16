@@ -5,6 +5,7 @@ import CatalogPdfManager from './CatalogPdfManager';
 import CatalogPdfModule from './CatalogPdfModule';
 import CatalogOffersModule from './CatalogOffersModule';
 import useUserStore from '../../store/userStore';
+import Swal from 'sweetalert2';
 import './AdminCatalogManager.css';
 
 const AdminCatalogManager = () => {
@@ -161,7 +162,18 @@ const AdminCatalogManager = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar este catálogo?')) {
+    const result = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: '¿Quieres eliminar este catálogo? Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (!result.isConfirmed) {
       return;
     }
 
