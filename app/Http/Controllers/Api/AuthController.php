@@ -18,7 +18,7 @@ class AuthController extends Controller
             'first_name'    => 'required|string|max:255',
             'last_name'     => 'required|string|max:255',
             'middle_name'   => 'nullable|string|max:255',
-            'phone'         => 'required|string|max:20|unique:users',
+            'phone'         => 'required|string|size:10|regex:/^[0-9]{10}$/|unique:users',
             'email'         => 'required|string|email|max:255|unique:users',
             'password'      => [
                 'required',
@@ -32,6 +32,8 @@ class AuthController extends Controller
         ], [
             'password.regex' => 'La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial.',
             'phone.unique' => 'Este número de teléfono ya está registrado.',
+            'phone.size' => 'El teléfono debe tener exactamente 10 dígitos.',
+            'phone.regex' => 'El teléfono debe contener solo números.',
             'email.unique' => 'Este correo electrónico ya está registrado.',
             'email.required' => 'El correo electrónico es requerido.'
         ]);

@@ -256,12 +256,15 @@ const ClientManager = () => {
                 <div className="client-manager__form-group">
                   <label htmlFor="phone">Teléfono *</label>
                   <input
-                    type="text"
+                    type="tel"
                     id="phone"
                     name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
                     required
+                    pattern="[0-9]{10}"
+                    maxLength="10"
+                    onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')}
                   />
                 </div>
               </div>

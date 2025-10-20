@@ -69,7 +69,7 @@ class AdminController extends Controller
                 'last_name' => 'required|string|max:255',
                 'middle_name' => 'nullable|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users',
-                'phone' => 'required|string|max:20|unique:users',
+                'phone' => 'required|string|size:10|regex:/^[0-9]{10}$/|unique:users',
                 'password' => [
                     'required',
                     'string',
@@ -83,7 +83,9 @@ class AdminController extends Controller
                 'password.regex' => 'La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial.',
                 'email.unique' => 'Este correo electrónico ya está registrado.',
                 'email.required' => 'El correo electrónico es requerido.',
-                'phone.unique' => 'Este número de teléfono ya está registrado.'
+                'phone.unique' => 'Este número de teléfono ya está registrado.',
+                'phone.size' => 'El teléfono debe tener exactamente 10 dígitos.',
+                'phone.regex' => 'El teléfono debe contener solo números.'
             ]);
 
             if ($validator->fails()) {
@@ -146,13 +148,8 @@ class AdminController extends Controller
                 'phone' => [
                     'required',
                     'string',
-                    'max:20',
-                    Rule::unique('users')->ignore($id)
-                ],
-                'username' => [
-                    'required',
-                    'string',
-                    'max:255',
+                    'size:10',
+                    'regex:/^[0-9]{10}$/',
                     Rule::unique('users')->ignore($id)
                 ],
                 'password' => [
@@ -168,7 +165,8 @@ class AdminController extends Controller
                 'password.regex' => 'La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial.',
                 'email.unique' => 'Este correo electrónico ya está registrado.',
                 'phone.unique' => 'Este número de teléfono ya está registrado.',
-                'username.unique' => 'Este nombre de usuario ya está en uso.'
+                'phone.size' => 'El teléfono debe tener exactamente 10 dígitos.',
+                'phone.regex' => 'El teléfono debe contener solo números.'
             ]);
 
             if ($validator->fails()) {
@@ -184,7 +182,6 @@ class AdminController extends Controller
                 'middle_name' => $request->middle_name,
                 'email' => $request->email,
                 'phone' => $request->phone,
-                'username' => $request->username,
                 'role_id' => 1 // Always keep as admin
             ];
 

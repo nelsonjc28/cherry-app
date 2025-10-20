@@ -142,6 +142,8 @@ const RegisterPage = () => {
       }
       if (!formData.phone.trim()) {
         errors.phone = 'El teléfono es requerido';
+      } else if (!/^[0-9]{10}$/.test(formData.phone)) {
+        errors.phone = 'El teléfono debe tener exactamente 10 dígitos numéricos';
       }
       if (!formData.password) {
         errors.password = 'La contraseña es requerida';
@@ -400,6 +402,21 @@ const RegisterPage = () => {
 
                     <div className="register-form-row">
                       <div className="register-form-group">
+                        <label>Teléfono</label>
+                        <input
+                          type="tel"
+                          name="phone"
+                          placeholder="10 dígitos"
+                          value={formData.phone}
+                          onChange={handleInputChange}
+                          required
+                          pattern="[0-9]{10}"
+                          maxLength="10"
+                          onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')}
+                        />
+                        {formErrors.phone && <span className="error-message">{formErrors.phone}</span>}
+                      </div>
+                      <div className="register-form-group">
                         <label>Correo electrónico</label>
                         <input
                           type="email"
@@ -410,18 +427,6 @@ const RegisterPage = () => {
                           required
                         />
                         {formErrors.email && <span className="error-message">{formErrors.email}</span>}
-                      </div>
-                      <div className="register-form-group">
-                        <label>Teléfono</label>
-                        <input
-                          type="tel"
-                          name="phone"
-                          placeholder="Tu número de teléfono"
-                          value={formData.phone}
-                          onChange={handleInputChange}
-                          required
-                        />
-                        {formErrors.phone && <span className="error-message">{formErrors.phone}</span>}
                       </div>
                     </div>
 

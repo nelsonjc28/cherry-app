@@ -48,18 +48,6 @@ const RegisterForm = ({ onSuccess }) => {
         required
       />
       
-      <label htmlFor="email" className="register-label">Correo Electrónico</label>
-      <input
-        id="email"
-        name="email"
-        type="email"
-        autoComplete="email"
-        value={form.email}
-        onChange={handleChange}
-        className="register-input"
-        required
-      />
-      
       <label htmlFor="phone" className="register-label">Teléfono</label>
       <input
         id="phone"
@@ -67,6 +55,22 @@ const RegisterForm = ({ onSuccess }) => {
         type="tel"
         autoComplete="tel"
         value={form.phone}
+        onChange={handleChange}
+        className="register-input"
+        required
+        pattern="[0-9]{10}"
+        maxLength="10"
+        placeholder="10 dígitos"
+        onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')}
+      />
+      
+      <label htmlFor="email" className="register-label">Correo Electrónico</label>
+      <input
+        id="email"
+        name="email"
+        type="email"
+        autoComplete="email"
+        value={form.email}
         onChange={handleChange}
         className="register-input"
         required
