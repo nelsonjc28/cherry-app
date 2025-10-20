@@ -53,7 +53,7 @@ const Header = () => {
           } else {
             response = await userNotificationService.getUnreadCount();
           }
-          
+
           if (response.data.success) {
             setUnreadNotifications(response.data.unread_count || 0);
           }
@@ -64,10 +64,10 @@ const Header = () => {
     };
 
     fetchUnreadNotifications();
-    
+
     // Actualizar cada 30 segundos
     const interval = setInterval(fetchUnreadNotifications, 30000);
-    
+
     return () => clearInterval(interval);
   }, [user, isAdmin]);
 
@@ -211,7 +211,7 @@ const Header = () => {
     if (!mobileMenuOpen) {
       setMobileMenuOpen(true);
     }
-    
+
     // Focus on search input after a small delay to ensure menu is rendered
     setTimeout(() => {
       if (mobileSearchInputRef.current) {
@@ -328,7 +328,7 @@ const Header = () => {
 
     // Update totals
     groups[key].totalQuantity += item.quantity;
-    
+
     // Considerar items gratuitos en el cálculo del precio
     if (item.isFreeItem) {
       // Si el item es completamente gratis, no sumar al precio
@@ -530,9 +530,9 @@ const Header = () => {
               </>
             )}
 
-            {user ? (
-              <button 
-                type="button" 
+            {user && (
+              <button
+                type="button"
                 className="user-action icon-only"
                 onClick={() => setNotificationsOpen(true)}
               >
@@ -543,15 +543,7 @@ const Header = () => {
                   )}
                 </div>
               </button>
-            ) : (
-              <Link to="/notificaciones" className="user-action icon-only">
-                <div className="icon-badge">
-                  <img src={getIconPath('Bell.svg')} alt="Notificaciones" />
-                </div>
-              </Link>
             )}
-
-
 
             {!isAdminPage && (
               <button type="button" className="user-action icon-only" onClick={() => setCartModalOpen(true)}>
@@ -673,9 +665,9 @@ const Header = () => {
             <span>Menú</span>
           </button>
 
-          <button 
-            id="btn-buscar" 
-            className="mobile-search-button-trigger" 
+          <button
+            id="btn-buscar"
+            className="mobile-search-button-trigger"
             onClick={handleMobileSearchClick}
             aria-label="Buscar"
           >
@@ -805,9 +797,9 @@ const Header = () => {
                         <span>Mis Órdenes</span>
                       </Link>
                       <Link to="/perfil/favoritos" className="mobile-menu-account" onClick={() => { setMobileMenuOpen(false); setUserMenuOpen(false); }}>
-                        <img 
-                          src={getIconPath('Red Star.svg')} 
-                          alt="Favoritos" 
+                        <img
+                          src={getIconPath('Red Star.svg')}
+                          alt="Favoritos"
                           onError={(e) => {
                             e.target.src = '/icons/Red Star.svg';
                           }}
@@ -815,9 +807,9 @@ const Header = () => {
                         <span>Favoritos</span>
                       </Link>
                       <Link to="/perfil/direcciones" className="mobile-menu-account" onClick={() => { setMobileMenuOpen(false); setUserMenuOpen(false); }}>
-                        <img 
-                          src={getIconPath('Red Home.svg')} 
-                          alt="Direcciones" 
+                        <img
+                          src={getIconPath('Red Home.svg')}
+                          alt="Direcciones"
                           onError={(e) => {
                             e.target.src = '/icons/Red Home.svg';
                           }}
@@ -858,14 +850,14 @@ const Header = () => {
         onViewCart={() => { setCartModalOpen(false); navigate('/carrito-detalle'); }}
         onCheckout={() => { setCartModalOpen(false); navigate('/carrito-detalle'); }}
       />
-      
+
       {user && isAdmin() && (
         <AdminNotifications
           isOpen={notificationsOpen}
           onClose={() => setNotificationsOpen(false)}
         />
       )}
-      
+
       {user && !isAdmin() && (
         <UserNotifications
           isOpen={notificationsOpen}
