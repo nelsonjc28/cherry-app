@@ -4,42 +4,102 @@ import { Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard/ProductCard';
 import CherryButton from '../components/CherryButton/CherryButton';
 import InfiniteScrollLoader from '../components/InfiniteScrollLoader/InfiniteScrollLoader';
-import useProductsWithCache from '../hooks/useProductsWithCache';
 import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
-import { getSmartPromoProducts, isUserSessionActive } from '../api/cherryApi';
-import useUserStore from '../store/userStore';
+import { getProductsWithRatings, isUserSessionActive } from '../api/cherryApi';
+import { applyUserOffersToProducts } from '../api/userOffers';
 import './PromocionesPage.css';
 
 const PromocionesPage = () => {
   const [productsWithOffers, setProductsWithOffers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { user, token } = useUserStore();
-  const isLoggedIn = !!(user && token);
   const hasActiveSession = isUserSessionActive();
 
-  // Cargar productos con caché
-  const {
-    products: cachedPromoProducts,
-    loading: cacheLoading,
-    loadedFromCache
-  } = useProductsWithCache(async () => {
-    const promoProducts = await getSmartPromoProducts(0);
-    return promoProducts;
-  }, [isLoggedIn, hasActiveSession]);
-
-  // Actualizar estado cuando cambian los productos
+  // Cargar productos con promociones (PRIMERO ofertas del admin, LUEGO API externa)
   useEffect(() => {
-    if (cachedPromoProducts && cachedPromoProducts.length > 0) {
-      setProductsWithOffers(cachedPromoProducts);
-      setLoading(false);
-    }
-  }, [cachedPromoProducts]);
+    const loadPromoProducts = async () => {
+      setLoading(true);
+      try {
+        console.log('🎁 PromocionesPage: Cargando productos con promociones...');
+        
+        let allPromoProducts = [];
+        let adminOfferProductIds = [];
+        
+        // PASO 1: Si hay usuario logueado, obtener productos con ofertas del ADMIN PRIMERO
+        if (hasActiveSession) {
+          const token = localStorage.getItem('token');
+          if (token) {
+            try {
+              // Obtener IDs de productos que tienen ofertas del admin
+              const offerResponse = await fetch('/api/user-offer-products', {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                }
+              });
+              
+              if (offerResponse.ok) {
+                const offerData = await offerResponse.json();
+                if (offerData.success && offerData.product_ids && offerData.product_ids.length > 0) {
+                  console.log(`🎯 ${offerData.product_ids.length} productos con ofertas del admin`);
+                  adminOfferProductIds = offerData.product_ids;
+                  
+                  // Cargar TODOS los productos de la API para buscar los de las ofertas del admin
+                  const allProductsResult = await getProductsWithRatings('Cherry 2025 - 2026', {
+                    limit: null
+                  });
+                  const allProducts = allProductsResult.products || allProductsResult || [];
+                  
+                  // Filtrar productos que tienen ofertas del admin
+                  const adminOfferProducts = allProducts.filter(product => {
+                    const productId = (product.id_articulo || product.id || product.codigo).toString();
+                    return adminOfferProductIds.includes(productId);
+                  });
+                  
+                  console.log(`✅ ${adminOfferProducts.length} productos con ofertas del admin cargados`);
+                  allPromoProducts = adminOfferProducts;
+                }
+              }
+            } catch (error) {
+              console.warn('⚠️ Error al cargar ofertas del admin:', error);
+            }
+          }
+        }
+        
+        // PASO 2: Cargar productos con desc_promo de la API externa (que NO tengan oferta del admin)
+        const result = await getProductsWithRatings('Cherry 2025 - 2026', {
+          limit: null,
+          onlyPromos: true,  // Solo productos con desc_promo
+          random: true
+        });
+        
+        const externalPromoProducts = result.products || result || [];
+        console.log(`📦 ${externalPromoProducts.length} productos con desc_promo de API externa`);
+        
+        // Filtrar productos de API externa que NO tengan oferta del admin
+        const filteredExternalPromos = externalPromoProducts.filter(product => {
+          const productId = (product.id_articulo || product.id || product.codigo).toString();
+          return !adminOfferProductIds.includes(productId);
+        });
+        
+        console.log(`➕ Agregando ${filteredExternalPromos.length} productos de API externa (sin ofertas del admin)`);
+        allPromoProducts = [...allPromoProducts, ...filteredExternalPromos];
+        
+        // PASO 3: Aplicar ofertas personalizadas del usuario a TODOS los productos
+        const productsWithUserOffers = await applyUserOffersToProducts(allPromoProducts);
+        
+        console.log(`✅ Total: ${productsWithUserOffers.length} productos con promociones`);
+        setProductsWithOffers(productsWithUserOffers);
+      } catch (error) {
+        console.error('❌ Error al cargar promociones:', error);
+        setProductsWithOffers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Sincronizar loading state
-  useEffect(() => {
-    setLoading(cacheLoading);
-  }, [cacheLoading]);
+    loadPromoProducts();
+  }, [hasActiveSession]);
 
   const handleFavoriteToggle = (productId) => {
     // Implementar lógica de favoritos si es necesario

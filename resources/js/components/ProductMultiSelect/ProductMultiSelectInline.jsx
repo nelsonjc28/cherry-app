@@ -61,7 +61,9 @@ const ProductMultiSelect = ({
       setLoading(true);
       setError('');
       
-      const allProducts = await getProductsWithRatings();
+      // Obtener TODOS los productos sin límite
+      const result = await getProductsWithRatings('Cherry 2025 - 2026', { limit: null });
+      const allProducts = result.products || [];
       
       if (!allProducts || allProducts.length === 0) {
         setProducts([]);
@@ -464,5 +466,8 @@ const ProductMultiSelect = ({
 };
 
 export default ProductMultiSelect;
+
+
+
 
 

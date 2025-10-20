@@ -1,4 +1,4 @@
-import { Helmet } from 'react-helmet-async';
+﻿import { Helmet } from 'react-helmet-async';
 import { useState } from "react";
 import "./LoginPage.css";
 import { getIconPath, getImagePath } from '../../utils/assetPaths';
@@ -59,17 +59,17 @@ const LoginPage = () => {
 
                 <form onSubmit={handleSubmit} className="login-form">
                   <div className="login-form-group">
-                    <label>Usuario</label>
+                    <label>Email o Teléfono</label>
                     <div className="login-input-container">
                       <img
                         src={getIconPath('User.svg')}
-                        alt="Usuario"
+                        alt="Email o Teléfono"
                         className="login-input-icon"
                       />
                       <input
                         type="text"
                         name="username"
-                        placeholder="Usuario"
+                        placeholder="Ingresa tu email o teléfono"
                         value={formData.username}
                         onChange={handleInputChange}
                       />

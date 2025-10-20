@@ -31,7 +31,7 @@ class TestFrontendAuth extends Command
         // Paso 1: Hacer login
         $this->info("\n1️⃣ Haciendo login...");
         $loginResponse = Http::post('http://localhost:8000/api/login', [
-            'email' => 'admin@cherrycentral.com',
+            'identifier' => 'admin@cherrycentral.com',
             'password' => 'Admin1234!'
         ]);
         

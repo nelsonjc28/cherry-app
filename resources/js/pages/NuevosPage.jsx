@@ -8,10 +8,11 @@ import { getIconPath } from '../utils/assetPaths';
 import CustomButton from '../components/CustomButton';
 import './CatalogPage.css';
 import { 
-  getNewProducts,
+  getProductsWithRatings,
   getAvailableColors,
   getAvailableSizes
 } from '../api/cherryApi';
+import { applyUserOffersToProducts } from '../api/userOffers';
 import { publicCatalogService } from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
 
@@ -292,14 +293,26 @@ const NuevosPage = () => {
     const loadProducts = async () => {
       setLoading(true);
       try {
-        // Usar la función getNewProducts que ya incluye ofertas personalizadas
-        const newProducts = await getNewProducts(100); // Obtener hasta 100 productos nuevos
+        console.log('🆕 NuevosPage: Cargando productos nuevos...');
         
-        setAllProducts(newProducts);
-        setFilteredProducts(newProducts);
+        // Cargar SOLO productos nuevos con filtro onlyNew
+        const result = await getProductsWithRatings('Cherry 2025 - 2026', {
+          limit: null,  // Cargar todos los productos nuevos
+          onlyNew: true,  // Solo productos nuevos
+          random: true  // Orden aleatorio
+        });
+        
+        const newProducts = result.products || result || [];
+        console.log(`✅ ${newProducts.length} productos nuevos cargados`);
+        
+        // Aplicar ofertas personalizadas del usuario
+        const productsWithOffers = await applyUserOffersToProducts(newProducts);
+        
+        setAllProducts(productsWithOffers);
+        setFilteredProducts(productsWithOffers);
         
       } catch (error) {
-        console.error('Error loading new products:', error);
+        console.error('❌ Error loading new products:', error);
         setAllProducts([]);
         setFilteredProducts([]);
       } finally {

@@ -18,7 +18,6 @@ const RegisterPage = () => {
     lastName: "",
     email: "",
     phone: "",
-    username: "",
     password: "",
     confirmPassword: "",
     day: "1",
@@ -26,27 +25,50 @@ const RegisterPage = () => {
     year: "1986",
     city: "",
     state: "",
+    municipality: "",
     postalCode: "",
     street: "",
+    country: "México",
     receivePromotions: false,
     acceptTerms: false,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState({});
+  const [settlements, setSettlements] = useState([]);
+  const [loadingPostalCode, setLoadingPostalCode] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
     
-    // Auto-llenar username con el teléfono cuando se cambie el teléfono
-    if (name === 'phone') {
+    // Si cambia el código postal y tiene 5 dígitos, consultar SEPOMEX
+    if (name === 'postalCode') {
+      if (value.length === 5) {
+        setFormData((prev) => ({
+          ...prev,
+          [name]: value,
+        }));
+        fetchPostalCodeData(value);
+      } else if (value.length < 5) {
+        // Limpiar campos si el código postal es incompleto
+        setSettlements([]);
+        setFormData((prev) => ({
+          ...prev,
+          [name]: value,
+          state: '',
+          municipality: '',
+          city: '',
+        }));
+      } else {
+        setFormData((prev) => ({
+          ...prev,
+          [name]: value,
+        }));
+      }
+    } else {
       setFormData((prev) => ({
         ...prev,
-        username: value
+        [name]: type === "checkbox" ? checked : value,
       }));
     }
     
@@ -56,6 +78,50 @@ const RegisterPage = () => {
         ...prev,
         [name]: ''
       }));
+    }
+  };
+
+  // Función para consultar datos del código postal
+  const fetchPostalCodeData = async (postalCode) => {
+    if (!postalCode || postalCode.length !== 5) return;
+
+    setLoadingPostalCode(true);
+    try {
+      const response = await fetch(`https://sepomex.789.com.mx/${postalCode}`);
+      
+      if (!response.ok) {
+        throw new Error('Código postal no encontrado');
+      }
+
+      const data = await response.json();
+      
+      if (data && data.asentamientos && data.asentamientos.length > 0) {
+        // Guardar lista de asentamientos
+        setSettlements(data.asentamientos);
+        
+        // Auto-llenar estado y municipio
+        setFormData(prev => ({
+          ...prev,
+          state: data.estados && data.estados.length > 0 ? data.estados[0] : '',
+          municipality: data.municipios && data.municipios.length > 0 ? data.municipios[0] : '',
+          city: data.asentamientos[0] || '', // Seleccionar el primer asentamiento por defecto
+          country: 'México'
+        }));
+      } else {
+        // Si no hay datos, limpiar
+        setSettlements([]);
+        if (window.showToast) {
+          window.showToast('Código postal no encontrado', 'error');
+        }
+      }
+    } catch (error) {
+      console.error('Error al consultar código postal:', error);
+      setSettlements([]);
+      if (window.showToast) {
+        window.showToast('Error al consultar código postal', 'error');
+      }
+    } finally {
+      setLoadingPostalCode(false);
     }
   };
 
@@ -69,14 +135,13 @@ const RegisterPage = () => {
       if (!formData.lastName.trim()) {
         errors.lastName = 'Los apellidos son requeridos';
       }
-      if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
+      if (!formData.email.trim()) {
+        errors.email = 'El correo electrónico es requerido';
+      } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
         errors.email = 'El correo electrónico no es válido';
       }
       if (!formData.phone.trim()) {
         errors.phone = 'El teléfono es requerido';
-      }
-      if (!formData.username.trim()) {
-        errors.username = 'El nombre de usuario es requerido';
       }
       if (!formData.password) {
         errors.password = 'La contraseña es requerida';
@@ -123,7 +188,6 @@ const RegisterPage = () => {
           last_name: formData.lastName,
           email: formData.email,
           phone: formData.phone,
-          username: formData.username,
           password: formData.password,
         };
 
@@ -134,18 +198,8 @@ const RegisterPage = () => {
             window.showToast('¡Paso 1 completado! Continúa con el siguiente paso', 'success');
           }
           setCurrentStep(2);
-        } else {
-          // Mostrar el error específico del backend
-          ;
-          
-          if (window.showToast) {
-            window.showToast(error || 'Error en el registro', 'error');;
-          } else {
-            console.error('window.showToast is not available');
-            // Fallback: mostrar alert
-            alert(error || 'Error en el registro');
-          }
         }
+        // Los errores ya se muestran automáticamente en el userStore
       } catch (err) {
         if (window.showToast) {
           window.showToast('Error de conexión', 'error');
@@ -158,18 +212,86 @@ const RegisterPage = () => {
 
   const handleStep2Submit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
     try {
-      // Aquí se actualizarían los datos adicionales del usuario
-      // Por ahora solo navegamos al home
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        if (window.showToast) {
+          window.showToast('No hay sesión activa', 'error');
+        }
+        navigate('/login');
+        return;
+      }
+
+      // Preparar datos para enviar al backend
+      const profileData = {
+        birth_day: parseInt(formData.day),
+        birth_month: formData.month,
+        birth_year: parseInt(formData.year),
+        street: formData.street,
+        city: formData.city,
+        municipality: formData.municipality,
+        state: formData.state,
+        postal_code: formData.postalCode,
+        country: formData.country,
+      };
+
+      const response = await fetch('/api/complete-profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(profileData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Mostrar errores de validación
+        if (data.errors) {
+          Object.keys(data.errors).forEach(key => {
+            const fieldErrors = data.errors[key];
+            if (Array.isArray(fieldErrors)) {
+              fieldErrors.forEach(error => {
+                if (window.showToast) {
+                  window.showToast(error, 'error', 4000);
+                }
+              });
+            } else {
+              if (window.showToast) {
+                window.showToast(fieldErrors, 'error', 4000);
+              }
+            }
+          });
+        } else if (data.error) {
+          if (window.showToast) {
+            window.showToast(data.error, 'error');
+          }
+        }
+        return;
+      }
+
+      // Éxito
       if (window.showToast) {
         window.showToast('¡Registro completado! Bienvenido a Cherry', 'success');
       }
+      
+      // Actualizar el usuario en el store
+      const { fetchUser } = useUserStore.getState();
+      await fetchUser();
+      
       navigate('/');
     } catch (err) {
+      console.error('Error al completar perfil:', err);
       if (window.showToast) {
         window.showToast('Error al guardar datos adicionales', 'error');
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -278,13 +400,14 @@ const RegisterPage = () => {
 
                     <div className="register-form-row">
                       <div className="register-form-group">
-                        <label>Correo electrónico (opcional)</label>
+                        <label>Correo electrónico</label>
                         <input
                           type="email"
                           name="email"
                           placeholder="tu@email.com"
                           value={formData.email}
                           onChange={handleInputChange}
+                          required
                         />
                         {formErrors.email && <span className="error-message">{formErrors.email}</span>}
                       </div>
@@ -302,21 +425,8 @@ const RegisterPage = () => {
                       </div>
                     </div>
 
-                    <div className="register-section-title" style={{ color: 'white', marginTop: '20px' }}>Usuario y contraseña</div>
+                    <div className="register-section-title" style={{ color: 'white', marginTop: '20px' }}>Contraseña</div>
                     <div className="white-divider"></div>
-
-                    <div className="register-form-group">
-                      <label>Nombre de usuario</label>
-                      <input
-                        type="text"
-                        name="username"
-                        placeholder="Tu nombre de usuario"
-                        value={formData.username}
-                        onChange={handleInputChange}
-                        required
-                      />
-                      {formErrors.username && <span className="error-message">{formErrors.username}</span>}
-                    </div>
 
                     <div className="register-form-row">
                       <div className="register-form-group">
@@ -427,22 +537,24 @@ const RegisterPage = () => {
 
                     <div className="register-form-row">
                       <div className="register-form-group">
-                        <label>Ciudad</label>
+                        <label>Código postal</label>
                         <input
                           type="text"
-                          name="city"
-                          placeholder="Tu ciudad"
-                          value={formData.city}
+                          name="postalCode"
+                          placeholder="Código Postal (5 dígitos)"
+                          value={formData.postalCode}
                           onChange={handleInputChange}
+                          maxLength="5"
                         />
+                        {loadingPostalCode && <small style={{color: '#666'}}>Consultando...</small>}
                       </div>
                       <div className="register-form-group">
-                        <label>Estado</label>
+                        <label>Calle y Número</label>
                         <input
                           type="text"
-                          name="state"
-                          placeholder="Tu estado"
-                          value={formData.state}
+                          name="street"
+                          placeholder="Tu calle y número"
+                          value={formData.street}
                           onChange={handleInputChange}
                         />
                       </div>
@@ -450,23 +562,87 @@ const RegisterPage = () => {
 
                     <div className="register-form-row">
                       <div className="register-form-group">
-                        <label>Código postal</label>
+                        <label>Colonia/Asentamiento</label>
+                        {settlements.length > 0 ? (
+                          <select
+                            name="city"
+                            value={formData.city}
+                            onChange={handleInputChange}
+                            style={{
+                              width: '100%',
+                              padding: '12px',
+                              border: '1px solid #ccc',
+                              borderRadius: '4px',
+                              fontSize: '14px',
+                              backgroundColor: '#fff'
+                            }}
+                          >
+                            <option value="">Selecciona una colonia</option>
+                            {settlements.map((settlement, index) => (
+                              <option key={index} value={settlement}>{settlement}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            name="city"
+                            placeholder="Ingresa código postal primero"
+                            value={formData.city}
+                            onChange={handleInputChange}
+                            disabled
+                            style={{
+                              backgroundColor: '#f5f5f5',
+                              color: '#666',
+                              cursor: 'not-allowed'
+                            }}
+                          />
+                        )}
+                      </div>
+                      <div className="register-form-group">
+                        <label>Municipio</label>
                         <input
                           type="text"
-                          name="postalCode"
-                          placeholder="Tu código postal"
-                          value={formData.postalCode}
-                          onChange={handleInputChange}
+                          name="municipality"
+                          placeholder="Se llenará automáticamente"
+                          value={formData.municipality}
+                          readOnly
+                          style={{
+                            backgroundColor: '#f5f5f5',
+                            color: '#666',
+                            cursor: 'not-allowed'
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="register-form-row">
+                      <div className="register-form-group">
+                        <label>Estado</label>
+                        <input
+                          type="text"
+                          name="state"
+                          placeholder="Se llenará automáticamente"
+                          value={formData.state}
+                          readOnly
+                          style={{
+                            backgroundColor: '#f5f5f5',
+                            color: '#666',
+                            cursor: 'not-allowed'
+                          }}
                         />
                       </div>
                       <div className="register-form-group">
-                        <label>Calle</label>
+                        <label>País</label>
                         <input
                           type="text"
-                          name="street"
-                          placeholder="Tu dirección"
-                          value={formData.street}
-                          onChange={handleInputChange}
+                          name="country"
+                          value={formData.country}
+                          readOnly
+                          style={{
+                            backgroundColor: '#f5f5f5',
+                            color: '#666',
+                            cursor: 'not-allowed'
+                          }}
                         />
                       </div>
                     </div>
@@ -476,9 +652,10 @@ const RegisterPage = () => {
                         variant="filled"
                         size='medium'
                         type="submit"
+                        disabled={isSubmitting}
                         style={{ flex: 1 }}>
                         <span className="register-submit-button">
-                          Guardar
+                          {isSubmitting ? 'Guardando...' : 'Guardar'}
                         </span>
                       </CustomButton>
                       <CustomButton
@@ -486,6 +663,7 @@ const RegisterPage = () => {
                         size='medium'
                         type="button"
                         onClick={handleSkip}
+                        disabled={isSubmitting}
                         style={{ flex: 1 }}>
                         <span className="register-submit-button">
                           Omitir

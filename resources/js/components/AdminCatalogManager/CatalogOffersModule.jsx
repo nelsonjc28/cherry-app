@@ -22,7 +22,6 @@ const CatalogOffersModule = ({ onBack }) => {
 
   // Estados del formulario
   const [formData, setFormData] = useState({
-    catalog_id: 1, // ID por defecto del catálogo principal
     title: '',
     description: '',
     discount_percentage: '',
@@ -139,7 +138,6 @@ const CatalogOffersModule = ({ onBack }) => {
 
       // Configurar el formData
       setFormData({
-        catalog_id: offer.catalog_id || 1,
         title: offer.title,
         description: offer.description,
         discount_percentage: offer.discount_percentage,
@@ -169,7 +167,6 @@ const CatalogOffersModule = ({ onBack }) => {
     } else {
       setEditingOffer(null);
       setFormData({
-        catalog_id: 1,
         title: '',
         description: '',
         discount_percentage: '',

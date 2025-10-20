@@ -1,4 +1,4 @@
-import { Helmet } from 'react-helmet-async';
+﻿import { Helmet } from 'react-helmet-async';
 import { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 import "./LoginPage.css";
@@ -12,7 +12,7 @@ const LoginPage = () => {
   const { login, loading, error, user, initialized } = useUserStore();
 
   const [formData, setFormData] = useState({
-    username: "",
+    identifier: "",
     password: "",
   });
 
@@ -30,7 +30,7 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.username || !formData.password) {
+    if (!formData.identifier || !formData.password) {
       if (window.showToast) {
         window.showToast('Por favor completa todos los campos', 'error');
       }
@@ -40,7 +40,7 @@ const LoginPage = () => {
     setIsSubmitting(true);
     
     try {
-      const user = await login(formData.username, formData.password);
+      const user = await login(formData.identifier, formData.password);
       
       if (user) {
         if (window.showToast) {
@@ -156,7 +156,7 @@ const LoginPage = () => {
 
                 <form onSubmit={handleSubmit} className="login-form">
                   <div className="login-form-group">
-                    <label>Nombre de usuario</label>
+                    <label>Email o Teléfono</label>
                     <div className="login-input-container">
                       <img
                         src={getIconPath('User.svg')}
@@ -165,9 +165,9 @@ const LoginPage = () => {
                       />
                       <input
                         type="text"
-                        name="username"
-                        placeholder="Ingresa tu nombre de usuario"
-                        value={formData.username}
+                        name="identifier"
+                        placeholder="Ingresa tu Email o Teléfono"
+                        value={formData.identifier}
                         onChange={handleInputChange}
                         required
                       />

@@ -18,7 +18,7 @@ const CartItemCard = ({
       <div className="cart-item-card__main-grid">
         {/* Image */}
         <div className="cart-item-card__image-col">
-          <img src={image} alt={title} className="cart-item-card__image" />
+          <img src={image} alt={title} className="cart-item-card__image" loading="lazy" />
         </div>
         {/* Main Info */}
         <div className="cart-item-card__info-col">

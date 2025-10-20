@@ -14,11 +14,16 @@ import AffiliateSection from '../components/sections/AffiliateSection/AffiliateS
 import useUserStore from '../store/userStore';
 import { getTopSellingProducts } from '../api/cherryApi';
 import { applyUserOffersToProducts } from '../api/userOffers';
+import useProductCachePreload from '../hooks/useProductCachePreload';
 
 const HomePage = () => {
   const { user, initialized } = useUserStore();
   const [topSellingProducts, setTopSellingProducts] = useState([]);
   const [loadingTopSelling, setLoadingTopSelling] = useState(true);
+
+  // 🚀 PRECARGA: Inicia descarga de todos los productos en background
+  // Primera vez: tarda unos segundos, pero las siguientes páginas serán instantáneas
+  useProductCachePreload();
 
   // Cargar productos más vendidos (6 productos)
   useEffect(() => {

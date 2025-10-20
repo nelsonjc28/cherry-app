@@ -19,8 +19,7 @@ class AuthController extends Controller
             'last_name'     => 'required|string|max:255',
             'middle_name'   => 'nullable|string|max:255',
             'phone'         => 'required|string|max:20|unique:users',
-            'username'      => 'required|string|max:255|unique:users',
-            'email'         => 'nullable|string|email|max:255|unique:users',
+            'email'         => 'required|string|email|max:255|unique:users',
             'password'      => [
                 'required',
                 'string',
@@ -33,8 +32,8 @@ class AuthController extends Controller
         ], [
             'password.regex' => 'La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial.',
             'phone.unique' => 'Este número de teléfono ya está registrado.',
-            'username.unique' => 'Este nombre de usuario ya está en uso.',
-            'email.unique' => 'Este correo electrónico ya está registrado.'
+            'email.unique' => 'Este correo electrónico ya está registrado.',
+            'email.required' => 'El correo electrónico es requerido.'
         ]);
 
         if ($validator->fails()) {
@@ -46,7 +45,6 @@ class AuthController extends Controller
             'last_name'     => $request->last_name,
             'middle_name'   => $request->middle_name,
             'phone'         => $request->phone,
-            'username'      => $request->username,
             'email'         => $request->email,
             'password'      => Hash::make($request->password),
             'role_id'       => 2, // Default to cliente role
@@ -60,13 +58,73 @@ class AuthController extends Controller
         ], 201);
     }
 
+    public function completeProfile(Request $request)
+    {
+        try {
+            $user = JWTAuth::parseToken()->authenticate();
+            
+            if (!$user) {
+                return response()->json(['error' => 'Usuario no autenticado'], 401);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'birth_day' => 'nullable|integer|min:1|max:31',
+                'birth_month' => 'nullable|string|max:50',
+                'birth_year' => 'nullable|integer|min:1900|max:' . date('Y'),
+                'street' => 'nullable|string|max:255',
+                'city' => 'nullable|string|max:255',
+                'municipality' => 'nullable|string|max:255',
+                'state' => 'nullable|string|max:255',
+                'postal_code' => 'nullable|string|max:10',
+                'country' => 'nullable|string|max:100',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json(['errors' => $validator->errors()], 422);
+            }
+
+            // Actualizar datos del usuario
+            $user->update([
+                'birth_day' => $request->birth_day,
+                'birth_month' => $request->birth_month,
+                'birth_year' => $request->birth_year,
+            ]);
+
+            // Si se proporcionan datos de dirección, crear una dirección
+            if ($request->street || $request->city || $request->postal_code) {
+                $user->addresses()->create([
+                    'name' => 'Principal',
+                    'street_address' => $request->street,
+                    'city' => $request->city,
+                    'municipality' => $request->municipality,
+                    'state' => $request->state,
+                    'postal_code' => $request->postal_code,
+                    'country' => $request->country ?? 'México',
+                    'is_default' => true,
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Perfil completado exitosamente',
+                'user' => $user->load('role', 'addresses')
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al completar el perfil: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function login(Request $request)
     {
         try {
-            $credentials = $request->only(['username', 'password']);
+            $credentials = $request->only(['identifier', 'password']);
 
             $validator = Validator::make($credentials, [
-                'username' => 'required|string',
+                'identifier' => 'required|string',
                 'password' => 'required|string',
             ]);
 
@@ -74,8 +132,13 @@ class AuthController extends Controller
                 return response()->json(['errors' => $validator->errors()], 422);
             }
 
-            // Buscar usuario por username
-            $user = User::where('username', $credentials['username'])->first();
+            $identifier = $credentials['identifier'];
+            
+            // Buscar usuario por email o teléfono
+            $user = User::where(function($query) use ($identifier) {
+                $query->where('email', $identifier)
+                      ->orWhere('phone', $identifier);
+            })->first();
             
             if (!$user || !Hash::check($credentials['password'], $user->password)) {
                 return response()->json(['error' => 'Credenciales inválidas'], 401);
@@ -93,7 +156,14 @@ class AuthController extends Controller
                 'token' => $token,
             ]);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Error interno del servidor'], 500);
+            \Log::error('Login error: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return response()->json([
+                'error' => 'Error interno del servidor',
+                'message' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile()
+            ], 500);
         }
     }
 

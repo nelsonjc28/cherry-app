@@ -1,9 +1,7 @@
 import axios from 'axios';
+import productCache from '../utils/productCacheInMemory';
 
 const CHERRY_API_URL = 'https://cherryapi.estrategiadmgs.com.mx/cherryApi/';
-
-// Cache para productos
-const productCache = new Map();
 
 // Cache for products to avoid multiple API calls
 let productsCache = null;
@@ -146,18 +144,70 @@ export const getAllProducts = async (catalog = 'Cherry 2025 - 2026') => {
   }
 };
 
-// Función optimizada para obtener productos con ratings
-export const getProductsWithRatings = async (catalog = 'Cherry 2025 - 2026') => {
+// Función optimizada para obtener productos con ratings y filtros
+// AHORA USA CACHÉ EN MEMORIA PARA EVITAR DESCARGAS REPETIDAS
+export const getProductsWithRatings = async (catalog = 'Cherry 2025 - 2026', options = {}) => {
   try {
-    // Obtener productos de la API externa
-    const rawProducts = await getAllProducts(catalog);
+    const {
+      limit = 20,  // Por defecto 20 productos
+      offset = 0,
+      random = false,
+      category = null,  // Filtrar por categoría
+      onlyPromos = false,  // Solo productos con promoción
+      onlyNew = false,  // Solo productos nuevos
+      catalogCode = null  // Filtrar por código de catálogo
+    } = options;
     
-    if (!rawProducts || rawProducts.length === 0) {
-      return [];
+    const startTime = Date.now();
+    
+    // 🚀 USAR CACHÉ EN MEMORIA (carga UNA VEZ por sesión)
+    let rawProducts = await productCache.getAllProducts();
+    
+    if (!Array.isArray(rawProducts)) {
+      return { products: [], total: 0, hasMore: false };
     }
     
+    // APLICAR FILTROS usando las funciones optimizadas del caché
+    
+    // Filtrar por catálogo si se especifica
+    if (catalogCode) {
+      rawProducts = productCache.filterByCatalog(rawProducts, catalogCode);
+    } else if (catalog && catalog !== 'Cherry 2025 - 2026') {
+      // Filtrar por temporada
+      rawProducts = rawProducts.filter(product => product.temporada === catalog);
+    }
+    
+    // Filtrar por categoría (línea)
+    if (category) {
+      rawProducts = productCache.filterByCategory(rawProducts, category);
+    }
+    
+    // Filtrar solo promociones
+    if (onlyPromos) {
+      rawProducts = productCache.filterOnlyPromos(rawProducts);
+    }
+    
+    // Filtrar solo nuevos
+    if (onlyNew) {
+      rawProducts = productCache.filterOnlyNew(rawProducts);
+    }
+    
+    console.log(`📦 Filtrado: ${rawProducts.length} productos después de filtros`);
+    
+    // Mezclar aleatoriamente si se solicita
+    if (random) {
+      rawProducts = productCache.shuffle(rawProducts);
+    }
+    
+    // Aplicar paginación (si limit no es null)
+    const paginatedProducts = limit !== null 
+      ? rawProducts.slice(offset, offset + limit)
+      : rawProducts;
+    
+    console.log(`📄 Paginación: Mostrando ${paginatedProducts.length} de ${rawProducts.length} productos`);
+    
     // Extraer IDs de productos para obtener ratings en bulk
-    const productIds = rawProducts.map(product => 
+    const productIds = paginatedProducts.map(product => 
       product.id_articulo || product.id || product.codigo
     ).filter(Boolean);
     
@@ -166,12 +216,23 @@ export const getProductsWithRatings = async (catalog = 'Cherry 2025 - 2026') => 
     
     // Mapear productos con ratings
     const mappedProducts = await Promise.all(
-      rawProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
+      paginatedProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
     );
     
-    return mappedProducts.filter(p => p !== null);
+    const validProducts = mappedProducts.filter(p => p !== null);
+    
+    const duration = Date.now() - startTime;
+    console.log(`⚡ Completado en ${duration}ms`);
+    
+    // Retornar productos con metadata de paginación
+    return {
+      products: validProducts,
+      total: rawProducts.length,
+      hasMore: limit !== null && (offset + limit) < rawProducts.length
+    };
   } catch (error) {
-    return [];
+    console.error('❌ Error en getProductsWithRatings:', error);
+    return { products: [], total: 0, hasMore: false };
   }
 };
 

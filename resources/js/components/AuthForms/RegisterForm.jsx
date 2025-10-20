@@ -60,7 +60,7 @@ const RegisterForm = ({ onSuccess }) => {
         required
       />
       
-      <label htmlFor="phone" className="register-label">Teléfono (opcional)</label>
+      <label htmlFor="phone" className="register-label">Teléfono</label>
       <input
         id="phone"
         name="phone"
@@ -69,6 +69,7 @@ const RegisterForm = ({ onSuccess }) => {
         value={form.phone}
         onChange={handleChange}
         className="register-input"
+        required
       />
       
       <label htmlFor="password" className="register-label">Contraseña</label>

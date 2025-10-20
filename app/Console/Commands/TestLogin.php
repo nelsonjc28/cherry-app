@@ -30,7 +30,7 @@ class TestLogin extends Command
         
         try {
             $response = Http::post('http://localhost:8000/api/login', [
-                'email' => 'admin@cherrycentral.com',
+                'identifier' => 'admin@cherrycentral.com',
                 'password' => 'Admin1234!'
             ]);
             

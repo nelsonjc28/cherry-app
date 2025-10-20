@@ -1,11 +1,11 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CherryButton from '../CherryButton/CherryButton';
 import './LoginForm.css';
 import useUserStore from '../../store/userStore';
 
 const LoginForm = ({ onSuccess }) => {
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [form, setForm] = useState({ identifier: '', password: '' });
   const { login, loading, error, clearError, getRedirectPath } = useUserStore();
   const navigate = useNavigate();
 
@@ -16,11 +16,11 @@ const LoginForm = ({ onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.email || !form.password) {
+    if (!form.identifier || !form.password) {
       return;
     }
     
-    const user = await login(form.email, form.password);
+    const user = await login(form.identifier, form.password);
     if (user) {
       // Redirigir según el rol del usuario
       const redirectPath = getRedirectPath();
@@ -32,15 +32,16 @@ const LoginForm = ({ onSuccess }) => {
 
   return (
     <form onSubmit={handleSubmit} className="login-form">
-      <label htmlFor="email" className="login-label">Correo Electrónico</label>
+      <label htmlFor="identifier" className="login-label">Email o Teléfono</label>
       <input
-        id="email"
-        name="email"
-        type="email"
-        autoComplete="email"
-        value={form.email}
+        id="identifier"
+        name="identifier"
+        type="text"
+        autoComplete="username"
+        value={form.identifier}
         onChange={handleChange}
         className="login-input"
+        placeholder="Ingresa tu Email o Teléfono"
         required
       />
       <label htmlFor="password" className="login-label">Contraseña</label>

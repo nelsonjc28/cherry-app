@@ -160,13 +160,21 @@ const BuscarPage = () => {
     }
   }, [products]);
 
-  // Cargar productos directamente desde API
+  // Cargar productos directamente desde API con filtros
   useEffect(() => {
     const loadProducts = async () => {
       setLoading(true);
       try {
-        console.log('🔍 BuscarPage: Cargando productos desde API...');
-        const allProducts = await getProductsWithRatings();
+        console.log('🔍 BuscarPage: Cargando productos desde API con filtros...');
+        
+        // Cargar TODOS los productos que coincidan con la búsqueda
+        // (sin límite para poder filtrar localmente después)
+        const result = await getProductsWithRatings('Cherry 2025 - 2026', {
+          limit: null,  // Cargar todos para búsqueda
+          random: false
+        });
+        
+        const allProducts = result.products || result || [];
         const productsWithOffers = await applyUserOffersToProducts(allProducts);
         
         // Aplicar búsqueda/filtros
