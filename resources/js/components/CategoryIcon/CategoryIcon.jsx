@@ -1,8 +1,8 @@
 import './CategoryIcon.css';
 
-const CategoryIcon = ({ name, icon }) => {
+const CategoryIcon = ({ name, icon, onClick }) => {
   return (
-    <div className="category-icon">
+    <div className="category-icon" onClick={onClick} style={onClick ? { cursor: 'pointer' } : {}}>
       <p className="category-name">{name}</p>
       <div className="icon-container">
         <img 
