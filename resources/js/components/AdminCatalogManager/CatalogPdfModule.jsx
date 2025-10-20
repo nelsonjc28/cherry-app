@@ -596,23 +596,21 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
           </div>
         )}
 
-        {/* Botón para crear grupo */}
-        {!showGroupForm && (
-          <div className="catalog-pdf-module__actions">
-            <button 
-              className="catalog-pdf-module__add-btn"
-              onClick={() => setShowGroupForm(true)}
-            >
-              + Crear Nuevo Grupo
-            </button>
-          </div>
-        )}
-
         {/* Lista de grupos */}
         <div className="catalog-pdf-module__content">
           <div className="catalog-pdf-module__groups-header">
-            <h4>Grupos de Imágenes ({imageGroups.length})</h4>
-            <p>Haz clic en un grupo para gestionar sus imágenes</p>
+            <div>
+              <h4>Grupos de Imágenes ({imageGroups.length})</h4>
+              <p>Haz clic en un grupo para gestionar sus imágenes</p>
+            </div>
+            {!showGroupForm && (
+              <button 
+                className="catalog-pdf-module__add-btn"
+                onClick={() => setShowGroupForm(true)}
+              >
+                + Crear Nuevo Grupo
+              </button>
+            )}
           </div>
 
           {groupsLoading ? (

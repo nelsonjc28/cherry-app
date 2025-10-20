@@ -61,6 +61,34 @@ const CatalogPdfPage = () => {
     }
   }, [catalogId]);
 
+  // Lazy loading: detectar scroll y cargar más imágenes automáticamente
+  useEffect(() => {
+    const handleScroll = () => {
+      // Si ya está cargando más o no hay más para cargar, no hacer nada
+      if (loadingMore || !hasMore) return;
+
+      // Detectar scroll en el documento
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight;
+      const clientHeight = window.innerHeight;
+      
+      // Calcular cuánto falta para llegar al final (threshold del 80%)
+      const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
+      
+      // Si el usuario ha hecho scroll más del 80%, cargar más imágenes
+      if (scrollPercentage > 0.8) {
+        console.log('🔄 Lazy loading triggered at', Math.round(scrollPercentage * 100) + '%');
+        handleLoadMore();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [hasMore, loadingMore, selectedCatalog, selectedImageGroup, currentPage]);
+
   const fetchCatalogAndImages = async () => {
     try {
       setLoading(true);
@@ -117,6 +145,9 @@ const CatalogPdfPage = () => {
       
       if (response.data.success) {
         const newImages = response.data.data.images || [];
+        const pagination = response.data.data.pagination;
+        
+        console.log('📄 Page loaded:', page, '| Images:', newImages.length, '| Total:', pagination.total, '| Has more:', pagination.has_more);
         
         if (page === 1) {
           setImages(newImages);
@@ -124,10 +155,10 @@ const CatalogPdfPage = () => {
           setImages(prev => [...prev, ...newImages]);
         }
         
-        setHasMore(response.data.data.pagination.current_page < response.data.data.pagination.last_page);
+        setHasMore(pagination.has_more);
         setCurrentPage(page);
         
-        // Resetear índice de imagen seleccionada
+        // Resetear índice de imagen seleccionada solo en la primera carga
         if (page === 1) {
           setPageIndex(0);
         }
@@ -173,6 +204,9 @@ const CatalogPdfPage = () => {
       
       if (response.data.success) {
         const newImages = response.data.data.images || [];
+        const pagination = response.data.data.pagination;
+        
+        console.log('📄 Page loaded:', page, '| Images:', newImages.length, '| Total:', pagination.total, '| Has more:', pagination.has_more);
         
         if (page === 1) {
           setImages(newImages);
@@ -180,10 +214,10 @@ const CatalogPdfPage = () => {
           setImages(prev => [...prev, ...newImages]);
         }
         
-        setHasMore(response.data.data.pagination.current_page < response.data.data.pagination.last_page);
+        setHasMore(pagination.has_more);
         setCurrentPage(page);
         
-        // Resetear índice de imagen seleccionada
+        // Resetear índice de imagen seleccionada solo en la primera carga
         if (page === 1) {
           setPageIndex(0);
         }
@@ -200,8 +234,15 @@ const CatalogPdfPage = () => {
   };
 
   const handleLoadMore = () => {
-    if (selectedCatalog && selectedImageGroup && hasMore && !loadingMore) {
-      fetchImageGroupImages(selectedCatalog.id, selectedImageGroup.id, currentPage + 1);
+    console.log('📥 handleLoadMore called | hasMore:', hasMore, '| loadingMore:', loadingMore, '| currentPage:', currentPage);
+    if (selectedCatalog && hasMore && !loadingMore) {
+      if (selectedImageGroup) {
+        console.log('➡️ Loading page', currentPage + 1, 'for group:', selectedImageGroup.name);
+        fetchImageGroupImages(selectedCatalog.id, selectedImageGroup.id, currentPage + 1);
+      } else {
+        console.log('➡️ Loading page', currentPage + 1, 'for catalog:', selectedCatalog.name);
+        fetchImages(selectedCatalog.id, currentPage + 1);
+      }
     }
   };
 
@@ -241,7 +282,7 @@ const CatalogPdfPage = () => {
       setCurrentView('images');
       
       // Cargar las imágenes del nuevo grupo
-      await fetchImageGroupImages(selectedCatalog.id, imageGroup.id, 1);
+      await fetchImageGroupImages(selectedCatalog.id, imageGroup.id);
     } catch (error) {
       console.error('Error changing image group:', error);
       setError('Error al cambiar de grupo de imágenes');
@@ -267,6 +308,8 @@ const CatalogPdfPage = () => {
   const observerRef = useRef(null);
   // Referencia para el timer de debounce del observer
   const observerTimerRef = useRef(null);
+  // Referencia al contenedor de imágenes (para detectar scroll y lazy loading)
+  const imagesContainerRef = useRef(null);
 
   // Navega a la página anterior
   const handlePrev = (e) => {
@@ -709,7 +752,7 @@ const CatalogPdfPage = () => {
                 </div>
 
                 {/* Scrollable images container */}
-                <div className="catalog-pdf__image-slider-wrapper">
+                <div className="catalog-pdf__image-slider-wrapper" ref={imagesContainerRef}>
                   {images.length > 0 ? (
                     images.map((image, index) => (
                       <div
@@ -728,6 +771,12 @@ const CatalogPdfPage = () => {
                   ) : (
                     <div className="catalog-pdf__empty">
                       <p>No hay imágenes en este grupo</p>
+                    </div>
+                  )}
+                  {/* Indicador de carga al final */}
+                  {loadingMore && (
+                    <div className="catalog-pdf__loading-more">
+                      <p>Cargando más imágenes...</p>
                     </div>
                   )}
                 </div>
