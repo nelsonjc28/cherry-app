@@ -273,12 +273,24 @@ class AdminCatalogController extends Controller
         try {
             $catalog = Catalog::findOrFail($id);
 
+            // Validar cantidad máxima de archivos
+            if ($request->hasFile('images')) {
+                $imagesCount = count($request->file('images'));
+                if ($imagesCount > 50) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Máximo 50 imágenes por carga. Intenta con menos archivos.'
+                    ], 422);
+                }
+            }
+
             $validator = Validator::make($request->all(), [
-                'images.*' => 'required|file|mimes:jpeg,png,jpg,gif,webp', // 10MB máximo
+                'images.*' => 'required|file|mimes:jpeg,png,jpg,gif,webp|max:10240', // 10MB máximo por imagen
                 'catalog_name' => 'nullable|string|max:255',
                 'image_group_id' => 'nullable|exists:catalog_image_groups,id'
             ], [
                 'images.*.mimes' => 'Las imágenes deben ser archivos válidos (JPEG, PNG, JPG, GIF, WebP)',
+                'images.*.max' => 'Cada imagen no debe superar 10MB',
                 'image_group_id.exists' => 'El grupo de imágenes especificado no existe'
             ]);
 
