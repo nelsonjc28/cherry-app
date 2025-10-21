@@ -171,7 +171,7 @@ const BuscarPage = () => {
         // (sin límite para poder filtrar localmente después)
         const result = await getProductsWithRatings('Cherry 2025 - 2026', {
           limit: null,  // Cargar todos para búsqueda
-          random: false
+          random: true  // Orden aleatorio
         });
         
         const allProducts = result.products || result || [];

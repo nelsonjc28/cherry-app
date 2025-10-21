@@ -30,7 +30,14 @@ const DestacadosOfertasPage = () => {
           product.discount && product.discount > 0
         );
         
-        setOffers(productsWithOffers);
+        // Mezclar productos aleatoriamente (Fisher-Yates shuffle)
+        const shuffled = [...productsWithOffers];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        
+        setOffers(shuffled);
       } catch (error) {
 
         setOffers([]);
