@@ -7,7 +7,8 @@ const ProductGrid = ({
   products,
   viewAllLink,
   viewAllText = 'Ver Más',
-  showFavoriteButton = false
+  showFavoriteButton = false,
+  variant = 'default'
 }) => {
   return (
     <div className="product-grid-container">
@@ -28,7 +29,7 @@ const ProductGrid = ({
       <div className="product-grid">
         {products.map((product) => (
           <div key={product.id} className="product-grid-item">
-            <ProductCard product={product} showFavoriteButton={showFavoriteButton} />
+            <ProductCard product={product} showFavoriteButton={showFavoriteButton} variant={variant} />
           </div>
         ))}
       </div>

@@ -8,7 +8,7 @@ import colorConverter from '../../services/colorConverter';
 import { useUserDiscounts } from '../../hooks/useUserDiscounts';
 import './ProductCard.css';
 
-const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true }) => {
+const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, variant = 'default' }) => {
 
   
   // Destructure product properties with proper fallbacks
@@ -157,6 +157,68 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true }) =
     }
   };
 
+  // Render bestseller variant
+  if (variant === 'bestseller') {
+    const handleCardClick = (e) => {
+      // No navegar si se hace clic en el botón de favoritos
+      if (e.target.closest('.favorite-button')) {
+        return;
+      }
+      // Navegar al detalle del producto
+      window.location.href = `/producto/${id}`;
+    };
+
+    return (
+      <div className="product-card product-card--bestseller">
+        {/* Product Image Container */}
+        <div className="product-image-container product-image-container--bestseller" onClick={handleCardClick}>
+          <img
+            src={getCurrentImage()}
+            alt={title}
+            className="catalog-product-image"
+            loading="lazy"
+          />
+
+          {/* Offer badge if product has discount */}
+          {hasOffer && (
+            <span className="offer-badge">
+              Oferta {discountPercentage}%
+            </span>
+          )}
+        </div>
+
+        {/* Product Info */}
+        <div className="product-info product-info--bestseller">
+          {/* Title */}
+          <h3 className="product-title product-title--bestseller">{title}</h3>
+
+          {/* Description */}
+          {description && (
+            <p className="product-description">{description}</p>
+          )}
+
+          {/* Rating and Price Row */}
+          <div className="product-rating product-rating--bestseller">
+            <StarRating 
+              rating={rating || 0} 
+              totalRatings={ratingCount || 0}
+              readonly={true} 
+            />
+
+            {/* Price */}
+            <div className="product-price-bestseller">
+              <span className="price-label">Desde:</span>
+              <div className="product-price-container--bestseller">
+                <span className="price-value">${(price && typeof price === 'number') ? price.toFixed(2) : '0.00'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render default variant
   return (
     <div className="product-card">
       {/* Product image container */}

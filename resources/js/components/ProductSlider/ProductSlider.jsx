@@ -18,7 +18,8 @@ const ProductSlider = ({
   slidesPerView = { desktop: 4, tablet: 2, mobile: 1.2 },
   showTitle = true,
   showFavoriteButton = false,
-  renderCard = null
+  renderCard = null,
+  variant = 'default'
 }) => {
   return (
     <div className="product-slider-container">
@@ -58,7 +59,7 @@ const ProductSlider = ({
             {renderCard ? (
               renderCard(product)
             ) : (
-              <ProductCard product={product} showFavoriteButton={showFavoriteButton} />
+              <ProductCard product={product} showFavoriteButton={showFavoriteButton} variant={variant} />
             )}
           </SwiperSlide>
         ))}
