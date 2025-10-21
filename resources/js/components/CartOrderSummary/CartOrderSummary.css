@@ -1,7 +1,7 @@
 .cart-order-summary {
   background: #fff;
   border-radius: 10px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
   padding: 18px 16px 18px 16px;
   width: 100%;
   max-width: 100%;
@@ -11,7 +11,7 @@
 }
 
 .cart-order-summary__section-title {
-  background: #f2f3f4;
+  background: #fff;
   font-weight: 600;
   color: var(--color-text);
   padding: 4px 5px 4px 8px;
@@ -19,10 +19,19 @@
   font-size: 20px;
 }
 
+.saved-cards-title {
+  margin-top: 10px;
+}
+
 .cart-order-summary__section-content {
   margin-bottom: 8px;
   padding: 2px 8px 2px 8px;
-  background: #fbfbfb;
+}
+
+.payment-method-content {
+  background: #f3f3f3;
+  border-radius: 4px;
+  border: 1px solid #e4e4e4;
 }
 
 .cart-order-summary__responsable-name {
@@ -44,6 +53,23 @@
 .cart-order-summary__divider {
   border-bottom: 1px solid #ececec;
   margin: 8px 0 8px 0;
+}
+
+.payment-method-section {
+  margin-left: -16px !important;
+  margin-right: -16px !important;
+  width: calc(100% + 32px);
+}
+
+.payment-method-section .cart-order-summary__section-title {
+  border-radius: 0;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.payment-method-section .cart-order-summary__section-content {
+  padding-left: 16px;
+  padding-right: 16px;
 }
 
 .cart-order-summary__total-row {
@@ -83,6 +109,7 @@
   cursor: pointer;
   transition: background 0.18s, color 0.18s;
 }
+
 .cart-order-summary__clear-btn:hover {
   background: #ececec;
 }
@@ -147,12 +174,32 @@
   margin-bottom: 16px;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 6px;
-  font-weight: 500;
-  color: #374151;
-  font-size: 0.875rem;
+.input-with-icon {
+  position: relative;
+}
+
+.input-icon {
+  position: absolute;
+  top: 12px;
+  font-size: 14px;
+  pointer-events: none;
+  z-index: 1;
+  filter: grayscale(100%);
+  opacity: 0.6;
+}
+
+.lock-icon {
+  right: 12px;
+}
+
+.question-icon {
+  right: 12px;
+  cursor: help;
+  pointer-events: auto;
+}
+
+.input-with-right-icon {
+  padding-right: 38px !important;
 }
 
 .form-group input,
@@ -165,6 +212,37 @@
   transition: border-color 0.2s ease;
   background: white;
   box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.form-group input::placeholder {
+  color: #8a8e93;
+  opacity: 1;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 5;
+  letter-spacing: normal;
+}
+
+/* Forzar estilos consistentes para campos de tarjeta */
+#cardNumber,
+#securityCode,
+#expirationDate,
+#cardholderName {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif !important;
+  font-weight: 400 !important;
+  letter-spacing: normal !important;
+}
+
+#cardNumber::placeholder,
+#securityCode::placeholder,
+#expirationDate::placeholder,
+#cardholderName::placeholder {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif !important;
+  font-weight: 400 !important;
+  letter-spacing: normal !important;
+  font-style: normal !important;
 }
 
 .form-group input:focus,
@@ -319,6 +397,24 @@
   padding: 20px 24px;
 }
 
+.modal-body input {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif !important;
+  font-weight: 400 !important;
+  letter-spacing: normal !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.modal-body input::placeholder {
+  color: #9ca3af;
+  opacity: 1;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif !important;
+  font-size: 0.875rem;
+  font-weight: 400 !important;
+  letter-spacing: normal !important;
+  font-style: normal !important;
+}
+
 .modal-footer {
   display: flex;
   gap: 12px;
@@ -340,12 +436,25 @@
 @media (max-width: 768px) {
   .form-row {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 0;
   }
-  
+
+  .form-row .form-group {
+    margin-bottom: 0;
+  }
+
+  .form-row .form-group:last-child {
+    margin-bottom: 20px;
+  }
+
   .form-group input,
   .form-group select {
-    font-size: 16px; /* Evitar zoom en iOS */
+    font-size: 16px;
+    /* Evitar zoom en iOS */
+  }
+
+  .form-group input {
+    margin-bottom: -5px;
   }
 
   .modal-overlay {
@@ -373,11 +482,11 @@
 
   .saved-cards-selector {
     flex-direction: column;
-    gap: 12px;
+    gap: 6px;
   }
 
   .add-card-btn {
     width: 100%;
     height: 44px;
   }
-} 
+}

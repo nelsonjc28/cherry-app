@@ -53,7 +53,7 @@ const CartOrderSummary = ({
         // Obtener configuración de MercadoPago del backend
         const configResponse = await api.get('/mercadopago/config');
         const publicKey = configResponse.data.public_key;
-        
+
         if (!publicKey) {
           throw new Error('No se pudo obtener la clave pública de MercadoPago');
         }
@@ -129,7 +129,7 @@ const CartOrderSummary = ({
       } else if (error.response?.status === 403) {
 
       }
-      
+
       setPaymentCards([]);
     } finally {
       setIsLoadingCards(false);
@@ -150,9 +150,9 @@ const CartOrderSummary = ({
     }
 
     // Formatear el número de tarjeta con espacios
-    const formattedNumber = card.full_number ? 
+    const formattedNumber = card.full_number ?
       card.full_number.replace(/(.{4})/g, '$1 ').trim() : '';
-    
+
     setCardData(prev => ({
       ...prev,
       cardNumber: formattedNumber,
@@ -175,11 +175,11 @@ const CartOrderSummary = ({
       // Usar mes y año directamente de los campos separados
       const month = cardDataToSave.expirationMonth;
       const year = '20' + cardDataToSave.expirationYear; // Convertir YY a YYYY
-      
+
       // Detectar marca de la tarjeta basado en el número
       const cardNumber = cardDataToSave.cardNumber.replace(/\s/g, '');
       let brand = 'visa'; // default
-      
+
       if (cardNumber.startsWith('4')) {
         brand = 'visa';
       } else if (cardNumber.startsWith('5') || (cardNumber.startsWith('2') && cardNumber.length >= 2 && cardNumber.substring(0, 2) >= '22' && cardNumber.substring(0, 2) <= '27')) {
@@ -189,7 +189,7 @@ const CartOrderSummary = ({
       } else if (cardNumber.startsWith('6011') || cardNumber.startsWith('65')) {
         brand = 'discover';
       }
-      
+
       const cardPayload = {
         cardholder_name: cardDataToSave.cardholderName,
         card_number: cardNumber,
@@ -208,7 +208,7 @@ const CartOrderSummary = ({
         // Recargar tarjetas
 
         await loadPaymentCards();
-        
+
         // Seleccionar la nueva tarjeta
         const newCard = response.data.card;
 
@@ -228,11 +228,11 @@ const CartOrderSummary = ({
     } catch (error) {
 
       const errorMessage = error.response?.data?.message || error.message || 'Error al guardar la tarjeta';
-      
+
       if (window.showToast) {
         window.showToast(errorMessage, 'error');
       }
-      
+
       return false;
     } finally {
       setIsSavingCard(false);
@@ -244,7 +244,7 @@ const CartOrderSummary = ({
       ...prev,
       [field]: value
     }));
-    
+
     if (modalErrors[field]) {
       setModalErrors(prev => ({
         ...prev,
@@ -260,8 +260,8 @@ const CartOrderSummary = ({
       newErrors.cardNumber = 'Número de tarjeta inválido';
     }
 
-    if (!modalCardData.expirationMonth || !/^\d{2}$/.test(modalCardData.expirationMonth) || 
-        parseInt(modalCardData.expirationMonth) < 1 || parseInt(modalCardData.expirationMonth) > 12) {
+    if (!modalCardData.expirationMonth || !/^\d{2}$/.test(modalCardData.expirationMonth) ||
+      parseInt(modalCardData.expirationMonth) < 1 || parseInt(modalCardData.expirationMonth) > 12) {
       newErrors.expirationMonth = 'Mes inválido (01-12)';
     }
 
@@ -319,7 +319,7 @@ const CartOrderSummary = ({
       ...prev,
       [field]: value
     }));
-    
+
     if (errors[field]) {
       setErrors(prev => ({
         ...prev,
@@ -372,17 +372,17 @@ const CartOrderSummary = ({
     try {
       // Formatear correctamente la fecha de expiración
       const [month, year] = cardData.expirationDate.split('/');
-      
+
       // Asegurar que el mes tenga formato MM (dos dígitos)
       const formattedMonth = month.padStart(2, '0');
       // Asegurar que el año tenga formato YYYY (cuatro dígitos)
       const formattedYear = year.length === 2 ? '20' + year : year;
-      
+
       // Primero obtener el payment method ID basado en el número de tarjeta
       const cardNumber = cardData.cardNumber.replace(/\s/g, '');
 
       let paymentMethodId;
-      
+
       // Detección manual del método de pago
       if (cardNumber.startsWith('4')) {
         paymentMethodId = 'visa';
@@ -394,7 +394,7 @@ const CartOrderSummary = ({
         paymentMethodId = 'visa'; // default
       }
 
-      
+
       // Crear el token de tarjeta con MercadoPago
       const cardToken = await window.mp.createCardToken({
         cardNumber: cardNumber,
@@ -410,7 +410,7 @@ const CartOrderSummary = ({
 
         // Mostrar error amigable con toast
         let errorMessage = 'Error al procesar la tarjeta';
-        
+
         if (error.code === '325') {
           errorMessage = 'Fecha de vencimiento inválida. Verifica el formato MM/YY';
         } else if (error.code === '324') {
@@ -422,96 +422,96 @@ const CartOrderSummary = ({
         } else if (error.message) {
           errorMessage = error.message;
         }
-        
+
         if (window.showToast) {
           window.showToast(errorMessage, 'error');
         }
-        
+
         setIsProcessingPayment(false);
         return;
       }
 
-    // Usar el payment_method_id que detectamos previamente
-    // Si el cardToken tiene payment_method_id, usarlo, sino usar el que detectamos
-    const finalPaymentMethodId = cardToken.payment_method_id || paymentMethodId;
-    
-    if (!finalPaymentMethodId) {
+      // Usar el payment_method_id que detectamos previamente
+      // Si el cardToken tiene payment_method_id, usarlo, sino usar el que detectamos
+      const finalPaymentMethodId = cardToken.payment_method_id || paymentMethodId;
 
-      if (window.showToast) {
-        window.showToast('No se pudo obtener el método de pago de la tarjeta', 'error');
-      }
-      
-      setIsProcessingPayment(false);
-      return;
-    }
+      if (!finalPaymentMethodId) {
 
-    const paymentData = {
-      token: cardToken.id,
-      payment_method_id: finalPaymentMethodId,
-      transaction_amount: parseFloat(total),
-      installments: 1, // Siempre 1 cuota
-      items: cartItems.map(item => {
-        const productId = item.id_articulo || item.product_id || item.id;
-        const parsedProductId = parseInt(productId, 10);
-        
-        const mappedItem = {
-          product_id: parsedProductId,
-          name: item.title || item.name,
-          quantity: parseInt(item.quantity, 10),
-          price: parseFloat(item.precio || item.price),
-          size: item.selectedSize || null,
-          color: item.selectedColor || null,
-          barcode: item.barcode || null
-        };
-        
-        // DEBUG: Log para ver qué datos se están enviando
-        return mappedItem;
-      }),
-      address_id: parseInt(selectedAddress.id, 10)
-    };
+        if (window.showToast) {
+          window.showToast('No se pudo obtener el método de pago de la tarjeta', 'error');
+        }
 
-    // ⚠️ SIN TRY-CATCH - Esto permitirá ver errores exactos del backend
-    const response = await api.post('/payment/process-integrated', paymentData);
-
-    if (response.data.success) {
-      if (window.showToast) {
-        window.showToast('¡Pago procesado exitosamente!', 'success');
+        setIsProcessingPayment(false);
+        return;
       }
 
-      if (onIntegratedPaymentSuccess) {
-        onIntegratedPaymentSuccess(response.data);
-      }
-    } else {
+      const paymentData = {
+        token: cardToken.id,
+        payment_method_id: finalPaymentMethodId,
+        transaction_amount: parseFloat(total),
+        installments: 1, // Siempre 1 cuota
+        items: cartItems.map(item => {
+          const productId = item.id_articulo || item.product_id || item.id;
+          const parsedProductId = parseInt(productId, 10);
 
-      if (window.showToast) {
-        window.showToast(response.data.message || 'Error al procesar el pago', 'error');
+          const mappedItem = {
+            product_id: parsedProductId,
+            name: item.title || item.name,
+            quantity: parseInt(item.quantity, 10),
+            price: parseFloat(item.precio || item.price),
+            size: item.selectedSize || null,
+            color: item.selectedColor || null,
+            barcode: item.barcode || null
+          };
+
+          // DEBUG: Log para ver qué datos se están enviando
+          return mappedItem;
+        }),
+        address_id: parseInt(selectedAddress.id, 10)
+      };
+
+      // ⚠️ SIN TRY-CATCH - Esto permitirá ver errores exactos del backend
+      const response = await api.post('/payment/process-integrated', paymentData);
+
+      if (response.data.success) {
+        if (window.showToast) {
+          window.showToast('¡Pago procesado exitosamente!', 'success');
+        }
+
+        if (onIntegratedPaymentSuccess) {
+          onIntegratedPaymentSuccess(response.data);
+        }
+      } else {
+
+        if (window.showToast) {
+          window.showToast(response.data.message || 'Error al procesar el pago', 'error');
+        }
+
+        if (onIntegratedPaymentError) {
+          onIntegratedPaymentError(response.data);
+        }
       }
-      
-      if (onIntegratedPaymentError) {
-        onIntegratedPaymentError(response.data);
-      }
-    }
 
       setIsProcessingPayment(false);
     } catch (error) {
 
       // Manejar diferentes tipos de errores
       let errorMessage = 'Error al procesar el pago';
-      
+
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       if (window.showToast) {
         window.showToast(errorMessage, 'error');
       }
-      
+
       if (onIntegratedPaymentError) {
         onIntegratedPaymentError(error);
       }
-      
+
       setIsProcessingPayment(false);
     }
   };
@@ -550,297 +550,295 @@ const CartOrderSummary = ({
   };
 
   return (
-  <aside className="cart-order-summary">
-    {selectedAddress && (
-      <>
-        <div className="cart-order-summary__section">
-          <div className="cart-order-summary__section-title">Dirección de entrega</div>
-          <div className="cart-order-summary__section-content">
-            <div className="cart-order-summary__address-name">
-              <strong>{selectedAddress.name}</strong>
-              {selectedAddress.is_default && (
-                <span className="cart-order-summary__default-badge">Predeterminada</span>
+    <aside className="cart-order-summary">
+      {selectedAddress && (
+        <>
+          <div className="cart-order-summary__section">
+            <div className="cart-order-summary__section-title">Dirección de entrega</div>
+            <div className="cart-order-summary__section-content">
+              <div className="cart-order-summary__address-name">
+                <strong>{selectedAddress.name}</strong>
+                {selectedAddress.is_default && (
+                  <span className="cart-order-summary__default-badge">Predeterminada</span>
+                )}
+              </div>
+              <div className="cart-order-summary__address-street">
+                {selectedAddress.street_address}
+              </div>
+              <div className="cart-order-summary__address-location">
+                {selectedAddress.city}
+                {selectedAddress.state && `, ${selectedAddress.state}`}
+                {selectedAddress.postal_code && ` CP: ${selectedAddress.postal_code}`}
+                {selectedAddress.country && `, ${selectedAddress.country}`}
+              </div>
+              {selectedAddress.additional_info && (
+                <div className="cart-order-summary__address-additional">
+                  <small>{selectedAddress.additional_info}</small>
+                </div>
               )}
             </div>
-            <div className="cart-order-summary__address-street">
-              {selectedAddress.street_address}
-            </div>
-            <div className="cart-order-summary__address-location">
-              {selectedAddress.city}
-              {selectedAddress.state && `, ${selectedAddress.state}`}
-              {selectedAddress.postal_code && ` CP: ${selectedAddress.postal_code}`}
-              {selectedAddress.country && `, ${selectedAddress.country}`}
-            </div>
-            {selectedAddress.additional_info && (
-              <div className="cart-order-summary__address-additional">
-                <small>{selectedAddress.additional_info}</small>
+          </div>
+          <div className="cart-order-summary__divider" />
+        </>
+      )}
+      <div className="cart-order-summary__section">
+        <div className="cart-order-summary__section-title">Monto del pedido</div>
+        <div className="cart-order-summary__section-content">
+          <div className="cart-order-summary__row">
+            <span>Cantidad de piezas</span>
+            <span>{pieces}</span>
+          </div>
+          <div className="cart-order-summary__row">
+            <span>Sub-Total</span>
+            <span>${subtotal}</span>
+          </div>
+          <div className="cart-order-summary__row">
+            <span>Descuento:</span>
+            <span>${discountTotal}</span>
+          </div>
+        </div>
+        <div className="cart-order-summary__total-row">
+          <span>Total:</span>
+          <span className="cart-order-summary__total-value">${total}</span>
+        </div>
+      </div>
+
+      {/* Formulario de tarjeta integrado */}
+      <div className="cart-order-summary__divider" />
+      <div className="cart-order-summary__section payment-method-section">
+        <div className="cart-order-summary__section-title">💳 Datos de la Tarjeta</div>
+        <div className="cart-order-summary__section-content payment-method-content">
+
+          {/* Selector de tarjetas guardadas con botón + */}
+          <div className="form-group">
+            <label htmlFor="savedCards" className="saved-cards-title">Tarjetas Guardadas</label>
+            {isLoadingCards ? (
+              <div className="loading-cards">
+                <span>Cargando tarjetas guardadas...</span>
+              </div>
+            ) : (
+              <div className="saved-cards-selector">
+                <select
+                  id="savedCards"
+                  key={`cards-${cardsVersion}`}
+                  value={selectedPaymentCard?.id || ''}
+                  onChange={(e) => {
+                    const cardId = e.target.value;
+                    const card = cardId ? paymentCards.find(c => c.id === parseInt(cardId)) : null;
+                    handleCardSelection(card);
+                  }}
+                >
+                  <option value="">
+                    {paymentCards.length > 0
+                      ? "Selecciona una tarjeta"
+                      : "No hay tarjetas guardadas - Ingresar nueva"
+                    }
+                  </option>
+                  {paymentCards.map(card => (
+                    <option key={card.id} value={card.id}>
+                      {card.brand_display_name} **** {card.last_four} - {card.cardholder_name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="add-card-btn"
+                  onClick={() => setShowAddCardModal(true)}
+                  title="Agregar nueva tarjeta"
+                >
+                  +
+                </button>
               </div>
             )}
           </div>
-        </div>
-        <div className="cart-order-summary__divider" />
-      </>
-    )}
-    <div className="cart-order-summary__section">
-      <div className="cart-order-summary__section-title">Monto del pedido</div>
-      <div className="cart-order-summary__section-content">
-        <div className="cart-order-summary__row">
-          <span>Cantidad de piezas</span>
-          <span>{pieces}</span>
-        </div>
-        <div className="cart-order-summary__row">
-          <span>Sub-Total</span>
-          <span>${subtotal}</span>
-        </div>
-        <div className="cart-order-summary__row">
-          <span>Descuento:</span>
-          <span>${discountTotal}</span>
-        </div>
-      </div>
-      <div className="cart-order-summary__total-row">
-        <span>Total:</span>
-        <span className="cart-order-summary__total-value">${total}</span>
-      </div>
-    </div>
-    
-    {/* Formulario de tarjeta integrado */}
-    <div className="cart-order-summary__divider" />
-    <div className="cart-order-summary__section">
-      <div className="cart-order-summary__section-title">💳 Datos de la Tarjeta</div>
-      <div className="cart-order-summary__section-content">
-        
-        {/* Selector de tarjetas guardadas con botón + */}
-        <div className="form-group">
-          <label htmlFor="savedCards">Tarjetas Guardadas</label>
-          {isLoadingCards ? (
-            <div className="loading-cards">
-              <span>Cargando tarjetas guardadas...</span>
+
+          {/* Campos del formulario */}
+          <div className="form-group input-with-icon">
+            <input
+              type="text"
+              id="cardNumber"
+              value={cardData.cardNumber}
+              onChange={(e) => handleInputChange('cardNumber', formatCardNumber(e.target.value))}
+              placeholder="Número de Tarjeta"
+              maxLength="19"
+              className="input-with-right-icon"
+            />
+            <span className="input-icon lock-icon">🔒</span>
+            {errors.cardNumber && <span className="error-message">{errors.cardNumber}</span>}
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <input
+                type="text"
+                id="expirationDate"
+                value={cardData.expirationDate}
+                onChange={(e) => handleInputChange('expirationDate', formatExpirationDate(e.target.value))}
+                placeholder="Fecha de vencimiento (MM/YY)"
+                maxLength="5"
+              />
+              {errors.expirationDate && <span className="error-message">{errors.expirationDate}</span>}
             </div>
-          ) : (
-            <div className="saved-cards-selector">
-            <select
-              id="savedCards"
-              key={`cards-${cardsVersion}`}
-              value={selectedPaymentCard?.id || ''}
-              onChange={(e) => {
-                const cardId = e.target.value;
-                const card = cardId ? paymentCards.find(c => c.id === parseInt(cardId)) : null;
-                handleCardSelection(card);
-              }}
-            >
-                <option value="">
-                  {paymentCards.length > 0 
-                    ? "Seleccionar tarjeta guardada o ingresar nueva" 
-                    : "No hay tarjetas guardadas - Ingresar nueva"
-                  }
-                </option>
-              {paymentCards.map(card => (
-                <option key={card.id} value={card.id}>
-                  {card.brand_display_name} **** {card.last_four} - {card.cardholder_name}
-                </option>
-              ))}
-              </select>
+
+            <div className="form-group">
+              <input
+                type="text"
+                id="securityCode"
+                value={cardData.securityCode}
+                onChange={(e) => handleInputChange('securityCode', e.target.value.replace(/\D/g, '').substring(0, 4))}
+                placeholder="Código de seguridad"
+                maxLength="4"
+              />
+              {errors.securityCode && <span className="error-message">{errors.securityCode}</span>}
+            </div>
+          </div>
+
+          <div className="form-group">
+            <input
+              type="text"
+              id="cardholderName"
+              value={cardData.cardholderName}
+              onChange={(e) => handleInputChange('cardholderName', e.target.value.toUpperCase())}
+              placeholder="Nombre del titular"
+            />
+            {errors.cardholderName && <span className="error-message">{errors.cardholderName}</span>}
+          </div>
+
+          {/* Campo oculto para cuotas (siempre 1) */}
+          <input type="hidden" name="installments" value="1" />
+
+          {errors.address && <div className="error-message">{errors.address}</div>}
+        </div>
+      </div>
+
+      {/* Modal para agregar nueva tarjeta */}
+      {showAddCardModal && (
+        <div className="modal-overlay" onClick={handleCloseModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>💳 Agregar Nueva Tarjeta</h3>
               <button
-                type="button"
-                className="add-card-btn"
-                onClick={() => setShowAddCardModal(true)}
-                title="Agregar nueva tarjeta"
+                className="modal-close-btn"
+                onClick={handleCloseModal}
               >
-                +
+                ×
               </button>
             </div>
-          )}
-        </div>
 
-        {/* Campos del formulario */}
-        <div className="form-group">
-          <label htmlFor="cardNumber">Número de Tarjeta</label>
-          <input
-            type="text"
-            id="cardNumber"
-            value={cardData.cardNumber}
-            onChange={(e) => handleInputChange('cardNumber', formatCardNumber(e.target.value))}
-            placeholder="1234 5678 9012 3456"
-            maxLength="19"
-          />
-          {errors.cardNumber && <span className="error-message">{errors.cardNumber}</span>}
-        </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label htmlFor="modalCardNumber">Número de Tarjeta</label>
+                <input
+                  type="text"
+                  id="modalCardNumber"
+                  value={modalCardData.cardNumber}
+                  onChange={(e) => handleModalInputChange('cardNumber', formatCardNumber(e.target.value))}
+                  placeholder="1234 5678 9012 3456"
+                  maxLength="19"
+                />
+                {modalErrors.cardNumber && <span className="error-message">{modalErrors.cardNumber}</span>}
+              </div>
 
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="expirationDate">Vencimiento</label>
-            <input
-              type="text"
-              id="expirationDate"
-              value={cardData.expirationDate}
-              onChange={(e) => handleInputChange('expirationDate', formatExpirationDate(e.target.value))}
-              placeholder="MM/YY"
-              maxLength="5"
-            />
-            {errors.expirationDate && <span className="error-message">{errors.expirationDate}</span>}
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="modalExpirationMonth">Mes</label>
+                  <input
+                    type="text"
+                    id="modalExpirationMonth"
+                    value={modalCardData.expirationMonth}
+                    onChange={(e) => handleModalInputChange('expirationMonth', formatExpirationMonth(e.target.value))}
+                    placeholder="MM"
+                    maxLength="2"
+                  />
+                  {modalErrors.expirationMonth && <span className="error-message">{modalErrors.expirationMonth}</span>}
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="modalExpirationYear">Año</label>
+                  <input
+                    type="text"
+                    id="modalExpirationYear"
+                    value={modalCardData.expirationYear}
+                    onChange={(e) => handleModalInputChange('expirationYear', formatExpirationYear(e.target.value))}
+                    placeholder="YY"
+                    maxLength="2"
+                  />
+                  {modalErrors.expirationYear && <span className="error-message">{modalErrors.expirationYear}</span>}
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="modalSecurityCode">CVV</label>
+                  <input
+                    type="text"
+                    id="modalSecurityCode"
+                    value={modalCardData.securityCode}
+                    onChange={(e) => handleModalInputChange('securityCode', e.target.value.replace(/\D/g, '').substring(0, 4))}
+                    placeholder="123"
+                    maxLength="4"
+                  />
+                  {modalErrors.securityCode && <span className="error-message">{modalErrors.securityCode}</span>}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="modalCardholderName">Nombre del Titular</label>
+                <input
+                  type="text"
+                  id="modalCardholderName"
+                  value={modalCardData.cardholderName}
+                  onChange={(e) => handleModalInputChange('cardholderName', e.target.value.toUpperCase())}
+                  placeholder="JUAN PÉREZ"
+                />
+                {modalErrors.cardholderName && <span className="error-message">{modalErrors.cardholderName}</span>}
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <CustomButton
+                variant="outlined"
+                size="small"
+                onClick={handleCloseModal}
+                className="modal-cancel-btn"
+              >
+                Cancelar
+              </CustomButton>
+              <CustomButton
+                variant="filled"
+                size="small"
+                onClick={handleModalSave}
+                disabled={isSavingCard}
+                className="modal-save-btn"
+              >
+                {isSavingCard ? 'Guardando...' : 'Guardar Tarjeta'}
+              </CustomButton>
+            </div>
           </div>
-          
-          <div className="form-group">
-            <label htmlFor="securityCode">CVV</label>
-            <input
-              type="text"
-              id="securityCode"
-              value={cardData.securityCode}
-              onChange={(e) => handleInputChange('securityCode', e.target.value.replace(/\D/g, '').substring(0, 4))}
-              placeholder="123"
-              maxLength="4"
-            />
-            {errors.securityCode && <span className="error-message">{errors.securityCode}</span>}
-          </div>
         </div>
+      )}
 
-        <div className="form-group">
-          <label htmlFor="cardholderName">Nombre del Titular</label>
-          <input
-            type="text"
-            id="cardholderName"
-            value={cardData.cardholderName}
-            onChange={(e) => handleInputChange('cardholderName', e.target.value.toUpperCase())}
-            placeholder="JUAN PÉREZ"
-          />
-          {errors.cardholderName && <span className="error-message">{errors.cardholderName}</span>}
-        </div>
-
-        {/* Campo oculto para cuotas (siempre 1) */}
-        <input type="hidden" name="installments" value="1" />
-
-        {errors.address && <div className="error-message">{errors.address}</div>}
+      <div className="cart-order-summary__divider" />
+      <div className="cart-order-summary__actions">
+        <CustomButton
+          variant="outlined"
+          size="small"
+          onClick={processIntegratedPayment}
+          disabled={isProcessingPayment}
+          iconLeft={<img className="cart-order-summary__generate-icon" src={getIconPath('Handshake.svg')} alt="Handshake" />}
+          className="cart-order-summary__summary-btn"
+        >
+          {isProcessingPayment ? 'Procesando pago...' : 'Generar pedido'}
+        </CustomButton>
+        <CustomButton
+          variant="outlined"
+          size="small"
+          onClick={onClearCart}
+          className="cart-order-summary__summary-btn cart-order-summary__empty-btn"
+        >
+          Vaciar carrito
+        </CustomButton>
       </div>
-    </div>
-
-    {/* Modal para agregar nueva tarjeta */}
-    {showAddCardModal && (
-      <div className="modal-overlay" onClick={handleCloseModal}>
-        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-          <div className="modal-header">
-            <h3>💳 Agregar Nueva Tarjeta</h3>
-            <button 
-              className="modal-close-btn"
-              onClick={handleCloseModal}
-            >
-              ×
-            </button>
-          </div>
-          
-          <div className="modal-body">
-            <div className="form-group">
-              <label htmlFor="modalCardNumber">Número de Tarjeta</label>
-              <input
-                type="text"
-                id="modalCardNumber"
-                value={modalCardData.cardNumber}
-                onChange={(e) => handleModalInputChange('cardNumber', formatCardNumber(e.target.value))}
-                placeholder="1234 5678 9012 3456"
-                maxLength="19"
-              />
-              {modalErrors.cardNumber && <span className="error-message">{modalErrors.cardNumber}</span>}
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="modalExpirationMonth">Mes</label>
-                <input
-                  type="text"
-                  id="modalExpirationMonth"
-                  value={modalCardData.expirationMonth}
-                  onChange={(e) => handleModalInputChange('expirationMonth', formatExpirationMonth(e.target.value))}
-                  placeholder="MM"
-                  maxLength="2"
-                />
-                {modalErrors.expirationMonth && <span className="error-message">{modalErrors.expirationMonth}</span>}
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="modalExpirationYear">Año</label>
-                <input
-                  type="text"
-                  id="modalExpirationYear"
-                  value={modalCardData.expirationYear}
-                  onChange={(e) => handleModalInputChange('expirationYear', formatExpirationYear(e.target.value))}
-                  placeholder="YY"
-                  maxLength="2"
-                />
-                {modalErrors.expirationYear && <span className="error-message">{modalErrors.expirationYear}</span>}
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="modalSecurityCode">CVV</label>
-                <input
-                  type="text"
-                  id="modalSecurityCode"
-                  value={modalCardData.securityCode}
-                  onChange={(e) => handleModalInputChange('securityCode', e.target.value.replace(/\D/g, '').substring(0, 4))}
-                  placeholder="123"
-                  maxLength="4"
-                />
-                {modalErrors.securityCode && <span className="error-message">{modalErrors.securityCode}</span>}
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="modalCardholderName">Nombre del Titular</label>
-              <input
-                type="text"
-                id="modalCardholderName"
-                value={modalCardData.cardholderName}
-                onChange={(e) => handleModalInputChange('cardholderName', e.target.value.toUpperCase())}
-                placeholder="JUAN PÉREZ"
-              />
-              {modalErrors.cardholderName && <span className="error-message">{modalErrors.cardholderName}</span>}
-            </div>
-          </div>
-
-          <div className="modal-footer">
-            <CustomButton
-              variant="outlined"
-              size="small"
-              onClick={handleCloseModal}
-              className="modal-cancel-btn"
-            >
-              Cancelar
-            </CustomButton>
-            <CustomButton
-              variant="filled"
-              size="small"
-              onClick={handleModalSave}
-              disabled={isSavingCard}
-              className="modal-save-btn"
-            >
-              {isSavingCard ? 'Guardando...' : 'Guardar Tarjeta'}
-            </CustomButton>
-          </div>
-        </div>
-      </div>
-    )}
-    
-    <div className="cart-order-summary__divider" />
-    <div className="cart-order-summary__actions">
-      <CustomButton
-        variant="outlined"
-        size="small"
-        onClick={processIntegratedPayment}
-        disabled={isProcessingPayment}
-        iconLeft={<img className="cart-order-summary__generate-icon" src={getIconPath('Handshake.svg')} alt="Handshake" />}
-        className="cart-order-summary__summary-btn"
-      >
-        {isProcessingPayment ? 'Procesando pago...' : 'Generar pedido'}
-      </CustomButton>
-      <CustomButton
-        variant="outlined"
-        size="small"
-        onClick={onClearCart}
-        className="cart-order-summary__summary-btn cart-order-summary__empty-btn"
-      >
-        Vaciar carrito
-      </CustomButton>
-    </div>
-  </aside>
-);
+    </aside>
+  );
 };
 
 CartOrderSummary.propTypes = {
