@@ -42,14 +42,14 @@ const CustomerReviews = () => {
         if (data.success && data.reviews.length > 0) {
           setReviews(data.reviews);
         } else {
-          // Si no hay reseñas aprobadas, usar fallback
-          setReviews(fallbackReviews);
+          // Si no hay reseñas aprobadas, dejar el array vacío
+          setReviews([]);
         }
       } catch (err) {
         console.error('Error fetching approved reviews:', err);
         setError(err.message);
-        // En caso de error, usar reseñas de fallback
-        setReviews(fallbackReviews);
+        // En caso de error, no mostrar reseñas
+        setReviews([]);
       } finally {
         setLoading(false);
       }
@@ -72,6 +72,11 @@ const CustomerReviews = () => {
         </div>
       </section>
     );
+  }
+
+  // Si no hay reseñas aprobadas, no mostrar la sección
+  if (reviews.length === 0) {
+    return null;
   }
 
   return (

@@ -101,11 +101,6 @@ const CategorySection = () => {
         </div>
         
         <div className="category-description">
-          <p>
-            En nuestra tienda, encontrarás una amplia variedad de ropa, accesorios y calzado.
-            Cada pieza está seleccionada para realzar tu estilo personal.
-          </p>
-          
           <Link to="/categorias" className="view-more-link">
             Ver Más 
             <img 

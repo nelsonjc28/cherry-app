@@ -190,9 +190,6 @@ const FeaturedCategories = () => {
           <h2 className="featured-categories__title">
             Descubre nuestros productos más vendidos que realzan tu estilo y personalidad.
           </h2>
-          <p className="featured-categories__subtitle">
-            Explora estas 3 categorías seleccionadas especialmente para ti
-          </p>
         </div>
 
         {/* Categories Grid */}

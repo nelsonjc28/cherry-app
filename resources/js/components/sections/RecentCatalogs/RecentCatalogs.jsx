@@ -30,12 +30,11 @@ const RecentCatalogs = () => {
       <div className="container">
         {/* Section header */}
         <header className="section-header">
-          <span className="section-tag">Más Vendidos</span>
           <h2 id="recent-catalogs-heading" className="section-title">Descubre nuestros catálogos más recientes</h2>
-          <p className="section-description">
+          {/* <p className="section-description">
             En nuestra tienda, siempre encontrarás lo último en moda. Te presentamos una selección exclusiva de productos que marcan
             tendencia. ¡No te quedes sin tu favorito!
-          </p>
+          </p> */}
         </header>
 
         {/* Catalogs grid */}

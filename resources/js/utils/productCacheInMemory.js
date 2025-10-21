@@ -140,9 +140,35 @@ class ProductCacheManager {
 
   /**
    * Filtra solo productos nuevos
+   * Un producto es considerado nuevo si alguno de sus detalles
+   * tiene una fechaMovimiento menor a 60 días desde hoy
    */
   filterOnlyNew(products) {
-    return products.filter(p => p.opc_nuevo === 'S');
+    const now = new Date();
+    const sixtyDaysAgo = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000));
+    
+    return products.filter(p => {
+      // Si no tiene detalles, verificar el campo tradicional
+      if (!p.detalles || !Array.isArray(p.detalles) || p.detalles.length === 0) {
+        return p.opc_nuevo === 'S';
+      }
+      
+      // Revisar cada detalle del producto
+      return p.detalles.some(detalle => {
+        if (!detalle.fechaMovimiento) return false;
+        
+        try {
+          // Parsear la fecha (formato: "YYYY-MM-DD")
+          const [year, month, day] = detalle.fechaMovimiento.split('-').map(Number);
+          const fechaMovimiento = new Date(year, month - 1, day);
+          
+          // Si la fecha es válida y es menor a 60 días, el producto es nuevo
+          return !isNaN(fechaMovimiento.getTime()) && fechaMovimiento >= sixtyDaysAgo;
+        } catch (error) {
+          return false;
+        }
+      });
+    });
   }
 
   /**

@@ -80,6 +80,36 @@ const CATALOG_MAPPING = {
   'Cherry 2023 - 2024': { season: '2023-2024', active: false }
 };
 
+/**
+ * Verifica si un producto es nuevo basándose en las fechas de movimiento de sus detalles
+ * Un producto es nuevo si algún detalle tiene fechaMovimiento menor a 60 días
+ */
+const isProductNew = (apiProduct) => {
+  // Si no tiene detalles, usar el campo tradicional
+  if (!apiProduct.detalles || !Array.isArray(apiProduct.detalles) || apiProduct.detalles.length === 0) {
+    return apiProduct.opc_nuevo === 'S' || apiProduct.is_new === true;
+  }
+  
+  const now = new Date();
+  const sixtyDaysAgo = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000));
+  
+  // Revisar cada detalle del producto
+  return apiProduct.detalles.some(detalle => {
+    if (!detalle.fechaMovimiento) return false;
+    
+    try {
+      // Parsear la fecha (formato: "YYYY-MM-DD")
+      const [year, month, day] = detalle.fechaMovimiento.split('-').map(Number);
+      const fechaMovimiento = new Date(year, month - 1, day);
+      
+      // Si la fecha es válida y es menor a 60 días, el producto es nuevo
+      return !isNaN(fechaMovimiento.getTime()) && fechaMovimiento >= sixtyDaysAgo;
+    } catch (error) {
+      return false;
+    }
+  });
+};
+
 // Función para obtener todos los productos
 export const getAllProducts = async (catalog = 'Cherry 2025 - 2026') => {
   try {
@@ -378,7 +408,7 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
     sizes: sizes,
     stock: apiProduct.inventario || apiProduct.stock || 0,
     isActive: apiProduct.activo === 1 || apiProduct.active === true,
-    isNew: apiProduct.opc_nuevo === 'S' || apiProduct.is_new === true,
+    isNew: isProductNew(apiProduct),
     isPromo: apiProduct.opc_promo === 'S' || apiProduct.is_promo === true,
     codigo: id,
     barcode: apiProduct.ean || apiProduct.sku || apiProduct.codigo_barras || id, // Código de barras
