@@ -271,8 +271,10 @@
 .error-message {
   color: #dc2626;
   font-size: 0.75rem;
-  margin-top: 4px;
+  margin-top: 0;
+  margin-bottom: -1px;
   display: block;
+  padding: 0;
 }
 
 /* Loading Cards Styles */

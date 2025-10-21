@@ -719,7 +719,10 @@ const CartOrderSummary = ({
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>💳 Agregar Nueva Tarjeta</h3>
+              <div className="section-title-flex">
+                <span className="cart-order-summary__card-icon">💳</span>
+                <h3>Agregar Nueva Tarjeta</h3>
+              </div>
               <button
                 className="modal-close-btn"
                 onClick={handleCloseModal}
@@ -730,13 +733,12 @@ const CartOrderSummary = ({
 
             <div className="modal-body">
               <div className="form-group">
-                <label htmlFor="modalCardNumber">Número de Tarjeta</label>
                 <input
                   type="text"
                   id="modalCardNumber"
                   value={modalCardData.cardNumber}
                   onChange={(e) => handleModalInputChange('cardNumber', formatCardNumber(e.target.value))}
-                  placeholder="1234 5678 9012 3456"
+                  placeholder="Número de Tarjeta"
                   maxLength="19"
                 />
                 {modalErrors.cardNumber && <span className="error-message">{modalErrors.cardNumber}</span>}
@@ -744,39 +746,36 @@ const CartOrderSummary = ({
 
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="modalExpirationMonth">Mes</label>
                   <input
                     type="text"
                     id="modalExpirationMonth"
                     value={modalCardData.expirationMonth}
                     onChange={(e) => handleModalInputChange('expirationMonth', formatExpirationMonth(e.target.value))}
-                    placeholder="MM"
+                    placeholder="Mes (MM)"
                     maxLength="2"
                   />
                   {modalErrors.expirationMonth && <span className="error-message">{modalErrors.expirationMonth}</span>}
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="modalExpirationYear">Año</label>
                   <input
                     type="text"
                     id="modalExpirationYear"
                     value={modalCardData.expirationYear}
                     onChange={(e) => handleModalInputChange('expirationYear', formatExpirationYear(e.target.value))}
-                    placeholder="YY"
+                    placeholder="Año (YY)"
                     maxLength="2"
                   />
                   {modalErrors.expirationYear && <span className="error-message">{modalErrors.expirationYear}</span>}
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="modalSecurityCode">CVV</label>
                   <input
                     type="text"
                     id="modalSecurityCode"
                     value={modalCardData.securityCode}
                     onChange={(e) => handleModalInputChange('securityCode', e.target.value.replace(/\D/g, '').substring(0, 4))}
-                    placeholder="123"
+                    placeholder="Código de seguridad"
                     maxLength="4"
                   />
                   {modalErrors.securityCode && <span className="error-message">{modalErrors.securityCode}</span>}
@@ -784,13 +783,12 @@ const CartOrderSummary = ({
               </div>
 
               <div className="form-group">
-                <label htmlFor="modalCardholderName">Nombre del Titular</label>
                 <input
                   type="text"
                   id="modalCardholderName"
                   value={modalCardData.cardholderName}
                   onChange={(e) => handleModalInputChange('cardholderName', e.target.value.toUpperCase())}
-                  placeholder="JUAN PÉREZ"
+                  placeholder="Nombre del titular"
                 />
                 {modalErrors.cardholderName && <span className="error-message">{modalErrors.cardholderName}</span>}
               </div>
