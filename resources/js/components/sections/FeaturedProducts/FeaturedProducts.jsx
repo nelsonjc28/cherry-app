@@ -131,6 +131,7 @@ const FeaturedProducts = ({
             showTitle={false}
             showViewAll={false}
             showFavoriteButton={false}
+            variant="bestseller"
           />
         </div>
         
@@ -143,6 +144,7 @@ const FeaturedProducts = ({
             showViewAll={false}
             slidesPerView={{ desktop: 4, tablet: 2, mobile: 1.2 }}
             showFavoriteButton={false}
+            variant="bestseller"
           />
         </div>
       </div>
