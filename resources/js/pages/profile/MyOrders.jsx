@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import './ProfileSection.css';
 import './MyOrders.css';
 import CherryButton from '../../components/CherryButton/CherryButton';
-import Pagination from '../../components/Pagination/Pagination';
 import OrderDetailModal from '../../components/OrderDetailModal/OrderDetailModal';
 import { orderService } from '../../services/api';
 import api from '../../config/axios';
@@ -253,13 +252,29 @@ const MyOrders = () => {
           )}
         </div>
 
-        <div className="my-orders__pagination">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
-        </div>
+        {totalPages > 1 && (
+          <div className="my-orders__pagination">
+            <div className="pagination-controls">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="pagination-button"
+              >
+                Anterior
+              </button>
+              <span className="pagination-info">
+                Página {currentPage} de {totalPages}
+              </span>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="pagination-button"
+              >
+                Siguiente
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal de detalle de orden */}

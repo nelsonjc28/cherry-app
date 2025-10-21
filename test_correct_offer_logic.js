@@ -34,3 +34,8 @@ testCorrectOfferLogic(9, 3, 1); // 9 productos: paga 6, 3 gratis ✅
 
 
 
+
+
+
+
+

@@ -15,7 +15,6 @@ const ClientManager = () => {
     middle_name: '',
     email: '',
     phone: '',
-    username: '',
     password: '',
     role_id: '2' // Default to client role (ID: 2)
   });
@@ -50,19 +49,10 @@ const ClientManager = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => {
-      const newData = {
-        ...prev,
-        [name]: value
-      };
-      
-      // Si se cambia el teléfono, actualizar automáticamente el username
-      if (name === 'phone') {
-        newData.username = value;
-      }
-      
-      return newData;
-    });
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const resetForm = () => {
@@ -72,7 +62,6 @@ const ClientManager = () => {
       middle_name: '',
       email: '',
       phone: '',
-      username: '',
       password: '',
       role_id: '2' // Default to client role (ID: 2)
     });
@@ -134,7 +123,6 @@ const ClientManager = () => {
       middle_name: client.middle_name,
       email: client.email,
       phone: client.phone || '',
-      username: client.username || '',
       password: '',
       role_id: client.role_id
     });
@@ -255,38 +243,30 @@ const ClientManager = () => {
               
               <div className="client-manager__form-row">
                 <div className="client-manager__form-group">
-                  <label htmlFor="email">Email</label>
+                  <label htmlFor="email">Email *</label>
                   <input
                     type="email"
                     id="email"
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
+                    required
                   />
                 </div>
                 <div className="client-manager__form-group">
                   <label htmlFor="phone">Teléfono *</label>
                   <input
-                    type="text"
+                    type="tel"
                     id="phone"
                     name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
                     required
+                    pattern="[0-9]{10}"
+                    maxLength="10"
+                    onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')}
                   />
                 </div>
-              </div>
-              
-              <div className="client-manager__form-group">
-                <label htmlFor="username">Nombre de Usuario *</label>
-                <input
-                  type="text"
-                  id="username"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleInputChange}
-                  required
-                />
               </div>
               
               <div className="client-manager__form-row">

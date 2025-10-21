@@ -43,13 +43,13 @@ const useUserStore = create((set, get) => ({
     return user.role?.name === 'admin' ? '/admin' : '/';
   },
   
-  login: async (username, password) => {
+  login: async (identifier, password) => {
     set({ loading: true, error: null });
     try {
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ identifier, password })
       });
       
       const data = await res.json();;
@@ -57,20 +57,30 @@ const useUserStore = create((set, get) => ({
       if (!res.ok) {
         let errorMessage = 'Error al iniciar sesión.';
         if (data.errors) {
-          // Mostrar todos los errores concatenados
-          const allErrors = [];
+          // Mostrar cada error individualmente con toast
           Object.keys(data.errors).forEach(key => {
             const fieldErrors = data.errors[key];
             if (Array.isArray(fieldErrors)) {
-              allErrors.push(...fieldErrors);
+              fieldErrors.forEach(error => {
+                if (window.showToast) {
+                  window.showToast(error, 'error', 4000);
+                }
+              });
             } else {
-              allErrors.push(fieldErrors);
+              if (window.showToast) {
+                window.showToast(fieldErrors, 'error', 4000);
+              }
             }
           });
-          errorMessage = allErrors.join('. ');
+          // También guardar el primer error en el estado
+          const firstError = Object.values(data.errors)[0];
+          errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
         } else if (data.error) {
           // Usar el mensaje exacto del backend
           errorMessage = data.error;
+          if (window.showToast) {
+            window.showToast(errorMessage, 'error', 4000);
+          }
         }
         set({ error: errorMessage, loading: false });
         return null;
@@ -128,19 +138,29 @@ const useUserStore = create((set, get) => ({
       if (!res.ok) {
         let errorMessage = 'Error en el registro.';
         if (data.errors) {
-          // Mostrar todos los errores concatenados
-          const allErrors = [];
+          // Mostrar cada error individualmente con toast
           Object.keys(data.errors).forEach(key => {
             const fieldErrors = data.errors[key];
             if (Array.isArray(fieldErrors)) {
-              allErrors.push(...fieldErrors);
+              fieldErrors.forEach(error => {
+                if (window.showToast) {
+                  window.showToast(error, 'error', 4000);
+                }
+              });
             } else {
-              allErrors.push(fieldErrors);
+              if (window.showToast) {
+                window.showToast(fieldErrors, 'error', 4000);
+              }
             }
           });
-          errorMessage = allErrors.join('. ');
+          // También guardar el primer error en el estado
+          const firstError = Object.values(data.errors)[0];
+          errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
         } else if (data.error) {
           errorMessage = data.error;
+          if (window.showToast) {
+            window.showToast(errorMessage, 'error', 4000);
+          }
         }
         set({ error: errorMessage, loading: false });
         return null;

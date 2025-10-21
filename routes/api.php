@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\TermsConditionsController;
 use App\Http\Controllers\Api\UserDiscountController;
 
 Route::post('/register', [AuthController::class, 'register']);
+Route::post('/complete-profile', [AuthController::class, 'completeProfile'])->middleware('auth:api');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api');
 

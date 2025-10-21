@@ -46,10 +46,13 @@ class ProfileController extends Controller
         $validator = Validator::make($request->all(), [
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'phone' => 'nullable|string|max:20',
+            'phone' => 'nullable|string|size:10|regex:/^[0-9]{10}$/',
             'birth_day' => 'nullable|integer|min:1|max:31',
             'birth_month' => 'nullable|string|in:Enero,Febrero,Marzo,Abril,Mayo,Junio,Julio,Agosto,Septiembre,Octubre,Noviembre,Diciembre',
             'birth_year' => 'nullable|integer|min:1900|max:' . (date('Y') - 18),
+        ], [
+            'phone.size' => 'El teléfono debe tener exactamente 10 dígitos.',
+            'phone.regex' => 'El teléfono debe contener solo números.',
         ]);
 
         if ($validator->fails()) {

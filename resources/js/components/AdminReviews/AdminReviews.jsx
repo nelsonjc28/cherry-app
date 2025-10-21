@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import StarRating from '../StarRating/StarRating';
 import CherryButton from '../CherryButton/CherryButton';
 import api from '../../config/axios';
+import Swal from 'sweetalert2';
 import './AdminReviews.css';
 
 const AdminReviews = () => {
@@ -95,7 +96,18 @@ const AdminReviews = () => {
 
   // Handle delete review
   const handleDelete = async (reviewId) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar esta reseña? Esta acción no se puede deshacer.')) {
+    const result = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: '¿Quieres eliminar esta reseña? Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (!result.isConfirmed) {
       return;
     }
 

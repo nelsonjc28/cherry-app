@@ -21,3 +21,7 @@ const InfiniteScrollLoader = ({ isLoading, hasMore, observerTarget }) => {
 
 export default InfiniteScrollLoader;
 
+
+
+
+

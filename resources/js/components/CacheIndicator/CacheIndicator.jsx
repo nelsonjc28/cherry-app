@@ -49,3 +49,7 @@ const CacheIndicator = ({ loadedFromCache, autoHide = true, duration = 3000 }) =
 
 export default CacheIndicator;
 
+
+
+
+

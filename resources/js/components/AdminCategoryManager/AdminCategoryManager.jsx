@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { categoryService } from '../../services/api';
 import useUserStore from '../../store/userStore';
 import CategoryProductManager from './CategoryProductManager';
+import Swal from 'sweetalert2';
 import './AdminCategoryManager.css';
 
 const AdminCategoryManager = () => {
@@ -90,16 +91,27 @@ const AdminCategoryManager = () => {
   };
 
   const handleDelete = async (category) => {
-    if (window.confirm(`¿Estás seguro de que quieres eliminar la categoría "${category.name}"?`)) {
+    const result = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: `¿Quieres eliminar la categoría "${category.name}"? Esta acción no se puede deshacer.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
       try {
         const response = await categoryService.delete(category.id);
         if (response.data.success) {
           window.showToast('Categoría eliminada exitosamente', 'success');
           fetchCategories();
         }
-          } catch (error) {
-      window.showToast('Error al eliminar la categoría', 'error');
-    }
+      } catch (error) {
+        window.showToast('Error al eliminar la categoría', 'error');
+      }
     }
   };
 

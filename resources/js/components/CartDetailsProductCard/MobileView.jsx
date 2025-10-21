@@ -22,7 +22,7 @@ function MobileView({
       </div>
       <div className="cart-details-product-card__main-content">
         <div className="cart-details-product-card__image-block">
-          <img src={image} alt={title} className="cart-details-product-card__image" />
+          <img src={image} alt={title} className="cart-details-product-card__image" loading="lazy" />
         </div>
         <div className="cart-details-product-card__info-block">
           <div className="cart-details-product-card__title">{title}</div>

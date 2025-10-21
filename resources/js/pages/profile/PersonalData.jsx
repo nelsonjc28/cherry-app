@@ -224,7 +224,10 @@ const PersonalData = () => {
               type="tel"
               className="personal-data__input"
               value={userData.phone}
-              placeholder="1-409-893-8268 x1162"
+              placeholder="10 dígitos"
+              pattern="[0-9]{10}"
+              maxLength="10"
+              onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')}
               onChange={(e) => handleInputChange('phone', e.target.value)}
             />
           </div>

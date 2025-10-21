@@ -668,6 +668,10 @@
 
 .catalog-pdf-module__groups-header {
   margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
 }
 
 .catalog-pdf-module__groups-header h4 {
@@ -833,5 +837,15 @@
   
   .catalog-pdf-module__group-card {
     padding: 16px;
+  }
+  
+  .catalog-pdf-module__groups-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .catalog-pdf-module__groups-header .catalog-pdf-module__add-btn {
+    width: 100%;
   }
 }

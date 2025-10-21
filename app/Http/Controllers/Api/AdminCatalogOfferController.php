@@ -228,7 +228,6 @@ class AdminCatalogOfferController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'catalog_id' => 'required|exists:catalogs,id',
                 'title' => 'required|string|max:255',
                 'description' => 'required|string',
                 'discount_percentage' => 'required_if:discount_category,product_discount,order_discount|numeric|min:0|max:100',
@@ -265,6 +264,14 @@ class AdminCatalogOfferController extends Controller
             }
 
             $data = $request->all();
+            
+            // Remover catalog_id si no existe en la base de datos
+            if (isset($data['catalog_id'])) {
+                $catalogExists = \App\Models\Catalog::where('id', $data['catalog_id'])->exists();
+                if (!$catalogExists) {
+                    unset($data['catalog_id']);
+                }
+            }
             
             // Extraer y procesar productos y usuarios
             $targetProducts = [];
@@ -414,7 +421,6 @@ class AdminCatalogOfferController extends Controller
             $offer = CatalogOffer::findOrFail($id);
             
             $validator = Validator::make($request->all(), [
-                'catalog_id' => 'required|exists:catalogs,id',
                 'title' => 'required|string|max:255',
                 'description' => 'required|string',
                 'discount_percentage' => 'required_if:discount_category,product_discount,order_discount|numeric|min:0|max:100',
@@ -444,6 +450,14 @@ class AdminCatalogOfferController extends Controller
             }
 
             $data = $request->all();
+            
+            // Remover catalog_id si no existe en la base de datos
+            if (isset($data['catalog_id'])) {
+                $catalogExists = \App\Models\Catalog::where('id', $data['catalog_id'])->exists();
+                if (!$catalogExists) {
+                    unset($data['catalog_id']);
+                }
+            }
             
             // Extraer productos y usuarios
             $targetProducts = [];

@@ -1,11 +1,67 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import CategoryIcon from '../../CategoryIcon/CategoryIcon';
 import { getCategoryIconPath, getHeroIconPath } from '../../../utils/assetPaths';
 import useHomeCategories from '../../../hooks/useHomeCategories';
 import './CategorySection.css';
 
 const CategorySection = () => {
+  const navigate = useNavigate();
   const { categories, loading, error } = useHomeCategories();
+
+  // Función para convertir nombre de categoría de plural a singular
+  const pluralToSingular = (categoryName) => {
+    const pluralMap = {
+      'pantalones': 'pantalón',
+      'vestidos': 'vestido',
+      'blusas': 'blusa',
+      'faldas': 'falda',
+      'chaquetas': 'chaqueta',
+      'abrigos': 'abrigo',
+      'trajes': 'traje',
+      'zapatos': 'zapato',
+      'bolsos': 'bolso',
+      'accesorios': 'accesorio',
+      'suéteres': 'suéter',
+      'camisas': 'camisa',
+      'playeras': 'playera',
+      'chamarras': 'chamarra',
+      'shorts': 'short',
+      'calcetines': 'calcetín',
+      'leggins': 'leggin',
+      'jeans': 'jean'
+    };
+
+    const lowerName = categoryName.toLowerCase().trim();
+    
+    if (pluralMap[lowerName]) {
+      return pluralMap[lowerName];
+    }
+    
+    if (lowerName.endsWith('ones')) {
+      return lowerName.slice(0, -4) + 'ón';
+    }
+    
+    if (lowerName.endsWith('es') && lowerName.length > 3) {
+      const beforeEs = lowerName[lowerName.length - 3];
+      if (!'aeiou'.includes(beforeEs)) {
+        return lowerName.slice(0, -2);
+      }
+    }
+    
+    if (lowerName.endsWith('s') && !lowerName.endsWith('ss')) {
+      return lowerName.slice(0, -1);
+    }
+    
+    return categoryName;
+  };
+
+  // Función para manejar clic en categoría
+  const handleCategoryClick = (category) => {
+    const singularName = pluralToSingular(category.name);
+    const searchParams = new URLSearchParams();
+    searchParams.set('q', singularName);
+    navigate(`/buscar?${searchParams.toString()}`);
+  };
 
   if (loading) {
     return (
@@ -34,6 +90,7 @@ const CategorySection = () => {
                 key={category.id || index}
                 name={category.name}
                 icon={category.icon}
+                onClick={() => handleCategoryClick(category)}
               />
             ))
           ) : (

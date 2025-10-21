@@ -216,6 +216,12 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
       return;
     }
 
+    // Validar cantidad máxima de archivos (50 por carga)
+    if (validFiles.length > 50) {
+      window.showToast('Máximo 50 imágenes por carga. Por favor, selecciona menos archivos.', 'error');
+      return;
+    }
+
     await uploadFiles(validFiles);
   };
 
@@ -224,6 +230,9 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
     setError('');
 
     try {
+      // Mostrar mensaje de inicio con contador
+      window.showToast(`Subiendo ${files.length} imagen(es)... Por favor espera.`, 'info');
+      
       const formData = new FormData();
       files.forEach(file => {
         formData.append('images[]', file);
@@ -237,7 +246,7 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
       const response = await catalogService.addPdfs(selectedCatalog.id, formData);
       
       if (response.data.success) {
-        window.showToast(`${files.length} imagen(es) subida(s) exitosamente`, 'success');
+        window.showToast(`✅ ${files.length} imagen(es) subida(s) exitosamente`, 'success');
         
         // Actualizar el estado local inmediatamente con las nuevas imágenes
         const newImages = response.data.data || [];
@@ -260,9 +269,11 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
       let errorMessage = 'Error al subir imágenes';
       
       if (error.response?.status === 413) {
-        errorMessage = 'El archivo es demasiado grande. El tamaño máximo permitido es 2MB por imagen.';
+        errorMessage = 'Los archivos son demasiado grandes. Intenta con menos imágenes o reduce su tamaño.';
       } else if (error.response?.status === 422) {
         errorMessage = error.response.data?.message || 'Error de validación en los archivos';
+      } else if (error.response?.status === 504 || error.response?.status === 408) {
+        errorMessage = 'Tiempo de espera agotado. Intenta subir menos imágenes a la vez.';
       } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message) {
@@ -275,8 +286,9 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
       setUploading(false);
       // Limpiar el input de archivos después de un pequeño delay para asegurar que se procese
       setTimeout(() => {
-        if (event && event.target) {
-          event.target.value = '';
+        const fileInput = document.querySelector('input[type="file"][accept="image/*"]');
+        if (fileInput) {
+          fileInput.value = '';
         }
       }, 100);
     }
@@ -584,23 +596,21 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
           </div>
         )}
 
-        {/* Botón para crear grupo */}
-        {!showGroupForm && (
-          <div className="catalog-pdf-module__actions">
-            <button 
-              className="catalog-pdf-module__add-btn"
-              onClick={() => setShowGroupForm(true)}
-            >
-              + Crear Nuevo Grupo
-            </button>
-          </div>
-        )}
-
         {/* Lista de grupos */}
         <div className="catalog-pdf-module__content">
           <div className="catalog-pdf-module__groups-header">
-            <h4>Grupos de Imágenes ({imageGroups.length})</h4>
-            <p>Haz clic en un grupo para gestionar sus imágenes</p>
+            <div>
+              <h4>Grupos de Imágenes ({imageGroups.length})</h4>
+              <p>Haz clic en un grupo para gestionar sus imágenes</p>
+            </div>
+            {!showGroupForm && (
+              <button 
+                className="catalog-pdf-module__add-btn"
+                onClick={() => setShowGroupForm(true)}
+              >
+                + Crear Nuevo Grupo
+              </button>
+            )}
           </div>
 
           {groupsLoading ? (
@@ -699,7 +709,7 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
       <div className="catalog-pdf-module__upload-section">
         <div className="catalog-pdf-module__upload-info">
           <h4>Subir Imágenes</h4>
-          <p>Sube imágenes (JPG, PNG, GIF, WebP) para crear las páginas del catálogo. Puedes subir múltiples imágenes a la vez.</p>
+          <p>Sube imágenes (JPG, PNG, GIF, WebP) para crear las páginas del catálogo. Puedes subir hasta 50 imágenes a la vez.</p>
         </div>
         
         <div className="catalog-pdf-module__upload-actions">

@@ -18,7 +18,7 @@ function DesktopView({
     <div className={`cart-details-product-card${isDiscount ? '' : ' no-discount'}`}>
       <div className="cart-details-product-card__desktop-row">
         <div className="cart-details-product-card__image-block">
-          <img src={image} alt={title} className="cart-details-product-card__image" />
+          <img src={image} alt={title} className="cart-details-product-card__image" loading="lazy" />
         </div>
         <div className="cart-details-product-card__desktop-content">
           <div className="cart-details-product-card__header-row">

@@ -572,8 +572,8 @@ export const publicCatalogService = {
   },
 
   // Mantener compatibilidad con el nombre anterior
-  getPdfs: async (id) => {
-    return publicCatalogService.getCatalogImages(id, 1);
+  getPdfs: async (id, page = 1) => {
+    return publicCatalogService.getCatalogImages(id, page);
   }
 };
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Editor } from '@tinymce/tinymce-react';
 import apiClient from '../../api/config/apiConfig';
+import Swal from 'sweetalert2';
 import './AdminPrivacyPolicyManager.css';
 
 const AdminPrivacyPolicyManager = () => {
@@ -112,7 +113,18 @@ const AdminPrivacyPolicyManager = () => {
   };
 
   const handleDelete = async (policyId) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar esta política?')) {
+    const result = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: '¿Quieres eliminar esta política? Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (!result.isConfirmed) {
       return;
     }
 

@@ -5,7 +5,6 @@ import ProductCard from '../components/ProductCard/ProductCard';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import CherryButton from '../components/CherryButton/CherryButton';
 import InfiniteScrollLoader from '../components/InfiniteScrollLoader/InfiniteScrollLoader';
-import useProductsWithCache from '../hooks/useProductsWithCache';
 import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
 import { searchProductsAdvanced, getProductsWithRatings, mapApiProductToAppProduct, getAvailableColors, getAvailableSizes } from '../api/cherryApi';
@@ -161,65 +160,71 @@ const BuscarPage = () => {
     }
   }, [products]);
 
-  // Cargar productos con caché
-  const {
-    products: cachedProducts,
-    loading: cacheLoading,
-    loadedFromCache
-  } = useProductsWithCache(async () => {
-    const allProducts = await getProductsWithRatings();
-    const productsWithOffers = await applyUserOffersToProducts(allProducts);
-    return productsWithOffers;
-  }, []);
-
-  // Actualizar productos y filtrar según búsqueda
+  // Cargar productos directamente desde API con filtros
   useEffect(() => {
-    if (cachedProducts && cachedProducts.length > 0) {
-      setLoading(false);
-      
-      // Aplicar búsqueda/filtros sobre productos cacheados
-      let filtered = cachedProducts;
-
-      // Filtrar por query de búsqueda
-      if (query) {
-        const queryLower = query.toLowerCase();
-        filtered = filtered.filter(product => {
-          const title = (product.title || product.descripcion || '').toLowerCase();
-          const description = (product.description || '').toLowerCase();
-          const codigo = (product.codigo || product.id_articulo || '').toString().toLowerCase();
-          return title.includes(queryLower) || description.includes(queryLower) || codigo.includes(queryLower);
+    const loadProducts = async () => {
+      setLoading(true);
+      try {
+        console.log('🔍 BuscarPage: Cargando productos desde API con filtros...');
+        
+        // Cargar TODOS los productos que coincidan con la búsqueda
+        // (sin límite para poder filtrar localmente después)
+        const result = await getProductsWithRatings('Cherry 2025 - 2026', {
+          limit: null,  // Cargar todos para búsqueda
+          random: true  // Orden aleatorio
         });
+        
+        const allProducts = result.products || result || [];
+        const productsWithOffers = await applyUserOffersToProducts(allProducts);
+        
+        // Aplicar búsqueda/filtros
+        let filtered = productsWithOffers;
+
+        // Filtrar por query de búsqueda
+        if (query) {
+          const queryLower = query.toLowerCase();
+          filtered = filtered.filter(product => {
+            const title = (product.title || product.descripcion || '').toLowerCase();
+            const description = (product.description || '').toLowerCase();
+            const codigo = (product.codigo || product.id_articulo || '').toString().toLowerCase();
+            return title.includes(queryLower) || description.includes(queryLower) || codigo.includes(queryLower);
+          });
+        }
+
+        // Filtrar por color
+        if (colorFilter) {
+          const colors = colorFilter.split(',').map(c => c.trim().toLowerCase());
+          filtered = filtered.filter(product => {
+            if (!product.detalles || product.detalles.length === 0) return false;
+            return product.detalles.some(detalle => 
+              detalle.nombreColor && colors.includes(detalle.nombreColor.toLowerCase())
+            );
+          });
+        }
+
+        // Filtrar por SKU
+        if (skuFilter) {
+          const skuLower = skuFilter.toLowerCase();
+          filtered = filtered.filter(product => {
+            const codigo = (product.codigo || product.id_articulo || '').toString().toLowerCase();
+            return codigo.includes(skuLower);
+          });
+        }
+
+        setProducts(filtered);
+        setFilteredProducts(filtered);
+        setLoading(false);
+        console.log(`✅ ${filtered.length} productos cargados y filtrados`);
+      } catch (error) {
+        console.error('❌ Error al cargar productos:', error);
+        setProducts([]);
+        setFilteredProducts([]);
+        setLoading(false);
       }
+    };
 
-      // Filtrar por color
-      if (colorFilter) {
-        const colors = colorFilter.split(',').map(c => c.trim().toLowerCase());
-        filtered = filtered.filter(product => {
-          if (!product.detalles || product.detalles.length === 0) return false;
-          return product.detalles.some(detalle => 
-            detalle.nombreColor && colors.includes(detalle.nombreColor.toLowerCase())
-          );
-        });
-      }
-
-      // Filtrar por SKU
-      if (skuFilter) {
-        const skuLower = skuFilter.toLowerCase();
-        filtered = filtered.filter(product => {
-          const codigo = (product.codigo || product.id_articulo || '').toString().toLowerCase();
-          return codigo.includes(skuLower);
-        });
-      }
-
-      setProducts(filtered);
-      setFilteredProducts(filtered);
-    }
-  }, [cachedProducts, query, colorFilter, skuFilter]);
-
-  // Sincronizar loading state
-  useEffect(() => {
-    setLoading(cacheLoading);
-  }, [cacheLoading]);
+    loadProducts();
+  }, [query, colorFilter, skuFilter]);
 
   // Filtrar productos basado en filtros adicionales
   useEffect(() => {

@@ -24,6 +24,16 @@ import { applyUserOffersToProducts } from '../api/userOffers';
 import { catalogService, publicCatalogService } from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
 
+// Función para mezclar array de forma aleatoria (Fisher-Yates shuffle)
+const shuffleArray = (array) => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 const CatalogPage = ({ catalogId }) => {
 
   const [searchParams] = useSearchParams();
@@ -559,9 +569,10 @@ const CatalogPage = ({ catalogId }) => {
         
         // Aplicar ofertas de usuario a todos los productos
         const productsWithOffers = await applyUserOffersToProducts(validProducts);
+        const shuffledProducts = shuffleArray(productsWithOffers); // 🎲 Orden aleatorio
         
-        setAllProducts(productsWithOffers);
-        setFilteredProducts(productsWithOffers);
+        setAllProducts(shuffledProducts);
+        setFilteredProducts(shuffledProducts);
       } catch (error) {
         setAllProducts([]);
       } finally {

@@ -26,12 +26,17 @@ const Addresses = () => {
     name: '',
     street_address: '',
     city: '',
+    municipality: '',
     state: '',
     postal_code: '',
     country: 'México',
     additional_info: '',
     is_default: false
   });
+
+  // State for SEPOMEX data
+  const [settlements, setSettlements] = useState([]);
+  const [loadingPostalCode, setLoadingPostalCode] = useState(false);
 
   // State for addresses from API
   const [addresses, setAddresses] = useState([]);
@@ -82,6 +87,43 @@ const Addresses = () => {
     }
   };
 
+  // Fetch postal code data from SEPOMEX
+  const fetchPostalCodeData = async (postalCode) => {
+    if (!postalCode || postalCode.length !== 5) {
+      setSettlements([]);
+      return;
+    }
+
+    setLoadingPostalCode(true);
+    try {
+      const response = await fetch(`https://sepomex.789.com.mx/${postalCode}`);
+      const data = await response.json();
+      
+      if (data && data.asentamientos && data.asentamientos.length > 0) {
+        setSettlements(data.asentamientos);
+        setFormData(prev => ({
+          ...prev,
+          state: data.estados && data.estados.length > 0 ? data.estados[0] : '',
+          municipality: data.municipios && data.municipios.length > 0 ? data.municipios[0] : '',
+          city: data.asentamientos[0], // Seleccionar el primer asentamiento por defecto
+        }));
+      } else {
+        setSettlements([]);
+        if (window.showToast) {
+          window.showToast('Código postal no encontrado', 'warning');
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching postal code:', error);
+      setSettlements([]);
+      if (window.showToast) {
+        window.showToast('Error al consultar el código postal', 'error');
+      }
+    } finally {
+      setLoadingPostalCode(false);
+    }
+  };
+
   // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -89,6 +131,19 @@ const Addresses = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+
+    // Si el código postal cambia y tiene 5 dígitos, buscar en SEPOMEX
+    if (name === 'postal_code' && value.length === 5) {
+      fetchPostalCodeData(value);
+    } else if (name === 'postal_code' && value.length < 5) {
+      setSettlements([]);
+      setFormData(prev => ({
+        ...prev,
+        state: '',
+        municipality: '',
+        city: '',
+      }));
+    }
   };
 
   // Handle add new address
@@ -104,12 +159,14 @@ const Addresses = () => {
       name: '',
       street_address: '',
       city: '',
+      municipality: '',
       state: '',
       postal_code: '',
       country: 'México',
       additional_info: '',
       is_default: false
     });
+    setSettlements([]);
     setShowAddModal(true);
   };
 
@@ -127,12 +184,19 @@ const Addresses = () => {
       name: address.name || '',
       street_address: address.street_address || '',
       city: address.city || '',
+      municipality: address.municipality || '',
       state: address.state || '',
       postal_code: address.postal_code || '',
       country: address.country || 'México',
       additional_info: address.additional_info || '',
       is_default: address.is_default || false
     });
+    // Si hay código postal, cargar los asentamientos
+    if (address.postal_code && address.postal_code.length === 5) {
+      fetchPostalCodeData(address.postal_code);
+    } else {
+      setSettlements([]);
+    }
     setShowEditModal(true);
   };
 
@@ -533,70 +597,103 @@ const Addresses = () => {
             </div>
             <div className="modal-body">
               <form onSubmit={(e) => { e.preventDefault(); handleSaveAddress(); }}>
-                <div className="form-group">
-                  <label>Nombre de la dirección *</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    placeholder="Ej: Casa, Trabajo"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Dirección *</label>
-                  <input
-                    type="text"
-                    name="street_address"
-                    value={formData.street_address}
-                    onChange={handleInputChange}
-                    placeholder="Calle y número"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Ciudad *</label>
-                  <input
-                    type="text"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleInputChange}
-                    placeholder="Ciudad"
-                    required
-                  />
-                </div>
-                <div className="form-row">
+                <div className="form-grid-2">
+                  <div className="form-group">
+                    <label>Nombre de la dirección *</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      placeholder="Ej: Casa, Trabajo"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Código Postal *</label>
+                    <input
+                      type="text"
+                      name="postal_code"
+                      value={formData.postal_code}
+                      onChange={handleInputChange}
+                      placeholder="Código Postal (5 dígitos)"
+                      maxLength="5"
+                      pattern="[0-9]{5}"
+                      required
+                    />
+                    {loadingPostalCode && <small style={{color: '#666'}}>Consultando...</small>}
+                  </div>
+                  <div className="form-group">
+                    <label>Dirección (Calle y Número) *</label>
+                    <input
+                      type="text"
+                      name="street_address"
+                      value={formData.street_address}
+                      onChange={handleInputChange}
+                      placeholder="Calle y número"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Colonia/Asentamiento *</label>
+                    {settlements.length > 0 ? (
+                      <select
+                        name="city"
+                        value={formData.city}
+                        onChange={handleInputChange}
+                        required
+                      >
+                        <option value="">Selecciona una colonia</option>
+                        {settlements.map((settlement, index) => (
+                          <option key={index} value={settlement}>
+                            {settlement}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        name="city"
+                        value={formData.city}
+                        onChange={handleInputChange}
+                        placeholder="Ingresa código postal primero"
+                        disabled
+                        required
+                      />
+                    )}
+                  </div>
+                  <div className="form-group">
+                    <label>Municipio</label>
+                    <input
+                      type="text"
+                      name="municipality"
+                      value={formData.municipality}
+                      readOnly
+                      placeholder="Se llenará automáticamente"
+                      className="readonly-input"
+                    />
+                  </div>
                   <div className="form-group">
                     <label>Estado</label>
                     <input
                       type="text"
                       name="state"
                       value={formData.state}
-                      onChange={handleInputChange}
-                      placeholder="Estado"
+                      readOnly
+                      placeholder="Se llenará automáticamente"
+                      className="readonly-input"
                     />
                   </div>
                   <div className="form-group">
-                    <label>Código Postal</label>
+                    <label>País</label>
                     <input
                       type="text"
-                      name="postal_code"
-                      value={formData.postal_code}
-                      onChange={handleInputChange}
-                      placeholder="CP"
+                      name="country"
+                      value={formData.country}
+                      readOnly
+                      className="readonly-input"
                     />
                   </div>
-                </div>
-                <div className="form-group">
-                  <label>País</label>
-                  <input
-                    type="text"
-                    name="country"
-                    value={formData.country}
-                    onChange={handleInputChange}
-                    placeholder="País"
-                  />
                 </div>
                 <div className="form-group">
                   <label>Información adicional</label>
@@ -652,70 +749,103 @@ const Addresses = () => {
             </div>
             <div className="modal-body">
               <form onSubmit={(e) => { e.preventDefault(); handleSaveAddress(); }}>
-                <div className="form-group">
-                  <label>Nombre de la dirección *</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    placeholder="Ej: Casa, Trabajo"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Dirección *</label>
-                  <input
-                    type="text"
-                    name="street_address"
-                    value={formData.street_address}
-                    onChange={handleInputChange}
-                    placeholder="Calle y número"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Ciudad *</label>
-                  <input
-                    type="text"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleInputChange}
-                    placeholder="Ciudad"
-                    required
-                  />
-                </div>
-                <div className="form-row">
+                <div className="form-grid-2">
+                  <div className="form-group">
+                    <label>Nombre de la dirección *</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      placeholder="Ej: Casa, Trabajo"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Código Postal *</label>
+                    <input
+                      type="text"
+                      name="postal_code"
+                      value={formData.postal_code}
+                      onChange={handleInputChange}
+                      placeholder="Código Postal (5 dígitos)"
+                      maxLength="5"
+                      pattern="[0-9]{5}"
+                      required
+                    />
+                    {loadingPostalCode && <small style={{color: '#666'}}>Consultando...</small>}
+                  </div>
+                  <div className="form-group">
+                    <label>Dirección (Calle y Número) *</label>
+                    <input
+                      type="text"
+                      name="street_address"
+                      value={formData.street_address}
+                      onChange={handleInputChange}
+                      placeholder="Calle y número"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Colonia/Asentamiento *</label>
+                    {settlements.length > 0 ? (
+                      <select
+                        name="city"
+                        value={formData.city}
+                        onChange={handleInputChange}
+                        required
+                      >
+                        <option value="">Selecciona una colonia</option>
+                        {settlements.map((settlement, index) => (
+                          <option key={index} value={settlement}>
+                            {settlement}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        name="city"
+                        value={formData.city}
+                        onChange={handleInputChange}
+                        placeholder="Ingresa código postal primero"
+                        disabled
+                        required
+                      />
+                    )}
+                  </div>
+                  <div className="form-group">
+                    <label>Municipio</label>
+                    <input
+                      type="text"
+                      name="municipality"
+                      value={formData.municipality}
+                      readOnly
+                      placeholder="Se llenará automáticamente"
+                      className="readonly-input"
+                    />
+                  </div>
                   <div className="form-group">
                     <label>Estado</label>
                     <input
                       type="text"
                       name="state"
                       value={formData.state}
-                      onChange={handleInputChange}
-                      placeholder="Estado"
+                      readOnly
+                      placeholder="Se llenará automáticamente"
+                      className="readonly-input"
                     />
                   </div>
                   <div className="form-group">
-                    <label>Código Postal</label>
+                    <label>País</label>
                     <input
                       type="text"
-                      name="postal_code"
-                      value={formData.postal_code}
-                      onChange={handleInputChange}
-                      placeholder="CP"
+                      name="country"
+                      value={formData.country}
+                      readOnly
+                      className="readonly-input"
                     />
                   </div>
-                </div>
-                <div className="form-group">
-                  <label>País</label>
-                  <input
-                    type="text"
-                    name="country"
-                    value={formData.country}
-                    onChange={handleInputChange}
-                    placeholder="País"
-                  />
                 </div>
                 <div className="form-group">
                   <label>Información adicional</label>

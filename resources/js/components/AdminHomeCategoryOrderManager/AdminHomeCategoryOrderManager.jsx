@@ -4,6 +4,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { categoryService } from '../../services/api';
+import Swal from 'sweetalert2';
 import './AdminHomeCategoryOrderManager.css';
 
 const SortableItem = ({ category, order, onRemove }) => {
@@ -152,8 +153,19 @@ const AdminHomeCategoryOrderManager = ({ onClose }) => {
     }
   };
 
-  const resetOrder = () => {
-    if (window.confirm('¿Estás seguro de que quieres resetear el orden de las categorías?')) {
+  const resetOrder = async () => {
+    const result = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: '¿Quieres resetear el orden de las categorías al estado original?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Sí, resetear',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
       fetchData();
       setMessage({ type: 'info', text: 'Orden reseteado al estado original' });
     }
@@ -178,7 +190,18 @@ const AdminHomeCategoryOrderManager = ({ onClose }) => {
   };
 
   const removeCategoryFromHome = async (categoryId) => {
-    if (window.confirm('¿Estás seguro de que quieres remover esta categoría del home?')) {
+    const result = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: '¿Quieres remover esta categoría del home?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, remover',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
       try {
         const response = await categoryService.removeCategoryFromHome(categoryId);
         if (response.data.success) {

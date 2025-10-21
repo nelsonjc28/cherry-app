@@ -117,23 +117,30 @@ export const applyUserOffersToProducts = async (products, userOfferMap = null) =
       if (userOffer) {
         const originalPrice = product.price || product.precio1 || 0;
         let discountedPrice = originalPrice;
+        let visualDiscount = 0;
         
         // Calcular precio con descuento (solo para ofertas de descuento en producto)
         if (userOffer.discount_category === 'product_discount') {
-          const discountPercentage = parseFloat(userOffer.discount_percentage) || 0;
+          const discountValue = parseFloat(userOffer.discount_percentage) || 0;
           
-          if (discountPercentage > 0) {
+          if (discountValue > 0) {
             if (userOffer.discount_type === 'percentage') {
-              const discount = (originalPrice * discountPercentage) / 100;
+              // Descuento por porcentaje
+              const discount = (originalPrice * discountValue) / 100;
               discountedPrice = Math.max(0, originalPrice - discount);
+              visualDiscount = discountValue; // Mostrar el porcentaje directamente
             } else if (userOffer.discount_type === 'fixed') {
-              discountedPrice = Math.max(0, originalPrice - discountPercentage);
+              // Descuento por pesos fijos
+              discountedPrice = Math.max(0, originalPrice - discountValue);
+              // Calcular el equivalente en porcentaje
+              if (originalPrice > 0) {
+                visualDiscount = Math.round((discountValue / originalPrice) * 100);
+              }
             }
           }
         }
         
         // Para ofertas buy_x_get_y y free_shipping, NO mostrar descuento de precio
-        let visualDiscount = parseFloat(userOffer.discount_percentage) || 0;
         let showPriceDiscount = true;
         
         if (userOffer.discount_category === 'buy_x_get_y') {
