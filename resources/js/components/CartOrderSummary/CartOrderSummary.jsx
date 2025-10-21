@@ -606,7 +606,10 @@ const CartOrderSummary = ({
       {/* Formulario de tarjeta integrado */}
       <div className="cart-order-summary__divider" />
       <div className="cart-order-summary__section payment-method-section">
-        <div className="cart-order-summary__section-title">💳 Datos de la Tarjeta</div>
+        <div className="cart-order-summary__section-title section-title-flex">
+          <span className="cart-order-summary__card-icon">💳</span>
+          <span>Datos de la Tarjeta</span>
+        </div>
         <div className="cart-order-summary__section-content payment-method-content">
 
           {/* Selector de tarjetas guardadas con botón + */}

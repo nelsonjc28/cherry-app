@@ -67,6 +67,16 @@
   padding-right: 16px;
 }
 
+.section-title-flex {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cart-order-summary__card-icon {
+  margin-bottom: 6px;
+}
+
 .payment-method-section .cart-order-summary__section-content {
   padding-left: 16px;
   padding-right: 16px;
