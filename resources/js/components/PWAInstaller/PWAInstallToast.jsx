@@ -78,10 +78,7 @@ const PWAInstallToast = () => {
             detail: { platform: 'native', method: 'prompt' }
           }));
           
-          // Mostrar mensaje de éxito
-          setTimeout(() => {
-            alert('🎉 ¡Cherry App instalada exitosamente!\n\nLa aplicación se ha agregado a tu escritorio y puedes acceder a ella desde el menú de inicio o la barra de tareas.');
-          }, 1000);
+          // Ya no mostramos alert aquí, se muestra desde PWAInstallAlerts
         } else {
 
         }
@@ -124,67 +121,20 @@ const PWAInstallToast = () => {
   };
 
   const showIOSInstructions = () => {
-    const message = `
-📱 Instalar Cherry App en iOS:
-
-1. Toca el botón "Compartir" (📤) en la parte inferior
-2. Desplázate hacia abajo y selecciona "Agregar a pantalla de inicio"
-3. Personaliza el nombre si deseas
-4. Toca "Agregar" en la esquina superior derecha
-
-¡Listo! Cherry App aparecerá en tu pantalla de inicio.
-    `;
-    
-    alert(message);
+    // Ya no mostramos alert de instrucciones
   };
 
   const showGeneralInstructions = () => {
-    const message = `
-📱 Instalar Cherry App:
-
-• Android: Busca el ícono ⊕ en la barra de direcciones
-• iOS: Usa el botón "Compartir" → "Agregar a pantalla de inicio"
-• Desktop: Busca el ícono ⊕ en la barra de direcciones
-
-¡Instala Cherry App para acceso rápido!
-    `;
-    
-    alert(message);
+    // Ya no mostramos alert de instrucciones
   };
 
   const tryAndroidInstall = () => {
-    // Para Android, mostrar instrucciones específicas
-    const message = `
-📱 Instalar Cherry App en Android:
-
-1. Busca el ícono ⊕ en la barra de direcciones
-2. Toca "Instalar Cherry App" o "Agregar a pantalla de inicio"
-3. Confirma la instalación
-
-O alternativamente:
-• Toca el menú ⋮ (tres puntos)
-• Selecciona "Agregar a pantalla de inicio"
-    `;
-    
-    alert(message);
+    // Ya no mostramos alert de instrucciones
     setShowToast(false);
   };
 
   const tryDesktopInstall = () => {
-    // Para desktop, mostrar instrucciones específicas
-    const message = `
-💻 Instalar Cherry App en Escritorio:
-
-1. Busca el ícono ⊕ en la barra de direcciones
-2. Haz clic en "Instalar Cherry App"
-3. Confirma la instalación
-
-O alternativamente:
-• Menú ⋮ → "Instalar Cherry App"
-• O usa Ctrl+Shift+I → Application → Install
-    `;
-    
-    alert(message);
+    // Ya no mostramos alert de instrucciones
     setShowToast(false);
   };
 

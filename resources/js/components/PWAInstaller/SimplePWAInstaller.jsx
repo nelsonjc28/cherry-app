@@ -72,13 +72,7 @@ const SimplePWAInstaller = () => {
     };
   }, []);
 
-  // Función para mostrar mensaje de éxito con logo
-  const showSuccessMessage = (message) => {
-    const baseUrl = window.location.origin;
-    const logoUrl = `${baseUrl}/images/logo.svg`;
-    const fullMessage = `🎉 ${message}\n\n${logoUrl}`;
-    alert(fullMessage);
-  };
+  // Ya no se usa showSuccessMessage, el mensaje se muestra desde PWAInstallAlerts
 
   const handleInstall = async () => {
     try {
@@ -94,10 +88,7 @@ const SimplePWAInstaller = () => {
             localStorage.setItem('pwa-installed', 'true');
             localStorage.setItem('pwa-install-toast-shown', 'true');
 
-            // Mostrar mensaje de éxito con logo solo cuando realmente se instale
-            setTimeout(() => {
-              showSuccessMessage('¡Cherry App instalada exitosamente!\n\nLa aplicación se ha agregado a tu dispositivo.');
-            }, 1000);
+            // El mensaje de éxito se muestra desde PWAInstallAlerts mediante el evento 'pwa-installed'
           } else {
             setShowToast(false);
             localStorage.setItem('pwa-install-toast-shown', 'true');

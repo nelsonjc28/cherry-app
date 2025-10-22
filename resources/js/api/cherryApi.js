@@ -468,33 +468,43 @@ export const getRandomProducts = async (limit = 5) => {
       return hasStock && isWebEnabled;
     });
     
-    if (activeProducts.length === 0) {
-      // Si no hay productos activos, usar productos con stock
-      const productsWithStock = products.filter(product => product.inventario > 0);
-      
-      if (productsWithStock.length === 0) {
-        // Si no hay productos con stock, usar todos
-        const shuffled = products.sort(() => 0.5 - Math.random());
-        const selectedProducts = shuffled.slice(0, limit);
-        
-        // Mapear productos de forma asíncrona
-        const randomProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
-        return randomProducts.filter(p => p !== null);
+    // Filtrar productos con fechaMovimiento menor a 60 días
+    const now = new Date();
+    const sixtyDaysAgo = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000));
+    
+    const recentProducts = activeProducts.filter(product => {
+      // Si no tiene detalles, no lo incluimos
+      if (!product.detalles || !Array.isArray(product.detalles) || product.detalles.length === 0) {
+        return false;
       }
       
-        // Mezclar productos con stock
-        const shuffled = productsWithStock.sort(() => 0.5 - Math.random());
-      const selectedProducts = shuffled.slice(0, limit);
-      
-      // Mapear productos de forma asíncrona
-      const randomProducts = await Promise.all(selectedProducts.map(mapApiProductToAppProduct));
-      return randomProducts.filter(p => p !== null);
+      // Revisar cada detalle del producto
+      return product.detalles.some(detalle => {
+        if (!detalle.fechaMovimiento) return false;
+        
+        try {
+          // Parsear la fecha (formato: "YYYY-MM-DD")
+          const [year, month, day] = detalle.fechaMovimiento.split('-').map(Number);
+          const fechaMovimiento = new Date(year, month - 1, day);
+          
+          // Si la fecha es válida y es menor a 60 días, incluir el producto
+          return !isNaN(fechaMovimiento.getTime()) && fechaMovimiento >= sixtyDaysAgo;
+        } catch (error) {
+          return false;
+        }
+      });
+    });
+    
+    if (recentProducts.length === 0) {
+      // Si no hay productos recientes, retornar array vacío
+      // (solo mostramos productos con menos de 60 días)
+      return [];
     }
     
-      // Mezclar el array de productos para obtener una selección aleatoria
-    const shuffled = activeProducts.sort(() => 0.5 - Math.random());
+    // Mezclar el array de productos recientes para obtener una selección aleatoria
+    const shuffled = recentProducts.sort(() => 0.5 - Math.random());
     
-      // Tomar solo los primeros 'limit' productos
+    // Tomar solo los primeros 'limit' productos
     const selectedProducts = shuffled.slice(0, limit);
     
     // Mapear productos de forma asíncrona

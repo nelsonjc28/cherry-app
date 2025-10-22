@@ -126,71 +126,22 @@ const UniversalPWAInstaller = () => {
   };
 
   const showIOSInstructions = () => {
-    const message = `
-📱 Instalar Cherry App en iOS:
-
-1. Toca el botón "Compartir" (📤) en la parte inferior
-2. Desplázate hacia abajo y selecciona "Agregar a pantalla de inicio"
-3. Personaliza el nombre si deseas
-4. Toca "Agregar" en la esquina superior derecha
-
-¡Listo! Cherry App aparecerá en tu pantalla de inicio.
-    `;
-    
-    alert(message);
+    // Ya no mostramos alert, solo cerramos el instalador
     setShowInstaller(false);
   };
 
   const showManualInstructions = () => {
-    let message = '';
-    
-    if (deviceInfo.isAndroid) {
-      message = `
-📱 Instalar Cherry App en Android:
-
-1. Busca el ícono ⊕ en la barra de direcciones
-2. Toca "Instalar Cherry App" o "Agregar a pantalla de inicio"
-3. Confirma la instalación
-
-O alternativamente:
-• Toca el menú ⋮ (tres puntos)
-• Selecciona "Agregar a pantalla de inicio"
-      `;
-    } else if (deviceInfo.isWindows || deviceInfo.isMac || deviceInfo.isLinux) {
-      message = `
-💻 Instalar Cherry App en Escritorio:
-
-1. Busca el ícono ⊕ en la barra de direcciones
-2. Haz clic en "Instalar Cherry App"
-3. Confirma la instalación
-
-O alternativamente:
-• Menú ⋮ → "Instalar Cherry App"
-• O usa Ctrl+Shift+I → Application → Install
-      `;
-    }
-    
-    alert(message);
+    // Ya no mostramos alert, solo cerramos el instalador
     setShowInstaller(false);
   };
 
   const showSuccessMessage = () => {
-    const message = `
-🎉 ¡Cherry App instalada exitosamente!
-
-La aplicación se ha agregado a tu dispositivo y puedes acceder a ella desde:
-• Pantalla de inicio (móvil)
-• Menú de aplicaciones (escritorio)
-• Barra de tareas (Windows)
-
-¡Disfruta de una experiencia más rápida y conveniente!
-    `;
-    
-    alert(message);
+    // El mensaje de éxito se muestra desde PWAInstallAlerts.jsx mediante el evento 'pwa-installed'
   };
 
   const showErrorMessage = (message) => {
-    alert(`❌ ${message}`);
+    // Ya no mostramos alert de error
+    console.error(message);
   };
 
   const handleDismiss = () => {

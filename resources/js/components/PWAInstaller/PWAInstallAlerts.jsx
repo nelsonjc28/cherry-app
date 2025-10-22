@@ -10,7 +10,7 @@ const PWAInstallAlerts = () => {
     // Escuchar eventos de instalación exitosa
     const handlePWAInstalled = (event) => {
 
-      setToastMessage('🎉 ¡Cherry App instalada exitosamente!');
+      /* setToastMessage('🎉 ¡Cherry App instalada exitosamente!'); */
       setShowSuccessToast(true);
       
       // Ocultar después de 4 segundos

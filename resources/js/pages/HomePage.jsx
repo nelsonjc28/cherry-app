@@ -163,7 +163,7 @@ const HomePage = () => {
         <section aria-labelledby="featured-products-heading">
           <h2 id="featured-products-heading" className="sr-only">Productos Más Vendidos</h2>
           <FeaturedProducts 
-            title="Productos diseñados para reflejar tu estilo y personalidad."
+            title="Checa lo mas nuevo"
             viewAllLink="/productos"
             viewAllText="Ver Más"
             useApi={true}
