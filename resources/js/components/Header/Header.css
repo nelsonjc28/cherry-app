@@ -582,11 +582,20 @@
   }
   
   .user-actions {
-    gap: 15px;
+    gap: 5px;
   }
   
-  .user-action:first-child {
+  .user-action {
+    padding: 5px 5px;
+    font-size: 12px;
+  }
+
+  .header-user-action-icon {
     display: none;
+  }
+  
+  .user-action span {
+    font-size: 12px;
   }
   
   .header-logo img {

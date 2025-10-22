@@ -565,7 +565,7 @@ const Header = () => {
             ) : (
               <>
                 <Link to="/login" className="user-action">
-                  <img src={getIconPath('User.svg')} alt="Usuario" />
+                  <img className="header-user-action-icon" src={getIconPath('User.svg')} alt="Usuario" />
                   <span>Iniciar sesión</span>
                 </Link>
                 <Link to="/registro" className="user-action">
