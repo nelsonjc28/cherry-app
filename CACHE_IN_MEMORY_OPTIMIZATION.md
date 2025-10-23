@@ -396,3 +396,5 @@ console.log(`Caché: ${sizeInMB} MB`);
 
 
 
+
+

@@ -66,7 +66,7 @@ const HeroBanner = () => {
 
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % banners.length);
-    }, 30000); // Change slide every 30 seconds
+    }, 7000); // Change slide every 7 seconds
 
     return () => clearInterval(interval);
   }, [banners.length]);

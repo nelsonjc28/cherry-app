@@ -16,7 +16,7 @@
   color: var(--color-text);
   padding: 4px 5px 4px 8px;
   border-radius: 6px 6px 0 0;
-  font-size: 20px;
+  font-size: 22px;
 }
 
 .saved-cards-title {
@@ -35,7 +35,7 @@
 }
 
 .cart-order-summary__responsable-name {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--color-text);
   margin-bottom: 6px;
@@ -46,7 +46,7 @@
   display: flex;
   justify-content: space-between;
   color: var(--color-text);
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 400;
 }
 
@@ -85,7 +85,7 @@
 .cart-order-summary__total-row {
   display: flex;
   justify-content: space-between;
-  font-size: 25px;
+  font-size: 28px;
   font-weight: 600;
   color: var(--color-text);
   margin-top: 15px;
@@ -134,7 +134,7 @@
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.5rem;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--color-text);
 }
@@ -154,19 +154,19 @@
   font-weight: 500;
   margin-bottom: 0.25rem;
   color: #4a5568;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .cart-order-summary__address-location {
   color: #6b7280;
   margin-bottom: 0.5rem;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .cart-order-summary__address-additional {
   color: #9ca3af;
   font-style: italic;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 @media (min-width: 1024px) {

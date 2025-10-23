@@ -262,7 +262,7 @@ const ProductPage = () => {
           } else if (hasUserOffer && userOffer && userOffer.discount_category === 'free_shipping') {
             message += ` 🚚 ¡Envío gratis incluido!`;
           } else if (discountPercentage > 0) {
-          message += ` 🏷️ Con ${discountPercentage}% de descuento - Ahorras ${formatPrice(precio1 - finalPrice)}`;
+          message += ` 🏷️ Con ${discountPercentage}% de descuento`;
           }
         }
         
@@ -542,6 +542,77 @@ const ProductPage = () => {
     return getBarcodeBySizeAndColor(selectedSize, selectedColor);
   };
 
+  // Función para calcular el inventario total del producto
+  const getTotalInventory = () => {
+    // 🧪 TESTING: Descomenta una línea para simular diferentes estados
+    // return 0;  // Simula "Agotado" (producto existente sin inventario)
+    // Para simular "Próximamente", usa return 0 + modifica fecha_alta a reciente en la línea de isNewProduct()
+    
+    // Si hay detalles, sumar todo el inventario de los detalles
+    if (detalles && detalles.length > 0) {
+      return detalles.reduce((total, detalle) => {
+        return total + (detalle.inventario_d || 0);
+      }, 0);
+    }
+    
+    // Si no hay detalles, usar el inventario general del producto
+    return product.inventario || product.stock || 0;
+  };
+
+  // Función para determinar el estado del inventario
+  const getInventoryStatus = () => {
+    const totalInventory = getTotalInventory();
+    
+    // Si el producto es nuevo (nunca ha tenido inventario registrado)
+    // Consideramos nuevo si fecha_alta es reciente (menos de 30 días) y no tiene inventario
+    const isNewProduct = () => {
+      if (!fecha_alta) return false;
+      
+      const fechaAlta = new Date(fecha_alta);
+      const now = new Date();
+      const diffDays = Math.floor((now - fechaAlta) / (1000 * 60 * 60 * 24));
+      
+      return diffDays <= 30 && totalInventory === 0;
+    };
+    
+    if (isNewProduct()) {
+      return {
+        status: 'coming-soon',
+        text: 'Próximamente',
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 0.25C3.71875 0.25 0.25 3.75 0.25 8C0.25 12.2812 3.71875 15.75 8 15.75C12.25 15.75 15.75 12.2812 15.75 8C15.75 3.75 12.25 0.25 8 0.25ZM8 1.75C11.4375 1.75 14.25 4.5625 14.25 8C14.25 11.4688 11.4375 14.25 8 14.25C4.53125 14.25 1.75 11.4688 1.75 8C1.75 4.5625 4.53125 1.75 8 1.75ZM7.25 4V8.5L10.5 10.5L11 9.75L8.25 8V4H7.25Z" fill="#FF9800" />
+          </svg>
+        )
+      };
+    }
+    
+    if (totalInventory > 0) {
+      return {
+        status: 'in-stock',
+        text: 'En Stock',
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 0.25C3.71875 0.25 0.25 3.75 0.25 8C0.25 12.2812 3.71875 15.75 8 15.75C12.25 15.75 15.75 12.2812 15.75 8C15.75 3.75 12.25 0.25 8 0.25ZM8 1.75C11.4375 1.75 14.25 4.5625 14.25 8C14.25 11.4688 11.4375 14.25 8 14.25C4.53125 14.25 1.75 11.4688 1.75 8C1.75 4.5625 4.53125 1.75 8 1.75ZM12.375 5.84375L11.6562 5.125C11.5312 4.96875 11.2812 4.96875 11.125 5.125L6.71875 9.5L4.84375 7.625C4.6875 7.46875 4.46875 7.46875 4.3125 7.625L3.59375 8.3125C3.46875 8.46875 3.46875 8.71875 3.59375 8.84375L6.4375 11.7188C6.59375 11.875 6.8125 11.875 6.96875 11.7188L12.375 6.375C12.5 6.21875 12.5 5.96875 12.375 5.84375Z" fill="#1DA534" />
+          </svg>
+        )
+      };
+    }
+    
+    // Sin inventario disponible
+    return {
+      status: 'out-of-stock',
+      text: 'Agotado',
+      icon: (
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 0.25C3.71875 0.25 0.25 3.75 0.25 8C0.25 12.2812 3.71875 15.75 8 15.75C12.25 15.75 15.75 12.2812 15.75 8C15.75 3.75 12.25 0.25 8 0.25ZM8 1.75C11.4375 1.75 14.25 4.5625 14.25 8C14.25 11.4688 11.4375 14.25 8 14.25C4.53125 14.25 1.75 11.4688 1.75 8C1.75 4.5625 4.53125 1.75 8 1.75ZM5.125 5.125L4.40625 5.84375C4.28125 6 4.28125 6.21875 4.40625 6.375L7.03125 9L4.40625 11.6562C4.28125 11.8125 4.28125 12.0312 4.40625 12.1875L5.125 12.9062C5.25 13.0312 5.5 13.0312 5.65625 12.9062L8.28125 10.2812L10.9062 12.9062C11.0625 13.0312 11.2812 13.0312 11.4375 12.9062L12.1562 12.1875C12.2812 12.0312 12.2812 11.8125 12.1562 11.6562L9.53125 9L12.1562 6.375C12.2812 6.21875 12.2812 6 12.1562 5.84375L11.4375 5.125C11.2812 5 11.0625 5 10.9062 5.125L8.28125 7.75L5.65625 5.125C5.5 5 5.25 5 5.125 5.125Z" fill="#D32F2F" />
+        </svg>
+      )
+    };
+  };
+
+  const inventoryStatusData = getInventoryStatus();
+
   // Función para truncar la descripción
   const truncateDescription = (text, maxLength = 150) => {
     if (!text || text.length <= maxLength) return text;
@@ -656,10 +727,10 @@ const ProductPage = () => {
                 />
               </div>
               <div className="product-page__info-stock">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M8 0.25C3.71875 0.25 0.25 3.75 0.25 8C0.25 12.2812 3.71875 15.75 8 15.75C12.25 15.75 15.75 12.2812 15.75 8C15.75 3.75 12.25 0.25 8 0.25ZM8 1.75C11.4375 1.75 14.25 4.5625 14.25 8C14.25 11.4688 11.4375 14.25 8 14.25C4.53125 14.25 1.75 11.4688 1.75 8C1.75 4.5625 4.53125 1.75 8 1.75ZM12.375 5.84375L11.6562 5.125C11.5312 4.96875 11.2812 4.96875 11.125 5.125L6.71875 9.5L4.84375 7.625C4.6875 7.46875 4.46875 7.46875 4.3125 7.625L3.59375 8.3125C3.46875 8.46875 3.46875 8.71875 3.59375 8.84375L6.4375 11.7188C6.59375 11.875 6.8125 11.875 6.96875 11.7188L12.375 6.375C12.5 6.21875 12.5 5.96875 12.375 5.84375Z" fill="#1DA534" />
-                </svg>
-                <span className="product-page__stock-status product-page__stock-status--in-stock">In Stock</span>
+                {inventoryStatusData.icon}
+                <span className={`product-page__stock-status product-page__stock-status--${inventoryStatusData.status}`}>
+                  {inventoryStatusData.text}
+                </span>
               </div>
             </div>
 
@@ -686,12 +757,7 @@ const ProductPage = () => {
               
               <div className="product-page__price-container">
                 {hasOffer && discountPercentage > 0 && (
-                  <>
-                    <div className="product-page__original-price">{formatPrice(product?.originalPrice || precio1)}</div>
-                    <div className="product-page__savings">
-                      💰 Ahorras {formatPrice((product?.originalPrice || precio1) - finalPrice)}
-                    </div>
-                  </>
+                  <div className="product-page__original-price">{formatPrice(product?.originalPrice || precio1)}</div>
                 )}
                 <div className="product-page__final-price">{formatPrice(finalPrice)}</div>
               </div>
