@@ -879,6 +879,9 @@ export const searchProductsAdvanced = async (query, filters = {}, catalog = 'Che
       return [];
     }
 
+    // Importar utilidades de búsqueda flexible
+    const { flexibleMatch } = await import('../utils/searchNormalizer');
+
     const queryLower = query.toLowerCase().trim();
     const searchTerms = queryLower.split(' ').filter(term => term.length > 0);
 
@@ -889,49 +892,49 @@ export const searchProductsAdvanced = async (query, filters = {}, catalog = 'Che
         return true;
       }
 
-      // LÓGICA INTELIGENTE DE BÚSQUEDA
+      // LÓGICA INTELIGENTE DE BÚSQUEDA CON SOPORTE PARA PLURALES/SINGULARES
       if (searchTerms.length === 1) {
         // UNA PALABRA: Buscar en todos los campos (color, talla, ID, SKU, etc.)
         const singleTerm = searchTerms[0];
         
         return (
-          // Búsqueda en descripción/nombre
-          (product.descripcion && product.descripcion.toLowerCase().includes(singleTerm)) ||
-          (product.marca && product.marca.toLowerCase().includes(singleTerm)) ||
-          (product.linea?.descripcion && product.linea.descripcion.toLowerCase().includes(singleTerm)) ||
-          (product.sector?.descripcion && product.sector.descripcion.toLowerCase().includes(singleTerm)) ||
-          (product.genero?.descripcion && product.genero.descripcion.toLowerCase().includes(singleTerm)) ||
-          // Búsqueda en códigos
+          // Búsqueda flexible en descripción/nombre (soporta plurales/singulares)
+          flexibleMatch(singleTerm, product.descripcion || '') ||
+          flexibleMatch(singleTerm, product.marca || '') ||
+          flexibleMatch(singleTerm, product.linea?.descripcion || '') ||
+          flexibleMatch(singleTerm, product.sector?.descripcion || '') ||
+          flexibleMatch(singleTerm, product.genero?.descripcion || '') ||
+          // Búsqueda exacta en códigos (no aplicar plurales aquí)
           (product.DTU && product.DTU.toLowerCase().includes(singleTerm)) ||
           (product.dtu && product.dtu.toLowerCase().includes(singleTerm)) ||
           (product.id_articulo && product.id_articulo.toString().includes(singleTerm)) ||
           (product.sku && product.sku.toLowerCase().includes(singleTerm)) ||
           (product.ean && product.ean.toLowerCase().includes(singleTerm)) ||
-          // Búsqueda en especificaciones y notas
-          (product.especificaciones && product.especificaciones.toLowerCase().includes(singleTerm)) ||
-          (product.notas && product.notas.toLowerCase().includes(singleTerm)) ||
-          // Búsqueda en colores
+          // Búsqueda flexible en especificaciones y notas
+          flexibleMatch(singleTerm, product.especificaciones || '') ||
+          flexibleMatch(singleTerm, product.notas || '') ||
+          // Búsqueda flexible en colores
           product.detalles?.some(d => 
-            d.nombreColor?.toLowerCase().includes(singleTerm) ||
-            d.codigoColor?.toLowerCase().includes(singleTerm)
+            flexibleMatch(singleTerm, d.nombreColor || '') ||
+            (d.codigoColor && d.codigoColor.toLowerCase().includes(singleTerm))
           ) ||
-          // Búsqueda en tallas
+          // Búsqueda en tallas (exacta)
           product.detalles?.some(d => 
             d.detalle?.toLowerCase().includes(singleTerm)
           )
         );
       } else {
         // MÚLTIPLES PALABRAS: Buscar principalmente en nombre/descripción del producto
-        const productName = (product.descripcion || '').toLowerCase();
-        const productBrand = (product.marca || '').toLowerCase();
-        const productCategory = (product.linea?.descripcion || '').toLowerCase();
+        const productName = product.descripcion || '';
+        const productBrand = product.marca || '';
+        const productCategory = product.linea?.descripcion || '';
         
         // Crear texto combinado del nombre del producto
         const productText = `${productName} ${productBrand} ${productCategory}`.trim();
         
-        // Verificar si TODAS las palabras están en el nombre del producto
+        // Verificar si TODAS las palabras están en el nombre del producto (con búsqueda flexible)
         const allTermsInName = searchTerms.every(term => 
-          productText.includes(term)
+          flexibleMatch(term, productText)
         );
         
         // Si todas las palabras están en el nombre, es una coincidencia fuerte
@@ -941,7 +944,7 @@ export const searchProductsAdvanced = async (query, filters = {}, catalog = 'Che
         
         // Si no, buscar en descripción específicamente
         const descriptionMatch = searchTerms.every(term => 
-          productName.includes(term)
+          flexibleMatch(term, productName)
         );
         
         return descriptionMatch;

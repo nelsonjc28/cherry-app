@@ -180,14 +180,16 @@ const BuscarPage = () => {
         // Aplicar búsqueda/filtros
         let filtered = productsWithOffers;
 
-        // Filtrar por query de búsqueda
+        // Filtrar por query de búsqueda (con soporte para plurales/singulares)
         if (query) {
-          const queryLower = query.toLowerCase();
+          const { flexibleSearchInFields } = await import('../utils/searchNormalizer');
           filtered = filtered.filter(product => {
-            const title = (product.title || product.descripcion || '').toLowerCase();
-            const description = (product.description || '').toLowerCase();
-            const codigo = (product.codigo || product.id_articulo || '').toString().toLowerCase();
-            return title.includes(queryLower) || description.includes(queryLower) || codigo.includes(queryLower);
+            return flexibleSearchInFields(query, {
+              descripcion: product.descripcion || product.title || '',
+              title: product.title || product.descripcion || '',
+              codigo: product.codigo || product.id_articulo || '',
+              description: product.description || ''
+            }, ['descripcion', 'title', 'codigo', 'description']);
           });
         }
 

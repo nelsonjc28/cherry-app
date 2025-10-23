@@ -172,20 +172,28 @@ class ProductCacheManager {
   }
 
   /**
-   * Filtra productos por búsqueda de texto
+   * Filtra productos por búsqueda de texto con soporte para plurales/singulares
    */
-  filterBySearch(products, searchTerm) {
+  async filterBySearch(products, searchTerm) {
     if (!searchTerm) return products;
+    
+    // Importar utilidades de búsqueda flexible
+    const { flexibleMatch } = await import('./searchNormalizer');
     
     const term = searchTerm.toLowerCase().trim();
     return products.filter(p => {
-      const codigo = (p.codigo || '').toLowerCase();
-      const descripcion = (p.descripcion || '').toLowerCase();
-      const linea = (p.linea?.nombre || '').toLowerCase();
+      const codigo = p.codigo || '';
+      const descripcion = p.descripcion || '';
+      const linea = p.linea?.nombre || '';
       
-      return codigo.includes(term) || 
-             descripcion.includes(term) || 
-             linea.includes(term);
+      // Búsqueda exacta en código (no aplicar plurales)
+      if (codigo.toLowerCase().includes(term)) {
+        return true;
+      }
+      
+      // Búsqueda flexible en descripción y línea (soporta plurales/singulares)
+      return flexibleMatch(term, descripcion) || 
+             flexibleMatch(term, linea);
     });
   }
 
