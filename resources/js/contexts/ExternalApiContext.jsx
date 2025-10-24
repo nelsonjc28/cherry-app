@@ -7,7 +7,20 @@ const ExternalApiContext = createContext();
 export const useExternalApiContext = () => {
   const context = useContext(ExternalApiContext);
   if (!context) {
-    throw new Error('useExternalApiContext must be used within an ExternalApiProvider');
+    // En lugar de lanzar error, retornar valores por defecto
+    // Esto hace que el componente sea más robusto
+    console.warn('useExternalApiContext: No provider found, using default values');
+    return {
+      dataCache: {},
+      loading: {},
+      error: null,
+      getRandomProductsCached: async () => [],
+      getAllProductsCached: async () => [],
+      getCategoriesCached: async () => [],
+      loadRandomProducts: async () => [],
+      loadAllProducts: async () => [],
+      loadCategories: async () => []
+    };
   }
   return context;
 };
