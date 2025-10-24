@@ -27,10 +27,9 @@ class AuthController extends Controller
                 'regex:/[a-z]/',      // minúscula
                 'regex:/[A-Z]/',      // mayúscula
                 'regex:/[0-9]/',      // número
-                'regex:/[^a-zA-Z0-9]/', // caracter especial
             ],
         ], [
-            'password.regex' => 'La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial.',
+            'password.regex' => 'La contraseña debe contener al menos una mayúscula, una minúscula y un número.',
             'phone.unique' => 'Este número de teléfono ya está registrado.',
             'phone.size' => 'El teléfono debe tener exactamente 10 dígitos.',
             'phone.regex' => 'El teléfono debe contener solo números.',

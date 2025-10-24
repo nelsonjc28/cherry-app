@@ -155,8 +155,6 @@ const RegisterPage = () => {
         errors.password = 'La contraseña debe contener al menos una letra mayúscula';
       } else if (!/[0-9]/.test(formData.password)) {
         errors.password = 'La contraseña debe contener al menos un número';
-      } else if (!/[^a-zA-Z0-9]/.test(formData.password)) {
-        errors.password = 'La contraseña debe contener al menos un carácter especial';
       }
       if (formData.password !== formData.confirmPassword) {
         errors.confirmPassword = 'Las contraseñas no coinciden';

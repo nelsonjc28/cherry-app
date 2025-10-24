@@ -77,10 +77,9 @@ class AdminController extends Controller
                     'regex:/[a-z]/',      // minúscula
                     'regex:/[A-Z]/',      // mayúscula
                     'regex:/[0-9]/',      // número
-                    'regex:/[^a-zA-Z0-9]/', // caracter especial
                 ]
             ], [
-                'password.regex' => 'La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial.',
+                'password.regex' => 'La contraseña debe contener al menos una mayúscula, una minúscula y un número.',
                 'email.unique' => 'Este correo electrónico ya está registrado.',
                 'email.required' => 'El correo electrónico es requerido.',
                 'phone.unique' => 'Este número de teléfono ya está registrado.',
@@ -159,10 +158,9 @@ class AdminController extends Controller
                     'regex:/[a-z]/',
                     'regex:/[A-Z]/',
                     'regex:/[0-9]/',
-                    'regex:/[^a-zA-Z0-9]/',
                 ]
             ], [
-                'password.regex' => 'La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial.',
+                'password.regex' => 'La contraseña debe contener al menos una mayúscula, una minúscula y un número.',
                 'email.unique' => 'Este correo electrónico ya está registrado.',
                 'phone.unique' => 'Este número de teléfono ya está registrado.',
                 'phone.size' => 'El teléfono debe tener exactamente 10 dígitos.',
