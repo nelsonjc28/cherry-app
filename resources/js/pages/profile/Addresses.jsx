@@ -220,7 +220,7 @@ const Addresses = () => {
 
       if (editingAddress) {
         // Update existing address
-        await api.put(`/addresses/${editingAddress.id}`, formData);
+        await api.post(`/addresses/${editingAddress.id}`, formData);
       } else {
         // Create new address
         await api.post('/addresses', formData);
