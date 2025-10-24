@@ -57,7 +57,7 @@ const Addresses = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       if (!token) {
         setError('No hay token de autenticación');
         setLoading(false);
@@ -69,7 +69,7 @@ const Addresses = () => {
       setError(null);
     } catch (error) {
       console.error('Error loading addresses:', error);
-      
+
       if (error.response?.status === 401) {
         setError('Token de autenticación expirado o inválido');
         if (window.showToast) {
@@ -98,7 +98,7 @@ const Addresses = () => {
     try {
       const response = await fetch(`https://sepomex.789.com.mx/${postalCode}`);
       const data = await response.json();
-      
+
       if (data && data.asentamientos && data.asentamientos.length > 0) {
         setSettlements(data.asentamientos);
         setFormData(prev => ({
@@ -154,7 +154,7 @@ const Addresses = () => {
       }
       return;
     }
-    
+
     setFormData({
       name: '',
       street_address: '',
@@ -178,7 +178,7 @@ const Addresses = () => {
       }
       return;
     }
-    
+
     setEditingAddress(address);
     setFormData({
       name: address.name || '',
@@ -230,10 +230,10 @@ const Addresses = () => {
       setShowAddModal(false);
       setShowEditModal(false);
       setEditingAddress(null);
-      
+
       // Reload addresses
       await loadAddresses();
-      
+
       // Show success message
       const successMessage = editingAddress ? 'Dirección actualizada correctamente' : 'Dirección agregada correctamente';
       if (window.showToast) {
@@ -241,7 +241,7 @@ const Addresses = () => {
       }
     } catch (error) {
       console.error('Error saving address:', error);
-      
+
       if (error.response?.status === 401) {
         if (window.showToast) {
           window.showToast('Token de autenticación expirado o inválido. Por favor, inicia sesión nuevamente.', 'error');
@@ -309,7 +309,7 @@ const Addresses = () => {
 
         await api.delete(`/addresses/${addressId}`);
         await loadAddresses();
-        
+
         // Cerrar loading y mostrar éxito
         Swal.fire({
           title: '¡Eliminada!',
@@ -324,7 +324,7 @@ const Addresses = () => {
         }
       } catch (error) {
         console.error('Error deleting address:', error);
-        
+
         // Cerrar loading y mostrar error
         Swal.fire({
           title: 'Error',
@@ -332,7 +332,7 @@ const Addresses = () => {
           icon: 'error',
           confirmButtonText: 'Entendido'
         });
-        
+
         if (error.response?.status === 401) {
           if (window.showToast) {
             window.showToast('Token de autenticación expirado o inválido. Por favor, inicia sesión nuevamente.', 'error');
@@ -359,13 +359,13 @@ const Addresses = () => {
     try {
       await api.patch(`/addresses/${addressId}/set-default`);
       await loadAddresses();
-      
+
       if (window.showToast) {
         window.showToast('Dirección marcada como predeterminada', 'success');
       }
     } catch (error) {
       console.error('Error setting default address:', error);
-      
+
       if (error.response?.status === 401) {
         if (window.showToast) {
           window.showToast('Token de autenticación expirado o inválido. Por favor, inicia sesión nuevamente.', 'error');
@@ -488,79 +488,74 @@ const Addresses = () => {
               className={`address-card ${selectedAddressId === address.id ? 'address-card--selected' : ''}`}
               onClick={() => handleAddressSelect(address.id)}
             >
-              {/* Location Icon */}
-              <div className="address-card__icon">
-                <img src={getIconPath('Location.svg')} alt="Ubicación" style={{ width: 12, height: 17 }} />
-              </div>
-
-              {/* Address Content */}
-              <div className="address-card__content">
-                <div className="address-card__header">
+              <div className="address-card__card-content">
+                {/* Location Icon */}
+                <div className="address-card__icon">
+                  <img src={getIconPath('Location.svg')} alt="Ubicación" style={{ width: 12, height: 17 }} />
+                </div>
+                {/* Address Content */}
+                <div className="address-card__content">
                   <div className="address-card__street">
                     {address.name && <strong>{address.name}</strong>}
                     {address.name && <br />}
                     {address.street_address}
                   </div>
+                  <div className="address-card__city">
+                    {address.city}
+                    {address.state && `, ${address.state}`}
+                    {address.postal_code && ` CP: ${address.postal_code}`}
+                    {address.country && `, ${address.country}`}
+                  </div>
+                  {address.additional_info && (
+                    <div className="address-card__additional">
+                      <small className="text-muted">{address.additional_info}</small>
+                    </div>
+                  )}
                   {/* Tags */}
-                  <div className="address-card__tags">
-                    {address.is_default && (
+                  {address.is_default && (
+                    <div className="address-card__tags">
                       <span className="address-card__tag address-card__tag--shipping">
                         Predeterminada
                       </span>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
-                <div className="address-card__city">
-                  {address.city}
-                  {address.state && `, ${address.state}`}
-                  {address.postal_code && ` CP: ${address.postal_code}`}
-                  {address.country && `, ${address.country}`}
-                </div>
-                {address.additional_info && (
-                  <div className="address-card__additional">
-                    <small className="text-muted">{address.additional_info}</small>
-                  </div>
-                )}
               </div>
 
-              {/* Menu Button */}
-              <div className="address-card__menu">
+              {/* Action Buttons */}
+              <div className="address-card__actions">
                 <button
-                  className="address-card__menu-btn"
+                  className="address-card__action-btn address-card__action-btn--edit"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleMenuToggle(address.id);
+                    handleEditAddress(address);
                   }}
-                  aria-label="Opciones de dirección"
+                  aria-label="Editar dirección"
                 >
-                  <img src={getIconPath('More Options.svg')} alt="Opciones" style={{ width: 20, height: 20 }} />
+                  Editar
                 </button>
-
-                {/* Dropdown Menu */}
-                {openMenuId === address.id && (
-                  <div className="address-card__dropdown">
-                    <button
-                      className="address-card__dropdown-item"
-                      onClick={() => handleMenuAction(address.id, 'edit')}
-                    >
-                      Editar
-                    </button>
-                    {!address.is_default && (
-                      <button
-                        className="address-card__dropdown-item"
-                        onClick={() => handleMenuAction(address.id, 'setDefaultShipping')}
-                      >
-                        Usar como predeterminada
-                      </button>
-                    )}
-                    <button
-                      className="address-card__dropdown-item address-card__dropdown-item--danger"
-                      onClick={() => handleMenuAction(address.id, 'delete')}
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-                )}
+                {/* {!address.is_default && (
+                  <button
+                    className="address-card__action-btn address-card__action-btn--default"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSetDefault(address.id);
+                    }}
+                    aria-label="Usar como predeterminada"
+                  >
+                    Predeterminar
+                  </button>
+                )} */}
+                <button
+                  className="address-card__action-btn address-card__action-btn--delete"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteAddress(address.id);
+                  }}
+                  aria-label="Eliminar dirección"
+                >
+                  Eliminar
+                </button>
               </div>
             </div>
           ))
@@ -588,8 +583,8 @@ const Addresses = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Nueva Dirección</h3>
-              <button 
-                className="modal-close" 
+              <button
+                className="modal-close"
                 onClick={() => setShowAddModal(false)}
               >
                 ×
@@ -621,7 +616,7 @@ const Addresses = () => {
                       pattern="[0-9]{5}"
                       required
                     />
-                    {loadingPostalCode && <small style={{color: '#666'}}>Consultando...</small>}
+                    {loadingPostalCode && <small style={{ color: '#666' }}>Consultando...</small>}
                   </div>
                   <div className="form-group">
                     <label>Dirección (Calle y Número) *</label>
@@ -717,8 +712,8 @@ const Addresses = () => {
                   </label>
                 </div>
                 <div className="modal-actions">
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="btn btn-secondary"
                     onClick={() => setShowAddModal(false)}
                   >
@@ -740,8 +735,8 @@ const Addresses = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Editar Dirección</h3>
-              <button 
-                className="modal-close" 
+              <button
+                className="modal-close"
                 onClick={() => setShowEditModal(false)}
               >
                 ×
@@ -773,7 +768,7 @@ const Addresses = () => {
                       pattern="[0-9]{5}"
                       required
                     />
-                    {loadingPostalCode && <small style={{color: '#666'}}>Consultando...</small>}
+                    {loadingPostalCode && <small style={{ color: '#666' }}>Consultando...</small>}
                   </div>
                   <div className="form-group">
                     <label>Dirección (Calle y Número) *</label>
@@ -869,8 +864,8 @@ const Addresses = () => {
                   </label>
                 </div>
                 <div className="modal-actions">
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="btn btn-secondary"
                     onClick={() => setShowEditModal(false)}
                   >
