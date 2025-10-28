@@ -42,6 +42,11 @@ const Header = () => {
   const userMenuRef = useRef(null);
   const mobileSearchInputRef = useRef(null);
 
+  // Log del estado del menú para debugging
+  useEffect(() => {
+    console.log('👁️ userMenuOpen changed to:', userMenuOpen);
+  }, [userMenuOpen]);
+
   // Cargar notificaciones no leídas para admins y usuarios
   useEffect(() => {
     const fetchUnreadNotifications = async () => {
@@ -331,14 +336,24 @@ const Header = () => {
 
   // Cerrar menú al hacer clic fuera
   useEffect(() => {
+    if (!userMenuOpen) return; // No agregar el listener si el menú no está abierto
+    
     const handleClickOutside = (event) => {
       // Solo cerrar si el menú está abierto y el click fue fuera del menú
-      if (userMenuOpen && userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
         setUserMenuOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    
+    // Usar un pequeño delay para evitar que el click que abre el menú lo cierre inmediatamente
+    const timerId = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 100);
+    
+    return () => {
+      clearTimeout(timerId);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [userMenuOpen]);
 
   // Group cart items by product ID and color, combining different sizes
@@ -511,9 +526,15 @@ const Header = () => {
               <div className="user-menu" ref={userMenuRef}>
                 <button 
                   className="user-action user-menu-btn" 
+                  type="button"
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
-                    setUserMenuOpen(!userMenuOpen);
+                    const newState = !userMenuOpen;
+                    console.log('🟣 Desktop menu clicked!');
+                    console.log('   Current state:', userMenuOpen);
+                    console.log('   New state:', newState);
+                    setUserMenuOpen(newState);
                   }}
                 >
                   <img src={user.image || getIconPath('User.svg')} alt="Usuario" />
@@ -809,29 +830,53 @@ const Header = () => {
               </li>
             </ul>
 
-            <div className="mobile-menu-footer">
+            <div 
+              className="mobile-menu-footer"
+              onClick={(e) => {
+                console.log('🟢 Click en mobile-menu-footer', e.target.className);
+              }}
+            >
               {user ? (
-                <div className={`user-menu${userMenuOpen ? ' open' : ''}`} ref={userMenuRef}>
-                  <div className="mobile-user-info">
-                    <button
-                      className="mobile-user-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        console.log('Mobile menu clicked, current state:', userMenuOpen);
-                        setUserMenuOpen((open) => !open);
-                      }}
-                    >
-                      <div className="mobile-user-btn-content">
-                        <img src={user.image || getIconPath('User.svg')} alt="Usuario" className="mobile-user-avatar" />
-                        <span className="mobile-user-name">{user.first_name} {user.last_name}</span>
-                      </div>
-                      <img
-                        src={getIconPath('Chevron Down.svg')}
-                        alt="Menú"
-                        className={`mobile-user-arrow${userMenuOpen ? ' open' : ''}`}
-                      />
-                    </button>
-                  </div>
+                <div 
+                  className={`user-menu${userMenuOpen ? ' open' : ''}`} 
+                  ref={userMenuRef}
+                  onClick={(e) => {
+                    console.log('🟡 Click en user-menu', e.target.className);
+                  }}
+                >
+                  <button
+                    className="mobile-user-btn"
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const newState = !userMenuOpen;
+                      console.log('🔵 Mobile menu clicked!');
+                      console.log('   Current state:', userMenuOpen);
+                      console.log('   New state:', newState);
+                      setUserMenuOpen(newState);
+                    }}
+                    onTouchEnd={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const newState = !userMenuOpen;
+                      console.log('📱 Touch end on mobile menu!');
+                      console.log('   Current state:', userMenuOpen);
+                      console.log('   New state:', newState);
+                      setUserMenuOpen(newState);
+                    }}
+                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                  >
+                    <div className="mobile-user-btn-content">
+                      <img src={user.image || getIconPath('User.svg')} alt="Usuario" className="mobile-user-avatar" />
+                      <span className="mobile-user-name">{user.first_name} {user.last_name}</span>
+                    </div>
+                    <img
+                      src={getIconPath('Chevron Down.svg')}
+                      alt="Menú"
+                      className={`mobile-user-arrow${userMenuOpen ? ' open' : ''}`}
+                    />
+                  </button>
                   <div className="mobile-user-dropdown">
                       {isAdmin() && (
                         <>

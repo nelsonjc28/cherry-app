@@ -254,7 +254,7 @@
 
 /* User Dropdown Header */
 .user-dropdown-header {
-  padding: 20px;
+  padding: 12px 16px;
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   border-bottom: 1px solid #F2F2F2;
 }
@@ -266,8 +266,8 @@
 }
 
 .user-avatar {
-  width: 48px;
-  height: 48px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid white;
@@ -282,13 +282,13 @@
 
 .user-full-name {
   font-weight: 600;
-  font-size: 16px;
+  font-size: 14px;
   color: #333333;
   line-height: 1.2;
 }
 
 .user-email {
-  font-size: 13px;
+  font-size: 12px;
   color: #666666;
   line-height: 1.2;
 }
@@ -297,8 +297,8 @@
 .user-dropdown-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
+  gap: 10px;
+  padding: 8px 16px;
   color: #333333;
   text-decoration: none;
   font-size: 14px;
@@ -325,7 +325,7 @@
 .user-dropdown-divider {
   height: 1px;
   background-color: #F2F2F2;
-  margin: 8px 0;
+  margin: 4px 0;
 }
 
 /* Logout Item */
@@ -1067,28 +1067,33 @@
 } 
 
 /* Mobile User Menu */
-.mobile-user-info {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-bottom: 1px solid #F2F2F2;
-  margin-bottom: 8px;
-}
-
 .mobile-user-btn {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0;
-  background: none;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-bottom: 1px solid #F2F2F2;
+  margin-bottom: 8px;
   border: none;
-  cursor: pointer;
+  cursor: pointer !important;
   font-size: 16px;
   color: inherit;
   text-align: left;
+  position: relative;
+  z-index: 10;
+  pointer-events: auto !important;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  touch-action: manipulation;
+}
+
+.mobile-user-btn:active {
+  background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+}
+
+.mobile-user-btn * {
+  pointer-events: none; /* Los hijos no interceptan el click */
 }
 
 .mobile-user-btn-content {
@@ -1112,11 +1117,13 @@
   display: flex;
 }
 
+/* Temporalmente deshabilitado para debugging
 @media (max-width: 768px) {
   .user-dropdown {
     display: none !important;
   }
 }
+*/
 
 
 .mobile-user-avatar {
