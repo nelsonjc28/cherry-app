@@ -19,13 +19,25 @@ const useCartStore = create(
       // Initialize cart from localStorage
       initCart: () => {
         const { items } = get();
+        console.log('🔄 InitCart - Items:', items);
+        
         const totalItems = items.reduce((sum, item) => {
           // Sumar la cantidad total incluyendo items gratuitos
           const baseQuantity = item.quantity || 0;
           const freeItems = item.freeItemsCount || 0;
           return sum + baseQuantity + freeItems;
         }, 0);
+        
         const totalPrice = items.reduce((sum, item) => {
+          console.log('💰 Item pricing:', {
+            id: item.id_articulo,
+            price: item.price,
+            precio: item.precio,
+            quantity: item.quantity,
+            isFreeItem: item.isFreeItem,
+            freeItemsCount: item.freeItemsCount
+          });
+          
           // Para productos completamente gratis (isFreeItem), no sumar al total
           if (item.isFreeItem) {
             return sum;
@@ -39,8 +51,14 @@ const useCartStore = create(
           // Para productos normales (sin descuentos)
           const itemPrice = item.price || item.precio || 0;
           const paidQuantity = item.quantity || 0;
-          return sum + (itemPrice * paidQuantity);
+          const itemTotal = itemPrice * paidQuantity;
+          
+          console.log('➕ Adding to total:', { itemPrice, paidQuantity, itemTotal, currentSum: sum, newSum: sum + itemTotal });
+          
+          return sum + itemTotal;
         }, 0);
+        
+        console.log('📊 Final totals:', { totalItems, totalPrice });
         set({ totalItems, totalPrice });
       },
 
