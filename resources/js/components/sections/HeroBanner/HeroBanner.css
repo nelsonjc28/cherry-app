@@ -6,6 +6,25 @@
   overflow: hidden;
 }
 
+/* Estilos para swipe/drag */
+.hero-banner--swipeable {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  cursor: grab;
+  touch-action: pan-y pinch-zoom;
+}
+
+.hero-banner--swipeable:active {
+  cursor: grabbing;
+}
+
+.hero-banner--swipeable * {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .banner-container {
   width: 100%;
   position: relative;

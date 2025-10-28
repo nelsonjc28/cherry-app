@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useWelcomeSection from '../../../hooks/useWelcomeSection';
 import { getHeroSliderImagePath, getHeroIconPath } from '../../../utils/assetPaths';
@@ -10,6 +10,12 @@ const HeroBanner = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const { welcomeSections, loading, error } = useWelcomeSection(3);
   const { user } = useUserStore();
+  
+  // Referencias para swipe
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
+  const isDragging = useRef(false);
+  const bannerRef = useRef(null);
 
   // Memoizar los banners de fallback para evitar recreaciones
   const fallbackBanners = useMemo(() => [
@@ -47,9 +53,79 @@ const HeroBanner = () => {
     setCurrentSlide(index);
   }, []);
 
+  // Funciones para manejar swipe
+  const handleTouchStart = useCallback((e) => {
+    touchStartX.current = e.touches[0].clientX;
+    isDragging.current = true;
+  }, []);
+
+  const handleTouchMove = useCallback((e) => {
+    if (!isDragging.current) return;
+    touchEndX.current = e.touches[0].clientX;
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    
+    const swipeThreshold = 50; // Mínimo de píxeles para considerar un swipe
+    const difference = touchStartX.current - touchEndX.current;
+    
+    if (Math.abs(difference) > swipeThreshold) {
+      if (difference > 0) {
+        // Swipe a la izquierda - siguiente slide
+        setCurrentSlide((prev) => (prev + 1) % banners.length);
+      } else {
+        // Swipe a la derecha - slide anterior
+        setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length);
+      }
+    }
+    
+    touchStartX.current = 0;
+    touchEndX.current = 0;
+  }, [banners.length]);
+
+  // Soporte para mouse drag (desktop)
+  const handleMouseDown = useCallback((e) => {
+    touchStartX.current = e.clientX;
+    isDragging.current = true;
+  }, []);
+
+  const handleMouseMove = useCallback((e) => {
+    if (!isDragging.current) return;
+    touchEndX.current = e.clientX;
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    
+    const swipeThreshold = 50;
+    const difference = touchStartX.current - touchEndX.current;
+    
+    if (Math.abs(difference) > swipeThreshold) {
+      if (difference > 0) {
+        setCurrentSlide((prev) => (prev + 1) % banners.length);
+      } else {
+        setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length);
+      }
+    }
+    
+    touchStartX.current = 0;
+    touchEndX.current = 0;
+  }, [banners.length]);
+
+  // Prevenir drag de imágenes
+  const handleDragStart = useCallback((e) => {
+    e.preventDefault();
+  }, []);
+
   // Memoizar la función handleImageClick
   const handleImageClick = useCallback((banner) => {
-    navigate(banner.buttonUrl);
+    // Solo navegar si no se está arrastrando
+    if (!isDragging.current) {
+      navigate(banner.buttonUrl);
+    }
   }, [navigate]);
 
   // Memoizar la función handleImageError para evitar recreaciones
@@ -165,7 +241,18 @@ const HeroBanner = () => {
   }
 
   return (
-    <section className="hero-banner" role="banner">
+    <section 
+      className="hero-banner hero-banner--swipeable" 
+      role="banner"
+      ref={bannerRef}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+    >
       {/* Main Banner */}
       <div className="banner-container">
         <div className="banner-content">
@@ -234,8 +321,10 @@ const HeroBanner = () => {
               alt={currentBanner.imageAlt}
               className="banner-image"
               onClick={() => handleImageClick(currentBanner)}
-              style={{ cursor: 'pointer' }}
+              onDragStart={handleDragStart}
+              style={{ cursor: 'pointer', userSelect: 'none' }}
               onError={handleImageError}
+              draggable="false"
             />
           </div>
         </div>
