@@ -879,7 +879,7 @@ class AdminCatalogController extends Controller
                 ->where('is_active', true)
                 ->findOrFail($groupId);
             
-            $perPage = 20; // 20 imágenes por página para lazy loading
+            $perPage = 1000; // Aumentado de 20 a 1000 imágenes por página
             $page = request('page', 1);
             
             $images = CatalogPdf::where('catalog_id', $catalogId)
