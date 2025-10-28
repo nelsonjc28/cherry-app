@@ -55,6 +55,9 @@ const CatalogFilter = ({
       case 'availability':
         newFilters.availability = value;
         break;
+      case 'sortBy':
+        newFilters.sortBy = value;
+        break;
       case 'sizes':
         if (newFilters.sizes.includes(value)) {
           newFilters.sizes = newFilters.sizes.filter(size => size !== value);
@@ -198,7 +201,20 @@ const CatalogFilter = ({
                 </button>
                 {expandedSections.sortBy && (
                   <div className="filter-section-content">
-                    {/* Sort options would go here */}
+                    <div className="radio-group">
+                      {['Más recientes', 'Precio: menor a mayor', 'Precio: mayor a menor', 'Nombre A-Z', 'Nombre Z-A'].map((option) => (
+                        <label key={option} className="radio-label">
+                          <input
+                            type="radio"
+                            name="sortBy"
+                            value={option}
+                            checked={filters.sortBy === option}
+                            onChange={() => handleFilterChange('sortBy', option)}
+                          />
+                          <span className="radio-text">{option}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

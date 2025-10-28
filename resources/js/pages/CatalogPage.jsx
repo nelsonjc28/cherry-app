@@ -878,7 +878,7 @@ const CatalogPage = ({ catalogId }) => {
           {/* Mobile filter modal */}
           {isFilterModalOpen && (
             <div className="catalog-page__filter-modal-overlay" onClick={toggleFilterModal}>
-            <div className="catalog-page__filter-modal">
+            <div className="catalog-page__filter-modal" onClick={(e) => e.stopPropagation()}>
               <CatalogFilter
                 filters={filters}
                 onFilterChange={handleFilterChange}

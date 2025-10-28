@@ -32,7 +32,8 @@ const ProductosPage = () => {
     colors: [],
     priceRange: { min: 0, max: 0 },
     codigo: '',
-    dtu: ''
+    dtu: '',
+    sortBy: 'Más recientes'
   });
 
   // Cargar catálogos
@@ -193,6 +194,14 @@ const ProductosPage = () => {
       });
     }
 
+    // Filtrar por disponibilidad (con existencia)
+    if (filters.availability === 'con-existencia') {
+      filtered = filtered.filter(product => {
+        const stock = product.stock || product.inventario || product.inventory || 0;
+        return stock > 0;
+      });
+    }
+
     // Filtrar por código
     if (filters.codigo && filters.codigo.trim() !== '') {
       const codigoLower = filters.codigo.trim().toLowerCase();
@@ -215,6 +224,42 @@ const ProductosPage = () => {
       });
     }
 
+    // Aplicar ordenamiento
+    if (filters.sortBy) {
+      filtered = [...filtered].sort((a, b) => {
+        switch (filters.sortBy) {
+          case 'Más recientes':
+            // Ordenar por fecha de creación (más recientes primero)
+            const dateA = new Date(a.created_at || a.fecha_alta || 0);
+            const dateB = new Date(b.created_at || b.fecha_alta || 0);
+            return dateB - dateA;
+          
+          case 'Precio: menor a mayor':
+            const priceA = parseFloat(a.price || a.precio || a.precio1 || 0);
+            const priceB = parseFloat(b.price || b.precio || b.precio1 || 0);
+            return priceA - priceB;
+          
+          case 'Precio: mayor a menor':
+            const priceA2 = parseFloat(a.price || a.precio || a.precio1 || 0);
+            const priceB2 = parseFloat(b.price || b.precio || b.precio1 || 0);
+            return priceB2 - priceA2;
+          
+          case 'Nombre A-Z':
+            const nameA = (a.title || a.descripcion || a.name || '').toLowerCase();
+            const nameB = (b.title || b.descripcion || b.name || '').toLowerCase();
+            return nameA.localeCompare(nameB);
+          
+          case 'Nombre Z-A':
+            const nameA2 = (a.title || a.descripcion || a.name || '').toLowerCase();
+            const nameB2 = (b.title || b.descripcion || b.name || '').toLowerCase();
+            return nameB2.localeCompare(nameA2);
+          
+          default:
+            return 0;
+        }
+      });
+    }
+
     setFilteredProducts(filtered);
   }, [filters, products]);
 
@@ -233,7 +278,8 @@ const ProductosPage = () => {
       colors: [],
       priceRange: { min: 0, max: 0 },
       codigo: '',
-      dtu: ''
+      dtu: '',
+      sortBy: 'Más recientes'
     });
   };
 

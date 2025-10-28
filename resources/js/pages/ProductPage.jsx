@@ -318,23 +318,32 @@ const ProductPage = () => {
 
   // Función para seleccionar talla e inicializar cantidad
   const handleSizeSelection = (talla) => {
-    if (!selectedColor || getStockBySizeAndColor(talla, selectedColor) > 0) {
-      setSelectedSize(talla);
-      
-      // Si la talla no tiene cantidad o tiene 0, inicializar con 1
-      const cantidadActual = quantitiesBySize[talla] || 0;
-      if (cantidadActual <= 0) {
-        const stockDisponible = getStockForSize(talla);
-        if (stockDisponible > 0) {
-          setQuantitiesBySize(prev => ({
-            ...prev,
-            [talla]: 1
-          }));
-          setQuantity(1);
-        }
-      } else {
-        setQuantity(cantidadActual);
+    // Verificar si la talla tiene stock
+    const stockDisponible = selectedColor ? getStockBySizeAndColor(talla, selectedColor) : getStockForSize(talla);
+    
+    // No permitir selección si no hay stock
+    if (stockDisponible <= 0) {
+      if (window.showToast) {
+        window.showToast('Esta talla no tiene stock disponible', 'info');
       }
+      return;
+    }
+    
+    // Seleccionar la talla
+    setSelectedSize(talla);
+    
+    // Si la talla no tiene cantidad o tiene 0, inicializar con 1
+    const cantidadActual = quantitiesBySize[talla] || 0;
+    if (cantidadActual <= 0) {
+      if (stockDisponible > 0) {
+        setQuantitiesBySize(prev => ({
+          ...prev,
+          [talla]: 1
+        }));
+        setQuantity(1);
+      }
+    } else {
+      setQuantity(cantidadActual);
     }
   };
 
@@ -515,15 +524,8 @@ const ProductPage = () => {
     return detalle ? detalle.codbarra : null;
   };
 
-  // Filtrar solo tallas con stock disponible para el color seleccionado
-  const tallasDisponibles = tallas.filter(talla => {
-    if (!selectedColor) return true; // Si no hay color seleccionado, mostrar todas
-    const stock = getStockBySizeAndColor(talla, selectedColor);
-    return stock > 0;
-  });
-
-  // Si no hay tallas disponibles para el color seleccionado, mostrar todas
-  const tallasAMostrar = tallasDisponibles.length > 0 ? tallasDisponibles : tallas;
+  // Mostrar todas las tallas, independientemente del stock
+  const tallasAMostrar = tallas;
 
   // Obtener el stock máximo disponible para la talla y color seleccionados
   const stockMaximoDisponible = selectedColor && selectedSize ? 
@@ -906,12 +908,6 @@ const ProductPage = () => {
                     <span className="product-page__step-description">Selecciona la talla y cantidad de piezas</span>
                   </div>
                   <div className="product-page__option-label">Talla</div>
-
-                  {selectedColor && tallasDisponibles.length === 0 && (
-                    <div className="product-page__no-stock-message">
-                      <p>No hay tallas disponibles para el color seleccionado</p>
-                    </div>
-                  )}
 
                   <div className="product-page__size-options">
                     {tallasAMostrar.map((talla, index) => (

@@ -76,11 +76,11 @@ class Catalog extends Model
     }
 
     /**
-     * Obtener catálogos ordenados por orden de visualización
+     * Obtener catálogos ordenados por código (ascendente)
      */
     public function scopeOrdered($query)
     {
-        return $query->whereNotNull('display_order')->orderBy('display_order', 'asc');
+        return $query->orderByRaw('CAST(code AS UNSIGNED) ASC');
     }
 
     /**
