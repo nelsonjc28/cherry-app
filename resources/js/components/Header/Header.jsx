@@ -960,9 +960,16 @@ const Header = () => {
       )}
       <CartModal
         open={cartModalOpen}
-        onClose={() => setCartModalOpen(false)}
+        onClose={() => {
+          console.log('🚪 Closing CartModal');
+          setCartModalOpen(false);
+        }}
         cartItems={cartItemCards}
-        subtotal={formatPrice(totalPrice)}
+        subtotal={(() => {
+          const formatted = formatPrice(totalPrice);
+          console.log('💵 CartModal subtotal:', { totalPrice, formatted, cartItemsCount: cartItemCards.length });
+          return formatted;
+        })()}
         onViewCart={() => { setCartModalOpen(false); navigate('/carrito-detalle'); }}
         onCheckout={() => { setCartModalOpen(false); navigate('/carrito-detalle'); }}
       />

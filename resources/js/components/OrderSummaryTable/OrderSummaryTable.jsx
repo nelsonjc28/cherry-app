@@ -7,13 +7,23 @@ const formatNumber = (value) => {
   return isNaN(num) ? '0.00' : num.toFixed(2);
 };
 
-const OrderSummaryTable = ({ quantity, priceWithoutDiscount, priceWithDiscount, discount, savings }) => (
-  <div className="order-summary-table">
-    <div className="order-summary-header">Resumen del pedido</div>
-    <div className="order-summary-row">
-      <span className="order-summary-label">Cantidad de piezas:</span>
-      <span className="order-summary-value">{quantity}</span>
-    </div>
+const OrderSummaryTable = ({ quantity, priceWithoutDiscount, priceWithDiscount, discount, savings }) => {
+  console.log('📋 OrderSummaryTable Props:', {
+    quantity,
+    priceWithoutDiscount,
+    priceWithDiscount,
+    discount,
+    savings,
+    formattedPrice: formatNumber(priceWithDiscount)
+  });
+  
+  return (
+    <div className="order-summary-table">
+      <div className="order-summary-header">Resumen del pedido</div>
+      <div className="order-summary-row">
+        <span className="order-summary-label">Cantidad de piezas:</span>
+        <span className="order-summary-value">{quantity}</span>
+      </div>
     
     {/* Mostrar descuento si existe */}
     {discount && priceWithoutDiscount && (
@@ -34,7 +44,8 @@ const OrderSummaryTable = ({ quantity, priceWithoutDiscount, priceWithDiscount, 
       <span className="order-summary-value">${formatNumber(priceWithDiscount)}</span>
     </div>
   </div>
-);
+  );
+};
 
 OrderSummaryTable.propTypes = {
   quantity: PropTypes.number.isRequired,
