@@ -57,8 +57,14 @@ const CatalogosPage = () => {
         }
         
         if (catalogsData && catalogsData.length > 0) {
-          // Mostrar todos los catálogos sin filtrar por estado activo
-          setCatalogs(catalogsData);
+          // Ordenar catálogos por code (ascendente)
+          const sortedCatalogs = [...catalogsData].sort((a, b) => {
+            const codeA = parseInt(a.code) || 999999;
+            const codeB = parseInt(b.code) || 999999;
+            return codeA - codeB;
+          });
+          
+          setCatalogs(sortedCatalogs);
           
           // No establecer automáticamente un catálogo, dejar "Seleccione"
         } else {

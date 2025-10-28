@@ -710,7 +710,7 @@ class AdminCatalogController extends Controller
         try {
             $catalogs = Catalog::with(['pdfs'])
                 ->where('is_active', true)
-                ->orderByRaw('ISNULL(display_order), display_order ASC')
+                ->ordered()
                 ->get();
 
             return response()->json([

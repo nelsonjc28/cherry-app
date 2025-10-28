@@ -21,6 +21,7 @@ const Header = () => {
   const cartItems = cartStore?.items || [];
   const totalItems = cartStore?.totalItems || 0;
   const totalPrice = cartStore?.totalPrice || 0;
+  const { initCart } = cartStore;
 
   // Check if current page is admin
   const isAdminPage = location.pathname.startsWith('/admin');
@@ -41,6 +42,23 @@ const Header = () => {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const userMenuRef = useRef(null);
   const mobileSearchInputRef = useRef(null);
+
+  // Inicializar carrito al montar el Header
+  useEffect(() => {
+    if (initCart) {
+      initCart();
+    }
+  }, [initCart]);
+
+  // Debug: Log del totalPrice cuando cambia
+  useEffect(() => {
+    console.log('🛒 Cart Debug:', {
+      cartItems: cartItems.length,
+      totalItems,
+      totalPrice,
+      formattedPrice: formatPrice(totalPrice)
+    });
+  }, [cartItems, totalItems, totalPrice]);
 
   // Log del estado del menú para debugging
   useEffect(() => {
