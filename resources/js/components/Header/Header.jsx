@@ -332,13 +332,14 @@ const Header = () => {
   // Cerrar menú al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+      // Solo cerrar si el menú está abierto y el click fue fuera del menú
+      if (userMenuOpen && userMenuRef.current && !userMenuRef.current.contains(event.target)) {
         setUserMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [userMenuOpen]);
 
   // Group cart items by product ID and color, combining different sizes
   const groupedCartItems = (cartItems || []).reduce((groups, item) => {
@@ -508,7 +509,13 @@ const Header = () => {
           <div className="user-actions">
             {user ? (
               <div className="user-menu" ref={userMenuRef}>
-                <button className="user-action user-menu-btn" onClick={() => setUserMenuOpen(!userMenuOpen)}>
+                <button 
+                  className="user-action user-menu-btn" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setUserMenuOpen(!userMenuOpen);
+                  }}
+                >
                   <img src={user.image || getIconPath('User.svg')} alt="Usuario" />
                   <span className="user-name">{user.first_name}</span>
                   <img src={getIconPath('Chevron Down.svg')} alt="Menú" className="dropdown-icon" />
@@ -808,7 +815,10 @@ const Header = () => {
                   <div className="mobile-user-info">
                     <button
                       className="mobile-user-btn"
-                      onClick={() => setUserMenuOpen((open) => !open)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setUserMenuOpen((open) => !open);
+                      }}
                     >
                       <div className="mobile-user-btn-content">
                         <img src={user.image || getIconPath('User.svg')} alt="Usuario" className="mobile-user-avatar" />
