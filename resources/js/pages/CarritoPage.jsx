@@ -85,11 +85,8 @@ const CarritoPage = () => {
           {cartItems.length > 0 && (
             <div className="order-summary-section">
               <OrderSummaryTable 
-                summary={{
-                  items: cartItems,
-                  totalItems,
-                  totalPrice
-                }}
+                quantity={totalItems}
+                priceWithDiscount={totalPrice}
               />
             </div>
           )}

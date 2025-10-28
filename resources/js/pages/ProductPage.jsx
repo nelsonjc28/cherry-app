@@ -244,6 +244,15 @@ const ProductPage = () => {
           } : null
         };
 
+        console.log('🛍️ Adding product to cart:', {
+          id: productToAdd.id_articulo,
+          price: productToAdd.price,
+          precio: productToAdd.precio,
+          finalPrice,
+          precio1,
+          quantity: cantidad
+        });
+
         addToCart(productToAdd, cantidad);
         
         // La lógica de Buy X Get Y ahora se maneja automáticamente en el cartStore
