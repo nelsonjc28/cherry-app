@@ -427,7 +427,7 @@ const Header = () => {
     sku: groupedItem.sku,
     title: groupedItem.title,
     quantity: groupedItem.totalQuantity,
-    priceWithDiscount: formatPrice(groupedItem.totalPrice),
+    priceWithDiscount: groupedItem.totalPrice, // Pasar número sin formatear
     variants: groupedItem.variants
   }));
 
