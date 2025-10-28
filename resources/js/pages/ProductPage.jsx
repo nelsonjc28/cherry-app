@@ -762,6 +762,11 @@ const ProductPage = () => {
                   <div className="product-page__original-price">{formatPrice(product?.originalPrice || precio1)}</div>
                 )}
                 <div className="product-page__final-price">{formatPrice(finalPrice)}</div>
+                {hasOffer && discountPercentage > 0 && (
+                  <span className="product-page__savings">
+                    💰 Ahorras {formatPrice((product?.originalPrice || precio1) - finalPrice)}
+                  </span>
+                )}
               </div>
               {hasUserOffer && userOffer && userOffer.discount_category === 'buy_x_get_y' && (
                 <div className="product-page__offer-details">
