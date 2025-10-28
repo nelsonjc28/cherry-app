@@ -763,13 +763,6 @@ const ProductPage = () => {
                 )}
                 <div className="product-page__final-price">{formatPrice(finalPrice)}</div>
               </div>
-              {hasOffer && discountPercentage > 0 && (
-                <div className="product-page__offer-details">
-                  <div className="product-page__calculation">
-                    📊 Precio original: {formatPrice(precio1)} - {discountPercentage}% = {formatPrice(finalPrice)}
-                  </div>
-                </div>
-              )}
               {hasUserOffer && userOffer && userOffer.discount_category === 'buy_x_get_y' && (
                 <div className="product-page__offer-details">
                   <div className="product-page__buy-x-get-y-info">
