@@ -932,8 +932,15 @@
   transition: transform 0.3s ease;
 }
 
-.mobile-menu-arrow.open {
+.mobile-menu-arrow.open,
+.mobile-user-arrow.open {
   transform: rotate(180deg);
+}
+
+.mobile-user-arrow {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.3s ease;
 }
 
 .mobile-submenu {

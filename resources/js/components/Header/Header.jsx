@@ -817,6 +817,7 @@ const Header = () => {
                       className="mobile-user-btn"
                       onClick={(e) => {
                         e.stopPropagation();
+                        console.log('Mobile menu clicked, current state:', userMenuOpen);
                         setUserMenuOpen((open) => !open);
                       }}
                     >
@@ -831,8 +832,7 @@ const Header = () => {
                       />
                     </button>
                   </div>
-                  {userMenuOpen && (
-                    <div className="mobile-user-dropdown">
+                  <div className="mobile-user-dropdown">
                       {isAdmin() && (
                         <>
                           <Link to="/admin" className="user-dropdown-item">
@@ -878,8 +878,7 @@ const Header = () => {
                         <img src={getIconPath('Log Out.svg')} alt="Cerrar Sesión" />
                         <span>Cerrar Sesión</span>
                       </button>
-                    </div>
-                  )}
+                  </div>
                 </div>
               ) : (
                 <>
