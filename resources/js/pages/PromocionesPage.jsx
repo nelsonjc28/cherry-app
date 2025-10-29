@@ -144,7 +144,7 @@ const PromocionesPage = () => {
           {/* Header */}
           <div className="promociones-header">
             <h1>
-              {hasActiveSession ? 'Mis Rebajas Personalizadas' : 'Rebajas Disponibles'}
+              {hasActiveSession ? 'Rebajas Personalizadas' : 'Rebajas Disponibles'}
             </h1>
             <p>
               {hasActiveSession 
@@ -177,7 +177,7 @@ const PromocionesPage = () => {
             <div className="promociones-content">
               <div className="promociones-header-section">
                 <h2>
-                  {hasActiveSession ? 'Tus Ofertas Personalizadas' : 'Ofertas Especiales'}
+                  {hasActiveSession ? 'Rebajas Personalizadas' : 'Rebajas Especiales'}
                 </h2>
                 <p>
                   {productsWithOffers.length} producto{productsWithOffers.length !== 1 ? 's' : ''} en oferta

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import CatalogProductCard from '../components/CatalogProductCard/CatalogProductCard';
@@ -6,7 +6,7 @@ import InfiniteScrollLoader from '../components/InfiniteScrollLoader/InfiniteScr
 import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
 import CustomButton from '../components/CustomButton';
-import './CatalogPage.css';
+import './NuevosPage.css';
 import { 
   getProductsWithRatings,
   getAvailableColors,
@@ -14,16 +14,15 @@ import {
 } from '../api/cherryApi';
 import { applyUserOffersToProducts } from '../api/userOffers';
 import { publicCatalogService } from '../services/api';
-import { getProductImageUrl } from '../utils/productImageUtils';
 
 const NuevosPage = () => {
   // State management for filters and products
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [sortBy, setSortBy] = useState('más recientes');
-  const [allProducts, setAllProducts] = useState([]); // Store all products
-  const [filteredProducts, setFilteredProducts] = useState([]); // Store filtered products
+  const [allProducts, setAllProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [catalogs, setCatalogs] = useState([]); // Store all available catalogs
+  const [catalogs, setCatalogs] = useState([]);
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [availableColors, setAvailableColors] = useState([]);
   const [availableSizes, setAvailableSizes] = useState([]);
@@ -38,95 +37,33 @@ const NuevosPage = () => {
     priceRange: { min: 0, max: 0 }
   });
 
-
-  // Function to get available categories from products
-  const getAvailableCategories = (products) => {
-    const categorySet = new Set();
-    products.forEach(product => {
-      if (product.category && product.category.trim()) {
-        categorySet.add(product.category.trim());
-      }
-    });
-    return Array.from(categorySet).sort();
-  };
-
-  // Function to get available departments from products
-  const getAvailableDepartments = (products) => {
-    const departmentSet = new Set();
-    products.forEach(product => {
-      if (product.department && product.department.trim()) {
-        departmentSet.add(product.department.trim());
-      }
-    });
-    return Array.from(departmentSet).sort();
-  };
-
-  // Function to get available sectors from products
-  const getAvailableSectors = (products) => {
-    const sectorSet = new Set();
-    products.forEach(product => {
-      if (product.sector && product.sector.trim()) {
-        sectorSet.add(product.sector.trim());
-      }
-    });
-    return Array.from(sectorSet).sort();
-  };
-
-  // Function to get price range from products
-  const getPriceRange = (products) => {
-    if (!products || products.length === 0) return { min: 0, max: 0 };
+  // Function to filter products
+  const filterProducts = useCallback((products, currentFilters) => {
+    if (!products || products.length === 0) return [];
     
-    const prices = products.map(p => p.price || 0).filter(p => p > 0);
-    if (prices.length === 0) return { min: 0, max: 0 };
-    
-    return {
-      min: Math.min(...prices),
-      max: Math.max(...prices)
-    };
-  };
-
-  // Function to apply filters
-  const applyFilters = (products, currentFilters) => {
     let filtered = [...products];
 
-    // Filter by catalog
-    if (currentFilters.catalog && currentFilters.catalog !== 'Todos los catálogos' && currentFilters.catalog !== 'Seleccione') {
-      filtered = filtered.filter(product => {
-        // Verificar si el producto pertenece al catálogo seleccionado
-        const productCatalog = product.catalog || product.catalogue || product.catalogName || '';
-        return productCatalog.toLowerCase().includes(currentFilters.catalog.toLowerCase()) ||
-               product.catalogId === currentFilters.catalog ||
-               product.catalog_id === currentFilters.catalog;
-      });
-    }
-
-    // Filter by category (if not "Todas las categorías")
+    // Filter by category
     if (currentFilters.category && currentFilters.category !== 'Todas las categorías') {
-      filtered = filtered.filter(product => {
-        const productCategory = product.category?.toLowerCase() || '';
-        const filterCategory = currentFilters.category.toLowerCase();
-        return productCategory.includes(filterCategory);
-      });
-    }
-
-    // Filter by sector (if not "Todos los sectores")
-    if (currentFilters.sector && currentFilters.sector !== 'Todos los sectores') {
-      const sectorLower = currentFilters.sector.toLowerCase();
-      filtered = filtered.filter(product => {
-        const productSector = product.sector?.toLowerCase() || '';
-        return productSector.includes(sectorLower);
-      });
-    }
-
-    // Filter by department (if not "Todos los departamentos")
-    if (currentFilters.department && currentFilters.department !== 'Todos los departamentos') {
-      const departmentLower = currentFilters.department.toLowerCase();
+      const categoryLower = currentFilters.category.toLowerCase();
       filtered = filtered.filter(product => {
         const productCategory = product.category?.toLowerCase() || '';
         const productTitle = product.title?.toLowerCase() || '';
         const productDescription = product.description?.toLowerCase() || '';
         
-        // Map departments to categories
+        return productCategory.includes(categoryLower) || 
+               productTitle.includes(categoryLower) ||
+               productDescription.includes(categoryLower);
+      });
+    }
+
+    // Filter by department
+    if (currentFilters.department && currentFilters.department !== 'Todos los departamentos') {
+      const departmentLower = currentFilters.department.toLowerCase();
+      filtered = filtered.filter(product => {
+        const productCategory = product.category?.toLowerCase() || '';
+        const productTitle = product.title?.toLowerCase() || '';
+        
         const departmentCategoryMap = {
           'ropa casual': ['blusa', 'camisa', 'pantalon', 'jeans', 'vestido casual'],
           'ropa formal': ['vestido', 'traje', 'blazer', 'camisa formal'],
@@ -137,9 +74,7 @@ const NuevosPage = () => {
         
         const departmentCategories = departmentCategoryMap[departmentLower] || [];
         return departmentCategories.some(cat => 
-          productCategory.includes(cat) || 
-          productTitle.includes(cat) || 
-          productDescription.includes(cat)
+          productCategory.includes(cat) || productTitle.includes(cat)
         );
       });
     }
@@ -191,19 +126,20 @@ const NuevosPage = () => {
         return currentFilters.sizes.some(filterSize => {
           const filterSizeLower = filterSize.toLowerCase();
           return product.sizes.some(productSize => {
-            const productSizeLower = productSize.toString().toLowerCase();
+            const productSizeLower = productSize.toLowerCase();
             return productSizeLower === filterSizeLower || 
-                   productSizeLower.includes(filterSizeLower);
+                   productSizeLower.includes(filterSizeLower) ||
+                   filterSizeLower.includes(productSizeLower);
           });
         });
       });
     }
 
     return filtered;
-  };
+  }, []);
 
   // Function to sort products
-  const sortProducts = (products, sortOption) => {
+  const sortProducts = useCallback((products, sortOption) => {
     if (!products || products.length === 0) return [];
 
     const sorted = [...products];
@@ -224,7 +160,7 @@ const NuevosPage = () => {
       default:
         return sorted;
     }
-  };
+  }, []);
 
   // Load catalogs
   useEffect(() => {
@@ -233,7 +169,6 @@ const NuevosPage = () => {
       try {
         const response = await publicCatalogService.getAll();
         
-        // Manejar diferentes estructuras de respuesta
         let catalogsData = [];
         
         if (response.data) {
@@ -249,10 +184,7 @@ const NuevosPage = () => {
         }
         
         if (catalogsData && catalogsData.length > 0) {
-          // Mostrar todos los catálogos sin filtrar por estado activo
           setCatalogs(catalogsData);
-          
-          // No establecer automáticamente un catálogo, dejar "Seleccione"
         } else {
           setCatalogs([]);
         }
@@ -295,17 +227,15 @@ const NuevosPage = () => {
       try {
         console.log('🆕 NuevosPage: Cargando productos nuevos...');
         
-        // Cargar SOLO productos nuevos con filtro onlyNew
         const result = await getProductsWithRatings('Cherry 2025 - 2026', {
-          limit: null,  // Cargar todos los productos nuevos
-          onlyNew: true,  // Solo productos nuevos
-          random: true  // Orden aleatorio
+          limit: null,
+          onlyNew: true,
+          random: true
         });
         
         const newProducts = result.products || result || [];
         console.log(`✅ ${newProducts.length} productos nuevos cargados`);
         
-        // Aplicar ofertas personalizadas del usuario
         const productsWithOffers = await applyUserOffersToProducts(newProducts);
         
         setAllProducts(productsWithOffers);
@@ -323,22 +253,35 @@ const NuevosPage = () => {
     loadProducts();
   }, []);
 
-  // Apply filters and sorting when filters or sortBy changes
+  // Process products (filter and sort)
+  const processedProducts = useMemo(() => {
+    if (allProducts.length === 0) return [];
+    
+    let filtered = filterProducts(allProducts, filters);
+    const sorted = sortProducts(filtered, sortBy);
+    
+    return sorted;
+  }, [allProducts, filters, sortBy, filterProducts, sortProducts]);
+
+  // Update filtered products when processed products change
   useEffect(() => {
-    if (allProducts.length > 0) {
-      let filtered = applyFilters(allProducts, filters);
-      let sorted = sortProducts(filtered, sortBy);
-      setFilteredProducts(sorted);
-    }
-  }, [allProducts, filters, sortBy]);
+    setFilteredProducts(processedProducts);
+  }, [processedProducts]);
 
-  // Handler for filter changes
-  const handleFilterChange = (newFilters) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
-  };
+  // Event handlers
+  const toggleFilterModal = useCallback(() => {
+    setIsFilterModalOpen(prev => !prev);
+  }, []);
 
-  // Handler for clearing all filters
-  const handleClearFilters = () => {
+  const handleSortChange = useCallback((e) => {
+    setSortBy(e.target.value);
+  }, []);
+
+  const handleFilterChange = useCallback((newFilters) => {
+    setFilters(newFilters);
+  }, []);
+
+  const handleClearFilters = useCallback(() => {
     setFilters({
       catalog: 'Seleccione',
       availability: 'todos',
@@ -349,17 +292,10 @@ const NuevosPage = () => {
       colors: [],
       priceRange: { min: 0, max: 0 }
     });
-  };
+  }, []);
 
-  // Handler for sort changes
-  const handleSortChange = (newSortBy) => {
-    setSortBy(newSortBy);
-  };
-
-  // Handler for favorite toggle
   const handleFavoriteToggle = (productId) => {
     // Implementar lógica de favoritos si es necesario
-
   };
 
   // Infinite scroll
@@ -370,143 +306,174 @@ const NuevosPage = () => {
     infiniteScroll.reset();
   }, [filteredProducts.length]);
 
+  const totalResults = filteredProducts.length;
+
   return (
     <>
       <Helmet>
         <title>Productos Nuevos - Cherry Central</title>
         <meta name="description" content="Descubre los productos más nuevos de Cherry Central" />
-        <meta name="keywords" content="productos nuevos, moda femenina, cherry central, novedades" />
       </Helmet>
 
-      <div className="catalog-page">
-        {/* Header section with title and filters  -  DESKTOP */}
-        <div className="catalog-page__header-desktop">
-          <div className="catalog-page__title-section">
-            <h1 className="catalog-page__title">
-              Productos Nuevos
-            </h1>
-            <div className='catalog-page__content-texts'>
-              <span className="catalog-page__results-count">
-                ({filteredProducts.length})
-                <p className="catalog-page__text-results-count">Resultados</p>
-              </span>
-            </div>
-          </div>
-
-          <div className="catalog-page__controls">
-            <div className="catalog-page__sort-section">
-              <label htmlFor="sort-select" className="catalog-page__sort-label">Ordenar por:</label>
-              <select
-                id="sort-select"
-                value={sortBy}
-                onChange={handleSortChange}
-                className="catalog-page__sort-select"
-              >
-                <option value="más recientes">más recientes</option>
-                <option value="precio-menor">Precio: menor a mayor</option>
-                <option value="precio-mayor">Precio: mayor a menor</option>
-                <option value="nombre-a-z">Nombre: A-Z</option>
-                <option value="nombre-z-a">Nombre: Z-A</option>
-              </select>
-            </div>
-            <CustomButton
-              variant="filled"
-              size="medium"
-              iconLeft={<img src={getIconPath('Whatsapp.svg')} alt="Compartir productos nuevos" style={{ width: 16, height: 16 }} />}
-              onClick={() => {
-                const text = `¡Mira los productos más nuevos de Cherry Central! ${window.location.href}`;
-                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-              }}
-            >
-              <span className="catalog-page__whatsapp-text">Compartir a clientes</span>
-            </CustomButton>
-          </div>
-            </div>
-
-        {/* Main content */}
-        <div className="catalog-page__content">
-          {/* Filters sidebar - DESKTOP */}
-          <aside className="catalog-page__sidebar">
-            <CatalogFilter
-              filters={filters}
-              onFilterChange={handleFilterChange}
-              onClearFilters={handleClearFilters}
-              isMobile={false}
-              catalogs={catalogs}
-              catalogLoading={catalogLoading}
-              hideCatalogSelector={true}
-              availableColors={availableColors}
-              availableSizes={availableSizes}
-            />
-          </aside>
-
-          {/* Products grid */}
-          <main className="catalog-page__products-section">
-            {loading ? (
-              <div className="catalog-page__loading">
-                <div className="catalog-page__loading-spinner"></div>
-                <p>Cargando productos nuevos...</p>
-                </div>
-            ) : filteredProducts.length === 0 ? (
-              <div className="catalog-page__no-results">
-                <h3>No se encontraron productos nuevos</h3>
-                <p>Intenta ajustar los filtros de búsqueda</p>
+      <div className="nuevos-page">
+        <div className="container">
+          {/* Header section with title and filters  -  MOBILE */}
+          <div className="nuevos-page__header-mobile">
+            <div className="nuevos-page__title-section">
+              <h1 className="nuevos-page__title">Productos Nuevos</h1>
+              <div className='nuevos-page__content-texts'>
+                <span className="nuevos-page__results-count">
+                  ({totalResults})
+                  <p className="nuevos-page__text-results-count">Resultados</p>
+                </span>
               </div>
-            ) : (
-              <>
-                <div className="catalog-page__products-grid">
-                  {infiniteScroll.displayedItems.map((product, index) => {
-                    return (
-                      <CatalogProductCard
-                    key={product.id}
-                    product={product}
-                    onFavoriteToggle={handleFavoriteToggle}
-                  />
-                    );
-                  })}
-                </div>
+            </div>
 
-                {/* Infinite Scroll Loader */}
-                <InfiniteScrollLoader
-                  isLoading={infiniteScroll.isLoading}
-                  hasMore={infiniteScroll.hasMore}
-                  observerTarget={infiniteScroll.observerTarget}
-                />
-              </>
-            )}
-          </main>
+            <div className="nuevos-page__controls">
+              <div className="nuevos-page__sort-section">
+                <div className="nuevos-page__mobile-filter-controls">
+                  <button
+                    className="nuevos-page__mobile-filter-btn"
+                    onClick={toggleFilterModal}
+                  >
+                    <img src={getIconPath('Filter.svg')} alt="Filtros" />
+                    <img src={getIconPath('Chevron Down.svg')} alt="Expandir" />
+                  </button>
                 </div>
-                
-        {/* Mobile filter modal */}
-        {isFilterModalOpen && (
-          <div className="catalog-page__filter-modal">
-            <div className="catalog-page__filter-modal-content">
-              <div className="catalog-page__filter-modal-header">
-                <h3>Filtros</h3>
-                <button
-                  className="catalog-page__filter-modal-close"
-                  onClick={() => setIsFilterModalOpen(false)}
+                <label htmlFor="sort-select" className="nuevos-page__sort-label">Ordenar por:</label>
+                <select
+                  id="sort-select"
+                  value={sortBy}
+                  onChange={handleSortChange}
+                  className="nuevos-page__sort-select"
                 >
-                  ×
-                </button>
+                  <option value="más recientes">más recientes</option>
+                  <option value="precio-menor">Precio: menor a mayor</option>
+                  <option value="precio-mayor">Precio: mayor a menor</option>
+                  <option value="nombre-a-z">Nombre: A-Z</option>
+                  <option value="nombre-z-a">Nombre: Z-A</option>
+                </select>
               </div>
+            </div>
+          </div>
+
+          {/* Header section with title and filters  -  DESKTOP */}
+          <div className="nuevos-page__header-desktop">
+            <div className="nuevos-page__title-section">
+              <h1 className="nuevos-page__title">Productos Nuevos</h1>
+              <div className='nuevos-page__content-texts'>
+                <span className="nuevos-page__results-count">
+                  ({totalResults})
+                  <p className="nuevos-page__text-results-count">Resultados</p>
+                </span>
+              </div>
+            </div>
+
+            <div className="nuevos-page__controls">
+              <div className="nuevos-page__sort-section">
+                <label htmlFor="sort-select-desktop" className="nuevos-page__sort-label">Ordenar por:</label>
+                <select
+                  id="sort-select-desktop"
+                  value={sortBy}
+                  onChange={handleSortChange}
+                  className="nuevos-page__sort-select"
+                >
+                  <option value="más recientes">más recientes</option>
+                  <option value="precio-menor">Precio: menor a mayor</option>
+                  <option value="precio-mayor">Precio: mayor a menor</option>
+                  <option value="nombre-a-z">Nombre: A-Z</option>
+                  <option value="nombre-z-a">Nombre: Z-A</option>
+                </select>
+              </div>
+              <CustomButton
+                variant="filled"
+                size="medium"
+                iconLeft={<img src={getIconPath('Whatsapp.svg')} alt="Compartir productos nuevos" style={{ width: 16, height: 16 }} />}
+                onClick={() => {
+                  const text = `¡Mira los productos más nuevos de Cherry Central! ${window.location.href}`;
+                  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                }}
+              >
+                <span className="nuevos-page__whatsapp-text">Compartir a clientes</span>
+              </CustomButton>
+            </div>
+          </div>
+
+          {/* Main content */}
+          <div className="nuevos-page__content">
+            {/* Filters sidebar - DESKTOP */}
+            <aside className="nuevos-page__sidebar">
+              <CatalogFilter
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                onClearFilters={handleClearFilters}
+                isMobile={false}
+                availableColors={availableColors}
+                availableSizes={availableSizes}
+                catalogs={catalogs}
+                catalogLoading={catalogLoading}
+                hideCatalogSelector={true}
+              />
+            </aside>
+
+            {/* Products grid */}
+            <main className="nuevos-page__products-section">
+              {loading ? (
+                <div className="nuevos-page__loading">
+                  <div className="nuevos-page__loading-spinner"></div>
+                  <p>Cargando productos nuevos...</p>
+                </div>
+              ) : filteredProducts.length === 0 ? (
+                <div className="nuevos-page__no-results">
+                  <h3>No se encontraron productos</h3>
+                  <p>Intenta ajustar los filtros de búsqueda</p>
+                </div>
+              ) : (
+                <>
+                  <div className="nuevos-page__products-grid">
+                    {infiniteScroll.displayedItems.map((product) => (
+                      <CatalogProductCard
+                        key={product.id}
+                        product={product}
+                        onFavoriteToggle={handleFavoriteToggle}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Infinite Scroll Loader */}
+                  <InfiniteScrollLoader
+                    isLoading={infiniteScroll.isLoading}
+                    hasMore={infiniteScroll.hasMore}
+                    observerTarget={infiniteScroll.observerTarget}
+                  />
+                </>
+              )}
+            </main>
+          </div>
+
+          {/* Mobile filter modal */}
+          {isFilterModalOpen && (
+            <div className="nuevos-page__filter-modal-overlay" onClick={toggleFilterModal}>
+            <div className="nuevos-page__filter-modal" onClick={(e) => e.stopPropagation()}>
               <CatalogFilter
                 filters={filters}
                 onFilterChange={handleFilterChange}
                 onClearFilters={handleClearFilters}
                 isMobile={true}
+                onClose={toggleFilterModal}
+                availableColors={availableColors}
+                availableSizes={availableSizes}
                 catalogs={catalogs}
                 catalogLoading={catalogLoading}
                 hideCatalogSelector={true}
-                availableColors={availableColors}
-                availableSizes={availableSizes}
               />
             </div>
-          </div>
-        )}
+            </div>
+          )}
         </div>
+      </div>
     </>
   );
 };
 
-export default NuevosPage; 
+export default NuevosPage;
