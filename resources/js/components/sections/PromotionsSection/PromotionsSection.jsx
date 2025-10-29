@@ -296,14 +296,14 @@ const PromotionsSection = () => {
             {loading ? (
               <div className="promotions-section__loading">
                 <div className="loading-spinner"></div>
-                <p>Cargando promociones...</p>
+                <p>Cargando rebajas...</p>
               </div>
             ) : filteredProducts.length === 0 ? (
               <div className="promotions-section__no-results">
                 <div className="no-results-icon">
-                  <img src={getIconPath('Search.svg')} alt="Sin promociones" />
+                  <img src={getIconPath('Search.svg')} alt="Sin rebajas" />
                 </div>
-                <h3>No se encontraron promociones</h3>
+                <h3>No se encontraron rebajas</h3>
                 <p>Intenta ajustar los filtros para ver más productos en oferta</p>
                 <CherryButton 
                   variant="outline" 

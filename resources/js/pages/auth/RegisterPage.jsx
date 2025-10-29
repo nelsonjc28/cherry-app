@@ -473,7 +473,7 @@ const RegisterPage = () => {
                           onChange={handleInputChange}
                         />
                         <span className="register-checkmark"></span>
-                        Deseo recibir información sobre promociones
+                        Deseo recibir información sobre rebajas
                       </label>
                     </div>
 

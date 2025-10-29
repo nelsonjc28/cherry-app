@@ -685,8 +685,8 @@ const Header = () => {
               <li className="nav-item nav-divider"></li>
               <li className="nav-item" onMouseEnter={() => setActiveMenu(null)}>
                 <Link to="/promociones" className="nav-link">
-                  <img src={getIconPath('Bullhorn.svg')} alt="Promociones" />
-                  Promociones
+                  <img src={getIconPath('Bullhorn.svg')} alt="Rebajas" />
+                  Rebajas
                 </Link>
               </li>
               <li className="nav-item nav-divider"></li>
@@ -835,8 +835,8 @@ const Header = () => {
 
               <li className="mobile-menu-item">
                 <Link to="/promociones" className="mobile-menu-link" onClick={() => setMobileMenuOpen(false)}>
-                  <img src={getIconPath('Bullhorn.svg')} alt="Promociones" />
-                  <span>Promociones</span>
+                  <img src={getIconPath('Bullhorn.svg')} alt="Rebajas" />
+                  <span>Rebajas</span>
                 </Link>
               </li>
 

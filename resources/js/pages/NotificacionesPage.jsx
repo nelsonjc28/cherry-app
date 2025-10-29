@@ -243,7 +243,7 @@ const NotificacionesPage = () => {
               <h3>Tipos de notificaciones</h3>
               <ul>
                 <li><strong>Productos:</strong> Nuevos productos disponibles</li>
-                <li><strong>Promociones:</strong> Ofertas y descuentos especiales</li>
+                <li><strong>Rebajas:</strong> Ofertas y descuentos especiales</li>
                 <li><strong>Catálogos:</strong> Nuevos catálogos disponibles</li>
                 <li><strong>Pedidos:</strong> Estado de tus compras</li>
               </ul>

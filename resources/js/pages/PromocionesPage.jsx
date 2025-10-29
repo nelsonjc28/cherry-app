@@ -117,14 +117,14 @@ const PromocionesPage = () => {
     return (
       <>
         <Helmet>
-          <title>Promociones - Cherry Central</title>
+          <title>Rebajas - Cherry Central</title>
         </Helmet>
         
         <main className="promociones-page">
           <div className="container">
             <div className="promociones-loading">
               <div className="loading-spinner"></div>
-              <p>Cargando promociones...</p>
+              <p>Cargando rebajas...</p>
             </div>
           </div>
         </main>
@@ -135,8 +135,8 @@ const PromocionesPage = () => {
   return (
     <>
       <Helmet>
-        <title>Promociones - Cherry Central</title>
-        <meta name="description" content="Descubre las mejores promociones y ofertas en Cherry Central. Descuentos especiales en moda femenina." />
+        <title>Rebajas - Cherry Central</title>
+        <meta name="description" content="Descubre las mejores rebajas y ofertas en Cherry Central. Descuentos especiales en moda femenina." />
       </Helmet>
 
       <main className="promociones-page">
@@ -144,7 +144,7 @@ const PromocionesPage = () => {
           {/* Header */}
           <div className="promociones-header">
             <h1>
-              {hasActiveSession ? 'Mis Promociones Personalizadas' : 'Promociones Disponibles'}
+              {hasActiveSession ? 'Mis Rebajas Personalizadas' : 'Rebajas Disponibles'}
             </h1>
             <p>
               {hasActiveSession 
@@ -158,9 +158,9 @@ const PromocionesPage = () => {
           {productsWithOffers.length === 0 ? (
             <div className="promociones-empty">
               <div className="empty-icon">
-                <img src={getIconPath('Bullhorn.svg')} alt="Sin promociones" />
+                <img src={getIconPath('Bullhorn.svg')} alt="Sin rebajas" />
               </div>
-              <h3>No hay promociones disponibles</h3>
+              <h3>No hay rebajas disponibles</h3>
               <p>
                 {hasActiveSession 
                   ? 'No tienes productos en promoción actualmente. ¡Mantente atento a futuras ofertas exclusivas!'
@@ -223,7 +223,7 @@ const PromocionesPage = () => {
           {/* Información adicional */}
           <div className="promociones-info">
             <div className="info-section">
-              <h3>¿Cómo funcionan nuestras promociones?</h3>
+              <h3>¿Cómo funcionan nuestras rebajas?</h3>
               <div className="info-grid">
                 <div className="info-item">
                   <div className="info-icon">

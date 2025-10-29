@@ -239,7 +239,7 @@ const DestacadosOfertasPage = () => {
                 </CherryButton>
                 <Link to="/promociones">
                   <CherryButton variant="outline" size="large">
-                    Ver todas las promociones
+                    Ver todas las rebajas
                   </CherryButton>
                 </Link>
               </div>
