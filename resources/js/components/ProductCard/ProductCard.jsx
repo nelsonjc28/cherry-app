@@ -112,12 +112,20 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
       }
       // Para otras ofertas personalizadas, mostrar el porcentaje de descuento
       if (finalUserOffer.discount_percentage && finalUserOffer.discount_percentage > 0) {
-        return `Oferta ${Math.round(finalUserOffer.discount_percentage)}%`;
+        return (
+          <>
+            <span className="offer-text">Rebaja </span>{Math.round(finalUserOffer.discount_percentage)}%
+          </>
+        );
       }
     }
     
-    // PRIORIDAD 2: Descuento general - mostrar "Oferta X%"
-    return `Oferta ${discountPercentage}%`;
+    // PRIORIDAD 2: Descuento general - mostrar "Rebaja X%"
+    return (
+      <>
+        <span className="offer-text">Rebaja </span>{discountPercentage}%
+      </>
+    );
   };
 
   // Handle share functionality
@@ -182,7 +190,7 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
           {/* Offer badge if product has discount */}
           {hasOffer && (
             <span className="offer-badge">
-              Oferta {discountPercentage}%
+              {getDiscountLabel()}
             </span>
           )}
         </div>

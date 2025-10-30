@@ -39,6 +39,21 @@
   transform: scale(1.05);
 }
 
+/* Offer badge */
+.best-seller-offer-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: #ff4444;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  z-index: 2;
+  box-shadow: 0 2px 4px rgba(255, 68, 68, 0.3);
+}
+
 /* Product Info */
 .best-seller-info {
   padding: 16px 14px 14px;
@@ -155,6 +170,11 @@
   
   .best-seller-description {
     font-size: 0.85rem;
+  }
+  
+  /* Ocultar texto "Rebaja" en móvil, solo mostrar el porcentaje */
+  .best-seller-offer-badge .offer-text {
+    display: none;
   }
 }
 

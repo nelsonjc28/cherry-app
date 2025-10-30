@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
-import ProductCard from '../components/ProductCard/ProductCard';
+import CatalogProductCard from '../components/CatalogProductCard/CatalogProductCard';
 import CherryButton from '../components/CherryButton/CherryButton';
+import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import InfiniteScrollLoader from '../components/InfiniteScrollLoader/InfiniteScrollLoader';
 import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
@@ -12,7 +13,21 @@ import './PromocionesPage.css';
 
 const PromocionesPage = () => {
   const [productsWithOffers, setProductsWithOffers] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [sortBy, setSortBy] = useState('más recientes');
+  const [availableColors, setAvailableColors] = useState([]);
+  const [availableSizes, setAvailableSizes] = useState([]);
+  const [filters, setFilters] = useState({
+    availability: 'todos',
+    category: 'Todas las categorías',
+    department: 'Todos los departamentos',
+    sector: 'Todos los sectores',
+    sizes: [],
+    colors: [],
+    priceRange: { min: 0, max: 0 }
+  });
   const hasActiveSession = isUserSessionActive();
 
   // Cargar productos con promociones (PRIMERO ofertas del admin, LUEGO API externa)
@@ -101,17 +116,237 @@ const PromocionesPage = () => {
     loadPromoProducts();
   }, [hasActiveSession]);
 
-  const handleFavoriteToggle = (productId) => {
-    // Implementar lógica de favoritos si es necesario
+  // Extraer colores y tallas disponibles de los productos cargados
+  useEffect(() => {
+    const extractFiltersFromProducts = () => {
+      try {
+        const colorSet = new Set();
+        const sizeSet = new Set();
+        
+        productsWithOffers.forEach(product => {
+          if (product.detalles && product.detalles.length > 0) {
+            product.detalles.forEach(detalle => {
+              if (detalle.nombreColor && detalle.nombreColor.trim()) {
+                colorSet.add(detalle.nombreColor.trim());
+              }
+              if (detalle.detalle && detalle.detalle.trim()) {
+                sizeSet.add(detalle.detalle.trim());
+              }
+            });
+          }
+          
+          if (product.sizes && product.sizes.length > 0) {
+            product.sizes.forEach(size => {
+              if (size && size.trim()) {
+                sizeSet.add(size.trim());
+              }
+            });
+          }
+        });
+        
+        // Ordenar tallas
+        const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+        const sizes = Array.from(sizeSet);
+        const sortedSizes = sizes.sort((a, b) => {
+          const indexA = sizeOrder.indexOf(a.toUpperCase());
+          const indexB = sizeOrder.indexOf(b.toUpperCase());
+          
+          if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+          if (indexA !== -1) return -1;
+          if (indexB !== -1) return 1;
+          return a.localeCompare(b);
+        });
+        
+        setAvailableColors(Array.from(colorSet).sort());
+        setAvailableSizes(sortedSizes);
+      } catch (error) {
+        console.error('Error extrayendo datos de filtros:', error);
+        setAvailableColors([]);
+        setAvailableSizes([]);
+      }
     };
 
-  // Infinite scroll
-  const infiniteScroll = useInfiniteScroll(productsWithOffers, 20);
+    if (productsWithOffers.length > 0) {
+      extractFiltersFromProducts();
+    }
+  }, [productsWithOffers]);
 
-  // Reset infinite scroll cuando cambian los productos
+  // Función para filtrar productos
+  const filterProducts = useCallback((products, currentFilters) => {
+    if (!products || products.length === 0) return [];
+    
+    let filtered = [...products];
+
+    // Filtrar por categoría
+    if (currentFilters.category && currentFilters.category !== 'Todas las categorías') {
+      const categoryLower = currentFilters.category.toLowerCase();
+      filtered = filtered.filter(product => {
+        const productCategory = product.category?.toLowerCase() || '';
+        const productTitle = product.title?.toLowerCase() || '';
+        const productDescription = product.description?.toLowerCase() || '';
+        
+        return productCategory.includes(categoryLower) || 
+               productTitle.includes(categoryLower) ||
+               productDescription.includes(categoryLower);
+      });
+    }
+
+    // Filtrar por departamento
+    if (currentFilters.department && currentFilters.department !== 'Todos los departamentos') {
+      const departmentLower = currentFilters.department.toLowerCase();
+      filtered = filtered.filter(product => {
+        const productCategory = product.category?.toLowerCase() || '';
+        const productTitle = product.title?.toLowerCase() || '';
+        
+        const departmentCategoryMap = {
+          'ropa casual': ['blusa', 'camisa', 'pantalon', 'jeans', 'vestido casual'],
+          'ropa formal': ['vestido', 'traje', 'blazer', 'camisa formal'],
+          'ropa deportiva': ['deportivo', 'gym', 'fitness', 'running'],
+          'accesorios': ['accesorio', 'bolsa', 'cartera', 'cinturon', 'collar'],
+          'calzado': ['zapato', 'tenis', 'sandalias', 'botas']
+        };
+        
+        const departmentCategories = departmentCategoryMap[departmentLower] || [];
+        return departmentCategories.some(cat => 
+          productCategory.includes(cat) || productTitle.includes(cat)
+        );
+      });
+    }
+
+    // Filtrar por rango de precio
+    if (currentFilters.priceRange && (currentFilters.priceRange.min > 0 || currentFilters.priceRange.max > 0)) {
+      filtered = filtered.filter(product => {
+        const price = product.price || 0;
+        const minPrice = currentFilters.priceRange.min || 0;
+        const maxPrice = currentFilters.priceRange.max || 0;
+        
+        if (maxPrice > 0) {
+          return price >= minPrice && price <= maxPrice;
+        } else {
+          return price >= minPrice;
+        }
+      });
+    }
+
+    // Filtrar por disponibilidad
+    if (currentFilters.availability === 'con-existencia') {
+      filtered = filtered.filter(product => product.stock > 0);
+    } else if (currentFilters.availability === 'sin-existencia') {
+      filtered = filtered.filter(product => product.stock === 0);
+    }
+
+    // Filtrar por colores
+    if (currentFilters.colors && currentFilters.colors.length > 0) {
+      filtered = filtered.filter(product => {
+        if (!product.colors || product.colors.length === 0) return false;
+        
+        return currentFilters.colors.some(filterColor => {
+          const filterColorLower = filterColor.toLowerCase();
+          return product.colors.some(productColor => {
+            const productColorLower = productColor.toLowerCase();
+            return productColorLower === filterColorLower || 
+                   productColorLower.includes(filterColorLower) ||
+                   filterColorLower.includes(productColorLower);
+          });
+        });
+      });
+    }
+
+    // Filtrar por tallas
+    if (currentFilters.sizes && currentFilters.sizes.length > 0) {
+      filtered = filtered.filter(product => {
+        if (!product.sizes || product.sizes.length === 0) return false;
+        
+        return currentFilters.sizes.some(filterSize => {
+          const filterSizeLower = filterSize.toLowerCase();
+          return product.sizes.some(productSize => {
+            const productSizeLower = productSize.toLowerCase();
+            return productSizeLower === filterSizeLower || 
+                   productSizeLower.includes(filterSizeLower) ||
+                   filterSizeLower.includes(productSizeLower);
+          });
+        });
+      });
+    }
+
+    return filtered;
+  }, []);
+
+  // Función para ordenar productos
+  const sortProducts = useCallback((products, sortOption) => {
+    if (!products || products.length === 0) return [];
+
+    const sorted = [...products];
+
+    switch (sortOption) {
+      case 'precio-menor':
+        return sorted.sort((a, b) => (a.price || 0) - (b.price || 0));
+      case 'precio-mayor':
+        return sorted.sort((a, b) => (b.price || 0) - (a.price || 0));
+      case 'más-recientes':
+        return sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      case 'más-antiguos':
+        return sorted.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+      case 'nombre-a-z':
+        return sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+      case 'nombre-z-a':
+        return sorted.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
+      default:
+        return sorted;
+    }
+  }, []);
+
+  // Procesar productos (filtrar y ordenar)
+  const processedProducts = useMemo(() => {
+    if (productsWithOffers.length === 0) return [];
+    
+    let filtered = filterProducts(productsWithOffers, filters);
+    const sorted = sortProducts(filtered, sortBy);
+    
+    return sorted;
+  }, [productsWithOffers, filters, sortBy, filterProducts, sortProducts]);
+
+  // Actualizar productos filtrados cuando cambian los procesados
+  useEffect(() => {
+    setFilteredProducts(processedProducts);
+  }, [processedProducts]);
+
+  // Manejadores de eventos
+  const toggleFilterModal = useCallback(() => {
+    setIsFilterModalOpen(prev => !prev);
+  }, []);
+
+  const handleSortChange = useCallback((e) => {
+    setSortBy(e.target.value);
+  }, []);
+
+  const handleFilterChange = useCallback((newFilters) => {
+    setFilters(newFilters);
+  }, []);
+
+  const handleClearFilters = useCallback(() => {
+    setFilters({
+      availability: 'todos',
+      category: 'Todas las categorías',
+      department: 'Todos los departamentos',
+      sector: 'Todos los sectores',
+      sizes: [],
+      colors: [],
+      priceRange: { min: 0, max: 0 }
+    });
+  }, []);
+
+  const handleFavoriteToggle = (productId) => {
+    // Implementar lógica de favoritos si es necesario
+  };
+
+  // Infinite scroll
+  const infiniteScroll = useInfiniteScroll(filteredProducts, 20);
+
+  // Reset infinite scroll cuando cambian los productos filtrados
   useEffect(() => {
     infiniteScroll.reset();
-  }, [productsWithOffers.length]);
+  }, [filteredProducts.length]);
 
   if (loading) {
     return (
@@ -132,6 +367,8 @@ const PromocionesPage = () => {
     );
   }
 
+  const totalResults = filteredProducts.length;
+
   return (
     <>
       <Helmet>
@@ -139,120 +376,152 @@ const PromocionesPage = () => {
         <meta name="description" content="Descubre las mejores rebajas y ofertas en Cherry Central. Descuentos especiales en moda femenina." />
       </Helmet>
 
-      <main className="promociones-page">
+      <div className="promociones-page">
         <div className="container">
-          {/* Header */}
-          <div className="promociones-header">
-            <h1>
-              {hasActiveSession ? 'Rebajas Personalizadas' : 'Rebajas Disponibles'}
-            </h1>
-            <p>
-              {hasActiveSession 
-                ? 'Ofertas externas y descuentos exclusivos personalizados para ti'
-                : 'Ofertas y descuentos especiales de nuestra colección'
-              }
-            </p>
+          {/* Header section with title and filters  -  MOBILE */}
+          <div className="promociones-page__header-mobile">
+            <div className="promociones-page__title-section">
+              <h1 className="promociones-page__title">
+                {hasActiveSession ? 'Rebajas Personalizadas' : 'Rebajas'}
+              </h1>
+              <div className='promociones-page__content-texts'>
+                <span className="promociones-page__results-count">
+                  ({totalResults})
+                  <p className="promociones-page__text-results-count">Resultados</p>
+                </span>
+              </div>
+            </div>
+
+            <div className="promociones-page__controls">
+              <div className="promociones-page__sort-section">
+                <div className="promociones-page__mobile-filter-controls">
+                  <button
+                    className="promociones-page__mobile-filter-btn"
+                    onClick={toggleFilterModal}
+                  >
+                    <img src={getIconPath('Filter.svg')} alt="Filtros" />
+                    <img src={getIconPath('Chevron Down.svg')} alt="Expandir" />
+                  </button>
+                </div>
+                <label htmlFor="sort-select" className="promociones-page__sort-label">Ordenar por:</label>
+                <select
+                  id="sort-select"
+                  value={sortBy}
+                  onChange={handleSortChange}
+                  className="promociones-page__sort-select"
+                >
+                  <option value="más recientes">más recientes</option>
+                  <option value="precio-menor">Precio: menor a mayor</option>
+                  <option value="precio-mayor">Precio: mayor a menor</option>
+                  <option value="nombre-a-z">Nombre: A-Z</option>
+                  <option value="nombre-z-a">Nombre: Z-A</option>
+                </select>
+              </div>
+            </div>
           </div>
 
-          {/* Mostrar productos con ofertas */}
-          {productsWithOffers.length === 0 ? (
-            <div className="promociones-empty">
-              <div className="empty-icon">
-                <img src={getIconPath('Bullhorn.svg')} alt="Sin rebajas" />
+          {/* Header section with title and filters  -  DESKTOP */}
+          <div className="promociones-page__header-desktop">
+            <div className="promociones-page__title-section">
+              <h1 className="promociones-page__title">
+                {hasActiveSession ? 'Rebajas Personalizadas' : 'Rebajas'}
+              </h1>
+              <div className='promociones-page__content-texts'>
+                <span className="promociones-page__results-count">
+                  ({totalResults})
+                  <p className="promociones-page__text-results-count">Resultados</p>
+                </span>
               </div>
-              <h3>No hay rebajas disponibles</h3>
-              <p>
-                {hasActiveSession 
-                  ? 'No tienes productos en promoción actualmente. ¡Mantente atento a futuras ofertas exclusivas!'
-                  : 'No hay ofertas disponibles en este momento. ¡Revisa nuestro catálogo completo!'
-                }
-              </p>
-              <Link to="/catalogo">
-                <CherryButton variant="outline" size="medium">
-                  Explorar Catálogo
-                </CherryButton>
-              </Link>
             </div>
-          ) : (
-            <div className="promociones-content">
-              <div className="promociones-header-section">
-                <h2>
-                  {hasActiveSession ? 'Rebajas Personalizadas' : 'Rebajas Especiales'}
-                </h2>
-                <p>
-                  {productsWithOffers.length} producto{productsWithOffers.length !== 1 ? 's' : ''} en oferta
-                </p>
+
+            <div className="promociones-page__controls">
+              <div className="promociones-page__sort-section">
+                <label htmlFor="sort-select-desktop" className="promociones-page__sort-label">Ordenar por:</label>
+                <select
+                  id="sort-select-desktop"
+                  value={sortBy}
+                  onChange={handleSortChange}
+                  className="promociones-page__sort-select"
+                >
+                  <option value="más recientes">más recientes</option>
+                  <option value="precio-menor">Precio: menor a mayor</option>
+                  <option value="precio-mayor">Precio: mayor a menor</option>
+                  <option value="nombre-a-z">Nombre: A-Z</option>
+                  <option value="nombre-z-a">Nombre: Z-A</option>
+                </select>
               </div>
+            </div>
+          </div>
 
+          {/* Main content */}
+          <div className="promociones-page__content">
+            {/* Filters sidebar - DESKTOP */}
+            <aside className="promociones-page__sidebar">
+              <CatalogFilter
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                onClearFilters={handleClearFilters}
+                isMobile={false}
+                availableColors={availableColors}
+                availableSizes={availableSizes}
+                hideCatalogSelector={true}
+              />
+            </aside>
 
-              {/* Grid de productos con ofertas */}
-              <div className="promociones-products-grid">
-                {infiniteScroll.displayedItems.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onFavoriteToggle={handleFavoriteToggle}
+            {/* Products grid */}
+            <main className="promociones-page__products-section">
+              {loading ? (
+                <div className="promociones-page__loading">
+                  <div className="promociones-page__loading-spinner"></div>
+                  <p>Cargando rebajas...</p>
+                </div>
+              ) : filteredProducts.length === 0 ? (
+                <div className="promociones-page__no-results">
+                  <h3>No se encontraron productos</h3>
+                  <p>Intenta ajustar los filtros de búsqueda</p>
+                </div>
+              ) : (
+                <>
+                  <div className="promociones-page__products-grid">
+                    {infiniteScroll.displayedItems.map((product) => (
+                      <CatalogProductCard
+                        key={product.id}
+                        product={product}
+                        onFavoriteToggle={handleFavoriteToggle}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Infinite Scroll Loader */}
+                  <InfiniteScrollLoader
+                    isLoading={infiniteScroll.isLoading}
+                    hasMore={infiniteScroll.hasMore}
+                    observerTarget={infiniteScroll.observerTarget}
                   />
-                ))}
-              </div>
+                </>
+              )}
+            </main>
+          </div>
 
-              {/* Infinite Scroll Loader */}
-              <InfiniteScrollLoader
-                isLoading={infiniteScroll.isLoading}
-                hasMore={infiniteScroll.hasMore}
-                observerTarget={infiniteScroll.observerTarget}
+          {/* Mobile filter modal */}
+          {isFilterModalOpen && (
+            <div className="promociones-page__filter-modal-overlay" onClick={toggleFilterModal}>
+            <div className="promociones-page__filter-modal" onClick={(e) => e.stopPropagation()}>
+              <CatalogFilter
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                onClearFilters={handleClearFilters}
+                isMobile={true}
+                onClose={toggleFilterModal}
+                availableColors={availableColors}
+                availableSizes={availableSizes}
+                hideCatalogSelector={true}
               />
             </div>
-          )}
-
-          {/* Llamada a la acción para usuarios no logueados */}
-          {!hasActiveSession && (
-            <div className="login-cta">
-              <div className="cta-content">
-                <h3>¿Quieres ofertas personalizadas?</h3>
-                <p>Inicia sesión para acceder a descuentos exclusivos y ofertas especiales solo para ti</p>
-                <Link to="/login">
-                  <CherryButton variant="primary" size="medium">
-                    Iniciar Sesión
-                  </CherryButton>
-                </Link>
-              </div>
             </div>
           )}
-
-          {/* Información adicional */}
-          <div className="promociones-info">
-            <div className="info-section">
-              <h3>¿Cómo funcionan nuestras rebajas?</h3>
-              <div className="info-grid">
-                <div className="info-item">
-                  <div className="info-icon">
-                    <img src={getIconPath('Bell.svg')} alt="Notificaciones" />
-                  </div>
-                  <h4>Ofertas automáticas</h4>
-                  <p>Las ofertas se muestran automáticamente según tu estado de sesión</p>
-                </div>
-                
-                <div className="info-item">
-                  <div className="info-icon">
-                    <img src={getIconPath('Shopping Cart.svg')} alt="Compras" />
-                  </div>
-                  <h4>Descuentos aplicados</h4>
-                  <p>Los descuentos se aplican automáticamente al agregar productos al carrito</p>
-                </div>
-                
-                <div className="info-item">
-                  <div className="info-icon">
-                    <img src={getIconPath('Award.svg')} alt="Beneficios" />
-                  </div>
-                  <h4>Beneficios exclusivos</h4>
-                  <p>Los usuarios registrados acceden a ofertas personalizadas adicionales</p>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
-      </main>
+      </div>
     </>
   );
 };

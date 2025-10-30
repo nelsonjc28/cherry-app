@@ -545,6 +545,14 @@
   }
 }
 
+@media (max-width: 768px) {
+  /* Ocultar texto "Rebaja" en móvil, solo mostrar el porcentaje */
+  .offer-badge .offer-text,
+  .best-seller-offer-badge .offer-text {
+    display: none;
+  }
+}
+
 @media (max-width: 576px) {
   .product-card--bestseller {
     border-radius: 8px;

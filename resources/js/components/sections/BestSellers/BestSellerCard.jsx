@@ -52,7 +52,9 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
         {/* Offer badge if product has discount */}
         {hasOffer && (
           <span className="best-seller-offer-badge">
-            Oferta {discountPercentage}%
+            <>
+              <span className="offer-text">Rebaja </span>{discountPercentage}%
+            </>
           </span>
         )}
 

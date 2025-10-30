@@ -141,7 +141,9 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
         {/* Offer badge if product has discount */}
         {hasOffer && (
           <span className="catalog-offer-badge">
-            Oferta {discountPercentage}%
+            <>
+              <span className="offer-text">Rebaja </span>{discountPercentage}%
+            </>
           </span>
         )}
 

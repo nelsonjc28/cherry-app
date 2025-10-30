@@ -1,0 +1,26 @@
+{
+  "resources/css/app.css": {
+    "file": "assets/app-NS0_ynA5.css",
+    "src": "resources/css/app.css",
+    "isEntry": true
+  },
+  "resources/js/main.jsx": {
+    "file": "assets/main-B2_X2SYS.js",
+    "name": "main",
+    "src": "resources/js/main.jsx",
+    "isEntry": true,
+    "dynamicImports": [
+      "resources/js/utils/searchNormalizer.js",
+      "resources/js/utils/searchNormalizer.js"
+    ],
+    "css": [
+      "assets/main-BAybkwrd.css"
+    ]
+  },
+  "resources/js/utils/searchNormalizer.js": {
+    "file": "assets/searchNormalizer-shV8OERC.js",
+    "name": "searchNormalizer",
+    "src": "resources/js/utils/searchNormalizer.js",
+    "isDynamicEntry": true
+  }
+}
