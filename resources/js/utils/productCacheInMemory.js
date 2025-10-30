@@ -123,10 +123,12 @@ class ProductCacheManager {
 
   /**
    * Filtra productos por categoría (línea)
+   * @param {Array} products - Array de productos
+   * @param {string} categoryCode - Código de la categoría (corresponde a linea.id_linea)
    */
-  filterByCategory(products, categoryId) {
-    if (!categoryId) return products;
-    return products.filter(p => p.linea?.id_linea == categoryId);
+  filterByCategory(products, categoryCode) {
+    if (!categoryCode) return products;
+    return products.filter(p => p.linea?.id_linea == categoryCode);
   }
 
   /**

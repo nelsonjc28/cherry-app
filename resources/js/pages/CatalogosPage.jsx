@@ -21,7 +21,7 @@ const CatalogosPage = () => {
   const [filters, setFilters] = useState({
     catalog: 'Seleccione',
     availability: 'todos',
-    category: 'Todas las categorías',
+    category: '',
     department: 'Todos los departamentos',
     sector: 'Todos los sectores',
     sizes: [],
@@ -154,13 +154,11 @@ const CatalogosPage = () => {
       });
     }
     
-    // Filtros igual que en CatalogPage.jsx
-    if (currentFilters.category && currentFilters.category !== 'Todas las categorías') {
-      const categoryLower = currentFilters.category.toLowerCase();
+    // Filtros igual que en CatalogPage.jsx (usando código)
+    if (currentFilters.category && currentFilters.category !== '') {
       filtered = filtered.filter(product => {
-        const productCategory = product.category?.toLowerCase() || '';
-        return productCategory.includes(categoryLower) || 
-               product.title?.toLowerCase().includes(categoryLower);
+        const productLineaId = product.linea?.id_linea;
+        return productLineaId == currentFilters.category;
       });
     }
     if (currentFilters.priceRange.min > 0 || currentFilters.priceRange.max > 0) {
@@ -247,7 +245,7 @@ const CatalogosPage = () => {
     setFilters({
       catalog: 'Seleccione',
       availability: 'todos',
-      category: 'Todas las categorías',
+      category: '',
       department: 'Todos los departamentos',
       sector: 'Todos los sectores',
       sizes: [],

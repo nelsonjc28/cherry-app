@@ -29,7 +29,7 @@ const NuevosPage = () => {
   const [filters, setFilters] = useState({
     catalog: 'Seleccione',
     availability: 'todos',
-    category: 'Todas las categorías',
+    category: '',
     department: 'Todos los departamentos',
     sector: 'Todos los sectores',
     sizes: [],
@@ -43,17 +43,11 @@ const NuevosPage = () => {
     
     let filtered = [...products];
 
-    // Filter by category
-    if (currentFilters.category && currentFilters.category !== 'Todas las categorías') {
-      const categoryLower = currentFilters.category.toLowerCase();
+    // Filter by category (usando código)
+    if (currentFilters.category && currentFilters.category !== '') {
       filtered = filtered.filter(product => {
-        const productCategory = product.category?.toLowerCase() || '';
-        const productTitle = product.title?.toLowerCase() || '';
-        const productDescription = product.description?.toLowerCase() || '';
-        
-        return productCategory.includes(categoryLower) || 
-               productTitle.includes(categoryLower) ||
-               productDescription.includes(categoryLower);
+        const productLineaId = product.linea?.id_linea;
+        return productLineaId == currentFilters.category;
       });
     }
 
@@ -285,7 +279,7 @@ const NuevosPage = () => {
     setFilters({
       catalog: 'Seleccione',
       availability: 'todos',
-      category: 'Todas las categorías',
+      category: '',
       department: 'Todos los departamentos',
       sector: 'Todos los sectores',
       sizes: [],

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import FavoriteButton from '../../FavoriteButton/FavoriteButton';
 import StarRating from '../../StarRating/StarRating';
@@ -6,6 +6,17 @@ import { formatPrice } from '../../../utils/formatters';
 import './BestSellerCard.css';
 
 const BestSellerCard = ({ id, title, image, price, originalPrice, discount, userOffer, hasUserOffer, rating, totalRatings, description, onFavoriteToggle }) => {
+  // Hook para detectar si es móvil
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   // Calculate discount percentage - Priorizar oferta personalizada
   const calculateDiscountPercentage = () => {
     // PRIORIDAD 1: Oferta personalizada del usuario
@@ -52,9 +63,7 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
         {/* Offer badge if product has discount */}
         {hasOffer && (
           <span className="best-seller-offer-badge">
-            <>
-              <span className="offer-text">Rebaja </span>{discountPercentage}%
-            </>
+            {!isMobile && "Rebaja "}{discountPercentage}%
           </span>
         )}
 

@@ -42,13 +42,13 @@
 /* Offer badge */
 .best-seller-offer-badge {
   position: absolute;
-  top: 8px;
-  left: 8px;
+  top: 4px;
+  left: 4px;
   background: #ff4444;
   color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-size: 0.65rem;
   font-weight: 600;
   z-index: 2;
   box-shadow: 0 2px 4px rgba(255, 68, 68, 0.3);
@@ -174,7 +174,7 @@
   
   /* Ocultar texto "Rebaja" en móvil, solo mostrar el porcentaje */
   .best-seller-offer-badge .offer-text {
-    display: none;
+    display: none !important;
   }
 }
 

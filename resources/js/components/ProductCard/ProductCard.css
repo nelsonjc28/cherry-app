@@ -49,13 +49,13 @@
 /* Offer badge */
 .offer-badge {
   position: absolute;
-  top: 8px;
-  left: 8px;
+  top: 4px;
+  left: 4px;
   background: #ff4444;
   color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-size: 0.65rem;
   font-weight: 600;
   z-index: 2;
   box-shadow: 0 2px 4px rgba(255, 68, 68, 0.3);
@@ -74,9 +74,9 @@
   background: #ffd700; /* Amarillo */
   color: #333;
   font-weight: 700;
-  font-size: 0.7rem;
-  padding: 6px 10px;
-  border-radius: 6px;
+  font-size: 0.6rem;
+  padding: 4px 7px;
+  border-radius: 3px;
   box-shadow: 0 3px 6px rgba(255, 215, 0, 0.4);
   animation: pulse-glow-yellow 2s infinite;
 }
@@ -109,9 +109,9 @@
   background: #007bff; /* Azul */
   color: white;
   font-weight: 700;
-  font-size: 0.7rem;
-  padding: 6px 10px;
-  border-radius: 6px;
+  font-size: 0.6rem;
+  padding: 4px 7px;
+  border-radius: 3px;
   box-shadow: 0 3px 6px rgba(0, 123, 255, 0.4);
   animation: pulse-glow-blue 2s infinite;
 }
@@ -133,9 +133,9 @@
   background: #28a745; /* Verde */
   color: white;
   font-weight: 700;
-  font-size: 0.7rem;
-  padding: 6px 10px;
-  border-radius: 6px;
+  font-size: 0.6rem;
+  padding: 4px 7px;
+  border-radius: 3px;
   box-shadow: 0 3px 6px rgba(40, 167, 69, 0.4);
   animation: pulse-glow-green 2s infinite;
 }
@@ -155,13 +155,13 @@
 /* New badge */
 .new-badge {
   position: absolute;
-  top: 8px;
-  left: 8px;
+  top: 4px;
+  left: 4px;
   background: var(--color-primary);
   color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-size: 0.65rem;
   font-weight: 600;
   z-index: 2;
 }
@@ -549,7 +549,7 @@
   /* Ocultar texto "Rebaja" en móvil, solo mostrar el porcentaje */
   .offer-badge .offer-text,
   .best-seller-offer-badge .offer-text {
-    display: none;
+    display: none !important;
   }
 }
 

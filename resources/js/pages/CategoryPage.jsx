@@ -85,7 +85,7 @@ const CategoryPage = ({ categorySlug }) => {
   const [filters, setFilters] = useState({
     catalog: 'Cherry 2025 - 2026',
     availability: 'todos',
-    category: 'Todas las categorías',
+    category: '',
     department: 'Todos los departamentos',
     sector: 'Todos los sectores',
     sizes: [],
@@ -131,17 +131,11 @@ const CategoryPage = ({ categorySlug }) => {
     
     let filtered = [...products];
 
-    // Filter by category (if not "Todas las categorías")
-    if (currentFilters.category && currentFilters.category !== 'Todas las categorías') {
-      const categoryLower = currentFilters.category.toLowerCase();
+    // Filter by category (if a category code is selected)
+    if (currentFilters.category && currentFilters.category !== '') {
       filtered = filtered.filter(product => {
-        const productCategory = product.category?.toLowerCase() || '';
-        const productTitle = product.title?.toLowerCase() || '';
-        const productDescription = product.description?.toLowerCase() || '';
-        
-        return productCategory.includes(categoryLower) || 
-               productTitle.includes(categoryLower) ||
-               productDescription.includes(categoryLower);
+        const productLineaId = product.linea?.id_linea;
+        return productLineaId == currentFilters.category;
       });
     }
 
@@ -541,7 +535,7 @@ const CategoryPage = ({ categorySlug }) => {
     setFilters({
       catalog: catalogs.length > 0 ? catalogs[0].name : 'Cherry 2025 - 2026',
       availability: 'todos',
-      category: 'Todas las categorías',
+      category: '',
       department: 'Todos los departamentos',
       sector: 'Todos los sectores',
       sizes: [],

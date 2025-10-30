@@ -959,17 +959,11 @@ export const searchProductsAdvanced = async (query, filters = {}, catalog = 'Che
       finalProducts = finalProducts.filter(product => product.inventario > 0);
     }
 
-    // Filtrar por categoría
-    if (filters.category && filters.category !== 'Todas las categorías') {
-      const categoryLower = filters.category.toLowerCase();
+    // Filtrar por categoría (usando código)
+    if (filters.category && filters.category !== '') {
       finalProducts = finalProducts.filter(product => {
-        const productCategory = product.linea?.descripcion?.toLowerCase() || '';
-        const productSector = product.sector?.descripcion?.toLowerCase() || '';
-        const productGenero = product.genero?.descripcion?.toLowerCase() || '';
-        return productCategory.includes(categoryLower) || 
-               productSector.includes(categoryLower) ||
-               productGenero.includes(categoryLower) ||
-               product.descripcion?.toLowerCase().includes(categoryLower);
+        const productLineaId = product.linea?.id_linea;
+        return productLineaId == filters.category;
       });
     }
 
@@ -1107,15 +1101,22 @@ export const getAvailableSizes = async (catalog = 'Cherry 2025 - 2026') => {
 export const getAvailableCategoriesFromAPI = async (catalog = 'Cherry 2025 - 2026') => {
   try {
     const products = await getAllProducts(catalog);
-    const categorySet = new Set();
+    const categoryMap = new Map();
     
     products.forEach(product => {
-      if (product.linea?.descripcion && product.linea.descripcion.trim()) {
-        categorySet.add(product.linea.descripcion.trim());
+      if (product.linea?.id_linea && product.linea?.descripcion && product.linea.descripcion.trim()) {
+        const code = product.linea.id_linea.toString();
+        const name = product.linea.descripcion.trim();
+        
+        // Solo agregar si no existe ya (para evitar duplicados)
+        if (!categoryMap.has(code)) {
+          categoryMap.set(code, { code, name });
+        }
       }
     });
     
-    return Array.from(categorySet).sort();
+    // Convertir Map a array y ordenar por nombre
+    return Array.from(categoryMap.values()).sort((a, b) => a.name.localeCompare(b.name));
   } catch (error) {
     return [];
   }

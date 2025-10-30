@@ -981,6 +981,11 @@
     padding: 6px 12px;
     margin-bottom: 12px;
   }
+  
+  /* Ocultar texto "Rebaja" en móvil, solo mostrar el porcentaje */
+  .product-page__offer-badge .offer-text {
+    display: none !important;
+  }
 
   .product-page__original-price {
     font-size: 28px;

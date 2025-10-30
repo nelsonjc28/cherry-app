@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import FavoriteButton from '../FavoriteButton/FavoriteButton';
 import StarRating from '../StarRating/StarRating';
@@ -8,6 +8,17 @@ import { getIconPath } from '../../utils/assetPaths';
 import colorConverter from '../../services/colorConverter';
 
 const CatalogProductCard = ({ product, onFavoriteToggle }) => {
+  // Hook para detectar si es móvil
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   // Destructure product properties with proper fallbacks
   const { 
     id, 
@@ -141,9 +152,7 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
         {/* Offer badge if product has discount */}
         {hasOffer && (
           <span className="catalog-offer-badge">
-            <>
-              <span className="offer-text">Rebaja </span>{discountPercentage}%
-            </>
+            {!isMobile && "Rebaja "}{discountPercentage}%
           </span>
         )}
 

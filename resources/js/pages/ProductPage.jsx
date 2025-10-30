@@ -43,6 +43,18 @@ const ProductPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   
+  // Hook para detectar si es móvil
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
   // Rating states
   const [ratingData, setRatingData] = useState({
     average: 0,
@@ -759,8 +771,8 @@ const ProductPage = () => {
                     hasUserOffer && userOffer && userOffer.discount_category === 'free_shipping' ? 
                       (discountPercentage > 0 ? `🏷️ ${discountPercentage}% + 🚚 Envío gratis` : `🚚 Envío gratis`) :
                     hasUserOffer && userOffer && userOffer.discount_percentage > 0 ? 
-                      `Oferta ${Math.round(userOffer.discount_percentage)}%` :
-                      `🏷️ Oferta ${discountPercentage}%`
+                      (<>{!isMobile && "Rebaja "}{Math.round(userOffer.discount_percentage)}%</>) :
+                      (<>🏷️ {!isMobile && "Rebaja "}{discountPercentage}%</>)
                   }
                 </div>
               )}

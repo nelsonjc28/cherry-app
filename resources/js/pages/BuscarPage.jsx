@@ -10,6 +10,7 @@ import { getIconPath } from '../utils/assetPaths';
 import { searchProductsAdvanced, getProductsWithRatings, mapApiProductToAppProduct, getAvailableColors, getAvailableSizes } from '../api/cherryApi';
 import { applyUserOffersToProducts } from '../api/userOffers';
 import { publicCatalogService } from '../services/api';
+import { flexibleSearchInFields } from '../utils/searchNormalizer';
 import './BuscarPage.css';
 
 const BuscarPage = () => {
@@ -30,7 +31,7 @@ const BuscarPage = () => {
   const [filters, setFilters] = useState({
     catalog: 'Seleccione',
     availability: 'todos',
-    category: 'Todas las categorías',
+    category: '',
     department: 'Todos los departamentos',
     sector: 'Todos los sectores',
     sizes: [],
@@ -183,15 +184,22 @@ const BuscarPage = () => {
 
         // Filtrar por query de búsqueda (con soporte para plurales/singulares)
         if (query) {
-          const { flexibleSearchInFields } = await import('../utils/searchNormalizer');
+          console.log('🔍 Filtrando por query:', query);
           filtered = filtered.filter(product => {
-            return flexibleSearchInFields(query, {
+            const match = flexibleSearchInFields(query, {
               descripcion: product.descripcion || product.title || '',
               title: product.title || product.descripcion || '',
               codigo: product.codigo || product.id_articulo || '',
               description: product.description || ''
             }, ['descripcion', 'title', 'codigo', 'description']);
+            
+            if (match) {
+              console.log('✅ Match encontrado:', product.title || product.descripcion, 'Código:', product.codigo);
+            }
+            
+            return match;
           });
+          console.log(`📊 Productos filtrados: ${filtered.length} de ${productsWithOffers.length}`);
         }
 
         // Filtrar por color
@@ -248,12 +256,11 @@ const BuscarPage = () => {
 
     }
 
-    // Aplicar filtros adicionales
-    if (filters.category && filters.category !== 'Todas las categorías') {
-      const categoryLower = filters.category.toLowerCase();
+    // Aplicar filtros adicionales (usando código)
+    if (filters.category && filters.category !== '') {
       filtered = filtered.filter(product => {
-        const productCategory = product.category?.toLowerCase() || '';
-        return productCategory.includes(categoryLower);
+        const productLineaId = product.linea?.id_linea;
+        return productLineaId == filters.category;
       });
     }
 
@@ -381,7 +388,7 @@ const BuscarPage = () => {
     setFilters({
       catalog: 'Seleccione',
       availability: 'todos',
-      category: 'Todas las categorías',
+      category: '',
       department: 'Todos los departamentos',
       sector: 'Todos los sectores',
       sizes: [],

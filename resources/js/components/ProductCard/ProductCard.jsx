@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import FavoriteButton from '../FavoriteButton/FavoriteButton';
 import StarRating from '../StarRating/StarRating';
@@ -9,7 +9,17 @@ import { useUserDiscounts } from '../../hooks/useUserDiscounts';
 import './ProductCard.css';
 
 const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, variant = 'default' }) => {
+  // Hook para detectar si es móvil
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   // Destructure product properties with proper fallbacks
   const { 
@@ -114,7 +124,7 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
       if (finalUserOffer.discount_percentage && finalUserOffer.discount_percentage > 0) {
         return (
           <>
-            <span className="offer-text">Rebaja </span>{Math.round(finalUserOffer.discount_percentage)}%
+            {!isMobile && "Rebaja "}{Math.round(finalUserOffer.discount_percentage)}%
           </>
         );
       }
@@ -123,7 +133,7 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
     // PRIORIDAD 2: Descuento general - mostrar "Rebaja X%"
     return (
       <>
-        <span className="offer-text">Rebaja </span>{discountPercentage}%
+        {!isMobile && "Rebaja "}{discountPercentage}%
       </>
     );
   };

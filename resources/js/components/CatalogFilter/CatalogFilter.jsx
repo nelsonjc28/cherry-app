@@ -50,7 +50,10 @@ const CatalogFilter = ({
       case 'catalog':
         newFilters.catalog = value;
         // Reset category when catalog changes
-        newFilters.category = 'Todas las categorías';
+        newFilters.category = '';
+        break;
+      case 'category':
+        newFilters.category = value;
         break;
       case 'availability':
         newFilters.availability = value;
@@ -131,6 +134,25 @@ const CatalogFilter = ({
             >
               {catalogOptions.map((option) => (
                 <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Category selector */}
+        {availableCategories.length > 0 && (
+          <div className="filter-section">
+            <h3 className="filter-title">Categoría</h3>
+            <select
+              value={filters.category || ''}
+              onChange={(e) => handleFilterChange('category', e.target.value)}
+              className="filter-select"
+            >
+              <option value="">Todas las categorías</option>
+              {availableCategories.map((category) => (
+                <option key={category.code} value={category.code}>
+                  {category.name}
+                </option>
               ))}
             </select>
           </div>
