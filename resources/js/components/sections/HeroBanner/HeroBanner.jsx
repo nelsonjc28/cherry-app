@@ -183,9 +183,6 @@ const HeroBanner = () => {
 
   // Memoizar la función handleImageClick
   const handleImageClick = useCallback((e, banner) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
     console.log('🖱️ Image click detected:', {
       hasMovedSignificantly: hasMovedSignificantly.current,
       isDragging: isDragging.current,
@@ -195,9 +192,17 @@ const HeroBanner = () => {
     // Solo navegar si no hubo movimiento significativo (no fue un swipe)
     if (!hasMovedSignificantly.current) {
       console.log('✅ Navegando a:', banner.buttonUrl);
-      navigate(banner.buttonUrl);
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Usar setTimeout para asegurar que el navigate se ejecute después del evento
+      setTimeout(() => {
+        navigate(banner.buttonUrl);
+      }, 0);
     } else {
       console.log('❌ Click bloqueado por swipe');
+      e.preventDefault();
+      e.stopPropagation();
     }
   }, [navigate]);
 
@@ -400,16 +405,30 @@ const HeroBanner = () => {
           </div>
 
           <div className="banner-image-container">
-            <img
-              src={currentBanner.image}
-              alt={currentBanner.imageAlt}
-              className="banner-image"
-              onClick={(e) => handleImageClick(e, currentBanner)}
-              onDragStart={handleDragStart}
-              style={{ cursor: 'pointer', userSelect: 'none' }}
-              onError={handleImageError}
-              draggable="false"
-            />
+            <Link 
+              to={currentBanner.buttonUrl}
+              onClick={(e) => {
+                // Prevenir navegación si hubo swipe
+                if (hasMovedSignificantly.current) {
+                  console.log('❌ Link click bloqueado por swipe');
+                  e.preventDefault();
+                  e.stopPropagation();
+                } else {
+                  console.log('✅ Link click permitido - navegando');
+                }
+              }}
+              style={{ display: 'block', cursor: 'pointer' }}
+            >
+              <img
+                src={currentBanner.image}
+                alt={currentBanner.imageAlt}
+                className="banner-image"
+                onDragStart={handleDragStart}
+                style={{ userSelect: 'none', pointerEvents: 'none' }}
+                onError={handleImageError}
+                draggable="false"
+              />
+            </Link>
           </div>
         </div>
       </div>
