@@ -15,7 +15,7 @@ class HomeCatalogController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        try {
+        // try {
     
             
             $catalogs = Catalog::active()
@@ -33,12 +33,12 @@ class HomeCatalogController extends Controller
                 'success' => true,
                 'catalogs' => $catalogs
             ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Error al obtener catálogos del home: ' . $e->getMessage()
-            ], 500);
-        }
+        // } catch (\Exception $e) {
+        //     return response()->json([
+        //         'success' => false,
+        //         'error' => 'Error al obtener catálogos del home: ' . $e->getMessage()
+        //     ], 500);
+        // }
     }
 
     /**
@@ -46,7 +46,7 @@ class HomeCatalogController extends Controller
      */
     public function show(Request $request, $id): JsonResponse
     {
-        try {
+        // try {
             $catalog = Catalog::where('id', $id)
                 ->where('is_active', true)
                 ->with(['pdfs' => function($query) {
@@ -65,11 +65,11 @@ class HomeCatalogController extends Controller
                 'success' => true,
                 'catalog' => $catalog
             ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Error al obtener catálogo: ' . $e->getMessage()
-            ], 500);
-        }
+        // } catch (\Exception $e) {
+        //     return response()->json([
+        //         'success' => false,
+        //         'error' => 'Error al obtener catálogo: ' . $e->getMessage()
+        //     ], 500);
+        // }
     }
 }
