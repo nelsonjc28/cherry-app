@@ -115,28 +115,26 @@ const Header = () => {
 
     // Solo mostrar las categorías del menú configuradas
     if (menuCategories && menuCategories.length > 0) {
-      // Dividir las categorías del menú en grupos de 5 para mejor organización
-      const groups = [];
-      const itemsPerGroup = 5;
+      // Crear array con "Todas las categorías" primero, luego las demás
+      const allItems = [
+        { name: 'Todas las categorías', link: '/categorias' },
+        ...menuCategories.map(cat => ({
+          name: cat.name,
+          link: `/categoria/${cat.slug}`
+        }))
+      ];
 
-      for (let i = 0; i < menuCategories.length; i += itemsPerGroup) {
-        const group = menuCategories.slice(i, i + itemsPerGroup);
+      // Dividir en columnas de 4 items cada una
+      const groups = [];
+      const itemsPerColumn = 4;
+
+      for (let i = 0; i < allItems.length; i += itemsPerColumn) {
+        const columnItems = allItems.slice(i, i + itemsPerColumn);
         groups.push({
           title: '',
-          items: group.map(cat => ({
-            name: cat.name,
-            link: `/categoria/${cat.slug}`
-          }))
+          items: columnItems
         });
       }
-
-      // Agregar grupo "Ver todas" al final
-      groups.push({
-        title: 'Ver todas',
-        items: [
-          { name: 'Todas las categorías', link: '/categorias' }
-        ]
-      });
 
       return groups;
     }
@@ -144,7 +142,7 @@ const Header = () => {
     // Si no hay categorías del menú configuradas, solo mostrar "Todas las categorías"
     return [
       {
-        title: 'Ver todas',
+        title: '',
         items: [
           { name: 'Todas las categorías', link: '/categorias' }
         ]
