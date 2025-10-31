@@ -158,7 +158,7 @@ const AdminContactManager = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch('/api/admin/contact-info', {
-        method: 'PUT',
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
