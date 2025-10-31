@@ -26,57 +26,57 @@
   ],
   "icons": [
     {
-      "src": "/images/logo.svg",
+      "src": "/icons/logo-blanco.png",
       "sizes": "72x72",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/images/logo.svg",
+      "src": "/icons/logo-blanco.png",
       "sizes": "96x96",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/images/logo.svg",
+      "src": "/icons/logo-blanco.png",
       "sizes": "128x128",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/images/logo.svg",
+      "src": "/icons/logo-blanco.png",
       "sizes": "144x144",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/images/logo.svg",
+      "src": "/icons/logo-blanco.png",
       "sizes": "152x152",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/images/logo.svg",
+      "src": "/icons/logo-blanco.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/images/logo.svg",
+      "src": "/icons/logo-blanco.png",
       "sizes": "384x384",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/images/logo.svg",
+      "src": "/icons/logo-blanco.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/images/logo.svg",
+      "src": "/icons/logo-blanco.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "maskable"
     }
   ],
@@ -88,9 +88,9 @@
       "url": "/nuevos",
       "icons": [
         {
-          "src": "/images/logo.svg",
+          "src": "/icons/logo-blanco.png",
           "sizes": "192x192",
-          "type": "image/svg+xml"
+          "type": "image/png"
         }
       ]
     },
@@ -101,9 +101,9 @@
       "url": "/categorias",
       "icons": [
         {
-          "src": "/images/logo.svg",
+          "src": "/icons/logo-blanco.png",
           "sizes": "192x192",
-          "type": "image/svg+xml"
+          "type": "image/png"
         }
       ]
     },
@@ -114,9 +114,9 @@
       "url": "/carrito-detalle",
       "icons": [
         {
-          "src": "/images/logo.svg",
+          "src": "/icons/logo-blanco.png",
           "sizes": "192x192",
-          "type": "image/svg+xml"
+          "type": "image/png"
         }
       ]
     },
@@ -127,9 +127,9 @@
       "url": "/perfil",
       "icons": [
         {
-          "src": "/images/logo.svg",
+          "src": "/icons/logo-blanco.png",
           "sizes": "192x192",
-          "type": "image/svg+xml"
+          "type": "image/png"
         }
       ]
     }

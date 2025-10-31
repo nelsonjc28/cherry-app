@@ -36,6 +36,13 @@
   letter-spacing: -0.5px;
 }
 
+.footer-logo-img {
+  height: 32px;
+  width: auto;
+  display: block;
+  object-fit: contain;
+}
+
 .logo-dot {
   color: var(--color-primary);
   font-size: 28px;

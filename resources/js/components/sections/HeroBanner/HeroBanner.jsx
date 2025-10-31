@@ -15,6 +15,7 @@ const HeroBanner = () => {
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
   const isDragging = useRef(false);
+  const hasMovedSignificantly = useRef(false);
   const bannerRef = useRef(null);
 
   // Memoizar los banners de fallback para evitar recreaciones
@@ -56,22 +57,30 @@ const HeroBanner = () => {
   // Funciones para manejar swipe
   const handleTouchStart = useCallback((e) => {
     touchStartX.current = e.touches[0].clientX;
+    touchEndX.current = e.touches[0].clientX;
     isDragging.current = true;
+    hasMovedSignificantly.current = false;
   }, []);
 
   const handleTouchMove = useCallback((e) => {
     if (!isDragging.current) return;
     touchEndX.current = e.touches[0].clientX;
+    
+    // Detectar si hay movimiento significativo
+    const movement = Math.abs(touchStartX.current - touchEndX.current);
+    if (movement > 10) {
+      hasMovedSignificantly.current = true;
+    }
   }, []);
 
   const handleTouchEnd = useCallback(() => {
     if (!isDragging.current) return;
-    isDragging.current = false;
     
     const swipeThreshold = 50; // Mínimo de píxeles para considerar un swipe
     const difference = touchStartX.current - touchEndX.current;
     
-    if (Math.abs(difference) > swipeThreshold) {
+    // Solo cambiar slide si hubo movimiento significativo
+    if (hasMovedSignificantly.current && Math.abs(difference) > swipeThreshold) {
       if (difference > 0) {
         // Swipe a la izquierda - siguiente slide
         setCurrentSlide((prev) => (prev + 1) % banners.length);
@@ -81,29 +90,42 @@ const HeroBanner = () => {
       }
     }
     
-    touchStartX.current = 0;
-    touchEndX.current = 0;
+    // Resetear después de un pequeño delay para permitir que el click se ejecute
+    setTimeout(() => {
+      isDragging.current = false;
+      hasMovedSignificantly.current = false;
+      touchStartX.current = 0;
+      touchEndX.current = 0;
+    }, 100);
   }, [banners.length]);
 
   // Soporte para mouse drag (desktop)
   const handleMouseDown = useCallback((e) => {
     touchStartX.current = e.clientX;
+    touchEndX.current = e.clientX;
     isDragging.current = true;
+    hasMovedSignificantly.current = false;
   }, []);
 
   const handleMouseMove = useCallback((e) => {
     if (!isDragging.current) return;
     touchEndX.current = e.clientX;
+    
+    // Detectar si hay movimiento significativo
+    const movement = Math.abs(touchStartX.current - touchEndX.current);
+    if (movement > 10) {
+      hasMovedSignificantly.current = true;
+    }
   }, []);
 
   const handleMouseUp = useCallback(() => {
     if (!isDragging.current) return;
-    isDragging.current = false;
     
     const swipeThreshold = 50;
     const difference = touchStartX.current - touchEndX.current;
     
-    if (Math.abs(difference) > swipeThreshold) {
+    // Solo cambiar slide si hubo movimiento significativo
+    if (hasMovedSignificantly.current && Math.abs(difference) > swipeThreshold) {
       if (difference > 0) {
         setCurrentSlide((prev) => (prev + 1) % banners.length);
       } else {
@@ -111,8 +133,13 @@ const HeroBanner = () => {
       }
     }
     
-    touchStartX.current = 0;
-    touchEndX.current = 0;
+    // Resetear después de un pequeño delay para permitir que el click se ejecute
+    setTimeout(() => {
+      isDragging.current = false;
+      hasMovedSignificantly.current = false;
+      touchStartX.current = 0;
+      touchEndX.current = 0;
+    }, 100);
   }, [banners.length]);
 
   // Prevenir drag de imágenes
@@ -122,8 +149,8 @@ const HeroBanner = () => {
 
   // Memoizar la función handleImageClick
   const handleImageClick = useCallback((banner) => {
-    // Solo navegar si no se está arrastrando
-    if (!isDragging.current) {
+    // Solo navegar si no hubo movimiento significativo (no fue un swipe)
+    if (!hasMovedSignificantly.current) {
       navigate(banner.buttonUrl);
     }
   }, [navigate]);
@@ -192,9 +219,9 @@ const HeroBanner = () => {
               <div className="banner-actions">
                 <a
                   className="btn-explore"
-                  title={currentBanner.buttonText}
-                  aria-label={currentBanner.buttonText}
-                  href={currentBanner.buttonUrl}
+                  title="Explorar Colección"
+                  aria-label="Explorar Colección"
+                  href="/catalogo"
                   data-discover="true"
                   style={{
                     backgroundColor: '#EA2630',
@@ -220,7 +247,7 @@ const HeroBanner = () => {
                     src="./icons/hero/Users.svg"
                     style={{ filter: 'brightness(0) invert(1)' }}
                   />
-                  {currentBanner.buttonText}
+                  Explorar Colección
                 </a>
               </div>
             </div>
@@ -286,6 +313,12 @@ const HeroBanner = () => {
                 aria-label={currentBanner.buttonText}
                 href={currentBanner.buttonUrl}
                 data-discover="true"
+                onClick={(e) => {
+                  // Prevenir navegación si hubo un swipe
+                  if (hasMovedSignificantly.current) {
+                    e.preventDefault();
+                  }
+                }}
                 style={{
                   backgroundColor: '#EA2630',
                   color: 'white',

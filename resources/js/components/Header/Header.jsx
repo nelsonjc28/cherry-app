@@ -518,7 +518,7 @@ const Header = () => {
         <div className="header-container">
           {/* Logo */}
           <Link to="/" className="header-logo">
-            <img src={getImagePath('logo.svg')} alt="Cherry" />
+            <img src="/icons/logo-cherry.png" alt="Cherry" />
           </Link>
 
           {/* Search Bar */}

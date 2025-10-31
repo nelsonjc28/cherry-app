@@ -7,7 +7,7 @@ const Footer = () => {
       <div className="footer-content">
         <div className="footer-branding">
           <Link to="/" className="footer-logo">
-            <h1>CHERRY<span className="logo-dot">●</span></h1>
+            <img src="/icons/logo-blanco.png" alt="CHERRY" className="footer-logo-img" />
           </Link>
           <p className="footer-newsletter-text">
             Únete a nuestro boletín y mantente al día con las novedades y lanzamientos.
