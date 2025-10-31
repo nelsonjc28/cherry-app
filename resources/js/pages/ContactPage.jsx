@@ -23,7 +23,9 @@ const ContactPage = () => {
           if (data.success && data.data) {
             setContactInfo(prev => ({
               ...prev,
-              ...data.data
+              ...data.data,
+              // Asegurar que map_url tenga un valor por defecto si viene vacío
+              map_url: data.data.map_url || prev.map_url
             }));
           }
         }
@@ -71,7 +73,7 @@ const ContactPage = () => {
               {contactInfo.whatsapp && (
                 <div className="contact-info-item contact-info-whatsapp">
                   <div className="round-icon-contact">
-                    <img src={getIconPath('Map Phone.svg')} alt="whatsapp" className="map-icon-contact" loading="lazy" />
+                    <img src={getIconPath('Whatsapp.svg')} alt="whatsapp" className="map-icon-contact" loading="lazy" />
                   </div>
                   <div>
                     <span className="contact-info-title">WhatsApp</span>

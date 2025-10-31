@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import Swal from 'sweetalert2';
 import { welcomeSectionService, formDataUtils } from '../../services/api';
 import './AdminWelcomeSectionManager.css';
 
@@ -141,36 +142,44 @@ const AdminWelcomeSectionManager = () => {
 
   // Memoizar la función handleDelete
   const handleDelete = useCallback(async (section) => {
-    if (window.showToast) {
-      window.showToast('¿Estás seguro de que quieres eliminar esta sección?', 'warning');
-    }
-    // Por ahora solo mostramos el toast, en el futuro se puede implementar un modal de confirmación
-    return;
-    
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/welcome-sections/${section.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
-        }
-      });
+    // Mostrar confirmación con SweetAlert2
+    const result = await Swal.fire({
+      title: '¿Eliminar sección?',
+      html: `
+        <div class="text-center">
+          <p>¿Estás seguro de que quieres eliminar <strong>${section.title}</strong>?</p>
+          <p class="text-muted small">Esta acción no se puede deshacer y se eliminará la imagen asociada.</p>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true,
+      focusCancel: true,
+      customClass: {
+        popup: 'swal-section-delete',
+        confirmButton: 'btn btn-danger',
+        cancelButton: 'btn btn-secondary'
+      }
+    });
 
-      if (response.ok) {
+    // Si el usuario confirma la eliminación
+    if (result.isConfirmed) {
+      try {
+        await welcomeSectionService.delete(section.id);
+        
         if (window.showToast) {
           window.showToast('Sección eliminada exitosamente', 'success');
         }
+        
         fetchSections();
-      } else {
+      } catch (error) {
         if (window.showToast) {
-          window.showToast('Error al eliminar la sección', 'error');
+          window.showToast('Error al eliminar la sección: ' + (error.message || 'Error desconocido'), 'error');
         }
-      }
-    } catch (error) {
-      if (window.showToast) {
-        window.showToast('Error al eliminar la sección', 'error');
       }
     }
   }, [fetchSections]);
