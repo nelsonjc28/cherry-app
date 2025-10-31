@@ -88,15 +88,21 @@ const HeroBanner = () => {
         // Swipe a la derecha - slide anterior
         setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length);
       }
-    }
-    
-    // Resetear después de un pequeño delay para permitir que el click se ejecute
-    setTimeout(() => {
+      
+      // Si hubo swipe, resetear inmediatamente para evitar clicks accidentales
       isDragging.current = false;
       hasMovedSignificantly.current = false;
       touchStartX.current = 0;
       touchEndX.current = 0;
-    }, 100);
+    } else {
+      // Si NO hubo swipe (fue un tap), resetear después de un delay para permitir el click
+      setTimeout(() => {
+        isDragging.current = false;
+        hasMovedSignificantly.current = false;
+        touchStartX.current = 0;
+        touchEndX.current = 0;
+      }, 50);
+    }
   }, [banners.length]);
 
   // Soporte para mouse drag (desktop)
@@ -131,15 +137,21 @@ const HeroBanner = () => {
       } else {
         setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length);
       }
-    }
-    
-    // Resetear después de un pequeño delay para permitir que el click se ejecute
-    setTimeout(() => {
+      
+      // Si hubo drag, resetear inmediatamente para evitar clicks accidentales
       isDragging.current = false;
       hasMovedSignificantly.current = false;
       touchStartX.current = 0;
       touchEndX.current = 0;
-    }, 100);
+    } else {
+      // Si NO hubo drag (fue un click), resetear después de un delay para permitir el click
+      setTimeout(() => {
+        isDragging.current = false;
+        hasMovedSignificantly.current = false;
+        touchStartX.current = 0;
+        touchEndX.current = 0;
+      }, 50);
+    }
   }, [banners.length]);
 
   // Prevenir drag de imágenes
@@ -148,9 +160,11 @@ const HeroBanner = () => {
   }, []);
 
   // Memoizar la función handleImageClick
-  const handleImageClick = useCallback((banner) => {
+  const handleImageClick = useCallback((e, banner) => {
     // Solo navegar si no hubo movimiento significativo (no fue un swipe)
-    if (!hasMovedSignificantly.current) {
+    if (!hasMovedSignificantly.current && !isDragging.current) {
+      e.preventDefault();
+      e.stopPropagation();
       navigate(banner.buttonUrl);
     }
   }, [navigate]);
@@ -171,8 +185,9 @@ const HeroBanner = () => {
       setCurrentSlide((prev) => (prev + 1) % banners.length);
     }, 7000); // Change slide every 7 seconds
 
+    // Limpiar y reiniciar el intervalo cuando cambia el slide
     return () => clearInterval(interval);
-  }, [banners.length]);
+  }, [banners.length, currentSlide]); // Agregado currentSlide como dependencia
 
   // Memoizar el banner actual para evitar recálculos
   const currentBanner = useMemo(() => banners[currentSlide], [banners, currentSlide]);
@@ -256,9 +271,13 @@ const HeroBanner = () => {
                 src={getHeroSliderImagePath('hero-slider1-girl.png')}
                 alt="Mujer joven modelando vestido elegante de la colección Cherry Central, estilo moderno y sofisticado"
                 className="banner-image"
-                onClick={() => navigate('/catalogo')}
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate('/catalogo');
+                }}
                 style={{ cursor: 'pointer' }}
                 onError={handleImageError}
+                draggable="false"
               />
             </div>
           </div>
@@ -353,7 +372,7 @@ const HeroBanner = () => {
               src={currentBanner.image}
               alt={currentBanner.imageAlt}
               className="banner-image"
-              onClick={() => handleImageClick(currentBanner)}
+              onClick={(e) => handleImageClick(e, currentBanner)}
               onDragStart={handleDragStart}
               style={{ cursor: 'pointer', userSelect: 'none' }}
               onError={handleImageError}
