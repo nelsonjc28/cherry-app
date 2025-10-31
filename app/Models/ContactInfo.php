@@ -15,6 +15,7 @@ class ContactInfo extends Model
         'address_street',
         'address_city',
         'phone',
+        'whatsapp',
         'email',
         'map_url',
         'store_hours',

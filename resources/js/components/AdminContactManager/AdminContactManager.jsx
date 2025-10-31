@@ -6,6 +6,7 @@ const AdminContactManager = () => {
     address_street: 'José María Izazaga 127 piso 2 Col.',
     address_city: 'Centros México D.F. C.P. 06080',
     phone: '55-5542-4442',
+    whatsapp: '',
     email: 'cherryonline@cherry.com.mx',
     map_url: 'https://www.google.com/maps/embed?pb=!1m12!1m8!1m3!1d3830947.253725377!2d-99.1779212!3d20.3350315!3m2!1i1024!2i768!4f13.1!2m1!1scherry%20tienda%20mx%20direccion!5e0!3m2!1ses-419!2sve!4v1753274350284!5m2!1ses-419!2sve',
     store_hours: {
@@ -99,6 +100,7 @@ const AdminContactManager = () => {
             address_street: data.data.address_street || '',
             address_city: data.data.address_city || '',
             phone: data.data.phone || '',
+            whatsapp: data.data.whatsapp || '',
             email: data.data.email || '',
             map_url: data.data.map_url || '',
             store_hours: mergeHours(defaultStoreHours, data.data.store_hours),
@@ -291,6 +293,17 @@ const AdminContactManager = () => {
               />
             </div>
 
+            <div className="form-group">
+            <label>WhatsApp:</label>
+            <input
+              type="text"
+              value={contactInfo.whatsapp}
+              onChange={(e) => handleInputChange('whatsapp', e.target.value)}
+              placeholder="52-55-5542-4442"
+              />
+            <small className="form-help-text">Incluye el código de país (ejemplo: 52-55-5542-4442)</small>
+            </div>
+
               <div className="form-group">
             <label>Email:</label>
                 <input
@@ -338,6 +351,7 @@ const AdminContactManager = () => {
             <p><strong>Dirección:</strong> {contactInfo.address_street}</p>
             <p><strong>Ciudad:</strong> {contactInfo.address_city}</p>
             <p><strong>Teléfono:</strong> {contactInfo.phone}</p>
+            {contactInfo.whatsapp && <p><strong>WhatsApp:</strong> {contactInfo.whatsapp}</p>}
             <p><strong>Email:</strong> {contactInfo.email}</p>
               </div>
               

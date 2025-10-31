@@ -94,6 +94,14 @@
   box-shadow: 0 0 0 2px rgba(234, 38, 48, 0.1);
 }
 
+.form-help-text {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+}
+
 .contact-hours-section {
   margin-bottom: 30px;
 }

@@ -104,6 +104,18 @@
   text-decoration: underline;
 }
 
+.contact-info-text.whatsapp-link {
+  color: #25D366;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.contact-info-text.whatsapp-link:hover {
+  color: #128C7E;
+  text-decoration: underline;
+}
+
 .contact-map-wrapper {
   width: 100%;
   border-radius: 8px;
@@ -250,6 +262,11 @@
   .contact-info-phone {
     grid-column: 1;
     grid-row: 2;
+  }
+
+  .contact-info-whatsapp {
+    grid-column: 1;
+    grid-row: 3;
   }
 
   .contact-info-email {
