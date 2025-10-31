@@ -243,6 +243,11 @@ class AdminCatalogController extends Controller
         try {
             $catalog = Catalog::findOrFail($id);
 
+            // Limpiar display_order antes de eliminar (liberar posición en home)
+            if ($catalog->display_order !== null) {
+                $catalog->update(['display_order' => null]);
+            }
+
             // Eliminar imagen del catálogo si existe
             if ($catalog->image) {
                 $imagePath = public_path($catalog->image);
