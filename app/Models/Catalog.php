@@ -68,6 +68,14 @@ class Catalog extends Model
     }
 
     /**
+     * Relación con el orden del catálogo
+     */
+    public function orderedCatalog()
+    {
+        return $this->hasOne(OrderedCatalog::class);
+    }
+
+    /**
      * Obtener catálogos activos ordenados
      */
     public function scopeActive($query)

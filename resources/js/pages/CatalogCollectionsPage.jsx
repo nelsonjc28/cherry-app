@@ -23,11 +23,14 @@ const CatalogCollectionsPage = () => {
       const response = await publicCatalogService.getAll();
       
       if (response.data.success) {
-        // Mostrar todos los catálogos públicos
-        setCatalogs(response.data.data);
+        // Mostrar todos los catálogos públicos (ordenados desde el backend)
+        setCatalogs(response.data.catalogs || response.data.data || []);
+      } else {
+        setCatalogs([]);
       }
     } catch (error) {
       setError('Error al cargar los catálogos');
+      setCatalogs([]);
       if (window.showToast) {
         window.showToast('Error al cargar los catálogos', 'error');
       }

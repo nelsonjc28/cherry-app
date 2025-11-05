@@ -190,6 +190,12 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/admin/catalogs', [AdminCatalogController::class, 'index']);
         Route::get('/admin/catalogs/catalog-product-ids', [AdminCatalogController::class, 'getCatalogProductIds']);
         Route::post('/admin/catalogs/filter-available-products', [AdminCatalogController::class, 'filterAvailableProducts']);
+        
+        // Ordered Catalogs routes (must be before {id} routes)
+        Route::get('/admin/ordered-catalogs', [App\Http\Controllers\Api\AdminOrderedCatalogController::class, 'index']);
+        Route::post('/admin/ordered-catalogs/update-order', [App\Http\Controllers\Api\AdminOrderedCatalogController::class, 'updateOrder']);
+        Route::delete('/admin/ordered-catalogs/clear', [App\Http\Controllers\Api\AdminOrderedCatalogController::class, 'clearOrder']);
+        
         Route::get('/admin/catalogs/{id}', [AdminCatalogController::class, 'show']);
         Route::post('/admin/catalogs', [AdminCatalogController::class, 'store']);
         Route::post('/admin/catalogs/{id}', [AdminCatalogController::class, 'update']);
@@ -290,7 +296,7 @@ Route::get('/home-catalogs', [App\Http\Controllers\Api\HomeCatalogController::cl
 Route::get('/home-catalogs/{id}', [App\Http\Controllers\Api\HomeCatalogController::class, 'show']);
 
 // Public catalogs routes (no authentication required)
-Route::get('/catalogs', [AdminCatalogController::class, 'getPublicCatalogs']);
+Route::get('/catalogs', [App\Http\Controllers\Api\AdminOrderedCatalogController::class, 'getPublicCatalogs']);
 Route::get('/catalogs/{id}', [AdminCatalogController::class, 'getPublicCatalog']);
 Route::get('/catalogs/{id}/products', [AdminCatalogController::class, 'getPublicCatalogProducts']);
 

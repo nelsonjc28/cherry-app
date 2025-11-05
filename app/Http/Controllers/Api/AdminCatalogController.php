@@ -29,7 +29,8 @@ class AdminCatalogController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $catalogs
+                'catalogs' => $catalogs,
+                'data' => $catalogs // Mantener retrocompatibilidad
             ]);
         } catch (\Exception $e) {
             return response()->json([

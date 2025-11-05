@@ -14,6 +14,7 @@ import CatalogOffersModule from '../components/AdminCatalogManager/CatalogOffers
 import AdminCategoryManager from '../components/AdminCategoryManager/AdminCategoryManager';
 import AdminMenuCategoryOrderManager from '../components/AdminMenuCategoryOrderManager/AdminMenuCategoryOrderManager';
 import AdminHomeCatalogManager from '../components/AdminHomeCatalogManager/AdminHomeCatalogManager';
+import AdminCatalogOrderManager from '../components/AdminCatalogOrderManager/AdminCatalogOrderManager';
 import AdminOrders from './admin/AdminOrders';
 import AdminDashboard from './admin/AdminDashboard';
 
@@ -48,6 +49,7 @@ function AdminPanelPage() {
     '/admin/secciones-bienvenida': 'welcome-sections',
     '/admin/catalogos-home': 'home-catalogs',
     '/admin/catalogos': 'catalogs',
+    '/admin/ordenar-catalogos': 'catalog-order',
     '/admin/ordenes': 'orders',
     '/admin/resenas': 'reviews',
     '/admin/contacto': 'contact-info',
@@ -66,6 +68,7 @@ function AdminPanelPage() {
     'welcome-sections': '/admin/secciones-bienvenida',
     'home-catalogs': '/admin/catalogos-home',
     'catalogs': '/admin/catalogos',
+    'catalog-order': '/admin/ordenar-catalogos',
     'orders': '/admin/ordenes',
     'reviews': '/admin/resenas',
     'contact-info': '/admin/contacto',
@@ -144,6 +147,7 @@ function AdminPanelPage() {
           <button className={`admin-panel__sidebar-link${selectedMenu==='welcome-sections'?' active':''}`} onClick={()=>handleMenuChange('welcome-sections')}>Secciones de Bienvenida</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='home-catalogs'?' active':''}`} onClick={()=>handleMenuChange('home-catalogs')}>Catálogos del Home</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='catalogs'?' active':''}`} onClick={()=>handleMenuChange('catalogs')}>Catálogos</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='catalog-order'?' active':''}`} onClick={()=>handleMenuChange('catalog-order')}>Ordenar Catálogos</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='orders'?' active':''}`} onClick={()=>handleMenuChange('orders')}>Gestión de Órdenes</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='reviews'?' active':''}`} onClick={()=>handleMenuChange('reviews')}>Gestión de Reseñas</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='contact-info'?' active':''}`} onClick={()=>handleMenuChange('contact-info')}>Información de Contacto</button>
@@ -241,6 +245,12 @@ function AdminPanelPage() {
         {selectedMenu === 'catalogs' && isAdmin() && (
           <section>
             <AdminCatalogManager />
+          </section>
+        )}
+
+        {selectedMenu === 'catalog-order' && isAdmin() && (
+          <section>
+            <AdminCatalogOrderManager />
           </section>
         )}
 
