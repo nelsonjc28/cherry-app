@@ -19,15 +19,11 @@ class HomeCatalogController extends Controller
     
             
             $catalogs = Catalog::active()
-                ->ordered()
-                ->select(['id', 'name', 'description', 'code', 'image'])
-                ->with(['pdfs' => function($query) {
-                    $query->select('catalog_id', 'image_path', 'image_name', 'thumbnail_path')->orderBy('display_order');
-                }])
+                ->orderBy('display_order', 'ASC')
+                ->select(['id', 'name', 'description', 'code', 'image', 'display_order'])
                 ->limit(4) // Limitar a solo 4 catálogos
                 ->get();
-
-
+                
 
             return response()->json([
                 'success' => true,
