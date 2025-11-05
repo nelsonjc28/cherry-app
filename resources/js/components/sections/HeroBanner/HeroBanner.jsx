@@ -8,9 +8,9 @@ import './HeroBanner.css';
 const HeroBanner = () => {
   const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
-  const { welcomeSections, loading, error } = useWelcomeSection(3);
+  const { welcomeSections, loading, error } = useWelcomeSection(4);
   const { user } = useUserStore();
-  
+
   // Referencias para swipe
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
@@ -66,7 +66,7 @@ const HeroBanner = () => {
   const handleTouchMove = useCallback((e) => {
     if (!isDragging.current) return;
     touchEndX.current = e.touches[0].clientX;
-    
+
     // Detectar si hay movimiento significativo
     const movement = Math.abs(touchStartX.current - touchEndX.current);
     if (movement > 10) {
@@ -77,17 +77,17 @@ const HeroBanner = () => {
 
   const handleTouchEnd = useCallback(() => {
     if (!isDragging.current) return;
-    
+
     const swipeThreshold = 50; // Mínimo de píxeles para considerar un swipe
     const difference = touchStartX.current - touchEndX.current;
-    
+
     console.log('📱 Touch End:', {
       difference: Math.abs(difference) + 'px',
       hasMovedSignificantly: hasMovedSignificantly.current,
       isDragging: isDragging.current,
       threshold: swipeThreshold + 'px'
     });
-    
+
     // Solo cambiar slide si hubo movimiento significativo
     if (hasMovedSignificantly.current && Math.abs(difference) > swipeThreshold) {
       console.log('📱 ↔️ SWIPE detectado - cambiando slide');
@@ -98,7 +98,7 @@ const HeroBanner = () => {
         // Swipe a la derecha - slide anterior
         setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length);
       }
-      
+
       // Si hubo swipe, mantener el flag por un momento para bloquear clicks
       isDragging.current = false;
       // NO resetear hasMovedSignificantly inmediatamente para bloquear el click
@@ -129,7 +129,7 @@ const HeroBanner = () => {
   const handleMouseMove = useCallback((e) => {
     if (!isDragging.current) return;
     touchEndX.current = e.clientX;
-    
+
     // Detectar si hay movimiento significativo
     const movement = Math.abs(touchStartX.current - touchEndX.current);
     if (movement > 10) {
@@ -139,16 +139,16 @@ const HeroBanner = () => {
 
   const handleMouseUp = useCallback(() => {
     if (!isDragging.current) return;
-    
+
     const swipeThreshold = 50;
     const difference = touchStartX.current - touchEndX.current;
-    
+
     console.log('🖱️ Mouse Up:', {
       difference,
       hasMovedSignificantly: hasMovedSignificantly.current,
       isDragging: isDragging.current
     });
-    
+
     // Solo cambiar slide si hubo movimiento significativo
     if (hasMovedSignificantly.current && Math.abs(difference) > swipeThreshold) {
       console.log('↔️ Drag detectado - cambiando slide');
@@ -157,7 +157,7 @@ const HeroBanner = () => {
       } else {
         setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length);
       }
-      
+
       // Si hubo drag, mantener el flag por un momento para bloquear clicks
       isDragging.current = false;
       // NO resetear hasMovedSignificantly inmediatamente para bloquear el click
@@ -188,13 +188,13 @@ const HeroBanner = () => {
       isDragging: isDragging.current,
       buttonUrl: banner.buttonUrl
     });
-    
+
     // Solo navegar si no hubo movimiento significativo (no fue un swipe)
     if (!hasMovedSignificantly.current) {
       console.log('✅ Navegando a:', banner.buttonUrl);
       e.preventDefault();
       e.stopPropagation();
-      
+
       // Usar setTimeout para asegurar que el navigate se ejecute después del evento
       setTimeout(() => {
         navigate(banner.buttonUrl);
@@ -324,8 +324,8 @@ const HeroBanner = () => {
   }
 
   return (
-    <section 
-      className="hero-banner hero-banner--swipeable" 
+    <section
+      className="hero-banner hero-banner--swipeable"
       role="banner"
       ref={bannerRef}
       onTouchStart={handleTouchStart}
@@ -398,6 +398,7 @@ const HeroBanner = () => {
                   height="20"
                   src="./icons/hero/Users.svg"
                   style={{ filter: 'brightness(0) invert(1)' }}
+                  
                 />
                 {currentBanner.buttonText}
               </a>
@@ -405,16 +406,14 @@ const HeroBanner = () => {
           </div>
 
           <div className="banner-image-container">
-            <Link 
+            <Link
               to={currentBanner.buttonUrl}
               onClick={(e) => {
                 // Prevenir navegación si hubo swipe
                 if (hasMovedSignificantly.current) {
-                  console.log('❌ Link click bloqueado por swipe');
                   e.preventDefault();
                   e.stopPropagation();
                 } else {
-                  console.log('✅ Link click permitido - navegando');
                 }
               }}
               style={{ display: 'block', cursor: 'pointer' }}
@@ -424,7 +423,7 @@ const HeroBanner = () => {
                 alt={currentBanner.imageAlt}
                 className="banner-image"
                 onDragStart={handleDragStart}
-                style={{ userSelect: 'none', pointerEvents: 'none' }}
+                style={{ userSelect: 'none' }}
                 onError={handleImageError}
                 draggable="false"
               />

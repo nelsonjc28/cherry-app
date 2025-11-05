@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { welcomeSectionService } from '../services/api';
 
-const useWelcomeSection = (limit = 3) => {
+const useWelcomeSection = (limit = 4) => {
   const [welcomeSections, setWelcomeSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

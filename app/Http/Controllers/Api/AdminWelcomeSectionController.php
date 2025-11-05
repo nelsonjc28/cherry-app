@@ -18,7 +18,7 @@ class AdminWelcomeSectionController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $sections = WelcomeSection::ordered()->get();
+            $sections = WelcomeSection::orderBy('display_order', 'ASC')->get();
 
             return response()->json([
                 'success' => true,
@@ -64,7 +64,6 @@ class AdminWelcomeSectionController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-
         try {
             // Verificar autenticación
             $user = $request->user();
@@ -83,7 +82,6 @@ class AdminWelcomeSectionController extends Controller
                 'button_url' => 'required|string|max:500',
                 'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp',
                 'is_active' => 'boolean',
-                'display_order' => 'integer|min:0'
             ], [
                 'image.mimes' => 'La imagen no cumple con los formatos permitidos. Formatos permitidos: JPEG, JPG, PNG, GIF, WebP',
                 'image.image' => 'El archivo debe ser una imagen válida'
@@ -129,7 +127,7 @@ class AdminWelcomeSectionController extends Controller
                 'button_url' => $request->input('button_url'),
                 'image_path' => $imagePath,
                 'is_active' => $request->boolean('is_active', true),
-                'display_order' => $request->input('display_order', 0)
+                'display_order' => $request->display_order != null ? $request->display_order : $this->newPosition()
             ]);
 
             return response()->json([
@@ -148,6 +146,11 @@ class AdminWelcomeSectionController extends Controller
         }
     }
 
+
+    public function newPosition()
+    {
+            return WelcomeSection::orderBy('display_order', 'desc')->first()->display_order + 1;
+    }
     /**
      * Actualizar una sección
      */

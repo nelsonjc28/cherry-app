@@ -16,7 +16,7 @@ const AdminWelcomeSectionManager = () => {
     button_text: '',
     button_url: '',
     is_active: true,
-    display_order: 0
+    display_order: ''
   });
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -208,7 +208,7 @@ const AdminWelcomeSectionManager = () => {
       button_text: '',
       button_url: '',
       is_active: true,
-      display_order: 0
+      display_order: ''
     });
     setImageFile(null);
     setImagePreview(null);
