@@ -14,7 +14,7 @@ class TermsConditionsController extends Controller
      */
     public function show()
     {
-        $terms = TermsConditions::getActiveTerms();
+        $terms = TermsConditions::where('is_active', true)->first();
         
         if (!$terms) {
             return response()->json([

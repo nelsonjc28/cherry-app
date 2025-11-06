@@ -10,9 +10,9 @@ import useUserStore from '../../store/userStore';
 const RegisterPage = () => {
   const navigate = useNavigate();
   const { register, loading, error } = useUserStore();
-  
+
   const [currentStep, setCurrentStep] = useState(1);
-  
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -40,7 +40,7 @@ const RegisterPage = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    
+
     // Si cambia el código postal y tiene 5 dígitos, consultar SEPOMEX
     if (name === 'postalCode') {
       if (value.length === 5) {
@@ -71,7 +71,7 @@ const RegisterPage = () => {
         [name]: type === "checkbox" ? checked : value,
       }));
     }
-    
+
     // Limpiar errores del campo cuando el usuario empiece a escribir
     if (formErrors[name]) {
       setFormErrors(prev => ({
@@ -88,17 +88,17 @@ const RegisterPage = () => {
     setLoadingPostalCode(true);
     try {
       const response = await fetch(`https://sepomex.789.com.mx/${postalCode}`);
-      
+
       if (!response.ok) {
         throw new Error('Código postal no encontrado');
       }
 
       const data = await response.json();
-      
+
       if (data && data.asentamientos && data.asentamientos.length > 0) {
         // Guardar lista de asentamientos
         setSettlements(data.asentamientos);
-        
+
         // Auto-llenar estado y municipio
         setFormData(prev => ({
           ...prev,
@@ -169,7 +169,7 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const errors = validateForm(currentStep);
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
@@ -181,7 +181,7 @@ const RegisterPage = () => {
 
     if (currentStep === 1) {
       setIsSubmitting(true);
-      
+
       try {
         const userData = {
           first_name: formData.firstName,
@@ -192,10 +192,12 @@ const RegisterPage = () => {
         };
 
         const user = await register(userData);
-        
+
         if (user) {
           if (window.showToast) {
-            window.showToast('¡Paso 1 completado! Continúa con el siguiente paso', 'success');
+            window.showToast('¡Registro completado! Bienvenido a Cherry', 'success');
+            navigate('/')
+
           }
           setCurrentStep(2);
         }
@@ -213,10 +215,10 @@ const RegisterPage = () => {
   const handleStep2Submit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     try {
       const token = localStorage.getItem('token');
-      
+
       if (!token) {
         if (window.showToast) {
           window.showToast('No hay sesión activa', 'error');
@@ -279,11 +281,11 @@ const RegisterPage = () => {
       if (window.showToast) {
         window.showToast('¡Registro completado! Bienvenido a Cherry', 'success');
       }
-      
+
       // Actualizar el usuario en el store
       const { fetchUser } = useUserStore.getState();
       await fetchUser();
-      
+
       navigate('/');
     } catch (err) {
       console.error('Error al completar perfil:', err);
@@ -298,6 +300,7 @@ const RegisterPage = () => {
   const handleSkip = () => {
     if (window.showToast) {
       window.showToast('¡Registro completado! Bienvenido a Cherry', 'success');
+      navigate('/')
     }
     navigate('/');
   };
@@ -369,143 +372,144 @@ const RegisterPage = () => {
                   )}
                 </div>
 
-                {currentStep === 1 ? (
-                  <form onSubmit={handleSubmit} className="register-form">
-                    <div className="register-form-row">
-                      <div className="register-form-group">
-                        <label>Nombre</label>
-                        <input
-                          type="text"
-                          name="firstName"
-                          placeholder="Tu nombre"
-                          value={formData.firstName}
-                          onChange={handleInputChange}
-                          required
-                        />
-                        {formErrors.firstName && <span className="error-message">{formErrors.firstName}</span>}
-                      </div>
-                      <div className="register-form-group">
-                        <label>Apellidos</label>
-                        <input
-                          type="text"
-                          name="lastName"
-                          placeholder="Tus apellidos"
-                          value={formData.lastName}
-                          onChange={handleInputChange}
-                          required
-                        />
-                        {formErrors.lastName && <span className="error-message">{formErrors.lastName}</span>}
-                      </div>
+                {/* {currentStep === 1 ? ( */}
+
+                <form onSubmit={handleSubmit} className="register-form">
+                  <div className="register-form-row">
+                    <div className="register-form-group">
+                      <label>Nombre</label>
+                      <input
+                        type="text"
+                        name="firstName"
+                        placeholder="Tu nombre"
+                        value={formData.firstName}
+                        onChange={handleInputChange}
+                        required
+                      />
+                      {formErrors.firstName && <span className="error-message">{formErrors.firstName}</span>}
                     </div>
-
-                    <div className="register-form-row">
-                      <div className="register-form-group">
-                        <label>Teléfono</label>
-                        <input
-                          type="tel"
-                          name="phone"
-                          placeholder="10 dígitos"
-                          value={formData.phone}
-                          onChange={handleInputChange}
-                          required
-                          pattern="[0-9]{10}"
-                          maxLength="10"
-                          onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')}
-                        />
-                        {formErrors.phone && <span className="error-message">{formErrors.phone}</span>}
-                      </div>
-                      <div className="register-form-group">
-                        <label>Correo electrónico</label>
-                        <input
-                          type="email"
-                          name="email"
-                          placeholder="tu@email.com"
-                          value={formData.email}
-                          onChange={handleInputChange}
-                          required
-                        />
-                        {formErrors.email && <span className="error-message">{formErrors.email}</span>}
-                      </div>
+                    <div className="register-form-group">
+                      <label>Apellidos</label>
+                      <input
+                        type="text"
+                        name="lastName"
+                        placeholder="Tus apellidos"
+                        value={formData.lastName}
+                        onChange={handleInputChange}
+                        required
+                      />
+                      {formErrors.lastName && <span className="error-message">{formErrors.lastName}</span>}
                     </div>
+                  </div>
 
-                    <div className="register-section-title" style={{ color: 'white', marginTop: '20px' }}>Contraseña</div>
-                    <div className="white-divider"></div>
-
-                    <div className="register-form-row">
-                      <div className="register-form-group">
-                        <label>Contraseña</label>
-                        <input
-                          type="password"
-                          name="password"
-                          placeholder="Mínimo 8 caracteres"
-                          value={formData.password}
-                          onChange={handleInputChange}
-                          required
-                          minLength="8"
-                        />
-                        {formErrors.password && <span className="error-message">{formErrors.password}</span>}
-                      </div>
-                      <div className="register-form-group">
-                        <label>Confirmar contraseña</label>
-                        <input
-                          type="password"
-                          name="confirmPassword"
-                          placeholder="Repite tu contraseña"
-                          value={formData.confirmPassword}
-                          onChange={handleInputChange}
-                          required
-                          minLength="8"
-                        />
-                        {formErrors.confirmPassword && <span className="error-message">{formErrors.confirmPassword}</span>}
-                      </div>
+                  <div className="register-form-row">
+                    <div className="register-form-group">
+                      <label>Teléfono</label>
+                      <input
+                        type="tel"
+                        name="phone"
+                        placeholder="10 dígitos"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        required
+                        pattern="[0-9]{10}"
+                        maxLength="10"
+                        onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')}
+                      />
+                      {formErrors.phone && <span className="error-message">{formErrors.phone}</span>}
                     </div>
-
-                    <p className="register-password-hint">
-                      Tu contraseña debe tener mínimo 8 caracteres y al menos una letra y un número
-                    </p>
-
-                    <div className="register-checkbox-group">
-                      <label className="register-checkbox-label">
-                        <input
-                          type="checkbox"
-                          name="receivePromotions"
-                          checked={formData.receivePromotions}
-                          onChange={handleInputChange}
-                        />
-                        <span className="register-checkmark"></span>
-                        Deseo recibir información sobre rebajas
-                      </label>
+                    <div className="register-form-group">
+                      <label>Correo electrónico</label>
+                      <input
+                        type="email"
+                        name="email"
+                        placeholder="tu@email.com"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        required
+                      />
+                      {formErrors.email && <span className="error-message">{formErrors.email}</span>}
                     </div>
+                  </div>
 
-                    <div className="register-checkbox-group">
-                      <label className="register-checkbox-label">
-                        <input
-                          type="checkbox"
-                          name="acceptTerms"
-                          checked={formData.acceptTerms}
-                          onChange={handleInputChange}
-                          required
-                        />
-                        <span className="checkmark"></span>
-                        Acepto términos y condiciones
-                      </label>
-                      {formErrors.acceptTerms && <span className="error-message">{formErrors.acceptTerms}</span>}
-                    </div>
+                  <div className="register-section-title" style={{ color: 'white', marginTop: '20px' }}>Contraseña</div>
+                  <div className="white-divider"></div>
 
-                    <div className="register-button-container">
-                      <CustomButton
-                        variant="filled"
-                        size='medium'
-                        type="submit"
-                        disabled={isSubmitting || loading}
-                        iconRight={<img src={getIconPath('White Chevron Right.svg')} alt="crear cuenta" style={{ width: 16, height: 16 }} />}>
-                        <span className="register-submit-button">
-                          {isSubmitting ? 'Creando cuenta...' : 'Crear cuenta'}
-                        </span>
-                      </CustomButton>
+                  <div className="register-form-row">
+                    <div className="register-form-group">
+                      <label>Contraseña</label>
+                      <input
+                        type="password"
+                        name="password"
+                        placeholder="Mínimo 8 caracteres"
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        required
+                        minLength="8"
+                      />
+                      {formErrors.password && <span className="error-message">{formErrors.password}</span>}
                     </div>
-                  </form>
-                ) : (
+                    <div className="register-form-group">
+                      <label>Confirmar contraseña</label>
+                      <input
+                        type="password"
+                        name="confirmPassword"
+                        placeholder="Repite tu contraseña"
+                        value={formData.confirmPassword}
+                        onChange={handleInputChange}
+                        required
+                        minLength="8"
+                      />
+                      {formErrors.confirmPassword && <span className="error-message">{formErrors.confirmPassword}</span>}
+                    </div>
+                  </div>
+
+                  <p className="register-password-hint">
+                    Tu contraseña debe tener mínimo 8 caracteres y al menos una letra y un número
+                  </p>
+
+                  <div className="register-checkbox-group">
+                    <label className="register-checkbox-label">
+                      <input
+                        type="checkbox"
+                        name="receivePromotions"
+                        checked={formData.receivePromotions}
+                        onChange={handleInputChange}
+                      />
+                      <span className="register-checkmark"></span>
+                      Deseo recibir información sobre rebajas
+                    </label>
+                  </div>
+
+                  <div className="register-checkbox-group">
+                    <label className="register-checkbox-label">
+                      <input
+                        type="checkbox"
+                        name="acceptTerms"
+                        checked={formData.acceptTerms}
+                        onChange={handleInputChange}
+                        required
+                      />
+                      <span className="checkmark"></span>
+                      Acepto términos y condiciones
+                    </label>
+                    {formErrors.acceptTerms && <span className="error-message">{formErrors.acceptTerms}</span>}
+                  </div>
+
+                  <div className="register-button-container">
+                    <CustomButton
+                      variant="filled"
+                      size='medium'
+                      type="submit"
+                      disabled={isSubmitting || loading}
+                      iconRight={<img src={getIconPath('White Chevron Right.svg')} alt="crear cuenta" style={{ width: 16, height: 16 }} />}>
+                      <span className="register-submit-button">
+                        {isSubmitting ? 'Creando cuenta...' : 'Crear cuenta'}
+                      </span>
+                    </CustomButton>
+                  </div>
+                </form>
+                {/* ) }  : (
                   <form onSubmit={handleStep2Submit} className="register-form">
 
                     <div className="register-form-group">
@@ -674,7 +678,7 @@ const RegisterPage = () => {
                       </CustomButton>
                     </div>
                   </form>
-                )}
+                {/* )} */}
               </div>
             </div>
           </div>

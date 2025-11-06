@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\PrivacyPolicy;
+use App\Models\TermsConditions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -14,11 +15,11 @@ class PrivacyPolicyController extends Controller
      */
     public function show()
     {
-        $policy = PrivacyPolicy::getActivePolicy();
+        $policy = TermsConditions::where('is_active', true)->first();
         
         if (!$policy) {
             return response()->json([
-                'message' => 'No hay política de privacidad disponible'
+                'message' => 'No hay terminos y condiciones disponibles'
             ], 404);
         }
 
@@ -32,7 +33,7 @@ class PrivacyPolicyController extends Controller
      */
     public function index()
     {
-        $policies = PrivacyPolicy::orderBy('created_at', 'desc')->get();
+        $policies = TermsConditions::orderBy('created_at', 'desc')->get();
         
         return response()->json([
             'data' => $policies
@@ -58,9 +59,9 @@ class PrivacyPolicyController extends Controller
         }
 
         // Desactivar políticas anteriores
-        PrivacyPolicy::where('is_active', true)->update(['is_active' => false]);
+        TermsConditions::where('is_active', true)->update(['is_active' => false]);
 
-        $policy = PrivacyPolicy::create([
+        $policy = TermsConditions::create([
             'title' => $request->title,
             'content' => $request->content,
             'version' => $request->version,
@@ -69,7 +70,7 @@ class PrivacyPolicyController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Política de privacidad creada exitosamente',
+            'message' => 'Terminos y condiciones creados exitosamente',
             'data' => $policy
         ], 201);
     }
@@ -79,11 +80,11 @@ class PrivacyPolicyController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $policy = PrivacyPolicy::find($id);
+        $policy = TermsConditions::find($id);
         
         if (!$policy) {
             return response()->json([
-                'message' => 'Política de privacidad no encontrada'
+                'message' => 'Terminos y condiciones no encontrados'
             ], 404);
         }
 
@@ -114,7 +115,7 @@ class PrivacyPolicyController extends Controller
         }
 
         return response()->json([
-            'message' => 'Política de privacidad actualizada exitosamente',
+            'message' => 'Terminos y condiciones actualizados exitosamente',
             'data' => $policy
         ]);
     }
@@ -124,25 +125,25 @@ class PrivacyPolicyController extends Controller
      */
     public function destroy($id)
     {
-        $policy = PrivacyPolicy::find($id);
+        $policy = TermsConditions::find($id);
         
         if (!$policy) {
             return response()->json([
-                'message' => 'Política de privacidad no encontrada'
+                'message' => 'Terminos y condiciones no encontrados'
             ], 404);
         }
 
         // No permitir eliminar la política activa
         if ($policy->is_active) {
             return response()->json([
-                'message' => 'No se puede eliminar una política activa'
+                'message' => 'No se puede eliminar una termino y condicion activa'
             ], 400);
         }
 
         $policy->delete();
 
         return response()->json([
-            'message' => 'Política de privacidad eliminada exitosamente'
+            'message' => 'Terminos y condiciones eliminados exitosamente'
         ]);
     }
 
@@ -155,7 +156,7 @@ class PrivacyPolicyController extends Controller
         
         if (!$policy) {
             return response()->json([
-                'message' => 'Política de privacidad no encontrada'
+                'message' => 'Terminos y condiciones no encontrados'
             ], 404);
         }
 
@@ -166,7 +167,7 @@ class PrivacyPolicyController extends Controller
         $policy->publish();
 
         return response()->json([
-            'message' => 'Política de privacidad activada exitosamente',
+            'message' => 'Terminos y condiciones activados exitosamente',
             'data' => $policy
         ]);
     }
