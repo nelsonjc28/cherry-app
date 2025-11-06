@@ -84,7 +84,7 @@
 
 .login-subtitle {
   color: var(--text-color);
-  font-size: 30px;
+  font-size: 32px;
   font-weight: 400;
   margin: 0;
 }
@@ -188,7 +188,7 @@
   text-align: center;
   margin-top: 15px;
   color: var(--text-color);
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .login-register-link a {
@@ -262,7 +262,7 @@
   .login-image-container .login-image {
     bottom: 0;
     left: 7%;
-    max-height: 550px;
+    max-height: 450px;
   }
 
   .login-image-container .login-image-round-shape {
@@ -290,7 +290,7 @@
   }
 
   .login-subtitle {
-    font-size: 28px;
+    font-size: 34px;
     margin-bottom: 10px;
   }
 
@@ -335,6 +335,6 @@
 
   .login-register-link {
     margin-top: 25px;
-    font-size: 15px;
+    font-size: 17px;
   }
 }

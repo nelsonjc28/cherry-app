@@ -7,6 +7,7 @@ import CartDetailsProductCard from '../components/CartDetailsProductCard';
 import CartOrderSummary from '../components/CartOrderSummary/CartOrderSummary';
 import AddressSelector from '../components/AddressSelector/AddressSelector';
 import BuyerInfo from '../components/BuyerInfo/BuyerInfo';
+import { validateStock } from '../services/inventoryService';
 
 const CartDetailsPage = () => {
   const navigate = useNavigate();
@@ -93,20 +94,54 @@ const CartDetailsPage = () => {
   };
   
   // Handle quantity change for specific variant
-  const handleQuantityChange = (productIdx, variantIdx, newQty) => {
+  const handleQuantityChange = async (productIdx, variantIdx, newQty) => {
     const product = productsForDisplay[productIdx];
     const variant = product.variants[variantIdx];
     
-    if (newQty >= 1) {
-      // Find the specific item in cart
-      const itemToUpdate = cartItems.find(item => 
-        item.id_articulo === product.sku &&
-        item.selectedColor === variant.color &&
-        item.selectedSize === variant.size
+    if (newQty < 1) return;
+    
+    // Find the specific item in cart
+    const itemToUpdate = cartItems.find(item => 
+      item.id_articulo === product.sku &&
+      item.selectedColor === variant.color &&
+      item.selectedSize === variant.size
+    );
+    
+    if (!itemToUpdate) return;
+
+    // Validar stock disponible
+    try {
+      const stockValidation = await validateStock(
+        itemToUpdate.id_articulo,
+        itemToUpdate.selectedSize,
+        itemToUpdate.selectedColor,
+        newQty
       );
-      
-      if (itemToUpdate) {
-        updateQuantity(itemToUpdate.id_articulo, newQty, itemToUpdate.selectedColor, itemToUpdate.selectedSize);
+
+      if (!stockValidation.isValid) {
+        // Mostrar mensaje de error con el stock disponible
+        if (window.showToast) {
+          window.showToast(stockValidation.message, 'error');
+        }
+        
+        // Si hay stock disponible pero menos de lo solicitado, ajustar a lo disponible
+        if (stockValidation.availableStock > 0) {
+          updateQuantity(
+            itemToUpdate.id_articulo, 
+            stockValidation.availableStock, 
+            itemToUpdate.selectedColor, 
+            itemToUpdate.selectedSize
+          );
+        }
+        return;
+      }
+
+      // Si la validación es exitosa, actualizar la cantidad
+      updateQuantity(itemToUpdate.id_articulo, newQty, itemToUpdate.selectedColor, itemToUpdate.selectedSize);
+    } catch (error) {
+      console.error('Error validando stock:', error);
+      if (window.showToast) {
+        window.showToast('Error al validar disponibilidad del producto', 'error');
       }
     }
   };

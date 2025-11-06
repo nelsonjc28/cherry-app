@@ -26,6 +26,7 @@ import useUserStore from '../store/userStore';
 import { formatPrice } from '../utils/formatters';
 import useHorizontalDragScroll from '../hooks/useHorizontalDragScroll';
 import colorConverter from '../services/colorConverter';
+import { validateStock, getProductStock } from '../services/inventoryService';
 
 const ProductPage = () => {
   const { productId } = useParams();

@@ -31,6 +31,11 @@ Route::post('/complete-profile', [AuthController::class, 'completeProfile'])->mi
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api');
 
+// Password Reset routes with code
+Route::post('/password/send-code', [App\Http\Controllers\Api\PasswordResetController::class, 'sendResetCode']);
+Route::post('/password/verify-code', [App\Http\Controllers\Api\PasswordResetController::class, 'verifyCode']);
+Route::post('/password/reset', [App\Http\Controllers\Api\PasswordResetController::class, 'resetWithCode']);
+
 // Public review routes (no auth required)
 Route::get('/reviews/product/{productId}', [App\Http\Controllers\ReviewController::class, 'getProductReviews']);
 Route::get('/reviews/approved', [App\Http\Controllers\ReviewController::class, 'getApprovedReviews']);

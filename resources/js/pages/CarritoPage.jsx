@@ -3,6 +3,7 @@ import useCartStore from '../store/cartStore';
 import CartDetailsProductCard from '../components/CartDetailsProductCard';
 import OrderSummaryTable from '../components/OrderSummaryTable/OrderSummaryTable';
 import './CarritoPage.css';
+import { validateStock } from '../services/inventoryService';
 
 const CarritoPage = () => {
   const { items: cartItems, totalItems, totalPrice, removeItem, updateQuantity, initCart } = useCartStore();
@@ -17,9 +18,33 @@ const CarritoPage = () => {
     clearCart();
   };
 
-  const handleUpdateQuantity = (productId, newQuantity, color, size) => {
-    if (newQuantity >= 1) {
+  const handleUpdateQuantity = async (productId, newQuantity, color, size) => {
+    if (newQuantity < 1) return;
+
+    // Validar stock disponible
+    try {
+      const stockValidation = await validateStock(productId, size, color, newQuantity);
+
+      if (!stockValidation.isValid) {
+        // Mostrar mensaje de error con el stock disponible
+        if (window.showToast) {
+          window.showToast(stockValidation.message, 'error');
+        }
+        
+        // Si hay stock disponible pero menos de lo solicitado, ajustar a lo disponible
+        if (stockValidation.availableStock > 0) {
+          updateQuantity(productId, stockValidation.availableStock, color, size);
+        }
+        return;
+      }
+
+      // Si la validación es exitosa, actualizar la cantidad
       updateQuantity(productId, newQuantity, color, size);
+    } catch (error) {
+      console.error('Error validando stock:', error);
+      if (window.showToast) {
+        window.showToast('Error al validar disponibilidad del producto', 'error');
+      }
     }
   };
 

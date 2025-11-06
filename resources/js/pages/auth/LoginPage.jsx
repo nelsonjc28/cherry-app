@@ -151,7 +151,7 @@ const LoginPage = () => {
             <div className="login-right">
               <div className="login-form-container">
                 <div className="login-form-header">
-                  <h2 className="login-subtitle">Inicio de Sesión</h2>
+                  <h2 className="login-subtitle">Iniciar Sesión</h2>
                 </div>
 
                 <form onSubmit={handleSubmit} className="login-form">
@@ -221,7 +221,7 @@ const LoginPage = () => {
                   </div>
 
                   <div className="login-register-link">
-                    ¿No tienes cuenta? <Link to="/registro">Afíliate</Link>
+                    ¿No tienes cuenta? <Link to="/registro">Regístrate</Link>
                   </div>
                 </form>
               </div>

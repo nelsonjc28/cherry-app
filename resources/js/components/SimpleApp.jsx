@@ -14,6 +14,7 @@ import CatalogPdfPage from '../pages/CatalogPdfPage';
 import ProductPage from '../pages/ProductPage';
 import LoginPage from '../pages/auth/LoginPage';
 import RegisterPage from '../pages/auth/RegisterPage';
+import ForgotPasswordPage from '../pages/ForgotPasswordPage';
 import CartDetailsPage from '../pages/CartDetailsPage';
 import CheckoutSuccessPage from '../pages/CheckoutSuccessPage';
 import CarritoPage from '../pages/CarritoPage';
@@ -79,6 +80,7 @@ const SimpleApp = () => {
                   <Route path="/producto/:productId" element={<ProductPage />} />
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/registro" element={<RegisterPage />} />
+                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                   
                   {/* Profile Routes */}
                   <Route path="/perfil" element={<ProfileLayout />}>
