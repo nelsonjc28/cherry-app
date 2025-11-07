@@ -36,7 +36,7 @@ const AdminPrivacyPolicyManager = () => {
         setCurrentPolicy(activePolicy);
       }
     } catch (error) {
-      window.showToast('Error al cargar las políticas de privacidad', 'error');
+      window.showToast('Error al cargar los terminos y condiciones', 'error');
     } finally {
       setLoading(false);
     }
@@ -45,13 +45,13 @@ const AdminPrivacyPolicyManager = () => {
   const handleCreateNew = () => {
     setEditingPolicy({
       id: null,
-      title: 'Nueva Política de Privacidad',
+      title: 'Nuevo Termino o Condicion',
       version: '1.0',
       content: '',
       is_active: false
     });
     setEditorState({
-      title: 'Nueva Política de Privacidad',
+      title: 'Nuevo Termino o Condicion',
       version: '1.0',
       content: ''
     });
@@ -80,7 +80,7 @@ const AdminPrivacyPolicyManager = () => {
           content: editorState.content,
           is_active: editingPolicy.is_active
         });
-        window.showToast('Política actualizada exitosamente', 'success');
+        window.showToast('Termino o Condicion actualizado exitosamente', 'success');
       } else {
         // Crear nueva política
         await apiClient.post('/api/admin/privacy-policies', {
@@ -88,7 +88,7 @@ const AdminPrivacyPolicyManager = () => {
           version: editorState.version,
           content: editorState.content
         });
-        window.showToast('Política creada exitosamente', 'success');
+        window.showToast('Termino o Condicion creado exitosamente', 'success');
       }
       
       setShowEditor(false);
@@ -96,8 +96,8 @@ const AdminPrivacyPolicyManager = () => {
       setEditorState({ title: '', version: '', content: '' });
       loadPolicies();
     } catch (error) {
-      console.error('Error al guardar la política:', error);
-      window.showToast('Error al guardar la política', 'error');
+      console.error('Error al guardar el termino o condicion:', error);
+      window.showToast('Error al guardar el termino o condicion', 'error');
     } finally {
       setLoading(false);
     }
@@ -106,17 +106,17 @@ const AdminPrivacyPolicyManager = () => {
   const handleActivate = async (policyId) => {
     try {
       await apiClient.patch(`/api/admin/privacy-policies/${policyId}/activate`);
-      window.showToast('Política activada exitosamente', 'success');
+      window.showToast('Termino o Condicion activado exitosamente', 'success');
       loadPolicies();
     } catch (error) {
-      window.showToast('Error al activar la política', 'error');
+      window.showToast('Error al activar el termino o condicion', 'error');
     }
   };
 
   const handleDelete = async (policyId) => {
     const result = await Swal.fire({
       title: '¿Estás seguro?',
-      text: '¿Quieres eliminar esta política? Esta acción no se puede deshacer.',
+      text: '¿Quieres eliminar este termino o condicion? Esta acción no se puede deshacer.',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#d33',
@@ -131,10 +131,10 @@ const AdminPrivacyPolicyManager = () => {
 
     try {
       await apiClient.delete(`/api/admin/privacy-policies/${policyId}`);
-      window.showToast('Política eliminada exitosamente', 'success');
+      window.showToast('Termino o Condicion eliminado exitosamente', 'success');
       loadPolicies();
     } catch (error) {
-      window.showToast('Error al eliminar la política', 'error');
+      window.showToast('Error al eliminar el termino o condicion', 'error');
     }
   };
 
@@ -156,7 +156,7 @@ const AdminPrivacyPolicyManager = () => {
     return (
       <div className="admin-privacy-manager">
         <div className="admin-privacy-manager__loading">
-          <p>Cargando políticas de privacidad...</p>
+          <p>Cargando terminos y condiciones...</p>
         </div>
       </div>
     );
@@ -165,12 +165,12 @@ const AdminPrivacyPolicyManager = () => {
   return (
     <div className="admin-privacy-manager">
       <div className="admin-privacy-manager__header">
-        <h2 className="admin-privacy-manager__title">Gestión de Políticas de Privacidad</h2>
+        <h2 className="admin-privacy-manager__title">Gestión de terminos y condiciones</h2>
         <button 
           className="admin-privacy-manager__create-btn"
           onClick={handleCreateNew}
         >
-          Crear Nueva Política
+          Crear Nuevo Termino o Condicion
         </button>
       </div>
 
@@ -184,7 +184,7 @@ const AdminPrivacyPolicyManager = () => {
       <div className="admin-privacy-manager__policies">
         <h3>Políticas Existentes</h3>
         {policies.length === 0 ? (
-          <p>No hay políticas de privacidad creadas.</p>
+          <p>No hay terminos y condiciones creadas.</p>
         ) : (
           <div className="admin-privacy-manager__policies-list">
             {policies.map((policy) => (
@@ -236,7 +236,7 @@ const AdminPrivacyPolicyManager = () => {
         <div className="admin-privacy-manager__editor-overlay">
           <div className="admin-privacy-manager__editor">
             <div className="admin-privacy-manager__editor-header">
-              <h3>{editingPolicy.id ? 'Editar Política' : 'Nueva Política'}</h3>
+              <h3>{editingPolicy.id ? 'Editar Termino o Condicion' : 'Nuevo Termino o Condicion'}</h3>
               <button 
                 className="admin-privacy-manager__close-btn"
                 onClick={handleCancel}
@@ -253,7 +253,7 @@ const AdminPrivacyPolicyManager = () => {
                   type="text"
                   value={editorState.title}
                   onChange={(e) => setEditorState(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Título de la política"
+                  placeholder="Título del termino o condicion"
                 />
               </div>
 
@@ -329,7 +329,7 @@ const AdminPrivacyPolicyManager = () => {
                   onClick={handleSave}
                   disabled={loading}
                 >
-                  {loading ? 'Guardando...' : 'Guardar Política'}
+                  {loading ? 'Guardando...' : 'Guardar Termino o Condicion'}
                 </button>
               </div>
             </div>
