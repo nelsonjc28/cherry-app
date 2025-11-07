@@ -151,7 +151,7 @@ function AdminPanelPage() {
           <button className={`admin-panel__sidebar-link${selectedMenu==='orders'?' active':''}`} onClick={()=>handleMenuChange('orders')}>Gestión de Órdenes</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='reviews'?' active':''}`} onClick={()=>handleMenuChange('reviews')}>Gestión de Reseñas</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='contact-info'?' active':''}`} onClick={()=>handleMenuChange('contact-info')}>Información de Contacto</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='privacy-policy'?' active':''}`} onClick={()=>handleMenuChange('privacy-policy')}>Terminos y Condiciones</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='privacy-policy'?' active':''}`} onClick={()=>handleMenuChange('privacy-policy')}>Políticas de Privacidad</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='discounts'?' active':''}`} onClick={()=>handleMenuChange('discounts')}>Descuentos</button>
           <button className="admin-panel__sidebar-link" onClick={handleLogout}>Volver al sitio</button>
         </nav>
