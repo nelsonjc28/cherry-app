@@ -40,10 +40,12 @@
     transform: scale(1.02);
     box-shadow: 0 8px 25px rgba(233, 30, 99, 0.3);
   }
+
   50% {
     transform: scale(1.05);
     box-shadow: 0 12px 35px rgba(233, 30, 99, 0.5);
   }
+
   100% {
     transform: scale(1.02);
     box-shadow: 0 8px 25px rgba(233, 30, 99, 0.3);
@@ -271,7 +273,6 @@
 }
 
 .product-page__info-price {
-  font-size: 48px;
   font-weight: 400;
   color: #1a1a1a;
   line-height: 1.1;
@@ -301,7 +302,8 @@
 
 /* Buy X Get Y offer badge */
 .product-page__offer-badge.buy-x-get-y {
-  background: #ffd700; /* Amarillo */
+  background: #ffd700;
+  /* Amarillo */
   color: #333;
   font-weight: 700;
   box-shadow: 0 4px 8px rgba(255, 215, 0, 0.4);
@@ -309,10 +311,13 @@
 }
 
 @keyframes pulse-glow-page {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     box-shadow: 0 4px 8px rgba(255, 107, 107, 0.4);
   }
+
   50% {
     transform: scale(1.02);
     box-shadow: 0 6px 12px rgba(255, 107, 107, 0.6);
@@ -321,10 +326,13 @@
 
 /* Animación amarilla para Buy X Get Y en página de producto */
 @keyframes pulse-glow-yellow-page {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     box-shadow: 0 4px 8px rgba(255, 215, 0, 0.4);
   }
+
   50% {
     transform: scale(1.02);
     box-shadow: 0 6px 12px rgba(255, 215, 0, 0.6);
@@ -333,7 +341,8 @@
 
 /* Order discount offer badge */
 .product-page__offer-badge.order-discount {
-  background: #007bff; /* Azul */
+  background: #007bff;
+  /* Azul */
   color: white;
   font-weight: 700;
   box-shadow: 0 4px 8px rgba(0, 123, 255, 0.4);
@@ -342,10 +351,13 @@
 
 /* Animación azul para descuento en el pedido en página de producto */
 @keyframes pulse-glow-blue-page {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     box-shadow: 0 4px 8px rgba(0, 123, 255, 0.4);
   }
+
   50% {
     transform: scale(1.02);
     box-shadow: 0 6px 12px rgba(0, 123, 255, 0.6);
@@ -354,7 +366,8 @@
 
 /* Free shipping offer badge */
 .product-page__offer-badge.free-shipping {
-  background: #28a745; /* Verde */
+  background: #28a745;
+  /* Verde */
   color: white;
   font-weight: 700;
   box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
@@ -363,10 +376,13 @@
 
 /* Animación verde para envío gratis en página de producto */
 @keyframes pulse-glow-green-page {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
   }
+
   50% {
     transform: scale(1.02);
     box-shadow: 0 6px 12px rgba(40, 167, 69, 0.6);
@@ -377,14 +393,14 @@
 .product-page__price-container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  align-items: flex-start;
+  gap: 2px;
+  margin-top: 0;
 }
 
 /* Original price (crossed out) */
 .product-page__original-price {
-  font-size: 32px;
-  font-weight: 400;
+  font-size: 28px;
+  font-weight: 500;
   color: #888;
   text-decoration: line-through;
   line-height: 1.1;
@@ -392,8 +408,8 @@
 
 /* Final price */
 .product-page__final-price {
-  font-size: 48px;
-  font-weight: 400;
+  font-size: 35px;
+  font-weight: 500;
   color: #1a1a1a;
   line-height: 1.1;
 }
@@ -577,13 +593,12 @@
 
 .product-page__step-number {
   color: #637381;
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 600;
 }
 
 .product-page__step-number-border {
   border-top: 1px solid #e0e0e0;
-  padding-top: 20px;
 }
 
 .product-page__step-description {
@@ -689,7 +704,7 @@
   background: #fef5f5;
 }
 
-.product-page__size-button  {
+.product-page__size-button {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -953,56 +968,74 @@
 
   .product-page__container {
     grid-template-columns: 1fr;
-    gap: 15px;
+    gap: 5px;
     padding: 16px;
+    padding-bottom: 0;
   }
 
   .product-page__info-title {
-    font-size: 24px;
-    line-height: 1.3;
+    font-size: 20px;
+    line-height: 1.1;
     word-wrap: break-word;
     overflow-wrap: break-word;
     hyphens: auto;
     min-height: auto;
     display: block;
+    margin-bottom: 5px;
   }
 
   .product-page__info-price {
-    font-size: 44px;
     font-weight: 400;
-    margin-bottom: 10px;
-    line-height: 1.1;
-    display: block;
+    margin-bottom: 0;
+    line-height: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
   }
 
   /* Responsive offer styles */
   .product-page__offer-badge {
     font-size: 14px;
-    padding: 6px 12px;
-    margin-bottom: 12px;
+    padding: 4px 10px;
+    margin-bottom: 0;
+    order: 2;
   }
-  
+
   /* Ocultar texto "Rebaja" en móvil, solo mostrar el porcentaje */
   .product-page__offer-badge .offer-text {
     display: none !important;
   }
 
+  .product-page__price-container {
+    order: 1;
+    flex: 0 0 auto;
+  }
+
   .product-page__original-price {
-    font-size: 28px;
+    font-size: 20px;
   }
 
   .product-page__final-price {
-    font-size: 44px;
+    font-size: 25px;
+    margin: 0;
+    line-height: 1.3;
   }
 
   .product-page__savings {
     font-size: 14px;
     padding: 6px 12px;
+    margin: 0;
+    order: 3;
+    width: 100%;
   }
 
   .product-page__offer-details {
     padding: 10px;
     margin-top: 10px;
+    order: 4;
+    width: 100%;
   }
 
   .product-page__calculation {
@@ -1010,7 +1043,7 @@
   }
 
   .product-page__options-title {
-    font-size: 25px;
+    font-size: 20px;
     margin-bottom: -40px;
   }
 
@@ -1050,7 +1083,7 @@
   .product-page__size-options {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 16px;
+    gap: 10px;
     background-color: unset;
   }
 
@@ -1072,6 +1105,7 @@
 
   .product-page__breadcrumb {
     margin-bottom: 0;
+    font-size: 12px;
   }
 
   /* Selected Color Display - Mobile */
@@ -1103,14 +1137,15 @@
 
   .product-page__option {
     gap: 5px;
-    margin-bottom: 0;
+    margin-bottom: -20px;
   }
 
   .product-page__option-header {
     flex-direction: column;
     align-items: start;
     gap: 0;
-    margin-top: 20px;
+    margin-top: 10px;
+    padding-top: 5px;
   }
 
   .product-page__size-quantity {
@@ -1143,6 +1178,10 @@
   .product-page__specification-item {
     padding: 10px;
     font-size: 16px;
+  }
+
+  .product-page__description {
+    padding: 10px 0;
   }
 }
 
@@ -1201,7 +1240,7 @@
   .product-page__offer-type-indicator {
     margin: 0.3rem 0;
   }
-  
+
   .offer-type-badge {
     font-size: 0.75rem;
     padding: 0.3rem 0.6rem;

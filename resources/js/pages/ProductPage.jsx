@@ -43,7 +43,7 @@ const ProductPage = () => {
   const [quantitiesBySize, setQuantitiesBySize] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Hook para detectar si es móvil
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
@@ -55,17 +55,17 @@ const ProductPage = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  
+
   // Rating states
   const [ratingData, setRatingData] = useState({
     average: 0,
     count: 0,
     distribution: [0, 0, 0, 0, 0]
   });
-  
+
   // Description state
   const [showFullDescription, setShowFullDescription] = useState(false);
-  
+
   // Specifications state
   const [showSpecifications, setShowSpecifications] = useState(false);
 
@@ -85,11 +85,11 @@ const ProductPage = () => {
       setError(null);
       try {
         const productData = await getProductById(productId);
-        
+
         // Aplicar ofertas usando el sistema inteligente (con o sin sesión)
         const hasActiveSession = isUserSessionActive();
         let productWithOffer = productData;;
-        
+
         if (hasActiveSession) {
           // Si hay sesión activa, aplicar ofertas personalizadas
           const productsWithOffers = await applyUserOffersToProducts([productData]);
@@ -98,19 +98,19 @@ const ProductPage = () => {
           // Si no hay sesión, usar solo las ofertas externas (ya incluidas en getProductById)
           productWithOffer = productData;;
         }
-        
+
         setProduct(productWithOffer);
         // Set default color/size if available
         if (productData.detalles && productData.detalles.length > 0) {
           const availableColors = [...new Set(productData.detalles.map(d => d.nombreColor).filter(Boolean))];
           const availableSizes = [...new Set(productData.detalles.map(d => d.detalle).filter(Boolean))];
-          
+
           // Auto-seleccionar primer color con fallback
           const coloresParaSeleccion = availableColors.length > 0 ? availableColors : (productData.colors || ['rojo', 'azul', 'verde']);
           if (coloresParaSeleccion.length > 0) {
             setSelectedColor(coloresParaSeleccion[0]);
           }
-          
+
           if (availableSizes.length > 0) {
             setSelectedSize(availableSizes[0]);
           }
@@ -121,7 +121,7 @@ const ProductPage = () => {
             setSelectedColor(coloresGenericos[0]);
           }
         }
-        
+
         // Fetch rating data
         fetchRatingData();
       } catch (err) {
@@ -209,7 +209,7 @@ const ProductPage = () => {
 
     // Obtener las tallas con cantidades seleccionadas
     const tallasConCantidades = getSelectedSizesWithQuantities();
-    
+
     if (tallasConCantidades.length === 0) {
       if (window.showToast) {
         window.showToast('Por favor selecciona al menos una talla con cantidad mayor a 0', 'error');
@@ -220,7 +220,7 @@ const ProductPage = () => {
     // Verificar que todas las cantidades no excedan el stock disponible
     for (const { talla, cantidad } of tallasConCantidades) {
       const stockDisponible = getStockBySizeAndColor(talla, selectedColor);
-      
+
       if (cantidad > stockDisponible) {
         if (window.showToast) {
           window.showToast(`Solo hay ${stockDisponible} unidades disponibles para la talla ${talla}`, 'error');
@@ -267,14 +267,14 @@ const ProductPage = () => {
         });
 
         addToCart(productToAdd, cantidad);
-        
+
         // La lógica de Buy X Get Y ahora se maneja automáticamente en el cartStore
       }
 
       if (window.showToast) {
         const totalUnidades = getTotalUnits();
         let message = `${totalUnidades} unidad${totalUnidades > 1 ? 'es' : ''} agregada${totalUnidades > 1 ? 's' : ''} al carrito`;
-        
+
         if (hasOffer) {
           if (hasUserOffer && userOffer && userOffer.discount_category === 'buy_x_get_y') {
             message += ` 🎁 Oferta: Compra ${userOffer.buy_quantity} por el precio de ${userOffer.buy_quantity - userOffer.get_quantity}`;
@@ -284,12 +284,12 @@ const ProductPage = () => {
           } else if (hasUserOffer && userOffer && userOffer.discount_category === 'free_shipping') {
             message += ` 🚚 ¡Envío gratis incluido!`;
           } else if (discountPercentage > 0) {
-          message += ` 🏷️ Con ${discountPercentage}% de descuento`;
+            message += ` 🏷️ Con ${discountPercentage}% de descuento`;
           }
         }
-        
+
         window.showToast(message, 'success');
-        
+
         // Resetear las cantidades después de agregar exitosamente al carrito
         setQuantitiesBySize({});
         setQuantity(1);
@@ -305,10 +305,10 @@ const ProductPage = () => {
   // Handle quantity change
   const handleQuantityChange = (newQuantity) => {
     // Obtener el stock máximo disponible para la talla y color seleccionados
-    const stockMaximo = selectedColor && selectedSize ? 
-      getStockBySizeAndColor(selectedSize, selectedColor) : 
+    const stockMaximo = selectedColor && selectedSize ?
+      getStockBySizeAndColor(selectedSize, selectedColor) :
       (product?.inventario || product?.stock || 99);
-    
+
     if (newQuantity >= 1 && newQuantity <= stockMaximo) {
       setQuantity(newQuantity);
     }
@@ -317,19 +317,19 @@ const ProductPage = () => {
   // Handle quantity change for specific size
   const handleQuantityChangeForSize = (talla, newQuantity) => {
     const stockMaximo = getStockForSize(talla);
-    
+
     if (newQuantity >= 0 && newQuantity <= stockMaximo) {
       // Actualizar la cantidad para la talla específica
       setQuantitiesBySize(prev => ({
         ...prev,
         [talla]: newQuantity
       }));
-      
+
       // Si es la talla seleccionada, también actualizar la cantidad global
       if (selectedSize === talla) {
         setQuantity(newQuantity);
       }
-      
+
       // Seleccionar la talla si no está seleccionada
       if (selectedSize !== talla) {
         setSelectedSize(talla);
@@ -342,7 +342,7 @@ const ProductPage = () => {
   const handleSizeSelection = (talla) => {
     // Verificar si la talla tiene stock
     const stockDisponible = selectedColor ? getStockBySizeAndColor(talla, selectedColor) : getStockForSize(talla);
-    
+
     // No permitir selección si no hay stock
     if (stockDisponible <= 0) {
       if (window.showToast) {
@@ -350,10 +350,10 @@ const ProductPage = () => {
       }
       return;
     }
-    
+
     // Seleccionar la talla
     setSelectedSize(talla);
-    
+
     // Si la talla no tiene cantidad o tiene 0, inicializar con 1
     const cantidadActual = quantitiesBySize[talla] || 0;
     if (cantidadActual <= 0) {
@@ -454,7 +454,7 @@ const ProductPage = () => {
   // Colores y tallas únicos
   const colores = [...new Set(detalles.map(d => d.nombreColor).filter(Boolean))];
   const tallas = [...new Set(detalles.map(d => d.detalle).filter(Boolean))];
-  
+
   // Fallback: si no hay colores desde detalles, usar colores genéricos
   const coloresFallback = colores.length > 0 ? colores : (product.colors || ['rojo', 'azul', 'verde']);
 
@@ -470,66 +470,66 @@ const ProductPage = () => {
     if (hasUserOffer && userOffer && userOffer.discount_percentage > 0) {
       return Math.round(userOffer.discount_percentage);
     }
-    
+
     // PRIORIDAD 2: Descuento general desde la API (desc_promo) - usar directamente desc_promo
     if (product?.desc_promo && product.desc_promo > 0) {
       return Math.round(product.desc_promo);
     }
-    
+
     // PRIORIDAD 3: Descuento ya procesado en product.discount
     if (product?.discount && product.discount > 0) {
       return Math.round(product.discount);
     }
-    
+
     // PRIORIDAD 4: Fallback usando originalPrice vs price
     if (product?.originalPrice && product?.price && product.originalPrice > product.price) {
       const calculatedDiscount = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);;
       return calculatedDiscount;
     }
-    
+
     return 0;
   };
 
   const discountPercentage = calculateDiscountPercentage();
-  
+
   // Determinar si hay oferta (incluyendo ofertas especiales que no tienen porcentaje)
   const hasOffer = discountPercentage > 0 || (hasUserOffer && userOffer && (userOffer.discount_category === 'buy_x_get_y' || userOffer.discount_category === 'free_shipping'));
-  
+
   // Calcular precio final con logs para debugging
   const calculateFinalPrice = () => {
     const basePrice = precio1 || 0;
-    
+
     // Si ya hay un precio procesado, usarlo
     if (product?.price && product.price !== basePrice) {
       return product.price;
     }
-    
+
     // Si hay descuento, calcularlo
     if (discountPercentage > 0 && basePrice > 0) {
       const discountedPrice = basePrice - (basePrice * (discountPercentage / 100));;
       return discountedPrice;
     }
-    
+
     return basePrice;
   };
-  
+
   const finalPrice = calculateFinalPrice();
-  
+
 
   // Función para obtener el stock disponible por talla y color
   const getStockBySizeAndColor = (talla, color) => {
     if (!detalles || detalles.length === 0) return 0;
-    
+
     // Buscar el detalle específico que coincida con talla y color
-    const detalle = detalles.find(d => 
+    const detalle = detalles.find(d =>
       d.detalle === talla && d.nombreColor === color
     );
-    
+
     // Si no hay detalle específico, usar el stock general del producto
     if (!detalle) {
       return product.inventario || product.stock || 0;
     }
-    
+
     // Usar inventario_d del detalle específico
     return detalle.inventario_d || 0;
   };
@@ -537,12 +537,12 @@ const ProductPage = () => {
   // Función para obtener el código de barras por talla y color
   const getBarcodeBySizeAndColor = (talla, color) => {
     if (!detalles || detalles.length === 0) return null;
-    
+
     // Buscar el detalle específico que coincida con talla y color
-    const detalle = detalles.find(d => 
+    const detalle = detalles.find(d =>
       d.detalle === talla && d.nombreColor === color
     );
-    
+
     return detalle ? detalle.codbarra : null;
   };
 
@@ -550,8 +550,8 @@ const ProductPage = () => {
   const tallasAMostrar = tallas;
 
   // Obtener el stock máximo disponible para la talla y color seleccionados
-  const stockMaximoDisponible = selectedColor && selectedSize ? 
-    getStockBySizeAndColor(selectedSize, selectedColor) : 
+  const stockMaximoDisponible = selectedColor && selectedSize ?
+    getStockBySizeAndColor(selectedSize, selectedColor) :
     (product.inventario || product.stock || 99);
 
   // Función para obtener el stock máximo de una talla específica
@@ -571,14 +571,14 @@ const ProductPage = () => {
     // 🧪 TESTING: Descomenta una línea para simular diferentes estados
     // return 0;  // Simula "Agotado" (producto existente sin inventario)
     // Para simular "Próximamente", usa return 0 + modifica fecha_alta a reciente en la línea de isNewProduct()
-    
+
     // Si hay detalles, sumar todo el inventario de los detalles
     if (detalles && detalles.length > 0) {
       return detalles.reduce((total, detalle) => {
         return total + (detalle.inventario_d || 0);
       }, 0);
     }
-    
+
     // Si no hay detalles, usar el inventario general del producto
     return product.inventario || product.stock || 0;
   };
@@ -586,19 +586,19 @@ const ProductPage = () => {
   // Función para determinar el estado del inventario
   const getInventoryStatus = () => {
     const totalInventory = getTotalInventory();
-    
+
     // Si el producto es nuevo (nunca ha tenido inventario registrado)
     // Consideramos nuevo si fecha_alta es reciente (menos de 30 días) y no tiene inventario
     const isNewProduct = () => {
       if (!fecha_alta) return false;
-      
+
       const fechaAlta = new Date(fecha_alta);
       const now = new Date();
       const diffDays = Math.floor((now - fechaAlta) / (1000 * 60 * 60 * 24));
-      
+
       return diffDays <= 30 && totalInventory === 0;
     };
-    
+
     if (isNewProduct()) {
       return {
         status: 'coming-soon',
@@ -610,7 +610,7 @@ const ProductPage = () => {
         )
       };
     }
-    
+
     if (totalInventory > 0) {
       return {
         status: 'in-stock',
@@ -622,7 +622,7 @@ const ProductPage = () => {
         )
       };
     }
-    
+
     // Sin inventario disponible
     return {
       status: 'out-of-stock',
@@ -646,25 +646,25 @@ const ProductPage = () => {
   // Función para obtener información expandida del producto
   const getExpandedProductInfo = () => {
     if (!product) return '';
-    
+
     let info = `Descripción: ${descripcion || 'No disponible'}\n`;
-    
+
     if (especificaciones) {
       info += `\nEspecificaciones:\n${especificaciones}`;
     }
-    
+
     if (notas) {
       info += `\n\nNotas: ${notas}`;
     }
-    
+
     if (temporada) {
       info += `\n\nTemporada: ${temporada}`;
     }
-    
+
     if (proveedor) {
       info += `\n\nProveedor: ${proveedor}`;
     }
-    
+
     return info;
   };
 
@@ -684,7 +684,7 @@ const ProductPage = () => {
 
   // Precios adicionales
   const precios = [precio1, precio2, precio3, precio4, precio5, precio6, precio7, precio8, precio9, precio10]
-    .map((p, i) => ({ label: `Precio${i+1}`, value: p }))
+    .map((p, i) => ({ label: `Precio${i + 1}`, value: p }))
     .filter(p => p.value && p.value > 0);
 
   return (
@@ -707,7 +707,7 @@ const ProductPage = () => {
 
           {/* Product Gallery */}
           <div className="product-page__gallery">
-            <ProductGallery 
+            <ProductGallery
               productId={id_articulo}
               productTitle={descripcion}
               onImageChange={(index) => {
@@ -760,25 +760,24 @@ const ProductPage = () => {
 
             <div className="product-page__info-price">
               {hasOffer && (
-                <div className={`product-page__offer-badge ${hasUserOffer ? 'user-offer' : ''} ${
-                  hasUserOffer && userOffer && userOffer.discount_category === 'buy_x_get_y' ? 'buy-x-get-y' : 
-                  hasUserOffer && userOffer && userOffer.discount_category === 'order_discount' ? 'order-discount' : 
-                  hasUserOffer && userOffer && userOffer.discount_category === 'free_shipping' ? 'free-shipping' : ''
-                }`}>
-                  {hasUserOffer && userOffer && userOffer.discount_category === 'buy_x_get_y' ? 
+                <div className={`product-page__offer-badge ${hasUserOffer ? 'user-offer' : ''} ${hasUserOffer && userOffer && userOffer.discount_category === 'buy_x_get_y' ? 'buy-x-get-y' :
+                    hasUserOffer && userOffer && userOffer.discount_category === 'order_discount' ? 'order-discount' :
+                      hasUserOffer && userOffer && userOffer.discount_category === 'free_shipping' ? 'free-shipping' : ''
+                  }`}>
+                  {hasUserOffer && userOffer && userOffer.discount_category === 'buy_x_get_y' ?
                     `🎁 Compra ${userOffer.buy_quantity} por el precio de ${userOffer.buy_quantity - userOffer.get_quantity}` :
-                    hasUserOffer && userOffer && userOffer.discount_category === 'order_discount' ? 
+                    hasUserOffer && userOffer && userOffer.discount_category === 'order_discount' ?
                       `💰 Descuento en pedido ${Math.round(userOffer.discount_percentage)}%` :
-                    hasUserOffer && userOffer && userOffer.discount_category === 'free_shipping' ? 
-                      (discountPercentage > 0 ? `🏷️ ${discountPercentage}% + 🚚 Envío gratis` : `🚚 Envío gratis`) :
-                    hasUserOffer && userOffer && userOffer.discount_percentage > 0 ? 
-                      (<>{!isMobile && "Rebaja "}{Math.round(userOffer.discount_percentage)}%</>) :
-                      (<>🏷️ {!isMobile && "Rebaja "}{discountPercentage}%</>)
+                      hasUserOffer && userOffer && userOffer.discount_category === 'free_shipping' ?
+                        (discountPercentage > 0 ? `🏷️ ${discountPercentage}% + 🚚 Envío gratis` : `🚚 Envío gratis`) :
+                        hasUserOffer && userOffer && userOffer.discount_percentage > 0 ?
+                          (<>{!isMobile && "Rebaja "}{Math.round(userOffer.discount_percentage)}%</>) :
+                          (<>🏷️ {!isMobile && "Rebaja "}{discountPercentage}%</>)
                   }
                 </div>
               )}
-              
-              
+
+
               <div className="product-page__price-container">
                 {hasOffer && discountPercentage > 0 && (
                   <div className="product-page__original-price">{formatPrice(product?.originalPrice || precio1)}</div>
@@ -839,7 +838,7 @@ const ProductPage = () => {
               </div>
               <div className="product-page__info-details">
                 <span>Descripción del producto</span>
-                <button 
+                <button
                   className="product-page__details-link"
                   onClick={() => setShowSpecifications(!showSpecifications)}
                 >
@@ -864,10 +863,10 @@ const ProductPage = () => {
                       return !['tipo artículo', 'tipo articulo', 'activo', 'catalogo', 'shopify', 'proveedor', 'web mayoristas', 'agotado', 'virtual/local'].includes(specName);
                     })
                     .map((spec, index) => (
-                    <div key={index} className="product-page__specification-item">
-                      <strong>{spec.split(':')[0]}:</strong> {spec.split(':')[1] || ''}
-                    </div>
-                  ))}
+                      <div key={index} className="product-page__specification-item">
+                        <strong>{spec.split(':')[0]}:</strong> {spec.split(':')[1] || ''}
+                      </div>
+                    ))}
                 </div>
               </div>
             )}
@@ -886,7 +885,7 @@ const ProductPage = () => {
                   <div className="product-page__option-label">
                     Color{selectedColor ? (
                       <>
-                        : <span style={{ 
+                        : <span style={{
                           fontWeight: 'bold',
                           color: '#000'
                         }}>
@@ -899,15 +898,14 @@ const ProductPage = () => {
                     {coloresFallback.map((color, index) => {
                       const hexColor = colorConverter.getColorHex(color);
                       const isLight = colorConverter.isLightColor(hexColor);
-                      
+
                       return (
                         <button
                           key={index}
-                          className={`product-page__color-option ${
-                            selectedColor === color ? 'product-page__color-option--selected' : ''
-                          }`}
+                          className={`product-page__color-option ${selectedColor === color ? 'product-page__color-option--selected' : ''
+                            }`}
                           onClick={() => setSelectedColor(color)}
-                          style={{ 
+                          style={{
                             backgroundColor: hexColor,
                             border: `2px solid ${selectedColor === color ? '#333' : 'transparent'}`
                           }}
@@ -931,20 +929,20 @@ const ProductPage = () => {
 
                   <div className="product-page__size-options">
                     {tallasAMostrar.map((talla, index) => (
-                      <div key={talla} className={`product-page__size-item ${selectedSize === talla ? 'product-page__size-item--selected' : ''}`}> 
+                      <div key={talla} className={`product-page__size-item ${selectedSize === talla ? 'product-page__size-item--selected' : ''}`}>
                         <button
                           className={`product-page__size-button ${selectedColor && getStockBySizeAndColor(talla, selectedColor) <= 0 ? 'product-page__size-button--out-of-stock' : ''}`}
                           onClick={() => handleSizeSelection(talla)}
                           disabled={selectedColor && getStockBySizeAndColor(talla, selectedColor) <= 0}
-                          title={selectedColor && getStockBySizeAndColor(talla, selectedColor) <= 0 ? 
-                            'Sin stock disponible para este color' : 
+                          title={selectedColor && getStockBySizeAndColor(talla, selectedColor) <= 0 ?
+                            'Sin stock disponible para este color' :
                             'Seleccionar talla'
                           }
                         >
                           <span className="product-page__size-number">{talla}</span>
                           <span className="product-page__size-availability">
-                            {selectedColor ? 
-                              `${getStockBySizeAndColor(talla, selectedColor)} disponibles` : 
+                            {selectedColor ?
+                              `${getStockBySizeAndColor(talla, selectedColor)} disponibles` :
                               'Disponibles'
                             }
                           </span>
@@ -967,8 +965,8 @@ const ProductPage = () => {
                             className={`product-page__quantity-btn ${(quantitiesBySize[talla] || 0) >= getStockForSize(talla) ? 'product-page__quantity-btn--disabled' : ''}`}
                             onClick={() => handleQuantityChangeForSize(talla, (quantitiesBySize[talla] || 0) + 1)}
                             disabled={(quantitiesBySize[talla] || 0) >= getStockForSize(talla)}
-                            title={(quantitiesBySize[talla] || 0) >= getStockForSize(talla) ? 
-                              `Máximo ${getStockForSize(talla)} unidades disponibles` : 
+                            title={(quantitiesBySize[talla] || 0) >= getStockForSize(talla) ?
+                              `Máximo ${getStockForSize(talla)} unidades disponibles` :
                               'Aumentar cantidad'
                             }
                           >
@@ -986,17 +984,17 @@ const ProductPage = () => {
 
               {/* Add to Cart - Step 3 */}
               <div className="product-page__option">
-                                  <div className="product-page__option-header product-page__step-number-border">
-                    <span className="product-page__step-number">Paso 3</span>
-                    <span className="product-page__step-description">
-                      Agregar al carrito 
-                      {getTotalUnits() > 0 && (
-                        <span className="product-page__total-units-indicator">
-                          ({getTotalUnits()} unidad{getTotalUnits() > 1 ? 'es' : ''})
-                        </span>
-                      )}
-                    </span>
-                  </div>
+                <div className="product-page__option-header product-page__step-number-border">
+                  <span className="product-page__step-number">Paso 3</span>
+                  <span className="product-page__step-description">
+                    Agregar al carrito
+                    {getTotalUnits() > 0 && (
+                      <span className="product-page__total-units-indicator">
+                        ({getTotalUnits()} unidad{getTotalUnits() > 1 ? 'es' : ''})
+                      </span>
+                    )}
+                  </span>
+                </div>
 
                 <CherryButton
                   variant="red"
@@ -1013,7 +1011,7 @@ const ProductPage = () => {
                 >
                   {isAddingToCart ? 'Agregando...' : `Agregar al carrito (${getTotalUnits()} unidad${getTotalUnits() > 1 ? 'es' : ''})`}
                 </CherryButton>
-                
+
                 {selectedColor && (
                   <div className="product-page__stock-summary">
                     <p>Total de unidades seleccionadas: <strong>{getTotalUnits()} unidad{getTotalUnits() > 1 ? 'es' : ''}</strong></p>
@@ -1039,9 +1037,9 @@ const ProductPage = () => {
               <p className="product-page__description-text">
                 {descripcion ? (showFullDescription ? descripcion : truncateDescription(descripcion)) : 'No hay descripción disponible'}
               </p>
-              
+
               {descripcion && descripcion.length > 150 && (
-                <button 
+                <button
                   className="product-page__description-toggle"
                   onClick={() => setShowFullDescription(!showFullDescription)}
                 >
@@ -1049,8 +1047,6 @@ const ProductPage = () => {
                 </button>
               )}
             </div>
-            
-
           </div>
         </div>
       </div>
@@ -1069,9 +1065,9 @@ const ProductPage = () => {
       )}
 
       {/* Product Reviews Section - Mobile View */}
-        <div className="container show-mobile">
-          <ProductReviews productId={productId} />
-        </div>
+      <div className="container show-mobile">
+        <ProductReviews productId={productId} />
+      </div>
     </>
   );
 };

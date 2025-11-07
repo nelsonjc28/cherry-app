@@ -23,11 +23,11 @@
 }
 
 .star-rating__star.medium {
-  font-size: 18px;
+  font-size: 21px;
 }
 
 .star-rating__star.large {
-  font-size: 24px;
+  font-size: 26px;
 }
 
 .star-rating__star.filled {
