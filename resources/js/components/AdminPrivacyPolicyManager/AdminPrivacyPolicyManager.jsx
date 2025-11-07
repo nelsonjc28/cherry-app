@@ -182,7 +182,7 @@ const AdminPrivacyPolicyManager = () => {
 
       {/* Lista de políticas */}
       <div className="admin-privacy-manager__policies">
-        <h3>Políticas Existentes</h3>
+        <h3>Terminos y condiciones Existentes</h3>
         {policies.length === 0 ? (
           <p>No hay terminos y condiciones creadas.</p>
         ) : (
