@@ -490,8 +490,7 @@ const RegisterPage = () => {
                         onChange={handleInputChange}
                         required
                       />
-                      <span className="checkmark"></span>
-                      Acepto términos y condiciones
+                      <span className="checkmark"></span>Al crear tu cuenta estás aceptando los términos y condiciones
                     </label>
                     {formErrors.acceptTerms && <span className="error-message">{formErrors.acceptTerms}</span>}
                   </div>
