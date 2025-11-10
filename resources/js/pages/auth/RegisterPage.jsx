@@ -37,6 +37,8 @@ const RegisterPage = () => {
   const [formErrors, setFormErrors] = useState({});
   const [settlements, setSettlements] = useState([]);
   const [loadingPostalCode, setLoadingPostalCode] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -305,6 +307,14 @@ const RegisterPage = () => {
     navigate('/');
   };
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
+
   const days = Array.from({ length: 31 }, (_, i) => i + 1)
   const months = [
     "Enero",
@@ -438,28 +448,52 @@ const RegisterPage = () => {
                   <div className="register-form-row">
                     <div className="register-form-group">
                       <label>Contraseña</label>
-                      <input
-                        type="password"
-                        name="password"
-                        placeholder="Mínimo 8 caracteres"
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        required
-                        minLength="8"
-                      />
+                      <div className="login-input-container">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          name="password"
+                          placeholder="Mínimo 8 caracteres"
+                          value={formData.password}
+                          onChange={handleInputChange}
+                          required
+                          minLength="8"
+                        />
+                        <button
+                          type="button"
+                          className={`login-password-toggle ${showPassword ? 'active' : ''}`}
+                          onClick={togglePasswordVisibility}
+                        >
+                          <img
+                            src={getIconPath('Eye.svg')}
+                            alt={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                          />
+                        </button>
+                      </div>
                       {formErrors.password && <span className="error-message">{formErrors.password}</span>}
                     </div>
                     <div className="register-form-group">
                       <label>Confirmar contraseña</label>
-                      <input
-                        type="password"
-                        name="confirmPassword"
-                        placeholder="Repite tu contraseña"
-                        value={formData.confirmPassword}
-                        onChange={handleInputChange}
-                        required
-                        minLength="8"
-                      />
+                      <div className="login-input-container">
+                        <input
+                          type={showConfirmPassword ? "text" : "password"}
+                          name="confirmPassword"
+                          placeholder="Repite tu contraseña"
+                          value={formData.confirmPassword}
+                          onChange={handleInputChange}
+                          required
+                          minLength="8"
+                        />
+                        <button
+                          type="button"
+                          className={`login-password-toggle ${showConfirmPassword ? 'active' : ''}`}
+                          onClick={toggleConfirmPasswordVisibility}
+                        >
+                          <img
+                            src={getIconPath('Eye.svg')}
+                            alt={showConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                          />
+                        </button>
+                      </div>
                       {formErrors.confirmPassword && <span className="error-message">{formErrors.confirmPassword}</span>}
                     </div>
                   </div>
