@@ -1,7 +1,7 @@
 /* Mobile First Styles */
 .login-page {
-  min-height: 100vh;
-  padding: 15px 0;
+  min-height: 60vh;
+  padding: 10px 0;
   background-color: var(--color-background-light);
   background:
     radial-gradient(circle at 80% 22%, #f9738915 15%, #f9738902 25%, transparent 35%),
@@ -24,11 +24,10 @@
 
 .login-left {
   text-align: center;
-  min-height: 280px;
+  min-height: 190px;
   position: relative;
   overflow: hidden;
   border-radius: 8px;
-  background: #E3E1E4;
 }
 
 .login-image-container {
@@ -51,9 +50,9 @@
 }
 
 .login-image-container .login-image {
-  right: 0;
-  left: 0;
+  left: 40%;
   z-index: 1;
+  height: 250px;
 }
 
 .login-image-container .login-image-round-shape {
@@ -84,8 +83,8 @@
 
 .login-subtitle {
   color: var(--text-color);
-  font-size: 32px;
-  font-weight: 400;
+  font-size: 25px;
+  font-weight: 500;
   margin: 0;
 }
 
@@ -169,12 +168,13 @@
 
 .login-forgot-password {
   text-align: center;
-  margin-top: 5px;
+  margin-top: 0;
 }
 
 .login-forgot-password a {
   color: var(--text-color);
   font-size: 14px;
+  font-weight: 500;
   text-decoration: none;
   transition: color 0.3s ease;
 }
@@ -186,7 +186,7 @@
 
 .login-register-link {
   text-align: center;
-  margin-top: 15px;
+  margin-top: 5px;
   color: var(--text-color);
   font-size: 16px;
 }
@@ -194,7 +194,7 @@
 .login-register-link a {
   color: #0074F0;
   text-decoration: none;
-  font-weight: 400;
+  font-weight: 500;
   transition: color 0.3s ease;
 }
 
@@ -206,7 +206,7 @@
   display: flex;
   justify-content: stretch;
   width: 100%;
-  margin-top: 20px;
+  margin-top: 5px;
 }
 
 .login-button-container>* {
@@ -219,7 +219,7 @@
     position: relative;
     display: flex;
     align-items: center;
-    padding: 40px 0;
+    padding: 30px 0;
   }
 
   .login-stripe-top-img,
@@ -262,7 +262,7 @@
   .login-image-container .login-image {
     bottom: 0;
     left: 7%;
-    max-height: 450px;
+    min-height: 550px;
   }
 
   .login-image-container .login-image-round-shape {
@@ -336,5 +336,9 @@
   .login-register-link {
     margin-top: 25px;
     font-size: 17px;
+  }
+
+  .login-button-container {
+    margin-top: 20px;
   }
 }
