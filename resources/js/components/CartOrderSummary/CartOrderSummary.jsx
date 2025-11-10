@@ -169,6 +169,7 @@ const CartOrderSummary = ({
   };
 
   const saveNewCard = async (cardDataToSave) => {
+    console.log(cardDataToSave);
     try {
       setIsSavingCard(true);
 
@@ -194,7 +195,7 @@ const CartOrderSummary = ({
         cardholder_name: cardDataToSave.cardholderName,
         card_number: cardNumber,
         expiry_month: month.padStart(2, '0'), // Asegurar formato MM
-        expiry_year: fullYear,
+        expiry_year: year,
         cvv: cardDataToSave.securityCode,
         brand: brand,
         card_type: 'credit', // Default a credit
@@ -278,6 +279,7 @@ const CartOrderSummary = ({
     }
 
     setModalErrors(newErrors);
+    console.log(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 

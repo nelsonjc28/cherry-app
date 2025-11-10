@@ -45,13 +45,13 @@ const AdminPrivacyPolicyManager = () => {
   const handleCreateNew = () => {
     setEditingPolicy({
       id: null,
-      title: 'Nuevo Termino y Condicion',
+      title: 'Nuevo Termino o Condicion',
       version: '1.0',
       content: '',
       is_active: false
     });
     setEditorState({
-      title: 'Nuevo Termino y Condicion',
+      title: 'Nuevo Termino o Condicion',
       version: '1.0',
       content: ''
     });
@@ -80,7 +80,7 @@ const AdminPrivacyPolicyManager = () => {
           content: editorState.content,
           is_active: editingPolicy.is_active
         });
-        window.showToast('Termino y Condicion actualizado exitosamente', 'success');
+        window.showToast('Termino o Condicion actualizado exitosamente', 'success');
       } else {
         // Crear nueva política
         await apiClient.post('/api/admin/privacy-policies', {
@@ -88,7 +88,7 @@ const AdminPrivacyPolicyManager = () => {
           version: editorState.version,
           content: editorState.content
         });
-        window.showToast('Termino y Condicion creado exitosamente', 'success');
+        window.showToast('Termino o Condicion creado exitosamente', 'success');
       }
       
       setShowEditor(false);
@@ -96,8 +96,8 @@ const AdminPrivacyPolicyManager = () => {
       setEditorState({ title: '', version: '', content: '' });
       loadPolicies();
     } catch (error) {
-      console.error('Error al guardar el termino y condicion:', error);
-      window.showToast('Error al guardar el termino y condicion', 'error');
+      console.error('Error al guardar el termino o condicion:', error);
+      window.showToast('Error al guardar el termino o condicion', 'error');
     } finally {
       setLoading(false);
     }
@@ -106,17 +106,17 @@ const AdminPrivacyPolicyManager = () => {
   const handleActivate = async (policyId) => {
     try {
       await apiClient.patch(`/api/admin/privacy-policies/${policyId}/activate`);
-      window.showToast('Termino y Condicion activado exitosamente', 'success');
+      window.showToast('Termino o Condicion activado exitosamente', 'success');
       loadPolicies();
     } catch (error) {
-      window.showToast('Error al activar el termino y condicion', 'error');
+      window.showToast('Error al activar el termino o condicion', 'error');
     }
   };
 
   const handleDelete = async (policyId) => {
     const result = await Swal.fire({
       title: '¿Estás seguro?',
-      text: '¿Quieres eliminar esta termino y condicion? Esta acción no se puede deshacer.',
+      text: '¿Quieres eliminar este termino o condicion? Esta acción no se puede deshacer.',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#d33',
@@ -131,10 +131,10 @@ const AdminPrivacyPolicyManager = () => {
 
     try {
       await apiClient.delete(`/api/admin/privacy-policies/${policyId}`);
-      window.showToast('Termino y Condicion eliminado exitosamente', 'success');
+      window.showToast('Termino o Condicion eliminado exitosamente', 'success');
       loadPolicies();
     } catch (error) {
-      window.showToast('Error al eliminar el termino y condicion', 'error');
+      window.showToast('Error al eliminar el termino o condicion', 'error');
     }
   };
 
@@ -165,12 +165,12 @@ const AdminPrivacyPolicyManager = () => {
   return (
     <div className="admin-privacy-manager">
       <div className="admin-privacy-manager__header">
-        <h2 className="admin-privacy-manager__title">Gestión de Terminos y condiciones</h2>
+        <h2 className="admin-privacy-manager__title">Gestión de terminos y condiciones</h2>
         <button 
           className="admin-privacy-manager__create-btn"
           onClick={handleCreateNew}
         >
-          Crear Nuevo Termino y Condicion
+          Crear Nuevo Termino o Condicion
         </button>
       </div>
 
@@ -182,9 +182,9 @@ const AdminPrivacyPolicyManager = () => {
 
       {/* Lista de políticas */}
       <div className="admin-privacy-manager__policies">
-        <h3>Terminos y Condiciones Existentes</h3>
+        <h3>Terminos y condiciones Existentes</h3>
         {policies.length === 0 ? (
-          <p>No hay terminos y condiciones creados.</p>
+          <p>No hay terminos y condiciones creadas.</p>
         ) : (
           <div className="admin-privacy-manager__policies-list">
             {policies.map((policy) => (
@@ -236,7 +236,7 @@ const AdminPrivacyPolicyManager = () => {
         <div className="admin-privacy-manager__editor-overlay">
           <div className="admin-privacy-manager__editor">
             <div className="admin-privacy-manager__editor-header">
-              <h3>{editingPolicy.id ? 'Editar Termino y Condicion' : 'Nuevo Termino y Condicion'}</h3>
+              <h3>{editingPolicy.id ? 'Editar Termino o Condicion' : 'Nuevo Termino o Condicion'}</h3>
               <button 
                 className="admin-privacy-manager__close-btn"
                 onClick={handleCancel}
@@ -253,7 +253,7 @@ const AdminPrivacyPolicyManager = () => {
                   type="text"
                   value={editorState.title}
                   onChange={(e) => setEditorState(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Título de la termino y condicion"
+                  placeholder="Título del termino o condicion"
                 />
               </div>
 
@@ -329,7 +329,7 @@ const AdminPrivacyPolicyManager = () => {
                   onClick={handleSave}
                   disabled={loading}
                 >
-                  {loading ? 'Guardando...' : 'Guardar Termino y Condicion'}
+                  {loading ? 'Guardando...' : 'Guardar Termino o Condicion'}
                 </button>
               </div>
             </div>

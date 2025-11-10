@@ -100,13 +100,13 @@ const CartDetailsPage = () => {
     
     if (newQty < 1) return;
     
-    // Find the specific item in cart
-    const itemToUpdate = cartItems.find(item => 
-      item.id_articulo === product.sku &&
-      item.selectedColor === variant.color &&
-      item.selectedSize === variant.size
-    );
-    
+      // Find the specific item in cart
+      const itemToUpdate = cartItems.find(item => 
+        item.id_articulo === product.sku &&
+        item.selectedColor === variant.color &&
+        item.selectedSize === variant.size
+      );
+      
     if (!itemToUpdate) return;
 
     // Validar stock disponible
@@ -137,7 +137,7 @@ const CartDetailsPage = () => {
       }
 
       // Si la validación es exitosa, actualizar la cantidad
-      updateQuantity(itemToUpdate.id_articulo, newQty, itemToUpdate.selectedColor, itemToUpdate.selectedSize);
+        updateQuantity(itemToUpdate.id_articulo, newQty, itemToUpdate.selectedColor, itemToUpdate.selectedSize);
     } catch (error) {
       console.error('Error validando stock:', error);
       if (window.showToast) {

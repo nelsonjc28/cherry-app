@@ -427,28 +427,28 @@ const DestacadosPage = () => {
 
             {/* Products grid */}
             <main className="destacados-page__products-section">
-              {error && (
-                <div className="destacados-error">
-                  <div className="error-icon">
-                    <img src={getIconPath('Alert.svg')} alt="Error" />
-                  </div>
-                  <h3>Error al cargar productos</h3>
-                  <p>{error}</p>
-                  <CherryButton 
-                    variant="outline" 
-                    size="medium"
-                    onClick={() => window.location.reload()}
-                  >
-                    Reintentar
-                  </CherryButton>
+            {error && (
+              <div className="destacados-error">
+                <div className="error-icon">
+                  <img src={getIconPath('Alert.svg')} alt="Error" />
                 </div>
-              )}
+                <h3>Error al cargar productos</h3>
+                <p>{error}</p>
+                <CherryButton 
+                  variant="outline" 
+                  size="medium"
+                  onClick={() => window.location.reload()}
+                >
+                  Reintentar
+                </CherryButton>
+              </div>
+            )}
 
               {!error && filteredProducts.length === 0 ? (
-                <div className="destacados-empty">
-                  <div className="empty-icon">
+              <div className="destacados-empty">
+                <div className="empty-icon">
                     <img src={getIconPath('Bullhorn.svg')} alt="Sin productos" />
-                  </div>
+                </div>
                   <h3>No se encontraron productos</h3>
                   <p>Intenta ajustar los filtros de búsqueda</p>
                   <CherryButton 
@@ -458,31 +458,31 @@ const DestacadosPage = () => {
                   >
                     Limpiar filtros
                   </CherryButton>
-                </div>
-              ) : (
-                <>
-                  <div className="destacados-products-grid">
-                    {infiniteScroll.displayedItems.map((product, index) => (
-                      <div key={product.id} className="product-ranking-item">
-                        <div className="ranking-badge">
-                          #{index + 1}
-                        </div>
-                        <ProductCard
-                          product={product}
-                          onFavoriteToggle={handleFavoriteToggle}
-                        />
+              </div>
+            ) : (
+              <>
+                <div className="destacados-products-grid">
+                  {infiniteScroll.displayedItems.map((product, index) => (
+                    <div key={product.id} className="product-ranking-item">
+                      <div className="ranking-badge">
+                        #{index + 1}
                       </div>
-                    ))}
-                  </div>
+                      <ProductCard
+                        product={product}
+                        onFavoriteToggle={handleFavoriteToggle}
+                      />
+                    </div>
+                  ))}
+                </div>
 
-                  {/* Infinite Scroll Loader */}
-                  <InfiniteScrollLoader
-                    isLoading={infiniteScroll.isLoading}
-                    hasMore={infiniteScroll.hasMore}
-                    observerTarget={infiniteScroll.observerTarget}
-                  />
-                </>
-              )}
+                {/* Infinite Scroll Loader */}
+                <InfiniteScrollLoader
+                  isLoading={infiniteScroll.isLoading}
+                  hasMore={infiniteScroll.hasMore}
+                  observerTarget={infiniteScroll.observerTarget}
+                />
+              </>
+            )}
             </main>
           </div>
 
@@ -544,4 +544,4 @@ const DestacadosPage = () => {
   );
 };
 
-export default DestacadosPage;
+export default DestacadosPage; 

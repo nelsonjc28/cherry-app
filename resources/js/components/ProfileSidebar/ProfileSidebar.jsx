@@ -52,7 +52,7 @@ const ProfileSidebar = () => {
       label: 'Métodos de Pago',
       icon: 'Red Bill.svg'
     },
-    {
+    /* {
       path: '/perfil/privacidad-seguridad',
       label: 'Privacidad y Seguridad',
       icon: 'Shield.svg'
@@ -61,7 +61,7 @@ const ProfileSidebar = () => {
       path: '/terminos',
       label: 'Términos y Condiciones',
       icon: 'File Alt.svg'
-    }
+    } */
   ];
 
   return (
