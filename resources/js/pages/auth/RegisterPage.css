@@ -155,6 +155,65 @@
   color: #7B7B7B;
 }
 
+.login-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.login-input-container input {
+  width: 100%;
+  padding: 12px 45px 12px 16px;
+  border: none;
+  border-radius: 6px;
+  background-color: #fff;
+  font-size: 16px;
+  font-weight: 400;
+  color: #7B7B7B;
+}
+
+.login-input-container input:focus {
+  outline: none;
+  border: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.login-input-container input::placeholder {
+  color: #7B7B7B;
+}
+
+.login-password-toggle {
+  position: absolute;
+  right: 15px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.login-password-toggle img {
+  width: 16px;
+  height: 16px;
+  opacity: 0.4;
+  transition: opacity 0.3s ease;
+}
+
+.login-password-toggle:not(.active):hover img {
+  opacity: 0.7;
+}
+
+.login-password-toggle.active img {
+  opacity: 1;
+}
+
+.login-password-toggle.active:hover img {
+  opacity: 1;
+}
+
 .register-date-selectors {
   display: flex;
   gap: 0.5rem;

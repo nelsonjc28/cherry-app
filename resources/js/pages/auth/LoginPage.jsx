@@ -192,7 +192,7 @@ const LoginPage = () => {
                       />
                       <button
                         type="button"
-                        className="login-password-toggle"
+                        className={`login-password-toggle ${showPassword ? 'active' : ''}`}
                         onClick={togglePasswordVisibility}
                       >
                         <img

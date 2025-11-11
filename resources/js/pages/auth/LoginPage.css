@@ -154,11 +154,19 @@
 .login-password-toggle img {
   width: 16px;
   height: 16px;
-  opacity: 0.6;
+  opacity: 0.4;
   transition: opacity 0.3s ease;
 }
 
-.login-password-toggle:hover img {
+.login-password-toggle:not(.active):hover img {
+  opacity: 0.7;
+}
+
+.login-password-toggle.active img {
+  opacity: 1;
+}
+
+.login-password-toggle.active:hover img {
   opacity: 1;
 }
 
