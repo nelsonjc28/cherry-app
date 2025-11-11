@@ -31,7 +31,7 @@ class ProductCacheManager {
     if (!this.products || !this.lastFetch) {
       return false;
     }
-    
+
     const now = Date.now();
     const elapsed = now - this.lastFetch;
     return elapsed < CACHE_TTL_MS;
@@ -43,16 +43,12 @@ class ProductCacheManager {
   async getAllProducts() {
     // Si el caché es válido, retornar inmediatamente
     if (this.isCacheValid()) {
-      console.log('✅ ProductCache: Usando caché en memoria', {
-        productos: this.products.length,
-        edad: Math.round((Date.now() - this.lastFetch) / 1000) + 's'
-      });
+
       return this.products;
     }
 
     // Si ya hay una carga en progreso, esperar a que termine
     if (this.isLoading && this.loadPromise) {
-      console.log('⏳ ProductCache: Carga en progreso, esperando...');
       return this.loadPromise;
     }
 
@@ -74,17 +70,15 @@ class ProductCacheManager {
    */
   async _fetchFromAPI() {
     const startTime = Date.now();
-    console.log('📡 ProductCache: Descargando productos desde API externa...');
 
     try {
       const response = await axios.get(CHERRY_API_URL, {
         timeout: 30000 // 30 segundos timeout
       });
-      
+
       const products = response.data || [];
-      
+
       if (!Array.isArray(products)) {
-        console.error('❌ ProductCache: Respuesta inválida de API');
         return [];
       }
 
@@ -93,22 +87,15 @@ class ProductCacheManager {
       this.lastFetch = Date.now();
 
       const duration = Date.now() - startTime;
-      console.log('✅ ProductCache: Productos cargados', {
-        total: products.length,
-        tiempo: duration + 'ms',
-        tamaño: (JSON.stringify(products).length / 1024 / 1024).toFixed(2) + ' MB'
-      });
 
       return products;
     } catch (error) {
-      console.error('❌ ProductCache: Error al cargar productos', error);
-      
+
       // Si hay caché antiguo, usarlo como fallback
       if (this.products) {
-        console.warn('⚠️ ProductCache: Usando caché antiguo como fallback');
         return this.products;
       }
-      
+
       return [];
     }
   }
@@ -135,7 +122,7 @@ class ProductCacheManager {
    * Filtra solo productos con promoción
    */
   filterOnlyPromos(products) {
-    return products.filter(p => 
+    return products.filter(p =>
       p.opc_promo === 'S' || (p.desc_promo && p.desc_promo > 0)
     );
   }
@@ -148,22 +135,21 @@ class ProductCacheManager {
   filterOnlyNew(products) {
     const now = new Date();
     const sixtyDaysAgo = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000));
-    
     return products.filter(p => {
       // Si no tiene detalles, verificar el campo tradicional
       if (!p.detalles || !Array.isArray(p.detalles) || p.detalles.length === 0) {
         return p.opc_nuevo === 'S';
       }
-      
+
       // Revisar cada detalle del producto
       return p.detalles.some(detalle => {
         if (!detalle.fechaMovimiento) return false;
-        
+
         try {
           // Parsear la fecha (formato: "YYYY-MM-DD")
           const [year, month, day] = detalle.fechaMovimiento.split('-').map(Number);
           const fechaMovimiento = new Date(year, month - 1, day);
-          
+
           // Si la fecha es válida y es menor a 60 días, el producto es nuevo
           return !isNaN(fechaMovimiento.getTime()) && fechaMovimiento >= sixtyDaysAgo;
         } catch (error) {
@@ -178,24 +164,24 @@ class ProductCacheManager {
    */
   async filterBySearch(products, searchTerm) {
     if (!searchTerm) return products;
-    
+
     // Importar utilidades de búsqueda flexible
     const { flexibleMatch } = await import('./searchNormalizer');
-    
+
     const term = searchTerm.toLowerCase().trim();
     return products.filter(p => {
       const codigo = p.codigo || '';
       const descripcion = p.descripcion || '';
       const linea = p.linea?.nombre || '';
-      
+
       // Búsqueda exacta en código (no aplicar plurales)
       if (codigo.toLowerCase().includes(term)) {
         return true;
       }
-      
+
       // Búsqueda flexible en descripción y línea (soporta plurales/singulares)
-      return flexibleMatch(term, descripcion) || 
-             flexibleMatch(term, linea);
+      return flexibleMatch(term, descripcion) ||
+        flexibleMatch(term, linea);
     });
   }
 
@@ -241,7 +227,7 @@ class ProductCacheManager {
       productsCount: this.products?.length || 0,
       lastFetch: this.lastFetch,
       isValid: this.isCacheValid(),
-      ttlRemaining: this.lastFetch 
+      ttlRemaining: this.lastFetch
         ? Math.max(0, CACHE_TTL_MS - (Date.now() - this.lastFetch))
         : 0
     };

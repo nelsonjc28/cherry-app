@@ -52,17 +52,11 @@ const Header = () => {
 
   // Debug: Log del totalPrice cuando cambia
   useEffect(() => {
-    console.log('🛒 Cart Debug:', {
-      cartItems: cartItems.length,
-      totalItems,
-      totalPrice,
-      formattedPrice: formatPrice(totalPrice)
-    });
+    
   }, [cartItems, totalItems, totalPrice]);
 
   // Log del estado del menú para debugging
   useEffect(() => {
-    console.log('👁️ userMenuOpen changed to:', userMenuOpen);
   }, [userMenuOpen]);
 
   // Cargar notificaciones no leídas para admins y usuarios
@@ -81,7 +75,6 @@ const Header = () => {
             setUnreadNotifications(response.data.unread_count || 0);
           }
         } catch (error) {
-          console.error('Error fetching notifications:', error);
         }
       }
     };
@@ -547,9 +540,6 @@ const Header = () => {
                     e.preventDefault();
                     e.stopPropagation();
                     const newState = !userMenuOpen;
-                    console.log('🟣 Desktop menu clicked!');
-                    console.log('   Current state:', userMenuOpen);
-                    console.log('   New state:', newState);
                     setUserMenuOpen(newState);
                   }}
                 >
@@ -849,7 +839,6 @@ const Header = () => {
             <div 
               className="mobile-menu-footer"
               onClick={(e) => {
-                console.log('🟢 Click en mobile-menu-footer', e.target.className);
               }}
             >
               {user ? (
@@ -857,7 +846,6 @@ const Header = () => {
                   className={`user-menu${userMenuOpen ? ' open' : ''}`} 
                   ref={userMenuRef}
                   onClick={(e) => {
-                    console.log('🟡 Click en user-menu', e.target.className);
                   }}
                 >
                   <button
@@ -867,18 +855,12 @@ const Header = () => {
                       e.preventDefault();
                       e.stopPropagation();
                       const newState = !userMenuOpen;
-                      console.log('🔵 Mobile menu clicked!');
-                      console.log('   Current state:', userMenuOpen);
-                      console.log('   New state:', newState);
                       setUserMenuOpen(newState);
                     }}
                     onTouchEnd={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       const newState = !userMenuOpen;
-                      console.log('📱 Touch end on mobile menu!');
-                      console.log('   Current state:', userMenuOpen);
-                      console.log('   New state:', newState);
                       setUserMenuOpen(newState);
                     }}
                     style={{ cursor: 'pointer', userSelect: 'none' }}
@@ -959,13 +941,11 @@ const Header = () => {
       <CartModal
         open={cartModalOpen}
         onClose={() => {
-          console.log('🚪 Closing CartModal');
           setCartModalOpen(false);
         }}
         cartItems={cartItemCards}
         subtotal={(() => {
           const formatted = formatPrice(totalPrice);
-          console.log('💵 CartModal subtotal:', { totalPrice, formatted, cartItemsCount: cartItemCards.length });
           return formatted;
         })()}
         onViewCart={() => { setCartModalOpen(false); navigate('/carrito-detalle'); }}

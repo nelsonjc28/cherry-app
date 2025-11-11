@@ -40,22 +40,14 @@ const CatalogosPage = () => {
       setCatalogLoading(true);
       try {
         const response = await publicCatalogService.getAll();
-        
+
         // Manejar diferentes estructuras de respuesta
         let catalogsData = [];
-        
+
         if (response.data) {
-          if (response.data.success && Array.isArray(response.data.data)) {
-            catalogsData = response.data.data;
-          } else if (response.data.success && response.data.data && response.data.data.catalogs) {
-            catalogsData = response.data.data.catalogs;
-          } else if (response.data.success && response.data.catalogs) {
             catalogsData = response.data.catalogs;
-          } else if (Array.isArray(response.data)) {
-            catalogsData = response.data;
-          }
         }
-        
+
         if (catalogsData && catalogsData.length > 0) {
           // Ordenar catálogos por code (ascendente)
           const sortedCatalogs = [...catalogsData].sort((a, b) => {
@@ -63,15 +55,15 @@ const CatalogosPage = () => {
             const codeB = parseInt(b.code) || 999999;
             return codeA - codeB;
           });
-          
+
           setCatalogs(sortedCatalogs);
-          
+
           // No establecer automáticamente un catálogo, dejar "Seleccione"
         } else {
           setCatalogs([]);
         }
       } catch (error) {
-        console.error('Error loading catalogs:', error);
+
         setCatalogs([]);
       } finally {
         setCatalogLoading(false);
@@ -89,11 +81,10 @@ const CatalogosPage = () => {
           getAvailableColors(),
           getAvailableSizes()
         ]);
-        
+
         setAvailableColors(colors);
         setAvailableSizes(sizes);
       } catch (error) {
-        console.error('Error cargando datos de filtros:', error);
         setAvailableColors([]);
         setAvailableSizes([]);
       }
@@ -119,10 +110,10 @@ const CatalogosPage = () => {
         };
         const category = categoryMap[productCatalog] || 'vestidos';
         const response = await getProductsByCategory(category);
-        
+
         // Aplicar ofertas de usuario a todos los productos
         const productsWithOffers = await applyUserOffersToProducts(response);
-        
+
         setProducts(productsWithOffers);
         setFilteredProducts(productsWithOffers);
         setTotalResults(productsWithOffers.length);
@@ -142,22 +133,18 @@ const CatalogosPage = () => {
   const filterProducts = (products, currentFilters) => {
     if (!products || products.length === 0) return [];
     let filtered = [...products];
-    
+
     // Filtrar por catálogo
     if (currentFilters.catalog && currentFilters.catalog !== 'Todos los catálogos' && currentFilters.catalog !== 'Seleccione') {
       filtered = filtered.filter(product => {
-        // Verificar si el producto pertenece al catálogo seleccionado
-        const productCatalog = product.catalog || product.catalogue || product.catalogName || '';
-        return productCatalog.toLowerCase().includes(currentFilters.catalog.toLowerCase()) ||
-               product.catalogId === currentFilters.catalog ||
-               product.catalog_id === currentFilters.catalog;
+        return product.catalog_id === currentFilters.catalog;
       });
     }
-    
+
     // Filtros igual que en CatalogPage.jsx (usando código)
     if (currentFilters.category && currentFilters.category !== '') {
       filtered = filtered.filter(product => {
-        const productLineaId = product.linea?.id_linea;
+        const productLineaId = product.category_id;
         return productLineaId == currentFilters.category;
       });
     }
@@ -180,9 +167,9 @@ const CatalogosPage = () => {
           const filterColorLower = filterColor.toLowerCase();
           return product.colors.some(productColor => {
             const productColorLower = productColor.toLowerCase();
-            return productColorLower === filterColorLower || 
-                   productColorLower.includes(filterColorLower) ||
-                   filterColorLower.includes(productColorLower);
+            return productColorLower === filterColorLower ||
+              productColorLower.includes(filterColorLower) ||
+              filterColorLower.includes(productColorLower);
           });
         });
       });
@@ -211,23 +198,23 @@ const CatalogosPage = () => {
         );
       });
     }
-    
+
     // Filtrar por tallas
     if (currentFilters.sizes && currentFilters.sizes.length > 0) {
       filtered = filtered.filter(product => {
         if (!product.sizes || product.sizes.length === 0) return false;
-        
+
         return currentFilters.sizes.some(filterSize => {
           const filterSizeLower = filterSize.toLowerCase();
           return product.sizes.some(productSize => {
             const productSizeLower = productSize.toString().toLowerCase();
-            return productSizeLower === filterSizeLower || 
-                   productSizeLower.includes(filterSizeLower);
+            return productSizeLower === filterSizeLower ||
+              productSizeLower.includes(filterSizeLower);
           });
         });
       });
     }
-    
+
     return filtered;
   };
 

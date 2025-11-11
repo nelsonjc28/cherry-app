@@ -169,7 +169,6 @@ export const getAllProducts = async (catalog = 'Cherry 2025 - 2026') => {
       
     return productsArray;
   } catch (error) {
-    console.error('❌ Error en getAllProducts:', error);
     return [];
   }
 };
@@ -192,7 +191,6 @@ export const getProductsWithRatings = async (catalog = 'Cherry 2025 - 2026', opt
     
     // 🚀 USAR CACHÉ EN MEMORIA (carga UNA VEZ por sesión)
     let rawProducts = await productCache.getAllProducts();
-    
     if (!Array.isArray(rawProducts)) {
       return { products: [], total: 0, hasMore: false };
     }
@@ -222,7 +220,6 @@ export const getProductsWithRatings = async (catalog = 'Cherry 2025 - 2026', opt
       rawProducts = productCache.filterOnlyNew(rawProducts);
     }
     
-    console.log(`📦 Filtrado: ${rawProducts.length} productos después de filtros`);
     
     // Mezclar aleatoriamente si se solicita
     if (random) {
@@ -234,7 +231,6 @@ export const getProductsWithRatings = async (catalog = 'Cherry 2025 - 2026', opt
       ? rawProducts.slice(offset, offset + limit)
       : rawProducts;
     
-    console.log(`📄 Paginación: Mostrando ${paginatedProducts.length} de ${rawProducts.length} productos`);
     
     // Extraer IDs de productos para obtener ratings en bulk
     const productIds = paginatedProducts.map(product => 
@@ -252,7 +248,6 @@ export const getProductsWithRatings = async (catalog = 'Cherry 2025 - 2026', opt
     const validProducts = mappedProducts.filter(p => p !== null);
     
     const duration = Date.now() - startTime;
-    console.log(`⚡ Completado en ${duration}ms`);
     
     // Retornar productos con metadata de paginación
     return {
@@ -261,7 +256,6 @@ export const getProductsWithRatings = async (catalog = 'Cherry 2025 - 2026', opt
       hasMore: limit !== null && (offset + limit) < rawProducts.length
     };
   } catch (error) {
-    console.error('❌ Error en getProductsWithRatings:', error);
     return { products: [], total: 0, hasMore: false };
   }
 };
@@ -381,6 +375,8 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
   
   // Obtener categoría de la línea
   const category = apiProduct.linea?.descripcion || apiProduct.categoria || apiProduct.category || 'Sin categoría';
+  const category_id = apiProduct.linea?.id_linea || apiProduct.categoria_id || apiProduct.category_id || '';
+  const catalog = apiProduct.catalogoId != '' ? apiProduct.catalogoId : '';
   
   // Obtener calificación del cache o usar valores por defecto
   let rating = 0;
@@ -404,6 +400,8 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
     description: apiProduct.descripcion || apiProduct.descripcion_corta || title,
     brand: apiProduct.marca || apiProduct.brand || 'Cherry',
     category: category,
+    catalog: catalog,
+    category_id: category_id,
     colors: colors,
     sizes: sizes,
     stock: apiProduct.inventario || apiProduct.stock || 0,
@@ -710,7 +708,6 @@ export const getPromoProducts = async (limit = 50) => {
     return limitedProducts;
     
   } catch (error) {
-    console.error('❌ getPromoProducts: Error al obtener productos con ofertas personalizadas:', error);
     // Fallback a ofertas externas
     return await getExternalPromoProducts(limit);
   }
@@ -1154,7 +1151,6 @@ export const getProductById = async (productId) => {
       desc_promo: product.desc_promo || 0
     };
   } catch (error) {
-    console.error(`❌ ERROR obteniendo producto ${productId}:`, error);
     throw error;
   }
 }; 
@@ -1266,7 +1262,6 @@ export const getTopSellingProducts = async (limit = 20) => {
     return validProducts;
     
   } catch (error) {
-    console.error('❌ getTopSellingProducts: Error al obtener productos más vendidos:', error);
     return [];
   }
 };
@@ -1293,7 +1288,6 @@ export const isUserSessionActive = () => {
     
     return true;
   } catch (error) {
-    console.error('❌ isUserSessionActive: Error al verificar sesión:', error);
     return false;
   }
 };
@@ -1377,7 +1371,6 @@ export const getExternalPromoProducts = async (limit = 50, includeAll = false) =
     return validProducts;
 
   } catch (error) {
-    console.error('❌ getExternalPromoProducts: Error al obtener productos externos:', error);
     return [];
   }
 };
@@ -1442,7 +1435,6 @@ export const getUserOfferData = async () => {
     return { productIds: idsData.product_ids, offerData: detailsData.discounts };
 
   } catch (error) {
-    console.error('❌ getUserOfferData: Error al obtener datos de ofertas:', error);
     return { productIds: [], offerData: {} };
   }
 };
@@ -1538,7 +1530,6 @@ export const getUserOfferProducts = async () => {
     return validProducts;
 
   } catch (error) {
-    console.error('❌ getUserOfferProducts: Error al obtener productos con ofertas:', error);
     return [];
   }
 };
@@ -1558,7 +1549,6 @@ export const getSmartPromoProducts = async (limit = 0) => {
     }
     
   } catch (error) {
-    console.error('❌ getSmartPromoProducts: Error en función inteligente:', error);
     // Fallback a ofertas externas en caso de error
     return await getExternalPromoProducts(limit);
   }

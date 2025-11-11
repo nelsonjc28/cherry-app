@@ -43,7 +43,7 @@ const CatalogFilter = ({
   // Handle filter changes
   const handleFilterChange = (filterType, value) => {
 
-    
+
     const newFilters = { ...filters };
 
     switch (filterType) {
@@ -92,9 +92,10 @@ const CatalogFilter = ({
   };
 
   // Available filter options
-  const catalogOptions = catalogs.length > 0 
-    ? ['Seleccione', ...catalogs.map(catalog => catalog.name)]
-    : ['Seleccione', 'Cargando catálogos...'];
+  const catalogOptions = catalogs.length > 0
+    ? [...catalogs.map(catalog => [{ name: catalog.name, 'code': catalog.code }])]
+    : ['Seleccione', [{ name: 'Cargando catálogos...', code: 'Cargando catálogos...' }]];
+
 
   const availabilityOptions = [
     { value: 'todos', label: 'Todos' },
@@ -132,8 +133,10 @@ const CatalogFilter = ({
               onChange={(e) => handleFilterChange('catalog', e.target.value)}
               className="filter-select"
             >
+                <option value=''>Seleccione</option>
+
               {catalogOptions.map((option) => (
-                <option key={option} value={option}>{option}</option>
+                <option key={option[0].code} value={option[0].code}>{option[0].name}</option>
               ))}
             </select>
           </div>
@@ -358,7 +361,7 @@ const CatalogFilter = ({
               >
                 Limpiar Filtros
               </CustomButton>
-             
+
               <CustomButton
                 onClick={onClose}
                 variant="filled"

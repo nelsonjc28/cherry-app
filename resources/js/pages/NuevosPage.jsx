@@ -7,7 +7,7 @@ import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
 import CustomButton from '../components/CustomButton';
 import './NuevosPage.css';
-import { 
+import {
   getProductsWithRatings,
   getAvailableColors,
   getAvailableSizes
@@ -36,20 +36,29 @@ const NuevosPage = () => {
     colors: [],
     priceRange: { min: 0, max: 0 }
   });
-
   // Function to filter products
   const filterProducts = useCallback((products, currentFilters) => {
     if (!products || products.length === 0) return [];
-    
+
     let filtered = [...products];
+
 
     // Filter by category (usando código)
     if (currentFilters.category && currentFilters.category !== '') {
       filtered = filtered.filter(product => {
-        const productLineaId = product.linea?.id_linea;
+        const productLineaId = product.category_id;
         return productLineaId == currentFilters.category;
       });
     }
+
+    // Filter by catalog
+    if (currentFilters.catalog && currentFilters.catalog !== '' && currentFilters.catalog != 'Seleccione') {
+      filtered = filtered.filter(product => {
+        const productCatalog = product.catalog;
+        return productCatalog == currentFilters.catalog;
+      });
+    }
+    console.log(filtered);
 
     // Filter by department
     if (currentFilters.department && currentFilters.department !== 'Todos los departamentos') {
@@ -57,7 +66,7 @@ const NuevosPage = () => {
       filtered = filtered.filter(product => {
         const productCategory = product.category?.toLowerCase() || '';
         const productTitle = product.title?.toLowerCase() || '';
-        
+
         const departmentCategoryMap = {
           'ropa casual': ['blusa', 'camisa', 'pantalon', 'jeans', 'vestido casual'],
           'ropa formal': ['vestido', 'traje', 'blazer', 'camisa formal'],
@@ -65,9 +74,9 @@ const NuevosPage = () => {
           'accesorios': ['accesorio', 'bolsa', 'cartera', 'cinturon', 'collar'],
           'calzado': ['zapato', 'tenis', 'sandalias', 'botas']
         };
-        
+
         const departmentCategories = departmentCategoryMap[departmentLower] || [];
-        return departmentCategories.some(cat => 
+        return departmentCategories.some(cat =>
           productCategory.includes(cat) || productTitle.includes(cat)
         );
       });
@@ -79,7 +88,7 @@ const NuevosPage = () => {
         const price = product.price || 0;
         const minPrice = currentFilters.priceRange.min || 0;
         const maxPrice = currentFilters.priceRange.max || 0;
-        
+
         if (maxPrice > 0) {
           return price >= minPrice && price <= maxPrice;
         } else {
@@ -99,14 +108,14 @@ const NuevosPage = () => {
     if (currentFilters.colors && currentFilters.colors.length > 0) {
       filtered = filtered.filter(product => {
         if (!product.colors || product.colors.length === 0) return false;
-        
+
         return currentFilters.colors.some(filterColor => {
           const filterColorLower = filterColor.toLowerCase();
           return product.colors.some(productColor => {
             const productColorLower = productColor.toLowerCase();
-            return productColorLower === filterColorLower || 
-                   productColorLower.includes(filterColorLower) ||
-                   filterColorLower.includes(productColorLower);
+            return productColorLower === filterColorLower ||
+              productColorLower.includes(filterColorLower) ||
+              filterColorLower.includes(productColorLower);
           });
         });
       });
@@ -116,19 +125,19 @@ const NuevosPage = () => {
     if (currentFilters.sizes && currentFilters.sizes.length > 0) {
       filtered = filtered.filter(product => {
         if (!product.sizes || product.sizes.length === 0) return false;
-        
+
         return currentFilters.sizes.some(filterSize => {
           const filterSizeLower = filterSize.toLowerCase();
           return product.sizes.some(productSize => {
             const productSizeLower = productSize.toLowerCase();
-            return productSizeLower === filterSizeLower || 
-                   productSizeLower.includes(filterSizeLower) ||
-                   filterSizeLower.includes(productSizeLower);
+            return productSizeLower === filterSizeLower ||
+              productSizeLower.includes(filterSizeLower) ||
+              filterSizeLower.includes(productSizeLower);
           });
         });
       });
     }
-
+    console.log(filtered)
     return filtered;
   }, []);
 
@@ -162,9 +171,9 @@ const NuevosPage = () => {
       setCatalogLoading(true);
       try {
         const response = await publicCatalogService.getAll();
-        
+
         let catalogsData = [];
-        
+
         if (response.data) {
           if (response.data.success && Array.isArray(response.data.data)) {
             catalogsData = response.data.data;
@@ -176,14 +185,13 @@ const NuevosPage = () => {
             catalogsData = response.data;
           }
         }
-        
+
         if (catalogsData && catalogsData.length > 0) {
           setCatalogs(catalogsData);
         } else {
           setCatalogs([]);
         }
       } catch (error) {
-        console.error('Error loading catalogs:', error);
         setCatalogs([]);
       } finally {
         setCatalogLoading(false);
@@ -201,11 +209,10 @@ const NuevosPage = () => {
           getAvailableColors(),
           getAvailableSizes()
         ]);
-        
+
         setAvailableColors(colors);
         setAvailableSizes(sizes);
       } catch (error) {
-        console.error('Error cargando datos de filtros:', error);
         setAvailableColors([]);
         setAvailableSizes([]);
       }
@@ -219,24 +226,20 @@ const NuevosPage = () => {
     const loadProducts = async () => {
       setLoading(true);
       try {
-        console.log('🆕 NuevosPage: Cargando productos nuevos...');
-        
+
         const result = await getProductsWithRatings('Cherry 2025 - 2026', {
           limit: null,
           onlyNew: true,
           random: true
         });
-        
+
         const newProducts = result.products || result || [];
-        console.log(`✅ ${newProducts.length} productos nuevos cargados`);
-        
+
         const productsWithOffers = await applyUserOffersToProducts(newProducts);
-        
         setAllProducts(productsWithOffers);
-        setFilteredProducts(productsWithOffers);
-        
+        setFilteredProducts([...productsWithOffers]);
+
       } catch (error) {
-        console.error('❌ Error loading new products:', error);
         setAllProducts([]);
         setFilteredProducts([]);
       } finally {
@@ -247,18 +250,23 @@ const NuevosPage = () => {
     loadProducts();
   }, []);
 
+  /*  useEffect(() => {
+     console.log("🟢 allProducts cambió:", allProducts);
+     console.log("🟢 filteredProducts cambió:", filteredProducts);
+   }, [allProducts, filteredProducts]);
+ 
+  */
   // Process products (filter and sort)
   const processedProducts = useMemo(() => {
     if (allProducts.length === 0) return [];
-    
     let filtered = filterProducts(allProducts, filters);
     const sorted = sortProducts(filtered, sortBy);
-    
+
     return sorted;
   }, [allProducts, filters, sortBy, filterProducts, sortProducts]);
-
   // Update filtered products when processed products change
   useEffect(() => {
+    console.log(processedProducts);
     setFilteredProducts(processedProducts);
   }, [processedProducts]);
 
@@ -294,7 +302,6 @@ const NuevosPage = () => {
 
   // Infinite scroll
   const infiniteScroll = useInfiniteScroll(filteredProducts, 20);
-
   // Reset infinite scroll cuando cambian los productos filtrados
   useEffect(() => {
     infiniteScroll.reset();
@@ -406,7 +413,7 @@ const NuevosPage = () => {
                 availableSizes={availableSizes}
                 catalogs={catalogs}
                 catalogLoading={catalogLoading}
-                hideCatalogSelector={true}
+                hideCatalogSelector={false}
               />
             </aside>
 
@@ -448,20 +455,20 @@ const NuevosPage = () => {
           {/* Mobile filter modal */}
           {isFilterModalOpen && (
             <div className="nuevos-page__filter-modal-overlay" onClick={toggleFilterModal}>
-            <div className="nuevos-page__filter-modal" onClick={(e) => e.stopPropagation()}>
-              <CatalogFilter
-                filters={filters}
-                onFilterChange={handleFilterChange}
-                onClearFilters={handleClearFilters}
-                isMobile={true}
-                onClose={toggleFilterModal}
-                availableColors={availableColors}
-                availableSizes={availableSizes}
-                catalogs={catalogs}
-                catalogLoading={catalogLoading}
-                hideCatalogSelector={true}
-              />
-            </div>
+              <div className="nuevos-page__filter-modal" onClick={(e) => e.stopPropagation()}>
+                <CatalogFilter
+                  filters={filters}
+                  onFilterChange={handleFilterChange}
+                  onClearFilters={handleClearFilters}
+                  isMobile={true}
+                  onClose={toggleFilterModal}
+                  availableColors={availableColors}
+                  availableSizes={availableSizes}
+                  catalogs={catalogs}
+                  catalogLoading={catalogLoading}
+                  hideCatalogSelector={true}
+                />
+              </div>
             </div>
           )}
         </div>

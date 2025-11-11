@@ -8,13 +8,11 @@ import { useEffect } from 'react';
 
 const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout }) => {   
   
-  console.log('🎭 CartModal render:', { open, subtotal, cartItemsCount: cartItems?.length });
   
   useEffect(() => {
     if (open) {
       // This blocks the movement of the body
       document.body.style.overflow = 'hidden';
-      console.log('🔓 CartModal opened with subtotal:', subtotal);
     } else {
       document.body.style.overflow = '';
     }

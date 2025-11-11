@@ -19,7 +19,6 @@ const useCartStore = create(
       // Initialize cart from localStorage
       initCart: () => {
         const { items } = get();
-        console.log('🔄 InitCart - Items:', items);
         
         const totalItems = items.reduce((sum, item) => {
           // Sumar la cantidad total incluyendo items gratuitos
@@ -29,14 +28,7 @@ const useCartStore = create(
         }, 0);
         
         const totalPrice = items.reduce((sum, item) => {
-          console.log('💰 Item pricing:', {
-            id: item.id_articulo,
-            price: item.price,
-            precio: item.precio,
-            quantity: item.quantity,
-            isFreeItem: item.isFreeItem,
-            freeItemsCount: item.freeItemsCount
-          });
+          
           
           // Para productos completamente gratis (isFreeItem), no sumar al total
           if (item.isFreeItem) {
@@ -53,12 +45,10 @@ const useCartStore = create(
           const paidQuantity = item.quantity || 0;
           const itemTotal = itemPrice * paidQuantity;
           
-          console.log('➕ Adding to total:', { itemPrice, paidQuantity, itemTotal, currentSum: sum, newSum: sum + itemTotal });
           
           return sum + itemTotal;
         }, 0);
         
-        console.log('📊 Final totals:', { totalItems, totalPrice });
         set({ totalItems, totalPrice });
       },
 
@@ -203,7 +193,6 @@ const useCartStore = create(
 
         // Si tiene oferta Buy X Get Y y hay productos gratis, eliminar TODO lo relacionado al productId
         if (hasBuyXGetYOffer && hasFreeItems) {
-          console.log(`🗑️ Eliminando todos los productos con ID ${productId} (incluyendo gratis)`);
           updatedItems = items.filter(item => item.id_articulo !== productId);
         } else {
           // Eliminar solo el item específico

@@ -41,24 +41,30 @@ const DestacadosPage = () => {
   // Function to filter products
   const filterProducts = useCallback((products, currentFilters) => {
     if (!products || products.length === 0) return [];
-    
+
     let filtered = [...products];
 
     // Filter by category (usando código)
     if (currentFilters.category && currentFilters.category !== '') {
       filtered = filtered.filter(product => {
-        const productLineaId = product.linea?.id_linea;
+        const productLineaId = product.category_id;
         return productLineaId == currentFilters.category;
       });
     }
-
+    // Filter by catalog
+    if (currentFilters.catalog && currentFilters.catalog !== '' &&  currentFilters.catalog != 'Seleccione') {
+      filtered = filtered.filter(product => {
+        const productCatalog = product.catalog;
+        return productCatalog == currentFilters.catalog;
+      });
+    }
     // Filter by department
     if (currentFilters.department && currentFilters.department !== 'Todos los departamentos') {
       const departmentLower = currentFilters.department.toLowerCase();
       filtered = filtered.filter(product => {
         const productCategory = product.category?.toLowerCase() || '';
         const productTitle = product.title?.toLowerCase() || '';
-        
+
         const departmentCategoryMap = {
           'ropa casual': ['blusa', 'camisa', 'pantalon', 'jeans', 'vestido casual'],
           'ropa formal': ['vestido', 'traje', 'blazer', 'camisa formal'],
@@ -66,9 +72,9 @@ const DestacadosPage = () => {
           'accesorios': ['accesorio', 'bolsa', 'cartera', 'cinturon', 'collar'],
           'calzado': ['zapato', 'tenis', 'sandalias', 'botas']
         };
-        
+
         const departmentCategories = departmentCategoryMap[departmentLower] || [];
-        return departmentCategories.some(cat => 
+        return departmentCategories.some(cat =>
           productCategory.includes(cat) || productTitle.includes(cat)
         );
       });
@@ -80,7 +86,7 @@ const DestacadosPage = () => {
         const price = product.price || 0;
         const minPrice = currentFilters.priceRange.min || 0;
         const maxPrice = currentFilters.priceRange.max || 0;
-        
+
         if (maxPrice > 0) {
           return price >= minPrice && price <= maxPrice;
         } else {
@@ -100,14 +106,14 @@ const DestacadosPage = () => {
     if (currentFilters.colors && currentFilters.colors.length > 0) {
       filtered = filtered.filter(product => {
         if (!product.colors || product.colors.length === 0) return false;
-        
+
         return currentFilters.colors.some(filterColor => {
           const filterColorLower = filterColor.toLowerCase();
           return product.colors.some(productColor => {
             const productColorLower = productColor.toLowerCase();
-            return productColorLower === filterColorLower || 
-                   productColorLower.includes(filterColorLower) ||
-                   filterColorLower.includes(productColorLower);
+            return productColorLower === filterColorLower ||
+              productColorLower.includes(filterColorLower) ||
+              filterColorLower.includes(productColorLower);
           });
         });
       });
@@ -117,14 +123,14 @@ const DestacadosPage = () => {
     if (currentFilters.sizes && currentFilters.sizes.length > 0) {
       filtered = filtered.filter(product => {
         if (!product.sizes || product.sizes.length === 0) return false;
-        
+
         return currentFilters.sizes.some(filterSize => {
           const filterSizeLower = filterSize.toLowerCase();
           return product.sizes.some(productSize => {
             const productSizeLower = productSize.toLowerCase();
-            return productSizeLower === filterSizeLower || 
-                   productSizeLower.includes(filterSizeLower) ||
-                   filterSizeLower.includes(productSizeLower);
+            return productSizeLower === filterSizeLower ||
+              productSizeLower.includes(filterSizeLower) ||
+              filterSizeLower.includes(productSizeLower);
           });
         });
       });
@@ -162,9 +168,9 @@ const DestacadosPage = () => {
       setCatalogLoading(true);
       try {
         const response = await publicCatalogService.getAll();
-        
+
         let catalogsData = [];
-        
+
         if (response.data) {
           if (response.data.success && Array.isArray(response.data.data)) {
             catalogsData = response.data.data;
@@ -176,7 +182,7 @@ const DestacadosPage = () => {
             catalogsData = response.data;
           }
         }
-        
+
         if (catalogsData && catalogsData.length > 0) {
           setCatalogs(catalogsData);
         } else {
@@ -201,7 +207,7 @@ const DestacadosPage = () => {
           getAvailableColors(),
           getAvailableSizes()
         ]);
-        
+
         setAvailableColors(colors);
         setAvailableSizes(sizes);
       } catch (error) {
@@ -222,7 +228,7 @@ const DestacadosPage = () => {
         console.log('📊 Cargando productos más vendidos...');
         const products = await getTopSellingProducts(50);
         const finalProducts = user ? await applyUserOffersToProducts(products) : products;
-        
+
         setTopSellingProducts(finalProducts);
         setFilteredProducts(finalProducts);
         setCurrentMonth(new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }));
@@ -244,10 +250,10 @@ const DestacadosPage = () => {
   // Process products (filter and sort)
   const processedProducts = useMemo(() => {
     if (topSellingProducts.length === 0) return [];
-    
+
     let filtered = filterProducts(topSellingProducts, filters);
     const sorted = sortProducts(filtered, sortBy);
-    
+
     return sorted;
   }, [topSellingProducts, filters, sortBy, filterProducts, sortProducts]);
 
@@ -302,7 +308,7 @@ const DestacadosPage = () => {
         <Helmet>
           <title>Más Vendidos - Cherry Central</title>
         </Helmet>
-        
+
         <main className="destacados-page">
           <div className="container">
             <div className="destacados-loading">
@@ -421,68 +427,68 @@ const DestacadosPage = () => {
                 availableSizes={availableSizes}
                 catalogs={catalogs}
                 catalogLoading={catalogLoading}
-                hideCatalogSelector={true}
+                hideCatalogSelector={false}
               />
             </aside>
 
             {/* Products grid */}
             <main className="destacados-page__products-section">
-            {error && (
-              <div className="destacados-error">
-                <div className="error-icon">
-                  <img src={getIconPath('Alert.svg')} alt="Error" />
+              {error && (
+                <div className="destacados-error">
+                  <div className="error-icon">
+                    <img src={getIconPath('Alert.svg')} alt="Error" />
+                  </div>
+                  <h3>Error al cargar productos</h3>
+                  <p>{error}</p>
+                  <CherryButton
+                    variant="outline"
+                    size="medium"
+                    onClick={() => window.location.reload()}
+                  >
+                    Reintentar
+                  </CherryButton>
                 </div>
-                <h3>Error al cargar productos</h3>
-                <p>{error}</p>
-                <CherryButton 
-                  variant="outline" 
-                  size="medium"
-                  onClick={() => window.location.reload()}
-                >
-                  Reintentar
-                </CherryButton>
-              </div>
-            )}
+              )}
 
               {!error && filteredProducts.length === 0 ? (
-              <div className="destacados-empty">
-                <div className="empty-icon">
+                <div className="destacados-empty">
+                  <div className="empty-icon">
                     <img src={getIconPath('Bullhorn.svg')} alt="Sin productos" />
-                </div>
+                  </div>
                   <h3>No se encontraron productos</h3>
                   <p>Intenta ajustar los filtros de búsqueda</p>
-                  <CherryButton 
-                    variant="outline" 
+                  <CherryButton
+                    variant="outline"
                     size="medium"
                     onClick={handleClearFilters}
                   >
                     Limpiar filtros
                   </CherryButton>
-              </div>
-            ) : (
-              <>
-                <div className="destacados-products-grid">
-                  {infiniteScroll.displayedItems.map((product, index) => (
-                    <div key={product.id} className="product-ranking-item">
-                      <div className="ranking-badge">
-                        #{index + 1}
-                      </div>
-                      <ProductCard
-                        product={product}
-                        onFavoriteToggle={handleFavoriteToggle}
-                      />
-                    </div>
-                  ))}
                 </div>
+              ) : (
+                <>
+                  <div className="destacados-products-grid">
+                    {infiniteScroll.displayedItems.map((product, index) => (
+                      <div key={product.id} className="product-ranking-item">
+                        <div className="ranking-badge">
+                          #{index + 1}
+                        </div>
+                        <ProductCard
+                          product={product}
+                          onFavoriteToggle={handleFavoriteToggle}
+                        />
+                      </div>
+                    ))}
+                  </div>
 
-                {/* Infinite Scroll Loader */}
-                <InfiniteScrollLoader
-                  isLoading={infiniteScroll.isLoading}
-                  hasMore={infiniteScroll.hasMore}
-                  observerTarget={infiniteScroll.observerTarget}
-                />
-              </>
-            )}
+                  {/* Infinite Scroll Loader */}
+                  <InfiniteScrollLoader
+                    isLoading={infiniteScroll.isLoading}
+                    hasMore={infiniteScroll.hasMore}
+                    observerTarget={infiniteScroll.observerTarget}
+                  />
+                </>
+              )}
             </main>
           </div>
 
@@ -518,7 +524,7 @@ const DestacadosPage = () => {
                   <h4>Alta demanda</h4>
                   <p>Productos con mayor número de ventas en {currentMonth}</p>
                 </div>
-                
+
                 <div className="info-item">
                   <div className="info-icon">
                     <img src={getIconPath('Award.svg')} alt="Calidad" />
@@ -526,7 +532,7 @@ const DestacadosPage = () => {
                   <h4>Calidad comprobada</h4>
                   <p>Productos que nuestros clientes eligen una y otra vez</p>
                 </div>
-                
+
                 <div className="info-item">
                   <div className="info-icon">
                     <img src={getIconPath('Shopping Cart.svg')} alt="Tendencia" />

@@ -49,23 +49,12 @@ const BuscarPage = () => {
       try {
         const response = await publicCatalogService.getAll();
 
+        console.log(response.data.catalogs);
         // Manejar diferentes estructuras de respuesta
         let catalogsData = [];
 
         if (response.data) {
-          if (response.data.success && Array.isArray(response.data.data)) {
-            // Estructura: { data: { success: true, data: [...] } }
-            catalogsData = response.data.data;
-          } else if (response.data.success && response.data.data && response.data.data.catalogs) {
-            // Estructura: { data: { success: true, data: { catalogs: [...] } } }
-            catalogsData = response.data.data.catalogs;
-          } else if (response.data.success && response.data.catalogs) {
-            // Estructura: { data: { success: true, catalogs: [...] } }
-            catalogsData = response.data.catalogs;
-          } else if (Array.isArray(response.data)) {
-            // Estructura: { data: [...] }
-            catalogsData = response.data;
-          }
+          catalogsData = response.data.catalogs;
         }
 
 
@@ -78,7 +67,6 @@ const BuscarPage = () => {
           setCatalogs([]);
         }
       } catch (error) {
-        console.error('❌ BuscarPage: Error loading catalogs:', error);
         setCatalogs([]);
       } finally {
         setCatalogLoading(false);
@@ -145,7 +133,6 @@ const BuscarPage = () => {
         setAvailableColors(finalColors);
         setAvailableSizes(finalSizes);
       } catch (error) {
-        console.error('Error extrayendo datos de filtros:', error);
         setAvailableColors([]);
         setAvailableSizes([]);
       } finally {
@@ -167,24 +154,22 @@ const BuscarPage = () => {
     const loadProducts = async () => {
       setLoading(true);
       try {
-        console.log('🔍 BuscarPage: Cargando productos desde API con filtros...');
-        
+
         // Cargar TODOS los productos que coincidan con la búsqueda
         // (sin límite para poder filtrar localmente después)
         const result = await getProductsWithRatings('Cherry 2025 - 2026', {
           limit: null,  // Cargar todos para búsqueda
           random: true  // Orden aleatorio
         });
-        
+
         const allProducts = result.products || result || [];
         const productsWithOffers = await applyUserOffersToProducts(allProducts);
-        
+
         // Aplicar búsqueda/filtros
         let filtered = productsWithOffers;
 
         // Filtrar por query de búsqueda (con soporte para plurales/singulares)
         if (query) {
-          console.log('🔍 Filtrando por query:', query);
           filtered = filtered.filter(product => {
             const match = flexibleSearchInFields(query, {
               descripcion: product.descripcion || product.title || '',
@@ -192,14 +177,12 @@ const BuscarPage = () => {
               codigo: product.codigo || product.id_articulo || '',
               description: product.description || ''
             }, ['descripcion', 'title', 'codigo', 'description']);
-            
+
             if (match) {
-              console.log('✅ Match encontrado:', product.title || product.descripcion, 'Código:', product.codigo);
             }
-            
+
             return match;
           });
-          console.log(`📊 Productos filtrados: ${filtered.length} de ${productsWithOffers.length}`);
         }
 
         // Filtrar por color
@@ -207,7 +190,7 @@ const BuscarPage = () => {
           const colors = colorFilter.split(',').map(c => c.trim().toLowerCase());
           filtered = filtered.filter(product => {
             if (!product.detalles || product.detalles.length === 0) return false;
-            return product.detalles.some(detalle => 
+            return product.detalles.some(detalle =>
               detalle.nombreColor && colors.includes(detalle.nombreColor.toLowerCase())
             );
           });
@@ -225,9 +208,7 @@ const BuscarPage = () => {
         setProducts(filtered);
         setFilteredProducts(filtered);
         setLoading(false);
-        console.log(`✅ ${filtered.length} productos cargados y filtrados`);
       } catch (error) {
-        console.error('❌ Error al cargar productos:', error);
         setProducts([]);
         setFilteredProducts([]);
         setLoading(false);
@@ -240,18 +221,15 @@ const BuscarPage = () => {
   // Filtrar productos basado en filtros adicionales
   useEffect(() => {
     let filtered = [...products];
+    console.log(filters.catalog);
 
     // Filtrar por catálogo
     if (filters.catalog && filters.catalog !== 'Todos los catálogos' && filters.catalog !== 'Seleccione') {
 
       filtered = filtered.filter(product => {
         // Verificar si el producto pertenece al catálogo seleccionado
-        const productCatalog = product.catalog || product.catalogue || product.catalogName || '';
-        const matches = productCatalog.toLowerCase().includes(filters.catalog.toLowerCase()) ||
-          product.catalogId === filters.catalog ||
-          product.catalog_id === filters.catalog;
-
-        return matches;
+        const productCatalog = product.catalog || '';
+        return productCatalog == filters.catalog;
       });
 
     }
@@ -259,7 +237,7 @@ const BuscarPage = () => {
     // Aplicar filtros adicionales (usando código)
     if (filters.category && filters.category !== '') {
       filtered = filtered.filter(product => {
-        const productLineaId = product.linea?.id_linea;
+        const productLineaId = product.category_id;
         return productLineaId == filters.category;
       });
     }
@@ -350,27 +328,27 @@ const BuscarPage = () => {
             const dateA = new Date(a.created_at || a.fecha_alta || 0);
             const dateB = new Date(b.created_at || b.fecha_alta || 0);
             return dateB - dateA;
-          
+
           case 'Precio: menor a mayor':
             const priceA = parseFloat(a.price || a.precio || a.precio1 || 0);
             const priceB = parseFloat(b.price || b.precio || b.precio1 || 0);
             return priceA - priceB;
-          
+
           case 'Precio: mayor a menor':
             const priceA2 = parseFloat(a.price || a.precio || a.precio1 || 0);
             const priceB2 = parseFloat(b.price || b.precio || b.precio1 || 0);
             return priceB2 - priceA2;
-          
+
           case 'Nombre A-Z':
             const nameA = (a.title || a.descripcion || a.name || '').toLowerCase();
             const nameB = (b.title || b.descripcion || b.name || '').toLowerCase();
             return nameA.localeCompare(nameB);
-          
+
           case 'Nombre Z-A':
             const nameA2 = (a.title || a.descripcion || a.name || '').toLowerCase();
             const nameB2 = (b.title || b.descripcion || b.name || '').toLowerCase();
             return nameB2.localeCompare(nameA2);
-          
+
           default:
             return 0;
         }

@@ -81,7 +81,6 @@ export const applyUserOffersToProducts = async (products, userOfferMap = null) =
   if (!products || products.length === 0) {
     return products;
   }
-
   // Si se proporciona un mapa de ofertas personalizadas, usarlo directamente
   let productsWithOffers = {};
   
@@ -104,7 +103,6 @@ export const applyUserOffersToProducts = async (products, userOfferMap = null) =
     try {
       productsWithOffers = await checkProductsWithUserOffers(productIds);
     } catch (error) {
-      console.warn('Error obteniendo ofertas de usuario:', error);
       return products;
     }
   }
@@ -187,6 +185,5 @@ export const applyUserOffersToProducts = async (products, userOfferMap = null) =
 
   // Log final de productos procesados
   const productsWithUserOffers = processedProducts.filter(p => p.hasUserOffer);
-  
   return processedProducts;
 };

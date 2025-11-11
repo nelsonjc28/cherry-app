@@ -8,11 +8,11 @@ import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
 import CustomButton from '../components/CustomButton';
 import './CatalogPage.css';
-import { 
-  getProductsByCategory, 
-  getAllProducts, 
-  getAvailableCategories, 
-  mapApiProductToAppProduct, 
+import {
+  getProductsByCategory,
+  getAllProducts,
+  getAvailableCategories,
+  mapApiProductToAppProduct,
   getProductsByAvailability,
   searchProductsAdvanced,
   getProductsWithRatings,
@@ -40,7 +40,7 @@ const CatalogPage = ({ catalogId }) => {
   const category = searchParams.get('category') || 'all';
   const colorFilter = searchParams.get('color') || '';
   const dtuFilter = searchParams.get('dtu') || '';
-  
+
   // State management for filters and products
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [sortBy, setSortBy] = useState('más recientes');
@@ -70,7 +70,7 @@ const CatalogPage = ({ catalogId }) => {
         // Extraer colores únicos de los productos cargados
         const colorSet = new Set();
         const sizeSet = new Set();
-        
+        console.log(allProducts);
         allProducts.forEach(product => {
           // PRIORIDAD 1: Extraer de detalles (donde están realmente las tallas)
           if (product.detalles && product.detalles.length > 0) {
@@ -83,7 +83,7 @@ const CatalogPage = ({ catalogId }) => {
               }
             });
           }
-          
+
           // PRIORIDAD 2: Extraer de sizes como fallback
           if (product.sizes && product.sizes.length > 0) {
             product.sizes.forEach(size => {
@@ -93,14 +93,14 @@ const CatalogPage = ({ catalogId }) => {
             });
           }
         });
-        
+
         // Ordenar tallas de manera lógica
         const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
         const sizes = Array.from(sizeSet);
         const sortedSizes = sizes.sort((a, b) => {
           const indexA = sizeOrder.indexOf(a.toUpperCase());
           const indexB = sizeOrder.indexOf(b.toUpperCase());
-          
+
           if (indexA !== -1 && indexB !== -1) {
             return indexA - indexB;
           }
@@ -108,7 +108,7 @@ const CatalogPage = ({ catalogId }) => {
           if (indexB !== -1) return 1;
           return a.localeCompare(b);
         });
-        
+
         setAvailableColors(Array.from(colorSet).sort());
         setAvailableSizes(sortedSizes);
       } catch (error) {
@@ -126,7 +126,7 @@ const CatalogPage = ({ catalogId }) => {
 
   // Function to filter products based on current filters - Memoized
   const filterProducts = useCallback((products, currentFilters) => {
-    
+
     if (!products || products.length === 0) {
       return [];
     }
@@ -149,7 +149,7 @@ const CatalogPage = ({ catalogId }) => {
         const productCategory = product.category?.toLowerCase() || '';
         const productTitle = product.title?.toLowerCase() || '';
         const productDescription = product.description?.toLowerCase() || '';
-        
+
         // Map departments to categories
         const departmentCategoryMap = {
           'ropa casual': ['blusa', 'camisa', 'pantalon', 'jeans', 'vestido casual'],
@@ -158,11 +158,11 @@ const CatalogPage = ({ catalogId }) => {
           'accesorios': ['accesorio', 'bolsa', 'cartera', 'cinturon', 'collar'],
           'calzado': ['zapato', 'tenis', 'sandalias', 'botas']
         };
-        
+
         const departmentCategories = departmentCategoryMap[departmentLower] || [];
-        return departmentCategories.some(cat => 
-          productCategory.includes(cat) || 
-          productTitle.includes(cat) || 
+        return departmentCategories.some(cat =>
+          productCategory.includes(cat) ||
+          productTitle.includes(cat) ||
           productDescription.includes(cat)
         );
       });
@@ -175,17 +175,17 @@ const CatalogPage = ({ catalogId }) => {
         const price = product.price || 0;
         const minPrice = currentFilters.priceRange.min || 0;
         const maxPrice = currentFilters.priceRange.max || 0;
-        
+
         let passes = false;
         if (maxPrice > 0) {
           passes = price >= minPrice && price <= maxPrice;
         } else {
           passes = price >= minPrice;
         }
-        
+
         if (!passes) {
-          }
-        
+        }
+
         return passes;
       });;
     }
@@ -204,23 +204,23 @@ const CatalogPage = ({ catalogId }) => {
         if (!product.colors || product.colors.length === 0) {
           return false;
         }
-        
+
         const matches = currentFilters.colors.some(filterColor => {
           const filterColorLower = filterColor.toLowerCase();
           return product.colors.some(productColor => {
             const productColorLower = productColor.toLowerCase();
-            const match = productColorLower === filterColorLower || 
-                         productColorLower.includes(filterColorLower) ||
-                         filterColorLower.includes(productColorLower);
+            const match = productColorLower === filterColorLower ||
+              productColorLower.includes(filterColorLower) ||
+              filterColorLower.includes(productColorLower);
             if (match) {
-              }
+            }
             return match;
           });
         });
-        
+
         if (!matches) {
-          }
-        
+        }
+
         return matches;
       });;
     }
@@ -232,23 +232,23 @@ const CatalogPage = ({ catalogId }) => {
         if (!product.sizes || product.sizes.length === 0) {
           return false;
         }
-        
+
         const matches = currentFilters.sizes.some(filterSize => {
           const filterSizeLower = filterSize.toLowerCase();
           return product.sizes.some(productSize => {
             const productSizeLower = productSize.toLowerCase();
-            const match = productSizeLower === filterSizeLower || 
-                         productSizeLower.includes(filterSizeLower) ||
-                         filterSizeLower.includes(productSizeLower);
+            const match = productSizeLower === filterSizeLower ||
+              productSizeLower.includes(filterSizeLower) ||
+              filterSizeLower.includes(productSizeLower);
             if (match) {
-              }
+            }
             return match;
           });
         });
-        
+
         if (!matches) {
-          }
-        
+        }
+
         return matches;
       });;
     }
@@ -295,7 +295,7 @@ const CatalogPage = ({ catalogId }) => {
         if (response.data.success) {
           const availableCatalogs = response.data.data.catalogs.filter(catalog => catalog.status === 'active');
           setCatalogs(availableCatalogs);
-          
+
           if (availableCatalogs.length > 0) {
             // Usar el primer catálogo disponible
             setFilters(prev => ({
@@ -320,7 +320,7 @@ const CatalogPage = ({ catalogId }) => {
       setLoading(true);
       try {
         let productsData;
-        
+
         // Si se proporciona catalogId, cargar productos de ese catálogo específico
         if (catalogId) {
           try {
@@ -329,32 +329,32 @@ const CatalogPage = ({ catalogId }) => {
             if (catalogResponse.data.success) {
               setCurrentCatalog(catalogResponse.data.data);
             }
-            
+
             // Cargar productos del catálogo local (si existen)
             let localProducts = [];
             try {
               const localResponse = await publicCatalogService.getProducts(catalogId);
               if (localResponse.data.success) {
-                
+
                 // Para productos locales, necesitamos obtener los datos completos de la API externa
                 const externalApiResponse = await fetch('https://cherryapi.estrategiadmgs.com.mx/cherryApi/');
                 let externalApiData = [];
                 if (externalApiResponse.ok) {
                   externalApiData = await externalApiResponse.json();
                 }
-                
+
                 // Obtener IDs de productos para ratings
-                const localProductIds = localResponse.data.data.products.map(product => 
+                const localProductIds = localResponse.data.data.products.map(product =>
                   product.external_product_id
                 ).filter(Boolean);
-                
+
                 // Obtener ratings en bulk para productos locales
                 const localRatingsCache = await getBulkRatings(localProductIds);
-                
+
                 localProducts = localResponse.data.data.products.map(product => {
                   // Buscar el producto completo en la API externa usando el external_product_id
                   const fullProduct = externalApiData.find(p => p.id_articulo === product.external_product_id);
-                  
+
                   if (fullProduct) {
                     // Usar la función de mapeo actualizada con datos completos CON ratings
                     const mappedProduct = mapApiProductToAppProduct(fullProduct, localRatingsCache);
@@ -366,30 +366,30 @@ const CatalogPage = ({ catalogId }) => {
                       };
                     }
                   }
-                  
+
                   // Fallback: mapeo básico con ratings del cache
                   const productId = product.external_product_id;
                   let rating = 0;
                   let ratingCount = 0;
-                  
+
                   if (localRatingsCache[productId]) {
                     rating = localRatingsCache[productId].average || 0;
                     ratingCount = localRatingsCache[productId].count || 0;
                   }
-                  
+
                   return {
-                  id: productId,
-                  title: product.product_name,
-                  description: product.product_description,
-                  price: product.product_price,
-                  image: getProductImageUrl(productId),
-                  brand: product.product_metadata?.marca,
-                  category: product.product_category,
-                  stock: product.product_metadata?.inventario || 0,
-                  colors: [],
-                  isNew: false,
-                  rating: rating,
-                  ratingCount: ratingCount,
+                    id: productId,
+                    title: product.product_name,
+                    description: product.product_description,
+                    price: product.product_price,
+                    image: getProductImageUrl(productId),
+                    brand: product.product_metadata?.marca,
+                    category: product.product_category,
+                    stock: product.product_metadata?.inventario || 0,
+                    colors: [],
+                    isNew: false,
+                    rating: rating,
+                    ratingCount: ratingCount,
                     source: 'local',
                     originalPrice: null,
                     discount: null
@@ -397,79 +397,81 @@ const CatalogPage = ({ catalogId }) => {
                 }).filter(p => p !== null);
               }
             } catch (error) {
-  
+
             }
-            
+
             // Cargar productos externos y filtrar por código del catálogo
             let externalProducts = [];
             try {
               const externalResponse = await fetch('https://cherryapi.estrategiadmgs.com.mx/cherryApi/');
               if (externalResponse.ok) {
+
                 const externalData = await externalResponse.json();
-                
+
                 // Filtrar productos por código del catálogo
                 const catalogCode = catalogResponse.data.success ? catalogResponse.data.data.code : null;
-                
+                console.log(catalogCode);
+                console.log(externalData);
                 if (catalogCode) {
                   const filteredExternalData = externalData.filter(product => product.catalogoId == catalogCode);
-                  
+                  console.log(filteredExternalData);
                   // Obtener IDs de productos para ratings
-                  const externalProductIds = filteredExternalData.map(product => 
+                  const externalProductIds = filteredExternalData.map(product =>
                     product.id_articulo || product.id || product.codigo
                   ).filter(Boolean);
-                  
+
                   // Obtener ratings en bulk para productos externos
                   const externalRatingsCache = await getBulkRatings(externalProductIds);
-                  
+
                   externalProducts = filteredExternalData.map(product => {
-                      // CONSOLE LOG ESPECÍFICO PARA DETALLES EN CATÁLOGO
+                    // CONSOLE LOG ESPECÍFICO PARA DETALLES EN CATÁLOGO
 
 
 
 
 
 
-                      if (product.detalles && Array.isArray(product.detalles)) {
+                    if (product.detalles && Array.isArray(product.detalles)) {
 
-                        product.detalles.forEach((detalle, index) => {
-
-
+                      product.detalles.forEach((detalle, index) => {
 
 
 
-                        });
-                      }
 
-                      
-                      // Extraer colores de los detalles
-                      let colors = [];
-                      if (product.detalles && Array.isArray(product.detalles)) {
-                        colors = [...new Set(product.detalles.map(d => d.nombreColor).filter(Boolean))];
-                      }
-                      
-                      // Debug específico para productos externos
-                      
-                      // Usar la función de mapeo actualizada que incluye la lógica de ofertas CON ratings
-                      const mappedProduct = mapApiProductToAppProduct(product, externalRatingsCache);
-                      if (mappedProduct) {
-                      
+
+                      });
+                    }
+
+
+                    // Extraer colores de los detalles
+                    let colors = [];
+                    if (product.detalles && Array.isArray(product.detalles)) {
+                      colors = [...new Set(product.detalles.map(d => d.nombreColor).filter(Boolean))];
+                    }
+
+                    // Debug específico para productos externos
+
+                    // Usar la función de mapeo actualizada que incluye la lógica de ofertas CON ratings
+                    const mappedProduct = mapApiProductToAppProduct(product, externalRatingsCache);
+                    if (mappedProduct) {
+
                       return {
-                          ...mappedProduct,
+                        ...mappedProduct,
                         source: 'external',
                         catalogoId: product.catalogoId
                       };
-                      }
-                      return null;
-                    });
+                    }
+                    return null;
+                  });
                 }
               }
             } catch (error) {
-  
+
             }
-            
+
             // Combinar productos locales y externos
             productsData = [...localProducts, ...externalProducts];
-            
+
             // Si no hay productos, intentar cargar productos por temporada como fallback
             const catalogName = catalogResponse.data.success ? catalogResponse.data.data.name : null;
             if (productsData.length === 0 && catalogName) {
@@ -477,63 +479,63 @@ const CatalogPage = ({ catalogId }) => {
                 const fallbackResponse = await fetch('https://cherryapi.estrategiadmgs.com.mx/cherryApi/');
                 if (fallbackResponse.ok) {
                   const fallbackData = await fallbackResponse.json();
-                  
+
                   // Filtrar por temporada (nombre del catálogo)
                   const filteredFallbackData = fallbackData.filter(product => product.temporada === catalogName);
-                  
+
                   // Obtener IDs de productos para ratings
-                  const fallbackProductIds = filteredFallbackData.map(product => 
+                  const fallbackProductIds = filteredFallbackData.map(product =>
                     product.id_articulo || product.id || product.codigo
                   ).filter(Boolean);
-                  
+
                   // Obtener ratings en bulk para productos fallback
                   const fallbackRatingsCache = await getBulkRatings(fallbackProductIds);
-                  
+
                   const fallbackProducts = filteredFallbackData.map(product => {
-                      // CONSOLE LOG ESPECÍFICO PARA DETALLES EN FALLBACK
+                    // CONSOLE LOG ESPECÍFICO PARA DETALLES EN FALLBACK
 
 
 
 
 
 
-                      if (product.detalles && Array.isArray(product.detalles)) {
+                    if (product.detalles && Array.isArray(product.detalles)) {
 
-                        product.detalles.forEach((detalle, index) => {
-
-
+                      product.detalles.forEach((detalle, index) => {
 
 
 
-                        });
-                      }
 
-                      
-                      // Extraer colores de los detalles
-                      let colors = [];
-                      if (product.detalles && Array.isArray(product.detalles)) {
-                        colors = [...new Set(product.detalles.map(d => d.nombreColor).filter(Boolean))];
-                      }
-                      
-                      // Debug específico para productos fallback
-                      
-                      // Usar la función de mapeo actualizada que incluye la lógica de ofertas CON ratings
-                      const mappedProduct = mapApiProductToAppProduct(product, fallbackRatingsCache);
-                      if (mappedProduct) {
-                      
+
+                      });
+                    }
+
+
+                    // Extraer colores de los detalles
+                    let colors = [];
+                    if (product.detalles && Array.isArray(product.detalles)) {
+                      colors = [...new Set(product.detalles.map(d => d.nombreColor).filter(Boolean))];
+                    }
+
+                    // Debug específico para productos fallback
+
+                    // Usar la función de mapeo actualizada que incluye la lógica de ofertas CON ratings
+                    const mappedProduct = mapApiProductToAppProduct(product, fallbackRatingsCache);
+                    if (mappedProduct) {
+
                       return {
-                          ...mappedProduct,
+                        ...mappedProduct,
                         source: 'external_fallback',
                         temporada: product.temporada
                       };
-                      }
-                      return null;
-                    });
-                  
+                    }
+                    return null;
+                  });
+
                   productsData = fallbackProducts;
                 }
               } catch (error) {
-    
+
               }
             }
           } catch (error) {
@@ -546,7 +548,7 @@ const CatalogPage = ({ catalogId }) => {
             setLoading(false);
             return;
           }
-          
+
           // Carga normal de productos
           if (category === 'all') {
             // Load all products with ratings optimized
@@ -556,14 +558,14 @@ const CatalogPage = ({ catalogId }) => {
             productsData = await getProductsByCategory(category, filters.catalog);
           }
         }
-        
+
         // Filtrar productos nulos
         const validProducts = productsData.filter(p => p !== null);
-        
+
         // Aplicar ofertas de usuario a todos los productos
         const productsWithOffers = await applyUserOffersToProducts(validProducts);
         const shuffledProducts = shuffleArray(productsWithOffers); // 🎲 Orden aleatorio
-        
+
         setAllProducts(shuffledProducts);
         setFilteredProducts(shuffledProducts);
       } catch (error) {
@@ -578,33 +580,33 @@ const CatalogPage = ({ catalogId }) => {
 
   // Memoized filtered and sorted products
   const processedProducts = useMemo(() => {
-    
+
     if (allProducts.length === 0) {
       return [];
     }
-    
+
     ;
-    
+
     let filtered = filterProducts(allProducts, filters);;
-    
+
     // Apply color filter from URL
     if (colorFilter) {
       const colorFilters = colorFilter.split(',').map(c => c.trim());;
       filtered = filtered.filter(product => {
         if (!product.colors || product.colors.length === 0) return false;
-        
+
         return colorFilters.some(filterColor => {
           const filterColorLower = filterColor.toLowerCase();
           return product.colors.some(productColor => {
             const productColorLower = productColor.toLowerCase();
-            return productColorLower === filterColorLower || 
-                   productColorLower.includes(filterColorLower) ||
-                   filterColorLower.includes(productColorLower);
+            return productColorLower === filterColorLower ||
+              productColorLower.includes(filterColorLower) ||
+              filterColorLower.includes(productColorLower);
           });
         });
       });;
     }
-    
+
     // Apply DTU filter from URL
     if (dtuFilter) {
       const dtuFilters = dtuFilter.split(',').map(d => d.trim());;
@@ -618,7 +620,7 @@ const CatalogPage = ({ catalogId }) => {
         });
       });;
     }
-    
+
     const sorted = sortProducts(filtered, sortBy);;
 
     return sorted;
@@ -667,7 +669,7 @@ const CatalogPage = ({ catalogId }) => {
   // Handle share functionality - Memoized
   const handleShareCatalog = useCallback(() => {
     const catalogUrl = `${window.location.origin}/catalogo`;
-    
+
     if (navigator.share) {
       // Use native sharing if available
       navigator.share({
@@ -871,20 +873,20 @@ const CatalogPage = ({ catalogId }) => {
           {/* Mobile filter modal */}
           {isFilterModalOpen && (
             <div className="catalog-page__filter-modal-overlay" onClick={toggleFilterModal}>
-            <div className="catalog-page__filter-modal" onClick={(e) => e.stopPropagation()}>
-              <CatalogFilter
-                filters={filters}
-                onFilterChange={handleFilterChange}
-                onClearFilters={handleClearFilters}
-                isMobile={true}
-                onClose={toggleFilterModal}
-                availableColors={availableColors}
-                availableSizes={availableSizes}
-                catalogs={catalogs}
-                catalogLoading={catalogLoading}
-                hideCatalogSelector={!!catalogId}
-              />
-            </div>
+              <div className="catalog-page__filter-modal" onClick={(e) => e.stopPropagation()}>
+                <CatalogFilter
+                  filters={filters}
+                  onFilterChange={handleFilterChange}
+                  onClearFilters={handleClearFilters}
+                  isMobile={true}
+                  onClose={toggleFilterModal}
+                  availableColors={availableColors}
+                  availableSizes={availableSizes}
+                  catalogs={catalogs}
+                  catalogLoading={catalogLoading}
+                  hideCatalogSelector={!!catalogId}
+                />
+              </div>
             </div>
           )}
         </div>
