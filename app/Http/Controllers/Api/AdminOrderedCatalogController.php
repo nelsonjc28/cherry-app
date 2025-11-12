@@ -19,7 +19,7 @@ class AdminOrderedCatalogController extends Controller
         try {
             // Obtener todos los catálogos activos
             $allCatalogs = Catalog::active()->get();
-            
+
             // Obtener los catálogos ordenados
             $orderedCatalogs = OrderedCatalog::with('catalog')
                 ->active()
@@ -102,14 +102,14 @@ class AdminOrderedCatalogController extends Controller
     public function getPublicCatalogs(): JsonResponse
     {
         try {
-            $orderedCatalogs = OrderedCatalog::with('catalog')
+            $orderedCatalogs = OrderedCatalog::with('catalog.pdfs')
                 ->active()
                 ->ordered()
                 ->get();
 
             if ($orderedCatalogs->isNotEmpty()) {
                 $catalogs = $orderedCatalogs->map(function ($orderedCatalog) {
-                    return $orderedCatalog->catalog;
+                    return $orderedCatalog->catalog/* ->with('pdfs' )*/;
                 })->filter(function ($catalog) {
                     return $catalog && $catalog->is_active;
                 })->values();
@@ -144,7 +144,7 @@ class AdminOrderedCatalogController extends Controller
     {
         try {
             OrderedCatalog::query()->delete();
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Orden de catálogos limpiado exitosamente'
@@ -157,4 +157,3 @@ class AdminOrderedCatalogController extends Controller
         }
     }
 }
-

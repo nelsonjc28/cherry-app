@@ -52,7 +52,7 @@ const DestacadosPage = () => {
       });
     }
     // Filter by catalog
-    if (currentFilters.catalog && currentFilters.catalog !== '' &&  currentFilters.catalog != 'Seleccione') {
+    if (currentFilters.catalog && currentFilters.catalog !== '' && currentFilters.catalog != 'Seleccione') {
       filtered = filtered.filter(product => {
         const productCatalog = product.catalog;
         return productCatalog == currentFilters.catalog;
@@ -162,14 +162,34 @@ const DestacadosPage = () => {
     }
   }, []);
 
-  // Load catalogs
+
+
+  // Cargar colores y tallas disponibles
   useEffect(() => {
+    const loadFiltersData = async () => {
+      try {
+        const [colors, sizes] = await Promise.all([
+          getAvailableColors(),
+          getAvailableSizes()
+        ]);
+
+        setAvailableColors(colors);
+        setAvailableSizes(sizes);
+      } catch (error) {
+        console.error('Error cargando datos de filtros:', error);
+        setAvailableColors([]);
+        setAvailableSizes([]);
+      }
+    };
+    // Load catalogs
     const loadCatalogs = async () => {
       setCatalogLoading(true);
       try {
         const response = await publicCatalogService.getAll();
 
         let catalogsData = [];
+
+        console.log('se ejecuto');
 
         if (response.data) {
           if (response.data.success && Array.isArray(response.data.data)) {
@@ -197,26 +217,6 @@ const DestacadosPage = () => {
     };
 
     loadCatalogs();
-  }, []);
-
-  // Cargar colores y tallas disponibles
-  useEffect(() => {
-    const loadFiltersData = async () => {
-      try {
-        const [colors, sizes] = await Promise.all([
-          getAvailableColors(),
-          getAvailableSizes()
-        ]);
-
-        setAvailableColors(colors);
-        setAvailableSizes(sizes);
-      } catch (error) {
-        console.error('Error cargando datos de filtros:', error);
-        setAvailableColors([]);
-        setAvailableSizes([]);
-      }
-    };
-
     loadFiltersData();
   }, []);
 
@@ -233,9 +233,7 @@ const DestacadosPage = () => {
         setFilteredProducts(finalProducts);
         setCurrentMonth(new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }));
         setError(null);
-        console.log(`✅ ${finalProducts.length} productos más vendidos cargados`);
       } catch (err) {
-        console.error('❌ Error al cargar productos más vendidos:', err);
         setError('Error al cargar productos más vendidos');
         setTopSellingProducts([]);
         setFilteredProducts([]);
@@ -354,7 +352,7 @@ const DestacadosPage = () => {
                     <img src={getIconPath('Chevron Down.svg')} alt="Expandir" />
                   </button>
                 </div>
-                <label htmlFor="sort-select" className="destacados-page__sort-label">Ordenar por:</label>
+               {/*  <label htmlFor="sort-select" className="destacados-page__sort-label">Ordenar por:</label>
                 <select
                   id="sort-select"
                   value={sortBy}
@@ -366,7 +364,7 @@ const DestacadosPage = () => {
                   <option value="precio-mayor">Precio: mayor a menor</option>
                   <option value="nombre-a-z">Nombre: A-Z</option>
                   <option value="nombre-z-a">Nombre: Z-A</option>
-                </select>
+                </select> */}
               </div>
             </div>
           </div>
@@ -394,10 +392,6 @@ const DestacadosPage = () => {
                   className="destacados-page__sort-select"
                 >
                   <option value="más vendidos">Más vendidos</option>
-                  <option value="precio-menor">Precio: menor a mayor</option>
-                  <option value="precio-mayor">Precio: mayor a menor</option>
-                  <option value="nombre-a-z">Nombre: A-Z</option>
-                  <option value="nombre-z-a">Nombre: Z-A</option>
                 </select>
               </div>
               <CustomButton

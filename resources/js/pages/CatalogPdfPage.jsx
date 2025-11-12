@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { mockCatalogs } from '../api/mockCatalogs';
 import PdfThumbnailsList from '../components/PdfThumbnailsList/PdfThumbnailsList';
@@ -7,6 +7,7 @@ import './CatalogPdfPage.css';
 import { getIconPath } from '../utils/assetPaths';
 import CustomButton from '../components/CustomButton';
 import { publicCatalogService } from '../services/api';
+
 
 /**
  * CatalogPdfPage
@@ -43,10 +44,10 @@ const CatalogPdfPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  
+
   // Estado para controlar la vista actual
   const [currentView, setCurrentView] = useState('groups'); // 'groups' | 'images'
-  
+
   // Estado para evitar loops infinitos en el observer
   const [isNavigating, setIsNavigating] = useState(false);
 
@@ -71,10 +72,10 @@ const CatalogPdfPage = () => {
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
       const scrollHeight = document.documentElement.scrollHeight;
       const clientHeight = window.innerHeight;
-      
+
       // Calcular cuánto falta para llegar al final (threshold del 80%)
       const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
-      
+
       // Si el usuario ha hecho scroll más del 80%, cargar más imágenes
       if (scrollPercentage > 0.8) {
         console.log('🔄 Lazy loading triggered at', Math.round(scrollPercentage * 100) + '%');
@@ -83,7 +84,7 @@ const CatalogPdfPage = () => {
     };
 
     window.addEventListener('scroll', handleScroll);
-    
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
@@ -92,12 +93,12 @@ const CatalogPdfPage = () => {
   const fetchCatalogAndImages = async () => {
     try {
       setLoading(true);
-      
+
       // Primero obtener el catálogo específico
       const catalogResponse = await publicCatalogService.getById(catalogId);
       if (catalogResponse.data.success) {
         setSelectedCatalog(catalogResponse.data.data);
-        
+
         // Luego cargar los grupos de imágenes del catálogo
         await fetchImageGroups(catalogId);
       } else {
@@ -111,11 +112,33 @@ const CatalogPdfPage = () => {
     }
   };
 
+  const handleShareCatalog = useCallback(() => {
+    let shareUrl = `${window.location.origin}${window.location.pathname}?id=${selectedCatalog?.id}`;
+
+    if (selectedImageGroup) {
+      shareUrl += `&group=${selectedImageGroup.id}`;
+    }
+
+    if (navigator.share) {
+      navigator.share({
+        title: selectedCatalog?.name || 'Catálogo de productos Cherry',
+        text: selectedImageGroup
+          ? `Mira el grupo "${selectedImageGroup.name}" del catálogo ${selectedCatalog?.name}.`
+          : `Explora el catálogo completo de productos Cherry.`,
+        url: shareUrl,
+      });
+    } else {
+      navigator.clipboard.writeText(shareUrl);
+      alert('Enlace copiado al portapapeles');
+    }
+  }, [selectedCatalog, selectedImageGroup]);
+
+
   const fetchImageGroups = async (catalogId) => {
     try {
       setImageGroupsLoading(true);
       const response = await publicCatalogService.getCatalogImageGroups(catalogId);
-      
+
       if (response.data.success) {
         const groups = response.data.data.image_groups || [];
         setImageGroups(groups);
@@ -142,22 +165,22 @@ const CatalogPdfPage = () => {
       }
 
       const response = await publicCatalogService.getImageGroupImages(catalogId, groupId, page);
-      
+
       if (response.data.success) {
         const newImages = response.data.data.images || [];
         const pagination = response.data.data.pagination;
-        
+
         console.log('📄 Page loaded:', page, '| Images:', newImages.length, '| Total:', pagination.total, '| Has more:', pagination.has_more);
-        
+
         if (page === 1) {
           setImages(newImages);
         } else {
           setImages(prev => [...prev, ...newImages]);
         }
-        
+
         setHasMore(pagination.has_more);
         setCurrentPage(page);
-        
+
         // Resetear índice de imagen seleccionada solo en la primera carga
         if (page === 1) {
           setPageIndex(0);
@@ -178,7 +201,7 @@ const CatalogPdfPage = () => {
     try {
       setCatalogsLoading(true);
       const response = await publicCatalogService.getCatalogsWithImages();
-      
+
       if (response.data.success) {
         setCatalogs(response.data.data);
       } else {
@@ -201,22 +224,22 @@ const CatalogPdfPage = () => {
       }
 
       const response = await publicCatalogService.getCatalogImages(catalogId, page);
-      
+
       if (response.data.success) {
         const newImages = response.data.data.images || [];
         const pagination = response.data.data.pagination;
-        
+
         console.log('📄 Page loaded:', page, '| Images:', newImages.length, '| Total:', pagination.total, '| Has more:', pagination.has_more);
-        
+
         if (page === 1) {
           setImages(newImages);
         } else {
           setImages(prev => [...prev, ...newImages]);
         }
-        
+
         setHasMore(pagination.has_more);
         setCurrentPage(page);
-        
+
         // Resetear índice de imagen seleccionada solo en la primera carga
         if (page === 1) {
           setPageIndex(0);
@@ -249,7 +272,7 @@ const CatalogPdfPage = () => {
   // Función para cambiar de catálogo
   const handleCatalogChange = async (catalog) => {
     if (catalog.id === selectedCatalog?.id) return;
-    
+
     try {
       setSelectedCatalog(catalog);
       setSelectedImageGroup(null);
@@ -258,11 +281,11 @@ const CatalogPdfPage = () => {
       setPageIndex(0);
       setCurrentPage(1);
       setHasMore(false);
-      
+
       // Actualizar URL sin recargar la página
       const newUrl = `${window.location.pathname}?id=${catalog.id}`;
       window.history.pushState({ catalogId: catalog.id }, '', newUrl);
-      
+
       // Cargar los grupos de imágenes del nuevo catálogo
       await fetchImageGroups(catalog.id);
     } catch (error) {
@@ -280,8 +303,12 @@ const CatalogPdfPage = () => {
       setCurrentPage(1);
       setHasMore(false);
       setCurrentView('images');
-      
-      // Cargar las imágenes del nuevo grupo
+
+      // 👉 Actualizar la URL con el grupo actual
+      const newUrl = `${window.location.pathname}?id=${selectedCatalog.id}&group=${imageGroup.id}`;
+      window.history.pushState({ catalogId: selectedCatalog.id, groupId: imageGroup.id }, '', newUrl);
+
+      // Cargar las imágenes del grupo
       await fetchImageGroupImages(selectedCatalog.id, imageGroup.id);
     } catch (error) {
       console.error('Error changing image group:', error);
@@ -289,13 +316,26 @@ const CatalogPdfPage = () => {
     }
   };
 
-  // Función para volver a la vista de grupos
+  // 👉 Al volver a la vista de grupos
   const handleBackToGroups = () => {
     setSelectedImageGroup(null);
     setImages([]);
     setCurrentView('groups');
     setPageIndex(0);
+
+    // ✅ Quitar el parámetro ?group de la URL
+    const newUrl = `${window.location.pathname}?id=${selectedCatalog.id}`;
+    window.history.pushState({ catalogId: selectedCatalog.id }, '', newUrl);
   };
+
+
+  // Función para volver a la vista de grupos
+  /* const handleBackToGroups = () => {
+    setSelectedImageGroup(null);
+    setImages([]);
+    setCurrentView('groups');
+    setPageIndex(0);
+  }; */
   // Estado para la página (índice de la imagen actual)
   const [pageIndex, setPageIndex] = useState(0);
   // Estado para guardar la orientación de cada imagen
@@ -322,7 +362,7 @@ const CatalogPdfPage = () => {
         clearTimeout(observerTimerRef.current);
         observerTimerRef.current = null;
       }
-      
+
       const newIndex = pageIndex - 1;
       setIsNavigating(true);
       setPageIndex(newIndex);
@@ -346,7 +386,7 @@ const CatalogPdfPage = () => {
         clearTimeout(observerTimerRef.current);
         observerTimerRef.current = null;
       }
-      
+
       const newIndex = pageIndex + 1;
       setIsNavigating(true);
       setPageIndex(newIndex);
@@ -399,7 +439,7 @@ const CatalogPdfPage = () => {
       clearTimeout(observerTimerRef.current);
       observerTimerRef.current = null;
     }
-    
+
     setIsNavigating(true);
     setPageIndex(index);
     scrollToImage(index, false);
@@ -421,6 +461,24 @@ const CatalogPdfPage = () => {
     }
   }, [pageIndex, isDesktop]);
 
+  // 👉 Detectar si hay un groupId en la URL y abrirlo cuando los grupos estén listos
+  useEffect(() => {
+    const queryParams = new URLSearchParams(window.location.search);
+    const groupId = queryParams.get('group');
+
+    if (catalogId && groupId && imageGroups.length > 0) {
+      const groupToOpen = imageGroups.find(
+        (g) => String(g.id) === String(groupId)
+      );
+      if (groupToOpen) {
+        console.log("📂 Abriendo grupo desde URL:", groupToOpen.name);
+        handleImageGroupChange(groupToOpen);
+      }
+    }
+  }, [catalogId, imageGroups]);
+
+
+
   // Efecto: observa las imágenes para detectar cuál está visible en el viewport
   useEffect(() => {
     if (!isDesktop || !images || !images.length) return;
@@ -435,18 +493,18 @@ const CatalogPdfPage = () => {
       (entries) => {
         // Solo actualizar si no estamos navegando manualmente
         if (isNavigating) return;
-        
+
         // Encontrar la entrada más visible
         let mostVisibleEntry = null;
         let maxIntersectionRatio = 0;
-        
+
         entries.forEach((entry) => {
           if (entry.isIntersecting && entry.intersectionRatio > maxIntersectionRatio) {
             maxIntersectionRatio = entry.intersectionRatio;
             mostVisibleEntry = entry;
           }
         });
-        
+
         // Solo actualizar si hay una imagen claramente más visible
         if (mostVisibleEntry && maxIntersectionRatio > 0.6) {
           const index = imageRefs.current.findIndex(ref => ref === mostVisibleEntry.target);
@@ -505,7 +563,7 @@ const CatalogPdfPage = () => {
           }
         });
       }, 100);
-      
+
       return () => clearTimeout(timeout);
     }
   }, [isNavigating, images]);
@@ -592,6 +650,7 @@ const CatalogPdfPage = () => {
               size="medium"
               iconLeft={<img src={getIconPath('Whatsapp.svg')} alt="Comparar clientes" style={{ width: 16, height: 16 }} />}
               className="catalog-pdf__controls-btn"
+              onClick={handleShareCatalog}
             >
               <span className="catalog-pdf__whatsapp-text">Compartir a clientes</span>
             </CustomButton>
@@ -627,7 +686,7 @@ const CatalogPdfPage = () => {
                       onSelect={handleThumbnailSelect}
                     />
                   </div>
-                  
+
                   {/* Botón cargar más */}
                   {hasMore && (
                     <div className="catalog-pdf__load-more">
@@ -654,7 +713,7 @@ const CatalogPdfPage = () => {
                   <h2>Grupos de Imágenes - {selectedCatalog?.name}</h2>
                   <p>Selecciona un grupo para ver sus imágenes</p>
                 </div>
-                
+
                 {imageGroupsLoading ? (
                   <div className="catalog-pdf__loading">
                     <div className="spinner"></div>
@@ -676,7 +735,7 @@ const CatalogPdfPage = () => {
                         {/* Imagen de portada del grupo */}
                         <div className="catalog-pdf__group-image">
                           {group.cover_image && group.cover_image.thumbnail_url ? (
-                            <img 
+                            <img
                               src={group.cover_image.thumbnail_url}
                               alt={group.name}
                               onError={(e) => {
@@ -685,7 +744,7 @@ const CatalogPdfPage = () => {
                               }}
                             />
                           ) : null}
-                          <div 
+                          <div
                             className="catalog-pdf__group-no-image"
                             style={{ display: (group.cover_image && group.cover_image.thumbnail_url) ? 'none' : 'flex' }}
                           >
@@ -716,7 +775,7 @@ const CatalogPdfPage = () => {
               <>
                 {/* Botón para volver a grupos */}
                 <div className="catalog-pdf__back-to-groups">
-                  <button 
+                  <button
                     className="catalog-pdf__back-btn"
                     onClick={handleBackToGroups}
                     title="Volver a grupos"
@@ -760,12 +819,12 @@ const CatalogPdfPage = () => {
                         ref={el => imageRefs.current[index] = el}
                         className="catalog-pdf__image-wrapper"
                       >
-                         <img
-                           src={image.image_url || image.thumbnail_url || `${window.location.origin}/${image.image_path}`}
-                           alt={image.image_alt || image.image_name || selectedCatalog?.name + ' página ' + (index + 1)}
-                           className={`catalog-pdf__image ${getImageOrientation(index)}`}
-                           onLoad={(e) => handleImageLoad(e, index)}
-                         />
+                        <img
+                          src={image.image_url || image.thumbnail_url || `${window.location.origin}/${image.image_path}`}
+                          alt={image.image_alt || image.image_name || selectedCatalog?.name + ' página ' + (index + 1)}
+                          className={`catalog-pdf__image ${getImageOrientation(index)}`}
+                          onLoad={(e) => handleImageLoad(e, index)}
+                        />
                       </div>
                     ))
                   ) : (

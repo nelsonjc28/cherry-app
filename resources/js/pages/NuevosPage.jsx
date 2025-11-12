@@ -58,7 +58,6 @@ const NuevosPage = () => {
         return productCatalog == currentFilters.catalog;
       });
     }
-    console.log(filtered);
 
     // Filter by department
     if (currentFilters.department && currentFilters.department !== 'Todos los departamentos') {
@@ -137,7 +136,6 @@ const NuevosPage = () => {
         });
       });
     }
-    console.log(filtered)
     return filtered;
   }, []);
 
@@ -266,7 +264,6 @@ const NuevosPage = () => {
   }, [allProducts, filters, sortBy, filterProducts, sortProducts]);
   // Update filtered products when processed products change
   useEffect(() => {
-    console.log(processedProducts);
     setFilteredProducts(processedProducts);
   }, [processedProducts]);
 

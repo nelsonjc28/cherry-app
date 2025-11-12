@@ -124,80 +124,6 @@ const CatalogFilter = ({
       )}
 
       <div className="filter-content">
-        {/* Catalog selector - solo mostrar si no está oculto */}
-        {!hideCatalogSelector && (
-          <div className="filter-section">
-            <h3 className="filter-title">Catálogo</h3>
-            <select
-              value={filters.catalog}
-              onChange={(e) => handleFilterChange('catalog', e.target.value)}
-              className="filter-select"
-            >
-                <option value=''>Seleccione</option>
-
-              {catalogOptions.map((option) => (
-                <option key={option[0].code} value={option[0].code}>{option[0].name}</option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {/* Category selector */}
-        {availableCategories.length > 0 && (
-          <div className="filter-section">
-            <h3 className="filter-title">Categoría</h3>
-            <select
-              value={filters.category || ''}
-              onChange={(e) => handleFilterChange('category', e.target.value)}
-              className="filter-select"
-            >
-              <option value="">Todas las categorías</option>
-              {availableCategories.map((category) => (
-                <option key={category.code} value={category.code}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {/* Availability filter */}
-        <div className="filter-section">
-          <h3 className="filter-title">Filtrar por:</h3>
-          <div className="radio-group">
-            {availabilityOptions.map((option) => (
-              <label key={option.value} className="radio-label">
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => handleFilterChange('availability', option.value)}
-                  className={`availability-button ${filters.availability === option.value ? 'selected' : ''}`}
-                >
-                  <div className="availability-indicator"></div>
-                  <span className="radio-text">
-                    {option.label}
-                    {option.value === 'con-existencia' && (
-                      <span style={{ fontSize: '10px', opacity: 0.8, marginLeft: '4px' }}>
-                        (solo con stock)
-                      </span>
-                    )}
-                  </span>
-                  {filters.availability === option.value && (
-                    <span style={{
-                      position: 'absolute',
-                      right: '12px',
-                      fontSize: '12px',
-                      color: 'white',
-                      fontWeight: 'bold'
-                    }}>
-                      ✓
-                    </span>
-                  )}
-                </button>
-              </label>
-            ))}
-          </div>
-        </div>
 
         {/* Filter button */}
         <CustomButton
@@ -214,9 +140,82 @@ const CatalogFilter = ({
         {/* Accordion content */}
         {showAccordion && (
           <>
+            {/* Catalog selector - solo mostrar si no está oculto */}
+            {!hideCatalogSelector && (
+              <div className="filter-section">
+                <h3 className="filter-title">Catálogo</h3>
+                <select
+                  value={filters.catalog}
+                  onChange={(e) => handleFilterChange('catalog', e.target.value)}
+                  className="filter-select"
+                >
+                  <option value=''>Seleccione</option>
+
+                  {catalogOptions.map((option) => (
+                    <option key={option[0].code} value={option[0].code}>{option[0].name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Category selector */}
+            {availableCategories.length > 0 && (
+              <div className="filter-section">
+                <h3 className="filter-title">Categoría</h3>
+                <select
+                  value={filters.category || ''}
+                  onChange={(e) => handleFilterChange('category', e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="">Todas las categorías</option>
+                  {availableCategories.map((category) => (
+                    <option key={category.code} value={category.code}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="filter-section">
+              <h3 className="filter-title">Filtrar por:</h3>
+              <div className="radio-group">
+                {availabilityOptions.map((option) => (
+                  <label key={option.value} className="radio-label">
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => handleFilterChange('availability', option.value)}
+                      className={`availability-button ${filters.availability === option.value ? 'selected' : ''}`}
+                    >
+                      <div className="availability-indicator"></div>
+                      <span className="radio-text">
+                        {option.label}
+                        {option.value === 'con-existencia' && (
+                          <span style={{ fontSize: '10px', opacity: 0.8, marginLeft: '4px' }}>
+                            (solo con stock)
+                          </span>
+                        )}
+                      </span>
+                      {filters.availability === option.value && (
+                        <span style={{
+                          position: 'absolute',
+                          right: '12px',
+                          fontSize: '12px',
+                          color: 'white',
+                          fontWeight: 'bold'
+                        }}>
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  </label>
+                ))}
+              </div>
+            </div>
+
             <div className="accordion-filter-content">
               {/* Sort by */}
-              <div className="filter-section expandable">
+              {/* <div className="filter-section expandable">
                 <button
                   className="filter-section-header"
                   onClick={() => toggleSection('sortBy')}
@@ -242,7 +241,7 @@ const CatalogFilter = ({
                     </div>
                   </div>
                 )}
-              </div>
+              </div> */}
 
 
 

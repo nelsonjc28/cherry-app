@@ -1,8 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef,useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import './ProductPage.css';
 import './ProductPageOfferIndicators.css';
+import CustomButton from '../components/CustomButton';
+import { getIconPath } from '../utils/assetPaths';
+import { useLocation } from "react-router-dom";
 
 // Components
 import CherryButton from '../components/CherryButton/CherryButton';
@@ -54,6 +57,22 @@ const ProductPage = () => {
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const handleShareCatalog = useCallback(() => {
+    const catalogUrl = `${window.location.href}`;
+
+    if (navigator.share) {
+      // Use native sharing if available
+      navigator.share({
+        title: 'Catálogo de productos Cherry',
+        text: 'Explora nuestro catálogo completo de productos Cherry. Encuentra las últimas tendencias en moda y accesorios.',
+        url: catalogUrl
+      });
+    } else {
+      // Fallback to clipboard copy
+      copyToClipboard(catalogUrl);
+    }
   }, []);
 
   // Rating states
@@ -701,6 +720,16 @@ const ProductPage = () => {
             <span className="product-page__breadcrumb-item">Nuevo</span>
             <span className="product-page__breadcrumb-separator">|</span>
             <span className="product-page__breadcrumb-item">+50 vendido</span>
+            <span className="product-page__breadcrumb-separator">|</span>
+
+              <CustomButton
+                variant="filled"
+                size="small"
+                iconLeft={<img src={getIconPath('Whatsapp.svg')} alt="Comparar clientes" style={{ width: 16, height: 16 }} />}
+                onClick={handleShareCatalog}
+              >
+                <span className="catalog-page__whatsapp-text"></span>
+              </CustomButton>
           </div>
 
           <h1 className="product-page__info-title show-mobile">{descripcion}</h1>
@@ -735,6 +764,16 @@ const ProductPage = () => {
               <span className="product-page__breadcrumb-item">Nuevo</span>
               <span className="product-page__breadcrumb-separator">|</span>
               <span className="product-page__breadcrumb-item">+50 vendido</span>
+              <span className="product-page__breadcrumb-separator">|</span>
+
+              <CustomButton
+                variant="filled"
+                size="medium"
+                iconLeft={<img src={getIconPath('Whatsapp.svg')} alt="Comparar clientes" style={{ width: 16, height: 16 }} />}
+                onClick={handleShareCatalog}
+              >
+                <span className="catalog-page__whatsapp-text">Compartir a clientes</span>
+              </CustomButton>
             </div>
 
             <h1 className="product-page__info-title show-desktop">{descripcion}</h1>
@@ -761,8 +800,8 @@ const ProductPage = () => {
             <div className="product-page__info-price">
               {hasOffer && (
                 <div className={`product-page__offer-badge ${hasUserOffer ? 'user-offer' : ''} ${hasUserOffer && userOffer && userOffer.discount_category === 'buy_x_get_y' ? 'buy-x-get-y' :
-                    hasUserOffer && userOffer && userOffer.discount_category === 'order_discount' ? 'order-discount' :
-                      hasUserOffer && userOffer && userOffer.discount_category === 'free_shipping' ? 'free-shipping' : ''
+                  hasUserOffer && userOffer && userOffer.discount_category === 'order_discount' ? 'order-discount' :
+                    hasUserOffer && userOffer && userOffer.discount_category === 'free_shipping' ? 'free-shipping' : ''
                   }`}>
                   {hasUserOffer && userOffer && userOffer.discount_category === 'buy_x_get_y' ?
                     `🎁 Compra ${userOffer.buy_quantity} por el precio de ${userOffer.buy_quantity - userOffer.get_quantity}` :

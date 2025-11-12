@@ -9,6 +9,9 @@ import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
 import { getProductsWithRatings, isUserSessionActive } from '../api/cherryApi';
 import { applyUserOffersToProducts } from '../api/userOffers';
+import { publicCatalogService } from '../services/api';
+
+
 import './PromocionesPage.css';
 
 const PromocionesPage = () => {
@@ -19,8 +22,11 @@ const PromocionesPage = () => {
   const [sortBy, setSortBy] = useState('más recientes');
   const [availableColors, setAvailableColors] = useState([]);
   const [availableSizes, setAvailableSizes] = useState([]);
+  const [catalogs, setCatalogs] = useState([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
   const [filters, setFilters] = useState({
     availability: 'todos',
+    catalog: 'Seleccione',
     category: '',
     department: 'Todos los departamentos',
     sector: 'Todos los sectores',
@@ -35,7 +41,6 @@ const PromocionesPage = () => {
     const loadPromoProducts = async () => {
       setLoading(true);
       try {
-        console.log('🎁 PromocionesPage: Cargando productos con promociones...');
         
         let allPromoProducts = [];
         let adminOfferProductIds = [];
@@ -71,12 +76,10 @@ const PromocionesPage = () => {
                     return adminOfferProductIds.includes(productId);
                   });
                   
-                  console.log(`✅ ${adminOfferProducts.length} productos con ofertas del admin cargados`);
                   allPromoProducts = adminOfferProducts;
                 }
               }
             } catch (error) {
-              console.warn('⚠️ Error al cargar ofertas del admin:', error);
             }
           }
         }
@@ -115,6 +118,43 @@ const PromocionesPage = () => {
 
     loadPromoProducts();
   }, [hasActiveSession]);
+
+
+  useEffect(() => {
+    const loadCatalogs = async () => {
+      setCatalogLoading(true);
+      try {
+        const response = await publicCatalogService.getAll();
+
+        let catalogsData = [];
+
+        if (response.data) {
+          if (response.data.success && Array.isArray(response.data.data)) {
+            catalogsData = response.data.data;
+          } else if (response.data.success && response.data.data && response.data.data.catalogs) {
+            catalogsData = response.data.data.catalogs;
+          } else if (response.data.success && response.data.catalogs) {
+            catalogsData = response.data.catalogs;
+          } else if (Array.isArray(response.data)) {
+            catalogsData = response.data;
+          }
+        }
+
+        if (catalogsData && catalogsData.length > 0) {
+          setCatalogs(catalogsData);
+        } else {
+          setCatalogs([]);
+        }
+      } catch (error) {
+        console.error('Error loading catalogs:', error);
+        setCatalogs([]);
+      } finally {
+        setCatalogLoading(false);
+      }
+    };
+
+    loadCatalogs();
+  }, []);
 
   // Extraer colores y tallas disponibles de los productos cargados
   useEffect(() => {
@@ -260,6 +300,14 @@ const PromocionesPage = () => {
                    filterSizeLower.includes(productSizeLower);
           });
         });
+      });
+    }
+
+    // Filter by catalog
+    if (currentFilters.catalog && currentFilters.catalog !== '' &&  currentFilters.catalog != 'Seleccione') {
+      filtered = filtered.filter(product => {
+        const productCatalog = product.catalog;
+        return productCatalog == currentFilters.catalog;
       });
     }
 
@@ -458,7 +506,8 @@ const PromocionesPage = () => {
                 isMobile={false}
                 availableColors={availableColors}
                 availableSizes={availableSizes}
-                hideCatalogSelector={true}
+                catalogs={catalogs}
+                hideCatalogSelector={false}
               />
             </aside>
 
@@ -509,7 +558,7 @@ const PromocionesPage = () => {
                 onClose={toggleFilterModal}
                 availableColors={availableColors}
                 availableSizes={availableSizes}
-                hideCatalogSelector={true}
+                hideCatalogSelector={false}
               />
             </div>
             </div>

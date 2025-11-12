@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/ProductCard/ProductCard';
@@ -13,11 +13,14 @@ import { publicCatalogService } from '../services/api';
 import { flexibleSearchInFields } from '../utils/searchNormalizer';
 import './BuscarPage.css';
 
+
 const BuscarPage = () => {
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
   const colorFilter = searchParams.get('color') || '';
   const skuFilter = searchParams.get('sku') || '';
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+
 
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
@@ -41,6 +44,11 @@ const BuscarPage = () => {
     dtu: '',
     sortBy: 'Más recientes'
   });
+
+  const toggleFilterModal = useCallback(() => {
+    setIsFilterModalOpen(prev => !prev);
+  }, []);
+
 
   // Cargar catálogos
   useEffect(() => {
@@ -407,78 +415,130 @@ const BuscarPage = () => {
       </Helmet>
 
       <main className="buscar-page">
-        <div className="container">
-          {/* Header de búsqueda */}
-          <div className="buscar-header">
-            <h1>Resultados de búsqueda</h1>
-            {(query || colorFilter || skuFilter) && (
-              <p className="buscar-query">
-                <strong>{getSearchDescription()}</strong>
-              </p>
-            )}
-          </div>
-          <p className="buscar-results">
-            {filteredProducts.length} productos encontrados
-          </p>
-
-          <div className="buscar-content">
-            {/* Filtros */}
-            <aside className="buscar-filters">
-              <CatalogFilter
-                filters={filters}
-                onFilterChange={handleFilterChange}
-                onClearFilters={handleClearFilters}
-                catalogs={catalogs}
-                catalogLoading={catalogLoading}
-                availableColors={availableColors}
-                availableSizes={availableSizes}
-              />
-            </aside>
-
-            {/* Resultados */}
-            <div className="buscar-results-section">
-              {loading ? (
-                <div className="buscar-loading">
-                  <div className="loading-spinner"></div>
-                  <p>Buscando productos...</p>
-                </div>
-              ) : filteredProducts.length === 0 ? (
-                <div className="buscar-no-results">
-                  <div className="no-results-icon">
-                    <img src={getIconPath('Search.svg')} alt="Sin resultados" />
-                  </div>
-                  <h3>No se encontraron productos</h3>
-                  <p>Intenta ajustar los términos de búsqueda o usar filtros diferentes</p>
-                  <CherryButton
-                    variant="outline"
-                    size="medium"
-                    onClick={handleClearFilters}
+        <div className='container'>
+          {/* Header section with title and filters  -  MOBILE */}
+          <div className="nuevos-page__header-mobile">
+            <div className="nuevos-page__controls">
+              <div className="nuevos-page__sort-section">
+                <div className="nuevos-page__mobile-filter-controls">
+                  <button
+                    className="nuevos-page__mobile-filter-btn"
+                    onClick={toggleFilterModal}
                   >
-                    Limpiar filtros
-                  </CherryButton>
+                    <img src={getIconPath('Filter.svg')} alt="Filtros" />
+                    <img src={getIconPath('Chevron Down.svg')} alt="Expandir" />
+                  </button>
                 </div>
-              ) : (
-                <>
-                  <div className="buscar-products-grid">
-                    {infiniteScroll.displayedItems.map((product, index) => (
-                      <ProductCard
-                        key={product.id || `product-${index}`}
-                        product={product}
-                        onFavoriteToggle={handleFavoriteToggle}
-                      />
-                    ))}
-                  </div>
-
-                  {/* Infinite Scroll Loader */}
-                  <InfiniteScrollLoader
-                    isLoading={infiniteScroll.isLoading}
-                    hasMore={infiniteScroll.hasMore}
-                    observerTarget={infiniteScroll.observerTarget}
-                  />
-                </>
-              )}
+                <label htmlFor="sort-select" className="nuevos-page__sort-label">Ordenar por:</label>
+                <select
+                  id="sort-select"
+                  value={filters.sortBy}
+                  onChange={handleSortChange}
+                  className="nuevos-page__sort-select"
+                >
+                  <option value="más recientes">más recientes</option>
+                  <option value="precio-menor">Precio: menor a mayor</option>
+                  <option value="precio-mayor">Precio: mayor a menor</option>
+                  <option value="nombre-a-z">Nombre: A-Z</option>
+                  <option value="nombre-z-a">Nombre: Z-A</option>
+                </select>
+              </div>
             </div>
           </div>
+          <div className="container">
+            {/* Header de búsqueda */}
+            <div className="buscar-header">
+              <h1>Resultados de búsqueda</h1>
+              {(query || colorFilter || skuFilter) && (
+                <p className="buscar-query">
+                  <strong>{getSearchDescription()}</strong>
+                </p>
+              )}
+            </div>
+            <p className="buscar-results">
+              {filteredProducts.length} productos encontrados
+            </p>
+
+            <div className="buscar-content">
+              {/* Filtros */}
+              <aside className="nuevos-page__sidebar">
+                <CatalogFilter
+                  filters={filters}
+                  onFilterChange={handleFilterChange}
+                  onClearFilters={handleClearFilters}
+                  catalogs={catalogs}
+                  isMobile={false}
+                  catalogLoading={catalogLoading}
+                  availableColors={availableColors}
+                  availableSizes={availableSizes}
+                />
+
+              </aside>
+
+              {/* Resultados */}
+              <div className="buscar-results-section">
+                {loading ? (
+                  <div className="buscar-loading">
+                    <div className="loading-spinner"></div>
+                    <p>Buscando productos...</p>
+                  </div>
+                ) : filteredProducts.length === 0 ? (
+                  <div className="buscar-no-results">
+                    <div className="no-results-icon">
+                      <img src={getIconPath('Search.svg')} alt="Sin resultados" />
+                    </div>
+                    <h3>No se encontraron productos</h3>
+                    <p>Intenta ajustar los términos de búsqueda o usar filtros diferentes</p>
+                    <CherryButton
+                      variant="outline"
+                      size="medium"
+                      onClick={handleClearFilters}
+                    >
+                      Limpiar filtros
+                    </CherryButton>
+                  </div>
+                ) : (
+                  <>
+                    <div className="buscar-products-grid">
+                      {infiniteScroll.displayedItems.map((product, index) => (
+                        <ProductCard
+                          key={product.id || `product-${index}`}
+                          product={product}
+                          onFavoriteToggle={handleFavoriteToggle}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Infinite Scroll Loader */}
+                    <InfiniteScrollLoader
+                      isLoading={infiniteScroll.isLoading}
+                      hasMore={infiniteScroll.hasMore}
+                      observerTarget={infiniteScroll.observerTarget}
+                    />
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          {/* Mobile filter modal */}
+          {isFilterModalOpen && (
+            <div className="nuevos-page__filter-modal-overlay" onClick={toggleFilterModal}>
+              <div className="nuevos-page__filter-modal" onClick={(e) => e.stopPropagation()}>
+                <CatalogFilter
+                  filters={filters}
+                  onFilterChange={handleFilterChange}
+                  onClearFilters={handleClearFilters}
+                  isMobile={true}
+                  onClose={toggleFilterModal}
+                  availableColors={availableColors}
+                  availableSizes={availableSizes}
+                  catalogs={catalogs}
+                  catalogLoading={catalogLoading}
+                  hideCatalogSelector={true}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </>
