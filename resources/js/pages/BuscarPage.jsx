@@ -390,6 +390,10 @@ const BuscarPage = () => {
     // Handle favorite toggle
   };
 
+  const handleSortChange = useCallback((e) => {
+    setSortBy(e.target.value);
+  }, []);
+
   // Infinite scroll
   const infiniteScroll = useInfiniteScroll(filteredProducts, 20);
 
