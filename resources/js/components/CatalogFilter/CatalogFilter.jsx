@@ -273,35 +273,26 @@ const CatalogFilter = ({
               </div>
 
               {/* Colors */}
-              <div className="filter-section expandable">
-                <button
-                  className="filter-section-header"
-                  onClick={() => toggleSection('colors')}
-                >
-                  <span>Colores</span>
-                  <img src={getIconPath('Chevron Down.svg')} alt="Filter" className={`chevron ${expandedSections.clothing ? 'expanded' : ''}`} />
-                </button>
-                {expandedSections.colors && (
-                  <div className="filter-section-content">
-                    <div className="color-grid">
-                      {colors.map((color) => (
-                        <label key={color.value} className="color-option">
-                          <input
-                            type="checkbox"
-                            checked={filters.colors && filters.colors.includes(color.value)}
-                            onChange={() => handleFilterChange('colors', color.value)}
-                          />
-                          <span
-                            className="color-swatch"
-                            style={{ backgroundColor: color.hex }}
-                            title={color.name}
-                            data-light={colorConverter.isLightColor(color.hex)}
-                          ></span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              <div className="filter-section-content">
+                <div className="color-grid">
+                  {colors.map((color) => (
+                    <label key={color.value} className="color-option">
+                      <input
+                        type="checkbox"
+                        checked={filters.colors && filters.colors.includes(color.value)}
+                        onChange={() => handleFilterChange('colors', color.value)}
+                      />
+                      <div className="color-box">
+                        <span
+                          className="color-swatch"
+                          style={{ backgroundColor: color.hex }}
+                          title={color.name}
+                        ></span>
+                        <span className="color-name">{color.name}</span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
 
