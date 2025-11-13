@@ -22,7 +22,9 @@ const CatalogFilter = ({
     sortBy: false,
     sizes: false,
     colors: false,
-    price: false
+    catalog: false,
+    category: false,
+    price: false,
   });
 
   // State to show/hide the accordion
@@ -142,9 +144,15 @@ const CatalogFilter = ({
           <>
             {/* Catalog selector - solo mostrar si no está oculto */}
             {!hideCatalogSelector && (
-              <div className="filter-section">
-                <h3 className="filter-title">Catálogo</h3>
-                <select
+              <div className="filter-section  expandable">
+                <button
+                  className="filter-section-header"
+                  onClick={() => toggleSection('catalog')}
+                >
+                  <h3 className="filter-title">Catálogo</h3>
+                  <img src={getIconPath('Chevron Down.svg')} alt="Filter" className={`chevron ${expandedSections.clothing ? 'expanded' : ''}`} />
+                </button>
+                {expandedSections.catalog && (<select
                   value={filters.catalog}
                   onChange={(e) => handleFilterChange('catalog', e.target.value)}
                   className="filter-select"
@@ -155,25 +163,38 @@ const CatalogFilter = ({
                     <option key={option[0].code} value={option[0].code}>{option[0].name}</option>
                   ))}
                 </select>
+                )}
+
               </div>
             )}
 
             {/* Category selector */}
             {availableCategories.length > 0 && (
-              <div className="filter-section">
-                <h3 className="filter-title">Categoría</h3>
-                <select
-                  value={filters.category || ''}
-                  onChange={(e) => handleFilterChange('category', e.target.value)}
-                  className="filter-select"
+              <div className="filter-section  expandable">
+                <button
+                  className="filter-section-header"
+                  onClick={() => toggleSection('category')}
                 >
-                  <option value="">Todas las categorías</option>
-                  {availableCategories.map((category) => (
-                    <option key={category.code} value={category.code}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
+                  <h3 className="filter-title">Categoría</h3>
+                  <img src={getIconPath('Chevron Down.svg')} alt="Filter" className={`chevron ${expandedSections.clothing ? 'expanded' : ''}`} />
+                </button>
+                {expandedSections.catalog && (
+                  <div className="filter-section-content">
+                    <select
+                      value={filters.category || ''}
+                      onChange={(e) => handleFilterChange('category', e.target.value)}
+                      className="filter-select"
+                    >
+                      <option value="">Todas las categorías</option>
+                      {availableCategories.map((category) => (
+                        <option key={category.code} value={category.code}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                )}
               </div>
             )}
             <div className="filter-section">
@@ -215,34 +236,6 @@ const CatalogFilter = ({
 
             <div className="accordion-filter-content">
               {/* Sort by */}
-              {/* <div className="filter-section expandable">
-                <button
-                  className="filter-section-header"
-                  onClick={() => toggleSection('sortBy')}
-                >
-                  <span>Ordenar por</span>
-                  <img src={getIconPath('Chevron Down.svg')} alt="Filter" />
-                </button>
-                {expandedSections.sortBy && (
-                  <div className="filter-section-content">
-                    <div className="radio-group">
-                      {['Más recientes', 'Precio: menor a mayor', 'Precio: mayor a menor', 'Nombre A-Z', 'Nombre Z-A'].map((option) => (
-                        <label key={option} className="radio-label">
-                          <input
-                            type="radio"
-                            name="sortBy"
-                            value={option}
-                            checked={filters.sortBy === option}
-                            onChange={() => handleFilterChange('sortBy', option)}
-                          />
-                          <span className="radio-text">{option}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div> */}
-
 
 
               {/* Sizes */}
@@ -310,47 +303,55 @@ const CatalogFilter = ({
 
             {/* Price range */}
             <div className="filter-section">
-              <h3 className="filter-title">Precio | MXN</h3>
-              <div className="price-inputs">
-                <div className="price-input-group">
-                  <label htmlFor="price-min" className="price-label">Mínimo</label>
-                  <input
-                    id="price-min"
-                    type="number"
-                    placeholder="Precio mínimo"
-                    value={filters.priceRange && filters.priceRange.min ? filters.priceRange.min : ''}
-                    onChange={(e) => {
-                      const minValue = parseFloat(e.target.value) || 0;
-                      handleFilterChange('priceRange', {
-                        ...filters.priceRange,
-                        min: minValue
-                      });
-                    }}
-                    className="price-input"
-                    min="0"
-                    step="0.01"
-                  />
+              <button
+                className="filter-section-header"
+                onClick={() => toggleSection('price')}
+              >
+                <h3 className="filter-title">Precio | MXN</h3>
+                <img src={getIconPath('Chevron Down.svg')} alt="Filter" className={`chevron ${expandedSections.clothing ? 'expanded' : ''}`} />
+              </button>
+              {expandedSections.price && (
+                <div className="price-inputs">
+                  <div className="price-input-group">
+                    <label htmlFor="price-min" className="price-label">Mínimo</label>
+                    <input
+                      id="price-min"
+                      type="number"
+                      placeholder="Precio mínimo"
+                      value={filters.priceRange && filters.priceRange.min ? filters.priceRange.min : ''}
+                      onChange={(e) => {
+                        const minValue = parseFloat(e.target.value) || 0;
+                        handleFilterChange('priceRange', {
+                          ...filters.priceRange,
+                          min: minValue
+                        });
+                      }}
+                      className="price-input"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  <div className="price-input-group">
+                    <label htmlFor="price-max" className="price-label">Máximo</label>
+                    <input
+                      id="price-max"
+                      type="number"
+                      placeholder="Precio máximo"
+                      value={filters.priceRange && filters.priceRange.max ? filters.priceRange.max : ''}
+                      onChange={(e) => {
+                        const maxValue = parseFloat(e.target.value) || 0;
+                        handleFilterChange('priceRange', {
+                          ...filters.priceRange,
+                          max: maxValue
+                        });
+                      }}
+                      className="price-input"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
                 </div>
-                <div className="price-input-group">
-                  <label htmlFor="price-max" className="price-label">Máximo</label>
-                  <input
-                    id="price-max"
-                    type="number"
-                    placeholder="Precio máximo"
-                    value={filters.priceRange && filters.priceRange.max ? filters.priceRange.max : ''}
-                    onChange={(e) => {
-                      const maxValue = parseFloat(e.target.value) || 0;
-                      handleFilterChange('priceRange', {
-                        ...filters.priceRange,
-                        max: maxValue
-                      });
-                    }}
-                    className="price-input"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Action buttons */}
