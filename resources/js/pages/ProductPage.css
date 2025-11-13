@@ -54,10 +54,23 @@
 
 /* Breadcrumb */
 .product-page__breadcrumb {
+  display: flex;
   margin-bottom: 24px;
   font-size: 16px;
   color: #373737;
   font-weight: 400;
+}
+
+.product-page__breadcrumb.show-mobile {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.product-page__breadcrumb.show-desktop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .product-page__breadcrumb-separator {

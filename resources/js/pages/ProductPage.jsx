@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef,useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import './ProductPage.css';
@@ -717,19 +717,21 @@ const ProductPage = () => {
         <div className="product-page__container container">
           {/* Breadcrumb and title MOBILE */}
           <div className="product-page__breadcrumb show-mobile">
-            <span className="product-page__breadcrumb-item">Nuevo</span>
-            <span className="product-page__breadcrumb-separator">|</span>
-            <span className="product-page__breadcrumb-item">+50 vendido</span>
-            <span className="product-page__breadcrumb-separator">|</span>
+            <div className="product-page__texts-breadcrumb">
+              <span className="product-page__breadcrumb-item">Nuevo</span>
+              <span className="product-page__breadcrumb-separator">|</span>
+              <span className="product-page__breadcrumb-item">+50 vendido</span>
+              <span className="product-page__breadcrumb-separator">|</span>
+            </div>
 
-              <CustomButton
-                variant="filled"
-                size="small"
-                iconLeft={<img src={getIconPath('Whatsapp.svg')} alt="Comparar clientes" style={{ width: 16, height: 16 }} />}
-                onClick={handleShareCatalog}
-              >
-                <span className="catalog-page__whatsapp-text"></span>
-              </CustomButton>
+            <CustomButton
+              variant="filled"
+              size="small"
+              iconLeft={<img src={getIconPath('Whatsapp.svg')} alt="Comparar clientes" style={{ width: 16, height: 16 }} />}
+              onClick={handleShareCatalog}
+            >
+              <span className="catalog-page__whatsapp-text"></span>
+            </CustomButton>
           </div>
 
           <h1 className="product-page__info-title show-mobile">{descripcion}</h1>
@@ -761,10 +763,12 @@ const ProductPage = () => {
           <div className="product-page__info">
             {/* Breadcrumb and title DESKTOP */}
             <div className="product-page__breadcrumb show-desktop">
-              <span className="product-page__breadcrumb-item">Nuevo</span>
-              <span className="product-page__breadcrumb-separator">|</span>
-              <span className="product-page__breadcrumb-item">+50 vendido</span>
-              <span className="product-page__breadcrumb-separator">|</span>
+              <div className="product-page__texts-breadcrumb">
+                <span className="product-page__breadcrumb-item">Nuevo</span>
+                <span className="product-page__breadcrumb-separator">|</span>
+                <span className="product-page__breadcrumb-item">+50 vendido</span>
+                <span className="product-page__breadcrumb-separator">|</span>
+              </div>
 
               <CustomButton
                 variant="filled"

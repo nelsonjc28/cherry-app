@@ -172,7 +172,7 @@
 }
 
 .filter-section-content {
-  padding: 1rem;
+  padding: 1rem 0 3rem 1rem;
   border-top: 1px solid #ecf0f1;
 }
 
@@ -215,9 +215,10 @@
 /* Color grid */
 .color-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 0.75rem;
   row-gap: 3.5rem;
+  margin-left: 1rem;
 }
 
 /* Contenedor de cada color */
@@ -245,6 +246,7 @@
   border: 2px solid #ddd;
   transition: all 0.3s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
 }
 
 /* Nombre debajo */
@@ -273,13 +275,15 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-.color-option input[type="checkbox"]:checked + .color-swatch {
+/* Estilos cuando el checkbox está checked */
+.color-option:has(input[type="checkbox"]:checked) .color-swatch {
   border-color: #373737;
   box-shadow: 0 0 0 3px rgba(55, 55, 55, 0.3), 0 4px 8px rgba(0, 0, 0, 0.2);
   transform: scale(1.1);
 }
 
-.color-option input[type="checkbox"]:checked + .color-swatch::after {
+/* Mostrar el checkmark cuando está seleccionado */
+.color-option:has(input[type="checkbox"]:checked) .color-swatch::after {
   content: '✓';
   position: absolute;
   top: 50%;
@@ -290,13 +294,7 @@
   font-size: 1rem;
   text-shadow: 0 0 3px rgba(255, 255, 255, 0.8), 0 0 6px rgba(255, 255, 255, 0.4);
   filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.6));
-}
-
-/* Forzar texto negro para todos los colores */
-.color-option:has(input[type="checkbox"]:checked) .color-swatch::after {
-  color: #000000 !important;
-  text-shadow: 0 0 3px rgba(255, 255, 255, 0.8), 0 0 6px rgba(255, 255, 255, 0.4) !important;
-  filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.6)) !important;
+  z-index: 1;
 }
 
 /* Price inputs */
@@ -392,7 +390,7 @@
   }
 
   .color-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 1rem;
     row-gap: 2.5rem;
   }
