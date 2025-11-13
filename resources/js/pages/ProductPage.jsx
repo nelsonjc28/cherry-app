@@ -6,6 +6,8 @@ import './ProductPageOfferIndicators.css';
 import CustomButton from '../components/CustomButton';
 import { getIconPath } from '../utils/assetPaths';
 import { useLocation } from "react-router-dom";
+import Swal from 'sweetalert2';
+
 
 // Components
 import CherryButton from '../components/CherryButton/CherryButton';
@@ -276,15 +278,6 @@ const ProductPage = () => {
           } : null
         };
 
-        console.log('🛍️ Adding product to cart:', {
-          id: productToAdd.id_articulo,
-          price: productToAdd.price,
-          precio: productToAdd.precio,
-          finalPrice,
-          precio1,
-          quantity: cantidad
-        });
-
         addToCart(productToAdd, cantidad);
 
         // La lógica de Buy X Get Y ahora se maneja automáticamente en el cartStore
@@ -313,11 +306,38 @@ const ProductPage = () => {
         setQuantitiesBySize({});
         setQuantity(1);
         setSelectedSize('');
+        handleMoreShoppingOrGoToCart();
+
+
       }
     } catch (err) {
       if (window.showToast) {
         window.showToast('Error al agregar al carrito', 'error');
       }
+    }
+  };
+
+  const handleMoreShoppingOrGoToCart = async () => {
+    const result = await Swal.fire({
+      title: '¿Seguir comprando o ir al carrito?',
+      text: 'Si decides seguir comprado seras redireccionado a la lista de productos, sino al carrito',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Seguir comprando',
+      cancelButtonText: 'Ir al carrito'
+    });
+
+    if (!result.isConfirmed) {
+      return navigate('/carrito-detalle');
+    }
+
+    try {
+      return navigate(-1);
+      
+    } catch (error) {
+      window.showToast('Error al eliminar el catálogo', 'error');
     }
   };
 
