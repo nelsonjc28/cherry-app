@@ -178,8 +178,7 @@ const CatalogFilter = ({
                   <h3 className="filter-title">Categoría</h3>
                   <img src={getIconPath('Chevron Down.svg')} alt="Filter" className={`chevron ${expandedSections.clothing ? 'expanded' : ''}`} />
                 </button>
-                {expandedSections.catalog && (
-                  <div className="filter-section-content">
+                {expandedSections.category && (
                     <select
                       value={filters.category || ''}
                       onChange={(e) => handleFilterChange('category', e.target.value)}
@@ -192,8 +191,6 @@ const CatalogFilter = ({
                         </option>
                       ))}
                     </select>
-                  </div>
-
                 )}
               </div>
             )}
