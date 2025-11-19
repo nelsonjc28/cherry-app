@@ -17,32 +17,32 @@ const useUserStore = create((set, get) => ({
   },
   setError: (error) => set({ error }),
   clearError: () => set({ error: null }),
-  
+
   // Helper function to get user role
   getUserRole: () => {
     const { user } = get();
     return user?.role?.name || null;
   },
-  
+
   // Helper function to check if user is admin
   isAdmin: () => {
     const { user } = get();
     return user?.role?.name === 'admin';
   },
-  
+
   // Helper function to check if user is cliente
   isCliente: () => {
     const { user } = get();
     return user?.role?.name === 'cliente';
   },
-  
+
   // Function to get redirect path based on user role
   getRedirectPath: () => {
     const { user } = get();
     if (!user) return '/';
     return user.role?.name === 'admin' ? '/admin' : '/';
   },
-  
+
   login: async (identifier, password) => {
     set({ loading: true, error: null });
     try {
@@ -51,9 +51,10 @@ const useUserStore = create((set, get) => ({
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({ identifier, password })
       });
-      
+
       const data = await res.json();;
-      
+
+      console.log(data.user);
       if (!res.ok) {
         let errorMessage = 'Error al iniciar sesión.';
         if (data.errors) {
@@ -87,11 +88,11 @@ const useUserStore = create((set, get) => ({
       }
       setToken(data.token);
       set({ user: data.user, token: data.token, loading: false, error: null });
-      
+
       // Inicializar carrito después del login
       const cartStore = useCartStore.getState();
       await cartStore.initCart();
-      
+
       return data.user;
     } catch (err) {
       set({ error: 'Error de red o del servidor.', loading: false });
@@ -134,7 +135,7 @@ const useUserStore = create((set, get) => ({
         body: JSON.stringify(userData)
       });
       const data = await res.json();;
-      
+
       if (!res.ok) {
         let errorMessage = 'Error en el registro.';
         if (data.errors) {
@@ -175,7 +176,7 @@ const useUserStore = create((set, get) => ({
   },
   fetchUser: async () => {
     const token = getToken();
-    
+
     if (!token) {
       set({ loading: false, initialized: true });
       return null;
@@ -184,12 +185,12 @@ const useUserStore = create((set, get) => ({
     set({ loading: true, error: null });
     try {
       const res = await fetch('/api/me', {
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (!res.ok) {
         if (res.status === 401) {
           // Token expirado o inválido, limpiar estado local
@@ -199,15 +200,15 @@ const useUserStore = create((set, get) => ({
         }
         throw new Error(`Error ${res.status}: ${res.statusText}`);
       }
-      
+
       const user = await res.json();
-      
+
       if (!user) {
         set({ user: null, token: null, loading: false, initialized: true });
         setToken(null);
         return null;
       }
-      
+
       set({ user, loading: false, initialized: true });
       return user;
     } catch (err) {
@@ -216,7 +217,7 @@ const useUserStore = create((set, get) => ({
       return null;
     }
   },
-  
+
   // Función para logout automático cuando el token expira
   forceLogout: () => {
     const cartStore = useCartStore.getState();
@@ -224,7 +225,7 @@ const useUserStore = create((set, get) => ({
     setToken(null);
     set({ user: null, token: null, loading: false, error: null });
   },
-  
+
   // Función para actualizar el perfil del usuario
   updateProfile: (updatedUser) => {
     set({ user: updatedUser });

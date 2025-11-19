@@ -18,6 +18,7 @@ const CartOrderSummary = ({
   onGenerateOrder,
   onClearCart,
   daysFortyFive,
+  freeShipping,
   // Nuevas props para el formulario integrado
   cartItems = [],
   selectedPaymentCard = null,
@@ -588,10 +589,12 @@ const CartOrderSummary = ({
   }
 
   let envio = 0;
-  if (finalTotal < 3000) {
+  if (finalTotal < 3000 && freeShipping == false) {
     finalTotal = finalTotal + 150;
     envio = 150;
   }
+
+  console.log(freeShipping);
 
   const validateCartBeforeOrder = async () => {
     let hasErrors = false;

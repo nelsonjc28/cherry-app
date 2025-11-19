@@ -248,12 +248,6 @@ const NuevosPage = () => {
     loadProducts();
   }, []);
 
-  /*  useEffect(() => {
-     console.log("🟢 allProducts cambió:", allProducts);
-     console.log("🟢 filteredProducts cambió:", filteredProducts);
-   }, [allProducts, filteredProducts]);
- 
-  */
   // Process products (filter and sort)
   const processedProducts = useMemo(() => {
     if (allProducts.length === 0) return [];

@@ -288,6 +288,7 @@ const CartDetailsPage = () => {
     discountTotal: '0.00',
     total: (totalPrice && typeof totalPrice === 'number') ? totalPrice.toFixed(2) : '0.00',
     daysFortyFive: user?.day_forty_five,
+    freeShipping: user?.free_shipping,
     selectedAddress: selectedAddress,
     onGenerateOrder: handleGenerateOrder,
     onClearCart: handleClearCart

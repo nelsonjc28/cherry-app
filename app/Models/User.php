@@ -52,6 +52,7 @@ class User extends Authenticatable implements JWTSubject
 
     protected $appends = [
         'day_forty_five',
+        'free_shipping',
     ];
 
     /**
@@ -125,6 +126,18 @@ class User extends Authenticatable implements JWTSubject
         return false;
     }
 
+    public function getFreeShippingAttribute()
+    {
+        $now = Carbon::now();
+        $haveOffert = CatalogOfferUser::join('catalog_offers', 'catalog_offer_users.offer_id', '=', 'catalog_offers.id')
+            ->where('catalog_offer_users.user_id', $this->id)
+            ->where('catalog_offers.start_date', '<=', $now)
+            ->where('catalog_offers.end_date', '>=', $now)
+            ->where('catalog_offers.discount_category', 'free_shipping')
+            ->count();
+
+        return $haveOffert >= 1 ? true : false;
+    }
     /**
      * Get the addresses for the user.
      */
