@@ -457,7 +457,7 @@ const NuevosPage = () => {
                   availableSizes={availableSizes}
                   catalogs={catalogs}
                   catalogLoading={catalogLoading}
-                  hideCatalogSelector={true}
+                  hideCatalogSelector={false}
                 />
               </div>
             </div>

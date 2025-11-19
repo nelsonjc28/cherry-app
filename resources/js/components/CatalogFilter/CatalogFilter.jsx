@@ -144,25 +144,26 @@ const CatalogFilter = ({
           <>
             {/* Catalog selector - solo mostrar si no está oculto */}
             {!hideCatalogSelector && (
-              <div className="filter-section  expandable">
+              <div className="filter-section expandable">
                 <button
                   className="filter-section-header"
                   onClick={() => toggleSection('catalog')}
                 >
                   <h3 className="filter-title">Catálogo</h3>
-                  <img src={getIconPath('Chevron Down.svg')} alt="Filter" className={`chevron ${expandedSections.clothing ? 'expanded' : ''}`} />
+                  <img src={getIconPath('Chevron Down.svg')} alt="Filter" className={`chevron ${expandedSections.catalog ? 'expanded' : ''}`} />
                 </button>
-                {expandedSections.catalog && (<select
-                  value={filters.catalog}
-                  onChange={(e) => handleFilterChange('catalog', e.target.value)}
-                  className="filter-select"
-                >
-                  <option value=''>Seleccione</option>
+                {expandedSections.catalog && (
+                  <select
+                    value={filters.catalog}
+                    onChange={(e) => handleFilterChange('catalog', e.target.value)}
+                    className="filter-select"
+                  >
+                    <option value=''>Seleccione</option>
 
-                  {catalogOptions.map((option) => (
-                    <option key={option[0].code} value={option[0].code}>{option[0].name}</option>
-                  ))}
-                </select>
+                    {catalogOptions.map((option) => (
+                      <option key={option[0].code} value={option[0].code}>{option[0].name}</option>
+                    ))}
+                  </select>
                 )}
 
               </div>

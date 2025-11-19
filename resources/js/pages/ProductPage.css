@@ -1196,6 +1196,10 @@
   .product-page__description {
     padding: 10px 0;
   }
+
+  .product-page__breadcrumb.show-desktop {
+    display: none;
+  }
 }
 
 @media (min-width: 768px) and (max-width: 992px) {

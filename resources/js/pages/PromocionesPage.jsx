@@ -558,6 +558,8 @@ const PromocionesPage = () => {
                 onClose={toggleFilterModal}
                 availableColors={availableColors}
                 availableSizes={availableSizes}
+                catalogs={catalogs}
+                catalogLoading={catalogLoading}
                 hideCatalogSelector={false}
               />
             </div>
