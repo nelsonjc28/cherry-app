@@ -587,9 +587,10 @@ const CartOrderSummary = ({
     finalTotal = finalTotal.toFixed(2)
   }
 
-
+  let envio = 0;
   if (finalTotal < 3000) {
     finalTotal = finalTotal + 150;
+    envio = 150;
   }
 
   const validateCartBeforeOrder = async () => {
@@ -607,7 +608,7 @@ const CartOrderSummary = ({
       const color = item.selectedColor;
       const requestedQuantity = item.quantity;
 
-      
+
 
       try {
         const stockValidation = await validateStock(
@@ -699,6 +700,10 @@ const CartOrderSummary = ({
           <div className="cart-order-summary__row">
             <span>Descuento:</span>
             <span>${discountTotal}</span>
+          </div>
+          <div className="cart-order-summary__row">
+            <span>Envio:</span>
+            <span>${envio}</span>
           </div>
         </div>
         <div className="cart-order-summary__total-row">

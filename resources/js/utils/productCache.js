@@ -40,7 +40,6 @@ class ProductCacheManager {
 
       return this.dbPromise;
     } catch (error) {
-      console.error('❌ Error al inicializar IndexedDB:', error);
       return null;
     }
   }
@@ -56,7 +55,6 @@ class ProductCacheManager {
       const metadata = await db.get(METADATA_STORE, key);
       return metadata;
     } catch (error) {
-      console.error('❌ Error al obtener metadata:', error);
       return null;
     }
   }
@@ -72,7 +70,6 @@ class ProductCacheManager {
       await db.put(METADATA_STORE, { key, value, timestamp: Date.now() });
       return true;
     } catch (error) {
-      console.error('❌ Error al guardar metadata:', error);
       return false;
     }
   }
@@ -100,7 +97,6 @@ class ProductCacheManager {
       const isExpired = await this.isCacheExpired(cacheKey);
       
       if (isExpired) {
-        console.log('⏰ Caché expirado o no existe');
         return null;
       }
 
@@ -111,14 +107,11 @@ class ProductCacheManager {
       const products = await db.getAll(PRODUCTS_STORE);
       
       if (!products || products.length === 0) {
-        console.log('📭 Caché vacío');
         return null;
       }
 
-      console.log(`✅ ${products.length} productos cargados desde caché`);
       return products;
     } catch (error) {
-      console.error('❌ Error al obtener productos del caché:', error);
       return null;
     }
   }
@@ -130,8 +123,6 @@ class ProductCacheManager {
     try {
       const db = await this.initDB();
       if (!db) return false;
-
-      console.log(`💾 Guardando ${products.length} productos en caché...`);
 
       // Limpiar productos antiguos primero
       await this.clearProducts();
@@ -158,10 +149,8 @@ class ProductCacheManager {
         lastUpdate: new Date().toISOString()
       });
 
-      console.log('✅ Productos guardados en caché exitosamente');
       return true;
     } catch (error) {
-      console.error('❌ Error al guardar productos en caché:', error);
       return false;
     }
   }
@@ -175,10 +164,8 @@ class ProductCacheManager {
       if (!db) return false;
 
       await db.clear(PRODUCTS_STORE);
-      console.log('🗑️ Caché de productos limpiado');
       return true;
     } catch (error) {
-      console.error('❌ Error al limpiar caché:', error);
       return false;
     }
   }
@@ -196,10 +183,8 @@ class ProductCacheManager {
         db.clear(METADATA_STORE)
       ]);
 
-      console.log('🗑️ Toda la base de datos ha sido limpiada');
       return true;
     } catch (error) {
-      console.error('❌ Error al limpiar base de datos:', error);
       return false;
     }
   }
@@ -224,7 +209,6 @@ class ProductCacheManager {
         cacheSize: new Blob([JSON.stringify(products)]).size
       };
     } catch (error) {
-      console.error('❌ Error al obtener info del caché:', error);
       return null;
     }
   }
