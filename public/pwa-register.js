@@ -8,7 +8,6 @@
   
   // Check if we're in a supported environment
   if (!('serviceWorker' in navigator)) {
-    console.log('Service Worker not supported');
     return;
   }
 
@@ -20,7 +19,6 @@
         updateViaCache: 'none'
       });
 
-      console.log('Service Worker registered:', registration);
 
       // Handle updates
       registration.addEventListener('updatefound', () => {
@@ -29,7 +27,6 @@
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
               // New version available
-              console.log('New version available');
               dispatchUpdateAvailable();
             }
           });
@@ -38,13 +35,11 @@
 
       // Handle controller change
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        console.log('Service Worker controller changed');
         window.location.reload();
       });
 
       return registration;
     } catch (error) {
-      console.error('Service Worker registration failed:', error);
       dispatchRegistrationError(error);
       return null;
     }
@@ -54,7 +49,6 @@
   let deferredPrompt = null;
   
   window.addEventListener('beforeinstallprompt', (e) => {
-    console.log('beforeinstallprompt event fired');
     e.preventDefault();
     deferredPrompt = e;
     
@@ -66,7 +60,6 @@
 
   // Handle appinstalled event
   window.addEventListener('appinstalled', (e) => {
-    console.log('PWA was installed');
     deferredPrompt = null;
     
     // Dispatch custom event
@@ -77,7 +70,6 @@
 
   // Handle installation errors
   window.addEventListener('appinstalled', (e) => {
-    console.log('PWA installation completed');
   });
 
   // Utility functions
@@ -143,7 +135,6 @@
           return { success: false, reason: 'user-rejected' };
         }
       } catch (error) {
-        console.error('Installation failed:', error);
         return { success: false, reason: error.message };
       }
     } else {
@@ -162,7 +153,6 @@
         return { success: false, reason: 'no-registration' };
       }
     } catch (error) {
-      console.error('Update failed:', error);
       return { success: false, reason: error.message };
     }
   }
@@ -181,7 +171,6 @@
       
       return { success: true };
     } catch (error) {
-      console.error('Cache clear failed:', error);
       return { success: false, reason: error.message };
     }
   }
@@ -207,7 +196,6 @@
 
   // Debug mode
   if (window.location.search.includes('pwa-debug')) {
-    console.log('PWA Debug Mode Enabled');
     window.PWADebug = {
       device: getDeviceInfo(),
       installed: isPWAInstalled(),

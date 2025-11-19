@@ -67,7 +67,6 @@ const ProductosPage = () => {
           setCatalogs([]);
         }
       } catch (error) {
-        console.error('Error loading catalogs:', error);
         setCatalogs([]);
       } finally {
         setCatalogLoading(false);
@@ -89,7 +88,6 @@ const ProductosPage = () => {
         setAvailableColors(colors);
         setAvailableSizes(sizes);
       } catch (error) {
-        console.error('Error cargando datos de filtros:', error);
         setAvailableColors([]);
         setAvailableSizes([]);
       }

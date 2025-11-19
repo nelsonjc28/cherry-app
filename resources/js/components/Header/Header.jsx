@@ -52,7 +52,7 @@ const Header = () => {
 
   // Debug: Log del totalPrice cuando cambia
   useEffect(() => {
-    
+
   }, [cartItems, totalItems, totalPrice]);
 
   // Log del estado del menú para debugging
@@ -292,18 +292,18 @@ const Header = () => {
     };
 
     const lowerName = categoryName.toLowerCase().trim();
-    
+
     // Si existe en el mapeo, retornar el singular
     if (pluralMap[lowerName]) {
       return pluralMap[lowerName];
     }
-    
+
     // Reglas generales para español
     // Si termina en "ones" (como "pantalones"), cambiar a "ón"
     if (lowerName.endsWith('ones')) {
       return lowerName.slice(0, -4) + 'ón';
     }
-    
+
     // Si termina en "es" después de consonante, quitar "es"
     if (lowerName.endsWith('es') && lowerName.length > 3) {
       const beforeEs = lowerName[lowerName.length - 3];
@@ -311,12 +311,12 @@ const Header = () => {
         return lowerName.slice(0, -2);
       }
     }
-    
+
     // Si termina en "s" simple, quitarla
     if (lowerName.endsWith('s') && !lowerName.endsWith('ss')) {
       return lowerName.slice(0, -1);
     }
-    
+
     // Si no se puede convertir, retornar el original
     return categoryName;
   };
@@ -346,19 +346,19 @@ const Header = () => {
   // Cerrar menú al hacer clic fuera
   useEffect(() => {
     if (!userMenuOpen) return; // No agregar el listener si el menú no está abierto
-    
+
     const handleClickOutside = (event) => {
       // Solo cerrar si el menú está abierto y el click fue fuera del menú
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
         setUserMenuOpen(false);
       }
     };
-    
+
     // Usar un pequeño delay para evitar que el click que abre el menú lo cierre inmediatamente
     const timerId = setTimeout(() => {
       document.addEventListener('mousedown', handleClickOutside);
     }, 100);
-    
+
     return () => {
       clearTimeout(timerId);
       document.removeEventListener('mousedown', handleClickOutside);
@@ -533,8 +533,8 @@ const Header = () => {
           <div className="user-actions">
             {user ? (
               <div className="user-menu" ref={userMenuRef}>
-                <button 
-                  className="user-action user-menu-btn" 
+                <button
+                  className="user-action user-menu-btn"
                   type="button"
                   onClick={(e) => {
                     e.preventDefault();
@@ -836,14 +836,14 @@ const Header = () => {
               </li>
             </ul>
 
-            <div 
+            <div
               className="mobile-menu-footer"
               onClick={(e) => {
               }}
             >
               {user ? (
-                <div 
-                  className={`user-menu${userMenuOpen ? ' open' : ''}`} 
+                <div
+                  className={`user-menu${userMenuOpen ? ' open' : ''}`}
                   ref={userMenuRef}
                   onClick={(e) => {
                   }}
@@ -876,51 +876,51 @@ const Header = () => {
                     />
                   </button>
                   <div className="mobile-user-dropdown">
-                      {isAdmin() && (
-                        <>
-                          <Link to="/admin" className="user-dropdown-item">
-                            <img src={getIconPath('File Alt.svg')} alt="Dashboard" />
-                            Dashboard
-                          </Link>
-                          <div className="user-dropdown-divider"></div>
-                        </>
-                      )}
-                      <Link to="/perfil" className="mobile-menu-account" onClick={() => { setMobileMenuOpen(false); setUserMenuOpen(false); }}>
-                        <img src={getIconPath('User.svg')} alt="Perfil" />
-                        <span>Mi Perfil</span>
-                      </Link>
-                      <Link to="/perfil/mis-pedidos" className="mobile-menu-account" onClick={() => { setMobileMenuOpen(false); setUserMenuOpen(false); }}>
-                        <img src={getIconPath('Package.svg')} alt="Órdenes" />
-                        <span>Mis Órdenes</span>
-                      </Link>
-                      <Link to="/perfil/favoritos" className="mobile-menu-account" onClick={() => { setMobileMenuOpen(false); setUserMenuOpen(false); }}>
-                        <img
-                          src={getIconPath('Red Star.svg')}
-                          alt="Favoritos"
-                          onError={(e) => {
-                            e.target.src = '/icons/Red Star.svg';
-                          }}
-                        />
-                        <span>Favoritos</span>
-                      </Link>
-                      <Link to="/perfil/direcciones" className="mobile-menu-account" onClick={() => { setMobileMenuOpen(false); setUserMenuOpen(false); }}>
-                        <img
-                          src={getIconPath('Red Home.svg')}
-                          alt="Direcciones"
-                          onError={(e) => {
-                            e.target.src = '/icons/Red Home.svg';
-                          }}
-                        />
-                        <span>Mis Direcciones</span>
-                      </Link>
-                      <Link to="/perfil/metodos-pago" className="mobile-menu-account" onClick={() => { setMobileMenuOpen(false); setUserMenuOpen(false); }}>
-                        <img src={getIconPath('Credit Card.svg')} alt="Métodos de Pago" />
-                        <span>Métodos de Pago</span>
-                      </Link>
-                      <button className="mobile-menu-account mobile-logout-btn" onClick={() => { logout(); setMobileMenuOpen(false); setUserMenuOpen(false); }}>
-                        <img src={getIconPath('Log Out.svg')} alt="Cerrar Sesión" />
-                        <span>Cerrar Sesión</span>
-                      </button>
+                    {isAdmin() && (
+                      <>
+                        <Link to="/admin" className="user-dropdown-item">
+                          <img src={getIconPath('File Alt.svg')} alt="Dashboard" />
+                          Dashboard
+                        </Link>
+                        <div className="user-dropdown-divider"></div>
+                      </>
+                    )}
+                    <Link to="/perfil" className="mobile-menu-account" onClick={() => { setMobileMenuOpen(false); setUserMenuOpen(false); }}>
+                      <img src={getIconPath('User.svg')} alt="Perfil" />
+                      <span>Mi Perfil</span>
+                    </Link>
+                    <Link to="/perfil/mis-pedidos" className="mobile-menu-account" onClick={() => { setMobileMenuOpen(false); setUserMenuOpen(false); }}>
+                      <img src={getIconPath('Package.svg')} alt="Órdenes" />
+                      <span>Mis Órdenes</span>
+                    </Link>
+                    <Link to="/perfil/favoritos" className="mobile-menu-account" onClick={() => { setMobileMenuOpen(false); setUserMenuOpen(false); }}>
+                      <img
+                        src={getIconPath('Red Star.svg')}
+                        alt="Favoritos"
+                        onError={(e) => {
+                          e.target.src = '/icons/Red Star.svg';
+                        }}
+                      />
+                      <span>Favoritos</span>
+                    </Link>
+                    <Link to="/perfil/direcciones" className="mobile-menu-account" onClick={() => { setMobileMenuOpen(false); setUserMenuOpen(false); }}>
+                      <img
+                        src={getIconPath('Red Home.svg')}
+                        alt="Direcciones"
+                        onError={(e) => {
+                          e.target.src = '/icons/Red Home.svg';
+                        }}
+                      />
+                      <span>Mis Direcciones</span>
+                    </Link>
+                    <Link to="/perfil/metodos-pago" className="mobile-menu-account" onClick={() => { setMobileMenuOpen(false); setUserMenuOpen(false); }}>
+                      <img src={getIconPath('Credit Card.svg')} alt="Métodos de Pago" />
+                      <span>Métodos de Pago</span>
+                    </Link>
+                    <button className="mobile-menu-account mobile-logout-btn" onClick={() => { logout(); setMobileMenuOpen(false); setUserMenuOpen(false); }}>
+                      <img src={getIconPath('Log Out.svg')} alt="Cerrar Sesión" />
+                      <span>Cerrar Sesión</span>
+                    </button>
                   </div>
                 </div>
               ) : (

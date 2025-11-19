@@ -33,7 +33,6 @@ const AdminNotifications = ({ isOpen, onClose }) => {
       }
     } catch (err) {
       setError('Error de conexión al cargar notificaciones');
-      console.error('Error fetching notifications:', err);
     } finally {
       setLoading(false);
     }
@@ -52,7 +51,6 @@ const AdminNotifications = ({ isOpen, onClose }) => {
         setUnreadCount(prev => Math.max(0, prev - 1));
       }
     } catch (err) {
-      console.error('Error marking notification as read:', err);
       if (window.showToast) {
         window.showToast('Error al marcar notificación como leída', 'error');
       }
@@ -74,7 +72,6 @@ const AdminNotifications = ({ isOpen, onClose }) => {
         }
       }
     } catch (err) {
-      console.error('Error marking all notifications as read:', err);
       if (window.showToast) {
         window.showToast('Error al marcar todas las notificaciones', 'error');
       }

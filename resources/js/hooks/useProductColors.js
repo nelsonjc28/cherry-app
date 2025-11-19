@@ -59,7 +59,6 @@ export const useProductColors = (colorNames = []) => {
         setColorData(allColorData);
       } catch (err) {
         setError(err.message);
-        console.error('Error identifying colors:', err);
       } finally {
         setIsLoading(false);
       }
@@ -94,7 +93,6 @@ export const useProductColors = (colorNames = []) => {
         setColorData(prev => new Map(prev).set(colorName, colorInfo));
       }
     } catch (err) {
-      console.error(`Error refreshing color "${colorName}":`, err);
     }
   };
 
@@ -115,7 +113,7 @@ export const useProductColors = (colorNames = []) => {
       
       setColorData(newColorData);
     } catch (err) {
-      console.error('Error refreshing colors:', err);
+      le.error('Error refreshing colors:', err);
     }
   };
 

@@ -105,7 +105,6 @@ const CategoryPage = ({ categorySlug }) => {
         setAvailableColors(colors);
         setAvailableSizes(sizes);
       } catch (error) {
-        console.error('Error cargando datos de filtros:', error);
         setAvailableColors([]);
         setAvailableSizes([]);
       }
@@ -419,13 +418,11 @@ const CategoryPage = ({ categorySlug }) => {
                         });
                       }
                     } catch (error) {
-                      console.error('Error al obtener calificaciones:', error);
                       // Continuar con productos sin calificaciones
                     }
                   }
                   
                 } catch (error) {
-                  console.error('Error al obtener productos de API externa:', error);
                   productsData = [];
                 }
               } else {
@@ -435,7 +432,6 @@ const CategoryPage = ({ categorySlug }) => {
               productsData = [];
             }
           } catch (error) {
-            console.error('Error al cargar productos de categoría:', error);
             productsData = [];
           }
         } else {

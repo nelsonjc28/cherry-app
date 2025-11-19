@@ -68,7 +68,6 @@ const PWADiagnostics = () => {
           }
         })
         .catch(error => {
-          console.error('Error verificando manifest:', error);
         });
 
       // Verificar iconos
@@ -109,7 +108,6 @@ const PWADiagnostics = () => {
         alert('❌ Service Worker no soportado en este navegador.');
       }
     } catch (error) {
-      console.error('Error actualizando Service Worker:', error);
       alert('Error actualizando Service Worker: ' + error.message);
     }
   };
@@ -142,7 +140,6 @@ const PWADiagnostics = () => {
       alert('✅ Cache completamente limpiado:\n\n- localStorage limpiado\n- Service Worker cache eliminado\n- Service Workers desregistrados\n\nRecarga la página para aplicar cambios.');
       window.location.reload();
     } catch (error) {
-      console.error('Error limpiando cache:', error);
       alert('Error limpiando cache: ' + error.message);
     }
   };

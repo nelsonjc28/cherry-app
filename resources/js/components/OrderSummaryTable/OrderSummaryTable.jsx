@@ -8,14 +8,7 @@ const formatNumber = (value) => {
 };
 
 const OrderSummaryTable = ({ quantity, priceWithoutDiscount, priceWithDiscount, discount, savings }) => {
-  console.log('📋 OrderSummaryTable Props:', {
-    quantity,
-    priceWithoutDiscount,
-    priceWithDiscount,
-    discount,
-    savings,
-    formattedPrice: formatNumber(priceWithDiscount)
-  });
+  
   
   return (
     <div className="order-summary-table">

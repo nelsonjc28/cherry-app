@@ -68,7 +68,6 @@ const Favorites = () => {
             throw new Error('Error: allProducts no es un array');
           }
         } catch (apiError) {
-          console.error('❌ Error cargando datos de productos:', apiError);
           // Fallback: crear productos básicos
           const favorites = favoriteIds.map(id => ({
             id: id,
@@ -78,19 +77,16 @@ const Favorites = () => {
             favoriteId: id
           }));
           
-          console.log('🔄 Usando fallback:', favorites);
           setFavoriteProducts(favorites);
           setTotalFavorites(favorites.length);
           setCurrentPage(page);
         }
       } else {
-        console.log('❌ No hay favoritos en el contexto');
         setFavoriteProducts([]);
         setTotalFavorites(0);
         setCurrentPage(page);
       }
     } catch (err) {
-      console.error('❌ Error cargando favoritos:', err);
       setError('Error al cargar favoritos');
     } finally {
       setLoading(false);
@@ -145,7 +141,6 @@ const Favorites = () => {
       // Scroll hacia arriba después de remover
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
-      console.error('Error removiendo favorito:', err);
     }
   };
 
@@ -212,7 +207,6 @@ const Favorites = () => {
         // Scroll hacia arriba después de remover múltiples
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } catch (err) {
-        console.error('Error removiendo productos seleccionados:', err);
         if (window.showToast) {
           window.showToast('Error al remover productos seleccionados', 'error');
         }

@@ -40,7 +40,6 @@ const ProductCacheIndicator = ({ showInProduction = false }) => {
       await productCache.forceRefresh();
       setCacheInfo(productCache.getCacheInfo());
     } catch (error) {
-      console.error('Error al refrescar caché:', error);
     } finally {
       setIsRefreshing(false);
     }

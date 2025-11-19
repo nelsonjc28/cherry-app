@@ -360,7 +360,6 @@ export const getFallbackImagePath = () => {
  */
 export const logAssetAction = (message, level = 'log') => {
   if (import.meta.env.DEV) {
-    console[level](`[Asset Manager] ${message}`);
   }
 };
 

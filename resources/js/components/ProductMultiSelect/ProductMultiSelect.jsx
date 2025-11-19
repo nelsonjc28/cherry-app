@@ -88,7 +88,6 @@ const ProductMultiSelect = ({
       setProducts(filteredProducts);
       setFilteredProducts(filteredProducts);
     } catch (err) {
-      console.error('❌ ProductMultiSelect: Error al cargar productos:', err);
       setError('Error al cargar productos: ' + err.message);
     } finally {
       setLoading(false);

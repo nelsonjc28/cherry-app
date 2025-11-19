@@ -46,7 +46,6 @@ const CustomerReviews = () => {
           setReviews([]);
         }
       } catch (err) {
-        console.error('Error fetching approved reviews:', err);
         setError(err.message);
         // En caso de error, no mostrar reseñas
         setReviews([]);

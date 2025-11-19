@@ -41,7 +41,6 @@ const CarritoPage = () => {
       // Si la validación es exitosa, actualizar la cantidad
       updateQuantity(productId, newQuantity, color, size);
     } catch (error) {
-      console.error('Error validando stock:', error);
       if (window.showToast) {
         window.showToast('Error al validar disponibilidad del producto', 'error');
       }

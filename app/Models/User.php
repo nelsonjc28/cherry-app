@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -46,6 +48,10 @@ class User extends Authenticatable implements JWTSubject
     protected $hidden = [
         'password',
         'remember_token',
+    ];
+
+    protected $appends = [
+        'day_forty_five',
     ];
 
     /**
@@ -108,12 +114,28 @@ class User extends Authenticatable implements JWTSubject
         return $name;
     }
 
+    public function getDayFortyFiveAttribute()
+    {
+        $dayFortyFive = DayFortyFive::where('user_id', $this->id)->first();
+        if ($dayFortyFive != null) {
+            if (Carbon::now()->between($dayFortyFive->startDate, $dayFortyFive->endDate)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * Get the addresses for the user.
      */
     public function addresses(): HasMany
     {
         return $this->hasMany(Address::class);
+    }
+
+    public function dayFortyFive(): HasMany
+    {
+        return $this->hasMany(DayFortyFive::class);
     }
 
     /**

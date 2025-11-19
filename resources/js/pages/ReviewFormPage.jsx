@@ -46,12 +46,9 @@ const ReviewFormPage = () => {
           setError(response.data.message);
         }
       } else {
-        console.error('API returned success: false', response.data);
         setError(response.data.message || 'Error al verificar permisos');
       }
     } catch (err) {
-      console.error('Error checking review permissions:', err);
-      console.error('Error details:', err.response?.data);
       setError(`Error de conexión: ${err.response?.data?.message || err.message}`);
     } finally {
       setLoading(false);
@@ -141,7 +138,6 @@ const ReviewFormPage = () => {
         }
       }
     } catch (err) {
-      console.error('Error submitting review:', err);
       if (window.showToast) {
         window.showToast('Error de conexión al enviar la reseña', 'error');
       }

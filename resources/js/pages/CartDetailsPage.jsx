@@ -8,22 +8,30 @@ import CartOrderSummary from '../components/CartOrderSummary/CartOrderSummary';
 import AddressSelector from '../components/AddressSelector/AddressSelector';
 import BuyerInfo from '../components/BuyerInfo/BuyerInfo';
 import { validateStock } from '../services/inventoryService';
+import useUserStore from '../store/userStore';
+
+
+
+
 
 const CartDetailsPage = () => {
   const navigate = useNavigate();
-  const { 
-    items: cartItems, 
-    totalItems, 
-    totalPrice, 
-    removeItem, 
-    updateQuantity, 
+  const {
+    items: cartItems,
+    totalItems,
+    totalPrice,
+    removeItem,
+    updateQuantity,
     clearCart,
-    initCart 
+    initCart
   } = useCartStore();
+
+
+  const { user } = useUserStore();
 
   // State for selected address
   const [selectedAddress, setSelectedAddress] = useState(null);
-  
+
   // State for selected payment card
   const [selectedPaymentCard, setSelectedPaymentCard] = useState(null);
 
@@ -35,7 +43,7 @@ const CartDetailsPage = () => {
   // Group cart items by product ID and color, combining different sizes
   const groupedProducts = cartItems.reduce((groups, item) => {
     const key = `${item.id_articulo}-${item.selectedColor}`;
-    
+
     if (!groups[key]) {
       groups[key] = {
         id_articulo: item.id_articulo,
@@ -48,18 +56,18 @@ const CartDetailsPage = () => {
         totalPrice: 0
       };
     }
-    
+
     // Add size variant
     groups[key].variants.push({
       color: item.selectedColor,
       size: item.selectedSize,
       quantity: item.quantity
     });
-    
+
     // Update totals
     groups[key].totalQuantity += item.quantity;
     groups[key].totalPrice += item.precio * item.quantity;
-    
+
     return groups;
   }, {});
 
@@ -80,33 +88,33 @@ const CartDetailsPage = () => {
   const handleRemoveVariant = (productIdx, variantIdx) => {
     const product = productsForDisplay[productIdx];
     const variant = product.variants[variantIdx];
-    
+
     // Find and remove the specific item from cart
-    const itemToRemove = cartItems.find(item => 
+    const itemToRemove = cartItems.find(item =>
       item.id_articulo === product.sku &&
       item.selectedColor === variant.color &&
       item.selectedSize === variant.size
     );
-    
+
     if (itemToRemove) {
       removeItem(itemToRemove.id_articulo, itemToRemove.selectedColor, itemToRemove.selectedSize);
     }
   };
-  
+
   // Handle quantity change for specific variant
   const handleQuantityChange = async (productIdx, variantIdx, newQty) => {
     const product = productsForDisplay[productIdx];
     const variant = product.variants[variantIdx];
-    
+
     if (newQty < 1) return;
-    
-      // Find the specific item in cart
-      const itemToUpdate = cartItems.find(item => 
-        item.id_articulo === product.sku &&
-        item.selectedColor === variant.color &&
-        item.selectedSize === variant.size
-      );
-      
+
+    // Find the specific item in cart
+    const itemToUpdate = cartItems.find(item =>
+      item.id_articulo === product.sku &&
+      item.selectedColor === variant.color &&
+      item.selectedSize === variant.size
+    );
+
     if (!itemToUpdate) return;
 
     // Validar stock disponible
@@ -123,13 +131,13 @@ const CartDetailsPage = () => {
         if (window.showToast) {
           window.showToast(stockValidation.message, 'error');
         }
-        
+
         // Si hay stock disponible pero menos de lo solicitado, ajustar a lo disponible
         if (stockValidation.availableStock > 0) {
           updateQuantity(
-            itemToUpdate.id_articulo, 
-            stockValidation.availableStock, 
-            itemToUpdate.selectedColor, 
+            itemToUpdate.id_articulo,
+            stockValidation.availableStock,
+            itemToUpdate.selectedColor,
             itemToUpdate.selectedSize
           );
         }
@@ -137,9 +145,8 @@ const CartDetailsPage = () => {
       }
 
       // Si la validación es exitosa, actualizar la cantidad
-        updateQuantity(itemToUpdate.id_articulo, newQty, itemToUpdate.selectedColor, itemToUpdate.selectedSize);
+      updateQuantity(itemToUpdate.id_articulo, newQty, itemToUpdate.selectedColor, itemToUpdate.selectedSize);
     } catch (error) {
-      console.error('Error validando stock:', error);
       if (window.showToast) {
         window.showToast('Error al validar disponibilidad del producto', 'error');
       }
@@ -195,12 +202,11 @@ const CartDetailsPage = () => {
             color: item.selectedColor || null,
             barcode: item.barcode || null
           };
-          
+
           // Debug: verificar que todos los campos requeridos estén presentes
           if (!mappedItem.product_id) {
-            console.error('Item sin product_id:', item);
           }
-          
+
           return mappedItem;
         }),
         address_id: selectedAddress.id,
@@ -211,7 +217,7 @@ const CartDetailsPage = () => {
 
       if (response.data.success) {
         const { data } = response.data;
-        
+
         if (window.showToast) {
           window.showToast('¡Redirigiendo a MercadoPago!', 'success');
         }
@@ -227,16 +233,15 @@ const CartDetailsPage = () => {
         setTimeout(() => {
           window.location.href = data.init_point || data.sandbox_init_point || data.payment_url;
         }, 1500);
-        
+
       } else {
         throw new Error(response.data.message || 'Error al crear la preferencia de pago');
       }
 
     } catch (error) {
-      console.error('Error creating payment preference:', error);
-      
+
       const errorMessage = error.response?.data?.message || error.message || 'Error al procesar el pago';
-      
+
       if (window.showToast) {
         window.showToast(errorMessage, 'error');
       }
@@ -247,16 +252,16 @@ const CartDetailsPage = () => {
   const handleIntegratedPaymentSuccess = (paymentData) => {
     // Limpiar carrito
     clearCart();
-    
+
     // Mostrar mensaje de éxito
     if (window.showToast) {
       window.showToast('¡Pago procesado exitosamente!', 'success');
     }
-    
+
     // Redirigir a página de éxito
     setTimeout(() => {
-      navigate('/compra-exitosa', { 
-        state: { 
+      navigate('/compra-exitosa', {
+        state: {
           paymentData,
           orderInfo: {
             items: cartItems,
@@ -270,7 +275,6 @@ const CartDetailsPage = () => {
 
   // Handle integrated payment error
   const handleIntegratedPaymentError = (error) => {
-    console.error('Error en pago integrado:', error);
     // El error ya se maneja en el componente IntegratedCheckout
   };
 
@@ -283,10 +287,12 @@ const CartDetailsPage = () => {
     subtotal: (totalPrice && typeof totalPrice === 'number') ? totalPrice.toFixed(2) : '0.00',
     discountTotal: '0.00',
     total: (totalPrice && typeof totalPrice === 'number') ? totalPrice.toFixed(2) : '0.00',
+    daysFortyFive: user?.day_forty_five,
     selectedAddress: selectedAddress,
     onGenerateOrder: handleGenerateOrder,
     onClearCart: handleClearCart
   };
+
 
   return (
     <div className="container cart-details__container">
@@ -302,7 +308,7 @@ const CartDetailsPage = () => {
           </button>
         </div>
       </header>
-      
+
       {cartItems.length === 0 ? (
         <div className="cart-details__empty">
           <div className="cart-details__empty-icon">🛒</div>
@@ -326,14 +332,14 @@ const CartDetailsPage = () => {
           </div>
           <div className="cart-details__summary-col">
             <BuyerInfo className="cart-details__buyer-info" />
-            <AddressSelector 
+            <AddressSelector
               selectedAddressId={selectedAddress?.id}
               onAddressChange={handleAddressChange}
               className="cart-details__address-selector"
             />
-            
+
             {/* Resumen de la orden con formulario integrado */}
-            <CartOrderSummary 
+            <CartOrderSummary
               {...orderSummary}
               cartItems={cartItems}
               selectedAddress={selectedAddress}

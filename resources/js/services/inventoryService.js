@@ -29,7 +29,6 @@ export const getProductStock = async (productId, size, color) => {
     const product = await getProductById(productId);
     
     if (!product || !product.detalles || product.detalles.length === 0) {
-      console.warn(`⚠️ Producto ${productId} sin detalles de inventario`);
       return 0;
     }
 
@@ -58,7 +57,6 @@ export const getProductStock = async (productId, size, color) => {
 
     return stock;
   } catch (error) {
-    console.error(`❌ Error obteniendo stock del producto ${productId}:`, error);
     // En caso de error, retornar 0 para prevenir agregar más al carrito
     return 0;
   }

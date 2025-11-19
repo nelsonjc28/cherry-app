@@ -41,7 +41,6 @@ const OffersExample = () => {
           if (sessionActive) {
             result = await getPromoProducts(20);;
           } else {
-            console.warn('⚠️ No hay sesión activa, usando ofertas externas');
             result = await getExternalPromoProducts(20);
           }
           break;
@@ -52,7 +51,6 @@ const OffersExample = () => {
       
       setOffers(result);
     } catch (error) {
-      console.error('❌ Error cargando ofertas:', error);
       setOffers([]);
     } finally {
       setLoading(false);

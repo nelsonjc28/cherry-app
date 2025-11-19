@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\DayFortyFive;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -51,6 +53,13 @@ class AuthController extends Controller
             'role_id'       => 2, // Default to cliente role
         ]);
 
+        $now = Carbon::now();
+        DayFortyFive::create([
+            'user_id' => $user->id,
+            'startDate' => $now->format('Y-m-d'),
+            'endDate' => $now->addDays(44)->format('Y-m-d'),
+        ]);
+
         $token = JWTAuth::fromUser($user);
 
         return response()->json([
@@ -63,7 +72,7 @@ class AuthController extends Controller
     {
         try {
             $user = JWTAuth::parseToken()->authenticate();
-            
+
             if (!$user) {
                 return response()->json(['error' => 'Usuario no autenticado'], 401);
             }
@@ -110,7 +119,6 @@ class AuthController extends Controller
                 'message' => 'Perfil completado exitosamente',
                 'user' => $user->load('role', 'addresses')
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -134,13 +142,13 @@ class AuthController extends Controller
             }
 
             $identifier = $credentials['identifier'];
-            
+
             // Buscar usuario por email o teléfono
-            $user = User::where(function($query) use ($identifier) {
+            $user = User::where(function ($query) use ($identifier) {
                 $query->where('email', $identifier)
-                      ->orWhere('phone', $identifier);
+                    ->orWhere('phone', $identifier);
             })->first();
-            
+
             if (!$user || !Hash::check($credentials['password'], $user->password)) {
                 return response()->json(['error' => 'Credenciales inválidas'], 401);
             }
@@ -148,7 +156,7 @@ class AuthController extends Controller
             $token = JWTAuth::fromUser($user);
 
             $user = JWTAuth::setToken($token)->toUser();
-            
+
             // Cargar la relación role
             $userWithRole = User::with('role')->find($user->id);
 
@@ -186,10 +194,10 @@ class AuthController extends Controller
             if (!$user) {
                 return response()->json(['error' => 'No autenticado'], 401);
             }
-            
+
             // Cargar la relación role usando fresh
             $userWithRole = User::with('role')->find($user->id);
-            
+
             return response()->json($userWithRole);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Error de autenticación: ' . $e->getMessage()], 500);

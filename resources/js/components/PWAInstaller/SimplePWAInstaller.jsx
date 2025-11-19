@@ -5,13 +5,7 @@ const SimplePWAInstaller = () => {
   const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
-    console.log('SimplePWAInstaller: Inicializando...');
-    console.log('SimplePWAInstaller: URL actual:', window.location.href);
-    console.log('SimplePWAInstaller: localStorage:', {
-      toastShown: localStorage.getItem('pwa-install-toast-shown'),
-      pwaInstalled: localStorage.getItem('pwa-installed'),
-      manuallyInstalled: localStorage.getItem('pwa-manually-installed')
-    });
+    
 
     // Verificar si ya está instalado
     const isAlreadyInstalled =
@@ -94,7 +88,6 @@ const SimplePWAInstaller = () => {
             localStorage.setItem('pwa-install-toast-shown', 'true');
           }
         } catch (error) {
-          console.error('SimplePWAInstaller: Error mostrando prompt nativo:', error);
           // Si falla el prompt, intentar instalación automática
         }
 
@@ -129,7 +122,6 @@ const SimplePWAInstaller = () => {
             throw new Error('Service Worker no activo');
           }
         } catch (error) {
-          console.error('SimplePWAInstaller: Error en instalación automática:', error);
           // Si falla, ocultar el toast sin mostrar instrucciones
           setShowToast(false);
           localStorage.setItem('pwa-install-toast-shown', 'true');
@@ -139,7 +131,6 @@ const SimplePWAInstaller = () => {
         localStorage.setItem('pwa-install-toast-shown', 'true');
       }
     } catch (error) {
-      console.error('SimplePWAInstaller: Error durante la instalación:', error);
       // Si falla, ocultar el toast sin mostrar instrucciones
       setShowToast(false);
       localStorage.setItem('pwa-install-toast-shown', 'true');
@@ -157,16 +148,6 @@ const SimplePWAInstaller = () => {
     const hasServiceWorker = 'serviceWorker' in navigator;
     const hasManifest = !!document.querySelector('link[rel="manifest"]');
     const isHTTPS = location.protocol === 'https:' || location.hostname === 'localhost';
-
-    console.log('SimplePWAInstaller: Verificando soporte PWA:', {
-      hasServiceWorker,
-      hasManifest,
-      isHTTPS,
-      isIOS,
-      isAndroid,
-      isWindows,
-      isMacOS
-    });
 
     let message = '';
 
@@ -297,7 +278,6 @@ OPCIÓN 4 - Acceso directo manual:
           alert('❌ Tu navegador no soporta instalación automática de PWA.');
         }
       } catch (error) {
-        console.error('SimplePWAInstaller: Error en instalación forzada:', error);
         alert('❌ Error durante la instalación automática.');
       }
     };

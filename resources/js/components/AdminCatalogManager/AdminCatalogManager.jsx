@@ -135,7 +135,6 @@ const AdminCatalogManager = () => {
         await fetchCatalogs();
       }
     } catch (error) {
-      console.error('Error al guardar catálogo:', error);
       
       if (error.response?.status === 413) {
         setError('La imagen es demasiado grande. Por favor, usa una imagen más pequeña.');

@@ -9,7 +9,6 @@ export const useExternalApiContext = () => {
   if (!context) {
     // En lugar de lanzar error, retornar valores por defecto
     // Esto hace que el componente sea más robusto
-    console.warn('useExternalApiContext: No provider found, using default values');
     return {
       dataCache: {},
       loading: {},

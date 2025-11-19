@@ -71,7 +71,6 @@ const CatalogPdfManager = ({ catalog, onClose, onPdfUpdated }) => {
         window.showToast(response.data.message || 'Error al subir imágenes', 'error');
       }
     } catch (error) {
-      console.error('Upload error:', error);
       
       let errorMessage = 'Error al subir imágenes';
       

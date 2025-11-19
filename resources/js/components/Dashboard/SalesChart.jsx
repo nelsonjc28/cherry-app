@@ -41,7 +41,6 @@ const SalesChart = ({ startDate, endDate, onDataUpdate }) => {
         setError(response.data.message || 'Error al cargar datos de ventas');
       }
     } catch (err) {
-      console.error('Error fetching sales data:', err);
       setError('Error de conexión al cargar datos de ventas');
     } finally {
       setLoading(false);

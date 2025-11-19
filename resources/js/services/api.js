@@ -70,7 +70,6 @@ api.interceptors.request.use(
       } catch (error) {
         // Si hay error al parsear el token, aún así lo enviamos
         // El servidor decidirá si es válido o no
-        console.warn('Error parsing token, but sending anyway:', error.message);
       }
       
       // Enviar token si debe enviarse
@@ -998,7 +997,6 @@ export const catalogService = {
       });
       return response;
     } catch (error) {
-      console.error('Error en creación de catálogo:', error);
       throw error;
     }
   },
@@ -1016,7 +1014,6 @@ export const catalogService = {
       });
       return response;
     } catch (error) {
-      console.error('Error en actualización de catálogo:', error);
       throw error;
     }
   },

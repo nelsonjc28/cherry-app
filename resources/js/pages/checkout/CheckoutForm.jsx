@@ -46,7 +46,6 @@ const CheckoutForm = ({ cartItems = [], totalAmount = 0, onPaymentSuccess, onPay
         throw new Error(response.data.message || 'Error al cargar datos del checkout');
       }
     } catch (error) {
-      console.error('Error loading checkout data:', error);
       if (window.showToast) {
         window.showToast('Error al cargar los datos del checkout: ' + error.message, 'error');
       }
@@ -120,7 +119,6 @@ const CheckoutForm = ({ cartItems = [], totalAmount = 0, onPaymentSuccess, onPay
         throw new Error(response.data.message || 'Error al procesar el pago');
       }
     } catch (error) {
-      console.error('Error processing payment:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Error al procesar el pago';
       
       if (window.showToast) {

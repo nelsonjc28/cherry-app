@@ -24,7 +24,6 @@ const useProductPreload = () => {
     
     const preloadProducts = async () => {
       try {
-        console.log('🚀 Iniciando precarga de productos en segundo plano...');
         setPreloadStatus(prev => ({ ...prev, isPreloading: true }));
 
         // 1. Verificar si ya tenemos caché válido
@@ -33,7 +32,6 @@ const useProductPreload = () => {
         if (!cacheExpired) {
           const cachedProducts = await getCachedProducts();
           if (cachedProducts && cachedProducts.length > 0) {
-            console.log(`✅ Ya existe caché válido con ${cachedProducts.length} productos`);
             setPreloadStatus({
               isPreloading: false,
               isComplete: true,
@@ -46,17 +44,14 @@ const useProductPreload = () => {
         }
 
         // 2. Si no hay caché o está expirado, cargar TODOS los productos sin filtros
-        console.log('📦 Cargando TODOS los productos desde API externa sin filtros...');
         
         // Obtener TODOS los productos directamente de la API externa (sin filtros de catálogo)
         const CHERRY_API_URL = 'https://cherryapi.estrategiadmgs.com.mx/cherryApi/';
         const response = await axios.get(CHERRY_API_URL);
         const rawProducts = response.data || [];
         
-        console.log(`📦 ${rawProducts.length} productos crudos obtenidos de API externa`);
         
         if (rawProducts.length === 0) {
-          console.warn('⚠️ No se obtuvieron productos de la API externa');
           setPreloadStatus({
             isPreloading: false,
             isComplete: false,
@@ -72,11 +67,9 @@ const useProductPreload = () => {
           product.id_articulo || product.id || product.codigo
         ).filter(Boolean);
         
-        console.log('⭐ Obteniendo ratings para productos...');
         const ratingsCache = await getBulkRatings(productIds);
         
         // Mapear productos con ratings
-        console.log('🔄 Mapeando productos con ratings...');
         const mappedProducts = await Promise.all(
           rawProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
         );
@@ -84,15 +77,12 @@ const useProductPreload = () => {
         // Filtrar productos nulos
         const allProducts = mappedProducts.filter(p => p !== null);
         
-        console.log(`✅ ${allProducts.length} productos mapeados exitosamente`);
         
         // Aplicar ofertas de usuario a los productos
-        console.log('💰 Aplicando ofertas personalizadas...');
         const productsWithOffers = await applyUserOffersToProducts(allProducts);
 
         if (productsWithOffers.length > 0) {
           // 3. Guardar en caché
-          console.log(`💾 Guardando ${productsWithOffers.length} productos en caché...`);
           await saveProductsToCache(productsWithOffers);
           
           setPreloadStatus({
@@ -102,9 +92,7 @@ const useProductPreload = () => {
             error: null
           });
           
-          console.log(`✅ Precarga completada: ${productsWithOffers.length} productos en caché`);
         } else {
-          console.warn('⚠️ No se encontraron productos para precargar');
           setPreloadStatus({
             isPreloading: false,
             isComplete: false,
@@ -116,7 +104,6 @@ const useProductPreload = () => {
         hasPreloaded.current = true;
 
       } catch (error) {
-        console.error('❌ Error en precarga de productos:', error);
         setPreloadStatus({
           isPreloading: false,
           isComplete: false,

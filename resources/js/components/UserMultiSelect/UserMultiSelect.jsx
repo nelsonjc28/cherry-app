@@ -89,7 +89,6 @@ const UserMultiSelect = ({
 
   const handleUserToggle = (user) => {
     if (!user || !user.id) {
-      console.warn('Usuario inválido:', user);
       return;
     }
     
@@ -107,7 +106,6 @@ const UserMultiSelect = ({
 
   const handleRemoveUser = (userToRemove) => {
     if (!userToRemove || !userToRemove.id) {
-      console.warn('Usuario a eliminar inválido:', userToRemove);
       return;
     }
     

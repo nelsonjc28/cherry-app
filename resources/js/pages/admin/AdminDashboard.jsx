@@ -40,7 +40,6 @@ const AdminDashboard = () => {
         setDashboardSummary(response.data.data);
       }
     } catch (error) {
-      console.error('Error fetching dashboard summary:', error);
     } finally {
       setLoading(false);
     }

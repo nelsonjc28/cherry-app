@@ -20,7 +20,6 @@ const useProductCachePreload = () => {
       // Si ya hay caché válido, no precargar
       const cacheInfo = productCache.getCacheInfo();
       if (cacheInfo.isValid) {
-        console.log('✅ Caché ya disponible, skip precarga');
         setPreloadStatus({
           isPreloading: false,
           isComplete: true,
@@ -30,13 +29,11 @@ const useProductCachePreload = () => {
         return;
       }
 
-      console.log('🚀 Iniciando precarga de productos...');
       setPreloadStatus(prev => ({ ...prev, isPreloading: true }));
 
       try {
         const products = await productCache.getAllProducts();
         
-        console.log('✅ Precarga completa:', products.length, 'productos');
         setPreloadStatus({
           isPreloading: false,
           isComplete: true,
@@ -44,7 +41,6 @@ const useProductCachePreload = () => {
           error: null
         });
       } catch (error) {
-        console.error('❌ Error en precarga:', error);
         setPreloadStatus({
           isPreloading: false,
           isComplete: false,

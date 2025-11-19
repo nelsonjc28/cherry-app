@@ -78,7 +78,6 @@ const CatalogPdfPage = () => {
 
       // Si el usuario ha hecho scroll más del 80%, cargar más imágenes
       if (scrollPercentage > 0.8) {
-        console.log('🔄 Lazy loading triggered at', Math.round(scrollPercentage * 100) + '%');
         handleLoadMore();
       }
     };
@@ -105,7 +104,6 @@ const CatalogPdfPage = () => {
         setError('Error al cargar el catálogo');
       }
     } catch (error) {
-      console.error('Error fetching catalog and images:', error);
       setError('Error al cargar el catálogo');
     } finally {
       setLoading(false);
@@ -149,7 +147,6 @@ const CatalogPdfPage = () => {
         setError('Error al cargar los grupos de imágenes');
       }
     } catch (error) {
-      console.error('Error fetching image groups:', error);
       setError('Error al cargar los grupos de imágenes');
     } finally {
       setImageGroupsLoading(false);
@@ -170,7 +167,6 @@ const CatalogPdfPage = () => {
         const newImages = response.data.data.images || [];
         const pagination = response.data.data.pagination;
 
-        console.log('📄 Page loaded:', page, '| Images:', newImages.length, '| Total:', pagination.total, '| Has more:', pagination.has_more);
 
         if (page === 1) {
           setImages(newImages);
@@ -189,7 +185,6 @@ const CatalogPdfPage = () => {
         setError('Error al cargar las imágenes del grupo');
       }
     } catch (error) {
-      console.error('Error fetching group images:', error);
       setError('Error al cargar las imágenes del grupo');
     } finally {
       setLoading(false);
@@ -208,7 +203,6 @@ const CatalogPdfPage = () => {
         setError('Error al cargar los catálogos');
       }
     } catch (error) {
-      console.error('Error fetching catalogs:', error);
       setError('Error al cargar los catálogos');
     } finally {
       setCatalogsLoading(false);
@@ -229,7 +223,6 @@ const CatalogPdfPage = () => {
         const newImages = response.data.data.images || [];
         const pagination = response.data.data.pagination;
 
-        console.log('📄 Page loaded:', page, '| Images:', newImages.length, '| Total:', pagination.total, '| Has more:', pagination.has_more);
 
         if (page === 1) {
           setImages(newImages);
@@ -248,7 +241,6 @@ const CatalogPdfPage = () => {
         setError('Error al cargar las imágenes');
       }
     } catch (error) {
-      console.error('Error fetching images:', error);
       setError('Error al cargar las imágenes');
     } finally {
       setLoading(false);
@@ -257,13 +249,10 @@ const CatalogPdfPage = () => {
   };
 
   const handleLoadMore = () => {
-    console.log('📥 handleLoadMore called | hasMore:', hasMore, '| loadingMore:', loadingMore, '| currentPage:', currentPage);
     if (selectedCatalog && hasMore && !loadingMore) {
       if (selectedImageGroup) {
-        console.log('➡️ Loading page', currentPage + 1, 'for group:', selectedImageGroup.name);
         fetchImageGroupImages(selectedCatalog.id, selectedImageGroup.id, currentPage + 1);
       } else {
-        console.log('➡️ Loading page', currentPage + 1, 'for catalog:', selectedCatalog.name);
         fetchImages(selectedCatalog.id, currentPage + 1);
       }
     }
@@ -289,7 +278,6 @@ const CatalogPdfPage = () => {
       // Cargar los grupos de imágenes del nuevo catálogo
       await fetchImageGroups(catalog.id);
     } catch (error) {
-      console.error('Error changing catalog:', error);
       setError('Error al cambiar de catálogo');
     }
   };
@@ -311,7 +299,6 @@ const CatalogPdfPage = () => {
       // Cargar las imágenes del grupo
       await fetchImageGroupImages(selectedCatalog.id, imageGroup.id);
     } catch (error) {
-      console.error('Error changing image group:', error);
       setError('Error al cambiar de grupo de imágenes');
     }
   };
@@ -471,7 +458,6 @@ const CatalogPdfPage = () => {
         (g) => String(g.id) === String(groupId)
       );
       if (groupToOpen) {
-        console.log("📂 Abriendo grupo desde URL:", groupToOpen.name);
         handleImageGroupChange(groupToOpen);
       }
     }

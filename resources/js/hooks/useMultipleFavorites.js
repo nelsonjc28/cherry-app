@@ -22,7 +22,6 @@ export const useMultipleFavorites = (productIds = []) => {
       const result = await checkMultipleFavorites(productIds);
       setFavoritesMap(result);
     } catch (error) {
-      console.error('Error checking multiple favorites:', error);
       setFavoritesMap({});
     } finally {
       setLoading(false);

@@ -196,7 +196,6 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
       }
     } catch (error) {
       setError('Error al cargar las imágenes del grupo');
-      console.error('Error fetching group images:', error);
     } finally {
       setGroupImagesLoading(false);
     }
@@ -264,7 +263,6 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
         setError(response.data.message || 'Error al subir imágenes');
       }
     } catch (error) {
-      console.error('Upload error:', error);
       
       let errorMessage = 'Error al subir imágenes';
       

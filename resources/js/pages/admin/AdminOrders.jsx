@@ -86,7 +86,6 @@ const AdminOrders = () => {
       }
     } catch (err) {
       setError('Error de conexión al cargar las órdenes');
-      console.error('Error fetching orders:', err);
     } finally {
       setLoading(false);
     }
@@ -147,7 +146,6 @@ const AdminOrders = () => {
         }
       }
     } catch (err) {
-      console.error('Error updating order status:', err);
       if (window.showToast) {
         window.showToast('Error de conexión al actualizar el estado', 'error');
       }

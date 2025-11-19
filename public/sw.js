@@ -65,7 +65,6 @@ self.addEventListener('install', (event) => {
         return self.skipWaiting();
       })
       .catch((error) => {
-      console.error('Error durante la instalación del SW:', error);
       // Notificar error al cliente
         self.clients.matchAll().then(clients => {
           clients.forEach(client => {
@@ -83,18 +82,15 @@ self.addEventListener('install', (event) => {
 
 // Activación del Service Worker
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker activando versión:', CACHE_NAME);
   
   event.waitUntil(
     Promise.all([
       // Limpiar caches antiguos
     caches.keys().then((cacheNames) => {
-      console.log('Caches encontrados:', cacheNames);
       return Promise.all(
         cacheNames.map((cacheName) => {
             // Mantener solo los caches de la versión actual
             if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE && cacheName !== CACHE_NAME) {
-            console.log('Eliminando cache antiguo:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -104,7 +100,6 @@ self.addEventListener('activate', (event) => {
       self.clients.claim()
     ])
     .then(() => {
-      console.log('Service Worker activado y controlando todos los clientes');
       
       // Notificar al cliente que el SW está activo
       self.clients.matchAll().then(clients => {
@@ -123,7 +118,6 @@ self.addEventListener('activate', (event) => {
       updateCriticalCache();
     })
     .catch(error => {
-      console.error('Error durante la activación del SW:', error);
     })
   );
 });
@@ -137,17 +131,13 @@ async function updateCriticalCache() {
         const response = await fetch(url);
         if (response.ok) {
           await cache.put(url, response);
-          console.log('Cache actualizado para:', url);
         }
       } catch (error) {
-        console.log('Error actualizando cache para:', url, error);
       }
     });
     
     await Promise.all(updatePromises);
-    console.log('Cache crítico actualizado en segundo plano');
   } catch (error) {
-    console.error('Error actualizando cache crítico:', error);
   }
 }
 

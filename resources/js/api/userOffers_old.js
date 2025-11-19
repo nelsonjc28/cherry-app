@@ -29,7 +29,6 @@ export const getUserOffers = async () => {
     return [];
   } catch (error) {
     if (error.response && error.response.status !== 401) {
-      console.warn('Error obteniendo ofertas de usuario:', error.response.status);
     }
     
     return [];
@@ -48,7 +47,6 @@ export const checkProductsWithUserOffers = async (productIds) => {
     
     // Validar que no exceda el límite del backend
     if (productIds.length > 100) {
-      console.warn(`checkProductsWithUserOffers: Demasiados productos (${productIds.length}). Máximo permitido: 100`);
       return {};
     }
     
@@ -79,16 +77,9 @@ export const checkProductsWithUserOffers = async (productIds) => {
   } catch (error) {
     if (error.response) {
       if (error.response.status === 422) {
-        console.warn('Error de validación en checkProductsWithUserOffers:', {
-          status: error.response.status,
-          data: error.response.data,
-          productIdsCount: productIds.length
-        });
       } else if (error.response.status !== 401) {
-        console.warn('Error verificando productos con ofertas:', error.response.status);
       }
     } else {
-      console.warn('Error de red verificando productos con ofertas:', error.message);
     }
     
     return {};
@@ -137,7 +128,6 @@ export const applyUserOffersToProducts = async (products) => {
           ]);
           productsWithOffers = { ...productsWithOffers, ...chunkResults };
         } catch (error) {
-          console.warn('Error procesando lote de productos:', error);
           // Continuar con el siguiente lote en caso de error
         }
       }
@@ -149,7 +139,6 @@ export const applyUserOffersToProducts = async (products) => {
           new Promise(resolve => setTimeout(() => resolve({}), 5000)) // Timeout de 5 segundos
         ]);
       } catch (error) {
-        console.warn('Error obteniendo ofertas de usuario:', error);
         productsWithOffers = {};
       }
     }

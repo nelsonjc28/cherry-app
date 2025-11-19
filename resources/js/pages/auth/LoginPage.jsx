@@ -61,7 +61,6 @@ const LoginPage = () => {
         }
       }
     } catch (err) {
-      console.error('Login error:', err);
       if (window.showToast) {
         window.showToast('Error de conexión', 'error');
       }

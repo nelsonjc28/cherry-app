@@ -30,7 +30,6 @@ const ContactPage = () => {
           }
         }
       } catch (error) {
-        console.error('Error al cargar información de contacto:', error);
       }
     };
 

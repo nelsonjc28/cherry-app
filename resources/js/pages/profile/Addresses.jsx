@@ -68,7 +68,6 @@ const Addresses = () => {
       setAddresses(response.data.addresses || []);
       setError(null);
     } catch (error) {
-      console.error('Error loading addresses:', error);
 
       if (error.response?.status === 401) {
         setError('Token de autenticación expirado o inválido');
@@ -114,7 +113,6 @@ const Addresses = () => {
         }
       }
     } catch (error) {
-      console.error('Error fetching postal code:', error);
       setSettlements([]);
       if (window.showToast) {
         window.showToast('Error al consultar el código postal', 'error');
@@ -240,7 +238,6 @@ const Addresses = () => {
         window.showToast(successMessage, 'success');
       }
     } catch (error) {
-      console.error('Error saving address:', error);
 
       if (error.response?.status === 401) {
         if (window.showToast) {
@@ -323,7 +320,6 @@ const Addresses = () => {
           window.showToast('Dirección eliminada correctamente', 'success');
         }
       } catch (error) {
-        console.error('Error deleting address:', error);
 
         // Cerrar loading y mostrar error
         Swal.fire({
@@ -364,7 +360,6 @@ const Addresses = () => {
         window.showToast('Dirección marcada como predeterminada', 'success');
       }
     } catch (error) {
-      console.error('Error setting default address:', error);
 
       if (error.response?.status === 401) {
         if (window.showToast) {

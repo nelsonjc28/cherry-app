@@ -61,7 +61,6 @@ const PaymentMethods = () => {
       setPaymentMethods(response.data.cards || []);
       setError(null);
     } catch (error) {
-      console.error('Error loading payment methods:', error);
       
       if (error.response?.status === 401) {
         setError('Token de autenticación expirado o inválido');
@@ -211,7 +210,6 @@ const PaymentMethods = () => {
         window.showToast('Método de pago agregado correctamente', 'success', 8000);
       }
     } catch (error) {
-      console.error('Error saving payment method:', error);
       
       if (error.response?.status === 401) {
         if (window.showToast) {
@@ -247,7 +245,6 @@ const PaymentMethods = () => {
           window.showToast('Método de pago marcado como predeterminado', 'success', 6000);
         }
       } catch (error) {
-        console.error('Error setting default:', error);
         if (window.showToast) {
           window.showToast('Error al marcar como predeterminado', 'error');
         }
@@ -302,7 +299,6 @@ const PaymentMethods = () => {
             window.showToast('Método de pago eliminado correctamente', 'success', 6000);
           }
         } catch (error) {
-          console.error('Error deleting payment method:', error);
           
           // Close loading and show error
           Swal.fire({

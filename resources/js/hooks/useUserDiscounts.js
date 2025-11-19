@@ -39,12 +39,10 @@ export const useUserDiscounts = (productIds = []) => {
       if (response.success) {
         setUserDiscounts(response.discounts || {});
       } else {
-        console.warn('Error al verificar descuentos:', response.error);
         setUserDiscounts({});
         setError(response.error || 'Error al verificar descuentos');
       }
     } catch (err) {
-      console.error('Error en useUserDiscounts:', err);
       setUserDiscounts({});
       setError(err.message || 'Error al cargar descuentos');
     } finally {

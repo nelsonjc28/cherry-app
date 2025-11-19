@@ -176,7 +176,6 @@ const DestacadosPage = () => {
         setAvailableColors(colors);
         setAvailableSizes(sizes);
       } catch (error) {
-        console.error('Error cargando datos de filtros:', error);
         setAvailableColors([]);
         setAvailableSizes([]);
       }
@@ -189,7 +188,6 @@ const DestacadosPage = () => {
 
         let catalogsData = [];
 
-        console.log('se ejecuto');
 
         if (response.data) {
           if (response.data.success && Array.isArray(response.data.data)) {
@@ -209,7 +207,6 @@ const DestacadosPage = () => {
           setCatalogs([]);
         }
       } catch (error) {
-        console.error('Error loading catalogs:', error);
         setCatalogs([]);
       } finally {
         setCatalogLoading(false);
@@ -225,7 +222,6 @@ const DestacadosPage = () => {
     const loadTopSellingProducts = async () => {
       setLoading(true);
       try {
-        console.log('📊 Cargando productos más vendidos...');
         const products = await getTopSellingProducts(50);
         const finalProducts = user ? await applyUserOffersToProducts(products) : products;
 

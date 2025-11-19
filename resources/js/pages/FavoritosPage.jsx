@@ -32,7 +32,6 @@ const FavoritosPage = () => {
         const allProducts = await getExternalPromoProducts(1000, true);
         
         if (!Array.isArray(allProducts)) {
-          console.error('Error: allProducts no es un array:', allProducts);
           setFavoriteProducts([]);
           return;
         }
@@ -44,7 +43,6 @@ const FavoritosPage = () => {
         
         setFavoriteProducts(favoriteProductsData);
       } catch (error) {
-        console.error('Error cargando productos favoritos:', error);
         // En caso de error, crear productos básicos con la información disponible
         const basicProducts = favoriteProductIds.map(id => ({
           id_articulo: id,
@@ -80,7 +78,6 @@ const FavoritosPage = () => {
           
           setFavoriteProducts(favoriteProductsData);
         } catch (error) {
-          console.error('Error cargando productos favoritos:', error);
           const basicProducts = favoriteProductIds.map(id => ({
             id_articulo: id,
             descripcion: `Producto ${id}`,

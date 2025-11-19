@@ -256,6 +256,7 @@ const ProductPage = () => {
         const productToAdd = {
           id_articulo: product.id_articulo,
           title: product.descripcion,
+          desc_promo: product.desc_promo,
           price: finalPrice, // Usar precio con descuento aplicado
           precio: finalPrice, // Usar precio con descuento aplicado
           originalPrice: hasOffer ? precio1 : null, // Precio original solo si hay descuento
@@ -278,7 +279,7 @@ const ProductPage = () => {
           } : null
         };
 
-        addToCart(productToAdd, cantidad);
+        addToCart(productToAdd, cantidad, product);
 
         // La lógica de Buy X Get Y ahora se maneja automáticamente en el cartStore
       }
@@ -335,7 +336,7 @@ const ProductPage = () => {
 
     try {
       return navigate(-1);
-      
+
     } catch (error) {
       window.showToast('Error al eliminar el catálogo', 'error');
     }
@@ -509,7 +510,6 @@ const ProductPage = () => {
     if (hasUserOffer && userOffer && userOffer.discount_percentage > 0) {
       return Math.round(userOffer.discount_percentage);
     }
-
     // PRIORIDAD 2: Descuento general desde la API (desc_promo) - usar directamente desc_promo
     if (product?.desc_promo && product.desc_promo > 0) {
       return Math.round(product.desc_promo);
@@ -621,6 +621,7 @@ const ProductPage = () => {
     // Si no hay detalles, usar el inventario general del producto
     return product.inventario || product.stock || 0;
   };
+
 
   // Función para determinar el estado del inventario
   const getInventoryStatus = () => {

@@ -36,7 +36,6 @@ const FeaturedProducts = ({
       }
       return {};
     } catch (error) {
-      console.error('Error al obtener calificaciones:', error);
       return {};
     }
   };

@@ -56,7 +56,6 @@ const HeroBanner = () => {
 
   // Funciones para manejar swipe
   const handleTouchStart = useCallback((e) => {
-    console.log('📱 Touch Start');
     touchStartX.current = e.touches[0].clientX;
     touchEndX.current = e.touches[0].clientX;
     isDragging.current = true;
@@ -71,7 +70,6 @@ const HeroBanner = () => {
     const movement = Math.abs(touchStartX.current - touchEndX.current);
     if (movement > 10) {
       hasMovedSignificantly.current = true;
-      console.log('📱 Movimiento detectado:', movement + 'px');
     }
   }, []);
 
@@ -81,16 +79,10 @@ const HeroBanner = () => {
     const swipeThreshold = 50; // Mínimo de píxeles para considerar un swipe
     const difference = touchStartX.current - touchEndX.current;
 
-    console.log('📱 Touch End:', {
-      difference: Math.abs(difference) + 'px',
-      hasMovedSignificantly: hasMovedSignificantly.current,
-      isDragging: isDragging.current,
-      threshold: swipeThreshold + 'px'
-    });
+    
 
     // Solo cambiar slide si hubo movimiento significativo
     if (hasMovedSignificantly.current && Math.abs(difference) > swipeThreshold) {
-      console.log('📱 ↔️ SWIPE detectado - cambiando slide');
       if (difference > 0) {
         // Swipe a la izquierda - siguiente slide
         setCurrentSlide((prev) => (prev + 1) % banners.length);
@@ -103,14 +95,12 @@ const HeroBanner = () => {
       isDragging.current = false;
       // NO resetear hasMovedSignificantly inmediatamente para bloquear el click
       setTimeout(() => {
-        console.log('📱 Flags reseteados después de swipe');
         hasMovedSignificantly.current = false;
       }, 200);
       touchStartX.current = 0;
       touchEndX.current = 0;
     } else {
       // Si NO hubo swipe (fue un tap), resetear inmediatamente para permitir el click
-      console.log('📱 👆 TAP detectado - reseteando flags INMEDIATAMENTE para permitir click');
       isDragging.current = false;
       hasMovedSignificantly.current = false;
       touchStartX.current = 0;
@@ -143,15 +133,8 @@ const HeroBanner = () => {
     const swipeThreshold = 50;
     const difference = touchStartX.current - touchEndX.current;
 
-    console.log('🖱️ Mouse Up:', {
-      difference,
-      hasMovedSignificantly: hasMovedSignificantly.current,
-      isDragging: isDragging.current
-    });
-
     // Solo cambiar slide si hubo movimiento significativo
     if (hasMovedSignificantly.current && Math.abs(difference) > swipeThreshold) {
-      console.log('↔️ Drag detectado - cambiando slide');
       if (difference > 0) {
         setCurrentSlide((prev) => (prev + 1) % banners.length);
       } else {
@@ -168,7 +151,6 @@ const HeroBanner = () => {
       touchEndX.current = 0;
     } else {
       // Si NO hubo drag (fue un click), resetear inmediatamente para permitir el click
-      console.log('🖱️ Click detectado - permitiendo navegación');
       isDragging.current = false;
       hasMovedSignificantly.current = false;
       touchStartX.current = 0;
@@ -183,15 +165,10 @@ const HeroBanner = () => {
 
   // Memoizar la función handleImageClick
   const handleImageClick = useCallback((e, banner) => {
-    console.log('🖱️ Image click detected:', {
-      hasMovedSignificantly: hasMovedSignificantly.current,
-      isDragging: isDragging.current,
-      buttonUrl: banner.buttonUrl
-    });
+    
 
     // Solo navegar si no hubo movimiento significativo (no fue un swipe)
     if (!hasMovedSignificantly.current) {
-      console.log('✅ Navegando a:', banner.buttonUrl);
       e.preventDefault();
       e.stopPropagation();
 
@@ -200,7 +177,6 @@ const HeroBanner = () => {
         navigate(banner.buttonUrl);
       }, 0);
     } else {
-      console.log('❌ Click bloqueado por swipe');
       e.preventDefault();
       e.stopPropagation();
     }

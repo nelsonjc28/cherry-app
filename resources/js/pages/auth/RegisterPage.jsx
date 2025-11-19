@@ -117,7 +117,6 @@ const RegisterPage = () => {
         }
       }
     } catch (error) {
-      console.error('Error al consultar código postal:', error);
       setSettlements([]);
       if (window.showToast) {
         window.showToast('Error al consultar código postal', 'error');
@@ -290,7 +289,6 @@ const RegisterPage = () => {
 
       navigate('/');
     } catch (err) {
-      console.error('Error al completar perfil:', err);
       if (window.showToast) {
         window.showToast('Error al guardar datos adicionales', 'error');
       }

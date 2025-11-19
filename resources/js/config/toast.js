@@ -40,7 +40,6 @@ export const createToast = (message, type = 'info', duration = null) => {
     const finalDuration = duration || TOAST_CONFIG.durations[type] || TOAST_CONFIG.default.duration;
     window.showToast(message, type, finalDuration);
   } else {
-    console.warn('Sistema de toast no disponible');
 
   }
 };

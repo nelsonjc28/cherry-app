@@ -118,7 +118,6 @@ const UniversalPWAInstaller = () => {
         showManualInstructions();
       }
     } catch (error) {
-      console.error('Error durante la instalación:', error);
       showErrorMessage('Error durante la instalación. Intenta nuevamente.');
     } finally {
       setIsInstalling(false);
@@ -141,7 +140,6 @@ const UniversalPWAInstaller = () => {
 
   const showErrorMessage = (message) => {
     // Ya no mostramos alert de error
-    console.error(message);
   };
 
   const handleDismiss = () => {

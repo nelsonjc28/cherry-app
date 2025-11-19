@@ -40,7 +40,6 @@ const ProductReviews = ({ productId: propProductId }) => {
         }
       } catch (err) {
         setError('Error al cargar las reseñas');
-        console.error('Error loading reviews:', err);
       } finally {
         setLoading(false);
       }

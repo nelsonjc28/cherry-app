@@ -201,7 +201,6 @@ class ProductCacheManager {
    * Fuerza una recarga desde la API
    */
   async forceRefresh() {
-    console.log('🔄 ProductCache: Forzando actualización...');
     this.products = null;
     this.lastFetch = null;
     return this.getAllProducts();
@@ -211,7 +210,6 @@ class ProductCacheManager {
    * Limpia el caché
    */
   clear() {
-    console.log('🗑️ ProductCache: Limpiando caché');
     this.products = null;
     this.lastFetch = null;
     this.isLoading = false;

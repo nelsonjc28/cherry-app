@@ -19,7 +19,6 @@ const SimpleProductTest = () => {
       setProducts(allProducts || []);
     } catch (err) {
       setError('Error: ' + err.message);
-      console.error('❌ Error:', err);
     } finally {
       setLoading(false);
     }

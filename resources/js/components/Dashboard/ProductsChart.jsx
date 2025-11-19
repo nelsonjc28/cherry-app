@@ -42,7 +42,6 @@ const ProductsChart = ({ startDate, endDate, onDataUpdate }) => {
         setError(response.data.message || 'Error al cargar productos más vendidos');
       }
     } catch (err) {
-      console.error('Error fetching products data:', err);
       setError('Error de conexión al cargar productos más vendidos');
     } finally {
       setLoading(false);

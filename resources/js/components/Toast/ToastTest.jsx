@@ -18,7 +18,6 @@ const ToastTest = () => {
         showInfo('Toast de información de prueba');
       }, 3000);
     } else {
-      console.error('window.showToast no está disponible');
     }
   };
 

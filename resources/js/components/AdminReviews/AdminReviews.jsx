@@ -32,7 +32,6 @@ const AdminReviews = () => {
         setError('Error al cargar las reseñas');
       }
     } catch (err) {
-      console.error('Error loading reviews:', err);
       setError('Error de conexión al cargar las reseñas');
       if (window.showToast) {
         window.showToast('Error al cargar las reseñas', 'error');
@@ -63,7 +62,6 @@ const AdminReviews = () => {
         }
       }
     } catch (err) {
-      console.error('Error approving review:', err);
       if (window.showToast) {
         window.showToast('Error de conexión al aprobar la reseña', 'error');
       }
@@ -87,7 +85,6 @@ const AdminReviews = () => {
         }
       }
     } catch (err) {
-      console.error('Error rejecting review:', err);
       if (window.showToast) {
         window.showToast('Error de conexión al rechazar la reseña', 'error');
       }
@@ -126,7 +123,6 @@ const AdminReviews = () => {
         }
       }
     } catch (err) {
-      console.error('Error deleting review:', err);
       if (window.showToast) {
         window.showToast('Error de conexión al eliminar la reseña', 'error');
       }

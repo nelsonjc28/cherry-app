@@ -85,7 +85,6 @@ const PWAInstallToast = () => {
         
         setDeferredPrompt(null);
       } catch (error) {
-        console.error('Error durante la instalación:', error);
         // Intentar instalación alternativa
         attemptAlternativeInstall();
       }

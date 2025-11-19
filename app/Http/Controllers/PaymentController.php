@@ -11,9 +11,11 @@ use App\Services\MercadoPagoService;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Address;
+use App\Models\DayFortyFive;
 use App\Models\PaymentCard;
 use App\Models\User;
 use App\Models\Notification;
+use Carbon\Carbon;
 
 class PaymentController extends Controller
 {
@@ -52,7 +54,7 @@ class PaymentController extends Controller
 
         /** @var User $user */
         $user = Auth::user();
-        
+
         if (!$user) {
             return response()->json([
                 'success' => false,
@@ -60,86 +62,86 @@ class PaymentController extends Controller
             ], 401);
         }
 
-       /*  try { */
-            // Verificar que la dirección pertenece al usuario
-            $address = $user->addresses()->find($request->address_id);
-            if (!$address) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Dirección no encontrada o no pertenece al usuario'
-                ], 404);
-            }
-
-            DB::beginTransaction();
-
-            // Crear el pedido en la base de datos
-            $order = Order::create([
-                'user_id' => $user->id,
-                'address_id' => $request->address_id,
-                'total_amount' => $request->total_amount,
-                'status' => 'pending',
-                'payment_method' => 'mercadopago',
-                'external_reference' => uniqid('order_' . $user->id . '_')
-            ]);
-
-            // Crear los items del pedido
-            foreach ($request->items as $item) {
-                OrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => $item['product_id'],
-                    'name' => $item['name'],
-                    'size' => $item['size'] ?? null,
-                    'color' => $item['color'] ?? null,
-                    'barcode' => $item['barcode'] ?? null,
-                    'quantity' => $item['quantity'],
-                    'price' => $item['price'],
-                    'subtotal' => $item['quantity'] * $item['price']
-                ]);
-            }
-
-            // Preparar datos para MercadoPago
-            $orderData = [
-                'order_id' => $order->external_reference,
-                'user' => [
-                    'first_name' => $user->first_name,
-                    'last_name' => $user->last_name,
-                    'email' => $user->email,
-                    'phone' => $user->phone
-                ],
-                'address' => [
-                    'street_address' => $address->street_address,
-                    'city' => $address->city,
-                    'state' => $address->state,
-                    'postal_code' => $address->postal_code,
-                    'country' => $address->country
-                ],
-                'items' => $request->items
-            ];
-
-            // Crear preferencia en MercadoPago
-            $preference = $this->mercadoPagoService->createPreference($orderData);
-            // Actualizar el pedido con el ID de preferencia
-            $order->update([
-                'mercadopago_preference_id' => $preference->id
-            ]);
-
-            DB::commit();
-
+        /*  try { */
+        // Verificar que la dirección pertenece al usuario
+        $address = $user->addresses()->find($request->address_id);
+        if (!$address) {
             return response()->json([
-                'success' => true,
-                'message' => 'Preferencia de pago creada correctamente',
-                'data' => [
-                    'order_id' => $order->id,
-                    'external_reference' => $order->external_reference,
-                    'preference_id' => $preference->id,
-                    'payment_url' => $this->mercadoPagoService->getPaymentUrl($preference->id),
-                    'sandbox_payment_url' => $this->mercadoPagoService->getSandboxPaymentUrl($preference->id),
-                    'init_point' => $preference->init_point,
-                    'sandbox_init_point' => $preference->sandbox_init_point
-                ]
-            ]);
+                'success' => false,
+                'message' => 'Dirección no encontrada o no pertenece al usuario'
+            ], 404);
+        }
 
-       /*  } catch (\Exception $e) {
+        DB::beginTransaction();
+
+        // Crear el pedido en la base de datos
+        $order = Order::create([
+            'user_id' => $user->id,
+            'address_id' => $request->address_id,
+            'total_amount' => $request->total_amount,
+            'status' => 'pending',
+            'payment_method' => 'mercadopago',
+            'external_reference' => uniqid('order_' . $user->id . '_')
+        ]);
+
+        // Crear los items del pedido
+        foreach ($request->items as $item) {
+            OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => $item['product_id'],
+                'name' => $item['name'],
+                'size' => $item['size'] ?? null,
+                'color' => $item['color'] ?? null,
+                'barcode' => $item['barcode'] ?? null,
+                'quantity' => $item['quantity'],
+                'price' => $item['price'],
+                'subtotal' => $item['quantity'] * $item['price']
+            ]);
+        }
+
+        // Preparar datos para MercadoPago
+        $orderData = [
+            'order_id' => $order->external_reference,
+            'user' => [
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'email' => $user->email,
+                'phone' => $user->phone
+            ],
+            'address' => [
+                'street_address' => $address->street_address,
+                'city' => $address->city,
+                'state' => $address->state,
+                'postal_code' => $address->postal_code,
+                'country' => $address->country
+            ],
+            'items' => $request->items
+        ];
+
+        // Crear preferencia en MercadoPago
+        $preference = $this->mercadoPagoService->createPreference($orderData);
+        // Actualizar el pedido con el ID de preferencia
+        $order->update([
+            'mercadopago_preference_id' => $preference->id
+        ]);
+
+        DB::commit();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Preferencia de pago creada correctamente',
+            'data' => [
+                'order_id' => $order->id,
+                'external_reference' => $order->external_reference,
+                'preference_id' => $preference->id,
+                'payment_url' => $this->mercadoPagoService->getPaymentUrl($preference->id),
+                'sandbox_payment_url' => $this->mercadoPagoService->getSandboxPaymentUrl($preference->id),
+                'init_point' => $preference->init_point,
+                'sandbox_init_point' => $preference->sandbox_init_point
+            ]
+        ]);
+
+        /*  } catch (\Exception $e) {
             DB::rollBack();
             
             return response()->json([
@@ -156,17 +158,17 @@ class PaymentController extends Controller
     {
         try {
             $data = $request->all();
-            
+
             $result = $this->mercadoPagoService->processWebhook($data);
-            
+
             if ($result && isset($result['external_reference'])) {
                 // Buscar el pedido por external_reference
                 $order = Order::where('external_reference', $result['external_reference'])->first();
-                
+
                 if ($order) {
                     // Actualizar estado del pedido según el estado del pago
                     $newStatus = $this->mapPaymentStatus($result['status']);
-                    
+
                     $order->update([
                         'status' => $newStatus,
                         'mercadopago_payment_id' => $result['payment_id'],
@@ -176,7 +178,6 @@ class PaymentController extends Controller
             }
 
             return response()->json(['status' => 'ok'], 200);
-            
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
@@ -187,7 +188,7 @@ class PaymentController extends Controller
      */
     private function mapPaymentStatus($mercadoPagoStatus)
     {
-        return match($mercadoPagoStatus) {
+        return match ($mercadoPagoStatus) {
             'approved' => 'completed',
             'pending' => 'pending',
             'in_process' => 'processing',
@@ -220,8 +221,8 @@ class PaymentController extends Controller
         if (isset($requestData['address_id'])) {
             $requestData['address_id'] = (int) $requestData['address_id'];
         }
-        
-       
+
+
 
         $validator = Validator::make($requestData, [
             'token' => 'required|string',
@@ -249,7 +250,7 @@ class PaymentController extends Controller
 
         /** @var User $user */
         $user = Auth::user();
-        
+
         if (!$user) {
             return response()->json([
                 'success' => false,
@@ -309,16 +310,7 @@ class PaymentController extends Controller
                 // Crear los items del pedido
                 foreach ($requestData['items'] as $item) {
                     // DEBUG: Log de datos recibidos
-                    Log::info('PaymentController - Item data received:', [
-                        'product_id' => $item['product_id'],
-                        'name' => $item['name'],
-                        'size' => $item['size'] ?? 'NULL',
-                        'color' => $item['color'] ?? 'NULL',
-                        'barcode' => $item['barcode'] ?? 'NULL',
-                        'quantity' => $item['quantity'],
-                        'price' => $item['price']
-                    ]);
-                    
+
                     OrderItem::create([
                         'order_id' => $order->id,
                         'product_id' => $item['product_id'],
@@ -330,6 +322,13 @@ class PaymentController extends Controller
                         'price' => $item['price'],
                         'subtotal' => $item['quantity'] * $item['price']
                     ]);
+
+                    $dayFortyFive = DayFortyFive::where('user_id', $user->id)->first();
+                    $now = Carbon::now();
+
+                    if ($now->between($dayFortyFive->startDate, $dayFortyFive->endDate)) {
+                        $this->updateDayFortyFive($now, $dayFortyFive);
+                    }
                 }
 
                 DB::commit();
@@ -338,7 +337,7 @@ class PaymentController extends Controller
                 // Notificar al admin del pago realizado
                 $this->notifyAdminPaymentReceived($order, $user);
 
-                $message = $payment->status === 'approved' 
+                $message = $payment->status === 'approved'
                     ? '¡Pago procesado exitosamente! Tu pedido ha sido creado.'
                     : '⚠️ Pago en estado "rejected" pero orden creada para pruebas.';
 
@@ -354,7 +353,6 @@ class PaymentController extends Controller
                         'test_mode' => $payment->status === 'rejected' ? true : false
                     ]
                 ]);
-
             } else {
                 // Pago no aprobado
 
@@ -368,7 +366,6 @@ class PaymentController extends Controller
                     ]
                 ], 422);
             }
-
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -379,6 +376,14 @@ class PaymentController extends Controller
         }
     }
 
+    private function updateDayFortyFive(Carbon $now, DayFortyFive $dayFortyFive)
+    {
+        $dayFortyFive->update([
+            'startDate' => $now->format('Y-m-d'),
+            'endDate' => $now->addDays(44),
+        ]);
+    }
+
     /**
      * Notificar al admin sobre pago recibido
      */
@@ -387,9 +392,9 @@ class PaymentController extends Controller
         try {
             // Crear notificación en la base de datos
             Notification::createPaymentNotification($order);
-            
+
             // Aquí puedes implementar el envío de email, SMS, o notificación push
-            
+
             // Ejemplo de estructura para futuro email:
             /*
             Mail::to('admin@cherrycentral.com')->send(new PaymentReceivedMail([
@@ -399,7 +404,6 @@ class PaymentController extends Controller
                 'address' => $order->address
             ]));
             */
-            
         } catch (\Exception $e) {
             // Error silencioso
         }
@@ -413,9 +417,9 @@ class PaymentController extends Controller
         try {
             // Crear notificación en la base de datos
             Notification::createOrderStatusNotification($order, $order->status, $newStatus);
-            
+
             // Aquí puedes implementar el envío de email, SMS, o notificación push
-            
+
             // Ejemplo de estructura para futuro email:
             /*
             Mail::to($order->user->email)->send(new OrderStatusChangeMail([
@@ -425,7 +429,6 @@ class PaymentController extends Controller
                 'customer' => $order->user
             ]));
             */
-            
         } catch (\Exception $e) {
             // Error silencioso
         }
@@ -438,7 +441,7 @@ class PaymentController extends Controller
     public function getPaymentStatus($orderId)
     {
         $user = Auth::user();
-        
+
         if (!$user) {
             return response()->json([
                 'success' => false,
@@ -484,7 +487,7 @@ class PaymentController extends Controller
 
         /** @var User $user */
         $user = Auth::user();
-        
+
         if (!$user || $user->role->name !== 'admin') {
             return response()->json([
                 'success' => false,
@@ -522,11 +525,17 @@ class PaymentController extends Controller
 
             // Notificar al cliente según el nuevo estado
             if ($newStatus === 'en_espera_envio') {
-                $this->notifyCustomerStatusChange($order, $newStatus, 
-                    'Tu pedido ha sido confirmado y está siendo preparado para envío.');
+                $this->notifyCustomerStatusChange(
+                    $order,
+                    $newStatus,
+                    'Tu pedido ha sido confirmado y está siendo preparado para envío.'
+                );
             } elseif ($newStatus === 'enviado') {
-                $this->notifyCustomerStatusChange($order, $newStatus, 
-                    'Tu pedido ha sido enviado. Ahora puedes calificar y comentar sobre los productos.');
+                $this->notifyCustomerStatusChange(
+                    $order,
+                    $newStatus,
+                    'Tu pedido ha sido enviado. Ahora puedes calificar y comentar sobre los productos.'
+                );
             }
 
             DB::commit();
@@ -540,7 +549,6 @@ class PaymentController extends Controller
                     'new_status' => $newStatus
                 ]
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -574,7 +582,7 @@ class PaymentController extends Controller
         try {
             /** @var User $user */
             $user = Auth::user();
-            
+
             if (!$user) {
                 return response()->json([
                     'success' => false,
@@ -600,13 +608,13 @@ class PaymentController extends Controller
                     'items' => $order->items->map(function ($item) use ($user, $order) {
                         // Generar URL de imagen basada en el product_id
                         $imageUrl = $this->getProductImageUrl($item->product_id);
-                        
+
                         // Verificar si ya existe una reseña para este producto en esta orden
                         $hasReview = \App\Models\Review::where('user_id', $user->id)
                             ->where('order_id', $order->id)
                             ->where('product_id', $item->product_id)
                             ->exists();
-                        
+
                         return [
                             'id' => $item->id,
                             'product_id' => $item->product_id,
@@ -635,7 +643,6 @@ class PaymentController extends Controller
                 'success' => true,
                 'orders' => $formattedOrders
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -692,7 +699,7 @@ class PaymentController extends Controller
         try {
             /** @var User $user */
             $user = Auth::user();
-            
+
             if (!$user) {
                 return response()->json([
                     'success' => false,
@@ -715,7 +722,7 @@ class PaymentController extends Controller
                         ->where('order_id', $order->id)
                         ->where('product_id', $item->product_id)
                         ->exists();
-                    
+
                     if (!$hasReview) {
                         return true; // Esta orden tiene productos sin calificar
                     }
@@ -746,7 +753,6 @@ class PaymentController extends Controller
                 'success' => true,
                 'orders' => $formattedOrders->values()->toArray()
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -764,10 +770,10 @@ class PaymentController extends Controller
         if (!$productId) {
             return asset('images/placeholder-product.png');
         }
-        
+
         // Primero probar con el ID original (sin ceros)
         $originalUrl = "https://cherry-fotos.s3.amazonaws.com/shopify/{$productId}/{$productId}_1.jpg";
-        
+
         // Verificar rápidamente si la imagen original existe
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $originalUrl);
@@ -775,20 +781,20 @@ class PaymentController extends Controller
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 2);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        
+
         curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
-        
+
         // Si la imagen original existe, usarla
         if ($httpCode === 200) {
             return $originalUrl;
         }
-        
+
         // Si no existe, probar con formato con ceros a la izquierda
         $formattedId = str_pad($productId, 11, '0', STR_PAD_LEFT);
         $formattedUrl = "https://cherry-fotos.s3.amazonaws.com/shopify/{$formattedId}/{$formattedId}_1.jpg";
-        
+
         // Verificar si la imagen formateada existe
         $ch2 = curl_init();
         curl_setopt($ch2, CURLOPT_URL, $formattedUrl);
@@ -796,16 +802,16 @@ class PaymentController extends Controller
         curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch2, CURLOPT_TIMEOUT, 2);
         curl_setopt($ch2, CURLOPT_SSL_VERIFYPEER, false);
-        
+
         curl_exec($ch2);
         $httpCode2 = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
         curl_close($ch2);
-        
+
         // Si la imagen formateada existe, usarla
         if ($httpCode2 === 200) {
             return $formattedUrl;
         }
-        
+
         // Si ninguna existe, devolver la original (será manejada por el fallback del frontend)
         return $originalUrl;
     }

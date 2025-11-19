@@ -70,7 +70,6 @@ const CatalogPage = ({ catalogId }) => {
         // Extraer colores únicos de los productos cargados
         const colorSet = new Set();
         const sizeSet = new Set();
-        console.log(allProducts);
         allProducts.forEach(product => {
           // PRIORIDAD 1: Extraer de detalles (donde están realmente las tallas)
           if (product.detalles && product.detalles.length > 0) {
@@ -112,7 +111,6 @@ const CatalogPage = ({ catalogId }) => {
         setAvailableColors(Array.from(colorSet).sort());
         setAvailableSizes(sortedSizes);
       } catch (error) {
-        console.error('Error extrayendo datos de filtros:', error);
         setAvailableColors([]);
         setAvailableSizes([]);
       }
@@ -410,11 +408,8 @@ const CatalogPage = ({ catalogId }) => {
 
                 // Filtrar productos por código del catálogo
                 const catalogCode = catalogResponse.data.success ? catalogResponse.data.data.code : null;
-                console.log(catalogCode);
-                console.log(externalData);
                 if (catalogCode) {
                   const filteredExternalData = externalData.filter(product => product.catalogoId == catalogCode);
-                  console.log(filteredExternalData);
                   // Obtener IDs de productos para ratings
                   const externalProductIds = filteredExternalData.map(product =>
                     product.id_articulo || product.id || product.codigo
@@ -539,7 +534,6 @@ const CatalogPage = ({ catalogId }) => {
               }
             }
           } catch (error) {
-            console.error('Error al cargar productos del catálogo:', error);
             productsData = [];
           }
         } else {

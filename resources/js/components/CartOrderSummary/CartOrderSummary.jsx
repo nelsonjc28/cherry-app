@@ -4,6 +4,7 @@ import './CartOrderSummary.css';
 import { getIconPath } from '../../utils/assetPaths';
 import CustomButton from '../CustomButton';
 import api from '../../config/axios';
+import { validateStock } from '../../services/inventoryService';
 
 const CartOrderSummary = ({
   creditDays,
@@ -16,6 +17,7 @@ const CartOrderSummary = ({
   selectedAddress,
   onGenerateOrder,
   onClearCart,
+  daysFortyFive,
   // Nuevas props para el formulario integrado
   cartItems = [],
   selectedPaymentCard = null,
@@ -45,6 +47,7 @@ const CartOrderSummary = ({
   const [errors, setErrors] = useState({});
   const [modalErrors, setModalErrors] = useState({});
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
 
   // Cargar MercadoPago SDK
   useEffect(() => {
@@ -169,7 +172,6 @@ const CartOrderSummary = ({
   };
 
   const saveNewCard = async (cardDataToSave) => {
-    console.log(cardDataToSave);
     try {
       setIsSavingCard(true);
 
@@ -279,7 +281,6 @@ const CartOrderSummary = ({
     }
 
     setModalErrors(newErrors);
-    console.log(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -360,6 +361,15 @@ const CartOrderSummary = ({
   const processIntegratedPayment = async () => {
     if (!validateForm()) {
       return;
+    }
+
+    const canContinue = await validateCartBeforeOrder();
+    if (!canContinue) {
+      // Detener compra
+      if (window.showToast) {
+        window.showToast('Se ajustaron cantidades según stock disponible. Revisa el carrito.', 'error');
+      }
+      return; // ← Esto detiene la compra
     }
 
     if (!window.mp) {
@@ -450,7 +460,7 @@ const CartOrderSummary = ({
       const paymentData = {
         token: cardToken.id,
         payment_method_id: finalPaymentMethodId,
-        transaction_amount: parseFloat(total),
+        transaction_amount: parseFloat(finalTotal),
         installments: 1, // Siempre 1 cuota
         items: cartItems.map(item => {
           const productId = item.id_articulo || item.product_id || item.id;
@@ -551,6 +561,98 @@ const CartOrderSummary = ({
     return v.substring(0, 2);
   };
 
+
+  // ===== DESCUENTO POR DAYS 45 + TOTAL + desc_promo =====
+  let finalTotal = Number(total);
+
+  // 1️⃣ Verificar que todos los productos tienen desc_promo = 0/null
+  const allWithoutPromo = cartItems.every(item =>
+    item.desc_promo === 0 ||
+    item.desc_promo === null ||
+    item.desc_promo === undefined
+  );
+
+  // 2️⃣ Validar daysFortyFive
+  const hasDays45 = Boolean(daysFortyFive);
+
+  // 3️⃣ Aplicar descuentos según el total
+  if (allWithoutPromo && hasDays45) {
+
+    if (finalTotal > 15000) {
+      finalTotal = finalTotal * 0.60; // 40% descuento
+    } else if (finalTotal > 7000) {
+      finalTotal = finalTotal * 0.70; // 30% descuento
+    }
+
+    finalTotal = finalTotal.toFixed(2)
+  }
+
+
+  if (finalTotal < 3000) {
+    finalTotal = finalTotal + 150;
+  }
+
+  const validateCartBeforeOrder = async () => {
+    let hasErrors = false;
+
+    window.showToast(
+      `Validando disponibilidad de las prendas.`,
+      "info"
+    );
+    // Recorremos todo el carrito
+    for (const item of cartItems) {
+
+      const productId = item.id_articulo;
+      const size = item.selectedSize;
+      const color = item.selectedColor;
+      const requestedQuantity = item.quantity;
+
+      
+
+      try {
+        const stockValidation = await validateStock(
+          productId,
+          size,
+          color,
+          requestedQuantity
+        );
+
+        if (!stockValidation.isValid) {
+          hasErrors = true;
+
+          if (window.showToast) {
+            window.showToast(
+              `El producto ${productId} (${color} / ${size}) tiene solo ${stockValidation.availableStock} en stock.`,
+              "error"
+            );
+          }
+
+          // Si hay stock disponible, ajustar la cantidad
+          if (stockValidation.availableStock > 0) {
+            updateQuantity(
+              productId,
+              stockValidation.availableStock,
+              color,
+              size
+            );
+          } else {
+            // Si NO hay stock disponible → remover del carrito
+            removeItem(productId, color, size);
+          }
+        }
+      } catch (error) {
+
+        if (window.showToast) {
+          window.showToast(`Error al validar stock del producto ${productId}`, "error");
+        }
+
+        hasErrors = true;
+      }
+    }
+
+    return !hasErrors; // true si todo está bien, false si hubo problemas
+  };
+
   return (
     <aside className="cart-order-summary">
       {selectedAddress && (
@@ -601,7 +703,7 @@ const CartOrderSummary = ({
         </div>
         <div className="cart-order-summary__total-row">
           <span>Total:</span>
-          <span className="cart-order-summary__total-value">${total}</span>
+          <span className="cart-order-summary__total-value">${finalTotal}</span>
         </div>
       </div>
 
@@ -862,5 +964,6 @@ CartOrderSummary.propTypes = {
   onIntegratedPaymentSuccess: PropTypes.func,
   onIntegratedPaymentError: PropTypes.func
 };
+
 
 export default CartOrderSummary; 

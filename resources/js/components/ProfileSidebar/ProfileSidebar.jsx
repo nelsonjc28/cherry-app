@@ -19,7 +19,6 @@ const ProfileSidebar = () => {
           setUnreadCount(response.data.unread_count || 0);
         }
       } catch (error) {
-        console.error('Error fetching unread count:', error);
       }
     };
 

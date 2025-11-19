@@ -192,7 +192,6 @@ export const FavoritesProvider = ({ children }) => {
       
       return favoritesMap;
     } catch (error) {
-      console.error('Error checking multiple favorites:', error);
       return {};
     }
   }, [favorites, loadFavorites, isAdmin]);

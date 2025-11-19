@@ -62,12 +62,10 @@ export const checkProductsWithUserOffers = async (productIds) => {
 
       return detailsData.discounts;
     } catch (error) {
-      console.error('❌ checkProductsWithUserOffers: Error obteniendo detalles:', error);
       return {};
     }
     
   } catch (error) {
-    console.error('❌ checkProductsWithUserOffers: Error en la llamada:', error);
     return {};
   }
 };

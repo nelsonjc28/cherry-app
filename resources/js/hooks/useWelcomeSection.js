@@ -38,7 +38,6 @@ const useWelcomeSection = (limit = 4) => {
       lastFetchTime.current = now;
     } catch (err) {
       setError('Error al cargar las secciones de bienvenida');
-      console.error('Error en useWelcomeSection:', err);
     } finally {
       setLoading(false);
       isFetching.current = false;

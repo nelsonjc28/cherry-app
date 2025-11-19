@@ -33,12 +33,6 @@ const SessionExpiryAlert = ({ onExtendSession, onExpire }) => {
       const currentTime = Date.now();
       const timeUntilExpiry = expiryTime - currentTime;
       
-      console.log('SessionExpiryAlert: Calculando tiempo de expiración:', {
-        currentTime: new Date(currentTime),
-        timeUntilExpiryHours: Math.floor(timeUntilExpiry / (1000 * 60 * 60)),
-        timeUntilExpiryDays: Math.floor(timeUntilExpiry / (1000 * 60 * 60 * 24))
-      });
-
       // Si faltan menos de 24 horas para expirar, mostrar la alerta
       if (timeUntilExpiry <= 86400000 && timeUntilExpiry > 0) { // 24 horas = 86,400,000 ms
         setTimeLeft(Math.ceil(timeUntilExpiry / 3600000)); // Convertir a horas

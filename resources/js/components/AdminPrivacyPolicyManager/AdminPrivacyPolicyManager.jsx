@@ -96,7 +96,6 @@ const AdminPrivacyPolicyManager = () => {
       setEditorState({ title: '', version: '', content: '' });
       loadPolicies();
     } catch (error) {
-      console.error('Error al guardar el termino o condicion:', error);
       window.showToast('Error al guardar el termino o condicion', 'error');
     } finally {
       setLoading(false);

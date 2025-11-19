@@ -29,11 +29,9 @@ const UserNotifications = ({ isOpen, onClose }) => {
         setUnreadCount(response.data.unread_count || 0);;
       } else {
         setError(response.data.message || 'Error al cargar notificaciones');
-        console.error('API error:', response.data.message);
       }
     } catch (err) {
       setError('Error de conexión al cargar notificaciones');
-      console.error('Error fetching notifications:', err);
     } finally {
       setLoading(false);
     }
@@ -52,7 +50,6 @@ const UserNotifications = ({ isOpen, onClose }) => {
         setUnreadCount(Math.max(0, unreadCount - 1));
       }
     } catch (err) {
-      console.error('Error marking notification as read:', err);
     }
   };
 
@@ -68,7 +65,6 @@ const UserNotifications = ({ isOpen, onClose }) => {
         setUnreadCount(0);
       }
     } catch (err) {
-      console.error('Error marking all notifications as read:', err);
     }
   };
 

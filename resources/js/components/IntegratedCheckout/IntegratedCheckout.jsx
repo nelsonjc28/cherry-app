@@ -64,7 +64,6 @@ const IntegratedCheckout = ({
         setPaymentCards(response.data);
       }
     } catch (error) {
-      console.error('Error loading payment cards:', error);
       // Si no se pueden cargar las tarjetas, continuar sin ellas
       setPaymentCards([]);
     } finally {
@@ -195,7 +194,6 @@ const IntegratedCheckout = ({
       }
 
     } catch (error) {
-      console.error('Error en el pago:', error);
       
       const errorMessage = error.response?.data?.message || error.message || 'Error al procesar el pago';
       

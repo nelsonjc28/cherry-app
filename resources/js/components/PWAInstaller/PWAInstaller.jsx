@@ -92,7 +92,6 @@ const PWAInstaller = () => {
         
         // El prompt se limpia automáticamente en el hook
       } catch (error) {
-        console.error('Error durante la instalación:', error);
         if (window.Toast) {
           window.Toast.show('Error durante la instalación', 'error', 3000);
         }

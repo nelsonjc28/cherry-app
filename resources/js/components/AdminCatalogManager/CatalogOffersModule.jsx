@@ -16,7 +16,7 @@ const CatalogOffersModule = ({ onBack }) => {
   const [editingOffer, setEditingOffer] = useState(null);
   const [dragIndex, setDragIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
-  
+
   // Estados para el multiselect de usuarios
   const [selectedUsers, setSelectedUsers] = useState([]);
 
@@ -60,7 +60,7 @@ const CatalogOffersModule = ({ onBack }) => {
   // Función para cargar usuarios completos basándose en IDs
   const loadSelectedUsers = async (userIds) => {
     try {
-      
+
       const response = await axios.get('/api/admin/clients', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -69,23 +69,22 @@ const CatalogOffersModule = ({ onBack }) => {
 
       if (response.data.success && response.data.users) {
         // Filtrar solo los usuarios que están en la lista de IDs
-        const selectedUsers = response.data.users.filter(user => 
+        const selectedUsers = response.data.users.filter(user =>
           userIds.includes(user.id)
         );
-        
+
         setSelectedUsers(selectedUsers);
       } else {
         setSelectedUsers([]);
       }
     } catch (error) {
-      console.error('❌ Error cargando usuarios:', error);
       setSelectedUsers([]);
     }
   };
 
   const loadCatalogs = async () => {
     try {
-      
+
       const response = await axios.get('/api/admin/catalogs', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -96,11 +95,9 @@ const CatalogOffersModule = ({ onBack }) => {
       if (response.data.success && response.data.data) {
         setCatalogs(response.data.data);
       } else {
-        console.error('❌ Error en respuesta de catálogos:', response.data);
         setCatalogs([]);
       }
     } catch (error) {
-      console.error('❌ Error al cargar catálogos:', error);
       setCatalogs([]);
     }
   };
@@ -130,10 +127,10 @@ const CatalogOffersModule = ({ onBack }) => {
   const handleShowForm = async (offer = null) => {
     if (offer) {
       setEditingOffer(offer);
-      
+
       // Configurar productos: usar información completa si está disponible
-      const targetProducts = offer.products_info && offer.products_info.length > 0 
-        ? offer.products_info 
+      const targetProducts = offer.products_info && offer.products_info.length > 0
+        ? offer.products_info
         : offer.target_products || [];
 
       // Configurar el formData
@@ -153,7 +150,7 @@ const CatalogOffersModule = ({ onBack }) => {
         target_users: offer.target_users || [],
         target_products: targetProducts
       });
-      
+
       // Cargar usuarios seleccionados para edición
       // offer.target_users contiene IDs, necesitamos cargar los usuarios completos
       if (offer.target_users && offer.target_users.length > 0) {
@@ -161,7 +158,7 @@ const CatalogOffersModule = ({ onBack }) => {
       } else {
         setSelectedUsers([]);
       }
-      
+
       // Abrir modal después de cargar usuarios
       setShowForm(true);
     } else {
@@ -183,7 +180,7 @@ const CatalogOffersModule = ({ onBack }) => {
         target_products: []
       });
       setSelectedUsers([]);
-      
+
       // Abrir modal para nueva oferta
       setShowForm(true);
     }
@@ -191,20 +188,20 @@ const CatalogOffersModule = ({ onBack }) => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked, files } = e.target;
-    
+
     setFormData(prev => {
       const newData = {
         ...prev,
         [name]: type === 'checkbox' ? checked : type === 'file' ? files[0] : value
       };
-      
+
       // Si se cambia a "Envío gratis", limpiar productos y descuentos
       if (name === 'discount_category' && value === 'free_shipping') {
         newData.target_products = [];
         newData.discount_percentage = 0;
         newData.discount_type = 'percentage';
       }
-      
+
       return newData;
     });
   };
@@ -230,9 +227,9 @@ const CatalogOffersModule = ({ onBack }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     try {
-      
+
       const submitData = new FormData();
       Object.keys(formData).forEach(key => {
         // Para target_products y target_users, siempre enviar (incluso si están vacíos)
@@ -271,11 +268,9 @@ const CatalogOffersModule = ({ onBack }) => {
         setEditingOffer(null);
         loadAllOffers();
       } else {
-        console.error('❌ Error en respuesta del servidor:', response.data);
         setError('Error al guardar la oferta: ' + (response.data.message || 'Error desconocido'));
       }
     } catch (error) {
-      console.error('❌ Error al guardar oferta:', error);
       setError('Error al guardar la oferta: ' + error.message);
     }
   };
@@ -293,15 +288,14 @@ const CatalogOffersModule = ({ onBack }) => {
     });
 
     if (result.isConfirmed) {
-    try {
-      const response = await catalogOfferService.delete(offerId);
-      if (response.data.success) {
+      try {
+        const response = await catalogOfferService.delete(offerId);
+        if (response.data.success) {
           window.showToast('La oferta ha sido eliminada exitosamente', 'success');
-        loadAllOffers();
-      }
-    } catch (error) {
-        console.error('Error al eliminar oferta:', error);
-      setError('Error al eliminar la oferta');
+          loadAllOffers();
+        }
+      } catch (error) {
+        setError('Error al eliminar la oferta');
       }
     }
   };
@@ -330,7 +324,7 @@ const CatalogOffersModule = ({ onBack }) => {
 
   const handleDrop = async (e, dropIndex) => {
     e.preventDefault();
-    
+
     if (dragIndex === null || dragIndex === dropIndex) {
       setDragIndex(null);
       setDragOverIndex(null);
@@ -341,9 +335,9 @@ const CatalogOffersModule = ({ onBack }) => {
     const draggedItem = newOffers[dragIndex];
     newOffers.splice(dragIndex, 1);
     newOffers.splice(dropIndex, 0, draggedItem);
-    
+
     setOffers(newOffers);
-    
+
     try {
       const reorderData = newOffers.map((offer, index) => ({
         id: offer.id,
@@ -403,12 +397,12 @@ const CatalogOffersModule = ({ onBack }) => {
   // Vista de lista de tipos de descuento
   if (currentView === 'list') {
     const discountTypes = ['product_discount', 'buy_x_get_y', 'free_shipping'];
-    
+
     return (
       <div className="catalog-offers-module">
         <div className="catalog-offers-module__header">
           <div className="catalog-offers-module__title">
-            <button 
+            <button
               className="catalog-offers-module__back-btn"
               onClick={onBack}
               title="Volver al panel principal"
@@ -425,8 +419,8 @@ const CatalogOffersModule = ({ onBack }) => {
         {error && (
           <div className="alert alert-danger">
             {error}
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="btn-close"
               onClick={() => setError('')}
             >
@@ -447,13 +441,13 @@ const CatalogOffersModule = ({ onBack }) => {
                 const typeInfo = getDiscountTypeInfo(type);
                 const typeOffers = getOffersByType(type);
                 const activeOffers = typeOffers.filter(offer => offer.is_active);
-                
+
                 return (
                   <div key={type} className="catalog-offers-module__catalog-card">
                     <div className="catalog-offers-module__catalog-image">
-                      <div 
+                      <div
                         className="catalog-offers-module__no-image"
-                        style={{ 
+                        style={{
                           display: 'flex',
                           backgroundColor: typeInfo.color + '20',
                           color: typeInfo.color,
@@ -467,7 +461,7 @@ const CatalogOffersModule = ({ onBack }) => {
                     <div className="catalog-offers-module__catalog-info">
                       <h4>{typeInfo.name}</h4>
                       <p>Gestiona ofertas de {typeInfo.name.toLowerCase()}</p>
-                      
+
                       <div className="catalog-offers-module__catalog-stats">
                         <span className="catalog-offers-module__stat">
                           🎯 {typeOffers.length} ofertas totales
@@ -506,12 +500,12 @@ const CatalogOffersModule = ({ onBack }) => {
   // Vista de detalle del tipo de descuento
   const typeInfo = getDiscountTypeInfo(selectedDiscountType);
   const filteredOffers = getOffersByType(selectedDiscountType);
-  
+
   return (
     <div className="catalog-offers-module">
       <div className="catalog-offers-module__header">
         <div className="catalog-offers-module__title">
-          <button 
+          <button
             className="catalog-offers-module__back-btn"
             onClick={handleBackToList}
             title="Volver a la lista de tipos de descuento"
@@ -524,14 +518,14 @@ const CatalogOffersModule = ({ onBack }) => {
           Crea y gestiona ofertas de {typeInfo.name.toLowerCase()}
         </p>
         <div className="catalog-offers-module__header-actions">
-          <button 
+          <button
             className="catalog-offers-module__view-all-btn"
             onClick={handleBackToList}
             title="Ver todos los tipos de descuento"
           >
             📋 Ver Todos los Tipos
           </button>
-          <button 
+          <button
             className="catalog-offers-module__add-btn"
             onClick={() => handleShowForm()}
             title="Crear nueva oferta"
@@ -544,8 +538,8 @@ const CatalogOffersModule = ({ onBack }) => {
       {error && (
         <div className="alert alert-danger">
           {error}
-          <button 
-            type="button" 
+          <button
+            type="button"
             className="btn-close"
             onClick={() => setError('')}
           >
@@ -560,7 +554,7 @@ const CatalogOffersModule = ({ onBack }) => {
           <div className="catalog-offers-module__form">
             <div className="catalog-offers-module__form-header">
               <h3>{editingOffer ? 'Editar Oferta' : 'Nueva Oferta'}</h3>
-              <button 
+              <button
                 className="catalog-offers-module__form-close"
                 onClick={() => {
                   setShowForm(false);
@@ -632,36 +626,42 @@ const CatalogOffersModule = ({ onBack }) => {
               {formData.discount_category !== 'order_discount' && (
                 <div className="catalog-offers-module__form-row">
                   <div className="catalog-offers-module__form-group catalog-offers-module__form-group--full">
-                    <label>
-                      {formData.discount_category === 'free_shipping' ? 'Productos con envío gratis *' : 'Productos con descuento *'}
-                    </label>
-                    <ProductMultiSelect
-                      selectedProducts={formData.target_products}
-                      onProductsChange={handleProductsChange}
-                      placeholder="Buscar productos de Cherry API..."
-                      maxHeight="400px"
-                    />
-                    <small className="catalog-offers-module__form-help">
-                      {formData.discount_category === 'product_discount' && 
-                        'Selecciona los productos específicos que tendrán este descuento. Los productos se cargan desde la API de Cherry.'
-                      }
-                      {formData.discount_category === 'buy_x_get_y' && 
-                        'Selecciona los productos que aplican para la promoción Buy X Get Y. Los productos se cargan desde la API de Cherry.'
-                      }
-                      {formData.discount_category === 'free_shipping' && 
-                        'Selecciona los productos específicos que tendrán envío gratis. Los clientes no pagarán costo de envío para estos productos.'
-                      }
-                    </small>
+                    {typeInfo.name !== "Envío gratis" && (
+                      <>
+                        <label>
+                          {formData.discount_category === 'free_shipping' ? 'Productos con envío gratis *' : 'Productos con descuento *'}
+                        </label>
+                        <ProductMultiSelect
+                          selectedProducts={formData.target_products}
+                          onProductsChange={handleProductsChange}
+                          placeholder="Buscar productos de Cherry API..."
+                          maxHeight="400px"
+                        />
+
+
+                        <small className="catalog-offers-module__form-help">
+                          {formData.discount_category === 'product_discount' &&
+                            'Selecciona los productos específicos que tendrán este descuento. Los productos se cargan desde la API de Cherry.'
+                          }
+                          {formData.discount_category === 'buy_x_get_y' &&
+                            'Selecciona los productos que aplican para la promoción Buy X Get Y. Los productos se cargan desde la API de Cherry.'
+                          }
+                          {formData.discount_category === 'free_shipping' &&
+                            'Selecciona los productos específicos que tendrán envío gratis. Los clientes no pagarán costo de envío para estos productos.'
+                          }
+                        </small>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
-                    
+
               {/* Campos específicos para Buy X Get Y */}
               {formData.discount_category === 'buy_x_get_y' && (
                 <div className="catalog-offers-module__form-row">
                   <div className="catalog-offers-module__form-group">
                     <label>Cantidad a comprar (X) *</label>
-                      <input
+                    <input
                       type="number"
                       name="buy_quantity"
                       value={formData.buy_quantity || ''}
@@ -673,7 +673,7 @@ const CatalogOffersModule = ({ onBack }) => {
                     <small className="catalog-offers-module__form-help">
                       Cantidad mínima de productos que debe comprar el cliente
                     </small>
-                                </div>
+                  </div>
                   <div className="catalog-offers-module__form-group">
                     <label>Cantidad gratis (Y) *</label>
                     <input
@@ -688,38 +688,38 @@ const CatalogOffersModule = ({ onBack }) => {
                     <small className="catalog-offers-module__form-help">
                       Cantidad de productos que recibirá gratis
                     </small>
-                              </div>
-                            </div>
-                          )}
+                  </div>
+                </div>
+              )}
 
               {/* Campos de descuento para otros tipos - No mostrar para envío gratis */}
               {formData.discount_category !== 'buy_x_get_y' && formData.discount_category !== 'free_shipping' && (
-                             <div className="catalog-offers-module__form-row">
-                 <div className="catalog-offers-module__form-group">
-                   <label>Descuento *</label>
-                   <div className="catalog-offers-module__discount-inputs">
-                     <input
-                       type="number"
-                       name="discount_percentage"
-                       value={formData.discount_percentage}
-                       onChange={handleInputChange}
-                       required
-                       min="0"
-                       max="100"
-                       step="0.01"
-                       placeholder="0.00"
-                     />
-                     <select
-                       name="discount_type"
-                       value={formData.discount_type}
-                       onChange={handleInputChange}
-                     >
-                       <option value="percentage">%</option>
-                       <option value="fixed">$</option>
-                     </select>
-                   </div>
-                 </div>
-               </div>
+                <div className="catalog-offers-module__form-row">
+                  <div className="catalog-offers-module__form-group">
+                    <label>Descuento *</label>
+                    <div className="catalog-offers-module__discount-inputs">
+                      <input
+                        type="number"
+                        name="discount_percentage"
+                        value={formData.discount_percentage}
+                        onChange={handleInputChange}
+                        required
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        placeholder="0.00"
+                      />
+                      <select
+                        name="discount_type"
+                        value={formData.discount_type}
+                        onChange={handleInputChange}
+                      >
+                        <option value="percentage">%</option>
+                        <option value="fixed">$</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
               )}
 
               <div className="catalog-offers-module__form-row">
@@ -775,8 +775,8 @@ const CatalogOffersModule = ({ onBack }) => {
                 <button type="submit" className="catalog-offers-module__submit-btn">
                   {editingOffer ? 'Actualizar Oferta' : 'Crear Oferta'}
                 </button>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="catalog-offers-module__cancel-btn"
                   onClick={() => {
                     setShowForm(false);
@@ -808,21 +808,20 @@ const CatalogOffersModule = ({ onBack }) => {
             {filteredOffers.map((offer, index) => (
               <div
                 key={offer.id}
-                className={`catalog-offers-module__offer-item ${
-                  dragIndex === index ? 'dragging' : ''
-                } ${dragOverIndex === index ? 'drag-over' : ''}`}
+                className={`catalog-offers-module__offer-item ${dragIndex === index ? 'dragging' : ''
+                  } ${dragOverIndex === index ? 'drag-over' : ''}`}
                 draggable
                 onDragStart={(e) => handleDragStart(e, index)}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDrop={(e) => handleDrop(e, index)}
                 onDragEnd={handleDragEnd}
               >
-                                 <div className="catalog-offers-module__offer-preview">
-                   <div className="catalog-offers-module__offer-placeholder">
-                     🎯
-                   </div>
-                 </div>
-                
+                <div className="catalog-offers-module__offer-preview">
+                  <div className="catalog-offers-module__offer-placeholder">
+                    🎯
+                  </div>
+                </div>
+
                 <div className="catalog-offers-module__offer-info">
                   <div className="catalog-offers-module__offer-details">
                     <h5 className="catalog-offers-module__offer-title">{offer.title}</h5>
@@ -835,11 +834,11 @@ const CatalogOffersModule = ({ onBack }) => {
                       </span>
                     </div>
                     {offer.discount_category !== 'buy_x_get_y' && offer.discount_category !== 'free_shipping' && (
-                    <div className="catalog-offers-module__offer-discount">
-                      <span className="catalog-offers-module__discount-amount">
-                        {offer.discount_type === 'percentage' ? `${offer.discount_percentage}%` : `$${offer.discount_percentage}`}
-                      </span>
-                    </div>
+                      <div className="catalog-offers-module__offer-discount">
+                        <span className="catalog-offers-module__discount-amount">
+                          {offer.discount_type === 'percentage' ? `${offer.discount_percentage}%` : `$${offer.discount_percentage}`}
+                        </span>
+                      </div>
                     )}
                     {offer.discount_category === 'buy_x_get_y' && (
                       <div className="catalog-offers-module__offer-discount">
@@ -849,7 +848,7 @@ const CatalogOffersModule = ({ onBack }) => {
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="catalog-offers-module__offer-meta">
                     <div className="catalog-offers-module__offer-dates">
                       <span>Inicio: {formatDate(offer.start_date)}</span>
@@ -861,7 +860,7 @@ const CatalogOffersModule = ({ onBack }) => {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="catalog-offers-module__offer-actions">
                     <span className={`catalog-offers-module__status-badge ${getStatusBadge(offer)}`}>
                       {getStatusText(offer)}
