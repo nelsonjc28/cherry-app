@@ -16,14 +16,12 @@ class HomeCatalogController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-    
-            
             $catalogs = Catalog::active()
+                ->whereNotNull('display_order')
                 ->orderBy('display_order', 'ASC')
                 ->select(['id', 'name', 'description', 'code', 'image', 'display_order'])
                 ->limit(4) // Limitar a solo 4 catálogos
                 ->get();
-                
 
             return response()->json([
                 'success' => true,
@@ -45,7 +43,7 @@ class HomeCatalogController extends Controller
         try {
             $catalog = Catalog::where('id', $id)
                 ->where('is_active', true)
-                ->with(['pdfs' => function($query) {
+                ->with(['pdfs' => function ($query) {
                     $query->select('catalog_id', 'image_path', 'image_name', 'thumbnail_path')->orderBy('display_order');
                 }])
                 ->first();

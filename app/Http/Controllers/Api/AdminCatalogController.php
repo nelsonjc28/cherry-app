@@ -192,37 +192,25 @@ class AdminCatalogController extends Controller
     /**
      * Actualizar solo el orden de visualización de un catálogo
      */
-    public function updateOrder(Request $request, $id)
+    public function updateOrder(Request $request)
     {
+        /* dd($request->all()); */
         try {
-            $catalog = Catalog::findOrFail($id);
+            $arrId = [];
+            $catalog;
+            foreach ($request->catalogs as $key => $catalg) {
 
-            // Si se está asignando un display_order (agregando al home)
-            if ($request->has('display_order') && $request->display_order !== null) {
-                // Verificar que no se exceda el límite de 4 catálogos
-                $currentHomeCatalogs = Catalog::whereNotNull('display_order')->count();
-                if ($currentHomeCatalogs >= 4 && $catalog->display_order === null) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'No se pueden agregar más de 4 catálogos al home'
-                    ], 422);
-                }
+                $catalog = Catalog::where('id', $catalg['id'])->first();
+                $catalog->display_order = $catalg['display_order'];
+                $catalog->save();
+
+                $arrId[$key] = $catalg['id'];
+                /* $catalog = Catalog::findOrFail($i); */
             }
 
-            $validator = Validator::make($request->all(), [
-                'display_order' => 'nullable|integer|min:0'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Error de validación',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $catalog->update(['display_order' => $request->display_order]);
-
+            Catalog::whereNotIn('id', $arrId)->get()->each(function (Catalog $catalog) {
+                $catalog->update(['display_order', null]);
+            });
             return response()->json([
                 'success' => true,
                 'message' => 'Orden del catálogo actualizado exitosamente',
@@ -313,7 +301,7 @@ class AdminCatalogController extends Controller
                 // Crear directorios si no existen
                 $catalogImagesDir = public_path('catalog-images');
                 $thumbnailsDir = public_path('catalog-images/thumbnails');
-                
+
                 if (!file_exists($catalogImagesDir)) {
                     mkdir($catalogImagesDir, 0755, true);
                 }
@@ -324,7 +312,7 @@ class AdminCatalogController extends Controller
                 $displayOrder = CatalogPdf::where('catalog_id', $catalog->id)->max('display_order') ?? 0;
 
                 foreach ($request->file('images') as $index => $image) {
-                // Validar que el archivo sea válido
+                    // Validar que el archivo sea válido
                     if (!$image->isValid()) {
                         continue; // Saltar archivos inválidos
                     }
@@ -351,7 +339,8 @@ class AdminCatalogController extends Controller
                     $this->createThumbnail(
                         public_path('catalog-images/' . $imageName),
                         public_path('catalog-images/thumbnails/thumb_' . $imageName),
-                        300, 300
+                        300,
+                        300
                     );
 
                     $catalogImage = CatalogPdf::create([
@@ -791,10 +780,10 @@ class AdminCatalogController extends Controller
     {
         try {
             $catalog = Catalog::where('is_active', true)->findOrFail($id);
-            
+
             $perPage = 20; // 20 imágenes por página para lazy loading
             $page = request('page', 1);
-            
+
             $images = CatalogPdf::where('catalog_id', $id)
                 ->orderBy('display_order', 'asc')
                 ->paginate($perPage, ['*'], 'page', $page);
@@ -829,12 +818,12 @@ class AdminCatalogController extends Controller
         try {
             $catalogs = Catalog::where('is_active', true)
                 ->withCount('pdfs as images_count')
-                ->with(['activeImageGroups' => function($query) {
+                ->with(['activeImageGroups' => function ($query) {
                     $query->withCount('images as group_images_count');
                 }])
                 ->orderByRaw('ISNULL(display_order), display_order ASC')
                 ->get()
-                ->map(function($catalog) {
+                ->map(function ($catalog) {
                     return [
                         'id' => $catalog->id,
                         'name' => $catalog->name,
@@ -844,7 +833,7 @@ class AdminCatalogController extends Controller
                         'pdfs_count' => $catalog->images_count, // Para compatibilidad
                         'is_active' => $catalog->is_active,
                         'display_order' => $catalog->display_order,
-                        'image_groups' => $catalog->activeImageGroups->map(function($group) {
+                        'image_groups' => $catalog->activeImageGroups->map(function ($group) {
                             return [
                                 'id' => $group->id,
                                 'name' => $group->name,
@@ -884,10 +873,10 @@ class AdminCatalogController extends Controller
             $imageGroup = CatalogImageGroup::where('catalog_id', $catalogId)
                 ->where('is_active', true)
                 ->findOrFail($groupId);
-            
+
             $perPage = 1000; // Aumentado de 20 a 1000 imágenes por página
             $page = request('page', 1);
-            
+
             $images = CatalogPdf::where('catalog_id', $catalogId)
                 ->where('image_group_id', $groupId)
                 ->orderBy('display_order', 'asc')
@@ -923,16 +912,16 @@ class AdminCatalogController extends Controller
     {
         try {
             $catalog = Catalog::where('is_active', true)->findOrFail($catalogId);
-            
+
             $imageGroups = CatalogImageGroup::where('catalog_id', $catalogId)
                 ->active()
                 ->ordered()
                 ->withCount('images as images_count')
-                ->with(['images' => function($query) {
+                ->with(['images' => function ($query) {
                     $query->orderBy('display_order', 'asc')->limit(1); // Solo la primera imagen como cover
                 }])
                 ->get()
-                ->map(function($group) {
+                ->map(function ($group) {
                     return [
                         'id' => $group->id,
                         'name' => $group->name,
@@ -971,7 +960,7 @@ class AdminCatalogController extends Controller
         try {
             // Validar que el catálogo existe
             $catalog = Catalog::findOrFail($catalogId);
-            
+
             // Validar los datos del grupo
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
@@ -1023,7 +1012,6 @@ class AdminCatalogController extends Controller
                     'updated_at' => $imageGroup->updated_at
                 ]
             ], 201);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1040,7 +1028,7 @@ class AdminCatalogController extends Controller
         try {
             // Validar que el catálogo existe
             $catalog = Catalog::findOrFail($catalogId);
-            
+
             // Buscar el grupo de imágenes
             $imageGroup = CatalogImageGroup::where('catalog_id', $catalogId)
                 ->where('id', $groupId)
@@ -1055,7 +1043,7 @@ class AdminCatalogController extends Controller
 
             // Eliminar todas las imágenes asociadas al grupo
             $images = CatalogPdf::where('image_group_id', $groupId)->get();
-            
+
             foreach ($images as $image) {
                 // Eliminar archivos físicos del storage
                 if ($image->file_path && Storage::disk('public')->exists($image->file_path)) {
@@ -1064,7 +1052,7 @@ class AdminCatalogController extends Controller
                 if ($image->thumbnail_path && Storage::disk('public')->exists($image->thumbnail_path)) {
                     Storage::disk('public')->delete($image->thumbnail_path);
                 }
-                
+
                 // Eliminar registro de la base de datos
                 $image->delete();
             }
@@ -1076,7 +1064,6 @@ class AdminCatalogController extends Controller
                 'success' => true,
                 'message' => 'Grupo de imágenes eliminado exitosamente'
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1140,10 +1127,16 @@ class AdminCatalogController extends Controller
 
             // Redimensionar
             imagecopyresampled(
-                $thumbnailImage, $sourceImage,
-                0, 0, 0, 0,
-                $newWidth, $newHeight,
-                $sourceWidth, $sourceHeight
+                $thumbnailImage,
+                $sourceImage,
+                0,
+                0,
+                0,
+                0,
+                $newWidth,
+                $newHeight,
+                $sourceWidth,
+                $sourceHeight
             );
 
             // Guardar thumbnail
