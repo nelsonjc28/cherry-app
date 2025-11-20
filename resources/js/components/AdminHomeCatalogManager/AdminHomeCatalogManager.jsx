@@ -82,84 +82,73 @@ const AdminHomeCatalogManager = () => {
     e.preventDefault();
     
     if (!draggedCatalog) return;
-
+  
     try {
       setStatus('saving');
-      
+  
+      let updatedOrdered = [...orderedCatalogs];
+      let updatedAvailable = [...availableCatalogs];
+  
+      // --- 1️⃣ Mover catálogo desde "available" hacia "ordered"
       if (targetArea === 'ordered' && draggedCatalog.source === 'available') {
-        // Verificar límite de 4 catálogos
+  
         if (orderedCatalogs.length >= 4) {
           window.showToast('No se pueden agregar más de 4 catálogos al home', 'error');
           return;
         }
-        
-        // Agregar catálogo al home
-        try {
-          const payload = { display_order: orderedCatalogs.length + 1 };
-          const response = await api.patch(`/admin/catalogs/${draggedCatalog.id}/order`, payload);
-          
-          // Mover catálogo de disponible a ordenados
-          const updatedOrdered = [...orderedCatalogs, { ...draggedCatalog, display_order: orderedCatalogs.length + 1 }];
-          const updatedAvailable = availableCatalogs.filter(c => c.id !== draggedCatalog.id);
-          
-          setOrderedCatalogs(updatedOrdered);
-          setAvailableCatalogs(updatedAvailable);
-          
-          window.showToast('Catálogo agregado al home exitosamente', 'success');
-        } catch (error) {
-          window.showToast('Error al agregar catálogo al home: ' + (error.response?.data?.message || error.message), 'error');
-        }
-      } else if (targetArea === 'available' && draggedCatalog.source === 'ordered') {
-                          // Remover catálogo del home
-         try {
-           const payload = { display_order: null };
-           const response = await api.patch(`/admin/catalogs/${draggedCatalog.id}/order`, payload);
-           
-           // Mover catálogo de ordenados a disponible
-           const updatedOrdered = orderedCatalogs.filter(c => c.id !== draggedCatalog.id);
-           const updatedAvailable = [...availableCatalogs, { ...draggedCatalog, display_order: null }];
-           
-           setOrderedCatalogs(updatedOrdered);
-           setAvailableCatalogs(updatedAvailable);
-           
-           window.showToast('Catálogo removido del home exitosamente', 'success');
-         } catch (error) {
-           window.showToast('Error al remover catálogo del home: ' + (error.response?.data?.message || error.message), 'error');
-         }
-      } else if (targetArea === 'ordered' && draggedCatalog.source === 'ordered') {
-        // Reordenar dentro del home
-        const updatedOrdered = [...orderedCatalogs];
+  
+        updatedOrdered.push({ ...draggedCatalog });
+  
+        updatedAvailable = updatedAvailable.filter(c => c.id !== draggedCatalog.id);
+      }
+  
+      // --- 2️⃣ Mover catálogo desde "ordered" hacia "available"
+      else if (targetArea === 'available' && draggedCatalog.source === 'ordered') {
+  
+        updatedOrdered = updatedOrdered.filter(c => c.id !== draggedCatalog.id);
+  
+        updatedAvailable.push({ ...draggedCatalog });
+      }
+  
+      // --- 3️⃣ Reordenar dentro de ordered
+      else if (targetArea === 'ordered' && draggedCatalog.source === 'ordered') {
+  
         const draggedIndex = updatedOrdered.findIndex(c => c.id === draggedCatalog.id);
-        const dropIndex = orderedCatalogs.findIndex(c => c.id === e.target.closest('[data-catalog-id]')?.dataset.catalogId);
-        
+        const dropIndex = orderedCatalogs.findIndex(
+          c => c.id === e.target.closest('[data-catalog-id]')?.dataset.catalogId
+        );
+  
         if (draggedIndex !== -1 && dropIndex !== -1) {
-          const [removed] = updatedOrdered.splice(draggedIndex, 1);
-          updatedOrdered.splice(dropIndex, 0, removed);
-          
-          // Actualizar UI inmediatamente para mostrar nuevos números
-          setOrderedCatalogs(updatedOrdered);
-          
-          // Actualizar display_order para todos los catálogos en el backend
-          const updates = updatedOrdered.map((catalog, index) => ({
-            id: catalog.id,
-            display_order: index + 1
-          }));
-          
-          // Sincronizar con la base de datos
-          await Promise.all(updates.map(async (update) => {
-            const payload = { display_order: update.display_order };
-            return api.patch(`/admin/catalogs/${update.id}/order`, payload);
-          }));
-          
-          window.showToast('Orden del home actualizado exitosamente', 'success');
+          const [moved] = updatedOrdered.splice(draggedIndex, 1);
+          updatedOrdered.splice(dropIndex, 0, moved);
         }
       }
-      
+  
+      // -----------------------------------------
+      // 🔥 4️⃣ GENERAR ARREGLO FINAL A ENVIAR
+      // -----------------------------------------
+      const payload = updatedOrdered.map((catalog, index) => ({
+        id: catalog.id,
+        display_order: index + 1
+      }));
+  
+      // -----------------------------------------
+      // 🔥 5️⃣ ENVIAR AL BACKEND EN UN SOLO REQUEST
+      // -----------------------------------------
+      await api.post('admin/catalogs/update/order', { catalogs: payload });
+  
+      // -----------------------------------------
+      // 🔥 6️⃣ ACTUALIZAR ESTADO LOCAL
+      // -----------------------------------------
+      setOrderedCatalogs(updatedOrdered);
+      setAvailableCatalogs(updatedAvailable);
+  
+      window.showToast('Catálogos actualizados correctamente', 'success');
       setStatus('saved');
       setTimeout(() => setStatus('ready'), 2000);
+  
     } catch (error) {
       window.showToast('Error al actualizar el orden', 'error');
-      setStatus('ready');
     } finally {
       setDraggedCatalog(null);
     }

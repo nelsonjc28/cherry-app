@@ -141,8 +141,12 @@ class ProductCacheManager {
         return p.opc_nuevo === 'S';
       }
 
+      const [year, month, day] = p.fecha_alta.split('-').map(Number);
+      const fechaMovimiento = new Date(year, month - 1, day);
+      console.log('se ejecuto')
+      return !isNaN(fechaMovimiento.getTime()) && fechaMovimiento >= sixtyDaysAgo ? p : false;
       // Revisar cada detalle del producto
-      return p.detalles.some(detalle => {
+      /* return p.detalles.some(detalle => {
         if (!detalle.fechaMovimiento) return false;
 
         try {
@@ -155,7 +159,7 @@ class ProductCacheManager {
         } catch (error) {
           return false;
         }
-      });
+      }); */
     });
   }
 

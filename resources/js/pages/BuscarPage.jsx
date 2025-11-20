@@ -57,7 +57,6 @@ const BuscarPage = () => {
       try {
         const response = await publicCatalogService.getAll();
 
-        console.log(response.data.catalogs);
         // Manejar diferentes estructuras de respuesta
         let catalogsData = [];
 
@@ -229,7 +228,6 @@ const BuscarPage = () => {
   // Filtrar productos basado en filtros adicionales
   useEffect(() => {
     let filtered = [...products];
-    console.log(filters.catalog);
 
     // Filtrar por catálogo
     if (filters.catalog && filters.catalog !== 'Todos los catálogos' && filters.catalog !== 'Seleccione') {
@@ -449,7 +447,7 @@ const BuscarPage = () => {
               </div>
             </div>
           </div>
-          <div className="container">
+          {/* <div className="container"> */}
             {/* Header de búsqueda */}
             <div className="buscar-header">
               <h1>Resultados de búsqueda</h1>
@@ -480,7 +478,7 @@ const BuscarPage = () => {
               </aside>
 
               {/* Resultados */}
-              <div className="buscar-results-section">
+              {/* <div className="buscar-results-section"> */}
                 {loading ? (
                   <div className="buscar-loading">
                     <div className="loading-spinner"></div>
@@ -521,9 +519,9 @@ const BuscarPage = () => {
                     />
                   </>
                 )}
-              </div>
+              {/* </div> */}
             </div>
-          </div>
+          {/* </div> */}
           {/* Mobile filter modal */}
           {isFilterModalOpen && (
             <div className="nuevos-page__filter-modal-overlay" onClick={toggleFilterModal}>
@@ -538,7 +536,7 @@ const BuscarPage = () => {
                   availableSizes={availableSizes}
                   catalogs={catalogs}
                   catalogLoading={catalogLoading}
-                  hideCatalogSelector={false}
+                  hideCatalogSelector={true}
                 />
               </div>
             </div>

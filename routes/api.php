@@ -212,7 +212,7 @@ Route::delete('/admin/catalogs/{catalogId}/pdfs/{pdfId}', [AdminCatalogControlle
         Route::get('/admin/catalogs/{id}/products', [AdminCatalogController::class, 'getCatalogProducts']);
         Route::delete('/admin/catalogs/{catalogId}/products/{productId}', [AdminCatalogController::class, 'removeProduct']);
         Route::post('/admin/catalogs/{id}/reorder', [AdminCatalogController::class, 'reorder']);
-        Route::patch('/admin/catalogs/{id}/order', [AdminCatalogController::class, 'updateOrder']);
+        Route::post('/admin/catalogs/update/order', [AdminCatalogController::class, 'updateOrder']);
         Route::delete('/admin/catalogs/{catalogId}/image-groups/{groupId}', [AdminCatalogController::class, 'deleteImageGroup']);
         
         // Catalog Offers routes - require authentication and admin role

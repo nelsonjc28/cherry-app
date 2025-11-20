@@ -120,7 +120,7 @@ const CatalogFilter = ({
       {/* Mobile header */}
       {isMobile && (
         <div className="filter-mobile-header">
-          <h2>Filtros</h2>
+          <h6>Filtros</h6>
           <button className="close-btn" onClick={onClose}>×</button>
         </div>
       )}
