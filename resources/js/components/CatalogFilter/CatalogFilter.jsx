@@ -128,17 +128,18 @@ const CatalogFilter = ({
       <div className="filter-content">
 
         {/* Filter button */}
-        <CustomButton
-          onClick={() => setShowAccordion((prev) => !prev)}
-          iconLeft={<img className="filter-icon" src={getIconPath('Filter.svg')} alt="Comparar clientes" />}
-          iconRight={<img src={getIconPath('Chevron Down.svg')} alt="Chevro" />}
-          variant="outlined"
-          size="medium"
-          className="filters-btn"
-        >
-          Filtros
-        </CustomButton>
-
+        {!isMobile && (
+          <CustomButton
+            onClick={() => setShowAccordion((prev) => !prev)}
+            iconLeft={<img className="filter-icon" src={getIconPath('Filter.svg')} alt="Comparar clientes" />}
+            iconRight={<img src={getIconPath('Chevron Down.svg')} alt="Chevro" />}
+            variant="outlined"
+            size="medium"
+            className="filters-btn"
+          >
+            Filtros
+          </CustomButton>
+        )}
         {/* Accordion content */}
         {showAccordion && (
           <>
@@ -180,22 +181,22 @@ const CatalogFilter = ({
                   <img src={getIconPath('Chevron Down.svg')} alt="Filter" className={`chevron ${expandedSections.clothing ? 'expanded' : ''}`} />
                 </button>
                 {expandedSections.category && (
-                    <select
-                      value={filters.category || ''}
-                      onChange={(e) => handleFilterChange('category', e.target.value)}
-                      className="filter-select"
-                    >
-                      <option value="">Todas las categorías</option>
-                      {availableCategories.map((category) => (
-                        <option key={category.code} value={category.code}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
+                  <select
+                    value={filters.category || ''}
+                    onChange={(e) => handleFilterChange('category', e.target.value)}
+                    className="filter-select"
+                  >
+                    <option value="">Todas las categorías</option>
+                    {availableCategories.map((category) => (
+                      <option key={category.code} value={category.code}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
                 )}
               </div>
             )}
-            <div className="filter-section">
+            {/* <div className="filter-section">
               <h3 className="filter-title">Filtrar por:</h3>
               <div className="radio-group">
                 {availabilityOptions.map((option) => (
@@ -230,7 +231,7 @@ const CatalogFilter = ({
                   </label>
                 ))}
               </div>
-            </div>
+            </div> */}
 
             <div className="accordion-filter-content">
               {/* Sort by */}

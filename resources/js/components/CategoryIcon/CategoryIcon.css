@@ -74,13 +74,13 @@
 
 @media (max-width: 576px) {
   .icon-container {
-    width: 70px;
-    height: 70px;
+    width: 90px;
+    height: 90px;
   }
   
   .category-image {
-    width: 58px;
-    height: 62px;
+    width: 68px;
+    height: 72px;
   }
   
   .category-name {

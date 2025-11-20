@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import OrderSummaryTable from '../OrderSummaryTable/OrderSummaryTable';
 import './CartDetailsProductCard.css';
+import { Link } from 'react-router-dom';
+
 
 function MobileView({
   image,
@@ -25,7 +27,11 @@ function MobileView({
           <img src={image} alt={title} className="cart-details-product-card__image" loading="lazy" />
         </div>
         <div className="cart-details-product-card__info-block">
-          <div className="cart-details-product-card__title">{title}</div>
+          <div className="cart-details-product-card__title">
+            <Link to={`/producto/${sku}`} className="catalog-product-title-link">
+              {title}
+            </Link>
+          </div>
           <div className="cart-details-product-card__price-block">
             <div className="cart-details-product-card__unit-price-label">Precio unidad</div>
             <div className="cart-details-product-card__unit-price-value">${(price ? parseFloat(price).toFixed(2) : '0.00')}</div>
