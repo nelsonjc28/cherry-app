@@ -61,18 +61,11 @@
   box-shadow: 0 2px 4px rgba(255, 68, 68, 0.3);
 }
 
-/* New badge */
+/* New badge - fondo negro con letras blancas */
 .catalog-new-badge {
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  background: #6f7777;
-  color: white;
-  padding: 3px 6px;
-  border-radius: 3px;
-  font-size: 0.65rem;
-  font-weight: 600;
-  z-index: 2;
+  background: #000000 !important;
+  color: white !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 

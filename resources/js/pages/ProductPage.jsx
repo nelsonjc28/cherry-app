@@ -164,7 +164,9 @@ const ProductPage = () => {
       if (product?.userOffer?.discount_percentage > 0) {
         discount = Math.round(product.userOffer.discount_percentage);
       } else if (product?.desc_promo && product.desc_promo > 0) {
-        discount = Math.round(product.desc_promo);
+        // Restar 10% al descuento de la API externa (solo si NO es oferta de usuario)
+        const reducedDiscount = Math.max(0, product.desc_promo - 10);
+        discount = Math.round(reducedDiscount);
       } else if (product?.discount && product.discount > 0) {
         discount = Math.round(product.discount);
       }
@@ -247,7 +249,9 @@ const ProductPage = () => {
         if (product?.userOffer?.discount_percentage > 0) {
           discount = Math.round(product.userOffer.discount_percentage);
         } else if (product?.desc_promo && product.desc_promo > 0) {
-          discount = Math.round(product.desc_promo);
+          // Restar 10% al descuento de la API externa (solo si NO es oferta de usuario)
+          const reducedDiscount = Math.max(0, product.desc_promo - 10);
+          discount = Math.round(reducedDiscount);
         } else if (product?.discount && product.discount > 0) {
           discount = Math.round(product.discount);
         }
@@ -556,6 +560,15 @@ const ProductPage = () => {
 
   // Handle add to cart
   const handleAddToCart = async () => {
+    // Validar que el producto tenga precio mayor a 0
+    const basePrice = precio1 || 0;
+    if (basePrice <= 0) {
+      if (window.showToast) {
+        window.showToast('Este producto no está disponible para compra. El precio no está configurado.', 'error');
+      }
+      return;
+    }
+
     if (!selectedColor) {
       if (window.showToast) {
         window.showToast('Por favor selecciona un color', 'error');
@@ -841,13 +854,15 @@ const ProductPage = () => {
 
   // Calcular descuento con prioridades
   const calculateDiscountPercentage = () => {
-    // PRIORIDAD 1: Descuento personalizado del usuario (ya procesado)
+    // PRIORIDAD 1: Descuento personalizado del usuario (ya procesado) - NO reducir
     if (hasUserOffer && userOffer && userOffer.discount_percentage > 0) {
       return Math.round(userOffer.discount_percentage);
     }
-    // PRIORIDAD 2: Descuento general desde la API (desc_promo) - usar directamente desc_promo
+    // PRIORIDAD 2: Descuento general desde la API (desc_promo) - reducir 10% a descuentos de API externa
     if (product?.desc_promo && product.desc_promo > 0) {
-      return Math.round(product.desc_promo);
+      // Restar 10% al descuento de la API externa (solo si NO es oferta de usuario)
+      const reducedDiscount = Math.max(0, product.desc_promo - 10);
+      return Math.round(reducedDiscount);
     }
 
     // PRIORIDAD 3: Descuento ya procesado en product.discount

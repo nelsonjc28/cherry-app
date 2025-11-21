@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link, useNavigate } from 'react-router-dom';
 import CategoryIcon from '../components/CategoryIcon/CategoryIcon';
-import CherryButton from '../components/CherryButton/CherryButton';
 import { getCategoryIconPath, getIconPath } from '../utils/assetPaths';
+import '../components/CategoryIcon/CategoryIcon.css';
 import useCategories from '../hooks/useCategories';
 import useMenuCategories from '../hooks/useMenuCategories';
 import './CategoriasPage.css';
@@ -12,7 +12,7 @@ const CategoriasPage = () => {
   const navigate = useNavigate();
   const { categories, loading, error } = useCategories();
   const { menuCategories, loading: menuLoading } = useMenuCategories();
-  
+
   // Priorizar las categorías del menú si están disponibles
   const displayCategories = menuCategories.length > 0 ? menuCategories : categories;
   const displayLoading = menuLoading || loading;
@@ -42,18 +42,18 @@ const CategoriasPage = () => {
     };
 
     const lowerName = categoryName.toLowerCase().trim();
-    
+
     // Si existe en el mapeo, retornar el singular
     if (pluralMap[lowerName]) {
       return pluralMap[lowerName];
     }
-    
+
     // Reglas generales para español
     // Si termina en "ones" (como "pantalones"), cambiar a "ón"
     if (lowerName.endsWith('ones')) {
       return lowerName.slice(0, -4) + 'ón';
     }
-    
+
     // Si termina en "es" después de consonante, quitar "es"
     if (lowerName.endsWith('es') && lowerName.length > 3) {
       const beforeEs = lowerName[lowerName.length - 3];
@@ -61,12 +61,12 @@ const CategoriasPage = () => {
         return lowerName.slice(0, -2);
       }
     }
-    
+
     // Si termina en "s" simple, quitarla
     if (lowerName.endsWith('s') && !lowerName.endsWith('ss')) {
       return lowerName.slice(0, -1);
     }
-    
+
     // Si no se puede convertir, retornar el original
     return categoryName;
   };
@@ -74,7 +74,7 @@ const CategoriasPage = () => {
   // Función para manejar clic en categoría (igual que en el header)
   const handleCategoryClick = (category, e) => {
     e.preventDefault();
-    
+
     // Hacer búsqueda por nombre de categoría en singular
     const singularName = pluralToSingular(category.name);
     const searchParams = new URLSearchParams();
@@ -89,7 +89,7 @@ const CategoriasPage = () => {
         <Helmet>
           <title>Categorías - Cherry Central</title>
         </Helmet>
-        
+
         <main className="categorias-page">
           <div className="container">
             <div className="categorias-loading">
@@ -115,7 +115,6 @@ const CategoriasPage = () => {
           <div className="categorias-header">
             <h1>Nuestras Categorías</h1>
             <p>Explora nuestra amplia selección de moda femenina organizada por categorías</p>
-
           </div>
 
           {/* Iconos de categorías */}
@@ -124,18 +123,48 @@ const CategoriasPage = () => {
               const iconPath = getCategoryIconPath(category.slug || category.name);
               return (
                 <div key={category.id} className="categoria-icon-wrapper">
-                  <Link 
+                  <Link
                     to={`/categoria/${category.slug || category.name}`}
                     onClick={(e) => handleCategoryClick(category, e)}
                   >
-                    <CategoryIcon 
-                      name={category.name} 
-                      icon={iconPath} 
+                    <CategoryIcon
+                      name={category.name}
+                      icon={iconPath}
                     />
                   </Link>
                 </div>
               );
             })}
+            <div class="categoria-icon-wrapper">
+              <a href="#" data-discover="true">
+                <div class="category-icon" onClick={() => navigate('/buscar')}>
+                  <p class="category-name">Ver Todos</p>
+                  <div class="icon-container">
+                    <img alt="Categoría: Capas" class="category-image" loading="lazy" src={getIconPath('Package.svg')}>
+                    </img>
+                  </div>
+                </div>
+              </a>
+            </div>
+            {/* <div className="categoria-icon-wrapper">
+              <div
+                className="category-icon"
+                onClick={() => navigate('/buscar')}
+                style={{ cursor: 'pointer' }}
+              >
+                <p className="category-name">Ver Todos</p>
+                <div className="icon-container">
+                  <img
+                    src={getIconPath('Package.svg')}
+                    alt="Ver todos los productos"
+                    className="category-image"
+                    loading="lazy"
+                  />
+                </div>
+              </div>
+            </div> */}
+            {/* Icono para ver todos los productos */}
+
           </div>
 
         </div>

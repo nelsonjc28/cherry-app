@@ -34,6 +34,13 @@
   line-height: 1.6;
   max-width: 600px;
   margin: 0 auto;
+  margin-bottom: 24px;
+}
+
+.categorias-header__actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
 }
 
 /* Iconos de categorías */
@@ -50,8 +57,18 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-start;
   gap: 10px;
   cursor: pointer;
+  align-self: stretch;
+}
+
+.categoria-icon-wrapper > .category-icon {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .categoria-icon-wrapper a {

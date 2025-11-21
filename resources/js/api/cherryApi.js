@@ -333,8 +333,14 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
   
   // Nueva lógica: usar desc_promo como porcentaje de descuento directo sobre precio1
   const originalPrice = apiProduct.precio1 || apiProduct.precio || apiProduct.price || 0;
-  const discountPromo = apiProduct.desc_promo || 0; // Solo usar desc_promo real de la API
+  let discountPromo = apiProduct.desc_promo || 0; // Solo usar desc_promo real de la API
   const productId = apiProduct.id_articulo || apiProduct.id;
+  
+  // Restar 10% a los descuentos de la API externa (desc_promo)
+  // Esto NO aplica a ofertas de usuario (que se procesan después)
+  if (discountPromo > 0) {
+    discountPromo = Math.max(0, discountPromo - 10); // Restar 10% y asegurar que no sea negativo
+  }
   
   // Calcular precio final aplicando desc_promo como porcentaje de descuento
   let discountPercentage = 0;
@@ -413,7 +419,7 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
     dtu: apiProduct.DTU || apiProduct.dtu,
     // Campos adicionales para debugging
     precio1: apiProduct.precio1,
-    desc_promo: apiProduct.desc_promo,
+    desc_promo: discountPromo, // Usar el desc_promo reducido (con -10%)
     // Mantener detalles originales para filtros
     detalles: apiProduct.detalles || []
   };

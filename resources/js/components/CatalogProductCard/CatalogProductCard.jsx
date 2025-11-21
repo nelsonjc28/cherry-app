@@ -149,16 +149,16 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
           className="catalog-favorite-btn"
         />
 
-        {/* Offer badge if product has discount */}
+        {/* Offer badge if product has discount - prioridad sobre badge Nuevo */}
         {hasOffer && (
           <span className="catalog-offer-badge">
             {!isMobile && "Rebaja "}{discountPercentage}%
           </span>
         )}
 
-        {/* New badge if product is new */}
+        {/* New badge if product is new - solo mostrar si NO tiene oferta */}
         {isNew && !hasOffer && (
-          <span className="catalog-new-badge">Nuevo</span>
+          <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
         )}
       </div>
       

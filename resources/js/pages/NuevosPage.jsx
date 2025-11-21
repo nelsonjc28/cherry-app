@@ -234,8 +234,15 @@ const NuevosPage = () => {
         const newProducts = result.products || result || [];
 
         const productsWithOffers = await applyUserOffersToProducts(newProducts);
-        setAllProducts(productsWithOffers);
-        setFilteredProducts([...productsWithOffers]);
+        
+        // Asegurar que todos los productos tengan isNew: true explícitamente
+        const productsWithNewFlag = productsWithOffers.map(product => ({
+          ...product,
+          isNew: true // Todos los productos en esta página son nuevos
+        }));
+        
+        setAllProducts(productsWithNewFlag);
+        setFilteredProducts([...productsWithNewFlag]);
 
       } catch (error) {
         setAllProducts([]);
