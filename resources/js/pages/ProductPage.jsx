@@ -63,35 +63,264 @@ const ProductPage = () => {
 
   const handleShareCatalog = useCallback(async () => {
     try {
-      console.log(product.id_articulo);
-      // Seleccionamos el elemento que queremos capturar
-      const element = document.getElementById(`product-${product.id_articulo}`);
-      if (!element) throw new Error("No se encontró el elemento para capturar");
-  
-      // Tomamos la captura de pantalla del elemento
-      const canvas = await html2canvas(element);
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
-  
-      // Crear archivo para compartir
-      const file = new File([blob], `${product.descripcion}.png`, { type: "image/png" });
-  
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: product.descripcion,
-          text: `Mira este producto: ${product.descripcion}`,
-          files: [file]   // 👈 Aquí va la captura
-        });
-      } else {
-        // Fallback a WhatsApp si no soporta compartir archivos
-        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(
-          `Mira este producto: ${product.descripcion}\n${window.location.href}`
-        )}`;
-        window.open(whatsappUrl, "_blank");
+      // Validar que el producto existe
+      if (!product) {
+        throw new Error("No hay información del producto disponible");
       }
-  
+
+      // Mostrar mensaje de carga
+      if (window.showToast) {
+        window.showToast('Capturando imagen del producto...', 'info');
+      }
+
+      // Cargar html2canvas desde CDN
+      let html2canvas;
+      
+      // Si ya está cargado, usarlo directamente
+      if (window.html2canvas) {
+        html2canvas = window.html2canvas;
+      } else {
+        // Cargar desde CDN
+        await new Promise((resolve, reject) => {
+          // Verificar si ya existe un script cargando html2canvas
+          const existingScript = document.querySelector('script[src*="html2canvas"]');
+          if (existingScript) {
+            existingScript.addEventListener('load', () => {
+              html2canvas = window.html2canvas;
+              resolve();
+            });
+            existingScript.addEventListener('error', () => {
+              reject(new Error("No se pudo cargar html2canvas"));
+            });
+            return;
+          }
+
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+          script.async = true;
+          script.onload = () => {
+            html2canvas = window.html2canvas;
+            if (!html2canvas) {
+              reject(new Error("html2canvas no se inicializó correctamente"));
+            } else {
+              resolve();
+            }
+          };
+          script.onerror = () => reject(new Error("No se pudo cargar html2canvas desde el CDN"));
+          document.head.appendChild(script);
+        });
+      }
+
+      if (!html2canvas) {
+        throw new Error("html2canvas no está disponible");
+      }
+
+      // Esperar un momento para asegurar que el DOM está completamente renderizado
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // Buscar el contenedor principal del producto que incluye galería e info
+      const productContainer = document.querySelector('.product-page__container');
+      
+      if (!productContainer) {
+        throw new Error("No se encontró el contenedor del producto");
+      }
+
+      // Crear un contenedor temporal que incluya solo la galería y las opciones (hasta las tallas)
+      const galleryElement = productContainer.querySelector('.product-page__gallery');
+      const infoElement = productContainer.querySelector('.product-page__info');
+      
+      if (!galleryElement || !infoElement) {
+        throw new Error("No se encontraron los elementos del producto para capturar");
+      }
+
+      // Encontrar dónde terminan las tallas (antes del botón de agregar al carrito)
+      const sizeOptions = infoElement.querySelector('.product-page__size-options');
+      const sizeOptionContainer = sizeOptions ? sizeOptions.closest('.product-page__option') : null;
+      
+      // Crear un elemento temporal que contenga solo lo que queremos capturar
+      const tempContainer = document.createElement('div');
+      tempContainer.style.position = 'absolute';
+      tempContainer.style.left = '-9999px';
+      tempContainer.style.top = '0';
+      tempContainer.style.width = productContainer.offsetWidth + 'px';
+      tempContainer.style.backgroundColor = '#ffffff';
+      
+      // Clonar la galería
+      const clonedGallery = galleryElement.cloneNode(true);
+      tempContainer.appendChild(clonedGallery);
+      
+      // Clonar la información hasta las tallas
+      const clonedInfo = infoElement.cloneNode(true);
+      // Remover todo después de las tallas
+      if (sizeOptionContainer) {
+        const allOptions = clonedInfo.querySelectorAll('.product-page__option');
+        allOptions.forEach((option, index) => {
+          // Mantener solo hasta la opción de tallas (Paso 2)
+          if (index > 1) { // Después de colores (0) y tallas (1)
+            option.remove();
+          }
+        });
+      }
+      tempContainer.appendChild(clonedInfo);
+      
+      document.body.appendChild(tempContainer);
+
+      // Capturar el contenedor temporal
+      const canvas = await html2canvas(tempContainer, {
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: '#ffffff',
+        scale: 1,
+        logging: false,
+        width: tempContainer.offsetWidth,
+        height: tempContainer.scrollHeight
+      });
+
+      // Remover el contenedor temporal
+      document.body.removeChild(tempContainer);
+
+      // Convertir canvas a blob
+      const blob = await new Promise(resolve => {
+        canvas.toBlob(resolve, "image/png", 0.95);
+      });
+
+      if (!blob) {
+        throw new Error("No se pudo generar la imagen");
+      }
+
+      // Crear archivo para compartir
+      const fileName = `${product?.descripcion || 'producto'}-${Date.now()}.png`;
+      const file = new File([blob], fileName, { type: "image/png" });
+
+      // Construir el texto de compartir según el formato solicitado
+      const buildShareText = () => {
+        const productName = product?.descripcion || 'Producto';
+        const basePrice = product?.precio1 || 0;
+        
+        // Calcular descuento y precio final
+        let discount = 0;
+        let finalPrice = basePrice;
+        
+        // Calcular descuento (misma lógica que en el componente)
+        if (product?.userOffer?.discount_percentage > 0) {
+          discount = Math.round(product.userOffer.discount_percentage);
+        } else if (product?.desc_promo && product.desc_promo > 0) {
+          discount = Math.round(product.desc_promo);
+        } else if (product?.discount && product.discount > 0) {
+          discount = Math.round(product.discount);
+        }
+        
+        // Calcular precio final
+        if (discount > 0 && basePrice > 0) {
+          finalPrice = basePrice - (basePrice * (discount / 100));
+        } else if (product?.price && product.price !== basePrice) {
+          finalPrice = product.price;
+        }
+        
+        const hasDiscount = discount > 0;
+
+        let text = `Checa este nuevo producto que tenemos para ti!!\n\n`;
+        text += `${productName}\n\n`;
+
+        if (hasDiscount) {
+          // Precio tachado (original) y precio con descuento
+          text += `~~$${basePrice.toFixed(2)}~~\n`;
+          text += `$${finalPrice.toFixed(2)} -${discount}%\n\n`;
+        } else {
+          // Solo precio sin descuento
+          text += `$${basePrice.toFixed(2)}\n\n`;
+        }
+
+        text += `Pregunta por colores y tallas disponibles`;
+
+        return text;
+      };
+
+      const shareText = buildShareText();
+
+      // Usar Web Share API (muestra el diálogo nativo de compartir de la PC/móvil)
+      if (navigator.share) {
+        try {
+          // Verificar si puede compartir archivos
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            // Compartir con archivo (imagen) y texto
+            await navigator.share({
+              title: product?.descripcion || 'Producto',
+              text: shareText,
+              files: [file]
+            });
+          } else {
+            // Compartir solo texto si no soporta archivos
+            await navigator.share({
+              title: product?.descripcion || 'Producto',
+              text: shareText
+            });
+            
+            // Descargar la imagen por separado
+            const dataUrl = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = fileName;
+            link.href = dataUrl;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }
+          
+          if (window.showToast) {
+            window.showToast('¡Imagen compartida exitosamente!', 'success');
+          }
+          return;
+        } catch (shareError) {
+          // Si el usuario cancela, no mostrar error
+          if (shareError.name === 'AbortError') {
+            return;
+          }
+          // Continuar con el fallback si falla
+          console.log('Error al compartir:', shareError);
+        }
+      }
+
+      // Fallback: Descargar imagen y abrir WhatsApp Web
+      const dataUrl = canvas.toDataURL('image/png');
+      
+      // Descargar la imagen automáticamente
+      const link = document.createElement('a');
+      link.download = fileName;
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Abrir WhatsApp Web con el texto formateado
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText + '\n\n📸 La imagen se ha descargado, puedes adjuntarla desde tu galería')}`;
+      
+      // Abrir WhatsApp después de un pequeño delay
+      setTimeout(() => {
+        window.open(whatsappUrl, "_blank");
+      }, 500);
+
+      if (window.showToast) {
+        window.showToast('Imagen descargada. Abriendo WhatsApp...', 'info');
+      }
+
     } catch (error) {
       console.error("Error al compartir:", error);
-      window.showToast("No se pudo compartir la imagen.", "error");
+      
+      let errorMessage = "No se pudo compartir la imagen.";
+      
+      if (error.message) {
+        if (error.message.includes("No se encontró el elemento")) {
+          errorMessage = "No se pudo capturar la pantalla. Por favor, intenta de nuevo.";
+        } else if (error.message.includes("html2canvas")) {
+          errorMessage = "Error al cargar la herramienta de captura. Por favor, recarga la página.";
+        } else {
+          errorMessage = `Error: ${error.message}`;
+        }
+      }
+      
+      if (window.showToast) {
+        window.showToast(errorMessage, "error");
+      }
     }
   }, [product]);
 
