@@ -180,17 +180,14 @@ const AdminHomeCatalogManager = () => {
         // Actualizar UI inmediatamente para mostrar nuevos números
         setOrderedCatalogs(updatedOrdered);
         
-        // Actualizar display_order para todos los catálogos en el backend
-        const updates = updatedOrdered.map((catalog, index) => ({
+        // Generar arreglo completo con todos los catálogos y sus posiciones
+        const payload = updatedOrdered.map((catalog, index) => ({
           id: catalog.id,
           display_order: index + 1
         }));
         
-        // Sincronizar con la base de datos
-        await Promise.all(updates.map(async (update) => {
-          const payload = { display_order: update.display_order };
-          return api.patch(`/admin/catalogs/${update.id}/order`, payload);
-        }));
+        // Enviar arreglo completo en una sola petición
+        await api.post('admin/catalogs/update/order', { catalogs: payload });
         
         window.showToast('Orden de catálogos actualizado exitosamente', 'success');
       }

@@ -198,15 +198,20 @@ class AdminCatalogController extends Controller
         try {
             $arrId = [];
             $catalog;
-            foreach ($request->catalogs as $key => $catalg) {
+            if (!empty($request->catalogs)) {
+                foreach ($request->catalogs as $key => $catalg) {
 
-                $catalog = Catalog::where('id', $catalg['id'])->first();
-                $catalog->display_order = $catalg['display_order'];
-                $catalog->save();
+                    $catalog = Catalog::where('id', $catalg['id'])->first();
+                    $catalog->display_order = $catalg['display_order'];
+                    $catalog->save();
 
-                $arrId[$key] = $catalg['id'];
-                /* $catalog = Catalog::findOrFail($i); */
+                    $arrId[$key] = $catalg['id'];
+                    /* $catalog = Catalog::findOrFail($i); */
+                }
+            } else {
+                $catalog = [];
             }
+
 
             Catalog::whereNotIn('id', $arrId)->get()->each(function (Catalog $catalog) {
                 $catalog->update(['display_order', null]);
@@ -223,6 +228,8 @@ class AdminCatalogController extends Controller
             ], 500);
         }
     }
+
+
 
     /**
      * Eliminar un catálogo
