@@ -116,7 +116,7 @@ const ProductPage = () => {
       }
 
       // Esperar un momento para asegurar que el DOM está completamente renderizado
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 300));
 
       // Buscar el contenedor principal del producto que incluye galería e info
       const productContainer = document.querySelector('.product-page__container');
@@ -144,9 +144,62 @@ const ProductPage = () => {
       tempContainer.style.top = '0';
       tempContainer.style.width = productContainer.offsetWidth + 'px';
       tempContainer.style.backgroundColor = '#ffffff';
+      tempContainer.style.visibility = 'hidden';
       
-      // Clonar la galería
+      // Clonar la galería profundamente
       const clonedGallery = galleryElement.cloneNode(true);
+      
+      // Asegurar que todas las imágenes en el clon se carguen correctamente
+      const allImages = clonedGallery.querySelectorAll('img');
+      const imagePromises = Array.from(allImages).map((img, index) => {
+        return new Promise((resolve) => {
+          // Si la imagen ya está cargada, continuar
+          if (img.complete && img.naturalHeight !== 0) {
+            // Asegurar crossOrigin
+            if (!img.crossOrigin && img.src.startsWith('http')) {
+              img.crossOrigin = 'anonymous';
+            }
+            resolve();
+            return;
+          }
+          
+          // Cargar la imagen manualmente
+          const newImg = new Image();
+          newImg.crossOrigin = 'anonymous';
+          
+          newImg.onload = () => {
+            // Actualizar la imagen en el clon con la versión cargada
+            img.src = newImg.src;
+            img.crossOrigin = 'anonymous';
+            img.style.display = 'block';
+            resolve();
+          };
+          
+          newImg.onerror = () => {
+            // Si falla con CORS, intentar sin CORS
+            const fallbackImg = new Image();
+            fallbackImg.onload = () => {
+              img.src = fallbackImg.src;
+              img.style.display = 'block';
+              resolve();
+            };
+            fallbackImg.onerror = () => {
+              // Si todo falla, mantener la imagen original
+              img.style.display = 'block';
+              resolve();
+            };
+            fallbackImg.src = img.src;
+          };
+          
+          newImg.src = img.src || img.getAttribute('src') || '';
+        });
+      });
+      
+      await Promise.all(imagePromises);
+      
+      // Esperar un momento adicional para que las imágenes se rendericen
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
       tempContainer.appendChild(clonedGallery);
       
       // Clonar la información hasta las tallas
@@ -161,19 +214,77 @@ const ProductPage = () => {
           }
         });
       }
+      
+      // Asegurar que las imágenes en el info también se carguen
+      const infoImages = clonedInfo.querySelectorAll('img');
+      const infoImagePromises = Array.from(infoImages).map(img => {
+        return new Promise((resolve) => {
+          if (img.complete && img.naturalHeight !== 0) {
+            if (!img.crossOrigin && img.src.startsWith('http')) {
+              img.crossOrigin = 'anonymous';
+            }
+            resolve();
+            return;
+          }
+          
+          const newImg = new Image();
+          newImg.crossOrigin = 'anonymous';
+          newImg.onload = () => {
+            img.src = newImg.src;
+            img.crossOrigin = 'anonymous';
+            img.style.display = 'block';
+            resolve();
+          };
+          newImg.onerror = () => {
+            const fallbackImg = new Image();
+            fallbackImg.onload = () => {
+              img.src = fallbackImg.src;
+              img.style.display = 'block';
+              resolve();
+            };
+            fallbackImg.onerror = () => {
+              img.style.display = 'block';
+              resolve();
+            };
+            fallbackImg.src = img.src;
+          };
+          newImg.src = img.src || img.getAttribute('src') || '';
+        });
+      });
+      
+      await Promise.all(infoImagePromises);
+      await new Promise(resolve => setTimeout(resolve, 200));
       tempContainer.appendChild(clonedInfo);
       
       document.body.appendChild(tempContainer);
+      
+      // Esperar un momento adicional para que el navegador renderice el clon
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Capturar el contenedor temporal
+      // Capturar el contenedor temporal con configuración mejorada para imágenes
       const canvas = await html2canvas(tempContainer, {
         useCORS: true,
-        allowTaint: false,
+        allowTaint: true, // Permitir imágenes de otros dominios
         backgroundColor: '#ffffff',
         scale: 1,
         logging: false,
         width: tempContainer.offsetWidth,
-        height: tempContainer.scrollHeight
+        height: tempContainer.scrollHeight,
+        onclone: (clonedDoc) => {
+          // Asegurar que todas las imágenes en el documento clonado tengan crossOrigin
+          const clonedImages = clonedDoc.querySelectorAll('img');
+          clonedImages.forEach(img => {
+            if (img.src && !img.crossOrigin) {
+              img.crossOrigin = 'anonymous';
+            }
+            // Forzar recarga si es necesario
+            if (!img.complete) {
+              const src = img.src;
+              img.src = '';
+              img.src = src;
+            }
+          });
+        }
       });
 
       // Remover el contenedor temporal
@@ -241,19 +352,65 @@ const ProductPage = () => {
       // Usar Web Share API (muestra el diálogo nativo de compartir de la PC/móvil)
       if (navigator.share) {
         try {
+          // Detectar si es móvil
+          const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+          
           // Verificar si puede compartir archivos
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            // Compartir con archivo (imagen) y texto
-            await navigator.share({
-              title: product?.descripcion || 'Producto',
-              text: shareText,
-              files: [file]
-            });
+            if (isMobile) {
+              // En móviles, compartir primero el texto (que siempre funciona)
+              // Luego el usuario puede adjuntar la imagen manualmente
+              await navigator.share({
+                title: product?.descripcion || 'Producto',
+                text: shareText + '\n\n📸 ' + window.location.href,
+                url: window.location.href
+              });
+              
+              // Descargar la imagen automáticamente para que el usuario pueda adjuntarla
+              const dataUrl = canvas.toDataURL('image/png');
+              const link = document.createElement('a');
+              link.download = fileName;
+              link.href = dataUrl;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              
+              if (window.showToast) {
+                window.showToast('Texto compartido. La imagen se descargó para adjuntarla.', 'info');
+              }
+            } else {
+              // En desktop, intentar compartir texto + archivo
+              try {
+                await navigator.share({
+                  title: product?.descripcion || 'Producto',
+                  text: shareText,
+                  url: window.location.href,
+                  files: [file]
+                });
+              } catch (shareWithFilesError) {
+                // Si falla, compartir solo texto
+                await navigator.share({
+                  title: product?.descripcion || 'Producto',
+                  text: shareText + '\n\n📸 ' + window.location.href,
+                  url: window.location.href
+                });
+                
+                // Descargar la imagen
+                const dataUrl = canvas.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.download = fileName;
+                link.href = dataUrl;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }
+            }
           } else {
             // Compartir solo texto si no soporta archivos
             await navigator.share({
               title: product?.descripcion || 'Producto',
-              text: shareText
+              text: shareText + '\n\n📸 ' + window.location.href,
+              url: window.location.href
             });
             
             // Descargar la imagen por separado
@@ -266,8 +423,8 @@ const ProductPage = () => {
             document.body.removeChild(link);
           }
           
-          if (window.showToast) {
-            window.showToast('¡Imagen compartida exitosamente!', 'success');
+          if (window.showToast && !isMobile) {
+            window.showToast('¡Compartido exitosamente!', 'success');
           }
           return;
         } catch (shareError) {
