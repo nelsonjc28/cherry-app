@@ -61,21 +61,40 @@ const ProductPage = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const handleShareCatalog = useCallback(() => {
-    const catalogUrl = `${window.location.href}`;
+  const handleShareCatalog = useCallback(async () => {
+    try {
+      const imageUrl = generateS3ImageUrl(product.id_articulo);
 
-    if (navigator.share) {
-      // Use native sharing if available
-      navigator.share({
-        title: 'Catálogo de productos Cherry',
-        text: 'Explora nuestro catálogo completo de productos Cherry. Encuentra las últimas tendencias en moda y accesorios.',
-        url: catalogUrl
-      });
-    } else {
-      // Fallback to clipboard copy
-      copyToClipboard(catalogUrl);
+      console.log(imageUrl);
+
+      // Descargar la imagen como blob
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+
+      // Crear archivo para compartir
+      const file = new File([blob], `${product.descripcion}.jpg`, { type: blob.type });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+
+        await navigator.share({
+          title: product.descripcion,
+          text: `Mira este producto: ${product.descripcion}`,
+          files: [file]   // 👈 AQUÍ VA LA IMAGEN
+        });
+
+      } else {
+        // Si no soporta compartir archivos, enviar por WhatsApp como fallback
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(
+          `Mira este producto: ${product.descripcion}\n${window.location.href}`
+        )}`;
+        window.open(whatsappUrl, '_blank');
+      }
+
+    } catch (error) {
+      console.error("Error al compartir:", error);
+      window.showToast("No se pudo compartir la imagen.", "error");
     }
-  }, []);
+  }, [product]);
 
   // Rating states
   const [ratingData, setRatingData] = useState({
