@@ -70,229 +70,160 @@ const ProductPage = () => {
 
       // Mostrar mensaje de carga
       if (window.showToast) {
-        window.showToast('Capturando imagen del producto...', 'info');
+        window.showToast('Generando imagen del producto...', 'info');
       }
 
-      // Cargar html2canvas desde CDN
-      let html2canvas;
+      // Obtener la URL de la imagen del producto
+      const productImageUrl = generateS3ImageUrl(product.id_articulo);
       
-      // Si ya está cargado, usarlo directamente
-      if (window.html2canvas) {
-        html2canvas = window.html2canvas;
+      // Crear un canvas personalizado con la imagen y el texto
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Dimensiones del canvas
+      const canvasWidth = 800;
+      const canvasHeight = 1000;
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+      
+      // Fondo blanco
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+      
+      // Definir padding y dimensiones máximas
+      const imagePadding = 40;
+      const imageMaxWidth = canvasWidth - (imagePadding * 2);
+      const imageMaxHeight = 500;
+      
+      // Variables para almacenar las dimensiones finales de la imagen
+      let finalImageHeight = 0;
+      
+      // Cargar y dibujar la imagen del producto
+      const productImage = new Image();
+      productImage.crossOrigin = 'anonymous';
+      
+      await new Promise((resolve, reject) => {
+        productImage.onload = () => {
+          // Calcular dimensiones de la imagen (mantener proporción)
+          let imageWidth = productImage.naturalWidth;
+          let imageHeight = productImage.naturalHeight;
+          
+          // Ajustar tamaño manteniendo proporción
+          const aspectRatio = imageWidth / imageHeight;
+          if (imageWidth > imageMaxWidth) {
+            imageWidth = imageMaxWidth;
+            imageHeight = imageWidth / aspectRatio;
+          }
+          if (imageHeight > imageMaxHeight) {
+            imageHeight = imageMaxHeight;
+            imageWidth = imageHeight * aspectRatio;
+          }
+          
+          // Guardar la altura final para calcular la posición del texto
+          finalImageHeight = imageHeight;
+          
+          // Centrar la imagen horizontalmente
+          const imageX = (canvasWidth - imageWidth) / 2;
+          const imageY = imagePadding;
+          
+          // Dibujar la imagen
+          ctx.drawImage(productImage, imageX, imageY, imageWidth, imageHeight);
+          
+          resolve();
+        };
+        
+        productImage.onerror = () => {
+          console.error('Error cargando imagen del producto');
+          // Si falla, usar altura por defecto
+          finalImageHeight = 500;
+          resolve();
+        };
+        
+        productImage.src = productImageUrl;
+      });
+      
+      // Calcular posición Y para el texto (después de la imagen)
+      const textStartY = imagePadding + finalImageHeight + 60;
+      
+      // Configurar estilos de texto
+      ctx.fillStyle = '#333333';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      
+      // Dibujar título
+      ctx.font = 'bold 32px Arial, sans-serif';
+      const productName = product?.descripcion || 'Producto';
+      const maxTitleWidth = canvasWidth - (imagePadding * 2);
+      ctx.fillText(productName, canvasWidth / 2, textStartY, maxTitleWidth);
+      
+      // Calcular precios
+      const basePrice = product?.precio1 || 0;
+      let discount = 0;
+      let finalPrice = basePrice;
+      
+      if (product?.userOffer?.discount_percentage > 0) {
+        discount = Math.round(product.userOffer.discount_percentage);
+      } else if (product?.desc_promo && product.desc_promo > 0) {
+        discount = Math.round(product.desc_promo);
+      } else if (product?.discount && product.discount > 0) {
+        discount = Math.round(product.discount);
+      }
+      
+      if (discount > 0 && basePrice > 0) {
+        finalPrice = basePrice - (basePrice * (discount / 100));
+      } else if (product?.price && product.price !== basePrice) {
+        finalPrice = product.price;
+      }
+      
+      // Dibujar precios
+      let priceY = textStartY + 60;
+      
+      if (discount > 0) {
+        // Precio tachado
+        ctx.fillStyle = '#999999';
+        ctx.font = '24px Arial, sans-serif';
+        const strikethroughText = `$${basePrice.toFixed(2)}`;
+        const strikethroughWidth = ctx.measureText(strikethroughText).width;
+        ctx.fillText(strikethroughText, canvasWidth / 2, priceY);
+        
+        // Dibujar línea tachada
+        ctx.strokeStyle = '#999999';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo((canvasWidth / 2) - (strikethroughWidth / 2), priceY + 12);
+        ctx.lineTo((canvasWidth / 2) + (strikethroughWidth / 2), priceY + 12);
+        ctx.stroke();
+        
+        // Precio con descuento
+        ctx.fillStyle = '#e74c3c';
+        ctx.font = 'bold 36px Arial, sans-serif';
+        ctx.fillText(`$${finalPrice.toFixed(2)}`, canvasWidth / 2, priceY + 30);
+        
+        // Descuento
+        ctx.fillStyle = '#27ae60';
+        ctx.font = 'bold 28px Arial, sans-serif';
+        ctx.fillText(`-${discount}%`, canvasWidth / 2, priceY + 75);
       } else {
-        // Cargar desde CDN
-        await new Promise((resolve, reject) => {
-          // Verificar si ya existe un script cargando html2canvas
-          const existingScript = document.querySelector('script[src*="html2canvas"]');
-          if (existingScript) {
-            existingScript.addEventListener('load', () => {
-              html2canvas = window.html2canvas;
-              resolve();
-            });
-            existingScript.addEventListener('error', () => {
-              reject(new Error("No se pudo cargar html2canvas"));
-            });
-            return;
-          }
-
-          const script = document.createElement('script');
-          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-          script.async = true;
-          script.onload = () => {
-            html2canvas = window.html2canvas;
-            if (!html2canvas) {
-              reject(new Error("html2canvas no se inicializó correctamente"));
-            } else {
-              resolve();
-            }
-          };
-          script.onerror = () => reject(new Error("No se pudo cargar html2canvas desde el CDN"));
-          document.head.appendChild(script);
-        });
-      }
-
-      if (!html2canvas) {
-        throw new Error("html2canvas no está disponible");
-      }
-
-      // Esperar un momento para asegurar que el DOM está completamente renderizado
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      // Buscar el contenedor principal del producto que incluye galería e info
-      const productContainer = document.querySelector('.product-page__container');
-      
-      if (!productContainer) {
-        throw new Error("No se encontró el contenedor del producto");
-      }
-
-      // Crear un contenedor temporal que incluya solo la galería y las opciones (hasta las tallas)
-      const galleryElement = productContainer.querySelector('.product-page__gallery');
-      const infoElement = productContainer.querySelector('.product-page__info');
-      
-      if (!galleryElement || !infoElement) {
-        throw new Error("No se encontraron los elementos del producto para capturar");
-      }
-
-      // Encontrar dónde terminan las tallas (antes del botón de agregar al carrito)
-      const sizeOptions = infoElement.querySelector('.product-page__size-options');
-      const sizeOptionContainer = sizeOptions ? sizeOptions.closest('.product-page__option') : null;
-      
-      // Crear un elemento temporal que contenga solo lo que queremos capturar
-      const tempContainer = document.createElement('div');
-      tempContainer.style.position = 'absolute';
-      tempContainer.style.left = '-9999px';
-      tempContainer.style.top = '0';
-      tempContainer.style.width = productContainer.offsetWidth + 'px';
-      tempContainer.style.backgroundColor = '#ffffff';
-      tempContainer.style.visibility = 'hidden';
-      
-      // Clonar la galería profundamente
-      const clonedGallery = galleryElement.cloneNode(true);
-      
-      // Asegurar que todas las imágenes en el clon se carguen correctamente
-      const allImages = clonedGallery.querySelectorAll('img');
-      const imagePromises = Array.from(allImages).map((img, index) => {
-        return new Promise((resolve) => {
-          // Si la imagen ya está cargada, continuar
-          if (img.complete && img.naturalHeight !== 0) {
-            // Asegurar crossOrigin
-            if (!img.crossOrigin && img.src.startsWith('http')) {
-              img.crossOrigin = 'anonymous';
-            }
-            resolve();
-            return;
-          }
-          
-          // Cargar la imagen manualmente
-          const newImg = new Image();
-          newImg.crossOrigin = 'anonymous';
-          
-          newImg.onload = () => {
-            // Actualizar la imagen en el clon con la versión cargada
-            img.src = newImg.src;
-            img.crossOrigin = 'anonymous';
-            img.style.display = 'block';
-            resolve();
-          };
-          
-          newImg.onerror = () => {
-            // Si falla con CORS, intentar sin CORS
-            const fallbackImg = new Image();
-            fallbackImg.onload = () => {
-              img.src = fallbackImg.src;
-              img.style.display = 'block';
-              resolve();
-            };
-            fallbackImg.onerror = () => {
-              // Si todo falla, mantener la imagen original
-              img.style.display = 'block';
-              resolve();
-            };
-            fallbackImg.src = img.src;
-          };
-          
-          newImg.src = img.src || img.getAttribute('src') || '';
-        });
-      });
-      
-      await Promise.all(imagePromises);
-      
-      // Esperar un momento adicional para que las imágenes se rendericen
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      tempContainer.appendChild(clonedGallery);
-      
-      // Clonar la información hasta las tallas
-      const clonedInfo = infoElement.cloneNode(true);
-      // Remover todo después de las tallas
-      if (sizeOptionContainer) {
-        const allOptions = clonedInfo.querySelectorAll('.product-page__option');
-        allOptions.forEach((option, index) => {
-          // Mantener solo hasta la opción de tallas (Paso 2)
-          if (index > 1) { // Después de colores (0) y tallas (1)
-            option.remove();
-          }
-        });
+        // Solo precio sin descuento
+        ctx.fillStyle = '#333333';
+        ctx.font = 'bold 36px Arial, sans-serif';
+        ctx.fillText(`$${basePrice.toFixed(2)}`, canvasWidth / 2, priceY);
       }
       
-      // Asegurar que las imágenes en el info también se carguen
-      const infoImages = clonedInfo.querySelectorAll('img');
-      const infoImagePromises = Array.from(infoImages).map(img => {
-        return new Promise((resolve) => {
-          if (img.complete && img.naturalHeight !== 0) {
-            if (!img.crossOrigin && img.src.startsWith('http')) {
-              img.crossOrigin = 'anonymous';
-            }
-            resolve();
-            return;
-          }
-          
-          const newImg = new Image();
-          newImg.crossOrigin = 'anonymous';
-          newImg.onload = () => {
-            img.src = newImg.src;
-            img.crossOrigin = 'anonymous';
-            img.style.display = 'block';
-            resolve();
-          };
-          newImg.onerror = () => {
-            const fallbackImg = new Image();
-            fallbackImg.onload = () => {
-              img.src = fallbackImg.src;
-              img.style.display = 'block';
-              resolve();
-            };
-            fallbackImg.onerror = () => {
-              img.style.display = 'block';
-              resolve();
-            };
-            fallbackImg.src = img.src;
-          };
-          newImg.src = img.src || img.getAttribute('src') || '';
-        });
-      });
-      
-      await Promise.all(infoImagePromises);
-      await new Promise(resolve => setTimeout(resolve, 200));
-      tempContainer.appendChild(clonedInfo);
-      
-      document.body.appendChild(tempContainer);
-      
-      // Esperar un momento adicional para que el navegador renderice el clon
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Capturar el contenedor temporal con configuración mejorada para imágenes
-      const canvas = await html2canvas(tempContainer, {
-        useCORS: true,
-        allowTaint: true, // Permitir imágenes de otros dominios
-        backgroundColor: '#ffffff',
-        scale: 1,
-        logging: false,
-        width: tempContainer.offsetWidth,
-        height: tempContainer.scrollHeight,
-        onclone: (clonedDoc) => {
-          // Asegurar que todas las imágenes en el documento clonado tengan crossOrigin
-          const clonedImages = clonedDoc.querySelectorAll('img');
-          clonedImages.forEach(img => {
-            if (img.src && !img.crossOrigin) {
-              img.crossOrigin = 'anonymous';
-            }
-            // Forzar recarga si es necesario
-            if (!img.complete) {
-              const src = img.src;
-              img.src = '';
-              img.src = src;
-            }
-          });
-        }
-      });
-
-      // Remover el contenedor temporal
-      document.body.removeChild(tempContainer);
+      // Dibujar texto de llamada a la acción
+      ctx.fillStyle = '#666666';
+      ctx.font = '20px Arial, sans-serif';
+      ctx.fillText('Pregunta por colores y tallas disponibles', canvasWidth / 2, priceY + (discount > 0 ? 120 : 60));
 
       // Convertir canvas a blob
-      const blob = await new Promise(resolve => {
-        canvas.toBlob(resolve, "image/png", 0.95);
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error("No se pudo convertir el canvas a blob"));
+          }
+        }, "image/png", 0.95);
       });
 
       if (!blob) {
