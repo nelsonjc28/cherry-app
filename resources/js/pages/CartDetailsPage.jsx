@@ -294,7 +294,7 @@ const CartDetailsPage = () => {
     onClearCart: handleClearCart
   };
 
-  console.log(productsForDisplay);
+  console.log(orderSummary);
 
   window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
 
