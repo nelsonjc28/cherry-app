@@ -564,7 +564,8 @@ const CartOrderSummary = ({
 
 
   // ===== DESCUENTO POR DAYS 45 + TOTAL + desc_promo =====
-  let finalTotal = total.toFixed(2);
+  let finalTotal = Number(total);
+  finalTotal = finalTotal.toFixed(2);
 
   // 1️⃣ Verificar que todos los productos tienen desc_promo = 0/null
   const allWithoutPromo = cartItems.every(item =>
@@ -585,7 +586,7 @@ const CartOrderSummary = ({
       finalTotal = finalTotal * 0.70; // 30% descuento
     }
 
-    finalTotal = finalTotal.toFixed(2);
+    finalTotal = finalTotal.toFixed(2)
   }
 
   let envio = 0;

@@ -63,33 +63,32 @@ const ProductPage = () => {
 
   const handleShareCatalog = useCallback(async () => {
     try {
-      const imageUrl = generateS3ImageUrl(product.id_articulo);
-
-      console.log(imageUrl);
-
-      // Descargar la imagen como blob
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-
+      console.log(product.id_articulo);
+      // Seleccionamos el elemento que queremos capturar
+      const element = document.getElementById(`product-${product.id_articulo}`);
+      if (!element) throw new Error("No se encontró el elemento para capturar");
+  
+      // Tomamos la captura de pantalla del elemento
+      const canvas = await html2canvas(element);
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+  
       // Crear archivo para compartir
-      const file = new File([blob], `${product.descripcion}.jpg`, { type: blob.type });
-
+      const file = new File([blob], `${product.descripcion}.png`, { type: "image/png" });
+  
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-
         await navigator.share({
           title: product.descripcion,
           text: `Mira este producto: ${product.descripcion}`,
-          files: [file]   // 👈 AQUÍ VA LA IMAGEN
+          files: [file]   // 👈 Aquí va la captura
         });
-
       } else {
-        // Si no soporta compartir archivos, enviar por WhatsApp como fallback
+        // Fallback a WhatsApp si no soporta compartir archivos
         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(
           `Mira este producto: ${product.descripcion}\n${window.location.href}`
         )}`;
-        window.open(whatsappUrl, '_blank');
+        window.open(whatsappUrl, "_blank");
       }
-
+  
     } catch (error) {
       console.error("Error al compartir:", error);
       window.showToast("No se pudo compartir la imagen.", "error");
@@ -449,7 +448,7 @@ const ProductPage = () => {
 
   if (isLoading) {
     return (
-      <div className="product-page">
+      <div className="product-page" id='product-page'>
         <div className="product-page__loading">
           <div className="product-page__loading-spinner"></div>
           <p>Cargando producto...</p>
