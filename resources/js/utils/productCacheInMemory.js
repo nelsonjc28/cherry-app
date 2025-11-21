@@ -130,11 +130,11 @@ class ProductCacheManager {
   /**
    * Filtra solo productos nuevos
    * Un producto es considerado nuevo si alguno de sus detalles
-   * tiene una fechaMovimiento menor a 60 días desde hoy
+   * tiene una fechaMovimiento menor a 45 días desde hoy
    */
   filterOnlyNew(products) {
     const now = new Date();
-    const sixtyDaysAgo = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000));
+    const fortyFiveDaysAgo = new Date(now.getTime() - (45 * 24 * 60 * 60 * 1000));
     return products.filter(p => {
       // Si no tiene detalles, verificar el campo tradicional
       if (!p.detalles || !Array.isArray(p.detalles) || p.detalles.length === 0) {
@@ -144,7 +144,7 @@ class ProductCacheManager {
       const [year, month, day] = p.fecha_alta.split('-').map(Number);
       const fechaMovimiento = new Date(year, month - 1, day);
       console.log('se ejecuto')
-      return !isNaN(fechaMovimiento.getTime()) && fechaMovimiento >= sixtyDaysAgo ? p : false;
+      return !isNaN(fechaMovimiento.getTime()) && fechaMovimiento >= fortyFiveDaysAgo ? p : false;
       // Revisar cada detalle del producto
       /* return p.detalles.some(detalle => {
         if (!detalle.fechaMovimiento) return false;

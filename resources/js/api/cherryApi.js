@@ -82,7 +82,7 @@ const CATALOG_MAPPING = {
 
 /**
  * Verifica si un producto es nuevo basándose en las fechas de movimiento de sus detalles
- * Un producto es nuevo si algún detalle tiene fechaMovimiento menor a 60 días
+ * Un producto es nuevo si algún detalle tiene fechaMovimiento menor a 45 días
  */
 const isProductNew = (apiProduct) => {
   // Si no tiene detalles, usar el campo tradicional
@@ -91,7 +91,7 @@ const isProductNew = (apiProduct) => {
   }
   
   const now = new Date();
-  const sixtyDaysAgo = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000));
+  const fortyFiveDaysAgo = new Date(now.getTime() - (45 * 24 * 60 * 60 * 1000));
   
   // Revisar cada detalle del producto
   return apiProduct.detalles.some(detalle => {
@@ -102,8 +102,8 @@ const isProductNew = (apiProduct) => {
       const [year, month, day] = detalle.fechaMovimiento.split('-').map(Number);
       const fechaMovimiento = new Date(year, month - 1, day);
       
-      // Si la fecha es válida y es menor a 60 días, el producto es nuevo
-      return !isNaN(fechaMovimiento.getTime()) && fechaMovimiento >= sixtyDaysAgo;
+      // Si la fecha es válida y es menor a 45 días, el producto es nuevo
+      return !isNaN(fechaMovimiento.getTime()) && fechaMovimiento >= fortyFiveDaysAgo;
     } catch (error) {
       return false;
     }
@@ -472,9 +472,9 @@ export const getRandomProducts = async (limit = 5) => {
       return hasStock && isWebEnabled;
     });
     
-    // Filtrar productos con fechaMovimiento menor a 60 días
+    // Filtrar productos con fechaMovimiento menor a 45 días
     const now = new Date();
-    const sixtyDaysAgo = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000));
+    const fortyFiveDaysAgo = new Date(now.getTime() - (45 * 24 * 60 * 60 * 1000));
     
     const recentProducts = activeProducts.filter(product => {
       // Si no tiene detalles, no lo incluimos
@@ -491,8 +491,8 @@ export const getRandomProducts = async (limit = 5) => {
           const [year, month, day] = detalle.fechaMovimiento.split('-').map(Number);
           const fechaMovimiento = new Date(year, month - 1, day);
           
-          // Si la fecha es válida y es menor a 60 días, incluir el producto
-          return !isNaN(fechaMovimiento.getTime()) && fechaMovimiento >= sixtyDaysAgo;
+          // Si la fecha es válida y es menor a 45 días, incluir el producto
+          return !isNaN(fechaMovimiento.getTime()) && fechaMovimiento >= fortyFiveDaysAgo;
         } catch (error) {
           return false;
         }
