@@ -4,24 +4,46 @@ import axios from 'axios';
 import './ProductReviews.css';
 import StarRating from '../StarRating/StarRating';
 
-const ProductReviews = ({ productId: propProductId }) => {
+const ProductReviews = ({ productId: propProductId, reviews: propReviews, ratingData: propRatingData }) => {
   const { productId: paramProductId } = useParams();
   const productId = propProductId || paramProductId;
   
   const [sortBy] = useState('recent');
-  const [reviews, setReviews] = useState([]);
+  const [reviews, setReviews] = useState(propReviews || []);
   const [stats, setStats] = useState({
-    average: 0,
-    total: 0,
+    average: propRatingData?.average || 0,
+    total: propRatingData?.count || 0,
     distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!propReviews);
   const [error, setError] = useState(null);
 
-  // Load reviews from API
+  // Actualizar cuando cambien las props
+  useEffect(() => {
+    if (propReviews) {
+      setReviews(propReviews);
+      setLoading(false);
+      
+      // Calcular distribución de ratings
+      const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+      propReviews.forEach(review => {
+        if (review.rating >= 1 && review.rating <= 5) {
+          distribution[review.rating]++;
+        }
+      });
+      
+      setStats({
+        average: propRatingData?.average || 0,
+        total: propReviews.length,
+        distribution: distribution
+      });
+    }
+  }, [propReviews, propRatingData]);
+
+  // Load reviews from API solo si no vienen como props
   useEffect(() => {
     const loadReviews = async () => {
-      if (!productId) {
+      if (!productId || propReviews) {
         setLoading(false);
         return;
       }
@@ -46,7 +68,7 @@ const ProductReviews = ({ productId: propProductId }) => {
     };
 
     loadReviews();
-  }, [productId]);
+  }, [productId, propReviews]);
 
   // Mock reviews data (fallback - will be removed)
   const mockReviews = [

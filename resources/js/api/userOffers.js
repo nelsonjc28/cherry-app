@@ -171,12 +171,14 @@ export const applyUserOffersToProducts = async (products, userOfferMap = null) =
         };
       }
 
-      // Si no tiene oferta personalizada, mantener datos originales
+      // Si no tiene oferta personalizada, mantener datos originales del backend
+      // IMPORTANTE: No sobrescribir price, originalPrice y discount si ya vienen del backend
       return {
         ...product,
-        price: product.price || product.precio1 || 0,
-        originalPrice: product.originalPrice || null,
-        discount: product.discount || null,
+        // Mantener los valores que vienen del backend (ya calculados con descuento reducido)
+        price: product.price !== undefined ? product.price : (product.precio1 || 0),
+        originalPrice: product.originalPrice !== undefined ? product.originalPrice : null,
+        discount: product.discount !== undefined ? product.discount : null,
         hasUserOffer: false
       };
     });

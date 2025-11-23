@@ -309,8 +309,6 @@ class PaymentController extends Controller
 
                 // Crear los items del pedido
                 foreach ($requestData['items'] as $item) {
-                    // DEBUG: Log de datos recibidos
-
                     OrderItem::create([
                         'order_id' => $order->id,
                         'product_id' => $item['product_id'],
@@ -322,13 +320,12 @@ class PaymentController extends Controller
                         'price' => $item['price'],
                         'subtotal' => $item['quantity'] * $item['price']
                     ]);
+                }
 
-                    $dayFortyFive = DayFortyFive::where('user_id', $user->id)->first();
-                    $now = Carbon::now();
-
-                    if ($now->between($dayFortyFive->startDate, $dayFortyFive->endDate)) {
-                        $this->updateDayFortyFive($now, $dayFortyFive);
-                    }
+                // Crear o actualizar registro dayFortyFive si se aplicó descuento
+                // Solo si el frontend indica que se aplicó el descuento (day_forty_five_applied)
+                if (isset($requestData['day_forty_five_applied']) && $requestData['day_forty_five_applied'] === true) {
+                    $this->createOrUpdateDayFortyFive($user->id);
                 }
 
                 DB::commit();
@@ -376,12 +373,32 @@ class PaymentController extends Controller
         }
     }
 
-    private function updateDayFortyFive(Carbon $now, DayFortyFive $dayFortyFive)
+    /**
+     * Crear o actualizar registro dayFortyFive
+     * Se crea/actualiza cuando el cliente hace una compra >= 7000 MXN
+     * (solo productos con desc_promo = 0 y sin descuentos personalizados)
+     */
+    private function createOrUpdateDayFortyFive($userId)
     {
-        $dayFortyFive->update([
-            'startDate' => $now->format('Y-m-d'),
-            'endDate' => $now->addDays(44),
-        ]);
+        $now = Carbon::now();
+        $endDate = $now->copy()->addDays(44);
+
+        $dayFortyFive = DayFortyFive::where('user_id', $userId)->first();
+
+        if ($dayFortyFive) {
+            // Actualizar fechas existentes
+            $dayFortyFive->update([
+                'startDate' => $now->format('Y-m-d'),
+                'endDate' => $endDate->format('Y-m-d'),
+            ]);
+        } else {
+            // Crear nuevo registro
+            DayFortyFive::create([
+                'user_id' => $userId,
+                'startDate' => $now->format('Y-m-d'),
+                'endDate' => $endDate->format('Y-m-d'),
+            ]);
+        }
     }
 
     /**

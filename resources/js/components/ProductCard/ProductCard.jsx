@@ -42,11 +42,12 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
   } = product;
   
   // Hook para obtener descuentos personalizados del usuario (solo si no vienen como props)
-  const { userDiscounts } = useUserDiscounts(hasUserOffer ? [] : [id]);
+  // Si el producto ya tiene userOffer o hasUserOffer como prop, NO hacer llamadas adicionales
+  const { userDiscounts } = useUserDiscounts((hasUserOffer || userOffer) ? [] : [id]);
   
   // Usar la información que viene como props o la del hook
   const finalUserOffer = userOffer || userDiscounts[id];
-  const finalHasUserOffer = hasUserOffer || Boolean(userDiscounts[id]);
+  const finalHasUserOffer = hasUserOffer || Boolean(userOffer) || Boolean(userDiscounts[id]);
   
   
   // TEMPORAL: Forzar colores de prueba si no hay colores
@@ -218,9 +219,10 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
           {/* Rating and Price Row */}
           <div className="product-rating product-rating--bestseller">
             <StarRating 
-              rating={rating || 0} 
-              totalRatings={ratingCount || 0}
-              readonly={true} 
+              rating={parseFloat(rating) || 0} 
+              totalRatings={parseInt(ratingCount) || 0}
+              readonly={true}
+              readOnly={true}
             />
 
             {/* Price */}
@@ -304,18 +306,14 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
         {/* Rating */}
         <div className="product-rating">
           <StarRating
-            rating={rating}
+            rating={parseFloat(rating) || 0}
             size="small"
             readonly={true}
+            readOnly={true}
             showAverage={false}
-            averageRating={rating}
-            totalRatings={ratingCount}
+            averageRating={parseFloat(rating) || 0}
+            totalRatings={parseInt(ratingCount) || 0}
           />
-          {ratingCount > 0 && (
-            <span className="product-rating-count">
-              ({ratingCount})
-            </span>
-          )}
         </div>
         
         {/* Price */}

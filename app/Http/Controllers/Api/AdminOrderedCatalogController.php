@@ -13,6 +13,8 @@ class AdminOrderedCatalogController extends Controller
 {
     /**
      * Obtener todos los catálogos y el orden actual
+     * Incluye todos los catálogos activos, respetando el orden de los que están en ordered_catalogs
+     * y agregando los nuevos al final
      */
     public function index(): JsonResponse
     {
@@ -26,15 +28,31 @@ class AdminOrderedCatalogController extends Controller
                 ->ordered()
                 ->get();
 
-            // Si hay catálogos ordenados, devolver solo esos en orden
+            // Si hay catálogos ordenados, usar su orden y agregar los nuevos al final
             if ($orderedCatalogs->isNotEmpty()) {
+                // Obtener IDs de catálogos que ya están ordenados
+                $orderedCatalogIds = $orderedCatalogs->pluck('catalog_id')->toArray();
+                
+                // Obtener catálogos ordenados (filtrar los que existen y están activos)
                 $catalogsInOrder = $orderedCatalogs->map(function ($orderedCatalog) {
                     return $orderedCatalog->catalog;
-                })->filter()->values();
+                })->filter(function ($catalog) {
+                    return $catalog && $catalog->is_active;
+                })->values();
+
+                // Obtener catálogos nuevos que no están en la tabla ordered_catalogs
+                $newCatalogs = $allCatalogs->filter(function ($catalog) use ($orderedCatalogIds) {
+                    return !in_array($catalog->id, $orderedCatalogIds);
+                })->sortBy(function ($catalog) {
+                    return (int) $catalog->code;
+                })->values();
+
+                // Combinar: primero los ordenados, luego los nuevos
+                $allCatalogsCombined = $catalogsInOrder->concat($newCatalogs)->values();
 
                 return response()->json([
                     'success' => true,
-                    'catalogs' => $catalogsInOrder
+                    'catalogs' => $allCatalogsCombined
                 ]);
             }
 

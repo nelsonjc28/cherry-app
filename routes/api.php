@@ -25,6 +25,10 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Api\UserTermsController;
 use App\Http\Controllers\Api\TermsConditionsController;
 use App\Http\Controllers\Api\UserDiscountController;
+use App\Http\Controllers\Api\ProductSyncController;
+use App\Http\Controllers\Api\ProductSearchController;
+use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\TopSellingController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/complete-profile', [AuthController::class, 'completeProfile'])->middleware('auth:api');
@@ -224,6 +228,9 @@ Route::delete('/admin/catalogs/{catalogId}/pdfs/{pdfId}', [AdminCatalogControlle
         Route::patch('/admin/catalog-offers/{id}/toggle', [AdminCatalogOfferController::class, 'toggleStatus']);
         Route::post('/admin/catalog-offers/reorder', [AdminCatalogOfferController::class, 'reorder']);
         Route::get('/admin/catalogs/{catalogId}/offers', [AdminCatalogOfferController::class, 'getOffersByCatalog']);
+        
+        // Product Sync route - sincronizar productos desde API externa
+        Route::post('/admin/products/sync', [ProductSyncController::class, 'sync']);
     });
     
     // Favorites routes - require authentication
@@ -251,10 +258,21 @@ Route::post('/ratings/bulk', [RatingController::class, 'getBulkRatings']);
 Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/categories/{slug}', [CategoryController::class, 'show']);
 Route::get('/categories/{slug}/products', [CategoryController::class, 'getCategoryProducts']);
+Route::get('/categories/{categoryId}/local-products', [CategoryController::class, 'getLocalProductsByCategory']);
 
 // External products routes (no authentication required)
 Route::get('/external-products/category/{categoryCode}', [App\Http\Controllers\Api\ExternalProductController::class, 'getProductsByCategoryCode']);
 Route::post('/products/ratings', [App\Http\Controllers\Api\RatingController::class, 'getMultipleProductsRatings']);
+
+// Product search route (no authentication required)
+Route::get('/products/search', [ProductSearchController::class, 'search']);
+// Ruta para productos con ofertas (autenticación opcional - usuarios no logueados ven solo desc_promo)
+Route::get('/products/with-offers', [ProductSearchController::class, 'getProductsWithOffers']);
+
+// IMPORTANTE: Esta ruta debe estar ANTES de /products/{id} para evitar conflictos
+Route::get('/products/top-selling', [TopSellingController::class, 'index']);
+
+Route::get('/products/{id}', [ProductController::class, 'show']);
 
 // Public welcome sections routes (no authentication required)
 Route::get('/welcome-sections/active', [WelcomeSectionController::class, 'getActiveSection']);

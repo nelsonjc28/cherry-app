@@ -1,7 +1,8 @@
-import { getProductById } from '../api/cherryApi';
+import api from '../services/api';
 
 /**
  * Servicio para gestionar y validar inventario de productos
+ * Ahora consulta la base de datos local en lugar de la API externa
  */
 
 // Cache de stocks para evitar múltiples llamadas a la API
@@ -25,8 +26,14 @@ export const getProductStock = async (productId, size, color) => {
   }
 
   try {
-    // Obtener producto completo desde la API
-    const product = await getProductById(productId);
+    // Obtener producto completo desde la base de datos local
+    const response = await api.get(`/products/${productId}`);
+    
+    if (!response.data.success || !response.data.data) {
+      return 0;
+    }
+
+    const product = response.data.data;
     
     if (!product || !product.detalles || product.detalles.length === 0) {
       return 0;
@@ -40,13 +47,13 @@ export const getProductStock = async (productId, size, color) => {
     let stock = 0;
     
     if (detalle && detalle.inventario_d !== undefined) {
-      stock = parseInt(detalle.inventario_d) || 0;
+      stock = parseFloat(detalle.inventario_d) || 0;
     } else if (product.inventario !== undefined) {
       // Fallback al inventario general del producto
-      stock = parseInt(product.inventario) || 0;
+      stock = parseFloat(product.inventario) || 0;
     } else if (product.stock !== undefined) {
       // Segundo fallback
-      stock = parseInt(product.stock) || 0;
+      stock = parseFloat(product.stock) || 0;
     }
 
     // Guardar en caché
@@ -57,6 +64,7 @@ export const getProductStock = async (productId, size, color) => {
 
     return stock;
   } catch (error) {
+    console.error('Error al obtener stock del producto:', error);
     // En caso de error, retornar 0 para prevenir agregar más al carrito
     return 0;
   }

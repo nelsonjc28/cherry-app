@@ -45,12 +45,18 @@ const StarRating = ({
 
   const renderStars = () => {
     const stars = [];
-    const displayRating = isReadonly ? currentRating : hoverRating || currentRating;
+    // Asegurar que displayRating sea un número
+    const numericRating = parseFloat(isReadonly ? currentRating : hoverRating || currentRating) || 0;
+    const displayRating = numericRating;
     const hasRatings = totalRatings > 0;
 
     for (let i = 0; i < maxRating; i++) {
       const starClass = `star-rating__star ${size}`;
-      const isFilled = i < displayRating;
+      // Estrella completa si el índice es menor que el rating completo
+      // Ejemplo: rating 4.5 -> i=0,1,2,3 son filled, i=4 es half
+      const isFilled = i < Math.floor(displayRating);
+      // Media estrella si el rating tiene decimales y está entre i e i+1
+      // Ejemplo: rating 4.5 -> i=4, displayRating=4.5, entonces 4 < 4.5 < 5 = true
       const isHalf = !isFilled && displayRating > i && displayRating < i + 1;
       // Solo mostrar como "no-ratings" si es readonly, no hay ratings totales Y no hay rating actual
       const isNoRatings = isReadonly && !hasRatings && displayRating === 0;

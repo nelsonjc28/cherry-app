@@ -172,4 +172,45 @@
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 0.75rem;
   }
+  
+  /* Cuando hay solo un resultado, hacer la tarjeta más grande */
+  .buscar-products-grid.single-result {
+    grid-template-columns: 1fr !important;
+    gap: 1rem;
+  }
+  
+  .buscar-products-grid.single-result .product-card {
+    max-width: 100%;
+  }
+}
+
+/* Estilos para un solo resultado en móvil (hasta 768px) */
+@media (max-width: 768px) {
+  .buscar-products-grid.single-result {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem;
+    padding: 0 1rem;
+  }
+  
+  .buscar-products-grid.single-result .product-card {
+    max-width: 100%;
+    width: 100%;
+  }
+  
+  .buscar-products-grid.single-result .product-image-container {
+    height: 350px;
+  }
+  
+  .buscar-products-grid.single-result .product-info {
+    padding: 1.5rem;
+  }
+  
+  .buscar-products-grid.single-result .product-title {
+    font-size: 1.1rem;
+    -webkit-line-clamp: 3;
+  }
+  
+  .buscar-products-grid.single-result .product-price {
+    font-size: 1.5rem;
+  }
 } 

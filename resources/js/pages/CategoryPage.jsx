@@ -313,25 +313,17 @@ const CategoryPage = ({ categorySlug }) => {
             if (categoryData) {
               setCurrentCategory(categoryData);
               
-
-              
-              // Ahora obtener los productos externos directamente de la API externa
-              if (categoryData.code) {
+              // Obtener productos locales de la base de datos
+              if (categoryData.id) {
                 try {
-                  // Petición directa a la API externa
-                  const externalResponse = await fetch('https://cherryapi.estrategiadmgs.com.mx/cherryApi/');
-                  const externalData = await externalResponse.json();
+                  // Llamar al nuevo endpoint que obtiene productos locales por categoría
+                  const localProductsResponse = await api.get(`/categories/${categoryData.id}/local-products`);
                   
-                  // Filtrar productos por código de categoría
-                  const filteredExternalProducts = externalData.filter(product => {
-                    const productLineaId = product.linea?.id_linea;
-                    const categoryCode = categoryData.code;
+                  if (localProductsResponse.data.success && localProductsResponse.data.data.products) {
+                    const localProducts = localProductsResponse.data.data.products;
                     
-                    return productLineaId == categoryCode; // Usando == como solicitaste
-                  });
-                  
-                                    // Mapear productos externos filtrados
-                  const allExternalProducts = filteredExternalProducts.map(product => {
+                    // Mapear productos locales al formato esperado
+                    const allLocalProducts = localProducts.map(product => {
                     // Extraer precio y convertirlo a número
                     const rawPrice = product.precio1;
                     const numericPrice = typeof rawPrice === 'string' ? parseFloat(rawPrice.replace(/[^\d.-]/g, '')) : parseFloat(rawPrice) || 0;
@@ -348,9 +340,9 @@ const CategoryPage = ({ categorySlug }) => {
                       [];
                     const availableSizes = productSizes.length > 0 ? productSizes : ['M']; // Talla por defecto
                     
-                    // Determinar si el producto es nuevo basado en propiedades reales
+                    // Determinar si el producto es nuevo basado en propiedades reales (45 días)
                     const isNewProduct = product.opc_nuevo === 'S' || 
-                                       (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)); // Últimos 30 días
+                                       (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 45 * 24 * 60 * 60 * 1000));
                     
                     // Calcular descuento si existe
                     const hasDiscount = product.opc_promo === 'S' && product.desc_promo > 0;
@@ -362,42 +354,37 @@ const CategoryPage = ({ categorySlug }) => {
                       title: product.descripcion || 'Sin nombre',
                       description: product.descripcion || 'Sin descripción',
                       price: numericPrice,
-                      originalPrice: originalPrice, // Precio original con descuento
-                      discount: discountPercentage, // Porcentaje de descuento real
+                      originalPrice: originalPrice,
+                      discount: discountPercentage,
                       image: getProductImageUrl(product.id_articulo),
                       brand: product.marca || 'Sin marca',
                       category: categoryData.name,
                       stock: product.inventario || 0,
                       colors: availableColors,
-                      colores: productColors, // Mantener colores originales para ExternalProductCard
+                      colores: productColors,
                       sizes: availableSizes,
-                      tallas: productSizes, // Mantener tallas originales para ExternalProductCard
-                      
-
-                      isNew: isNewProduct, // Basado en propiedades reales
+                      tallas: productSizes,
+                      isNew: isNewProduct,
                       rating: 0, // Se actualizará con la consulta a la BD
-                      ratingCount: 0, // Se actualizará con la consulta a la BD
+                      ratingCount: 0,
                       linea: product.linea,
-                      // Propiedades adicionales de la API externa
                       fechaAlta: product.fecha_alta,
                       fechaAct: product.fechaAct,
                       temporada: product.temporada,
                       opcNuevo: product.opc_nuevo,
                       opcPromo: product.opc_promo,
-                      descPromo: product.desc_promo
+                      descPromo: product.desc_promo,
+                      genero: product.genero,
+                      sector: product.sector
                     };
                   });
                   
-                  // Por ahora solo productos externos, productos locales se pueden agregar después
-                  productsData = [...allExternalProducts];
-                  
-                  // Contar productos nuevos
-                  const newProductsCount = allExternalProducts.filter(product => product.isNew).length;
+                  productsData = [...allLocalProducts];
                   
                   // Obtener calificaciones reales de la base de datos
-                  if (allExternalProducts.length > 0) {
+                  if (allLocalProducts.length > 0) {
                     try {
-                      const productIds = allExternalProducts.map(product => product.id);
+                      const productIds = allLocalProducts.map(product => product.id);
                       
                       const ratingsResponse = await api.get('/products/ratings', {
                         params: { product_ids: productIds }
@@ -407,11 +394,10 @@ const CategoryPage = ({ categorySlug }) => {
                         const ratings = ratingsResponse.data.data.ratings;
                         
                         // Actualizar productos con calificaciones reales
-                        productsData = allExternalProducts.map(product => {
+                        productsData = allLocalProducts.map(product => {
                           const localRating = ratings[product.id];
                           return {
                             ...product,
-                            // Incluir rating y ratingCount si existen en la base de datos local
                             rating: localRating?.average || 0,
                             ratingCount: localRating?.count || 0
                           };
@@ -421,8 +407,11 @@ const CategoryPage = ({ categorySlug }) => {
                       // Continuar con productos sin calificaciones
                     }
                   }
-                  
+                  } else {
+                    productsData = [];
+                  }
                 } catch (error) {
+                  console.error('Error obteniendo productos locales:', error);
                   productsData = [];
                 }
               } else {

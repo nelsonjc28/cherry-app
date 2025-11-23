@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Smalot\PdfParser\Parser;
 
 
@@ -754,30 +756,244 @@ class AdminCatalogController extends Controller
 
     /**
      * Obtener productos de un catálogo público específico
+     * Busca productos en la tabla productos donde catalogoId = code del catálogo
+     * Retorna el mismo formato que ProductSearchController para compatibilidad con BuscarPage
      */
     public function getPublicCatalogProducts($id)
     {
         try {
+            // Verificar que el catálogo existe y está activo
             $catalog = Catalog::where('is_active', true)->findOrFail($id);
 
-            // Obtener productos del catálogo con orden
-            $products = $catalog->products()
-                ->orderBy('display_order', 'asc')
+            // Obtener el código del catálogo para filtrar productos
+            $catalogCode = $catalog->code;
+
+            // Cache key para productos del catálogo (usar código para consistencia)
+            $cacheKey = 'catalog_products_' . $catalogCode;
+            
+            // Intentar obtener del cache (10 minutos)
+            $cached = Cache::get($cacheKey);
+            if ($cached !== null) {
+                return response()->json($cached);
+            }
+
+            // Buscar productos en la tabla productos donde catalogoId = code del catálogo
+            $productos = DB::table('productos')
+                ->select([
+                    'productos.id',
+                    'productos.id_linea',
+                    'productos.catalogoId',
+                    'productos.descripcion',
+                    'productos.imagen',
+                    'productos.precio1',
+                    'productos.opc_promo',
+                    'productos.desc_promo',
+                    'productos.fecha_alta',
+                    'productos.opc_nuevo',
+                    'productos.marca',
+                    'productos.inventario',
+                    'productos.sku'
+                ])
+                ->where('productos.catalogoId', $catalogCode)
                 ->get();
 
-            return response()->json([
+            if ($productos->isEmpty()) {
+                $response = [
+                    'success' => true,
+                    'data' => [
+                        'products' => [],
+                        'total' => 0,
+                        'page' => 1,
+                        'per_page' => 0,
+                        'last_page' => 1
+                    ]
+                ];
+                Cache::put($cacheKey, $response, 600);
+                return response()->json($response);
+            }
+
+            // Obtener IDs de productos para buscar detalles y ratings
+            $productIds = $productos->pluck('id')->toArray();
+            
+            // Obtener detalles completos para colores y tallas
+            $detallesPorProducto = [];
+            $coloresPorProducto = [];
+            if (!empty($productIds)) {
+                $detalles = DB::table('detalles')
+                    ->select('producto_id', 'nombreColor', 'detalle')
+                    ->whereIn('producto_id', $productIds)
+                    ->whereNotNull('nombreColor')
+                    ->where('nombreColor', '!=', '')
+                    ->get();
+                
+                foreach ($detalles as $detalle) {
+                    if (!isset($detallesPorProducto[$detalle->producto_id])) {
+                        $detallesPorProducto[$detalle->producto_id] = [];
+                        $coloresPorProducto[$detalle->producto_id] = [];
+                    }
+                    
+                    // Agregar detalle completo
+                    $detallesPorProducto[$detalle->producto_id][] = [
+                        'nombreColor' => $detalle->nombreColor,
+                        'detalle' => $detalle->detalle
+                    ];
+                    
+                    // Agregar color único
+                    if (!in_array($detalle->nombreColor, $coloresPorProducto[$detalle->producto_id])) {
+                        $coloresPorProducto[$detalle->producto_id][] = $detalle->nombreColor;
+                    }
+                }
+            }
+
+            // Obtener ratings de todos los productos (solo aprobadas)
+            $ratingsPorProducto = [];
+            if (!empty($productIds)) {
+                $reviews = DB::table('reviews')
+                    ->select('product_id', 'rating')
+                    ->whereIn('product_id', $productIds)
+                    ->where('is_approved', true)
+                    ->get();
+                
+                // Agrupar por producto y calcular promedio manualmente
+                $ratingsGrouped = [];
+                foreach ($reviews as $review) {
+                    if (!isset($ratingsGrouped[$review->product_id])) {
+                        $ratingsGrouped[$review->product_id] = [
+                            'sum' => 0,
+                            'count' => 0
+                        ];
+                    }
+                    $ratingsGrouped[$review->product_id]['sum'] += (int) $review->rating;
+                    $ratingsGrouped[$review->product_id]['count']++;
+                }
+                
+                // Calcular promedio: suma de estrellas / total de reseñas
+                foreach ($ratingsGrouped as $productId => $data) {
+                    $average = $data['count'] > 0 ? ($data['sum'] / $data['count']) : 0;
+                    $ratingsPorProducto[$productId] = [
+                        'rating' => round($average, 2),
+                        'count' => $data['count']
+                    ];
+                }
+            }
+
+            // Construir respuesta en el mismo formato que ProductSearchController
+            $products = [];
+            $now = time();
+            $fortyFiveDaysAgo = $now - (45 * 24 * 60 * 60);
+            
+            foreach ($productos as $producto) {
+                // Convertir precio correctamente
+                $precio1Raw = $producto->precio1;
+                $precio1 = 0;
+                if (is_numeric($precio1Raw)) {
+                    $precio1 = (float) $precio1Raw;
+                } elseif (is_string($precio1Raw)) {
+                    $precio1 = (float) str_replace(',', '', $precio1Raw);
+                }
+                
+                // Calcular precio original y descuento (igual que ProductSearchController)
+                $descPromoValue = (float) ($producto->desc_promo ?? 0);
+                $hasDiscount = $descPromoValue > 0;
+                // Reducir 10% al descuento (mínimo 0)
+                $discountPercentage = $hasDiscount ? max(0, $descPromoValue - 10) : 0;
+                // El precio original es precio1 (ya que precio1 es el precio base)
+                $originalPrice = $hasDiscount && $precio1 > 0 ? $precio1 : null;
+                // Calcular precio final con descuento reducido aplicado sobre precio1
+                $finalPrice = $hasDiscount && $discountPercentage > 0 && $precio1 > 0 
+                    ? ($precio1 - ($precio1 * ($discountPercentage / 100))) 
+                    : $precio1;
+                
+                // Determinar si es nuevo (45 días)
+                $isNew = false;
+                if ($producto->opc_nuevo === 'S') {
+                    $isNew = true;
+                } elseif ($producto->fecha_alta) {
+                    $fechaAltaTimestamp = strtotime($producto->fecha_alta);
+                    if ($fechaAltaTimestamp && $fechaAltaTimestamp > $fortyFiveDaysAgo) {
+                        $isNew = true;
+                    }
+                }
+                
+                // Obtener colores y detalles del producto
+                $colors = $coloresPorProducto[$producto->id] ?? [];
+                $detalles = $detallesPorProducto[$producto->id] ?? [];
+                
+                // Obtener rating del producto
+                $ratingData = $ratingsPorProducto[$producto->id] ?? ['rating' => 0, 'count' => 0];
+                
+                // Generar URL de imagen desde S3
+                $imageUrl = $this->getProductImageUrl($producto->id);
+                
+                $products[] = [
+                    'id' => $producto->id,
+                    'id_articulo' => $producto->id,
+                    'id_linea' => $producto->id_linea,
+                    'catalogoId' => $producto->catalogoId,
+                    'title' => $producto->descripcion,
+                    'descripcion' => $producto->descripcion,
+                    'image' => $imageUrl, // URL de S3
+                    'price' => $finalPrice, // Precio final con descuento reducido aplicado
+                    'precio1' => $precio1, // Precio base original
+                    'originalPrice' => $hasDiscount ? $originalPrice : null,
+                    'discount' => $discountPercentage, // Descuento reducido (desc_promo - 10)
+                    'colors' => $colors,
+                    'colores' => $colors, // También como colores
+                    'isNew' => $isNew,
+                    'opc_nuevo' => $producto->opc_nuevo,
+                    'opc_promo' => $producto->opc_promo,
+                    'desc_promo' => $producto->desc_promo,
+                    'fecha_alta' => $producto->fecha_alta ? date('Y-m-d', strtotime($producto->fecha_alta)) : null,
+                    'marca' => $producto->marca,
+                    'inventario' => (float) $producto->inventario,
+                    'detalles' => $detalles, // Detalles completos para el frontend
+                    'rating' => $ratingData['rating'],
+                    'ratingCount' => $ratingData['count'],
+                    'totalRatings' => $ratingData['count']
+                ];
+            }
+
+            $total = count($products);
+            
+            $response = [
                 'success' => true,
                 'data' => [
-                    'catalog' => $catalog,
-                    'products' => $products
+                    'products' => $products,
+                    'total' => $total,
+                    'page' => 1,
+                    'per_page' => $total,
+                    'last_page' => 1
                 ]
-            ]);
+            ];
+            
+            // Guardar en cache (10 minutos)
+            Cache::put($cacheKey, $response, 600);
+            
+            return response()->json($response);
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener productos del catálogo: ' . $e->getMessage()
+                'error' => 'Error al obtener productos del catálogo: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Genera la URL de imagen principal de un producto desde AWS S3.
+     *
+     * @param string $productId ID del producto
+     * @param int $imageNumber Número de imagen (por defecto 1)
+     * @return string URL completa de la imagen
+     */
+    private function getProductImageUrl(string $productId, int $imageNumber = 1): string
+    {
+        if (empty($productId)) {
+            return asset('images/placeholder-product.png');
+        }
+        
+        // Construir URL de AWS S3 basada en el ID del producto
+        return "https://cherry-fotos.s3.amazonaws.com/shopify/{$productId}/{$productId}_{$imageNumber}.jpg";
     }
 
     /**

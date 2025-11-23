@@ -11,6 +11,8 @@ import { searchProductsAdvanced, getProductsWithRatings, mapApiProductToAppProdu
 import { applyUserOffersToProducts } from '../api/userOffers';
 import { publicCatalogService } from '../services/api';
 import { flexibleSearchInFields } from '../utils/searchNormalizer';
+import api from '../services/api';
+import { getProductImageUrl } from '../utils/productImageUtils';
 import './BuscarPage.css';
 
 
@@ -161,36 +163,149 @@ const BuscarPage = () => {
     const loadProducts = async () => {
       setLoading(true);
       try {
+        let allProducts = [];
 
-        // Cargar TODOS los productos que coincidan con la búsqueda
-        // (sin límite para poder filtrar localmente después)
-        const result = await getProductsWithRatings('Cherry 2025 - 2026', {
-          limit: null,  // Cargar todos para búsqueda
-          random: true  // Orden aleatorio
-        });
-
-        const allProducts = result.products || result || [];
-        const productsWithOffers = await applyUserOffersToProducts(allProducts);
-
-        // Aplicar búsqueda/filtros
-        let filtered = productsWithOffers;
-
-        // Filtrar por query de búsqueda (con soporte para plurales/singulares)
-        if (query) {
-          filtered = filtered.filter(product => {
-            const match = flexibleSearchInFields(query, {
-              descripcion: product.descripcion || product.title || '',
-              title: product.title || product.descripcion || '',
-              codigo: product.codigo || product.id_articulo || '',
-              description: product.description || ''
-            }, ['descripcion', 'title', 'codigo', 'description']);
-
-            if (match) {
+        // Buscar en la base de datos local (con o sin query)
+        try {
+          const searchResponse = await api.get('/products/search', {
+            params: { 
+              q: query || '' // Si no hay query, el backend devolverá todos los productos
+              // Sin per_page para obtener todos los productos sin límite
             }
-
-            return match;
           });
+
+          if (searchResponse.data.success && searchResponse.data.data.products) {
+            const localProducts = searchResponse.data.data.products;
+            
+            // Debug: Verificar que los productos tengan los campos correctos del backend
+            console.log('Products from backend:', localProducts.length);
+            if (localProducts.length > 0) {
+              // Mostrar el primer producto completo para debug
+              console.log('First product from backend:', localProducts[0]);
+              
+              // Buscar productos con descuento
+              const productsWithDiscount = localProducts.filter(p => p.opc_promo === 'S' && p.desc_promo > 0);
+              console.log('Products with discount:', productsWithDiscount.length);
+              if (productsWithDiscount.length > 0) {
+                console.log('Sample product with discount:', {
+                  id: productsWithDiscount[0].id,
+                  precio1: productsWithDiscount[0].precio1,
+                  price: productsWithDiscount[0].price,
+                  originalPrice: productsWithDiscount[0].originalPrice,
+                  discount: productsWithDiscount[0].discount,
+                  desc_promo: productsWithDiscount[0].desc_promo,
+                  opc_promo: productsWithDiscount[0].opc_promo
+                });
+              }
+            }
+            
+            // Mapear productos locales al formato esperado
+            allProducts = localProducts.map(product => {
+                const rawPrice = product.precio1;
+                const numericPrice = typeof rawPrice === 'string' ? parseFloat(rawPrice.replace(/[^\d.-]/g, '')) : parseFloat(rawPrice) || 0;
+                
+                // Extraer colores de detalles
+                const productColors = product.detalles ? 
+                  [...new Set(product.detalles.map(d => d.nombreColor).filter(Boolean))] : 
+                  [];
+                const availableColors = productColors.length > 0 ? productColors : ['black'];
+                
+                // Extraer tallas de detalles
+                const productSizes = product.detalles ? 
+                  [...new Set(product.detalles.map(d => d.detalle).filter(Boolean))] : 
+                  [];
+                const availableSizes = productSizes.length > 0 ? productSizes : ['M'];
+                
+                // Determinar si es nuevo (45 días)
+                const isNewProduct = product.opc_nuevo === 'S' || 
+                                   (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 45 * 24 * 60 * 60 * 1000));
+                
+                // Usar los valores que ya vienen calculados del backend (con descuento reducido del 10% aplicado)
+                // El backend ya calcula: price (precio final), originalPrice, discount (reducido)
+                let finalPrice = product.price;
+                let originalPrice = product.originalPrice;
+                let discountPercentage = product.discount;
+                
+                // Debug para productos con descuento
+                if (product.opc_promo === 'S' && product.desc_promo > 0) {
+                  console.log('Processing product with discount:', {
+                    id: product.id,
+                    precio1: product.precio1,
+                    desc_promo: product.desc_promo,
+                    price_from_backend: product.price,
+                    originalPrice_from_backend: product.originalPrice,
+                    discount_from_backend: product.discount
+                  });
+                }
+                
+                // Si el backend no envió estos valores, calcularlos aquí como fallback
+                if (finalPrice === undefined || finalPrice === null || finalPrice === 0) {
+                  const hasDiscount = product.opc_promo === 'S' && product.desc_promo > 0;
+                  const originalDiscountPercentage = hasDiscount ? parseFloat(product.desc_promo) : 0;
+                  discountPercentage = hasDiscount ? Math.max(0, originalDiscountPercentage - 10) : 0;
+                  originalPrice = hasDiscount && numericPrice > 0 ? (numericPrice / (1 - originalDiscountPercentage / 100)) : null;
+                  finalPrice = hasDiscount && discountPercentage > 0 && numericPrice > 0 
+                    ? (numericPrice - (numericPrice * (discountPercentage / 100))) 
+                    : numericPrice;
+                  
+                  if (hasDiscount) {
+                    console.log('Calculated fallback values:', {
+                      id: product.id,
+                      finalPrice,
+                      originalPrice,
+                      discountPercentage
+                    });
+                  }
+                }
+                
+                // Asegurar que discountPercentage sea un número
+                discountPercentage = discountPercentage !== undefined && discountPercentage !== null ? parseFloat(discountPercentage) : 0;
+                
+                return {
+                  id: product.id_articulo || product.id,
+                  title: product.descripcion || product.title || 'Sin nombre',
+                  description: product.descripcion || 'Sin descripción',
+                  price: finalPrice, // Usar precio final del backend (con descuento aplicado)
+                  originalPrice: originalPrice, // Usar precio original del backend
+                  discount: discountPercentage, // Usar descuento reducido del backend
+                  image: getProductImageUrl(product.id_articulo || product.id),
+                  brand: product.marca || 'Sin marca',
+                  stock: product.inventario || 0,
+                  inventario: product.inventario || 0, // Para filtros
+                  colors: availableColors,
+                  colores: productColors,
+                  sizes: availableSizes,
+                  tallas: productSizes,
+                  isNew: isNewProduct,
+                  // Usar el rating que viene del backend (ya calculado desde reviews aprobadas)
+                  rating: product.rating || 0,
+                  ratingCount: product.ratingCount || product.totalRatings || 0,
+                  linea: product.linea || product.id_linea,
+                  id_linea: product.id_linea || product.linea, // Para filtro de categoría
+                  fechaAlta: product.fecha_alta,
+                  temporada: product.temporada,
+                  opcNuevo: product.opc_nuevo,
+                  opcPromo: product.opc_promo,
+                  descPromo: product.desc_promo,
+                  genero: product.genero,
+                  sector: product.sector,
+                  detalles: product.detalles,
+                  codigo: product.codigo || product.id_articulo || product.id,
+                  id_articulo: product.id_articulo || product.id,
+                  precio1: numericPrice // Para ordenamiento
+                };
+              });
+
+            // Aplicar ofertas de usuario
+            allProducts = await applyUserOffersToProducts(allProducts);
+          }
+        } catch (error) {
+          console.error('Error buscando productos:', error);
+          allProducts = [];
         }
+
+        // Aplicar filtros adicionales
+        let filtered = [...allProducts];
 
         // Filtrar por color
         if (colorFilter) {
@@ -216,6 +331,7 @@ const BuscarPage = () => {
         setFilteredProducts(filtered);
         setLoading(false);
       } catch (error) {
+        console.error('Error cargando productos:', error);
         setProducts([]);
         setFilteredProducts([]);
         setLoading(false);
@@ -230,32 +346,33 @@ const BuscarPage = () => {
     let filtered = [...products];
 
     // Filtrar por catálogo
+    // filters.catalog contiene el id del catálogo seleccionado, comparar con catalogoId del producto
     if (filters.catalog && filters.catalog !== 'Todos los catálogos' && filters.catalog !== 'Seleccione') {
-
       filtered = filtered.filter(product => {
-        // Verificar si el producto pertenece al catálogo seleccionado
-        const productCatalog = product.catalog || '';
-        return productCatalog == filters.catalog;
+        // Comparar el id del catálogo seleccionado con catalogoId del producto
+        const productCatalogoId = product.catalogoId;
+        return productCatalogoId == filters.catalog;
       });
-
     }
 
     // Aplicar filtros adicionales (usando código)
+    // filters.category contiene el code de la categoría, comparar con id_linea del producto
     if (filters.category && filters.category !== '') {
       filtered = filtered.filter(product => {
-        const productLineaId = product.category_id;
+        const productLineaId = product.id_linea;
         return productLineaId == filters.category;
       });
     }
 
-    // Filtrar por precio
+    // Filtrar por precio - usar precio1 del backend
     if (filters.priceRange.min > 0 || filters.priceRange.max > 0) {
       filtered = filtered.filter(product => {
-        const price = product.price || 0;
+        // Usar precio1 del backend como fuente principal
+        const price = parseFloat(product.price || product.precio1 || 0);
         const minPrice = filters.priceRange.min || 0;
         const maxPrice = filters.priceRange.max || Infinity;
 
-        if (maxPrice > 0) {
+        if (maxPrice > 0 && maxPrice !== Infinity) {
           return price >= minPrice && price <= maxPrice;
         } else {
           return price >= minPrice;
@@ -263,52 +380,82 @@ const BuscarPage = () => {
       });
     }
 
-    // Filtrar por colores adicionales
+    // Filtrar por colores adicionales - usar detalles del backend
     if (filters.colors && filters.colors.length > 0) {
       filtered = filtered.filter(product => {
-        if (!product.colors || product.colors.length === 0) return false;
-
-        return filters.colors.some(filterColor => {
-          const filterColorLower = filterColor.toLowerCase();
-          return product.colors.some(productColor => {
-            const productColorLower = productColor.toLowerCase();
-            return productColorLower === filterColorLower ||
-              productColorLower.includes(filterColorLower);
+        // Prioridad 1: usar detalles del backend
+        if (product.detalles && product.detalles.length > 0) {
+          return filters.colors.some(filterColor => {
+            const filterColorLower = filterColor.toLowerCase();
+            return product.detalles.some(detalle => {
+              if (!detalle.nombreColor) return false;
+              const productColorLower = detalle.nombreColor.toLowerCase();
+              return productColorLower === filterColorLower ||
+                productColorLower.includes(filterColorLower);
+            });
           });
-        });
+        }
+        // Fallback: usar colors array
+        if (product.colors && product.colors.length > 0) {
+          return filters.colors.some(filterColor => {
+            const filterColorLower = filterColor.toLowerCase();
+            return product.colors.some(productColor => {
+              const productColorLower = productColor.toLowerCase();
+              return productColorLower === filterColorLower ||
+                productColorLower.includes(filterColorLower);
+            });
+          });
+        }
+        return false;
       });
     }
 
-    // Filtrar por tallas
+    // Filtrar por tallas - usar detalles del backend
     if (filters.sizes && filters.sizes.length > 0) {
       filtered = filtered.filter(product => {
-        if (!product.sizes || product.sizes.length === 0) return false;
-
-        return filters.sizes.some(filterSize => {
-          const filterSizeLower = filterSize.toLowerCase();
-          return product.sizes.some(productSize => {
-            const productSizeLower = productSize.toString().toLowerCase();
-            return productSizeLower === filterSizeLower ||
-              productSizeLower.includes(filterSizeLower);
+        // Prioridad 1: usar detalles del backend
+        if (product.detalles && product.detalles.length > 0) {
+          return filters.sizes.some(filterSize => {
+            const filterSizeLower = filterSize.toLowerCase();
+            return product.detalles.some(detalle => {
+              if (!detalle.detalle) return false;
+              const productSizeLower = detalle.detalle.toString().toLowerCase();
+              return productSizeLower === filterSizeLower ||
+                productSizeLower.includes(filterSizeLower);
+            });
           });
-        });
+        }
+        // Fallback: usar sizes array
+        if (product.sizes && product.sizes.length > 0) {
+          return filters.sizes.some(filterSize => {
+            const filterSizeLower = filterSize.toLowerCase();
+            return product.sizes.some(productSize => {
+              const productSizeLower = productSize.toString().toLowerCase();
+              return productSizeLower === filterSizeLower ||
+                productSizeLower.includes(filterSizeLower);
+            });
+          });
+        }
+        return false;
       });
     }
 
-    // Filtrar por disponibilidad (con existencia)
+    // Filtrar por disponibilidad (con existencia) - usar inventario del backend
     if (filters.availability === 'con-existencia') {
       filtered = filtered.filter(product => {
-        const stock = product.stock || product.inventario || product.inventory || 0;
+        // Usar inventario del backend como fuente principal
+        const stock = parseFloat(product.inventario || product.stock || product.inventory || 0);
         return stock > 0;
       });
     }
 
-    // Filtrar por código adicional
+    // Filtrar por código adicional - usar id_articulo del backend
     if (filters.codigo && filters.codigo.trim() !== '') {
       const codigoLower = filters.codigo.trim().toLowerCase();
       filtered = filtered.filter(product => {
         return (
-          (product.codigo && product.codigo.toLowerCase().includes(codigoLower)) ||
+          (product.codigo && product.codigo.toString().toLowerCase().includes(codigoLower)) ||
+          (product.id_articulo && product.id_articulo.toString().toLowerCase().includes(codigoLower)) ||
           (product.id && product.id.toString().toLowerCase().includes(codigoLower))
         );
       });
@@ -330,27 +477,36 @@ const BuscarPage = () => {
       filtered = [...filtered].sort((a, b) => {
         switch (filters.sortBy) {
           case 'Más recientes':
-            // Ordenar por fecha de creación (más recientes primero)
-            const dateA = new Date(a.created_at || a.fecha_alta || 0);
-            const dateB = new Date(b.created_at || b.fecha_alta || 0);
+          case 'más recientes':
+            // Ordenar por fecha_alta del backend (más recientes primero)
+            const dateA = new Date(a.fechaAlta || a.fecha_alta || a.created_at || 0);
+            const dateB = new Date(b.fechaAlta || b.fecha_alta || b.created_at || 0);
             return dateB - dateA;
 
           case 'Precio: menor a mayor':
-            const priceA = parseFloat(a.price || a.precio || a.precio1 || 0);
-            const priceB = parseFloat(b.price || b.precio || b.precio1 || 0);
+          case 'precio-menor':
+            // Usar precio1 del backend como fuente principal
+            const priceA = parseFloat(a.price || a.precio1 || 0);
+            const priceB = parseFloat(b.price || b.precio1 || 0);
             return priceA - priceB;
 
           case 'Precio: mayor a menor':
-            const priceA2 = parseFloat(a.price || a.precio || a.precio1 || 0);
-            const priceB2 = parseFloat(b.price || b.precio || b.precio1 || 0);
+          case 'precio-mayor':
+            // Usar precio1 del backend como fuente principal
+            const priceA2 = parseFloat(a.price || a.precio1 || 0);
+            const priceB2 = parseFloat(b.price || b.precio1 || 0);
             return priceB2 - priceA2;
 
           case 'Nombre A-Z':
+          case 'nombre-a-z':
+            // Usar descripcion del backend
             const nameA = (a.title || a.descripcion || a.name || '').toLowerCase();
             const nameB = (b.title || b.descripcion || b.name || '').toLowerCase();
             return nameA.localeCompare(nameB);
 
           case 'Nombre Z-A':
+          case 'nombre-z-a':
+            // Usar descripcion del backend
             const nameA2 = (a.title || a.descripcion || a.name || '').toLowerCase();
             const nameB2 = (b.title || b.descripcion || b.name || '').toLowerCase();
             return nameB2.localeCompare(nameA2);
@@ -388,9 +544,6 @@ const BuscarPage = () => {
     // Handle favorite toggle
   };
 
-  const handleSortChange = useCallback((e) => {
-    setSortBy(e.target.value);
-  }, []);
 
   // Infinite scroll
   const infiniteScroll = useInfiniteScroll(filteredProducts, 20);
@@ -432,18 +585,18 @@ const BuscarPage = () => {
                   </button>
                 </div>
                 <label htmlFor="sort-select" className="nuevos-page__sort-label">Ordenar por:</label>
-                <select
-                  id="sort-select"
-                  value={filters.sortBy}
-                  onChange={handleSortChange}
-                  className="nuevos-page__sort-select"
-                >
-                  <option value="más recientes">más recientes</option>
-                  <option value="precio-menor">Precio: menor a mayor</option>
-                  <option value="precio-mayor">Precio: mayor a menor</option>
-                  <option value="nombre-a-z">Nombre: A-Z</option>
-                  <option value="nombre-z-a">Nombre: Z-A</option>
-                </select>
+                  <select
+                    id="sort-select"
+                    value={filters.sortBy}
+                    onChange={(e) => handleFilterChange({ ...filters, sortBy: e.target.value })}
+                    className="nuevos-page__sort-select"
+                  >
+                    <option value="Más recientes">Más recientes</option>
+                    <option value="Precio: menor a mayor">Precio: menor a mayor</option>
+                    <option value="Precio: mayor a menor">Precio: mayor a menor</option>
+                    <option value="Nombre A-Z">Nombre: A-Z</option>
+                    <option value="Nombre Z-A">Nombre: Z-A</option>
+                  </select>
               </div>
             </div>
           </div>
@@ -501,7 +654,7 @@ const BuscarPage = () => {
                   </div>
                 ) : (
                   <>
-                    <div className="buscar-products-grid">
+                    <div className={`buscar-products-grid ${filteredProducts.length === 1 ? 'single-result' : ''}`}>
                       {infiniteScroll.displayedItems.map((product, index) => (
                         <ProductCard
                           key={product.id || `product-${index}`}

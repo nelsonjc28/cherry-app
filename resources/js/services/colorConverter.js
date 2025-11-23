@@ -51,6 +51,8 @@ class ColorConverter {
       ['kaky', '#C3B091'],
       ['menta', '#98FB98'],
       ['miel', '#FFB347'],
+      ['melon', '#FFA07A'],
+      ['melón', '#FFA07A'],
       ['multicolor', '#FF6347'],
       ['oro', '#FFD700'],
       ['perla', '#EAE0C8'],
@@ -301,7 +303,9 @@ class ColorConverter {
       'plum': '#DDA0DD',
       'sienna': '#A0522D',
       'peru': '#CD853F',
-      'chocolate': '#D2691E'
+      'chocolate': '#D2691E',
+      'melon': '#FFA07A',
+      'melón': '#FFA07A'
     };
     
     // Buscar coincidencia exacta en palabras clave

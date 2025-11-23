@@ -53,12 +53,9 @@ class AuthController extends Controller
             'role_id'       => 2, // Default to cliente role
         ]);
 
-        $now = Carbon::now();
-        DayFortyFive::create([
-            'user_id' => $user->id,
-            'startDate' => $now->format('Y-m-d'),
-            'endDate' => $now->addDays(44)->format('Y-m-d'),
-        ]);
+        // NOTA: Ya no se crea el registro de dayFortyFive al registrarse
+        // El registro se creará cuando el cliente haga una compra >= 7000 MXN
+        // (solo productos con desc_promo = 0 y sin descuentos personalizados)
 
         $token = JWTAuth::fromUser($user);
 

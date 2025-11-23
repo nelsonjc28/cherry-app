@@ -93,10 +93,7 @@ const CatalogFilter = ({
     onFilterChange(newFilters);
   };
 
-  // Available filter options
-  const catalogOptions = catalogs.length > 0
-    ? [...catalogs.map(catalog => [{ name: catalog.name, 'code': catalog.code }])]
-    : ['Seleccione', [{ name: 'Cargando catálogos...', code: 'Cargando catálogos...' }]];
+  // Available filter options - ya no se usa catalogOptions, se usa catalogs directamente
 
 
   const availabilityOptions = [
@@ -161,8 +158,8 @@ const CatalogFilter = ({
                   >
                     <option value=''>Seleccione</option>
 
-                    {catalogOptions.map((option) => (
-                      <option key={option[0].code} value={option[0].code}>{option[0].name}</option>
+                    {catalogs.map((catalog) => (
+                      <option key={catalog.id} value={catalog.id}>{catalog.name}</option>
                     ))}
                   </select>
                 )}

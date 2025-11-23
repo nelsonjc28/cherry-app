@@ -45,17 +45,19 @@ const DestacadosPage = () => {
     let filtered = [...products];
 
     // Filter by category (usando código)
+    // filters.category contiene el code de la categoría, comparar con id_linea del producto
     if (currentFilters.category && currentFilters.category !== '') {
       filtered = filtered.filter(product => {
-        const productLineaId = product.category_id;
+        const productLineaId = product.id_linea;
         return productLineaId == currentFilters.category;
       });
     }
     // Filter by catalog
+    // filters.catalog contiene el id del catálogo seleccionado, comparar con catalogoId del producto
     if (currentFilters.catalog && currentFilters.catalog !== '' && currentFilters.catalog != 'Seleccione') {
       filtered = filtered.filter(product => {
-        const productCatalog = product.catalog;
-        return productCatalog == currentFilters.catalog;
+        const productCatalogoId = product.catalogoId;
+        return productCatalogoId == currentFilters.catalog;
       });
     }
     // Filter by department
@@ -147,8 +149,13 @@ const DestacadosPage = () => {
 
     switch (sortOption) {
       case 'más vendidos':
-        // Mantener el orden original (ya vienen ordenados por ventas)
-        return sorted;
+        // Mantener el orden original basado en el ranking (ya vienen ordenados por ventas)
+        // Ordenar por ranking si está disponible, sino mantener el orden original
+        return sorted.sort((a, b) => {
+          const rankA = a.ranking || 999999;
+          const rankB = b.ranking || 999999;
+          return rankA - rankB;
+        });
       case 'precio-menor':
         return sorted.sort((a, b) => (a.price || 0) - (b.price || 0));
       case 'precio-mayor':
@@ -221,16 +228,29 @@ const DestacadosPage = () => {
   useEffect(() => {
     const loadTopSellingProducts = async () => {
       setLoading(true);
+      setError(null);
       try {
         const products = await getTopSellingProducts(50);
-        const finalProducts = user ? await applyUserOffersToProducts(products) : products;
-
-        setTopSellingProducts(finalProducts);
-        setFilteredProducts(finalProducts);
-        setCurrentMonth(new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }));
-        setError(null);
+        
+        // Si no hay productos pero no hay error explícito, no mostrar error
+        if (!products || products.length === 0) {
+          setTopSellingProducts([]);
+          setFilteredProducts([]);
+          setError(null); // No mostrar error si simplemente no hay productos
+        } else {
+          const finalProducts = user ? await applyUserOffersToProducts(products) : products;
+          setTopSellingProducts(finalProducts);
+          setFilteredProducts(finalProducts);
+          setCurrentMonth(new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }));
+        }
       } catch (err) {
-        setError('Error al cargar productos más vendidos');
+        console.error('Error loading top selling products:', err);
+        // Solo mostrar error si es un error real, no si simplemente no hay productos
+        if (err.response && err.response.data && err.response.data.error) {
+          setError(err.response.data.error);
+        } else {
+          setError('Error al cargar productos más vendidos');
+        }
         setTopSellingProducts([]);
         setFilteredProducts([]);
       } finally {
@@ -461,7 +481,7 @@ const DestacadosPage = () => {
                     {infiniteScroll.displayedItems.map((product, index) => (
                       <div key={product.id} className="product-ranking-item">
                         <div className="ranking-badge">
-                          #{index + 1}
+                          #{product.ranking || (index + 1)}
                         </div>
                         <ProductCard
                           product={product}

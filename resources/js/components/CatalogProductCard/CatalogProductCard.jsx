@@ -192,11 +192,6 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
             averageRating={rating}
             totalRatings={ratingCount}
           />
-          {ratingCount > 0 && (
-            <span className="catalog-product-rating-count">
-              ({ratingCount})
-            </span>
-          )}
         </div>
         
         {/* Price */}

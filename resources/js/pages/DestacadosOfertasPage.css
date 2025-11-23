@@ -127,11 +127,104 @@
   opacity: 0.8;
 }
 
+.ofertas-content-wrapper {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
 .ofertas-content {
+  flex: 1;
   background: white;
   border-radius: 1rem;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   padding: 2rem;
+}
+
+/* Estilos para controles móviles y sidebar (igual que NuevosPage) */
+.nuevos-page__header-mobile {
+  display: none;
+}
+
+.nuevos-page__sidebar {
+  flex: 0 0 280px;
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  height: fit-content;
+  position: sticky;
+  top: 100px;
+}
+
+.nuevos-page__controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.nuevos-page__sort-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nuevos-page__mobile-filter-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.nuevos-page__mobile-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.nuevos-page__sort-label {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.nuevos-page__sort-select {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  background: white;
+  cursor: pointer;
+}
+
+.nuevos-page__filter-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.nuevos-page__filter-modal {
+  background: white;
+  border-radius: 1rem;
+  width: 100%;
+  max-width: 400px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .ofertas-header-section {
@@ -267,6 +360,21 @@
 }
 
 /* Responsive */
+@media (max-width: 1024px) {
+  .ofertas-content-wrapper {
+    flex-direction: column;
+  }
+
+  .nuevos-page__sidebar {
+    display: none;
+  }
+
+  .nuevos-page__header-mobile {
+    display: block;
+    margin-bottom: 1.5rem;
+  }
+}
+
 @media (max-width: 768px) {
   .ofertas-banner {
     flex-direction: column;
@@ -299,5 +407,9 @@
   .cta-actions {
     flex-direction: column;
     align-items: center;
+  }
+
+  .ofertas-content {
+    padding: 1rem;
   }
 } 

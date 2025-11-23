@@ -26,6 +26,7 @@ import { getProductById, generateS3ImageUrl, isUserSessionActive } from '../api/
 import { applyUserOffersToProducts } from '../api/userOffers';
 import useCartStore from '../store/cartStore';
 import useUserStore from '../store/userStore';
+import api from '../services/api';
 
 // Utils
 import { formatPrice } from '../utils/formatters';
@@ -417,6 +418,7 @@ const ProductPage = () => {
   }, [product]);
 
   // Rating states
+  // Rating data ahora viene del producto directamente
   const [ratingData, setRatingData] = useState({
     average: 0,
     count: 0,
@@ -437,26 +439,34 @@ const ProductPage = () => {
   // User discounts hook
   const { userDiscounts, loading: discountsLoading } = useUserDiscounts(product ? [product.id_articulo] : []);
 
-  // Load product data from external API
+  // Load product data from local database
   useEffect(() => {
     if (!productId) return;
     const fetchProduct = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const productData = await getProductById(productId);
+        // Llamar al nuevo endpoint del backend
+        const response = await api.get(`/products/${productId}`);
+        
+        if (!response.data.success || !response.data.data) {
+          throw new Error('Producto no encontrado');
+        }
+
+        // Obtener datos del producto desde la respuesta del backend
+        const productData = response.data.data;
 
         // Aplicar ofertas usando el sistema inteligente (con o sin sesión)
         const hasActiveSession = isUserSessionActive();
-        let productWithOffer = productData;;
+        let productWithOffer = productData;
 
         if (hasActiveSession) {
           // Si hay sesión activa, aplicar ofertas personalizadas
           const productsWithOffers = await applyUserOffersToProducts([productData]);
-          productWithOffer = productsWithOffers[0] || productData;;
+          productWithOffer = productsWithOffers[0] || productData;
         } else {
-          // Si no hay sesión, usar solo las ofertas externas (ya incluidas en getProductById)
-          productWithOffer = productData;;
+          // Si no hay sesión, usar solo las ofertas externas (ya incluidas en la respuesta)
+          productWithOffer = productData;
         }
 
         setProduct(productWithOffer);
@@ -482,9 +492,10 @@ const ProductPage = () => {
           }
         }
 
-        // Fetch rating data
-        fetchRatingData();
+        // Rating data ahora viene del producto directamente
       } catch (err) {
+        console.error('Error al cargar el producto:', err);
+        setError(err.message || 'Error al cargar el producto');
         if (window.showToast) {
           window.showToast('Error al cargar el producto', 'error');
         }
@@ -544,18 +555,7 @@ const ProductPage = () => {
   }, [product, selectedColor]);
 
 
-  // Fetch rating data for the product
-  const fetchRatingData = async () => {
-    try {
-      const response = await fetch(`/api/ratings/product?product_id=${productId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setRatingData(data.average_rating);
-      }
-    } catch (error) {
-      // Error fetching rating data
-    }
-  };
+  // Rating data ahora viene del producto directamente, no necesita fetch separado
 
 
   // Handle add to cart
@@ -618,6 +618,7 @@ const ProductPage = () => {
           barcode: getBarcodeBySizeAndColor(talla, selectedColor) || product.ean || product.sku || product.codigo_barras || product.id_articulo, // Código de barras específico por talla/color
           // Información de ofertas especiales
           userOffer: hasUserOffer ? {
+            discount_category: userOffer.discount_category, // IMPORTANTE: incluir discount_category
             type: userOffer.discount_category,
             title: userOffer.title,
             discount_percentage: userOffer.discount_percentage,
@@ -1126,7 +1127,7 @@ const ProductPage = () => {
             />
             {/* Product Reviews - Desktop View */}
             <div className="product-page__desktop-reviews show-desktop">
-              <ProductReviews productId={productId} />
+              <ProductReviews productId={productId} reviews={product?.reviews} ratingData={ratingData} />
             </div>
           </div>
 
@@ -1194,12 +1195,12 @@ const ProductPage = () => {
 
               <div className="product-page__price-container">
                 {hasOffer && discountPercentage > 0 && (
-                  <div className="product-page__original-price">{formatPrice(product?.originalPrice || precio1)}</div>
+                  <div className="product-page__original-price">{formatPrice(precio1)}</div>
                 )}
                 <div className="product-page__final-price">{formatPrice(finalPrice)}</div>
                 {hasOffer && discountPercentage > 0 && (
                   <span className="product-page__savings">
-                    💰 Ahorras {formatPrice((product?.originalPrice || precio1) - finalPrice)}
+                    💰 Ahorras {formatPrice(precio1 - finalPrice)}
                   </span>
                 )}
               </div>
@@ -1480,7 +1481,7 @@ const ProductPage = () => {
 
       {/* Product Reviews Section - Mobile View */}
       <div className="container show-mobile">
-        <ProductReviews productId={productId} />
+        <ProductReviews productId={productId} reviews={product?.reviews} ratingData={ratingData} />
       </div>
     </>
   );

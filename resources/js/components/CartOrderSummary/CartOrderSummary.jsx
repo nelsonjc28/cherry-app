@@ -5,6 +5,7 @@ import { getIconPath } from '../../utils/assetPaths';
 import CustomButton from '../CustomButton';
 import api from '../../config/axios';
 import { validateStock } from '../../services/inventoryService';
+import useCartStore from '../../store/cartStore';
 
 const CartOrderSummary = ({
   creditDays,
@@ -49,6 +50,8 @@ const CartOrderSummary = ({
   const [modalErrors, setModalErrors] = useState({});
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
+  // Obtener funciones del store de carrito
+  const { updateQuantity, removeItem } = useCartStore();
 
   // Cargar MercadoPago SDK
   useEffect(() => {
@@ -480,7 +483,11 @@ const CartOrderSummary = ({
           // DEBUG: Log para ver qué datos se están enviando
           return mappedItem;
         }),
-        address_id: parseInt(selectedAddress.id, 10)
+        address_id: parseInt(selectedAddress.id, 10),
+        // Información para crear/actualizar registro dayFortyFive
+        day_forty_five_applied: dayFortyFiveApplied,
+        day_forty_five_discount_percentage: dayFortyFiveDiscountPercentage,
+        eligible_total: eligibleTotal
       };
 
       // ⚠️ SIN TRY-CATCH - Esto permitirá ver errores exactos del backend
@@ -565,27 +572,44 @@ const CartOrderSummary = ({
 
   // ===== DESCUENTO POR DAYS 45 + TOTAL + desc_promo =====
   let finalTotal = Number(total);
+  let dayFortyFiveApplied = false;
+  let dayFortyFiveDiscountPercentage = 0;
 
-  // 1️⃣ Verificar que todos los productos tienen desc_promo = 0/null
-  const allWithoutPromo = cartItems.every(item =>
-    item.desc_promo === 0 ||
-    item.desc_promo === null ||
-    item.desc_promo === undefined
-  );
+  // 1️⃣ Calcular total elegible (solo productos con desc_promo = 0 y sin userOffer)
+  const eligibleItems = cartItems.filter(item => {
+    const hasNoPromo = item.desc_promo === 0 || item.desc_promo === null || item.desc_promo === undefined;
+    const hasNoUserOffer = !item.userOffer || item.userOffer.discount_category === null;
+    return hasNoPromo && hasNoUserOffer;
+  });
 
-  // 2️⃣ Validar daysFortyFive
-  const hasDays45 = Boolean(daysFortyFive);
+  // Calcular total elegible (suma de precios de productos elegibles)
+  const eligibleTotal = eligibleItems.reduce((sum, item) => {
+    const itemPrice = item.precio || item.price || 0;
+    const itemQuantity = item.quantity || 0;
+    return sum + (itemPrice * itemQuantity);
+  }, 0);
 
-  // 3️⃣ Aplicar descuentos según el total
-  if (allWithoutPromo && hasDays45) {
-
-    if (finalTotal > 15000) {
-      finalTotal = finalTotal * 0.60; // 40% descuento
-    } else if (finalTotal > 7000) {
-      finalTotal = finalTotal * 0.70; // 30% descuento
+  // 2️⃣ Aplicar descuentos automáticamente según el total elegible (sin necesidad de tener daysFortyFive activo)
+  // El descuento se aplica automáticamente cuando el total elegible >= 7000
+  // El descuento se aplica solo sobre el total elegible, no sobre productos con desc_promo o userOffer
+  if (eligibleTotal >= 7000) {
+    let discountAmount = 0;
+    if (eligibleTotal >= 15000) {
+      // 40% descuento sobre el total elegible
+      dayFortyFiveDiscountPercentage = 40;
+      discountAmount = eligibleTotal * 0.40;
+      dayFortyFiveApplied = true;
+    } else if (eligibleTotal >= 7000) {
+      // 30% descuento sobre el total elegible
+      dayFortyFiveDiscountPercentage = 30;
+      discountAmount = eligibleTotal * 0.30;
+      dayFortyFiveApplied = true;
     }
-
-    finalTotal = finalTotal.toFixed(2)
+    
+    // Aplicar el descuento al total final
+    finalTotal = finalTotal - discountAmount;
+    finalTotal = Math.max(0, finalTotal); // Asegurar que no sea negativo
+    finalTotal = parseFloat(finalTotal.toFixed(2));
   }
 
   let envio = 0;

@@ -215,7 +215,7 @@
 /* Color grid */
 .color-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.75rem;
   row-gap: 3.5rem;
   margin-left: 1rem;
@@ -390,7 +390,7 @@
   }
 
   .color-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 1rem;
     row-gap: 2.5rem;
   }
@@ -402,7 +402,7 @@
   }
 
   .color-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 1.25rem;
     row-gap: 2.5rem;
   }

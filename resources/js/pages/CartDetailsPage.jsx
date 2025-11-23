@@ -40,6 +40,31 @@ const CartDetailsPage = () => {
     initCart();
   }, [initCart]);
 
+  // Helper function to calculate item price considering Buy X Get Y offers
+  const calculateItemPriceForDisplay = (item) => {
+    if (item.isFreeItem) return 0;
+    
+    const itemPrice = item.price || item.precio || 0;
+    const quantity = item.quantity || 0;
+    
+    // Si tiene oferta Buy X Get Y, calcular precio basado en items pagados
+    if (item.userOffer?.discount_category === 'buy_x_get_y') {
+      // Usar _paidQuantity si está disponible (calculado por applyBuyXGetYOffers)
+      if (item._paidQuantity !== undefined) {
+        return itemPrice * item._paidQuantity;
+      }
+      
+      // Si no tiene _paidQuantity pero tiene freeItemsCount, calcularlo
+      if (item.freeItemsCount && item.freeItemsCount > 0) {
+        const paidQuantity = quantity - item.freeItemsCount;
+        return itemPrice * paidQuantity;
+      }
+    }
+    
+    // Item normal sin ofertas
+    return itemPrice * quantity;
+  };
+
   // Group cart items by product ID and color, combining different sizes
   const groupedProducts = cartItems.reduce((groups, item) => {
     const key = `${item.id_articulo}-${item.selectedColor}`;
@@ -53,7 +78,10 @@ const CartDetailsPage = () => {
         selectedColor: item.selectedColor,
         variants: [],
         totalQuantity: 0,
-        totalPrice: 0
+        totalPrice: 0,
+        userOffer: item.userOffer, // Preservar userOffer para mostrar información de oferta
+        freeItemsCount: item.freeItemsCount || 0, // Preservar freeItemsCount para mostrar
+        _paidQuantity: item._paidQuantity // Preservar _paidQuantity para cálculos
       };
     }
 
@@ -64,25 +92,38 @@ const CartDetailsPage = () => {
       quantity: item.quantity
     });
 
-    // Update totals
+    // Update totals - usar calculateItemPriceForDisplay para considerar Buy X Get Y
     groups[key].totalQuantity += item.quantity;
-    groups[key].totalPrice += item.precio * item.quantity;
+    groups[key].totalPrice += calculateItemPriceForDisplay(item);
 
     return groups;
   }, {});
 
   // Convert grouped products to array format
-  const productsForDisplay = Object.values(groupedProducts).map((groupedProduct) => ({
-    image: groupedProduct.image || '/images/placeholder.jpg',
-    sku: groupedProduct.id_articulo,
-    title: groupedProduct.title,
-    price: parseFloat(groupedProduct.precio).toFixed(2),
-    variants: groupedProduct.variants,
-    summary: {
-      quantity: groupedProduct.totalQuantity,
-      priceWithDiscount: parseFloat(groupedProduct.totalPrice).toFixed(2)
-    }
-  }));
+  const productsForDisplay = Object.values(groupedProducts).map((groupedProduct) => {
+    // Calcular precio sin descuento (precio original * cantidad total)
+    const priceWithoutDiscount = parseFloat(groupedProduct.precio) * groupedProduct.totalQuantity;
+    
+    // El precio con descuento ya está calculado considerando Buy X Get Y en totalPrice
+    const priceWithDiscount = groupedProduct.totalPrice;
+    
+    return {
+      image: groupedProduct.image || '/images/placeholder.jpg',
+      sku: groupedProduct.id_articulo,
+      title: groupedProduct.title,
+      price: parseFloat(groupedProduct.precio).toFixed(2),
+      variants: groupedProduct.variants,
+      summary: {
+        quantity: groupedProduct.totalQuantity,
+        priceWithoutDiscount: priceWithoutDiscount.toFixed(2),
+        priceWithDiscount: parseFloat(priceWithDiscount).toFixed(2),
+        // Información adicional para mostrar ofertas Buy X Get Y
+        userOffer: groupedProduct.userOffer,
+        freeItemsCount: groupedProduct.freeItemsCount || 0,
+        _paidQuantity: groupedProduct._paidQuantity
+      }
+    };
+  });
 
   // Handle remove variant (remove specific size from cart)
   const handleRemoveVariant = (productIdx, variantIdx) => {
@@ -278,15 +319,45 @@ const CartDetailsPage = () => {
     // El error ya se maneja en el componente IntegratedCheckout
   };
 
+  // Calcular descuento dayFortyFive (30% o 40%)
+  // Calcular total elegible (solo productos con desc_promo = 0 y sin userOffer)
+  const eligibleItems = cartItems.filter(item => {
+    const hasNoPromo = item.desc_promo === 0 || item.desc_promo === null || item.desc_promo === undefined;
+    const hasNoUserOffer = !item.userOffer || item.userOffer.discount_category === null;
+    return hasNoPromo && hasNoUserOffer;
+  });
+
+  // Calcular total elegible (suma de precios de productos elegibles)
+  const eligibleTotal = eligibleItems.reduce((sum, item) => {
+    const itemPrice = item.precio || item.price || 0;
+    const itemQuantity = item.quantity || 0;
+    return sum + (itemPrice * itemQuantity);
+  }, 0);
+
+  // Calcular monto del descuento dayFortyFive
+  let dayFortyFiveDiscountAmount = 0;
+  if (eligibleTotal >= 7000) {
+    if (eligibleTotal >= 15000) {
+      // 40% descuento sobre el total elegible
+      dayFortyFiveDiscountAmount = eligibleTotal * 0.40;
+    } else if (eligibleTotal >= 7000) {
+      // 30% descuento sobre el total elegible
+      dayFortyFiveDiscountAmount = eligibleTotal * 0.30;
+    }
+  }
+
+  // El total SIN descuento (CartOrderSummary aplicará el descuento internamente)
+  const baseTotal = (totalPrice && typeof totalPrice === 'number') ? totalPrice : 0;
+
   // Order summary data
   const orderSummary = {
     creditDays: '',
     discount1: 0,
     discount2: 0,
     pieces: totalItems,
-    subtotal: (totalPrice && typeof totalPrice === 'number') ? totalPrice.toFixed(2) : '0.00',
-    discountTotal: '0.00',
-    total: (totalPrice && typeof totalPrice === 'number') ? totalPrice.toFixed(2) : '0.00',
+    subtotal: baseTotal.toFixed(2),
+    discountTotal: dayFortyFiveDiscountAmount > 0 ? dayFortyFiveDiscountAmount.toFixed(2) : '0.00',
+    total: baseTotal.toFixed(2), // Total SIN descuento - CartOrderSummary lo aplicará
     daysFortyFive: user?.day_forty_five,
     freeShipping: user?.free_shipping,
     selectedAddress: selectedAddress,

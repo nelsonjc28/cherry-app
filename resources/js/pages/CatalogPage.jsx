@@ -133,9 +133,10 @@ const CatalogPage = ({ catalogId }) => {
 
 
     // Filter by category (if a category code is selected)
+    // filters.category contiene el code de la categoría, comparar con id_linea del producto
     if (currentFilters.category && currentFilters.category !== '') {
       filtered = filtered.filter(product => {
-        const productLineaId = product.linea?.id_linea;
+        const productLineaId = product.id_linea;
         return productLineaId == currentFilters.category;
       });
     }
@@ -328,74 +329,92 @@ const CatalogPage = ({ catalogId }) => {
               setCurrentCatalog(catalogResponse.data.data);
             }
 
-            // Cargar productos del catálogo local (si existen)
+            // Cargar productos del catálogo desde la base de datos local
+            // El backend ahora busca productos por catalogoId en la tabla productos
             let localProducts = [];
             try {
               const localResponse = await publicCatalogService.getProducts(catalogId);
-              if (localResponse.data.success) {
-
-                // Para productos locales, necesitamos obtener los datos completos de la API externa
-                const externalApiResponse = await fetch('https://cherryapi.estrategiadmgs.com.mx/cherryApi/');
-                let externalApiData = [];
-                if (externalApiResponse.ok) {
-                  externalApiData = await externalApiResponse.json();
-                }
-
-                // Obtener IDs de productos para ratings
-                const localProductIds = localResponse.data.data.products.map(product =>
-                  product.external_product_id
-                ).filter(Boolean);
-
-                // Obtener ratings en bulk para productos locales
-                const localRatingsCache = await getBulkRatings(localProductIds);
-
-                localProducts = localResponse.data.data.products.map(product => {
-                  // Buscar el producto completo en la API externa usando el external_product_id
-                  const fullProduct = externalApiData.find(p => p.id_articulo === product.external_product_id);
-
-                  if (fullProduct) {
-                    // Usar la función de mapeo actualizada con datos completos CON ratings
-                    const mappedProduct = mapApiProductToAppProduct(fullProduct, localRatingsCache);
-                    if (mappedProduct) {
-                      return {
-                        ...mappedProduct,
-                        source: 'local',
-                        category: product.product_category || mappedProduct.category
-                      };
-                    }
+              if (localResponse.data.success && localResponse.data.data.products) {
+                const backendProducts = localResponse.data.data.products;
+                
+                // Mapear productos del backend al formato esperado (igual que BuscarPage)
+                localProducts = backendProducts.map(product => {
+                  const rawPrice = product.precio1;
+                  const numericPrice = typeof rawPrice === 'string' ? parseFloat(rawPrice.replace(/[^\d.-]/g, '')) : parseFloat(rawPrice) || 0;
+                  
+                  // Extraer colores de detalles
+                  const productColors = product.detalles ? 
+                    [...new Set(product.detalles.map(d => d.nombreColor).filter(Boolean))] : 
+                    [];
+                  const availableColors = productColors.length > 0 ? productColors : ['black'];
+                  
+                  // Extraer tallas de detalles
+                  const productSizes = product.detalles ? 
+                    [...new Set(product.detalles.map(d => d.detalle).filter(Boolean))] : 
+                    [];
+                  const availableSizes = productSizes.length > 0 ? productSizes : ['M'];
+                  
+                  // Determinar si es nuevo (45 días)
+                  const isNewProduct = product.opc_nuevo === 'S' || 
+                                     (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 45 * 24 * 60 * 60 * 1000));
+                  
+                  // Usar los valores que ya vienen calculados del backend (con descuento reducido del 10% aplicado)
+                  let finalPrice = product.price;
+                  let originalPrice = product.originalPrice;
+                  let discountPercentage = product.discount;
+                  
+                  // Si el backend no envió estos valores, calcularlos aquí como fallback
+                  if (finalPrice === undefined || finalPrice === null || finalPrice === 0) {
+                    const hasDiscount = product.opc_promo === 'S' && product.desc_promo > 0;
+                    const originalDiscountPercentage = hasDiscount ? parseFloat(product.desc_promo) : 0;
+                    discountPercentage = hasDiscount ? Math.max(0, originalDiscountPercentage - 10) : 0;
+                    originalPrice = hasDiscount && numericPrice > 0 ? numericPrice : null;
+                    finalPrice = hasDiscount && discountPercentage > 0 && numericPrice > 0 
+                      ? (numericPrice - (numericPrice * (discountPercentage / 100))) 
+                      : numericPrice;
                   }
-
-                  // Fallback: mapeo básico con ratings del cache
-                  const productId = product.external_product_id;
-                  let rating = 0;
-                  let ratingCount = 0;
-
-                  if (localRatingsCache[productId]) {
-                    rating = localRatingsCache[productId].average || 0;
-                    ratingCount = localRatingsCache[productId].count || 0;
-                  }
-
+                  
+                  // Asegurar que discountPercentage sea un número
+                  discountPercentage = discountPercentage !== undefined && discountPercentage !== null ? parseFloat(discountPercentage) : 0;
+                  
                   return {
-                    id: productId,
-                    title: product.product_name,
-                    description: product.product_description,
-                    price: product.product_price,
-                    image: getProductImageUrl(productId),
-                    brand: product.product_metadata?.marca,
-                    category: product.product_category,
-                    stock: product.product_metadata?.inventario || 0,
-                    colors: [],
-                    isNew: false,
-                    rating: rating,
-                    ratingCount: ratingCount,
-                    source: 'local',
-                    originalPrice: null,
-                    discount: null
+                    id: product.id_articulo || product.id,
+                    title: product.descripcion || product.title || 'Sin nombre',
+                    description: product.descripcion || 'Sin descripción',
+                    price: finalPrice, // Usar precio final del backend (con descuento aplicado)
+                    originalPrice: originalPrice, // Usar precio original del backend
+                    discount: discountPercentage, // Usar descuento reducido del backend
+                    image: product.image || getProductImageUrl(product.id_articulo || product.id), // Usar imagen del backend (S3)
+                    brand: product.marca || 'Sin marca',
+                    stock: product.inventario || 0,
+                    inventario: product.inventario || 0, // Para filtros
+                    colors: availableColors,
+                    colores: productColors,
+                    sizes: availableSizes,
+                    tallas: productSizes,
+                    isNew: isNewProduct,
+                    // Usar el rating que viene del backend (ya calculado desde reviews aprobadas)
+                    rating: product.rating || 0,
+                    ratingCount: product.ratingCount || product.totalRatings || 0,
+                    linea: product.linea || product.id_linea,
+                    id_linea: product.id_linea || product.linea, // Para filtro de categoría
+                    catalogoId: product.catalogoId, // Para filtro de catálogo
+                    fechaAlta: product.fecha_alta,
+                    temporada: product.temporada,
+                    opcNuevo: product.opc_nuevo,
+                    opcPromo: product.opc_promo,
+                    descPromo: product.desc_promo,
+                    genero: product.genero,
+                    sector: product.sector,
+                    detalles: product.detalles,
+                    codigo: product.codigo || product.id_articulo || product.id,
+                    id_articulo: product.id_articulo || product.id,
+                    precio1: numericPrice // Para ordenamiento
                   };
-                }).filter(p => p !== null);
+                });
               }
             } catch (error) {
-
+              console.error('Error loading catalog products:', error);
             }
 
             // Cargar productos externos y filtrar por código del catálogo
@@ -461,79 +480,13 @@ const CatalogPage = ({ catalogId }) => {
                 }
               }
             } catch (error) {
-
+              console.error('Error loading external products:', error);
             }
 
-            // Combinar productos locales y externos
-            productsData = [...localProducts, ...externalProducts];
-
-            // Si no hay productos, intentar cargar productos por temporada como fallback
-            const catalogName = catalogResponse.data.success ? catalogResponse.data.data.name : null;
-            if (productsData.length === 0 && catalogName) {
-              try {
-                const fallbackResponse = await fetch('https://cherryapi.estrategiadmgs.com.mx/cherryApi/');
-                if (fallbackResponse.ok) {
-                  const fallbackData = await fallbackResponse.json();
-
-                  // Filtrar por temporada (nombre del catálogo)
-                  const filteredFallbackData = fallbackData.filter(product => product.temporada === catalogName);
-
-                  // Obtener IDs de productos para ratings
-                  const fallbackProductIds = filteredFallbackData.map(product =>
-                    product.id_articulo || product.id || product.codigo
-                  ).filter(Boolean);
-
-                  // Obtener ratings en bulk para productos fallback
-                  const fallbackRatingsCache = await getBulkRatings(fallbackProductIds);
-
-                  const fallbackProducts = filteredFallbackData.map(product => {
-                    // CONSOLE LOG ESPECÍFICO PARA DETALLES EN FALLBACK
-
-
-
-
-
-
-                    if (product.detalles && Array.isArray(product.detalles)) {
-
-                      product.detalles.forEach((detalle, index) => {
-
-
-
-
-
-                      });
-                    }
-
-
-                    // Extraer colores de los detalles
-                    let colors = [];
-                    if (product.detalles && Array.isArray(product.detalles)) {
-                      colors = [...new Set(product.detalles.map(d => d.nombreColor).filter(Boolean))];
-                    }
-
-                    // Debug específico para productos fallback
-
-                    // Usar la función de mapeo actualizada que incluye la lógica de ofertas CON ratings
-                    const mappedProduct = mapApiProductToAppProduct(product, fallbackRatingsCache);
-                    if (mappedProduct) {
-
-                      return {
-                        ...mappedProduct,
-                        source: 'external_fallback',
-                        temporada: product.temporada
-                      };
-                    }
-                    return null;
-                  });
-
-                  productsData = fallbackProducts;
-                }
-              } catch (error) {
-
-              }
-            }
+            // Usar solo productos locales del backend (ya no necesitamos productos externos)
+            productsData = localProducts;
           } catch (error) {
+            console.error('Error loading catalog:', error);
             productsData = [];
           }
         } else {

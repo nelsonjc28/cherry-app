@@ -49,6 +49,14 @@ class Review extends Model
     }
 
     /**
+     * Get the product this review belongs to
+     */
+    public function producto(): BelongsTo
+    {
+        return $this->belongsTo(Producto::class, 'product_id', 'id');
+    }
+
+    /**
      * Scope to get approved reviews
      */
     public function scopeApproved($query)
