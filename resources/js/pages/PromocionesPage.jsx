@@ -7,9 +7,11 @@ import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import InfiniteScrollLoader from '../components/InfiniteScrollLoader/InfiniteScrollLoader';
 import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
-import { getProductsWithRatings, isUserSessionActive } from '../api/cherryApi';
+import { isUserSessionActive } from '../api/cherryApi';
 import { applyUserOffersToProducts } from '../api/userOffers';
 import { publicCatalogService } from '../services/api';
+import api from '../services/api';
+import { getProductImageUrl } from '../utils/productImageUtils';
 
 
 import './PromocionesPage.css';
@@ -36,78 +38,192 @@ const PromocionesPage = () => {
   });
   const hasActiveSession = isUserSessionActive();
 
-  // Cargar productos con promociones (PRIMERO ofertas del admin, LUEGO API externa)
+  // Cargar productos con promociones desde la base de datos local
   useEffect(() => {
     const loadPromoProducts = async () => {
       setLoading(true);
       try {
+        console.log('🔍 DEBUG - Iniciando carga de productos con ofertas');
         
-        let allPromoProducts = [];
-        let adminOfferProductIds = [];
-        
-        // PASO 1: Si hay usuario logueado, obtener productos con ofertas del ADMIN PRIMERO
-        if (hasActiveSession) {
-          const token = localStorage.getItem('token');
-          if (token) {
-            try {
-              // Obtener IDs de productos que tienen ofertas del admin
-              const offerResponse = await fetch('/api/user-offer-products', {
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json'
-                }
+        let allProducts = [];
+
+        // Buscar productos con ofertas desde la base de datos local
+        try {
+          const searchResponse = await api.get('/products/with-offers');
+          console.log('🔍 DEBUG - Respuesta del backend:', searchResponse.data);
+
+          if (searchResponse.data.success && searchResponse.data.data.products) {
+            const localProducts = searchResponse.data.data.products;
+            console.log('🔍 DEBUG - Productos recibidos:', localProducts.length);
+            
+            if (localProducts.length > 0) {
+              console.log('🔍 DEBUG - Primer producto del backend:', {
+                id: localProducts[0].id,
+                id_linea: localProducts[0].id_linea,
+                catalogoId: localProducts[0].catalogoId,
+                descripcion: localProducts[0].descripcion
               });
+            }
+            
+            // Mapear productos locales al formato esperado
+            allProducts = localProducts.map(product => {
+              const rawPrice = product.precio1;
+              const numericPrice = typeof rawPrice === 'string' ? parseFloat(rawPrice.replace(/[^\d.-]/g, '')) : parseFloat(rawPrice) || 0;
               
-              if (offerResponse.ok) {
-                const offerData = await offerResponse.json();
-                if (offerData.success && offerData.product_ids && offerData.product_ids.length > 0) {
-                  console.log(`🎯 ${offerData.product_ids.length} productos con ofertas del admin`);
-                  adminOfferProductIds = offerData.product_ids;
-                  
-                  // Cargar TODOS los productos de la API para buscar los de las ofertas del admin
-                  const allProductsResult = await getProductsWithRatings('Cherry 2025 - 2026', {
-                    limit: null
-                  });
-                  const allProducts = allProductsResult.products || allProductsResult || [];
-                  
-                  // Filtrar productos que tienen ofertas del admin
-                  const adminOfferProducts = allProducts.filter(product => {
-                    const productId = (product.id_articulo || product.id || product.codigo).toString();
-                    return adminOfferProductIds.includes(productId);
-                  });
-                  
-                  allPromoProducts = adminOfferProducts;
-                }
+              // Extraer colores de detalles
+              const productColors = product.detalles ? 
+                [...new Set(product.detalles.map(d => d.nombreColor).filter(Boolean))] : 
+                [];
+              const availableColors = productColors.length > 0 ? productColors : ['black'];
+              
+              // Extraer tallas de detalles
+              const productSizes = product.detalles ? 
+                [...new Set(product.detalles.map(d => d.detalle).filter(Boolean))] : 
+                [];
+              const availableSizes = productSizes.length > 0 ? productSizes : ['M'];
+              
+              // Determinar si es nuevo (45 días)
+              const isNewProduct = product.opc_nuevo === 'S' || 
+                                 (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 45 * 24 * 60 * 60 * 1000));
+              
+              // Usar los valores que ya vienen calculados del backend
+              let finalPrice = product.price;
+              let originalPrice = product.originalPrice;
+              let discountPercentage = product.discount;
+              
+              // Si el backend no envió estos valores, calcularlos aquí como fallback
+              if (finalPrice === undefined || finalPrice === null || finalPrice === 0) {
+                const hasDiscount = product.desc_promo > 0;
+                const originalDiscountPercentage = hasDiscount ? parseFloat(product.desc_promo) : 0;
+                discountPercentage = hasDiscount ? Math.max(0, originalDiscountPercentage - 10) : 0;
+                originalPrice = hasDiscount && numericPrice > 0 ? numericPrice : null;
+                finalPrice = hasDiscount && discountPercentage > 0 && numericPrice > 0 
+                  ? (numericPrice - (numericPrice * (discountPercentage / 100))) 
+                  : numericPrice;
               }
-            } catch (error) {
+              
+              // Asegurar que discountPercentage sea un número
+              discountPercentage = discountPercentage !== undefined && discountPercentage !== null ? parseFloat(discountPercentage) : 0;
+              
+              return {
+                id: product.id_articulo || product.id,
+                title: product.descripcion || product.title || 'Sin nombre',
+                description: product.descripcion || 'Sin descripción',
+                price: finalPrice,
+                originalPrice: originalPrice,
+                discount: discountPercentage,
+                image: getProductImageUrl(product.id_articulo || product.id),
+                brand: product.marca || 'Sin marca',
+                stock: product.inventario || 0,
+                inventario: product.inventario || 0,
+                colors: availableColors,
+                colores: productColors,
+                sizes: availableSizes,
+                tallas: productSizes,
+                isNew: isNewProduct,
+                rating: product.rating || 0,
+                ratingCount: product.ratingCount || product.totalRatings || 0,
+                linea: product.linea || product.id_linea,
+                id_linea: product.id_linea || product.linea, // Para filtro de categoría
+                catalogoId: product.catalogoId, // Para filtro de catálogo
+                fechaAlta: product.fecha_alta,
+                temporada: product.temporada,
+                opcNuevo: product.opc_nuevo,
+                opcPromo: product.opc_promo,
+                descPromo: product.desc_promo,
+                genero: product.genero,
+                sector: product.sector,
+                detalles: product.detalles,
+                codigo: product.codigo || product.id_articulo || product.id,
+                id_articulo: product.id_articulo || product.id,
+                precio1: numericPrice
+              };
+            });
+
+            // Aplicar ofertas de usuario UNA SOLA VEZ para todos los productos
+            allProducts = await applyUserOffersToProducts(allProducts);
+            
+            // Debug: Verificar productos específicos después de aplicar ofertas
+            const productosEspecificos = ['515422585712', '50552258912', '515422524904', '2855708612', '515422524512'];
+            const productosEncontrados = allProducts.filter(p => productosEspecificos.includes(String(p.id)));
+            console.log('🔍 DEBUG - Productos específicos encontrados después de applyUserOffersToProducts:', productosEncontrados.length);
+            if (productosEncontrados.length > 0) {
+              productosEncontrados.forEach(p => {
+                console.log('🔍 DEBUG - Producto encontrado:', {
+                  id: p.id,
+                  title: p.title,
+                  hasUserOffer: p.hasUserOffer,
+                  userOffer: p.userOffer,
+                  discount: p.discount,
+                  descPromo: p.descPromo
+                });
+              });
+            } else {
+              console.warn('⚠️ NINGUNO de los productos específicos está en la lista después de applyUserOffersToProducts');
+            }
+            
+            // Contar productos con ofertas personalizadas
+            const productosConOfertasPersonalizadas = allProducts.filter(p => p.hasUserOffer === true);
+            console.log('🔍 DEBUG - Total productos con hasUserOffer=true:', productosConOfertasPersonalizadas.length);
+            
+            // Asegurar que id_linea se preserve correctamente después de aplicar ofertas
+            allProducts = allProducts.map(product => {
+              // Preservar id_linea del producto original antes de aplicar ofertas
+              const originalIdLinea = product.id_linea;
+              const originalCatalogoId = product.catalogoId;
+              
+              return {
+                ...product,
+                hasUserOffer: product.hasUserOffer || false,
+                userOffer: product.userOffer || null,
+                // Asegurar que id_linea se preserve correctamente (importante para filtros)
+                id_linea: originalIdLinea !== undefined && originalIdLinea !== null ? originalIdLinea : (product.linea || null),
+                catalogoId: originalCatalogoId !== undefined && originalCatalogoId !== null ? originalCatalogoId : null
+              };
+            });
+            
+            // Debug: Verificar que id_linea se preserve
+            if (allProducts.length > 0) {
+              console.log('🔍 DEBUG - Después de aplicar ofertas, primer producto:', {
+                id: allProducts[0].id,
+                id_linea: allProducts[0].id_linea,
+                catalogoId: allProducts[0].catalogoId,
+                hasIdLinea: allProducts[0].hasOwnProperty('id_linea')
+              });
+            }
+            
+            console.log('🔍 DEBUG - Productos mapeados:', allProducts.length);
+            if (allProducts.length > 0) {
+              console.log('🔍 DEBUG - Primer producto mapeado:', {
+                id: allProducts[0].id,
+                id_linea: allProducts[0].id_linea,
+                catalogoId: allProducts[0].catalogoId
+              });
             }
           }
+        } catch (error) {
+          console.error('❌ Error cargando productos:', error);
+          allProducts = [];
         }
-        
-        // PASO 2: Cargar productos con desc_promo de la API externa (que NO tengan oferta del admin)
-        const result = await getProductsWithRatings('Cherry 2025 - 2026', {
-          limit: null,
-          onlyPromos: true,  // Solo productos con desc_promo
-          random: true
-        });
-        
-        const externalPromoProducts = result.products || result || [];
-        console.log(`📦 ${externalPromoProducts.length} productos con desc_promo de API externa`);
-        
-        // Filtrar productos de API externa que NO tengan oferta del admin
-        const filteredExternalPromos = externalPromoProducts.filter(product => {
-          const productId = (product.id_articulo || product.id || product.codigo).toString();
-          return !adminOfferProductIds.includes(productId);
-        });
-        
-        console.log(`➕ Agregando ${filteredExternalPromos.length} productos de API externa (sin ofertas del admin)`);
-        allPromoProducts = [...allPromoProducts, ...filteredExternalPromos];
-        
-        // PASO 3: Aplicar ofertas personalizadas del usuario a TODOS los productos
-        const productsWithUserOffers = await applyUserOffersToProducts(allPromoProducts);
-        
-        console.log(`✅ Total: ${productsWithUserOffers.length} productos con promociones`);
-        setProductsWithOffers(productsWithUserOffers);
+
+            // Ordenar productos: primero los que tienen ofertas personalizadas (hasUserOffer === true)
+            allProducts.sort((a, b) => {
+              // Si ambos tienen oferta personalizada o ninguno, mantener orden original
+              if ((a.hasUserOffer && b.hasUserOffer) || (!a.hasUserOffer && !b.hasUserOffer)) {
+                return 0;
+              }
+              // Si solo 'a' tiene oferta personalizada, va primero
+              if (a.hasUserOffer && !b.hasUserOffer) {
+                return -1;
+              }
+              // Si solo 'b' tiene oferta personalizada, va primero
+              return 1;
+            });
+            
+            console.log(`✅ Total: ${allProducts.length} productos con promociones`);
+            const productosConOfertasPersonalizadas = allProducts.filter(p => p.hasUserOffer === true);
+            console.log(`🔍 Productos con ofertas personalizadas: ${productosConOfertasPersonalizadas.length}`);
+            setProductsWithOffers(allProducts);
       } catch (error) {
         console.error('❌ Error al cargar promociones:', error);
         setProductsWithOffers([]);
@@ -213,16 +329,54 @@ const PromocionesPage = () => {
 
   // Función para filtrar productos
   const filterProducts = useCallback((products, currentFilters) => {
+    console.log('🔍 DEBUG - filterProducts ejecutado', {
+      productsCount: products.length,
+      filters: currentFilters
+    });
+    
     if (!products || products.length === 0) return [];
     
     let filtered = [...products];
 
     // Filtrar por categoría (usando código)
+    // filters.category contiene el code que es el id_linea como string
     if (currentFilters.category && currentFilters.category !== '') {
-      filtered = filtered.filter(product => {
-        const productLineaId = product.linea?.id_linea;
-        return productLineaId == currentFilters.category;
+      console.log('🔍 DEBUG - Filtro de categoría activo:', {
+        filterCategory: currentFilters.category,
+        filterCategoryType: typeof currentFilters.category,
+        totalProducts: filtered.length,
+        sampleProducts: filtered.slice(0, 3).map(p => ({
+          id: p.id,
+          id_linea: p.id_linea,
+          id_lineaType: typeof p.id_linea,
+          linea: p.linea
+        }))
       });
+      
+      filtered = filtered.filter(product => {
+        const productLineaId = product.id_linea || product.linea;
+        const matches = productLineaId == currentFilters.category;
+        
+        // Debug para primeros productos
+        if (filtered.indexOf(product) < 5) {
+          console.log('🔍 DEBUG - Comparación:', {
+            productId: product.id,
+            productLineaId,
+            productLineaIdType: typeof productLineaId,
+            filterCategory: currentFilters.category,
+            filterCategoryType: typeof currentFilters.category,
+            matches,
+            comparison: `${productLineaId} == ${currentFilters.category}`,
+            strictEqual: productLineaId === currentFilters.category,
+            looseEqual: productLineaId == currentFilters.category
+          });
+        }
+        
+        // Usar comparación flexible (==) como en BuscarPage para manejar diferentes tipos
+        return matches;
+      });
+      
+      console.log('🔍 DEBUG - Productos después del filtro de categoría:', filtered.length);
     }
 
     // Filtrar por departamento
@@ -304,10 +458,12 @@ const PromocionesPage = () => {
     }
 
     // Filter by catalog
+    // Comparar el id del catálogo seleccionado con catalogoId del producto
     if (currentFilters.catalog && currentFilters.catalog !== '' &&  currentFilters.catalog != 'Seleccione') {
       filtered = filtered.filter(product => {
-        const productCatalog = product.catalog;
-        return productCatalog == currentFilters.catalog;
+        const productCatalogoId = product.catalogoId || product.catalog;
+        // Usar comparación flexible (==) como en BuscarPage
+        return productCatalogoId == currentFilters.catalog;
       });
     }
 
@@ -322,19 +478,67 @@ const PromocionesPage = () => {
 
     switch (sortOption) {
       case 'precio-menor':
-        return sorted.sort((a, b) => (a.price || 0) - (b.price || 0));
+        return sorted.sort((a, b) => {
+          // Primero ordenar por hasUserOffer (ofertas personalizadas primero)
+          if (a.hasUserOffer !== b.hasUserOffer) {
+            return a.hasUserOffer ? -1 : 1;
+          }
+          // Luego por precio
+          return (a.price || 0) - (b.price || 0);
+        });
       case 'precio-mayor':
-        return sorted.sort((a, b) => (b.price || 0) - (a.price || 0));
+        return sorted.sort((a, b) => {
+          // Primero ordenar por hasUserOffer (ofertas personalizadas primero)
+          if (a.hasUserOffer !== b.hasUserOffer) {
+            return a.hasUserOffer ? -1 : 1;
+          }
+          // Luego por precio
+          return (b.price || 0) - (a.price || 0);
+        });
       case 'más-recientes':
-        return sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+        return sorted.sort((a, b) => {
+          // Primero ordenar por hasUserOffer (ofertas personalizadas primero)
+          if (a.hasUserOffer !== b.hasUserOffer) {
+            return a.hasUserOffer ? -1 : 1;
+          }
+          // Luego por fecha
+          return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        });
       case 'más-antiguos':
-        return sorted.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+        return sorted.sort((a, b) => {
+          // Primero ordenar por hasUserOffer (ofertas personalizadas primero)
+          if (a.hasUserOffer !== b.hasUserOffer) {
+            return a.hasUserOffer ? -1 : 1;
+          }
+          // Luego por fecha
+          return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+        });
       case 'nombre-a-z':
-        return sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+        return sorted.sort((a, b) => {
+          // Primero ordenar por hasUserOffer (ofertas personalizadas primero)
+          if (a.hasUserOffer !== b.hasUserOffer) {
+            return a.hasUserOffer ? -1 : 1;
+          }
+          // Luego por nombre
+          return (a.title || '').localeCompare(b.title || '');
+        });
       case 'nombre-z-a':
-        return sorted.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
+        return sorted.sort((a, b) => {
+          // Primero ordenar por hasUserOffer (ofertas personalizadas primero)
+          if (a.hasUserOffer !== b.hasUserOffer) {
+            return a.hasUserOffer ? -1 : 1;
+          }
+          // Luego por nombre
+          return (b.title || '').localeCompare(a.title || '');
+        });
       default:
-        return sorted;
+        // Por defecto, ordenar por hasUserOffer (ofertas personalizadas primero)
+        return sorted.sort((a, b) => {
+          if (a.hasUserOffer !== b.hasUserOffer) {
+            return a.hasUserOffer ? -1 : 1;
+          }
+          return 0;
+        });
     }
   }, []);
 

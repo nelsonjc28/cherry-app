@@ -76,6 +76,33 @@ const DestacadosOfertasPage = () => {
     loadCatalogs();
   }, []);
 
+  // Estado para categorías disponibles desde el endpoint
+  const [availableCategories, setAvailableCategories] = useState([]);
+
+  // Cargar categorías desde el endpoint /api/categories
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const response = await api.get('/categories');
+        if (response.data.success && response.data.categories) {
+          // Mapear las categorías al formato esperado por CatalogFilter
+          const mappedCategories = response.data.categories.map(category => ({
+            code: category.code,
+            name: category.name
+          }));
+          setAvailableCategories(mappedCategories);
+        } else {
+          setAvailableCategories([]);
+        }
+      } catch (error) {
+        console.error('Error cargando categorías:', error);
+        setAvailableCategories([]);
+      }
+    };
+
+    loadCategories();
+  }, []);
+
   // Cargar colores y tallas disponibles desde productos cargados
   useEffect(() => {
     const extractFiltersFromProducts = () => {
@@ -120,7 +147,7 @@ const DestacadosOfertasPage = () => {
           if (indexB !== -1) return 1;
           return a.localeCompare(b);
         });
-
+        
         setAvailableColors(Array.from(colorSet).sort());
         setAvailableSizes(sortedSizes);
       } catch (error) {
@@ -147,6 +174,17 @@ const DestacadosOfertasPage = () => {
 
           if (searchResponse.data.success && searchResponse.data.data.products) {
             const localProducts = searchResponse.data.data.products;
+            
+            // Debug: Verificar estructura de productos del backend
+            if (localProducts.length > 0) {
+              console.log('🔍 DEBUG - Primer producto del backend:', {
+                id: localProducts[0].id,
+                id_linea: localProducts[0].id_linea,
+                linea: localProducts[0].linea,
+                catalogoId: localProducts[0].catalogoId,
+                descripcion: localProducts[0].descripcion
+              });
+            }
             
             // Mapear TODOS los productos locales al formato esperado (sin filtrar todavía)
             // Necesitamos todos para aplicar ofertas personalizadas primero
@@ -234,7 +272,10 @@ const DestacadosOfertasPage = () => {
               ...product,
               hasUserOffer: product.hasUserOffer || false,
               // Asegurar que userOffer esté presente si existe
-              userOffer: product.userOffer || null
+              userOffer: product.userOffer || null,
+              // Asegurar que id_linea se preserve correctamente (importante para filtros)
+              id_linea: product.id_linea !== undefined && product.id_linea !== null ? product.id_linea : (product.linea || null),
+              catalogoId: product.catalogoId !== undefined && product.catalogoId !== null ? product.catalogoId : null
             }));
           }
         } catch (error) {
@@ -258,40 +299,79 @@ const DestacadosOfertasPage = () => {
 
   // Filtrar productos basado en filtros y tipo de oferta
   useEffect(() => {
+    console.log('🔍 DEBUG - useEffect de filtros ejecutado', {
+      productsCount: products.length,
+      filters: filters,
+      selectedOffer: selectedOffer
+    });
+    
     let filtered = [...products];
 
     // Filtrar por tipo de oferta
     if (selectedOffer !== 'all') {
       filtered = filtered.filter(product => {
-        const discount = product.discount || 0;
-        
-        switch (selectedOffer) {
-          case 'flash':
-            return discount >= 20 && discount <= 40;
-          case 'clearance':
-            return discount >= 50;
-          case 'bundle':
-            return product.isPromo || discount >= 30;
-          default:
-            return true;
-        }
+      const discount = product.discount || 0;
+      
+      switch (selectedOffer) {
+        case 'flash':
+          return discount >= 20 && discount <= 40;
+        case 'clearance':
+          return discount >= 50;
+        case 'bundle':
+          return product.isPromo || discount >= 30;
+        default:
+          return true;
+      }
       });
     }
 
     // Filtrar por catálogo
+    // Comparar el id del catálogo seleccionado con catalogoId del producto
     if (filters.catalog && filters.catalog !== 'Todos los catálogos' && filters.catalog !== 'Seleccione') {
       filtered = filtered.filter(product => {
         const productCatalogoId = product.catalogoId;
+        // Usar comparación flexible (==) como en BuscarPage
         return productCatalogoId == filters.catalog;
       });
     }
 
     // Filtrar por categoría
+    // Comparar el code (id_linea) de la categoría seleccionada con id_linea del producto
+    // filters.category contiene el code que es el id_linea como string
     if (filters.category && filters.category !== '') {
+      // Debug: Verificar filtro de categoría
+      console.log('🔍 DEBUG - Filtro de categoría:', {
+        filterCategory: filters.category,
+        filterCategoryType: typeof filters.category,
+        totalProducts: filtered.length,
+        sampleProducts: filtered.slice(0, 3).map(p => ({
+          id: p.id,
+          id_linea: p.id_linea,
+          id_lineaType: typeof p.id_linea,
+          linea: p.linea
+        }))
+      });
+      
       filtered = filtered.filter(product => {
         const productLineaId = product.id_linea;
-        return productLineaId == filters.category;
+        const matches = productLineaId == filters.category;
+        
+        // Debug para primeros productos
+        if (filtered.indexOf(product) < 3) {
+          console.log('🔍 DEBUG - Comparación:', {
+            productId: product.id,
+            productLineaId,
+            filterCategory: filters.category,
+            matches,
+            comparison: `${productLineaId} == ${filters.category}`
+          });
+        }
+        
+        // Usar comparación flexible (==) como en BuscarPage para manejar diferentes tipos
+        return matches;
       });
+      
+      console.log('🔍 DEBUG - Productos después del filtro de categoría:', filtered.length);
     }
 
     // Filtrar por precio
@@ -595,30 +675,31 @@ const DestacadosOfertasPage = () => {
                 catalogLoading={catalogLoading}
                 availableColors={availableColors}
                 availableSizes={availableSizes}
+                availableCategories={availableCategories}
               />
             </aside>
 
             {/* Productos */}
-            <div className="ofertas-content">
-              <div className="ofertas-header-section">
-                <h2>
-                  {offerTypes.find(o => o.id === selectedOffer)?.name}
-                </h2>
+          <div className="ofertas-content">
+            <div className="ofertas-header-section">
+              <h2>
+                {offerTypes.find(o => o.id === selectedOffer)?.name}
+              </h2>
                 <p>{filteredProducts.length} productos en oferta</p>
-              </div>
+            </div>
 
               {filteredProducts.length === 0 ? (
-                <div className="ofertas-empty">
-                  <div className="empty-icon">
-                    <img src={getIconPath('Bullhorn.svg')} alt="Sin ofertas" />
-                  </div>
-                  <h3>No hay ofertas disponibles</h3>
-                  <p>
-                    {selectedOffer === 'all' 
-                      ? 'No hay ofertas activas en este momento'
-                      : `No hay productos en "${offerTypes.find(o => o.id === selectedOffer)?.name}"`
-                    }
-                  </p>
+              <div className="ofertas-empty">
+                <div className="empty-icon">
+                  <img src={getIconPath('Bullhorn.svg')} alt="Sin ofertas" />
+                </div>
+                <h3>No hay ofertas disponibles</h3>
+                <p>
+                  {selectedOffer === 'all' 
+                    ? 'No hay ofertas activas en este momento'
+                    : `No hay productos en "${offerTypes.find(o => o.id === selectedOffer)?.name}"`
+                  }
+                </p>
                   <CherryButton
                     variant="outline"
                     size="medium"
@@ -626,23 +707,23 @@ const DestacadosOfertasPage = () => {
                   >
                     Limpiar filtros
                   </CherryButton>
-                </div>
-              ) : (
+              </div>
+            ) : (
                 <>
-                  <div className="ofertas-products-grid">
+              <div className="ofertas-products-grid">
                     {infiniteScroll.displayedItems.map((product) => (
-                      <ProductCard
-                        key={product.id}
+                  <ProductCard
+                    key={product.id}
                         product={{
                           ...product,
                           // Asegurar que hasUserOffer y userOffer se pasen explícitamente
                           hasUserOffer: product.hasUserOffer || false,
                           userOffer: product.userOffer || null
                         }}
-                        onFavoriteToggle={handleFavoriteToggle}
-                      />
-                    ))}
-                  </div>
+                    onFavoriteToggle={handleFavoriteToggle}
+                  />
+                ))}
+              </div>
 
                   {/* Infinite Scroll Loader */}
                   <InfiniteScrollLoader
@@ -719,6 +800,7 @@ const DestacadosOfertasPage = () => {
                   availableSizes={availableSizes}
                   catalogs={catalogs}
                   catalogLoading={catalogLoading}
+                  availableCategories={availableCategories}
                 />
               </div>
             </div>
@@ -729,4 +811,4 @@ const DestacadosOfertasPage = () => {
   );
 };
 
-export default DestacadosOfertasPage;
+export default DestacadosOfertasPage; 

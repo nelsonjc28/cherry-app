@@ -17,12 +17,21 @@ api.interceptors.request.use(
       '/home-catalogs',
       '/home-categories',
       '/categories',
-      '/products',
       '/welcome-sections',
       '/contact-info',
       '/privacy-policy',
       '/terms-conditions'
     ];
+    
+    // Rutas que necesitan autenticación opcional (enviar token si existe, pero no requerirlo)
+    const optionalAuthRoutes = [
+      '/products/with-offers', // Necesita token para ofertas personalizadas, pero funciona sin él
+      '/products/search', // Necesita token para ofertas personalizadas, pero funciona sin él
+      '/products/top-selling' // Puede necesitar token para personalización
+    ];
+    
+    // Verificar si es una ruta con autenticación opcional
+    const isOptionalAuthRoute = optionalAuthRoutes.some(route => config.url.includes(route));
     
     // Rutas públicas exactas (sin incluir admin)
     const exactPublicRoutes = [
@@ -52,8 +61,12 @@ api.interceptors.request.use(
     
     const isPublicRoute = isBasicPublicRoute || isExactPublicRoute || isPublicCatalogRoute;
     
-    // Solo agregar token si existe, la ruta no es pública Y el token es válido
-    if (token && !isPublicRoute) {
+    // Para rutas con autenticación opcional, siempre enviar token si existe
+    // Para otras rutas, solo enviar token si la ruta no es pública
+    const shouldSendTokenForRoute = isOptionalAuthRoute || !isPublicRoute;
+    
+    // Solo agregar token si existe, la ruta permite token Y el token es válido
+    if (token && shouldSendTokenForRoute) {
       // Intentar verificar si el token no ha expirado antes de enviarlo
       let shouldSendToken = true;
       

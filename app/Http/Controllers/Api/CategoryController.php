@@ -318,4 +318,126 @@ class CategoryController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Obtener categorías disponibles basadas en productos locales con ofertas
+     * Devuelve categorías únicas de productos que tienen desc_promo > 0 o están en ofertas personalizadas
+     */
+    public function getAvailableCategoriesFromLocalProducts(Request $request): JsonResponse
+    {
+        try {
+            $userId = auth('api')->id() ?? auth('web')->id() ?? auth()->id();
+            $cacheKey = 'available_categories_local_' . ($userId ? $userId : 'guest');
+
+            $cached = Cache::get($cacheKey);
+            if ($cached !== null) {
+                return response()->json($cached);
+            }
+
+            // 1. Obtener productos con desc_promo > 0
+            $productsWithGeneralDiscount = DB::table('productos')
+                ->select('id', 'id_linea')
+                ->where('desc_promo', '>', 0)
+                ->whereNotNull('id_linea')
+                ->where('id_linea', '!=', '')
+                ->distinct()
+                ->get();
+
+            // 2. Obtener productos con ofertas personalizadas para el usuario logueado
+            $productsWithUserOffers = collect([]);
+            if ($userId) {
+                $productsWithUserOffers = DB::table('catalog_offer_products')
+                    ->select('product_id')
+                    ->join('catalog_offers', 'catalog_offer_products.offer_id', '=', 'catalog_offers.id')
+                    ->join('catalog_offer_users', 'catalog_offers.id', '=', 'catalog_offer_users.offer_id')
+                    ->where('catalog_offer_users.user_id', $userId)
+                    ->where('catalog_offers.is_active', true)
+                    ->where('catalog_offers.start_date', '<=', now())
+                    ->where('catalog_offers.end_date', '>=', now())
+                    ->distinct()
+                    ->pluck('product_id');
+            }
+
+            // Combinar IDs únicos de ambos tipos de ofertas
+            $allOfferProductIds = $productsWithGeneralDiscount->pluck('id')->toArray();
+            if ($productsWithUserOffers->isNotEmpty()) {
+                $allOfferProductIds = array_unique(array_merge($allOfferProductIds, $productsWithUserOffers->toArray()));
+            }
+
+            // Obtener id_linea únicos de productos con ofertas
+            $uniqueIdLineas = [];
+            if (!empty($allOfferProductIds)) {
+                $uniqueIdLineas = DB::table('productos')
+                    ->select('id_linea')
+                    ->whereIn('id', $allOfferProductIds)
+                    ->whereNotNull('id_linea')
+                    ->where('id_linea', '!=', '')
+                    ->distinct()
+                    ->pluck('id_linea')
+                    ->toArray();
+            }
+
+            // También obtener id_linea de productos con desc_promo > 0 directamente
+            $idLineasFromDiscount = DB::table('productos')
+                ->select('id_linea')
+                ->where('desc_promo', '>', 0)
+                ->whereNotNull('id_linea')
+                ->where('id_linea', '!=', '')
+                ->distinct()
+                ->pluck('id_linea')
+                ->toArray();
+
+            // Combinar y obtener únicos
+            $allIdLineas = array_unique(array_merge($uniqueIdLineas, $idLineasFromDiscount));
+
+            // Obtener información de categorías desde la tabla categories donde code coincide con id_linea
+            $categories = [];
+            if (!empty($allIdLineas)) {
+                $categories = Category::whereIn('code', $allIdLineas)
+                    ->where('is_active', true)
+                    ->select(['id', 'name', 'slug', 'code', 'description'])
+                    ->orderBy('name', 'asc')
+                    ->get()
+                    ->map(function ($category) {
+                        return [
+                            'code' => $category->code,
+                            'name' => $category->name
+                        ];
+                    })
+                    ->toArray();
+            }
+
+            // Si no hay categorías en la tabla categories, crear categorías basadas en id_linea únicos
+            if (empty($categories) && !empty($allIdLineas)) {
+                // Obtener nombres de categorías desde productos (si tienen línea con descripción)
+                $lineasInfo = DB::table('productos')
+                    ->select('id_linea')
+                    ->whereIn('id_linea', $allIdLineas)
+                    ->distinct()
+                    ->get();
+
+                $categories = array_map(function ($idLinea) {
+                    return [
+                        'code' => $idLinea,
+                        'name' => "Categoría {$idLinea}" // Nombre por defecto
+                    ];
+                }, $allIdLineas);
+            }
+
+            $response = [
+                'success' => true,
+                'categories' => $categories
+            ];
+
+            Cache::put($cacheKey, $response, 600); // Cache por 10 minutos
+
+            return response()->json($response);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al obtener categorías: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 } 

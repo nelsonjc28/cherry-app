@@ -15,7 +15,8 @@ const CatalogFilter = ({
   catalogLoading = false,
   hideCatalogSelector = false,
   availableColors = [],
-  availableSizes = []
+  availableSizes = [],
+  availableCategories: propAvailableCategories = null // Categorías pasadas como prop (prioridad)
 }) => {
   // Local state for expandable sections
   const [expandedSections, setExpandedSections] = useState({
@@ -32,7 +33,12 @@ const CatalogFilter = ({
 
   // Get dynamic data from API
   const { data: apiColors = [] } = useAvailableColors(filters.catalog);
-  const { data: availableCategories = [] } = useAvailableCategories(filters.catalog);
+  const { data: apiAvailableCategories = [] } = useAvailableCategories(filters.catalog);
+  
+  // Usar categorías pasadas como prop si están disponibles, sino usar las de la API
+  const availableCategories = propAvailableCategories !== null && Array.isArray(propAvailableCategories) && propAvailableCategories.length > 0
+    ? propAvailableCategories
+    : apiAvailableCategories;
 
   // Toggle section expansion
   const toggleSection = (section) => {

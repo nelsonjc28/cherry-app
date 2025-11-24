@@ -100,7 +100,22 @@ export const applyUserOffersToProducts = async (products, userOfferMap = null) =
     // 🚀 UNA SOLA CONSULTA SÚPER EFICIENTE
     try {
       productsWithOffers = await checkProductsWithUserOffers(productIds);
+      
+      // Debug: Verificar productos específicos
+      const productosEspecificos = ['515422585712', '50552258912', '515422524904', '2855708612', '515422524512'];
+      const productosEncontradosEnOfertas = productosEspecificos.filter(id => productsWithOffers[id]);
+      console.log('🔍 DEBUG userOffers - Productos específicos encontrados en ofertas:', productosEncontradosEnOfertas.length);
+      if (productosEncontradosEnOfertas.length > 0) {
+        productosEncontradosEnOfertas.forEach(id => {
+          console.log('🔍 DEBUG userOffers - Oferta encontrada para producto:', id, productsWithOffers[id]);
+        });
+      } else {
+        console.warn('⚠️ userOffers - NINGUNO de los productos específicos tiene oferta en productsWithOffers');
+        console.log('🔍 DEBUG userOffers - Total de ofertas encontradas:', Object.keys(productsWithOffers).length);
+        console.log('🔍 DEBUG userOffers - Primeras 10 IDs con ofertas:', Object.keys(productsWithOffers).slice(0, 10));
+      }
     } catch (error) {
+      console.error('❌ Error en checkProductsWithUserOffers:', error);
       return products;
     }
   }

@@ -256,6 +256,7 @@ Route::post('/ratings/bulk', [RatingController::class, 'getBulkRatings']);
 
 // Public categories routes (no authentication required)
 Route::get('/categories', [CategoryController::class, 'index']);
+Route::get('/categories/available-from-local-products', [CategoryController::class, 'getAvailableCategoriesFromLocalProducts']);
 Route::get('/categories/{slug}', [CategoryController::class, 'show']);
 Route::get('/categories/{slug}/products', [CategoryController::class, 'getCategoryProducts']);
 Route::get('/categories/{categoryId}/local-products', [CategoryController::class, 'getLocalProductsByCategory']);

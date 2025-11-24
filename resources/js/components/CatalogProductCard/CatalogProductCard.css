@@ -59,6 +59,7 @@
   font-weight: 600;
   z-index: 2;
   box-shadow: 0 2px 4px rgba(255, 68, 68, 0.3);
+  display: inline-block;
 }
 
 /* New badge - fondo negro con letras blancas */
@@ -66,6 +67,57 @@
   background: #000000 !important;
   color: white !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Buy X Get Y offer badge - estilo amarillo (igual que ProductPage) */
+.catalog-offer-badge.buy-x-get-y {
+  background: #ffd700; /* Amarillo */
+  color: #333;
+  font-weight: 700;
+  font-size: 0.65rem;
+  padding: 3px 6px;
+  border-radius: 3px;
+  box-shadow: 0 4px 8px rgba(255, 215, 0, 0.4);
+  animation: pulse-glow-yellow-catalog 2s infinite;
+}
+
+/* Order discount badge - estilo azul */
+.catalog-offer-badge.order-discount {
+  background: #4a90e2; /* Azul */
+  color: white;
+  font-weight: 700;
+  font-size: 0.6rem;
+  padding: 4px 7px;
+  border-radius: 3px;
+  box-shadow: 0 3px 6px rgba(74, 144, 226, 0.4);
+}
+
+/* Free shipping badge - estilo verde */
+.catalog-offer-badge.free-shipping {
+  background: #27ae60; /* Verde */
+  color: white;
+  font-weight: 700;
+  font-size: 0.6rem;
+  padding: 4px 7px;
+  border-radius: 3px;
+  box-shadow: 0 3px 6px rgba(39, 174, 96, 0.4);
+}
+
+/* User offer badge - estilo especial para ofertas personalizadas */
+.catalog-offer-badge.user-offer {
+  font-weight: 700;
+}
+
+/* Animación amarilla para Buy X Get Y (igual que ProductPage) */
+@keyframes pulse-glow-yellow-catalog {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 8px rgba(255, 215, 0, 0.4);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 6px 12px rgba(255, 215, 0, 0.6);
+  }
 }
 
 

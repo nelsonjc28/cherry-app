@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class ProductSearchController extends Controller
 {
@@ -479,16 +480,33 @@ class ProductSearchController extends Controller
     {
         try {
             // Obtener usuario autenticado (si existe)
-            $userId = auth('api')->id() ?? auth('web')->id() ?? auth()->id();
+            $userIdApi = auth('api')->id();
+            $userIdWeb = auth('web')->id();
+            $userIdAuth = auth()->id();
+            $userId = $userIdApi ?? $userIdWeb ?? $userIdAuth;
+            
+            // Debug: Verificar autenticación
+            $token = $request->bearerToken() ?? $request->header('Authorization');
+            Log::info('🔍 getProductsWithOffers - Debug autenticación:', [
+                'userIdApi' => $userIdApi,
+                'userIdWeb' => $userIdWeb,
+                'userIdAuth' => $userIdAuth,
+                'userIdFinal' => $userId,
+                'hasToken' => !empty($token),
+                'tokenPreview' => $token ? substr($token, 0, 20) . '...' : 'no token'
+            ]);
 
             // Cache key incluyendo userId si existe
             $cacheKey = 'products_with_offers_' . ($userId ?? 'guest');
             
+            // TEMPORALMENTE DESHABILITADO EL CACHE PARA DEBUGGING
             // Intentar obtener del cache (5 minutos)
-            $cached = Cache::get($cacheKey);
-            if ($cached !== null) {
-                return response()->json($cached);
-            }
+            // $cached = Cache::get($cacheKey);
+            // if ($cached !== null) {
+            //     return response()->json($cached);
+            // }
+            
+            Log::info('🔍 getProductsWithOffers - Usuario ID: ' . ($userId ?? 'no autenticado'));
 
             // 1. Obtener productos con desc_promo > 0
             $productosConDescuento = DB::table('productos')
@@ -511,26 +529,31 @@ class ProductSearchController extends Controller
                 ->get();
 
             $productIds = $productosConDescuento->pluck('id')->toArray();
+            Log::info('Productos con desc_promo > 0: ' . count($productIds));
 
-            // 2. Si hay usuario logueado, obtener productos con ofertas especiales
+            // 2. Si hay usuario logueado, obtener productos con ofertas personalizadas del módulo de descuentos
+            $productIdsConOfertasPersonalizadas = []; // Inicializar fuera del if para que esté disponible después
             if ($userId) {
-                $productosConOfertasEspeciales = DB::table('productos')
-                    ->select([
-                        'productos.id',
-                        'productos.id_linea',
-                        'productos.catalogoId',
-                        'productos.descripcion',
-                        'productos.imagen',
-                        'productos.precio1',
-                        'productos.opc_promo',
-                        'productos.desc_promo',
-                        'productos.fecha_alta',
-                        'productos.opc_nuevo',
-                        'productos.marca',
-                        'productos.inventario',
-                        'productos.sku'
-                    ])
-                    ->join('catalog_offer_products as cop', 'productos.id', '=', 'cop.product_id')
+                Log::info('🔍 Buscando productos con ofertas personalizadas para usuario: ' . $userId);
+                
+                // Primero obtener información de las ofertas activas para este usuario
+                $ofertasActivasInfo = DB::table('catalog_offer_users as cou')
+                    ->join('catalog_offers', 'cou.offer_id', '=', 'catalog_offers.id')
+                    ->where('cou.user_id', $userId)
+                    ->where('catalog_offers.is_active', true)
+                    ->where('catalog_offers.start_date', '<=', now())
+                    ->where('catalog_offers.end_date', '>=', now())
+                    ->select('catalog_offers.id as offer_id', 'catalog_offers.title', 'catalog_offers.start_date', 'catalog_offers.end_date')
+                    ->get();
+                
+                Log::info('🔍 Ofertas activas para este usuario: ' . $ofertasActivasInfo->count());
+                foreach ($ofertasActivasInfo as $oferta) {
+                    Log::info('🔍 Oferta ID: ' . $oferta->offer_id . ' - ' . $oferta->title . ' (' . $oferta->start_date . ' - ' . $oferta->end_date . ')');
+                }
+                
+                // Obtener productos de TODAS las ofertas activas
+                // Estas son las ofertas creadas en el módulo de descuentos (catalog_offers)
+                $productIdsConOfertasPersonalizadas = DB::table('catalog_offer_products as cop')
                     ->join('catalog_offer_users as cou', 'cop.offer_id', '=', 'cou.offer_id')
                     ->join('catalog_offers', 'cop.offer_id', '=', 'catalog_offers.id')
                     ->where('cou.user_id', $userId)
@@ -538,16 +561,102 @@ class ProductSearchController extends Controller
                     ->where('catalog_offers.start_date', '<=', now())
                     ->where('catalog_offers.end_date', '>=', now())
                     ->distinct()
-                    ->get();
+                    ->pluck('cop.product_id')
+                    ->toArray();
+                
+                Log::info('🔍 IDs de productos con ofertas personalizadas encontrados en catalog_offer_products: ' . count($productIdsConOfertasPersonalizadas));
+                if (count($productIdsConOfertasPersonalizadas) > 0) {
+                    Log::info('🔍 Primeros 10 IDs de catalog_offer_products: ' . implode(', ', array_slice($productIdsConOfertasPersonalizadas, 0, 10)));
+                    
+                    // Verificar productos por oferta
+                    foreach ($ofertasActivasInfo as $oferta) {
+                        $productosEnOferta = DB::table('catalog_offer_products')
+                            ->where('offer_id', $oferta->offer_id)
+                            ->distinct()
+                            ->pluck('product_id')
+                            ->toArray();
+                        Log::info('🔍 Oferta ID ' . $oferta->offer_id . ' tiene ' . count($productosEnOferta) . ' productos');
+                    }
+                } else {
+                    // Debug: Verificar si hay ofertas activas para este usuario
+                    $ofertasActivas = DB::table('catalog_offer_users as cou')
+                        ->join('catalog_offers', 'cou.offer_id', '=', 'catalog_offers.id')
+                        ->where('cou.user_id', $userId)
+                        ->where('catalog_offers.is_active', true)
+                        ->where('catalog_offers.start_date', '<=', now())
+                        ->where('catalog_offers.end_date', '>=', now())
+                        ->count();
+                    Log::info('🔍 Ofertas activas para este usuario: ' . $ofertasActivas);
+                    
+                    if ($ofertasActivas > 0) {
+                        // Verificar productos en esas ofertas
+                        $productosEnOfertas = DB::table('catalog_offer_products as cop')
+                            ->join('catalog_offer_users as cou', 'cop.offer_id', '=', 'cou.offer_id')
+                            ->join('catalog_offers', 'cop.offer_id', '=', 'catalog_offers.id')
+                            ->where('cou.user_id', $userId)
+                            ->where('catalog_offers.is_active', true)
+                            ->where('catalog_offers.start_date', '<=', now())
+                            ->where('catalog_offers.end_date', '>=', now())
+                            ->count();
+                        Log::info('🔍 Productos en ofertas activas: ' . $productosEnOfertas);
+                    }
+                }
+                
+                // Ahora obtener los productos completos de la tabla productos
+                if (!empty($productIdsConOfertasPersonalizadas)) {
+                    // Normalizar IDs a string para comparación (productos.id es string)
+                    $productIdsConOfertasNormalized = array_map('strval', $productIdsConOfertasPersonalizadas);
+                    
+                    Log::info('🔍 Buscando productos en tabla productos con IDs normalizados: ' . count($productIdsConOfertasNormalized));
+                    Log::info('🔍 Primeros 5 IDs normalizados: ' . implode(', ', array_slice($productIdsConOfertasNormalized, 0, 5)));
+                    
+                    // Obtener productos usando whereIn con CAST explícito para asegurar comparación correcta
+                    // productos.id es string, así que comparamos directamente pero con CAST para seguridad
+                    $productosConOfertasPersonalizadas = DB::table('productos')
+                        ->select([
+                            'productos.id',
+                            'productos.id_linea',
+                            'productos.catalogoId',
+                            'productos.descripcion',
+                            'productos.imagen',
+                            'productos.precio1',
+                            'productos.opc_promo',
+                            'productos.desc_promo',
+                            'productos.fecha_alta',
+                            'productos.opc_nuevo',
+                            'productos.marca',
+                            'productos.inventario',
+                            'productos.sku'
+                        ])
+                        ->whereIn(DB::raw('CAST(productos.id AS CHAR)'), $productIdsConOfertasNormalized)
+                        ->get();
+                    
+                    Log::info('🔍 Productos completos encontrados en tabla productos para ofertas personalizadas: ' . $productosConOfertasPersonalizadas->count());
+                    
+                    if ($productosConOfertasPersonalizadas->count() === 0 && count($productIdsConOfertasNormalized) > 0) {
+                        // Debug: Verificar si los productos existen en la tabla productos
+                        $primerosIds = array_slice($productIdsConOfertasNormalized, 0, 5);
+                        $productosExistentes = DB::table('productos')
+                            ->whereIn('productos.id', $primerosIds)
+                            ->pluck('id')
+                            ->toArray();
+                        Log::info('🔍 Primeros 5 IDs buscados: ' . implode(', ', $primerosIds));
+                        Log::info('🔍 Productos encontrados en tabla productos: ' . implode(', ', $productosExistentes));
+                    }
 
-                // Combinar IDs únicos
-                $productIdsConOfertas = $productosConOfertasEspeciales->pluck('id')->toArray();
-                $productIds = array_unique(array_merge($productIds, $productIdsConOfertas));
+                    // Combinar IDs únicos (sin duplicados)
+                    $productIds = array_unique(array_merge($productIds, $productIdsConOfertasNormalized));
 
-                // Combinar productos (evitar duplicados)
-                $productosConDescuento = $productosConDescuento->concat($productosConOfertasEspeciales)
-                    ->unique('id')
-                    ->values();
+                    // Combinar productos (evitar duplicados)
+                    // Usar unique('id') para eliminar duplicados basados en el ID
+                    $productosConDescuento = $productosConDescuento->concat($productosConOfertasPersonalizadas)
+                        ->unique('id')
+                        ->values();
+                    
+                    Log::info('🔍 Total de productos después de combinar: ' . $productosConDescuento->count());
+                }
+            } else {
+                Log::info('🔍 No hay usuario autenticado, solo productos con desc_promo > 0');
             }
 
             if (empty($productIds)) {
@@ -610,9 +719,14 @@ class ProductSearchController extends Controller
             }
 
             // Formatear productos
+            // IMPORTANTE: Usar $productosConDescuento que ya incluye productos con desc_promo > 0 
+            // Y productos con ofertas personalizadas (si el usuario está logueado)
             $products = [];
             $now = time();
             $fortyFiveDaysAgo = $now - (45 * 24 * 60 * 60);
+            
+            Log::info('Total de productos a formatear: ' . $productosConDescuento->count());
+            Log::info('Total de IDs únicos: ' . count($productIds));
 
             foreach ($productosConDescuento as $producto) {
                 $precio1Raw = $producto->precio1;
@@ -673,6 +787,38 @@ class ProductSearchController extends Controller
                 ];
             }
 
+            Log::info('🔍 Total de productos formateados para respuesta: ' . count($products));
+            
+            // Debug: Verificar si hay productos con ofertas personalizadas en la respuesta
+            if ($userId && !empty($productIdsConOfertasPersonalizadas)) {
+                $normalizedIds = array_map('strval', $productIdsConOfertasPersonalizadas);
+                $productosConOfertasEnRespuesta = array_filter($products, function($p) use ($normalizedIds) {
+                    return in_array($p['id'], $normalizedIds);
+                });
+                Log::info('🔍 Productos con ofertas personalizadas en la respuesta final: ' . count($productosConOfertasEnRespuesta));
+                if (count($productosConOfertasEnRespuesta) > 0) {
+                    $idsEnRespuesta = array_column($productosConOfertasEnRespuesta, 'id');
+                    Log::info('🔍 IDs de productos con ofertas en respuesta: ' . implode(', ', array_slice($idsEnRespuesta, 0, 10)));
+                } else {
+                    Log::warning('⚠️ NO se encontraron productos con ofertas personalizadas en la respuesta final, aunque se encontraron IDs: ' . count($normalizedIds));
+                    Log::info('🔍 IDs buscados: ' . implode(', ', array_slice($normalizedIds, 0, 10)));
+                    Log::info('🔍 IDs en respuesta: ' . implode(', ', array_slice(array_column($products, 'id'), 0, 10)));
+                }
+            }
+
+            // Debug: Verificar productos específicos en la respuesta
+            $productosEspecificos = ['515422585712', '50552258912', '515422524904', '2855708612', '515422524512'];
+            $productosEncontradosEnRespuesta = array_filter($products, function($p) use ($productosEspecificos) {
+                return in_array($p['id'], $productosEspecificos);
+            });
+            Log::info('🔍 Productos específicos en respuesta final: ' . count($productosEncontradosEnRespuesta));
+            if (count($productosEncontradosEnRespuesta) > 0) {
+                $idsEncontrados = array_column($productosEncontradosEnRespuesta, 'id');
+                Log::info('🔍 IDs encontrados: ' . implode(', ', $idsEncontrados));
+            } else {
+                Log::warning('⚠️ NINGUNO de los productos específicos está en la respuesta final');
+            }
+
             $response = [
                 'success' => true,
                 'data' => [
@@ -681,11 +827,18 @@ class ProductSearchController extends Controller
                     'page' => 1,
                     'per_page' => count($products),
                     'last_page' => 1
+                ],
+                // Debug info (temporal)
+                '_debug' => [
+                    'userId' => $userId,
+                    'productIdsConOfertasPersonalizadas' => count($productIdsConOfertasPersonalizadas ?? []),
+                    'totalProducts' => count($products),
+                    'productosEspecificosEncontrados' => count($productosEncontradosEnRespuesta)
                 ]
             ];
 
-            // Guardar en cache (5 minutos)
-            Cache::put($cacheKey, $response, 300);
+            // TEMPORALMENTE DESHABILITADO EL CACHE PARA DEBUGGING
+            // Cache::put($cacheKey, $response, 300);
 
             return response()->json($response);
 

@@ -34,7 +34,9 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
     description,
     brand,
     category,
-    stock = 0
+    stock = 0,
+    userOffer, // Información del descuento del usuario (puede venir como prop)
+    hasUserOffer = false // Flag que indica si tiene descuento del usuario (puede venir como prop)
   } = product;
   
 
@@ -70,14 +72,19 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
     }
   };
 
-  // Calculate discount percentage - Nueva lógica usando desc_promo
+  // Calculate discount percentage - Priorizar oferta personalizada
   const calculateDiscountPercentage = () => {
-    // Si ya viene calculado desde la API (desc_promo), usarlo
+    // PRIORIDAD 1: Oferta personalizada del usuario (solo si tiene porcentaje)
+    if (hasUserOffer && userOffer && userOffer.discount_percentage > 0) {
+      return Math.round(userOffer.discount_percentage);
+    }
+    
+    // PRIORIDAD 2: Descuento general desde la API (desc_promo)
     if (discount && discount > 0) {
       return Math.round(discount);
     }
     
-    // Fallback: calcular usando originalPrice vs price
+    // PRIORIDAD 3: Fallback usando originalPrice vs price
     if (originalPrice && price && originalPrice > price) {
       return Math.round(((originalPrice - price) / originalPrice) * 100);
     }
@@ -86,7 +93,35 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
   };
 
   const discountPercentage = calculateDiscountPercentage();
-  const hasOffer = discountPercentage > 0;
+  
+  // Determinar si hay oferta (incluyendo ofertas especiales que no tienen porcentaje)
+  const hasOffer = discountPercentage > 0 || (hasUserOffer && userOffer && (userOffer.discount_category === 'buy_x_get_y' || userOffer.discount_category === 'order_discount' || userOffer.discount_category === 'free_shipping'));
+  
+  // Determinar el tipo de descuento para mostrar etiqueta apropiada
+  const getDiscountLabel = () => {
+    // PRIORIDAD 1: Si hay oferta personalizada del usuario, mostrar su etiqueta específica
+    if (hasUserOffer && userOffer) {
+      // Para ofertas Buy X Get Y
+      if (userOffer.discount_category === 'buy_x_get_y') {
+        return `🎁 Compra ${userOffer.buy_quantity} por el precio de ${userOffer.buy_quantity - userOffer.get_quantity}`;
+      }
+      // Para ofertas de descuento en el pedido
+      if (userOffer.discount_category === 'order_discount') {
+        return `💰 Descuento en pedido ${Math.round(userOffer.discount_percentage)}%`;
+      }
+      // Para ofertas de envío gratis
+      if (userOffer.discount_category === 'free_shipping') {
+        return `🚚 Envío gratis`;
+      }
+      // Para otras ofertas personalizadas, mostrar el porcentaje de descuento
+      if (userOffer.discount_percentage && userOffer.discount_percentage > 0) {
+        return `${!isMobile ? "Rebaja " : ""}${Math.round(userOffer.discount_percentage)}%`;
+      }
+    }
+    
+    // PRIORIDAD 2: Descuento general - mostrar "Rebaja X%"
+    return `${!isMobile ? "Rebaja " : ""}${discountPercentage}%`;
+  };
 
   // Handle share functionality
   const handleShare = () => {
@@ -151,9 +186,13 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
 
         {/* Offer badge if product has discount - prioridad sobre badge Nuevo */}
         {hasOffer && (
-          <span className="catalog-offer-badge">
-            {!isMobile && "Rebaja "}{discountPercentage}%
-          </span>
+          <div className={`catalog-offer-badge ${hasUserOffer ? 'user-offer' : ''} ${
+            hasUserOffer && userOffer && userOffer.discount_category === 'buy_x_get_y' ? 'buy-x-get-y' : 
+            hasUserOffer && userOffer && userOffer.discount_category === 'order_discount' ? 'order-discount' : 
+            hasUserOffer && userOffer && userOffer.discount_category === 'free_shipping' ? 'free-shipping' : ''
+          }`}>
+            {getDiscountLabel()}
+          </div>
         )}
 
         {/* New badge if product is new - solo mostrar si NO tiene oferta */}
