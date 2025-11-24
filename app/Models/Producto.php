@@ -199,3 +199,4 @@ class Producto extends Model
     {
         return $this->hasMany(Review::class, 'product_id', 'id');
     }
+}

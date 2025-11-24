@@ -229,8 +229,6 @@ Route::delete('/admin/catalogs/{catalogId}/pdfs/{pdfId}', [AdminCatalogControlle
         Route::post('/admin/catalog-offers/reorder', [AdminCatalogOfferController::class, 'reorder']);
         Route::get('/admin/catalogs/{catalogId}/offers', [AdminCatalogOfferController::class, 'getOffersByCatalog']);
         
-        // Product Sync route - sincronizar productos desde API externa
-        Route::post('/admin/products/sync', [ProductSyncController::class, 'sync']);
     });
     
     // Favorites routes - require authentication
@@ -267,6 +265,7 @@ Route::post('/products/ratings', [App\Http\Controllers\Api\RatingController::cla
 
 // Product search route (no authentication required)
 Route::get('/products/search', [ProductSearchController::class, 'search']);
+
 // Ruta para productos con ofertas (autenticación opcional - usuarios no logueados ven solo desc_promo)
 Route::get('/products/with-offers', [ProductSearchController::class, 'getProductsWithOffers']);
 

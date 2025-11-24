@@ -82,7 +82,7 @@ const CATALOG_MAPPING = {
 
 /**
  * Verifica si un producto es nuevo basándose en las fechas de movimiento de sus detalles
- * Un producto es nuevo si algún detalle tiene fechaMovimiento menor a 45 días
+ * Un producto es nuevo si algún detalle tiene fechaMovimiento menor a 60 días
  */
 const isProductNew = (apiProduct) => {
   // Si no tiene detalles, usar el campo tradicional
@@ -91,7 +91,7 @@ const isProductNew = (apiProduct) => {
   }
   
   const now = new Date();
-  const fortyFiveDaysAgo = new Date(now.getTime() - (45 * 24 * 60 * 60 * 1000));
+  const sixtyDaysAgo = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000));
   
   // Revisar cada detalle del producto
   return apiProduct.detalles.some(detalle => {
@@ -102,8 +102,8 @@ const isProductNew = (apiProduct) => {
       const [year, month, day] = detalle.fechaMovimiento.split('-').map(Number);
       const fechaMovimiento = new Date(year, month - 1, day);
       
-      // Si la fecha es válida y es menor a 45 días, el producto es nuevo
-      return !isNaN(fechaMovimiento.getTime()) && fechaMovimiento >= fortyFiveDaysAgo;
+      // Si la fecha es válida y es menor a 60 días, el producto es nuevo
+      return !isNaN(fechaMovimiento.getTime()) && fechaMovimiento >= sixtyDaysAgo;
     } catch (error) {
       return false;
     }
@@ -232,10 +232,13 @@ export const getProductsWithRatings = async (catalog = 'Cherry 2025 - 2026', opt
       : rawProducts;
     
     
-    // NOTA: Los productos locales ya vienen con ratings desde el backend
-    // No necesitamos llamar a getBulkRatings para productos locales
-    // Si estos productos vienen de la API externa, los ratings se obtendrán después
-    const ratingsCache = {}; // Objeto vacío ya que los productos locales ya tienen ratings
+    // Extraer IDs de productos para obtener ratings en bulk
+    const productIds = paginatedProducts.map(product => 
+      product.id_articulo || product.id || product.codigo
+    ).filter(Boolean);
+    
+    // Obtener ratings en bulk
+    const ratingsCache = await getBulkRatings(productIds);
     
     // Mapear productos con ratings
     const mappedProducts = await Promise.all(
@@ -306,24 +309,16 @@ export const getProductsByLineDescription = async (lineDescription) => {
 };
 
 // Función para obtener ratings en bulk para múltiples productos
-// DEPRECATED: Esta función ya no se debe usar para productos locales
-// Los productos locales ya vienen con ratings desde el backend
-// Esta función solo se mantiene para compatibilidad con código legacy que usa la API externa
 export const getBulkRatings = async (productIds) => {
-  // Retornar objeto vacío para evitar llamadas innecesarias
-  // Los productos locales ya tienen ratings desde el backend
-  console.warn('getBulkRatings está deprecado. Los productos locales ya vienen con ratings desde el backend.');
-  return {};
-  
-  // Código original comentado para referencia:
-  // try {
-  //   const response = await axios.post('/api/ratings/bulk', {
-  //     product_ids: productIds
-  //   });
-  //   return response.data.ratings || {};
-  // } catch (error) {
-  //   return {};
-  // }
+  try {
+    const response = await axios.post('/api/ratings/bulk', {
+      product_ids: productIds
+    });
+
+    return response.data.ratings || {};
+  } catch (error) {
+    return {};
+  }
 };
 
 export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
@@ -338,14 +333,8 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
   
   // Nueva lógica: usar desc_promo como porcentaje de descuento directo sobre precio1
   const originalPrice = apiProduct.precio1 || apiProduct.precio || apiProduct.price || 0;
-  let discountPromo = apiProduct.desc_promo || 0; // Solo usar desc_promo real de la API
+  const discountPromo = apiProduct.desc_promo || 0; // Solo usar desc_promo real de la API
   const productId = apiProduct.id_articulo || apiProduct.id;
-  
-  // Restar 10% a los descuentos de la API externa (desc_promo)
-  // Esto NO aplica a ofertas de usuario (que se procesan después)
-  if (discountPromo > 0) {
-    discountPromo = Math.max(0, discountPromo - 10); // Restar 10% y asegurar que no sea negativo
-  }
   
   // Calcular precio final aplicando desc_promo como porcentaje de descuento
   let discountPercentage = 0;
@@ -424,7 +413,7 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
     dtu: apiProduct.DTU || apiProduct.dtu,
     // Campos adicionales para debugging
     precio1: apiProduct.precio1,
-    desc_promo: discountPromo, // Usar el desc_promo reducido (con -10%)
+    desc_promo: apiProduct.desc_promo,
     // Mantener detalles originales para filtros
     detalles: apiProduct.detalles || []
   };
@@ -477,9 +466,9 @@ export const getRandomProducts = async (limit = 5) => {
       return hasStock && isWebEnabled;
     });
     
-    // Filtrar productos con fechaMovimiento menor a 45 días
+    // Filtrar productos con fechaMovimiento menor a 60 días
     const now = new Date();
-    const fortyFiveDaysAgo = new Date(now.getTime() - (45 * 24 * 60 * 60 * 1000));
+    const sixtyDaysAgo = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000));
     
     const recentProducts = activeProducts.filter(product => {
       // Si no tiene detalles, no lo incluimos
@@ -496,8 +485,8 @@ export const getRandomProducts = async (limit = 5) => {
           const [year, month, day] = detalle.fechaMovimiento.split('-').map(Number);
           const fechaMovimiento = new Date(year, month - 1, day);
           
-          // Si la fecha es válida y es menor a 45 días, incluir el producto
-          return !isNaN(fechaMovimiento.getTime()) && fechaMovimiento >= fortyFiveDaysAgo;
+          // Si la fecha es válida y es menor a 60 días, incluir el producto
+          return !isNaN(fechaMovimiento.getTime()) && fechaMovimiento >= sixtyDaysAgo;
         } catch (error) {
           return false;
         }
@@ -1208,117 +1197,71 @@ export const testWithPublicApi = async () => {
  */
 export const getTopSellingProducts = async (limit = 20) => {
   try {
-    // Obtener productos más vendidos desde la base de datos local
-    // El backend ya devuelve todos los datos necesarios con descuentos calculados
-    const response = await axios.get('/api/products/top-selling', {
-      params: { limit }
-    });
     
-    // Verificar si hay un error en la respuesta
-    if (response.data.error) {
-      console.error('Error from top-selling endpoint:', response.data.error);
+    // Obtener IDs de productos más vendidos del backend
+    const response = await fetch('/api/featured/top-selling-products?limit=' + limit);
+    
+    if (!response.ok) {
       return [];
     }
     
-    if (!response.data.success || !response.data.data || !response.data.data.products) {
+    const data = await response.json();
+    
+    if (!data.success || !data.data.product_ids || data.data.product_ids.length === 0) {
       return [];
     }
     
-    const localProducts = response.data.data.products;
+    const productIds = data.data.product_ids;
     
-    // Mapear productos locales al formato esperado manteniendo el orden
-    const mappedProducts = localProducts.map(product => {
-      const rawPrice = product.precio1;
-      const numericPrice = typeof rawPrice === 'string' ? parseFloat(rawPrice.replace(/[^\d.-]/g, '')) : parseFloat(rawPrice) || 0;
+    // Obtener datos completos de la API externa
+    const apiResponse = await axios.get(CHERRY_API_URL);
+    const apiData = apiResponse.data;
+    
+    let allApiProducts = [];
+    if (Array.isArray(apiData)) {
+      allApiProducts = apiData;
+    } else if (apiData && apiData.productos && Array.isArray(apiData.productos)) {
+      allApiProducts = apiData.productos;
+    }
+    
+    // Filtrar y ordenar productos según el ranking de ventas
+    const topSellingProducts = [];
+    
+    for (const productId of productIds) {
+      const product = allApiProducts.find(p => 
+        (p.id_articulo && p.id_articulo.toString() === productId.toString()) ||
+        (p.id && p.id.toString() === productId.toString()) ||
+        (p.codigo && p.codigo.toString() === productId.toString())
+      );
       
-      // Extraer colores de detalles
-      const productColors = product.detalles ? 
-        [...new Set(product.detalles.map(d => d.nombreColor).filter(Boolean))] : 
-        [];
-      const availableColors = productColors.length > 0 ? productColors : ['black'];
-      
-      // Extraer tallas de detalles
-      const productSizes = product.detalles ? 
-        [...new Set(product.detalles.map(d => d.detalle).filter(Boolean))] : 
-        [];
-      const availableSizes = productSizes.length > 0 ? productSizes : ['M'];
-      
-      // Determinar si es nuevo (45 días)
-      const isNewProduct = product.opc_nuevo === 'S' || 
-                         (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 45 * 24 * 60 * 60 * 1000));
-      
-      // Usar los valores que ya vienen calculados del backend (con descuento reducido del 10% aplicado)
-      let finalPrice = product.price;
-      let originalPrice = product.originalPrice;
-      let discountPercentage = product.discount;
-      
-      // Si el backend no envió estos valores, calcularlos aquí como fallback
-      if (finalPrice === undefined || finalPrice === null || finalPrice === 0) {
-        const hasDiscount = product.opc_promo === 'S' && product.desc_promo > 0;
-        const originalDiscountPercentage = hasDiscount ? parseFloat(product.desc_promo) : 0;
-        discountPercentage = hasDiscount ? Math.max(0, originalDiscountPercentage - 10) : 0;
-        originalPrice = hasDiscount && numericPrice > 0 ? numericPrice : null;
-        finalPrice = hasDiscount && discountPercentage > 0 && numericPrice > 0 
-          ? (numericPrice - (numericPrice * (discountPercentage / 100))) 
-          : numericPrice;
+      if (product) {
+        topSellingProducts.push(product);
       }
-      
-      // Asegurar que discountPercentage sea un número
-      discountPercentage = discountPercentage !== undefined && discountPercentage !== null ? parseFloat(discountPercentage) : 0;
-      
-      return {
-        id: product.id_articulo || product.id,
-        title: product.descripcion || product.title || 'Sin nombre',
-        description: product.descripcion || 'Sin descripción',
-        price: finalPrice, // Usar precio final del backend (con descuento aplicado)
-        originalPrice: originalPrice, // Usar precio original del backend
-        discount: discountPercentage, // Usar descuento reducido del backend
-        // Usar SIEMPRE la imagen del backend (que viene desde S3)
-        // Si no viene del backend, generar desde S3 como fallback
-        image: product.image ? product.image : `https://cherry-fotos.s3.amazonaws.com/shopify/${product.id_articulo || product.id}/${product.id_articulo || product.id}_1.jpg`,
-        brand: product.marca || 'Sin marca',
-        stock: product.inventario || 0,
-        inventario: product.inventario || 0,
-        colors: availableColors,
-        colores: productColors,
-        sizes: availableSizes,
-        tallas: productSizes,
-        isNew: isNewProduct,
-        rating: product.rating || 0,
-        ratingCount: product.ratingCount || product.totalRatings || 0,
-        totalRatings: product.ratingCount || product.totalRatings || 0,
-        linea: product.linea || product.id_linea,
-        id_linea: product.id_linea || product.linea,
-        catalogoId: product.catalogoId,
-        category_id: product.id_linea, // Para compatibilidad con filtros
-        catalog: product.catalogoId, // Para compatibilidad con filtros
-        fechaAlta: product.fecha_alta,
-        temporada: product.temporada,
-        opcNuevo: product.opc_nuevo,
-        opcPromo: product.opc_promo,
-        descPromo: product.desc_promo,
-        genero: product.genero,
-        sector: product.sector,
-        detalles: product.detalles,
-        codigo: product.codigo || product.id_articulo || product.id,
-        id_articulo: product.id_articulo || product.id,
-        precio1: numericPrice,
-        ranking: product.ranking || null // Posición original en el ranking de ventas
-      };
-    });
+    }
     
-    return mappedProducts;
+    
+    if (topSellingProducts.length === 0) {
+      return [];
+    }
+    
+    // Obtener IDs para ratings
+    const productIdsForRatings = topSellingProducts.map(product => 
+      product.id_articulo || product.id || product.codigo
+    ).filter(Boolean);
+    
+    // Obtener ratings en bulk
+    const ratingsCache = await getBulkRatings(productIdsForRatings);
+    
+    // Mapear productos manteniendo el orden de ventas
+    const mappedProducts = await Promise.all(
+      topSellingProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
+    );
+    
+    const validProducts = mappedProducts.filter(p => p !== null);
+    
+    return validProducts;
     
   } catch (error) {
-    console.error('Error obteniendo productos más vendidos:', error);
-    // Si el error tiene una respuesta del servidor, loguear el mensaje
-    if (error.response && error.response.data) {
-      console.error('Error response:', error.response.data);
-      // Si el error es "Producto no encontrado", retornar array vacío silenciosamente
-      if (error.response.data.error && error.response.data.error.includes('Producto no encontrado')) {
-        return [];
-      }
-    }
     return [];
   }
 };
@@ -1410,9 +1353,13 @@ export const getExternalPromoProducts = async (limit = 50, includeAll = false) =
     // Si se especifica un límite, aplicarlo; si no, mostrar todos
     const selectedProducts = limit > 0 ? sortedProducts.slice(0, limit) : sortedProducts;
 
-    // NOTA: Los productos locales ya vienen con ratings desde el backend
-    // No necesitamos llamar a getBulkRatings para productos locales
-    const ratingsCache = {}; // Objeto vacío ya que los productos locales ya tienen ratings
+    // Obtener IDs para ratings
+    const productIds = selectedProducts.map(product => 
+      product.id_articulo || product.id || product.codigo
+    ).filter(Boolean);
+
+    // Obtener ratings en bulk
+    const ratingsCache = await getBulkRatings(productIds);
 
     // Mapear productos (SIN aplicar ofertas personalizadas)
     const mappedProducts = await Promise.all(
@@ -1565,9 +1512,13 @@ export const getUserOfferProducts = async () => {
       return [];
     }
 
-    // NOTA: Los productos locales ya vienen con ratings desde el backend
-    // No necesitamos llamar a getBulkRatings para productos locales
-    const ratingsCache = {}; // Objeto vacío ya que los productos locales ya tienen ratings
+    // Obtener IDs para ratings
+    const productIdsForRatings = userOfferProducts.map(product => 
+      product.id_articulo || product.id || product.codigo
+    ).filter(Boolean);
+
+    // Obtener ratings en bulk
+    const ratingsCache = await getBulkRatings(productIdsForRatings);
 
     // Mapear productos
     const mappedProducts = await Promise.all(

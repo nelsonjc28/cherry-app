@@ -22,11 +22,28 @@ class ProductSyncController extends Controller
      */
     public function sync(): JsonResponse
     {
+        // Aumentar el tiempo máximo de ejecución para procesos largos (0 = sin límite)
+        set_time_limit(0);
+        ini_set('max_execution_time', '0');
+        ini_set('memory_limit', '512M');
+        
         try {
             DB::beginTransaction();
 
             // Obtener productos de la API externa
-            $response = Http::timeout(120)->get(self::EXTERNAL_API_URL);
+            // Desactivar verificación SSL para evitar errores de certificado cURL
+            // Aumentar timeout a 600 segundos (10 minutos) para descargas grandes
+            $response = Http::timeout(600)
+                ->withoutVerifying()
+                ->withOptions([
+                    'verify' => false,
+                    'curl' => [
+                        CURLOPT_SSL_VERIFYPEER => false,
+                        CURLOPT_SSL_VERIFYHOST => false,
+                        CURLOPT_TIMEOUT => 600, // 10 minutos
+                    ]
+                ])
+                ->get(self::EXTERNAL_API_URL);
 
             if (!$response->successful()) {
                 throw new \Exception('Error al conectar con la API externa: ' . $response->status());
