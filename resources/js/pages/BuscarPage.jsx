@@ -282,6 +282,7 @@ const BuscarPage = () => {
                   ratingCount: product.ratingCount || product.totalRatings || 0,
                   linea: product.linea || product.id_linea,
                   id_linea: product.id_linea || product.linea, // Para filtro de categoría
+                  catalogoId: product.catalogoId, // Para filtro de catálogo
                   fechaAlta: product.fecha_alta,
                   temporada: product.temporada,
                   opcNuevo: product.opc_nuevo,
@@ -351,7 +352,23 @@ const BuscarPage = () => {
       filtered = filtered.filter(product => {
         // Comparar el id del catálogo seleccionado con catalogoId del producto
         const productCatalogoId = product.catalogoId;
-        return productCatalogoId == filters.catalog;
+        // Usar comparación flexible (==) para manejar diferentes tipos (string vs number)
+        const matches = String(productCatalogoId) == String(filters.catalog);
+        
+        // Debug para primeros productos
+        if (filtered.indexOf(product) < 5) {
+          console.log('🔍 DEBUG - Comparación de catálogo:', {
+            productId: product.id,
+            productCatalogoId,
+            productCatalogoIdType: typeof productCatalogoId,
+            filterCatalog: filters.catalog,
+            filterCatalogType: typeof filters.catalog,
+            matches,
+            comparison: `${productCatalogoId} == ${filters.catalog}`
+          });
+        }
+        
+        return matches;
       });
     }
 

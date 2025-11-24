@@ -401,6 +401,7 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
     brand: apiProduct.marca || apiProduct.brand || 'Cherry',
     category: category,
     catalog: catalog,
+    catalogoId: apiProduct.catalogoId || catalog, // Para filtro de catálogo
     category_id: category_id,
     colors: colors,
     sizes: sizes,

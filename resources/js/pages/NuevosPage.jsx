@@ -52,10 +52,28 @@ const NuevosPage = () => {
     }
 
     // Filter by catalog
+    // filters.catalog contiene el id del catálogo seleccionado, comparar con catalogoId del producto
     if (currentFilters.catalog && currentFilters.catalog !== '' && currentFilters.catalog != 'Seleccione') {
       filtered = filtered.filter(product => {
-        const productCatalog = product.catalog;
-        return productCatalog == currentFilters.catalog;
+        // Comparar el id del catálogo seleccionado con catalogoId del producto
+        const productCatalogoId = product.catalogoId || product.catalog;
+        // Usar comparación flexible (==) para manejar diferentes tipos (string vs number)
+        const matches = String(productCatalogoId) == String(currentFilters.catalog);
+        
+        // Debug para primeros productos
+        if (filtered.indexOf(product) < 5) {
+          console.log('🔍 DEBUG - Comparación de catálogo (NuevosPage):', {
+            productId: product.id,
+            productCatalogoId,
+            productCatalogoIdType: typeof productCatalogoId,
+            filterCatalog: currentFilters.catalog,
+            filterCatalogType: typeof currentFilters.catalog,
+            matches,
+            comparison: `${productCatalogoId} == ${currentFilters.catalog}`
+          });
+        }
+        
+        return matches;
       });
     }
 
