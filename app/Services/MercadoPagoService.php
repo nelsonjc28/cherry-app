@@ -23,7 +23,14 @@ class MercadoPagoService
         }
 
         MercadoPagoConfig::setAccessToken($accessToken);
-        MercadoPagoConfig::setRuntimeEnviroment(MercadoPagoConfig::LOCAL);
+        
+        // Determinar el ambiente según la configuración
+        $environment = config('services.mercadopago.environment', 'sandbox');
+        $runtimeEnvironment = $environment === 'production' 
+            ? MercadoPagoConfig::PRODUCTION 
+            : MercadoPagoConfig::LOCAL;
+        
+        MercadoPagoConfig::setRuntimeEnviroment($runtimeEnvironment);
         
         $this->client = new PreferenceClient();
         $this->paymentClient = new PaymentClient();

@@ -124,20 +124,17 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
   };
 
   // Handle share functionality
-  const handleShare = () => {
-    const productUrl = `${window.location.origin}/producto/${id}`;
+  const handleShare = async () => {
+    // Importar función de compartir con imágenes
+    const { shareProductWithImages } = await import('../../utils/shareProductUtils');
     
-    if (navigator.share) {
-      // Use native sharing if available
-      navigator.share({
-        title: title,
-        text: `Mira este producto: ${title}`,
-        url: productUrl
-      });
-    } else {
-      // Fallback to clipboard copy
-      copyToClipboard(productUrl);
-    }
+    // Compartir producto con todas sus imágenes
+    await shareProductWithImages({
+      id,
+      title,
+      price,
+      image
+    });
   };
 
   const copyToClipboard = async (text) => {

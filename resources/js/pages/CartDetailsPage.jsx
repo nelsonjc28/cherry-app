@@ -40,6 +40,38 @@ const CartDetailsPage = () => {
     initCart();
   }, [initCart]);
 
+  // Scroll to top when component mounts
+  useEffect(() => {
+    // Función para hacer scroll al inicio
+    const scrollToTop = () => {
+      // Intentar múltiples métodos para asegurar compatibilidad
+      if (window.scrollTo) {
+        window.scrollTo(0, 0);
+      }
+      if (document.documentElement) {
+        document.documentElement.scrollTop = 0;
+      }
+      if (document.body) {
+        document.body.scrollTop = 0;
+      }
+      // También intentar con scrollIntoView del primer elemento
+      const firstElement = document.querySelector('.cart-details__container') || document.body.firstElementChild;
+      if (firstElement && firstElement.scrollIntoView) {
+        firstElement.scrollIntoView({ behavior: 'instant', block: 'start' });
+      }
+    };
+
+    // Ejecutar inmediatamente
+    scrollToTop();
+    
+    // Ejecutar después de que React termine de renderizar
+    requestAnimationFrame(() => {
+      scrollToTop();
+      // Ejecutar una vez más después de un pequeño delay
+      setTimeout(scrollToTop, 100);
+    });
+  }, []);
+
   // Helper function to calculate item price considering Buy X Get Y offers
   const calculateItemPriceForDisplay = (item) => {
     if (item.isFreeItem) return 0;
@@ -367,7 +399,7 @@ const CartDetailsPage = () => {
 
   console.log(orderSummary);
 
-  window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+  
 
 
   return (

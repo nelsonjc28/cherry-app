@@ -15,15 +15,18 @@ use App\Models\DayFortyFive;
 use App\Models\PaymentCard;
 use App\Models\User;
 use App\Models\Notification;
+use App\Services\ExternalSalesService;
 use Carbon\Carbon;
 
 class PaymentController extends Controller
 {
     protected $mercadoPagoService;
+    protected $externalSalesService;
 
-    public function __construct(MercadoPagoService $mercadoPagoService)
+    public function __construct(MercadoPagoService $mercadoPagoService, ExternalSalesService $externalSalesService)
     {
         $this->mercadoPagoService = $mercadoPagoService;
+        $this->externalSalesService = $externalSalesService;
     }
 
     /**
@@ -174,6 +177,19 @@ class PaymentController extends Controller
                         'mercadopago_payment_id' => $result['payment_id'],
                         'payment_data' => json_encode($result['payment_data'])
                     ]);
+
+                    // Si el pago fue aprobado, enviar información a la API externa
+                    if ($result['status'] === 'approved' && $newStatus === 'pagado') {
+                        try {
+                            $this->externalSalesService->sendSaleToExternalApi($order);
+                        } catch (\Exception $e) {
+                            // Log del error pero no fallar el webhook
+                            Log::error('Error al enviar venta a API externa desde webhook', [
+                                'order_id' => $order->id,
+                                'error' => $e->getMessage()
+                            ]);
+                        }
+                    }
                 }
             }
 
@@ -290,7 +306,7 @@ class PaymentController extends Controller
             // Crear pago en MercadoPago
             $payment = $this->mercadoPagoService->createPayment($paymentData);
 
-
+            dd($payment);
             // Solo crear orden si el pago es exitoso (ignorando rejected para pruebas)
             if ($payment->status === 'approved' || $payment->status === 'rejected') {
                 DB::beginTransaction();
@@ -330,6 +346,18 @@ class PaymentController extends Controller
 
                 DB::commit();
 
+                // Si el pago fue aprobado, enviar información a la API externa
+                if ($payment->status === 'approved') {
+                    try {
+                        $this->externalSalesService->sendSaleToExternalApi($order);
+                    } catch (\Exception $e) {
+                        // Log del error pero no fallar la transacción
+                        Log::error('Error al enviar venta a API externa después de pago aprobado', [
+                            'order_id' => $order->id,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                }
 
                 // Notificar al admin del pago realizado
                 $this->notifyAdminPaymentReceived($order, $user);
