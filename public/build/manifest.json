@@ -5,12 +5,21 @@
     "isEntry": true
   },
   "resources/js/main.jsx": {
-    "file": "assets/main-CBqG1XfV.js",
+    "file": "assets/main-PL9EJhRC.js",
     "name": "main",
     "src": "resources/js/main.jsx",
     "isEntry": true,
+    "dynamicImports": [
+      "resources/js/utils/searchNormalizer.js"
+    ],
     "css": [
-      "assets/main-B9dYlTQ8.css"
+      "assets/main-g1JOv5RT.css"
     ]
+  },
+  "resources/js/utils/searchNormalizer.js": {
+    "file": "assets/searchNormalizer-DnmY9d9X.js",
+    "name": "searchNormalizer",
+    "src": "resources/js/utils/searchNormalizer.js",
+    "isDynamicEntry": true
   }
 }
