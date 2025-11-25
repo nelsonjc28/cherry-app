@@ -308,5 +308,5 @@ class ProductSyncController extends Controller
                 'message' => 'Error al sincronizar productos: ' . $e->getMessage()
             ], 500);
         }
-    }
+    
 }

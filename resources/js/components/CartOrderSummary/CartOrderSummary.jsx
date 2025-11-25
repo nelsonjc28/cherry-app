@@ -494,12 +494,37 @@ const CartOrderSummary = ({
       const response = await api.post('/payment/process-integrated', paymentData);
 
       if (response.data.success) {
-        if (window.showToast) {
-          window.showToast('¡Pago procesado exitosamente!', 'success');
-        }
-
-        if (onIntegratedPaymentSuccess) {
-          onIntegratedPaymentSuccess(response.data);
+        const { data } = response.data;
+        const paymentStatus = data.payment_status;
+        
+        // Manejar diferentes estados del pago
+        if (paymentStatus === 'approved') {
+          if (window.showToast) {
+            window.showToast('¡Pago procesado exitosamente!', 'success');
+          }
+          
+          if (onIntegratedPaymentSuccess) {
+            onIntegratedPaymentSuccess(response.data);
+          }
+        } else if (paymentStatus === 'pending' || paymentStatus === 'in_process') {
+          // Pago pendiente - redirigir a página de verificación
+          if (window.showToast) {
+            window.showToast(data.message || 'Tu pago está pendiente de confirmación', 'info');
+          }
+          
+          // Redirigir a página de pago pendiente con información de la orden
+          setTimeout(() => {
+            window.location.href = `/pago-pendiente?orderId=${data.order_id}&paymentId=${data.payment_id}`;
+          }, 2000);
+        } else {
+          // Otro estado (rejected, etc.)
+          if (window.showToast) {
+            window.showToast(data.message || 'El pago no fue aprobado', 'error');
+          }
+          
+          if (onIntegratedPaymentError) {
+            onIntegratedPaymentError(response.data);
+          }
         }
       } else {
 

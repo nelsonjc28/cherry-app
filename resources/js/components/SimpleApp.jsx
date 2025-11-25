@@ -35,6 +35,7 @@ import DestacadosOfertasPage from '../pages/DestacadosOfertasPage';
 import FavoritosPage from '../pages/FavoritosPage';
 import AdminPanelPage from '../pages/AdminPanelPage';
 import ReviewFormPage from '../pages/ReviewFormPage';
+import PaymentPendingPage from '../pages/PaymentPendingPage';
 
 // Profile pages
 import ProfileLayout from '../pages/profile/ProfileLayout';
@@ -96,6 +97,7 @@ const SimpleApp = () => {
                   {/* Shopping routes */}
                   <Route path="/carrito-detalle" element={<CartDetailsPage />} />
                   <Route path="/compra-exitosa" element={<CheckoutSuccessPage />} />
+                  <Route path="/pago-pendiente" element={<PaymentPendingPage />} />
                   <Route path="/carrito" element={<CarritoPage />} />
                   <Route path="/buscar" element={<BuscarPage />} />
                   <Route path="/categorias" element={<CategoriasPage />} />

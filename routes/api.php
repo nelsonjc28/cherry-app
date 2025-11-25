@@ -329,6 +329,9 @@ Route::post('/mercadopago/webhook', [PaymentController::class, 'webhook']);
 // MercadoPago configuration (no authentication required)
 Route::get('/mercadopago/config', [PaymentController::class, 'getMercadoPagoConfig']);
 
+// Payment status check (requires authentication)
+Route::get('/payment/status/{orderId}', [\App\Http\Controllers\Api\PaymentStatusController::class, 'checkPaymentStatus'])->middleware('auth:api,web');
+
 // Public catalog images routes (no authentication required)
 Route::get('/catalogs/{id}/pdfs', [AdminCatalogController::class, 'getPublicCatalogPdfs']);
 Route::get('/catalogs/{id}/image-groups', [AdminCatalogController::class, 'getCatalogImageGroups']);

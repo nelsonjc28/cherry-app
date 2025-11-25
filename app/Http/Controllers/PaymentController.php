@@ -200,17 +200,32 @@ class PaymentController extends Controller
     }
 
     /**
-     * Mapear estados de MercadoPago a estados internos
+     * Mapear estados de MercadoPago a estados internos (para webhook)
      */
     private function mapPaymentStatus($mercadoPagoStatus)
     {
         return match ($mercadoPagoStatus) {
-            'approved' => 'completed',
-            'pending' => 'pending',
-            'in_process' => 'processing',
-            'rejected' => 'failed',
-            'cancelled' => 'cancelled',
-            default => 'pending'
+            'approved' => 'pagado',
+            'pending' => 'pendiente_pago',
+            'in_process' => 'pendiente_pago',
+            'rejected' => 'pago_rechazado',
+            'cancelled' => 'cancelado',
+            default => 'pendiente_pago'
+        };
+    }
+
+    /**
+     * Mapear estados de MercadoPago a estados de orden (para creación inicial)
+     */
+    private function mapPaymentStatusToOrderStatus($mercadoPagoStatus)
+    {
+        return match ($mercadoPagoStatus) {
+            'approved' => 'pagado',
+            'pending' => 'pendiente_pago',
+            'in_process' => 'pendiente_pago',
+            'rejected' => 'pago_rechazado',
+            'cancelled' => 'cancelado',
+            default => 'pendiente_pago'
         };
     }
 
@@ -306,9 +321,11 @@ class PaymentController extends Controller
             // Crear pago en MercadoPago
             $payment = $this->mercadoPagoService->createPayment($paymentData);
 
-            dd($payment);
-            // Solo crear orden si el pago es exitoso (ignorando rejected para pruebas)
-            if ($payment->status === 'approved' || $payment->status === 'rejected') {
+            // Mapear estado del pago a estado de la orden
+            $orderStatus = $this->mapPaymentStatusToOrderStatus($payment->status);
+            
+            // Crear orden para todos los estados excepto 'rejected' y 'cancelled'
+            if (!in_array($payment->status, ['rejected', 'cancelled'])) {
                 DB::beginTransaction();
 
                 // Crear el pedido en la base de datos
@@ -316,7 +333,7 @@ class PaymentController extends Controller
                     'user_id' => $user->id,
                     'address_id' => $requestData['address_id'],
                     'total_amount' => $requestData['transaction_amount'],
-                    'status' => 'pagado', // Estado inicial: pagado
+                    'status' => $orderStatus, // Estado según el estado del pago
                     'payment_method' => 'mercadopago_integrated',
                     'external_reference' => $externalReference,
                     'mercadopago_payment_id' => $payment->id,
@@ -346,7 +363,7 @@ class PaymentController extends Controller
 
                 DB::commit();
 
-                // Si el pago fue aprobado, enviar información a la API externa
+                // Solo enviar a API externa si el pago fue aprobado
                 if ($payment->status === 'approved') {
                     try {
                         $this->externalSalesService->sendSaleToExternalApi($order);
@@ -359,12 +376,18 @@ class PaymentController extends Controller
                     }
                 }
 
-                // Notificar al admin del pago realizado
-                $this->notifyAdminPaymentReceived($order, $user);
+                // Notificar al admin del pago realizado (solo si está aprobado o pendiente)
+                if (in_array($payment->status, ['approved', 'pending', 'in_process'])) {
+                    $this->notifyAdminPaymentReceived($order, $user);
+                }
 
-                $message = $payment->status === 'approved'
-                    ? '¡Pago procesado exitosamente! Tu pedido ha sido creado.'
-                    : '⚠️ Pago en estado "rejected" pero orden creada para pruebas.';
+                // Mensaje según el estado del pago
+                $message = match($payment->status) {
+                    'approved' => '¡Pago procesado exitosamente! Tu pedido ha sido creado.',
+                    'pending' => 'Tu pago está pendiente de confirmación. Te notificaremos cuando se confirme.',
+                    'in_process' => 'Tu pago está siendo procesado. Te notificaremos cuando se complete.',
+                    default => 'Tu pedido ha sido creado. El estado del pago se actualizará automáticamente.'
+                };
 
                 return response()->json([
                     'success' => true,
@@ -373,14 +396,14 @@ class PaymentController extends Controller
                         'order_id' => $order->id,
                         'payment_id' => $payment->id,
                         'payment_status' => $payment->status,
-                        'order_status' => 'pagado',
+                        'order_status' => $orderStatus,
                         'external_reference' => $externalReference,
-                        'test_mode' => $payment->status === 'rejected' ? true : false
+                        'requires_polling' => in_array($payment->status, ['pending', 'in_process']), // Indica si necesita verificación periódica
+                        'status_detail' => $payment->status_detail ?? null
                     ]
                 ]);
             } else {
-                // Pago no aprobado
-
+                // Pago rechazado o cancelado - no crear orden
                 return response()->json([
                     'success' => false,
                     'message' => 'El pago no fue aprobado. ' . ($payment->status_detail ?? 'Intenta nuevamente.'),
@@ -703,14 +726,17 @@ class PaymentController extends Controller
     {
         $statusMap = [
             'pending' => 'Pendiente',
+            'pendiente_pago' => 'Pago Pendiente',
             'processing' => 'Procesando',
             'shipped' => 'En vía',
             'delivered' => 'Entregado',
             'cancelled' => 'Cancelado',
+            'cancelado' => 'Cancelado',
             'pagado' => 'Pagado',
             'en_espera_envio' => 'En espera de envío',
             'enviado' => 'Enviado',
-            'entregado' => 'Entregado'
+            'entregado' => 'Entregado',
+            'pago_rechazado' => 'Pago Rechazado'
         ];
 
         return $statusMap[$status] ?? ucfirst($status);
@@ -723,14 +749,17 @@ class PaymentController extends Controller
     {
         $colorMap = [
             'pending' => 'yellow',
+            'pendiente_pago' => 'yellow',
             'processing' => 'blue',
             'shipped' => 'orange',
             'delivered' => 'green',
             'cancelled' => 'red',
+            'cancelado' => 'red',
             'pagado' => 'blue',
             'en_espera_envio' => 'blue',
             'enviado' => 'orange',
-            'entregado' => 'green'
+            'entregado' => 'green',
+            'pago_rechazado' => 'red'
         ];
 
         return $colorMap[$status] ?? 'gray';

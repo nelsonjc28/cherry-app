@@ -84,6 +84,14 @@ class Order extends Model
     }
 
     /**
+     * Check if order payment is pending.
+     */
+    public function isPaymentPending(): bool
+    {
+        return in_array($this->status, ['pendiente_pago', 'pending']);
+    }
+
+    /**
      * Check if order is delivered (now based on 'enviado' status).
      */
     public function isDelivered(): bool
