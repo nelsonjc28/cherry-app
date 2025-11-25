@@ -1,6 +1,6 @@
-const CACHE_NAME = 'cherry-app-v1.3.0';
-const STATIC_CACHE = 'cherry-static-v1.3.0';
-const DYNAMIC_CACHE = 'cherry-dynamic-v1.3.0';
+const CACHE_NAME = 'cherry-app-v1.3.1';
+const STATIC_CACHE = 'cherry-static-v1.3.1';
+const DYNAMIC_CACHE = 'cherry-dynamic-v1.3.1';
 
 const urlsToCache = [
   '/',
