@@ -8,18 +8,7 @@ import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
 import CustomButton from '../components/CustomButton';
 import './CatalogPage.css';
-import {
-  getProductsByCategory,
-  getAllProducts,
-  getAvailableCategories,
-  mapApiProductToAppProduct,
-  getProductsByAvailability,
-  searchProductsAdvanced,
-  getProductsWithRatings,
-  getAvailableColors,
-  getAvailableSizes,
-  getBulkRatings
-} from '../api/cherryApi';
+import api from '../services/api';
 import { applyUserOffersToProducts } from '../api/userOffers';
 import { catalogService, publicCatalogService } from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
@@ -417,93 +406,93 @@ const CatalogPage = ({ catalogId }) => {
               console.error('Error loading catalog products:', error);
             }
 
-            // Cargar productos externos y filtrar por código del catálogo
-            let externalProducts = [];
-            try {
-              const externalResponse = await fetch('https://cherryapi.estrategiadmgs.com.mx/cherryApi/');
-              if (externalResponse.ok) {
-
-                const externalData = await externalResponse.json();
-
-                // Filtrar productos por código del catálogo
-                const catalogCode = catalogResponse.data.success ? catalogResponse.data.data.code : null;
-                if (catalogCode) {
-                  const filteredExternalData = externalData.filter(product => product.catalogoId == catalogCode);
-                  // Obtener IDs de productos para ratings
-                  const externalProductIds = filteredExternalData.map(product =>
-                    product.id_articulo || product.id || product.codigo
-                  ).filter(Boolean);
-
-                  // Obtener ratings en bulk para productos externos
-                  const externalRatingsCache = await getBulkRatings(externalProductIds);
-
-                  externalProducts = filteredExternalData.map(product => {
-                    // CONSOLE LOG ESPECÍFICO PARA DETALLES EN CATÁLOGO
-
-
-
-
-
-
-                    if (product.detalles && Array.isArray(product.detalles)) {
-
-                      product.detalles.forEach((detalle, index) => {
-
-
-
-
-
-                      });
-                    }
-
-
-                    // Extraer colores de los detalles
-                    let colors = [];
-                    if (product.detalles && Array.isArray(product.detalles)) {
-                      colors = [...new Set(product.detalles.map(d => d.nombreColor).filter(Boolean))];
-                    }
-
-                    // Debug específico para productos externos
-
-                    // Usar la función de mapeo actualizada que incluye la lógica de ofertas CON ratings
-                    const mappedProduct = mapApiProductToAppProduct(product, externalRatingsCache);
-                    if (mappedProduct) {
-
-                      return {
-                        ...mappedProduct,
-                        source: 'external',
-                        catalogoId: product.catalogoId
-                      };
-                    }
-                    return null;
-                  });
-                }
-              }
-            } catch (error) {
-              console.error('Error loading external products:', error);
-            }
-
-            // Usar solo productos locales del backend (ya no necesitamos productos externos)
+            // Usar solo productos locales del backend
             productsData = localProducts;
           } catch (error) {
             console.error('Error loading catalog:', error);
             productsData = [];
           }
         } else {
-          // Solo cargar productos si tenemos un catálogo seleccionado
-          if (!filters.catalog) {
-            setLoading(false);
-            return;
-          }
+          // Cargar productos desde el backend (similar a BuscarPage)
+          let allProductsFromBackend = [];
+          try {
+            const searchResponse = await api.get('/products/search', {
+              params: { q: '' }
+            });
+            if (searchResponse.data.success && searchResponse.data.data.products) {
+              const localProducts = searchResponse.data.data.products;
+              allProductsFromBackend = localProducts.map(product => {
+                const rawPrice = product.precio1;
+                const numericPrice = typeof rawPrice === 'string' ? parseFloat(rawPrice.replace(/[^\d.-]/g, '')) : parseFloat(rawPrice) || 0;
 
-          // Carga normal de productos
-          if (category === 'all') {
-            // Load all products with ratings optimized
-            productsData = await getProductsWithRatings(filters.catalog);
-          } else {
-            // Para categorías específicas, obtener por categoría
-            productsData = await getProductsByCategory(category, filters.catalog);
+                const productColors = product.detalles ? 
+                  [...new Set(product.detalles.map(d => d.nombreColor).filter(Boolean))] : 
+                  [];
+                const availableColors = productColors.length > 0 ? productColors : ['black'];
+
+                const productSizes = product.detalles ? 
+                  [...new Set(product.detalles.map(d => d.detalle).filter(Boolean))] : 
+                  [];
+                const availableSizes = productSizes.length > 0 ? productSizes : ['M'];
+
+                const isNewProduct = product.opc_nuevo === 'S' || 
+                                   (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 45 * 24 * 60 * 60 * 1000));
+
+                let finalPrice = product.price;
+                let originalPrice = product.originalPrice;
+                let discountPercentage = product.discount;
+
+                if (finalPrice === undefined || finalPrice === null || finalPrice === 0) {
+                  const hasDiscount = product.opc_promo === 'S' && product.desc_promo > 0;
+                  const originalDiscountPercentage = hasDiscount ? parseFloat(product.desc_promo) : 0;
+                  discountPercentage = hasDiscount ? Math.max(0, originalDiscountPercentage - 10) : 0;
+                  originalPrice = hasDiscount && numericPrice > 0 ? numericPrice : null;
+                  finalPrice = hasDiscount && discountPercentage > 0 && numericPrice > 0 
+                    ? (numericPrice - (numericPrice * (discountPercentage / 100))) 
+                    : numericPrice;
+                }
+
+                discountPercentage = discountPercentage !== undefined && discountPercentage !== null ? parseFloat(discountPercentage) : 0;
+
+                return {
+                  id: product.id_articulo || product.id,
+                  title: product.descripcion || product.title || 'Sin nombre',
+                  description: product.descripcion || 'Sin descripción',
+                  price: finalPrice,
+                  originalPrice: originalPrice,
+                  discount: discountPercentage,
+                  image: product.image || getProductImageUrl(product.id_articulo || product.id),
+                  brand: product.marca || 'Sin marca',
+                  stock: product.inventario || 0,
+                  inventario: product.inventario || 0,
+                  colors: availableColors,
+                  colores: productColors,
+                  sizes: availableSizes,
+                  tallas: productSizes,
+                  isNew: isNewProduct,
+                  rating: product.rating || 0,
+                  ratingCount: product.ratingCount || product.totalRatings || 0,
+                  linea: product.linea || product.id_linea,
+                  id_linea: product.id_linea || product.linea,
+                  catalogoId: product.catalogoId,
+                  fechaAlta: product.fecha_alta,
+                  temporada: product.temporada,
+                  opcNuevo: product.opc_nuevo,
+                  opcPromo: product.opc_promo,
+                  descPromo: product.desc_promo,
+                  genero: product.genero,
+                  sector: product.sector,
+                  detalles: product.detalles,
+                  codigo: product.codigo || product.id_articulo || product.id,
+                  id_articulo: product.id_articulo || product.id,
+                  precio1: numericPrice
+                };
+              });
+            }
+          } catch (error) {
+            allProductsFromBackend = [];
           }
+          productsData = allProductsFromBackend;
         }
 
         // Filtrar productos nulos
