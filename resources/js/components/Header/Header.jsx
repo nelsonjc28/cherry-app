@@ -111,6 +111,7 @@ const Header = () => {
       // Crear array con "Todas las categorías" primero, luego las demás
       const allItems = [
         { name: 'Todas las categorías', link: '/categorias' },
+        { name: 'Todos los productos', link: '/buscar#' },
         ...menuCategories.map(cat => ({
           name: cat.name,
           link: `/categoria/${cat.slug}`
