@@ -198,32 +198,45 @@ class AdminCatalogController extends Controller
     {
         /* dd($request->all()); */
         try {
-            $arrId = [];
-            $catalog;
-            if (!empty($request->catalogs)) {
-                foreach ($request->catalogs as $key => $catalg) {
+            // Permitir arreglo vacío (limpia todas las posiciones)
+            $payload = $request->input('catalogs', []);
 
-                    $catalog = Catalog::where('id', $catalg['id'])->first();
-                    $catalog->display_order = $catalg['display_order'];
-                    $catalog->save();
+            DB::beginTransaction();
 
-                    $arrId[$key] = $catalg['id'];
-                    /* $catalog = Catalog::findOrFail($i); */
+            $updatedIds = [];
+
+            // Asignar posiciones a los catálogos recibidos
+            foreach ($payload as $item) {
+                if (!isset($item['id'])) {
+                    continue;
                 }
-            } else {
-                $catalog = [];
+                $catalog = Catalog::find($item['id']);
+                if (!$catalog) {
+                    continue;
+                }
+                $catalog->display_order = isset($item['display_order']) ? (int)$item['display_order'] : null;
+                $catalog->save();
+                $updatedIds[] = (int)$item['id'];
             }
 
+            // Limpiar posiciones de los catálogos que ya no están en la lista
+            if (count($updatedIds) > 0) {
+                Catalog::whereNotIn('id', $updatedIds)->update(['display_order' => null]);
+            } else {
+                // Si no hay ninguno seleccionado, limpiar todas las posiciones
+                Catalog::query()->update(['display_order' => null]);
+            }
 
-            Catalog::whereNotIn('id', $arrId)->get()->each(function (Catalog $catalog) {
-                $catalog->update(['display_order', null]);
-            });
+            DB::commit();
             return response()->json([
                 'success' => true,
                 'message' => 'Orden del catálogo actualizado exitosamente',
-                'data' => $catalog
+                'data' => [
+                    'updated_ids' => $updatedIds
+                ]
             ]);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Error al actualizar el orden del catálogo: ' . $e->getMessage()
