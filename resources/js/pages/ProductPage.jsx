@@ -883,7 +883,7 @@ const ProductPage = () => {
   const discountPercentage = calculateDiscountPercentage();
 
   // Determinar si hay oferta (incluyendo ofertas especiales que no tienen porcentaje)
-  const hasOffer = discountPercentage > 0 || (hasUserOffer && userOffer && (userOffer.discount_category === 'buy_x_get_y' || userOffer.discount_category === 'free_shipping'));
+  const hasOffer = discountPercentage > 0 || (hasUserOffer && userOffer && (userOffer.discount_category === 'buy_x_get_y' || userOffer.discount_category === 'order_discount'));
 
   // Calcular precio final con logs para debugging
   const calculateFinalPrice = () => {
@@ -1183,8 +1183,6 @@ const ProductPage = () => {
                     `🎁 Compra ${userOffer.buy_quantity} por el precio de ${userOffer.buy_quantity - userOffer.get_quantity}` :
                     hasUserOffer && userOffer && userOffer.discount_category === 'order_discount' ?
                       `💰 Descuento en pedido ${Math.round(userOffer.discount_percentage)}%` :
-                      hasUserOffer && userOffer && userOffer.discount_category === 'free_shipping' ?
-                        (discountPercentage > 0 ? `🏷️ ${discountPercentage}% + 🚚 Envío gratis` : `🚚 Envío gratis`) :
                         hasUserOffer && userOffer && userOffer.discount_percentage > 0 ?
                           (<>{!isMobile && "Rebaja "}{Math.round(userOffer.discount_percentage)}%</>) :
                           (<>🏷️ {!isMobile && "Rebaja "}{discountPercentage}%</>)
@@ -1232,19 +1230,7 @@ const ProductPage = () => {
                   </div>
                 </div>
               )}
-              {hasUserOffer && userOffer && userOffer.discount_category === 'free_shipping' && (
-                <div className="product-page__offer-details">
-                  <div className="product-page__free-shipping-info">
-                    🚚 <strong>Envío Gratis:</strong> Este producto incluye envío gratuito
-                    <div className="product-page__shipping-savings">
-                      💰 ¡Ahorra en costos de envío! No se aplicarán cargos adicionales por envío
-                    </div>
-                    <div className="product-page__offer-note">
-                      ℹ️ El envío gratis se aplicará automáticamente en el checkout
-                    </div>
-                  </div>
-                </div>
-              )}
+              
             </div>
 
             <div className="product-page__container-info-details">

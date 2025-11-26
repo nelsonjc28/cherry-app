@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico PWA - Cherry App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .check {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #ccc;
+        }
+        .check.pass {
+            border-left-color: #4CAF50;
+        }
+        .check.fail {
+            border-left-color: #f44336;
+        }
+        .check.warning {
+            border-left-color: #ff9800;
+        }
+        h1 { color: #E91E63; }
+        h2 { color: #333; margin-top: 20px; }
+        .status { font-weight: bold; }
+        .pass .status { color: #4CAF50; }
+        .fail .status { color: #f44336; }
+        .warning .status { color: #ff9800; }
+        code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        button {
+            background: #E91E63;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #C2185B;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Diagnóstico PWA - Cherry App</h1>
+    <div id="results"></div>
+    
+    <h2>Acciones</h2>
+    <button onclick="clearCache()">Limpiar Cache</button>
+    <button onclick="unregisterSW()">Desregistrar Service Worker</button>
+    <button onclick="reload()">Recargar</button>
+    
+    <script>
+        const results = document.getElementById('results');
+        
+        async function checkPWA() {
+            const checks = [];
+            
+            // 1. Verificar HTTPS/localhost
+            const isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname.startsWith('192.168.') || location.hostname.startsWith('10.');
+            checks.push({
+                name: 'Conexión Segura',
+                pass: isSecure,
+                message: isSecure ? 'HTTP local está permitido' : 'Se requiere HTTPS para PWA',
+                warning: !isSecure
+            });
+            
+            // 2. Verificar Service Worker
+            const hasSW = 'serviceWorker' in navigator;
+            let swRegistered = false;
+            let swActive = false;
+            if (hasSW) {
+                try {
+                    const registration = await navigator.serviceWorker.getRegistration();
+                    swRegistered = !!registration;
+                    swActive = !!registration?.active;
+                } catch (e) {
+                    console.error('Error checking SW:', e);
+                }
+            }
+            checks.push({
+                name: 'Service Worker Soportado',
+                pass: hasSW,
+                message: hasSW ? 'Sí' : 'No soportado en este navegador'
+            });
+            checks.push({
+                name: 'Service Worker Registrado',
+                pass: swRegistered,
+                message: swRegistered ? 'Sí' : 'No registrado'
+            });
+            checks.push({
+                name: 'Service Worker Activo',
+                pass: swActive,
+                message: swActive ? 'Sí' : 'No activo'
+            });
+            
+            // 3. Verificar Manifest
+            let manifestExists = false;
+            let manifestValid = false;
+            let manifestData = null;
+            try {
+                const response = await fetch('/manifest.json');
+                manifestExists = response.ok;
+                if (manifestExists) {
+                    manifestData = await response.json();
+                    manifestValid = !!manifestData.name && !!manifestData.icons && manifestData.icons.length > 0;
+                }
+            } catch (e) {
+                console.error('Error checking manifest:', e);
+            }
+            checks.push({
+                name: 'Manifest.json Existe',
+                pass: manifestExists,
+                message: manifestExists ? 'Sí' : 'No encontrado'
+            });
+            checks.push({
+                name: 'Manifest.json Válido',
+                pass: manifestValid,
+                message: manifestValid ? 'Sí' : 'No válido'
+            });
+            
+            // 4. Verificar Iconos
+            if (manifestData && manifestData.icons) {
+                let iconsOk = 0;
+                let iconsFail = 0;
+                for (const icon of manifestData.icons.slice(0, 3)) {
+                    try {
+                        const iconResponse = await fetch(icon.src);
+                        if (iconResponse.ok) {
+                            iconsOk++;
+                        } else {
+                            iconsFail++;
+                        }
+                    } catch (e) {
+                        iconsFail++;
+                    }
+                }
+                checks.push({
+                    name: 'Iconos Accesibles',
+                    pass: iconsOk > 0,
+                    message: `${iconsOk} iconos OK, ${iconsFail} fallaron`
+                });
+            }
+            
+            // 5. Verificar beforeinstallprompt
+            let hasDeferredPrompt = !!window.deferredPrompt;
+            checks.push({
+                name: 'Prompt de Instalación Disponible',
+                pass: hasDeferredPrompt,
+                message: hasDeferredPrompt ? 'Sí (evento beforeinstallprompt recibido)' : 'No (esperando evento)',
+                warning: !hasDeferredPrompt
+            });
+            
+            // 6. Verificar si ya está instalado
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+            checks.push({
+                name: 'Estado de Instalación',
+                pass: !isStandalone,
+                message: isStandalone ? 'Ya está instalado' : 'No instalado',
+                warning: isStandalone
+            });
+            
+            // Mostrar resultados
+            displayResults(checks);
+        }
+        
+        function displayResults(checks) {
+            results.innerHTML = checks.map(check => {
+                const className = check.warning ? 'warning' : (check.pass ? 'pass' : 'fail');
+                const icon = check.pass ? '✅' : (check.warning ? '⚠️' : '❌');
+                return `
+                    <div class="check ${className}">
+                        <span class="status">${icon} ${check.name}:</span> ${check.message}
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function clearCache() {
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    Promise.all(names.map(name => caches.delete(name))).then(() => {
+                        alert('Cache limpiado');
+                        checkPWA();
+                    });
+                });
+            }
+            localStorage.clear();
+            alert('localStorage limpiado');
+        }
+        
+        async function unregisterSW() {
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(registrations.map(reg => reg.unregister()));
+                alert('Service Workers desregistrados');
+                checkPWA();
+            }
+        }
+        
+        function reload() {
+            location.reload();
+        }
+        
+        // Escuchar beforeinstallprompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            window.deferredPrompt = e;
+            checkPWA();
+        });
+        
+        // Ejecutar diagnóstico al cargar
+        checkPWA();
+        
+        // Re-ejecutar cada 2 segundos para detectar cambios
+        setInterval(checkPWA, 2000);
+    </script>
+</body>
+</html>
+

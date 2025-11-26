@@ -722,6 +722,35 @@ const CatalogOffersModule = ({ onBack }) => {
                 </div>
               )}
 
+              {/* Campo para Envío gratis: Monto mínimo para aplicar */}
+              {formData.discount_category === 'free_shipping' && (
+                <div className="catalog-offers-module__form-row">
+                  <div className="catalog-offers-module__form-group">
+                    <label>Monto mínimo para envío gratis (máx $3000) *</label>
+                    <input
+                      type="number"
+                      name="min_purchase_amount"
+                      value={formData.min_purchase_amount}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        let num = parseFloat(v || '0');
+                        if (isNaN(num)) num = 0;
+                        if (num > 3000) num = 3000;
+                        setFormData(prev => ({ ...prev, min_purchase_amount: num }));
+                      }}
+                      required
+                      min="0"
+                      max="3000"
+                      step="1"
+                      placeholder="Ej: 2000"
+                    />
+                    <small className="catalog-offers-module__form-help">
+                      Si el total del pedido es mayor o igual a este monto, el envío será gratis.
+                    </small>
+                  </div>
+                </div>
+              )}
+
               <div className="catalog-offers-module__form-row">
                 <div className="catalog-offers-module__form-group">
                   <label>Fecha de inicio *</label>

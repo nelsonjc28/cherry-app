@@ -53,6 +53,7 @@ class User extends Authenticatable implements JWTSubject
     protected $appends = [
         'day_forty_five',
         'free_shipping',
+        'free_shipping_min_amount',
     ];
 
     /**
@@ -137,6 +138,34 @@ class User extends Authenticatable implements JWTSubject
             ->count();
 
         return $haveOffert >= 1 ? true : false;
+    }
+    
+    /**
+     * Obtener el monto mínimo para envío gratis (si aplica al usuario)
+     * Se limita a un máximo de 3000 según la regla de negocio.
+     */
+    public function getFreeShippingMinAmountAttribute()
+    {
+        $now = Carbon::now();
+        $offer = CatalogOfferUser::join('catalog_offers', 'catalog_offer_users.offer_id', '=', 'catalog_offers.id')
+            ->where('catalog_offer_users.user_id', $this->id)
+            ->where('catalog_offers.start_date', '<=', $now)
+            ->where('catalog_offers.end_date', '>=', $now)
+            ->where('catalog_offers.discount_category', 'free_shipping')
+            ->orderBy('catalog_offers.min_purchase_amount', 'asc')
+            ->select('catalog_offers.min_purchase_amount')
+            ->first();
+
+        if (!$offer || $offer->min_purchase_amount === null) {
+            return 0;
+        }
+
+        $amount = floatval($offer->min_purchase_amount);
+        if ($amount <= 0) {
+            return 0;
+        }
+        // No puede ser superior a 3000
+        return min($amount, 3000);
     }
     /**
      * Get the addresses for the user.

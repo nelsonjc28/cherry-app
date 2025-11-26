@@ -20,6 +20,7 @@ const CartOrderSummary = ({
   onClearCart,
   daysFortyFive,
   freeShipping,
+  freeShippingMinAmount = 0,
   // Nuevas props para el formulario integrado
   cartItems = [],
   selectedPaymentCard = null,
@@ -638,11 +639,21 @@ const CartOrderSummary = ({
   }
 
   let envio = 0;
-  console.log(finalTotal < 3000 && freeShipping == false);
-  console.log(finalTotal,freeShipping);
-  if (finalTotal < 3000 && freeShipping == false) {
-    finalTotal = Number(finalTotal) + 150;
-    envio = 150;
+  // Reglas de envío:
+  // - Si freeShipping es true y viene un monto mínimo (>0), comparar contra ese monto
+  //   - Si finalTotal >= monto mínimo -> envío 0
+  //   - Si finalTotal < monto mínimo -> cobrar 150
+  // - Si freeShipping es false -> aplicar regla general (menor a 3000 cobra 150)
+  if (freeShipping === true && Number(freeShippingMinAmount) > 0) {
+    if (finalTotal < Number(freeShippingMinAmount)) {
+      finalTotal = Number(finalTotal) + 150;
+      envio = 150;
+    }
+  } else {
+    if (finalTotal < 3000 && freeShipping == false) {
+      finalTotal = Number(finalTotal) + 150;
+      envio = 150;
+    }
   }
 
   console.log(freeShipping);

@@ -95,7 +95,7 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
   const discountPercentage = calculateDiscountPercentage();
   
   // Determinar si hay oferta (incluyendo ofertas especiales que no tienen porcentaje)
-  const hasOffer = discountPercentage > 0 || (hasUserOffer && userOffer && (userOffer.discount_category === 'buy_x_get_y' || userOffer.discount_category === 'order_discount' || userOffer.discount_category === 'free_shipping'));
+  const hasOffer = discountPercentage > 0 || (hasUserOffer && userOffer && (userOffer.discount_category === 'buy_x_get_y' || userOffer.discount_category === 'order_discount'));
   
   // Determinar el tipo de descuento para mostrar etiqueta apropiada
   const getDiscountLabel = () => {
@@ -109,10 +109,7 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
       if (userOffer.discount_category === 'order_discount') {
         return `💰 Descuento en pedido ${Math.round(userOffer.discount_percentage)}%`;
       }
-      // Para ofertas de envío gratis
-      if (userOffer.discount_category === 'free_shipping') {
-        return `🚚 Envío gratis`;
-      }
+      // No mostrar badge para envío gratis
       // Para otras ofertas personalizadas, mostrar el porcentaje de descuento
       if (userOffer.discount_percentage && userOffer.discount_percentage > 0) {
         return `${!isMobile ? "Rebaja " : ""}${Math.round(userOffer.discount_percentage)}%`;

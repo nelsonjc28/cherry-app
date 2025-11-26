@@ -103,7 +103,7 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
   
   
   // Determinar si hay oferta (incluyendo ofertas especiales que no tienen porcentaje)
-  const hasOffer = discountPercentage > 0 || (finalHasUserOffer && finalUserOffer && (finalUserOffer.discount_category === 'buy_x_get_y' || finalUserOffer.discount_category === 'order_discount' || finalUserOffer.discount_category === 'free_shipping'));
+  const hasOffer = discountPercentage > 0 || (finalHasUserOffer && finalUserOffer && (finalUserOffer.discount_category === 'buy_x_get_y' || finalUserOffer.discount_category === 'order_discount'));
   
   // Determinar el tipo de descuento para mostrar etiqueta apropiada
   const getDiscountLabel = () => {
@@ -117,10 +117,7 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
       if (finalUserOffer.discount_category === 'order_discount') {
         return `💰 Descuento en pedido ${Math.round(finalUserOffer.discount_percentage)}%`;
       }
-      // Para ofertas de envío gratis
-      if (finalUserOffer.discount_category === 'free_shipping') {
-        return `🚚 Envío gratis`;
-      }
+      // No mostrar badge para envío gratis
       // Para otras ofertas personalizadas, mostrar el porcentaje de descuento
       if (finalUserOffer.discount_percentage && finalUserOffer.discount_percentage > 0) {
         return (

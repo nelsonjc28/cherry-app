@@ -392,6 +392,7 @@ const CartDetailsPage = () => {
     total: baseTotal.toFixed(2), // Total SIN descuento - CartOrderSummary lo aplicará
     daysFortyFive: user?.day_forty_five,
     freeShipping: user?.free_shipping,
+    freeShippingMinAmount: user?.free_shipping_min_amount || 0,
     selectedAddress: selectedAddress,
     onGenerateOrder: handleGenerateOrder,
     onClearCart: handleClearCart
