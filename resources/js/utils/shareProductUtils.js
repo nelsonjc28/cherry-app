@@ -46,21 +46,36 @@ const checkImageExists = async (imageUrl) => {
 /**
  * Obtener todas las imágenes disponibles de un producto
  */
-const getAvailableProductImages = async (productId, maxImages = 4) => {
-  const imageUrls = generateS3ImageUrls(productId, maxImages);
+const getAvailableProductImages = async (productId, maxImages = 12) => {
   const availableImages = [];
-  
-  // Verificar qué imágenes existen
-  for (let i = 0; i < imageUrls.length; i++) {
-    const exists = await checkImageExists(imageUrls[i]);
+
+  // Intentar con numeración incremental: {id}_{index}.jpg
+  // Paramos al alcanzar maxImages o tras 2 fallos consecutivos una vez hallada al menos 1 imagen
+  let consecutiveMisses = 0;
+  for (let i = 1; i <= maxImages; i++) {
+    const url = `https://cherry-fotos.s3.amazonaws.com/shopify/${productId}/${productId}_${i}.jpg`;
+    const exists = await checkImageExists(url);
     if (exists) {
-      availableImages.push({
-        url: imageUrls[i],
-        index: i + 1
-      });
+      availableImages.push({ url, index: i });
+      consecutiveMisses = 0;
+    } else {
+      consecutiveMisses++;
+      // Si ya encontramos al menos una y llevamos 2 fallos seguidos, asumimos fin
+      if (availableImages.length > 0 && consecutiveMisses >= 2) {
+        break;
+      }
     }
   }
-  
+
+  // Fallback: si no encontramos nada, intentar al menos la primera usando util existente
+  if (availableImages.length === 0) {
+    const fallback = generateS3ImageUrls(productId, 1);
+    const exists = await checkImageExists(fallback[0]);
+    if (exists) {
+      availableImages.push({ url: fallback[0], index: 1 });
+    }
+  }
+
   return availableImages;
 };
 

@@ -68,6 +68,15 @@ const ProductPage = () => {
       if (!product) {
         throw new Error("No hay información del producto disponible");
       }
+      
+      // Compartir usando las imágenes del producto en S3 (todas las disponibles)
+      const { shareProductWithImages } = await import('../utils/shareProductUtils');
+      await shareProductWithImages({
+        id: product.id_articulo || product.id || product.codigo,
+        title: product.descripcion || 'Producto Cherry',
+        price: product?.precio1 || 0
+      });
+      return;
 
       // Mostrar mensaje de carga
       if (window.showToast) {
