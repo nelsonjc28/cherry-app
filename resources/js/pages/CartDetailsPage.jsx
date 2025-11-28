@@ -5,6 +5,7 @@ import api from '../config/axios';
 import './CartDetailsPage.css';
 import CartDetailsProductCard from '../components/CartDetailsProductCard';
 import CartOrderSummary from '../components/CartOrderSummary/CartOrderSummary';
+import OrderAmountCard from '../components/OrderAmountCard/OrderAmountCard';
 import AddressSelector from '../components/AddressSelector/AddressSelector';
 import BuyerInfo from '../components/BuyerInfo/BuyerInfo';
 import { validateStock } from '../services/inventoryService';
@@ -368,18 +369,35 @@ const CartDetailsPage = () => {
 
   // Calcular monto del descuento dayFortyFive
   let dayFortyFiveDiscountAmount = 0;
+  let discountThirtyAmount = 0;
+  let discountAdditionalTenAmount = 0;
   if (eligibleTotal >= 7000) {
     if (eligibleTotal >= 15000) {
       // 40% descuento sobre el total elegible
-      dayFortyFiveDiscountAmount = eligibleTotal * 0.40;
+      discountThirtyAmount = eligibleTotal * 0.30;
+      discountAdditionalTenAmount = eligibleTotal * 0.10;
+      dayFortyFiveDiscountAmount = discountThirtyAmount + discountAdditionalTenAmount;
     } else if (eligibleTotal >= 7000) {
       // 30% descuento sobre el total elegible
-      dayFortyFiveDiscountAmount = eligibleTotal * 0.30;
+      discountThirtyAmount = eligibleTotal * 0.30;
+      dayFortyFiveDiscountAmount = discountThirtyAmount;
     }
   }
 
   // El total SIN descuento (CartOrderSummary aplicará el descuento internamente)
   const baseTotal = (totalPrice && typeof totalPrice === 'number') ? totalPrice : 0;
+
+  // Calcular totales para el card de Monto del pedido (similar a CartOrderSummary)
+  const preShippingTotal = Math.max(0, baseTotal - dayFortyFiveDiscountAmount);
+  let shippingAmount = 0;
+  const freeShippingMin = user?.free_shipping_min_amount || 0;
+  if (user?.free_shipping && freeShippingMin > 0) {
+    shippingAmount = preShippingTotal < freeShippingMin ? 150 : 0;
+  } else {
+    shippingAmount = preShippingTotal < 3000 ? 150 : 0;
+  }
+  const finalTotalWithShipping = (preShippingTotal + shippingAmount).toFixed(2);
+  const isFreeShippingApplied = shippingAmount === 0;
 
   // Order summary data
   const orderSummary = {
@@ -440,6 +458,18 @@ const CartDetailsPage = () => {
             ))}
           </div>
           <div className="cart-details__summary-col">
+            {/* Card 1: Monto del pedido */}
+            <OrderAmountCard
+              pieces={totalItems}
+              subtotal={baseTotal}
+              discount={dayFortyFiveDiscountAmount}
+              discountThirtyAmount={discountThirtyAmount}
+              discountAdditionalTenAmount={discountAdditionalTenAmount}
+              shipping={shippingAmount}
+              isFreeShipping={isFreeShippingApplied}
+              total={parseFloat(finalTotalWithShipping)}
+            />
+            {/* Datos del comprador (debajo de Monto del pedido) */}
             <BuyerInfo className="cart-details__buyer-info" />
             <AddressSelector
               selectedAddressId={selectedAddress?.id}
@@ -447,7 +477,7 @@ const CartDetailsPage = () => {
               className="cart-details__address-selector"
             />
 
-            {/* Resumen de la orden con formulario integrado */}
+            {/* Datos de la Tarjeta (resumen con formulario integrado) */}
             <CartOrderSummary
               {...orderSummary}
               cartItems={cartItems}

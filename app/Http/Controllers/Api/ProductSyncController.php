@@ -22,7 +22,6 @@ class ProductSyncController extends Controller
      */
     public function sync(): JsonResponse
     {
-        dd('se ejecuto correctamente');
         // Aumentar el tiempo máximo de ejecución para procesos largos (0 = sin límite)
         set_time_limit(0);
         ini_set('max_execution_time', '0');

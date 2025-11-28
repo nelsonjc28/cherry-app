@@ -721,62 +721,6 @@ const CartOrderSummary = ({
 
   return (
     <aside className="cart-order-summary">
-      {selectedAddress && (
-        <>
-          <div className="cart-order-summary__section">
-            <div className="cart-order-summary__section-title">Dirección de entrega</div>
-            <div className="cart-order-summary__section-content">
-              <div className="cart-order-summary__address-name">
-                <strong>{selectedAddress.name}</strong>
-                {selectedAddress.is_default && (
-                  <span className="cart-order-summary__default-badge">Predeterminada</span>
-                )}
-              </div>
-              <div className="cart-order-summary__address-street">
-                {selectedAddress.street_address}
-              </div>
-              <div className="cart-order-summary__address-location">
-                {selectedAddress.city}
-                {selectedAddress.state && `, ${selectedAddress.state}`}
-                {selectedAddress.postal_code && ` CP: ${selectedAddress.postal_code}`}
-                {selectedAddress.country && `, ${selectedAddress.country}`}
-              </div>
-              {selectedAddress.additional_info && (
-                <div className="cart-order-summary__address-additional">
-                  <small>{selectedAddress.additional_info}</small>
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="cart-order-summary__divider" />
-        </>
-      )}
-      <div className="cart-order-summary__section">
-        <div className="cart-order-summary__section-title">Monto del pedido</div>
-        <div className="cart-order-summary__section-content">
-          <div className="cart-order-summary__row">
-            <span>Cantidad de piezas</span>
-            <span>{pieces}</span>
-          </div>
-          <div className="cart-order-summary__row">
-            <span>Sub-Total</span>
-            <span>${subtotal}</span>
-          </div>
-          <div className="cart-order-summary__row">
-            <span>Descuento:</span>
-            <span>${discountTotal}</span>
-          </div>
-          <div className="cart-order-summary__row">
-            <span>Envio:</span>
-            <span>${envio}</span>
-          </div>
-        </div>
-        <div className="cart-order-summary__total-row">
-          <span>Total:</span>
-          <span className="cart-order-summary__total-value">${finalTotal}</span>
-        </div>
-      </div>
-
       {/* Formulario de tarjeta integrado */}
       <div className="cart-order-summary__divider" />
       <div className="cart-order-summary__section payment-method-section">
