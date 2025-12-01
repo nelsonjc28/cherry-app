@@ -69,6 +69,16 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
+/* Out of stock badge */
+.catalog-out-of-stock-badge {
+  background: #6c757d !important;
+  color: white !important;
+  box-shadow: 0 2px 4px rgba(108, 117, 125, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  z-index: 3;
+}
+
 /* Buy X Get Y offer badge - estilo amarillo (igual que ProductPage) */
 .catalog-offer-badge.buy-x-get-y {
   background: #ffd700; /* Amarillo */

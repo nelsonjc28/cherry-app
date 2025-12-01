@@ -87,6 +87,10 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('/payment/process-integrated', [PaymentController::class, 'processIntegratedPayment']);
     Route::get('/payment/status/{orderId}', [PaymentController::class, 'getPaymentStatus']);
     
+    // Cash payment routes (OXXO, PayCash, etc.)
+    Route::post('/payment/create-oxxo', [PaymentController::class, 'createOxxoPayment']);
+    Route::get('/payment/cash-methods', [PaymentController::class, 'getCashPaymentMethods']);
+    
     // Order management routes
     Route::get('/orders', [PaymentController::class, 'getUserOrders']); // Obtener órdenes del usuario
     Route::get('/orders/pending-reviews', [PaymentController::class, 'getPendingReviews']); // Obtener órdenes pendientes de calificación

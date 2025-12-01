@@ -16,6 +16,9 @@ CartDetailsProductCard.propTypes = {
   isDiscount: PropTypes.bool,
   discountLabel: PropTypes.string,
   price: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  originalPrice: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  hasDiscount: PropTypes.bool,
+  discountPercentage: PropTypes.number,
   variants: PropTypes.arrayOf(PropTypes.shape({
     color: PropTypes.string,
     size: PropTypes.string,

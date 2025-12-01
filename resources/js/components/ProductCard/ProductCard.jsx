@@ -192,8 +192,13 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
             loading="lazy"
           />
 
-          {/* Offer badge if product has discount */}
-          {hasOffer && (
+          {/* Out of stock badge - highest priority */}
+          {stock <= 0 && (
+            <span className="out-of-stock-badge">Agotado</span>
+          )}
+
+          {/* Offer badge if product has discount and is in stock */}
+          {stock > 0 && hasOffer && (
             <span className="offer-badge">
               {getDiscountLabel()}
             </span>
@@ -259,8 +264,13 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
           />
         )}
 
-        {/* Offer badge if product has discount */}
-        {hasOffer && (
+        {/* Out of stock badge - highest priority */}
+        {stock <= 0 && (
+          <span className="out-of-stock-badge">Agotado</span>
+        )}
+
+        {/* Offer badge if product has discount and is in stock */}
+        {stock > 0 && hasOffer && (
           <span className={`offer-badge ${finalHasUserOffer ? 'user-offer' : ''} ${
             finalHasUserOffer && finalUserOffer && finalUserOffer.discount_category === 'buy_x_get_y' ? 'buy-x-get-y' : 
             finalHasUserOffer && finalUserOffer && finalUserOffer.discount_category === 'order_discount' ? 'order-discount' : 
@@ -270,9 +280,8 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
           </span>
         )}
 
-
-        {/* New badge if product is new */}
-        {isNew && !hasOffer && (
+        {/* New badge if product is new, has no offer and is in stock */}
+        {stock > 0 && isNew && !hasOffer && (
           <span className="new-badge">Nuevo</span>
         )}
       </div>

@@ -22,13 +22,12 @@ class ProductSyncController extends Controller
      */
     public function sync(): JsonResponse
     {
-        dd('se ejecuto correctamente');
         // Aumentar el tiempo máximo de ejecución para procesos largos (0 = sin límite)
         set_time_limit(0);
         ini_set('max_execution_time', '0');
         ini_set('memory_limit', '512M');
         
-        /* try { */
+        try {
             DB::beginTransaction();
 
             // Obtener productos de la API externa
@@ -292,15 +291,13 @@ class ProductSyncController extends Controller
 
             DB::commit();
 
-            
-
-            /* return response()->json([
+            return response()->json([
                 'success' => true,
                 'message' => 'Sincronización completada exitosamente',
                 'stats' => $stats
             ]);
- */
-        /* } catch (\Exception $e) {
+
+        } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error en sincronización de productos: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
@@ -310,7 +307,6 @@ class ProductSyncController extends Controller
                 'success' => false,
                 'message' => 'Error al sincronizar productos: ' . $e->getMessage()
             ], 500);
-        } */
-    
-}
+        }
+    }
 }

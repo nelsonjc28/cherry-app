@@ -11,6 +11,9 @@ function MobileView({
   isDiscount,
   discountLabel,
   price,
+  originalPrice,
+  hasDiscount,
+  discountPercentage,
   variants,
   summary,
   onRemove,
@@ -19,7 +22,22 @@ function MobileView({
   return (
     <div className={`cart-details-product-card ${isDiscount ? '' : ' no-discount'}`}>
       <div className="cart-details-product-card__header-row">
-        <span className="cart-details-product-card__sku">{sku}</span>
+        <div className="cart-details-product-card__sku-price-row">
+          <span className="cart-details-product-card__sku">{sku}</span>
+          <div className="cart-details-product-card__discount-prices">
+            {hasDiscount && originalPrice ? (
+              <>
+                <span className="cart-details-product-card__original-price">${originalPrice}</span>
+                <span className="cart-details-product-card__discounted-price">${price}</span>
+                {discountPercentage > 0 && (
+                  <span className="cart-details-product-card__discount-percent">-{Math.round(discountPercentage)}%</span>
+                )}
+              </>
+            ) : (
+              <span className="cart-details-product-card__regular-price">${price}</span>
+            )}
+          </div>
+        </div>
         <span className={`cart-details-product-card__discount-badge${isDiscount ? '' : ' no-discount'}`}>{discountLabel}</span>
       </div>
       <div className="cart-details-product-card__main-content">
@@ -106,6 +124,9 @@ MobileView.propTypes = {
   isDiscount: PropTypes.bool,
   discountLabel: PropTypes.string,
   price: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  originalPrice: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  hasDiscount: PropTypes.bool,
+  discountPercentage: PropTypes.number,
   variants: PropTypes.arrayOf(PropTypes.shape({
     color: PropTypes.string,
     size: PropTypes.string,

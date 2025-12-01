@@ -107,6 +107,9 @@ const CartDetailsPage = () => {
         image: item.image,
         title: item.title,
         precio: item.precio,
+        originalPrice: item.originalPrice, // Precio original antes del descuento
+        desc_promo: item.desc_promo, // Porcentaje de descuento
+        discount: item.discount, // Descuento calculado
         selectedColor: item.selectedColor,
         variants: [],
         totalQuantity: 0,
@@ -139,11 +142,18 @@ const CartDetailsPage = () => {
     // El precio con descuento ya está calculado considerando Buy X Get Y en totalPrice
     const priceWithDiscount = groupedProduct.totalPrice;
     
+    // Determinar si el producto tiene rebaja (desc_promo > 0 o tiene originalPrice)
+    const hasDiscount = (groupedProduct.desc_promo && groupedProduct.desc_promo > 0) || 
+                        (groupedProduct.originalPrice && groupedProduct.originalPrice > groupedProduct.precio);
+    
     return {
       image: groupedProduct.image || '/images/placeholder.jpg',
       sku: groupedProduct.id_articulo,
       title: groupedProduct.title,
       price: parseFloat(groupedProduct.precio).toFixed(2),
+      originalPrice: groupedProduct.originalPrice ? parseFloat(groupedProduct.originalPrice).toFixed(2) : null,
+      hasDiscount: hasDiscount,
+      discountPercentage: groupedProduct.discount || groupedProduct.desc_promo || 0,
       variants: groupedProduct.variants,
       summary: {
         quantity: groupedProduct.totalQuantity,
