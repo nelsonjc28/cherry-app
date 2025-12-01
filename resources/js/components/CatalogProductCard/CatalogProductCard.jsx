@@ -178,8 +178,13 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
           className="catalog-favorite-btn"
         />
 
-        {/* Offer badge if product has discount - prioridad sobre badge Nuevo */}
-        {hasOffer && (
+        {/* Out of stock badge - highest priority */}
+        {stock <= 0 && (
+          <span className="catalog-offer-badge catalog-out-of-stock-badge">Agotado</span>
+        )}
+
+        {/* Offer badge if product has discount and is in stock */}
+        {stock > 0 && hasOffer && (
           <div className={`catalog-offer-badge ${hasUserOffer ? 'user-offer' : ''} ${
             hasUserOffer && userOffer && userOffer.discount_category === 'buy_x_get_y' ? 'buy-x-get-y' : 
             hasUserOffer && userOffer && userOffer.discount_category === 'order_discount' ? 'order-discount' : 
@@ -189,8 +194,8 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
           </div>
         )}
 
-        {/* New badge if product is new - solo mostrar si NO tiene oferta */}
-        {isNew && !hasOffer && (
+        {/* New badge if product is new, has no offer and is in stock */}
+        {stock > 0 && isNew && !hasOffer && (
           <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
         )}
       </div>

@@ -66,23 +66,33 @@ const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' })
       const response = await api.get('/addresses');
 
       // Verificar diferentes formatos de respuesta
+      let addressList = [];
       if (response.data.addresses && Array.isArray(response.data.addresses)) {
-
-        setAddresses(response.data.addresses);
-
-        // Si hay una dirección seleccionada, asegurar que esté en la lista
-        if (selectedAddressId && !addresses.find(addr => addr.id === selectedAddressId)) {
-          const selectedAddress = response.data.addresses.find(addr => addr.id === selectedAddressId);
-          if (selectedAddress && onAddressChange) {
-            onAddressChange(selectedAddress);
-          }
-        }
+        addressList = response.data.addresses;
+        setAddresses(addressList);
       } else if (Array.isArray(response.data)) {
-
-        setAddresses(response.data);
+        addressList = response.data;
+        setAddresses(addressList);
       } else {
-
         setError('No se encontraron direcciones');
+        return;
+      }
+
+      // Si no hay dirección seleccionada, seleccionar la predeterminada automáticamente
+      if (!selectedAddressId && addressList.length > 0 && onAddressChange) {
+        const defaultAddress = addressList.find(addr => addr.is_default);
+        if (defaultAddress) {
+          onAddressChange(defaultAddress);
+        } else {
+          // Si no hay predeterminada, seleccionar la primera
+          onAddressChange(addressList[0]);
+        }
+      } else if (selectedAddressId) {
+        // Si hay una dirección seleccionada, asegurar que esté en la lista
+        const selectedAddress = addressList.find(addr => addr.id === selectedAddressId);
+        if (selectedAddress && onAddressChange) {
+          onAddressChange(selectedAddress);
+        }
       }
     } catch (error) {
 

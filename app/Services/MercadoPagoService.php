@@ -274,5 +274,84 @@ class MercadoPagoService
         // Para producción, usar la configuración o default
         return config('services.mercadopago.currency_id', 'MXN');
     }
+
+    /**
+     * Crear un pago en efectivo (OXXO, 7-Eleven, etc.)
+     */
+    public function createCashPayment(array $paymentData)
+    {
+        try {
+            $paymentRequest = [
+                'transaction_amount' => (float) $paymentData['transaction_amount'],
+                'description' => $paymentData['description'] ?? 'Compra en Cherry Central',
+                'payment_method_id' => $paymentData['payment_method_id'] ?? 'oxxo', // oxxo, paycash, etc.
+                'payer' => [
+                    'email' => $paymentData['payer']['email'],
+                    'first_name' => $paymentData['payer']['first_name'] ?? '',
+                    'last_name' => $paymentData['payer']['last_name'] ?? '',
+                ],
+                'external_reference' => $paymentData['external_reference'] ?? uniqid('cash_payment_'),
+                'notification_url' => $this->getValidUrl('/api/mercadopago/webhook'),
+            ];
+
+            Log::info('Creating cash payment request', ['request' => $paymentRequest]);
+
+            $payment = $this->paymentClient->create($paymentRequest);
+
+            Log::info('Cash payment created', [
+                'payment_id' => $payment->id,
+                'status' => $payment->status,
+                'payment_method_id' => $payment->payment_method_id
+            ]);
+
+            return $payment;
+
+        } catch (MPApiException $e) {
+            $apiResponse = $e->getApiResponse();
+            $errorDetails = [
+                'status_code' => $apiResponse ? $apiResponse->getStatusCode() : 'unknown',
+                'content' => $apiResponse ? $apiResponse->getContent() : 'no content',
+                'message' => $e->getMessage()
+            ];
+            
+            Log::error('Error creating cash payment', $errorDetails);
+            
+            $errorMessage = 'Error creating cash payment: ' . $e->getMessage();
+            if ($apiResponse && $apiResponse->getContent()) {
+                $content = $apiResponse->getContent();
+                if (is_array($content) && isset($content['message'])) {
+                    $errorMessage .= ' - ' . $content['message'];
+                }
+            }
+            
+            throw new \Exception($errorMessage);
+            
+        } catch (\Exception $e) {
+            Log::error('Error processing cash payment', ['error' => $e->getMessage()]);
+            throw new \Exception('Error processing cash payment: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Obtener los métodos de pago en efectivo disponibles
+     */
+    public function getCashPaymentMethods()
+    {
+        // Métodos de pago en efectivo disponibles en México
+        return [
+            [
+                'id' => 'oxxo',
+                'name' => 'OXXO',
+                'logo' => 'https://www.mercadopago.com/org-img/MP3/API/logos/oxxo.gif',
+                'description' => 'Paga en cualquier tienda OXXO'
+            ],
+            [
+                'id' => 'paycash',
+                'name' => 'PayCash',
+                'logo' => 'https://www.mercadopago.com/org-img/MP3/API/logos/paycash.gif',
+                'description' => 'Paga en 7-Eleven, Farmacias del Ahorro, etc.'
+            ]
+        ];
+    }
 }
 

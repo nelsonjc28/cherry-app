@@ -5,7 +5,7 @@ import StarRating from '../../StarRating/StarRating';
 import { formatPrice } from '../../../utils/formatters';
 import './BestSellerCard.css';
 
-const BestSellerCard = ({ id, title, image, price, originalPrice, discount, userOffer, hasUserOffer, rating, totalRatings, description, onFavoriteToggle }) => {
+const BestSellerCard = ({ id, title, image, price, originalPrice, discount, userOffer, hasUserOffer, rating, totalRatings, description, stock = 0, onFavoriteToggle }) => {
   // Hook para detectar si es móvil
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
@@ -60,8 +60,13 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
           loading="lazy"
         />
 
-        {/* Offer badge if product has discount */}
-        {hasOffer && (
+        {/* Out of stock badge - highest priority */}
+        {stock <= 0 && (
+          <span className="best-seller-out-of-stock-badge">Agotado</span>
+        )}
+
+        {/* Offer badge if product has discount and is in stock */}
+        {stock > 0 && hasOffer && (
           <span className="best-seller-offer-badge">
             {!isMobile && "Rebaja "}{discountPercentage}%
           </span>

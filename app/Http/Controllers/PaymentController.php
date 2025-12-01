@@ -901,4 +901,161 @@ class PaymentController extends Controller
             'currency_id' => config('services.mercadopago.currency_id', 'ARS')
         ]);
     }
+
+    /**
+     * Crear pago en efectivo (OXXO)
+     */
+    public function createOxxoPayment(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required',
+            'items.*.name' => 'required|string',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.price' => 'required|numeric|min:0',
+            'items.*.size' => 'nullable|string',
+            'items.*.color' => 'nullable|string',
+            'items.*.barcode' => 'nullable|string',
+            'address_id' => 'required|exists:addresses,id',
+            'total_amount' => 'required|numeric|min:0.01',
+            'payment_method' => 'nullable|string|in:oxxo,paycash'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Datos de validación incorrectos',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        /** @var User $user */
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuario no autenticado'
+            ], 401);
+        }
+
+        try {
+            // Verificar que la dirección pertenece al usuario
+            $address = $user->addresses()->find($request->address_id);
+            if (!$address) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dirección no encontrada o no pertenece al usuario'
+                ], 404);
+            }
+
+            DB::beginTransaction();
+
+            // Generar referencia externa
+            $externalReference = uniqid('oxxo_' . $user->id . '_');
+
+            // Crear el pedido en la base de datos con estado pendiente de pago
+            $order = Order::create([
+                'user_id' => $user->id,
+                'address_id' => $request->address_id,
+                'total_amount' => $request->total_amount,
+                'status' => 'pendiente_pago',
+                'payment_method' => 'oxxo',
+                'external_reference' => $externalReference
+            ]);
+
+            // Crear los items del pedido
+            foreach ($request->items as $item) {
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'product_id' => $item['product_id'],
+                    'name' => $item['name'],
+                    'size' => $item['size'] ?? null,
+                    'color' => $item['color'] ?? null,
+                    'barcode' => $item['barcode'] ?? null,
+                    'quantity' => $item['quantity'],
+                    'price' => $item['price'],
+                    'subtotal' => $item['quantity'] * $item['price']
+                ]);
+            }
+
+            // Preparar datos para MercadoPago - pago en efectivo
+            $paymentData = [
+                'transaction_amount' => (float) $request->total_amount,
+                'description' => 'Pedido Cherry Central #' . $order->id,
+                'payment_method_id' => $request->payment_method ?? 'oxxo',
+                'payer' => [
+                    'email' => $user->email,
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name
+                ],
+                'external_reference' => $externalReference
+            ];
+
+            // Crear pago en efectivo con MercadoPago
+            $payment = $this->mercadoPagoService->createCashPayment($paymentData);
+
+            // Actualizar el pedido con los datos del pago
+            $order->update([
+                'mercadopago_payment_id' => $payment->id,
+                'payment_data' => json_encode($payment)
+            ]);
+
+            DB::commit();
+
+            // Obtener datos del ticket para mostrar al usuario
+            $ticketData = [
+                'payment_id' => $payment->id,
+                'reference' => $payment->transaction_details->external_resource_url ?? null,
+                'external_reference' => $externalReference,
+                'barcode' => $payment->barcode->content ?? null,
+                'expiration_date' => $payment->date_of_expiration ?? now()->addHours(72)->format('d/m/Y H:i'),
+                'ticket_url' => $payment->transaction_details->external_resource_url ?? null
+            ];
+
+            // Notificar al admin
+            $this->notifyAdminPaymentReceived($order, $user);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Ticket de pago OXXO generado correctamente',
+                'data' => [
+                    'order_id' => $order->id,
+                    'payment_id' => $payment->id,
+                    'payment_status' => $payment->status,
+                    'reference' => $ticketData['reference'] ?? $externalReference,
+                    'external_reference' => $externalReference,
+                    'barcode' => $ticketData['barcode'],
+                    'expiration_date' => $ticketData['expiration_date'],
+                    'ticket_url' => $ticketData['ticket_url'],
+                    'total_amount' => $request->total_amount
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            Log::error('Error creating OXXO payment', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al generar el ticket de pago: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener métodos de pago en efectivo disponibles
+     */
+    public function getCashPaymentMethods()
+    {
+        return response()->json([
+            'success' => true,
+            'methods' => $this->mercadoPagoService->getCashPaymentMethods()
+        ]);
+    }
 }

@@ -28,6 +28,9 @@ const CartOrderSummary = ({
   onIntegratedPaymentSuccess,
   onIntegratedPaymentError
 }) => {
+  // Estado para método de pago seleccionado
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('card'); // 'card', 'mercadopago', 'oxxo'
+  
   const [paymentCards, setPaymentCards] = useState([]);
   const [isLoadingCards, setIsLoadingCards] = useState(true);
   const [cardsVersion, setCardsVersion] = useState(0); // Para forzar re-render
@@ -122,9 +125,20 @@ const CartOrderSummary = ({
       const response = await api.get('/payment-cards');
 
       if (response.data && response.data.success && Array.isArray(response.data.cards)) {
-        setPaymentCards(response.data.cards);
+        const cards = response.data.cards;
+        setPaymentCards(cards);
         setCardsVersion(prev => prev + 1); // Forzar re-render
 
+        // Si no hay tarjeta seleccionada, seleccionar la predeterminada automáticamente
+        if (!selectedPaymentCard && cards.length > 0 && onPaymentCardChange) {
+          const defaultCard = cards.find(card => card.is_default);
+          if (defaultCard) {
+            onPaymentCardChange(defaultCard);
+          } else {
+            // Si no hay predeterminada, seleccionar la primera
+            onPaymentCardChange(cards[0]);
+          }
+        }
       } else {
 
         setPaymentCards([]);
@@ -658,6 +672,157 @@ const CartOrderSummary = ({
 
   console.log(freeShipping);
 
+  // Función para procesar pago con Mercado Pago (redirección)
+  const processMercadoPagoPayment = async () => {
+    if (!selectedAddress) {
+      if (window.showToast) {
+        window.showToast('Selecciona una dirección de entrega', 'warning');
+      }
+      return;
+    }
+
+    const canContinue = await validateCartBeforeOrder();
+    if (!canContinue) {
+      if (window.showToast) {
+        window.showToast('Se ajustaron cantidades según stock disponible. Revisa el carrito.', 'error');
+      }
+      return;
+    }
+
+    setIsProcessingPayment(true);
+
+    try {
+      const paymentData = {
+        items: cartItems.map(item => ({
+          product_id: parseInt(item.id_articulo || item.product_id || item.id, 10),
+          name: item.title || item.name,
+          quantity: parseInt(item.quantity, 10),
+          price: parseFloat(item.precio || item.price),
+          size: item.selectedSize || null,
+          color: item.selectedColor || null,
+          barcode: item.barcode || null
+        })),
+        address_id: parseInt(selectedAddress.id, 10),
+        total_amount: parseFloat(finalTotal)
+      };
+
+      const response = await api.post('/payment/create-preference', paymentData);
+
+      if (response.data.success) {
+        const { data } = response.data;
+
+        if (window.showToast) {
+          window.showToast('¡Redirigiendo a Mercado Pago!', 'success');
+        }
+
+        // Guardar información del pedido en localStorage
+        localStorage.setItem('pending_order', JSON.stringify({
+          orderId: data.order_id,
+          externalReference: data.external_reference,
+          totalAmount: finalTotal
+        }));
+
+        // Redirigir a Mercado Pago
+        setTimeout(() => {
+          window.location.href = data.init_point || data.sandbox_init_point || data.payment_url;
+        }, 1500);
+      } else {
+        throw new Error(response.data.message || 'Error al crear la preferencia de pago');
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Error al procesar el pago';
+      if (window.showToast) {
+        window.showToast(errorMessage, 'error');
+      }
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
+  // Función para procesar pago en OXXO
+  const processOxxoPayment = async () => {
+    if (!selectedAddress) {
+      if (window.showToast) {
+        window.showToast('Selecciona una dirección de entrega', 'warning');
+      }
+      return;
+    }
+
+    const canContinue = await validateCartBeforeOrder();
+    if (!canContinue) {
+      if (window.showToast) {
+        window.showToast('Se ajustaron cantidades según stock disponible. Revisa el carrito.', 'error');
+      }
+      return;
+    }
+
+    setIsProcessingPayment(true);
+
+    try {
+      const paymentData = {
+        items: cartItems.map(item => ({
+          product_id: parseInt(item.id_articulo || item.product_id || item.id, 10),
+          name: item.title || item.name,
+          quantity: parseInt(item.quantity, 10),
+          price: parseFloat(item.precio || item.price),
+          size: item.selectedSize || null,
+          color: item.selectedColor || null,
+          barcode: item.barcode || null
+        })),
+        address_id: parseInt(selectedAddress.id, 10),
+        total_amount: parseFloat(finalTotal)
+      };
+
+      const response = await api.post('/payment/create-oxxo', paymentData);
+
+      if (response.data.success) {
+        const { data } = response.data;
+
+        if (window.showToast) {
+          window.showToast('¡Ticket de pago OXXO generado!', 'success');
+        }
+
+        // Guardar información del pedido en localStorage
+        localStorage.setItem('pending_order', JSON.stringify({
+          orderId: data.order_id,
+          externalReference: data.external_reference,
+          totalAmount: finalTotal,
+          paymentMethod: 'oxxo'
+        }));
+
+        // Redirigir a la página de Mercado Pago para generar el ticket
+        setTimeout(() => {
+          window.location.href = data.init_point || data.sandbox_init_point || data.payment_url;
+        }, 1500);
+      } else {
+        throw new Error(response.data.message || 'Error al crear el ticket de pago OXXO');
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Error al procesar el pago OXXO';
+      if (window.showToast) {
+        window.showToast(errorMessage, 'error');
+      }
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
+  // Función para procesar el pago según el método seleccionado
+  const handleProcessPayment = () => {
+    switch (selectedPaymentMethod) {
+      case 'mercadopago':
+        processMercadoPagoPayment();
+        break;
+      case 'oxxo':
+        processOxxoPayment();
+        break;
+      case 'card':
+      default:
+        processIntegratedPayment();
+        break;
+    }
+  };
+
   const validateCartBeforeOrder = async () => {
     let hasErrors = false;
 
@@ -721,7 +886,132 @@ const CartOrderSummary = ({
 
   return (
     <aside className="cart-order-summary">
-      {/* Formulario de tarjeta integrado */}
+      {selectedAddress && (
+        <>
+          <div className="cart-order-summary__section">
+            <div className="cart-order-summary__section-title">Dirección de entrega</div>
+            <div className="cart-order-summary__section-content">
+              <div className="cart-order-summary__address-name">
+                <strong>{selectedAddress.name}</strong>
+                {selectedAddress.is_default && (
+                  <span className="cart-order-summary__default-badge">Predeterminada</span>
+                )}
+              </div>
+              <div className="cart-order-summary__address-street">
+                {selectedAddress.street_address}
+              </div>
+              <div className="cart-order-summary__address-location">
+                {selectedAddress.city}
+                {selectedAddress.state && `, ${selectedAddress.state}`}
+                {selectedAddress.postal_code && ` CP: ${selectedAddress.postal_code}`}
+                {selectedAddress.country && `, ${selectedAddress.country}`}
+              </div>
+              {selectedAddress.additional_info && (
+                <div className="cart-order-summary__address-additional">
+                  <small>{selectedAddress.additional_info}</small>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="cart-order-summary__divider" />
+        </>
+      )}
+      <div className="cart-order-summary__section">
+        <div className="cart-order-summary__section-title">Monto del pedido</div>
+        <div className="cart-order-summary__section-content">
+          <div className="cart-order-summary__row">
+            <span>Cantidad de piezas</span>
+            <span>{pieces}</span>
+          </div>
+          <div className="cart-order-summary__row">
+            <span>Sub-Total</span>
+            <span>${subtotal}</span>
+          </div>
+          <div className="cart-order-summary__row">
+            <span>Descuento:</span>
+            <span>${discountTotal}</span>
+          </div>
+          <div className="cart-order-summary__row">
+            <span>Envío:</span>
+            {envio === 0 ? (
+              <span className="cart-order-summary__free-shipping">Envío gratis</span>
+            ) : (
+              <span>${envio}</span>
+            )}
+          </div>
+        </div>
+        <div className="cart-order-summary__total-row">
+          <span>Total:</span>
+          <span className="cart-order-summary__total-value">${finalTotal}</span>
+        </div>
+      </div>
+
+      {/* Selector de método de pago */}
+      <div className="cart-order-summary__divider" />
+      <div className="cart-order-summary__section payment-method-section">
+        <div className="cart-order-summary__section-title section-title-flex">
+          <span className="cart-order-summary__card-icon">💰</span>
+          <span>Método de Pago</span>
+        </div>
+        <div className="cart-order-summary__section-content payment-method-content">
+          <div className="payment-method-options">
+            <label className={`payment-option ${selectedPaymentMethod === 'card' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="paymentMethod"
+                value="card"
+                checked={selectedPaymentMethod === 'card'}
+                onChange={() => setSelectedPaymentMethod('card')}
+              />
+              <div className="payment-option-content">
+                <span className="payment-option-icon">💳</span>
+                <div className="payment-option-text">
+                  <h4>Tarjeta de Crédito/Débito</h4>
+                  <p>Paga con tu tarjeta guardada o ingresa una nueva</p>
+                </div>
+              </div>
+            </label>
+
+            <label className={`payment-option ${selectedPaymentMethod === 'mercadopago' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="paymentMethod"
+                value="mercadopago"
+                checked={selectedPaymentMethod === 'mercadopago'}
+                onChange={() => setSelectedPaymentMethod('mercadopago')}
+              />
+              <div className="payment-option-content">
+                <span className="payment-option-icon">🛒</span>
+                <div className="payment-option-text">
+                  <h4>Mercado Pago</h4>
+                  <p>Paga con tarjeta, transferencia o saldo de MP</p>
+                </div>
+              </div>
+            </label>
+
+            <label className={`payment-option ${selectedPaymentMethod === 'oxxo' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="paymentMethod"
+                value="oxxo"
+                checked={selectedPaymentMethod === 'oxxo'}
+                onChange={() => setSelectedPaymentMethod('oxxo')}
+              />
+              <div className="payment-option-content">
+                <span className="payment-option-icon">🏪</span>
+                <div className="payment-option-text">
+                  <h4>Pago en OXXO</h4>
+                  <p>Genera un ticket y paga en efectivo en OXXO</p>
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {/* Formulario de tarjeta integrado - Solo visible cuando se selecciona tarjeta */}
+      {selectedPaymentMethod === 'card' && (
+      <>
       <div className="cart-order-summary__divider" />
       <div className="cart-order-summary__section payment-method-section">
         <div className="cart-order-summary__section-title section-title-flex">
@@ -831,6 +1121,8 @@ const CartOrderSummary = ({
           {errors.address && <div className="error-message">{errors.address}</div>}
         </div>
       </div>
+      </>
+      )}
 
       {/* Modal para agregar nueva tarjeta */}
       {showAddCardModal && (
@@ -940,12 +1232,18 @@ const CartOrderSummary = ({
         <CustomButton
           variant="outlined"
           size="small"
-          onClick={processIntegratedPayment}
+          onClick={handleProcessPayment}
           disabled={isProcessingPayment}
           iconLeft={<img className="cart-order-summary__generate-icon" src={getIconPath('Handshake.svg')} alt="Handshake" />}
           className="cart-order-summary__summary-btn"
         >
-          {isProcessingPayment ? 'Procesando pago...' : 'Generar pedido'}
+          {isProcessingPayment 
+            ? 'Procesando pago...' 
+            : selectedPaymentMethod === 'mercadopago' 
+              ? 'Pagar con Mercado Pago' 
+              : selectedPaymentMethod === 'oxxo' 
+                ? 'Generar ticket OXXO' 
+                : 'Generar pedido'}
         </CustomButton>
         <CustomButton
           variant="outlined"
