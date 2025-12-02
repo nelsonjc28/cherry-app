@@ -400,166 +400,72 @@ const CartOrderSummary = ({
 
     setIsProcessingPayment(true);
 
-    try {
-      // Formatear correctamente la fecha de expiración
-      const [month, year] = cardData.expirationDate.split('/');
+    // ⚠️ SIN TRY-CATCH - Para ver el error exacto en la consola
+    console.log('=== INICIANDO PROCESO DE PAGO ===');
+    console.log('Datos del formulario:', {
+      cardNumber: cardData.cardNumber.substring(0, 4) + '****',
+      expirationDate: cardData.expirationDate,
+      cardholderName: cardData.cardholderName,
+      hasSecurityCode: !!cardData.securityCode
+    });
 
-      // Asegurar que el mes tenga formato MM (dos dígitos)
-      const formattedMonth = month.padStart(2, '0');
-      // Asegurar que el año tenga formato YYYY (cuatro dígitos)
-      const formattedYear = year.length === 2 ? '20' + year : year;
+    // Formatear correctamente la fecha de expiración
+    const [month, year] = cardData.expirationDate.split('/');
 
-      // Primero obtener el payment method ID basado en el número de tarjeta
-      const cardNumber = cardData.cardNumber.replace(/\s/g, '');
+    // Asegurar que el mes tenga formato MM (dos dígitos)
+    const formattedMonth = month.padStart(2, '0');
+    // Asegurar que el año tenga formato YYYY (cuatro dígitos)
+    const formattedYear = year.length === 2 ? '20' + year : year;
 
-      let paymentMethodId;
+    // Primero obtener el payment method ID basado en el número de tarjeta
+    const cardNumber = cardData.cardNumber.replace(/\s/g, '');
 
-      // Detección manual del método de pago
-      if (cardNumber.startsWith('4')) {
-        paymentMethodId = 'visa';
-      } else if (cardNumber.startsWith('5')) {
-        paymentMethodId = 'master';
-      } else if (cardNumber.startsWith('34') || cardNumber.startsWith('37')) {
-        paymentMethodId = 'amex';
-      } else {
-        paymentMethodId = 'visa'; // default
-      }
+    let paymentMethodId;
 
+    // Detección manual del método de pago
+    if (cardNumber.startsWith('4')) {
+      paymentMethodId = 'visa';
+    } else if (cardNumber.startsWith('5')) {
+      paymentMethodId = 'master';
+    } else if (cardNumber.startsWith('34') || cardNumber.startsWith('37')) {
+      paymentMethodId = 'amex';
+    } else {
+      paymentMethodId = 'visa'; // default
+    }
 
-      // Crear el token de tarjeta con MercadoPago
-      const cardToken = await window.mp.createCardToken({
-        cardNumber: cardNumber,
-        cardholderName: cardData.cardholderName,
-        cardExpirationMonth: formattedMonth,
-        cardExpirationYear: formattedYear,
-        securityCode: cardData.securityCode
-      });
+    console.log('Creando token de tarjeta...', {
+      hasSDK: !!window.mp,
+      protocol: window.location.protocol,
+      hostname: window.location.hostname
+    });
 
-      // Verificar si hay errores en el cardToken (puede venir como array de errores)
-      if (cardToken.error || (Array.isArray(cardToken) && cardToken.length > 0 && cardToken[0].code)) {
-        const error = cardToken.error || cardToken[0];
+    // Crear el token de tarjeta con MercadoPago
+    const cardToken = await window.mp.createCardToken({
+      cardNumber: cardNumber,
+      cardholderName: cardData.cardholderName,
+      cardExpirationMonth: formattedMonth,
+      cardExpirationYear: formattedYear,
+      securityCode: cardData.securityCode
+    });
 
-        // Mostrar error amigable con toast
-        let errorMessage = 'Error al procesar la tarjeta';
+    console.log('Token recibido:', cardToken);
 
-        if (error.code === '325') {
-          errorMessage = 'Fecha de vencimiento inválida. Verifica el formato MM/YY';
-        } else if (error.code === '324') {
-          errorMessage = 'Código de seguridad inválido';
-        } else if (error.code === '316') {
-          errorMessage = 'Nombre del titular inválido';
-        } else if (error.code === '205') {
-          errorMessage = 'Número de tarjeta inválido';
-        } else if (error.message) {
-          errorMessage = error.message;
-        }
+    // Verificar si hay errores en el cardToken (puede venir como array de errores)
+    if (cardToken.error || (Array.isArray(cardToken) && cardToken.length > 0 && cardToken[0].code)) {
+      const error = cardToken.error || cardToken[0];
+      console.error('Error en cardToken:', error);
 
-        if (window.showToast) {
-          window.showToast(errorMessage, 'error');
-        }
+      // Mostrar error amigable con toast
+      let errorMessage = 'Error al procesar la tarjeta';
 
-        setIsProcessingPayment(false);
-        return;
-      }
-
-      // Usar el payment_method_id que detectamos previamente
-      // Si el cardToken tiene payment_method_id, usarlo, sino usar el que detectamos
-      const finalPaymentMethodId = cardToken.payment_method_id || paymentMethodId;
-
-      if (!finalPaymentMethodId) {
-
-        if (window.showToast) {
-          window.showToast('No se pudo obtener el método de pago de la tarjeta', 'error');
-        }
-
-        setIsProcessingPayment(false);
-        return;
-      }
-
-      const paymentData = {
-        token: cardToken.id,
-        payment_method_id: finalPaymentMethodId,
-        transaction_amount: parseFloat(finalTotal),
-        installments: 1, // Siempre 1 cuota
-        items: cartItems.map(item => {
-          const productId = item.id_articulo || item.product_id || item.id;
-          const parsedProductId = parseInt(productId, 10);
-
-          const mappedItem = {
-            product_id: parsedProductId,
-            name: item.title || item.name,
-            quantity: parseInt(item.quantity, 10),
-            price: parseFloat(item.precio || item.price),
-            size: item.selectedSize || null,
-            color: item.selectedColor || null,
-            barcode: item.barcode || null
-          };
-
-          // DEBUG: Log para ver qué datos se están enviando
-          return mappedItem;
-        }),
-        address_id: parseInt(selectedAddress.id, 10),
-        // Información para crear/actualizar registro dayFortyFive
-        day_forty_five_applied: dayFortyFiveApplied,
-        day_forty_five_discount_percentage: dayFortyFiveDiscountPercentage,
-        eligible_total: eligibleTotal
-      };
-
-      // ⚠️ SIN TRY-CATCH - Esto permitirá ver errores exactos del backend
-      const response = await api.post('/payment/process-integrated', paymentData);
-
-      if (response.data.success) {
-        const { data } = response.data;
-        const paymentStatus = data.payment_status;
-        
-        // Manejar diferentes estados del pago
-        if (paymentStatus === 'approved') {
-          if (window.showToast) {
-            window.showToast('¡Pago procesado exitosamente!', 'success');
-          }
-          
-          if (onIntegratedPaymentSuccess) {
-            onIntegratedPaymentSuccess(response.data);
-          }
-        } else if (paymentStatus === 'pending' || paymentStatus === 'in_process') {
-          // Pago pendiente - redirigir a página de verificación
-          if (window.showToast) {
-            window.showToast(data.message || 'Tu pago está pendiente de confirmación', 'info');
-          }
-          
-          // Redirigir a página de pago pendiente con información de la orden
-          setTimeout(() => {
-            window.location.href = `/pago-pendiente?orderId=${data.order_id}&paymentId=${data.payment_id}`;
-          }, 2000);
-        } else {
-          // Otro estado (rejected, etc.)
-          if (window.showToast) {
-            window.showToast(data.message || 'El pago no fue aprobado', 'error');
-          }
-          
-          if (onIntegratedPaymentError) {
-            onIntegratedPaymentError(response.data);
-          }
-        }
-      } else {
-
-        if (window.showToast) {
-          window.showToast(response.data.message || 'Error al procesar el pago', 'error');
-        }
-
-        if (onIntegratedPaymentError) {
-          onIntegratedPaymentError(response.data);
-        }
-      }
-
-      setIsProcessingPayment(false);
-    } catch (error) {
-
-      // Manejar diferentes tipos de errores
-      let errorMessage = 'Error al procesar el pago';
-
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
+      if (error.code === '325') {
+        errorMessage = 'Fecha de vencimiento inválida. Verifica el formato MM/YY';
+      } else if (error.code === '324') {
+        errorMessage = 'Código de seguridad inválido';
+      } else if (error.code === '316') {
+        errorMessage = 'Nombre del titular inválido';
+      } else if (error.code === '205') {
+        errorMessage = 'Número de tarjeta inválido';
       } else if (error.message) {
         errorMessage = error.message;
       }
@@ -568,12 +474,112 @@ const CartOrderSummary = ({
         window.showToast(errorMessage, 'error');
       }
 
-      if (onIntegratedPaymentError) {
-        onIntegratedPaymentError(error);
+      setIsProcessingPayment(false);
+      return;
+    }
+
+    // Usar el payment_method_id que detectamos previamente
+    // Si el cardToken tiene payment_method_id, usarlo, sino usar el que detectamos
+    const finalPaymentMethodId = cardToken.payment_method_id || paymentMethodId;
+
+    if (!finalPaymentMethodId) {
+      console.error('No se pudo obtener payment_method_id');
+      if (window.showToast) {
+        window.showToast('No se pudo obtener el método de pago de la tarjeta', 'error');
+      }
+      setIsProcessingPayment(false);
+      return;
+    }
+
+    // Formatear transaction_amount con 2 decimales
+    const formattedTransactionAmount = parseFloat(Number(finalTotal).toFixed(2));
+
+    const paymentData = {
+      token: cardToken.id,
+      payment_method_id: finalPaymentMethodId,
+      transaction_amount: formattedTransactionAmount,
+      installments: 1, // Siempre 1 cuota
+      items: cartItems.map(item => {
+        const productId = item.id_articulo || item.product_id || item.id;
+        const parsedProductId = parseInt(productId, 10);
+
+        const mappedItem = {
+          product_id: parsedProductId,
+          name: item.title || item.name,
+          quantity: parseInt(item.quantity, 10),
+          price: parseFloat(item.precio || item.price),
+          size: item.selectedSize || null,
+          color: item.selectedColor || null,
+          barcode: item.barcode || null
+        };
+
+        return mappedItem;
+      }),
+      address_id: parseInt(selectedAddress.id, 10),
+      // Información para crear/actualizar registro dayFortyFive
+      day_forty_five_applied: dayFortyFiveApplied,
+      day_forty_five_discount_percentage: dayFortyFiveDiscountPercentage,
+      eligible_total: eligibleTotal
+    };
+
+    console.log('Enviando datos al backend:', {
+      token: paymentData.token.substring(0, 10) + '...',
+      payment_method_id: paymentData.payment_method_id,
+      transaction_amount: paymentData.transaction_amount,
+      items_count: paymentData.items.length,
+      address_id: paymentData.address_id
+    });
+
+    // ⚠️ SIN TRY-CATCH - Esto permitirá ver errores exactos del backend
+    const response = await api.post('/payment/process-integrated', paymentData);
+
+    console.log('Respuesta del backend:', response.data);
+
+    if (response.data.success) {
+      const { data } = response.data;
+      const paymentStatus = data.payment_status;
+      
+      // Manejar diferentes estados del pago
+      if (paymentStatus === 'approved') {
+        if (window.showToast) {
+          window.showToast('¡Pago procesado exitosamente!', 'success');
+        }
+        
+        if (onIntegratedPaymentSuccess) {
+          onIntegratedPaymentSuccess(response.data);
+        }
+      } else if (paymentStatus === 'pending' || paymentStatus === 'in_process') {
+        // Pago pendiente - redirigir a página de verificación
+        if (window.showToast) {
+          window.showToast(data.message || 'Tu pago está pendiente de confirmación', 'info');
+        }
+        
+        // Redirigir a página de pago pendiente con información de la orden
+        setTimeout(() => {
+          window.location.href = `/pago-pendiente?orderId=${data.order_id}&paymentId=${data.payment_id}`;
+        }, 2000);
+      } else {
+        // Otro estado (rejected, etc.)
+        if (window.showToast) {
+          window.showToast(data.message || 'El pago no fue aprobado', 'error');
+        }
+        
+        if (onIntegratedPaymentError) {
+          onIntegratedPaymentError(response.data);
+        }
+      }
+    } else {
+      console.error('Error en respuesta del backend:', response.data);
+      if (window.showToast) {
+        window.showToast(response.data.message || 'Error al procesar el pago', 'error');
       }
 
-      setIsProcessingPayment(false);
+      if (onIntegratedPaymentError) {
+        onIntegratedPaymentError(response.data);
+      }
     }
+
+    setIsProcessingPayment(false);
   };
 
   const formatCardNumber = (value) => {
@@ -673,6 +679,7 @@ const CartOrderSummary = ({
   console.log(freeShipping);
 
   // Función para procesar pago con Mercado Pago (redirección)
+  // Esta función NO requiere HTTPS porque usa Checkout Pro (redirección completa)
   const processMercadoPagoPayment = async () => {
     if (!selectedAddress) {
       if (window.showToast) {
@@ -692,6 +699,9 @@ const CartOrderSummary = ({
     setIsProcessingPayment(true);
 
     try {
+      // Formatear total_amount con 2 decimales
+      const formattedTotalAmount = parseFloat(Number(finalTotal).toFixed(2));
+      
       const paymentData = {
         items: cartItems.map(item => ({
           product_id: parseInt(item.id_articulo || item.product_id || item.id, 10),
@@ -703,7 +713,7 @@ const CartOrderSummary = ({
           barcode: item.barcode || null
         })),
         address_id: parseInt(selectedAddress.id, 10),
-        total_amount: parseFloat(finalTotal)
+        total_amount: formattedTotalAmount
       };
 
       const response = await api.post('/payment/create-preference', paymentData);
