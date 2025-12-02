@@ -8,6 +8,31 @@
   overflow: hidden;
 }
 
+/* Estilo inline (una sola línea) */
+.order-summary-table--inline {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  background: #f8f9fa;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 16px;
+  margin-top: 10px;
+}
+
+.order-summary-table--inline .order-summary-label {
+  font-size: 14px;
+  color: #555;
+  font-weight: 500;
+}
+
+.order-summary-table--inline .order-summary-total-value {
+  font-size: 18px;
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
 .order-summary-header {
   background: #FBFBFB;
   color: var(--color-text);

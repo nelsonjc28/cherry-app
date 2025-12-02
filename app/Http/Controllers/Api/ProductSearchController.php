@@ -21,6 +21,9 @@ class ProductSearchController extends Controller
     public function search(Request $request): JsonResponse
     {
         try {
+            // Aumentar límite de memoria para cargar todos los productos
+            ini_set('memory_limit', '512M');
+            
             $query = trim($request->input('q', ''));
             $page = (int) $request->input('page', 1);
             // Sin límite - obtener todos los productos que coincidan
@@ -285,6 +288,9 @@ class ProductSearchController extends Controller
     public function getAllProducts(Request $request): JsonResponse
     {
         try {
+            // Aumentar límite de memoria para cargar todos los productos
+            ini_set('memory_limit', '512M');
+            
             // Sin límite - obtener TODOS los productos
             $perPage = PHP_INT_MAX;
 

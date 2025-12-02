@@ -916,36 +916,6 @@ const CartOrderSummary = ({
           <div className="cart-order-summary__divider" />
         </>
       )}
-      <div className="cart-order-summary__section">
-        <div className="cart-order-summary__section-title">Monto del pedido</div>
-        <div className="cart-order-summary__section-content">
-          <div className="cart-order-summary__row">
-            <span>Cantidad de piezas</span>
-            <span>{pieces}</span>
-          </div>
-          <div className="cart-order-summary__row">
-            <span>Sub-Total</span>
-            <span>${subtotal}</span>
-          </div>
-          <div className="cart-order-summary__row">
-            <span>Descuento:</span>
-            <span>${discountTotal}</span>
-          </div>
-          <div className="cart-order-summary__row">
-            <span>Envío:</span>
-            {envio === 0 ? (
-              <span className="cart-order-summary__free-shipping">Envío gratis</span>
-            ) : (
-              <span>${envio}</span>
-            )}
-          </div>
-        </div>
-        <div className="cart-order-summary__total-row">
-          <span>Total:</span>
-          <span className="cart-order-summary__total-value">${finalTotal}</span>
-        </div>
-      </div>
-
       {/* Selector de método de pago */}
       <div className="cart-order-summary__divider" />
       <div className="cart-order-summary__section payment-method-section">

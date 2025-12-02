@@ -192,13 +192,18 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
             loading="lazy"
           />
 
-          {/* Out of stock badge - highest priority */}
-          {stock <= 0 && (
+          {/* New badge - highest priority if product is new */}
+          {isNew && (
+            <span className="new-badge">Nuevo</span>
+          )}
+
+          {/* Out of stock badge - only if NOT new */}
+          {!isNew && stock <= 0 && (
             <span className="out-of-stock-badge">Agotado</span>
           )}
 
-          {/* Offer badge if product has discount and is in stock */}
-          {stock > 0 && hasOffer && (
+          {/* Offer badge if product has discount (and is not new) */}
+          {!isNew && stock > 0 && hasOffer && (
             <span className="offer-badge">
               {getDiscountLabel()}
             </span>
@@ -264,13 +269,18 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
           />
         )}
 
-        {/* Out of stock badge - highest priority */}
-        {stock <= 0 && (
+        {/* New badge - highest priority if product is new */}
+        {isNew && (
+          <span className="new-badge">Nuevo</span>
+        )}
+
+        {/* Out of stock badge - only if NOT new */}
+        {!isNew && stock <= 0 && (
           <span className="out-of-stock-badge">Agotado</span>
         )}
 
-        {/* Offer badge if product has discount and is in stock */}
-        {stock > 0 && hasOffer && (
+        {/* Offer badge if product has discount (and is not new) */}
+        {!isNew && stock > 0 && hasOffer && (
           <span className={`offer-badge ${finalHasUserOffer ? 'user-offer' : ''} ${
             finalHasUserOffer && finalUserOffer && finalUserOffer.discount_category === 'buy_x_get_y' ? 'buy-x-get-y' : 
             finalHasUserOffer && finalUserOffer && finalUserOffer.discount_category === 'order_discount' ? 'order-discount' : 
@@ -278,11 +288,6 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
           }`}>
             {getDiscountLabel()}
           </span>
-        )}
-
-        {/* New badge if product is new, has no offer and is in stock */}
-        {stock > 0 && isNew && !hasOffer && (
-          <span className="new-badge">Nuevo</span>
         )}
       </div>
       

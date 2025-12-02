@@ -178,13 +178,18 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
           className="catalog-favorite-btn"
         />
 
-        {/* Out of stock badge - highest priority */}
-        {stock <= 0 && (
+        {/* New badge - highest priority if product is new */}
+        {isNew && (
+          <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
+        )}
+
+        {/* Out of stock badge - only if NOT new */}
+        {!isNew && stock <= 0 && (
           <span className="catalog-offer-badge catalog-out-of-stock-badge">Agotado</span>
         )}
 
-        {/* Offer badge if product has discount and is in stock */}
-        {stock > 0 && hasOffer && (
+        {/* Offer badge if product has discount (and is not new) */}
+        {!isNew && stock > 0 && hasOffer && (
           <div className={`catalog-offer-badge ${hasUserOffer ? 'user-offer' : ''} ${
             hasUserOffer && userOffer && userOffer.discount_category === 'buy_x_get_y' ? 'buy-x-get-y' : 
             hasUserOffer && userOffer && userOffer.discount_category === 'order_discount' ? 'order-discount' : 
@@ -192,11 +197,6 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
           }`}>
             {getDiscountLabel()}
           </div>
-        )}
-
-        {/* New badge if product is new, has no offer and is in stock */}
-        {stock > 0 && isNew && !hasOffer && (
-          <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
         )}
       </div>
       

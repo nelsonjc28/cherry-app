@@ -4,39 +4,16 @@ import './OrderSummaryTable.css';
 const formatNumber = (value) => {
   if (value === null || value === undefined) return '0.00';
   const num = typeof value === 'string' ? parseFloat(value) : value;
-  return isNaN(num) ? '0.00' : num.toFixed(2);
+  if (isNaN(num)) return '0.00';
+  return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 const OrderSummaryTable = ({ quantity, priceWithoutDiscount, priceWithDiscount, discount, savings }) => {
-  
-  
   return (
-    <div className="order-summary-table">
-      <div className="order-summary-header">Resumen del pedido</div>
-      <div className="order-summary-row">
-        <span className="order-summary-label">Cantidad de piezas:</span>
-        <span className="order-summary-value">{quantity}</span>
-      </div>
-    
-    {/* Mostrar descuento si existe */}
-    {discount && priceWithoutDiscount && (
-      <>
-        <div className="order-summary-row">
-          <span className="order-summary-label">Precio original:</span>
-          <span className="order-summary-value">${formatNumber(priceWithoutDiscount)}</span>
-        </div>
-        <div className="order-summary-row order-summary-discount">
-          <span className="order-summary-label">🏷️ Descuento ({discount}%):</span>
-          <span className="order-summary-value order-summary-savings">-${formatNumber(savings)}</span>
-        </div>
-      </>
-    )}
-    
-    <div className="order-summary-row order-summary-total">
-      <span className="order-summary-label">Total:</span>
-      <span className="order-summary-value">${formatNumber(priceWithDiscount)}</span>
+    <div className="order-summary-table order-summary-table--inline">
+      <span className="order-summary-label">Total del producto:</span>
+      <span className="order-summary-value order-summary-total-value">${formatNumber(priceWithDiscount)}</span>
     </div>
-  </div>
   );
 };
 

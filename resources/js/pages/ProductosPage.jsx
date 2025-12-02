@@ -1,17 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard/ProductCard';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import CherryButton from '../components/CherryButton/CherryButton';
-import CacheIndicator from '../components/CacheIndicator/CacheIndicator';
 import InfiniteScrollLoader from '../components/InfiniteScrollLoader/InfiniteScrollLoader';
-import useProductsWithCache from '../hooks/useProductsWithCache';
 import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
-import { fetchProducts, getAvailableColors, getAvailableSizes } from '../api/cherryApi';
 import { applyUserOffersToProducts } from '../api/userOffers';
 import { publicCatalogService } from '../services/api';
+import api from '../services/api';
+import { getProductImageUrl } from '../utils/productImageUtils';
 import './ProductosPage.css';
 
 const ProductosPage = () => {
@@ -22,36 +20,49 @@ const ProductosPage = () => {
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [availableColors, setAvailableColors] = useState([]);
   const [availableSizes, setAvailableSizes] = useState([]);
-  const [filters, setFilters] = useState({
-    catalog: 'Seleccione',
-    availability: 'todos',
-    category: 'Todas las categorías',
-    department: 'Todos los departamentos',
-    sector: 'Todos los sectores',
-    sizes: [],
-    colors: [],
-    priceRange: { min: 0, max: 0 },
-    codigo: '',
-    dtu: '',
-    sortBy: 'Más recientes'
-  });
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  
+  // Recuperar filtros guardados de sessionStorage
+  const getSavedFilters = () => {
+    try {
+      const saved = sessionStorage.getItem('productosPageFilters');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('Error recuperando filtros:', e);
+    }
+    return {
+      catalog: 'Seleccione',
+      availability: 'todos',
+      category: 'Todas las categorías',
+      department: 'Todos los departamentos',
+      sector: 'Todos los sectores',
+      sizes: [],
+      colors: [],
+      priceRange: { min: 0, max: 0 },
+      codigo: '',
+      dtu: '',
+      sortBy: 'Más recientes'
+    };
+  };
+
+  const [filters, setFilters] = useState(getSavedFilters);
+
+  const toggleFilterModal = useCallback(() => {
+    setIsFilterModalOpen(prev => !prev);
+  }, []);
 
   // Cargar catálogos
   useEffect(() => {
     const loadCatalogs = async () => {
       setCatalogLoading(true);
       try {
-        const response = await publicCatalogService.getAll();;
+        const response = await publicCatalogService.getAll();
         
-        // Manejar diferentes estructuras de respuesta
         let catalogsData = [];
-        
         if (response.data) {
-          if (response.data.success && Array.isArray(response.data.data)) {
-            catalogsData = response.data.data;
-          } else if (response.data.success && response.data.data && response.data.data.catalogs) {
-            catalogsData = response.data.data.catalogs;
-          } else if (response.data.success && response.data.catalogs) {
+          if (response.data.success && response.data.catalogs) {
             catalogsData = response.data.catalogs;
           } else if (Array.isArray(response.data)) {
             catalogsData = response.data;
@@ -59,14 +70,12 @@ const ProductosPage = () => {
         }
         
         if (catalogsData && catalogsData.length > 0) {
-          // Mostrar todos los catálogos sin filtrar por estado activo
           setCatalogs(catalogsData);
-          
-          // No establecer automáticamente un catálogo, dejar "Seleccione"
         } else {
           setCatalogs([]);
         }
       } catch (error) {
+        console.error('Error cargando catálogos:', error);
         setCatalogs([]);
       } finally {
         setCatalogLoading(false);
@@ -76,50 +85,158 @@ const ProductosPage = () => {
     loadCatalogs();
   }, []);
 
-  // Cargar colores y tallas disponibles
+  // Extraer colores y tallas de productos cargados
   useEffect(() => {
-    const loadFiltersData = async () => {
+    if (products.length > 0) {
+      const colorSet = new Set();
+      const sizeSet = new Set();
+
+      products.forEach(product => {
+        if (product.detalles && product.detalles.length > 0) {
+          product.detalles.forEach(detalle => {
+            if (detalle.nombreColor && detalle.nombreColor.trim()) {
+              colorSet.add(detalle.nombreColor.trim());
+            }
+            if (detalle.detalle && detalle.detalle.trim()) {
+              sizeSet.add(detalle.detalle.trim());
+            }
+          });
+        }
+        if (product.colors && product.colors.length > 0) {
+          product.colors.forEach(color => {
+            if (color && color.trim()) colorSet.add(color.trim());
+          });
+        }
+        if (product.sizes && product.sizes.length > 0) {
+          product.sizes.forEach(size => {
+            if (size && size.trim()) sizeSet.add(size.trim());
+          });
+        }
+      });
+
+      // Ordenar tallas
+      const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+      const sizes = Array.from(sizeSet);
+      const sortedSizes = sizes.sort((a, b) => {
+        const indexA = sizeOrder.indexOf(a.toUpperCase());
+        const indexB = sizeOrder.indexOf(b.toUpperCase());
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        return a.localeCompare(b);
+      });
+
+      setAvailableColors(Array.from(colorSet).sort());
+      setAvailableSizes(sortedSizes);
+    }
+  }, [products]);
+
+  // Cargar productos desde el backend local
+  useEffect(() => {
+    const loadProducts = async () => {
+      setLoading(true);
       try {
-        const [colors, sizes] = await Promise.all([
-          getAvailableColors(),
-          getAvailableSizes()
-        ]);
-        
-        setAvailableColors(colors);
-        setAvailableSizes(sizes);
+        // Usar el mismo endpoint que BuscarPage
+        const searchResponse = await api.get('/products/search', {
+          params: { q: '' }
+        });
+
+        if (searchResponse.data.success && searchResponse.data.data.products) {
+          const localProducts = searchResponse.data.data.products;
+          
+          // Mapear productos al formato esperado
+          const mappedProducts = localProducts.map(product => {
+            const rawPrice = product.precio1;
+            const numericPrice = typeof rawPrice === 'string' 
+              ? parseFloat(rawPrice.replace(/[^\d.-]/g, '')) 
+              : parseFloat(rawPrice) || 0;
+            
+            const productColors = product.detalles 
+              ? [...new Set(product.detalles.map(d => d.nombreColor).filter(Boolean))] 
+              : [];
+            const availableColors = productColors.length > 0 ? productColors : ['black'];
+            
+            const productSizes = product.detalles 
+              ? [...new Set(product.detalles.map(d => d.detalle).filter(Boolean))] 
+              : [];
+            const availableSizes = productSizes.length > 0 ? productSizes : ['M'];
+            
+            const isNewProduct = product.opc_nuevo === 'S' || 
+              (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 45 * 24 * 60 * 60 * 1000));
+            
+            let finalPrice = product.price;
+            let originalPrice = product.originalPrice;
+            let discountPercentage = product.discount;
+            
+            if (finalPrice === undefined || finalPrice === null || finalPrice === 0) {
+              const hasDiscount = product.opc_promo === 'S' && product.desc_promo > 0;
+              const originalDiscountPercentage = hasDiscount ? parseFloat(product.desc_promo) : 0;
+              discountPercentage = hasDiscount ? Math.max(0, originalDiscountPercentage - 10) : 0;
+              originalPrice = hasDiscount && numericPrice > 0 
+                ? (numericPrice / (1 - originalDiscountPercentage / 100)) 
+                : null;
+              finalPrice = hasDiscount && discountPercentage > 0 && numericPrice > 0 
+                ? (numericPrice - (numericPrice * (discountPercentage / 100))) 
+                : numericPrice;
+            }
+            
+            discountPercentage = discountPercentage !== undefined && discountPercentage !== null 
+              ? parseFloat(discountPercentage) 
+              : 0;
+            
+            return {
+              id: product.id_articulo || product.id,
+              title: product.descripcion || product.title || 'Sin nombre',
+              description: product.descripcion || 'Sin descripción',
+              price: finalPrice,
+              originalPrice: originalPrice,
+              discount: discountPercentage,
+              image: getProductImageUrl(product.id_articulo || product.id),
+              brand: product.marca || 'Sin marca',
+              stock: product.inventario || 0,
+              inventario: product.inventario || 0,
+              colors: availableColors,
+              sizes: availableSizes,
+              isNew: isNewProduct,
+              rating: product.rating || 0,
+              ratingCount: product.ratingCount || product.totalRatings || 0,
+              linea: product.linea || product.id_linea,
+              id_linea: product.id_linea || product.linea,
+              catalogoId: product.catalogoId,
+              fechaAlta: product.fecha_alta,
+              temporada: product.temporada,
+              opcNuevo: product.opc_nuevo,
+              opcPromo: product.opc_promo,
+              descPromo: product.desc_promo,
+              genero: product.genero,
+              sector: product.sector,
+              detalles: product.detalles,
+              codigo: product.codigo || product.id_articulo || product.id,
+              id_articulo: product.id_articulo || product.id,
+              precio1: numericPrice
+            };
+          });
+
+          // Aplicar ofertas de usuario
+          const productsWithOffers = await applyUserOffersToProducts(mappedProducts);
+          
+          setProducts(productsWithOffers);
+          setFilteredProducts(productsWithOffers);
+        } else {
+          setProducts([]);
+          setFilteredProducts([]);
+        }
       } catch (error) {
-        setAvailableColors([]);
-        setAvailableSizes([]);
+        console.error('Error cargando productos:', error);
+        setProducts([]);
+        setFilteredProducts([]);
+      } finally {
+        setLoading(false);
       }
     };
 
-    loadFiltersData();
+    loadProducts();
   }, []);
-
-  // Usar hook con caché para cargar productos
-  const {
-    products: cachedProducts,
-    loading: cacheLoading,
-    loadedFromCache
-  } = useProductsWithCache(async () => {
-    const allProducts = await fetchProducts();
-    const productsWithOffers = await applyUserOffersToProducts(allProducts);
-    return productsWithOffers;
-  }, []);
-
-  // Actualizar estado cuando cambian los productos del caché
-  useEffect(() => {
-    if (cachedProducts && cachedProducts.length > 0) {
-      setProducts(cachedProducts);
-      setFilteredProducts(cachedProducts);
-      setLoading(false);
-    }
-  }, [cachedProducts]);
-
-  // Sincronizar loading state
-  useEffect(() => {
-    setLoading(cacheLoading);
-  }, [cacheLoading]);
 
   // Filtrar productos
   useEffect(() => {
@@ -128,74 +245,89 @@ const ProductosPage = () => {
     // Filtrar por catálogo
     if (filters.catalog && filters.catalog !== 'Todos los catálogos' && filters.catalog !== 'Seleccione') {
       filtered = filtered.filter(product => {
-        // Verificar si el producto pertenece al catálogo seleccionado
-        const productCatalog = product.catalog || product.catalogue || product.catalogName || '';
-        return productCatalog.toLowerCase().includes(filters.catalog.toLowerCase()) ||
-               product.catalogId === filters.catalog ||
-               product.catalog_id === filters.catalog;
+        const productCatalogoId = product.catalogoId;
+        return String(productCatalogoId) === String(filters.catalog);
       });
     }
 
-    // Aplicar filtros
-    if (filters.category && filters.category !== 'Todas las categorías') {
-      const categoryLower = filters.category.toLowerCase();
+    // Filtrar por categoría
+    if (filters.category && filters.category !== '' && filters.category !== 'Todas las categorías') {
       filtered = filtered.filter(product => {
-        const productCategory = product.category?.toLowerCase() || '';
-        return productCategory.includes(categoryLower);
+        const productLineaId = product.id_linea;
+        return productLineaId == filters.category;
       });
     }
 
     // Filtrar por precio
     if (filters.priceRange.min > 0 || filters.priceRange.max > 0) {
       filtered = filtered.filter(product => {
-        const price = product.price || 0;
+        const price = parseFloat(product.price || product.precio1 || 0);
         const minPrice = filters.priceRange.min || 0;
         const maxPrice = filters.priceRange.max || Infinity;
         
-        if (maxPrice > 0) {
+        if (maxPrice > 0 && maxPrice !== Infinity) {
           return price >= minPrice && price <= maxPrice;
-        } else {
-          return price >= minPrice;
         }
+        return price >= minPrice;
       });
     }
 
     // Filtrar por colores
     if (filters.colors && filters.colors.length > 0) {
       filtered = filtered.filter(product => {
-        if (!product.colors || product.colors.length === 0) return false;
-        
-        return filters.colors.some(filterColor => {
-          const filterColorLower = filterColor.toLowerCase();
-          return product.colors.some(productColor => {
-            const productColorLower = productColor.toLowerCase();
-            return productColorLower === filterColorLower || 
-                   productColorLower.includes(filterColorLower);
+        if (product.detalles && product.detalles.length > 0) {
+          return filters.colors.some(filterColor => {
+            const filterColorLower = filterColor.toLowerCase();
+            return product.detalles.some(detalle => {
+              if (!detalle.nombreColor) return false;
+              const productColorLower = detalle.nombreColor.toLowerCase();
+              return productColorLower === filterColorLower || productColorLower.includes(filterColorLower);
+            });
           });
-        });
+        }
+        if (product.colors && product.colors.length > 0) {
+          return filters.colors.some(filterColor => {
+            const filterColorLower = filterColor.toLowerCase();
+            return product.colors.some(productColor => {
+              const productColorLower = productColor.toLowerCase();
+              return productColorLower === filterColorLower || productColorLower.includes(filterColorLower);
+            });
+          });
+        }
+        return false;
       });
     }
 
     // Filtrar por tallas
     if (filters.sizes && filters.sizes.length > 0) {
       filtered = filtered.filter(product => {
-        if (!product.sizes || product.sizes.length === 0) return false;
-        
-        return filters.sizes.some(filterSize => {
-          const filterSizeLower = filterSize.toLowerCase();
-          return product.sizes.some(productSize => {
-            const productSizeLower = productSize.toString().toLowerCase();
-            return productSizeLower === filterSizeLower || 
-                   productSizeLower.includes(filterSizeLower);
+        if (product.detalles && product.detalles.length > 0) {
+          return filters.sizes.some(filterSize => {
+            const filterSizeLower = filterSize.toLowerCase();
+            return product.detalles.some(detalle => {
+              if (!detalle.detalle) return false;
+              const productSizeLower = detalle.detalle.toString().toLowerCase();
+              return productSizeLower === filterSizeLower || productSizeLower.includes(filterSizeLower);
+            });
           });
-        });
+        }
+        if (product.sizes && product.sizes.length > 0) {
+          return filters.sizes.some(filterSize => {
+            const filterSizeLower = filterSize.toLowerCase();
+            return product.sizes.some(productSize => {
+              const productSizeLower = productSize.toString().toLowerCase();
+              return productSizeLower === filterSizeLower || productSizeLower.includes(filterSizeLower);
+            });
+          });
+        }
+        return false;
       });
     }
 
-    // Filtrar por disponibilidad (con existencia)
+    // Filtrar por disponibilidad
     if (filters.availability === 'con-existencia') {
       filtered = filtered.filter(product => {
-        const stock = product.stock || product.inventario || product.inventory || 0;
+        const stock = parseFloat(product.inventario || product.stock || 0);
         return stock > 0;
       });
     }
@@ -205,7 +337,8 @@ const ProductosPage = () => {
       const codigoLower = filters.codigo.trim().toLowerCase();
       filtered = filtered.filter(product => {
         return (
-          (product.codigo && product.codigo.toLowerCase().includes(codigoLower)) ||
+          (product.codigo && product.codigo.toString().toLowerCase().includes(codigoLower)) ||
+          (product.id_articulo && product.id_articulo.toString().toLowerCase().includes(codigoLower)) ||
           (product.id && product.id.toString().toLowerCase().includes(codigoLower))
         );
       });
@@ -222,35 +355,26 @@ const ProductosPage = () => {
       });
     }
 
-    // Aplicar ordenamiento
+    // Ordenamiento
     if (filters.sortBy) {
       filtered = [...filtered].sort((a, b) => {
         switch (filters.sortBy) {
           case 'Más recientes':
-            // Ordenar por fecha de creación (más recientes primero)
-            const dateA = new Date(a.created_at || a.fecha_alta || 0);
-            const dateB = new Date(b.created_at || b.fecha_alta || 0);
+            const dateA = new Date(a.fechaAlta || a.fecha_alta || a.created_at || 0);
+            const dateB = new Date(b.fechaAlta || b.fecha_alta || b.created_at || 0);
             return dateB - dateA;
           
           case 'Precio: menor a mayor':
-            const priceA = parseFloat(a.price || a.precio || a.precio1 || 0);
-            const priceB = parseFloat(b.price || b.precio || b.precio1 || 0);
-            return priceA - priceB;
+            return parseFloat(a.price || a.precio1 || 0) - parseFloat(b.price || b.precio1 || 0);
           
           case 'Precio: mayor a menor':
-            const priceA2 = parseFloat(a.price || a.precio || a.precio1 || 0);
-            const priceB2 = parseFloat(b.price || b.precio || b.precio1 || 0);
-            return priceB2 - priceA2;
+            return parseFloat(b.price || b.precio1 || 0) - parseFloat(a.price || a.precio1 || 0);
           
           case 'Nombre A-Z':
-            const nameA = (a.title || a.descripcion || a.name || '').toLowerCase();
-            const nameB = (b.title || b.descripcion || b.name || '').toLowerCase();
-            return nameA.localeCompare(nameB);
+            return (a.title || a.descripcion || '').toLowerCase().localeCompare((b.title || b.descripcion || '').toLowerCase());
           
           case 'Nombre Z-A':
-            const nameA2 = (a.title || a.descripcion || a.name || '').toLowerCase();
-            const nameB2 = (b.title || b.descripcion || b.name || '').toLowerCase();
-            return nameB2.localeCompare(nameA2);
+            return (b.title || b.descripcion || '').toLowerCase().localeCompare((a.title || a.descripcion || '').toLowerCase());
           
           default:
             return 0;
@@ -263,10 +387,15 @@ const ProductosPage = () => {
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
+    try {
+      sessionStorage.setItem('productosPageFilters', JSON.stringify(newFilters));
+    } catch (e) {
+      console.error('Error guardando filtros:', e);
+    }
   };
 
   const handleClearFilters = () => {
-    setFilters({
+    const defaultFilters = {
       catalog: 'Seleccione',
       availability: 'todos',
       category: 'Todas las categorías',
@@ -278,7 +407,13 @@ const ProductosPage = () => {
       codigo: '',
       dtu: '',
       sortBy: 'Más recientes'
-    });
+    };
+    setFilters(defaultFilters);
+    try {
+      sessionStorage.removeItem('productosPageFilters');
+    } catch (e) {
+      console.error('Error limpiando filtros:', e);
+    }
   };
 
   const handleFavoriteToggle = (productId) => {
@@ -307,7 +442,7 @@ const ProductosPage = () => {
               <p>Cargando productos...</p>
             </div>
           </div>
-  </main>
+        </main>
       </>
     );
   }
@@ -319,16 +454,47 @@ const ProductosPage = () => {
         <meta name="description" content="Explora nuestra amplia colección de productos de moda femenina en Cherry Central." />
       </Helmet>
 
-      {/* Indicador de carga desde caché */}
-      <CacheIndicator loadedFromCache={loadedFromCache} />
-
       <main className="productos-page">
         <div className="container">
+          {/* Header Mobile */}
+          <div className="productos-header-mobile">
+            <div className="productos-controls">
+              <div className="productos-sort-section">
+                <div className="productos-mobile-filter-controls">
+                  <button
+                    className="productos-mobile-filter-btn"
+                    onClick={toggleFilterModal}
+                  >
+                    <img src={getIconPath('Filter.svg')} alt="Filtros" />
+                    <img src={getIconPath('Chevron Down.svg')} alt="Expandir" />
+                  </button>
+                </div>
+                <label htmlFor="sort-select" className="productos-sort-label">Ordenar por:</label>
+                <select
+                  id="sort-select"
+                  value={filters.sortBy}
+                  onChange={(e) => handleFilterChange({ ...filters, sortBy: e.target.value })}
+                  className="productos-sort-select"
+                >
+                  <option value="Más recientes">Más recientes</option>
+                  <option value="Precio: menor a mayor">Precio: menor a mayor</option>
+                  <option value="Precio: mayor a menor">Precio: mayor a menor</option>
+                  <option value="Nombre A-Z">Nombre: A-Z</option>
+                  <option value="Nombre Z-A">Nombre: Z-A</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           {/* Header */}
           <div className="productos-header">
-            <h1>Nuestros Productos</h1>
-            <p>Descubre nuestra amplia colección de moda femenina</p>
+            <h1>Todos los Productos</h1>
+            <p>Descubre nuestra amplia colección de moda</p>
           </div>
+
+          <p className="productos-results">
+            {filteredProducts.length} productos encontrados
+          </p>
 
           <div className="productos-content">
             {/* Filtros */}
@@ -341,16 +507,12 @@ const ProductosPage = () => {
                 catalogLoading={catalogLoading}
                 availableColors={availableColors}
                 availableSizes={availableSizes}
+                isMobile={false}
               />
             </aside>
 
             {/* Productos */}
             <div className="productos-main">
-              <div className="productos-header-section">
-                <h2>Productos disponibles</h2>
-                <p>{filteredProducts.length} productos encontrados</p>
-              </div>
-
               {filteredProducts.length === 0 ? (
                 <div className="productos-empty">
                   <div className="empty-icon">
@@ -369,9 +531,9 @@ const ProductosPage = () => {
               ) : (
                 <>
                   <div className="productos-grid">
-                    {infiniteScroll.displayedItems.map((product) => (
+                    {infiniteScroll.displayedItems.map((product, index) => (
                       <ProductCard
-                        key={product.id}
+                        key={product.id || `product-${index}`}
                         product={product}
                         onFavoriteToggle={handleFavoriteToggle}
                       />
@@ -421,9 +583,28 @@ const ProductosPage = () => {
             </div>
           </div>
         </div>
+
+        {/* Mobile filter modal */}
+        {isFilterModalOpen && (
+          <div className="productos-filter-modal-overlay" onClick={toggleFilterModal}>
+            <div className="productos-filter-modal" onClick={(e) => e.stopPropagation()}>
+              <CatalogFilter
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                onClearFilters={handleClearFilters}
+                isMobile={true}
+                onClose={toggleFilterModal}
+                availableColors={availableColors}
+                availableSizes={availableSizes}
+                catalogs={catalogs}
+                catalogLoading={catalogLoading}
+              />
+            </div>
+          </div>
+        )}
       </main>
     </>
   );
 };
 
-export default ProductosPage; 
+export default ProductosPage;

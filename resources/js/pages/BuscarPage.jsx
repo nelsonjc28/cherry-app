@@ -33,19 +33,32 @@ const BuscarPage = () => {
   const [availableSizes, setAvailableSizes] = useState([]);
   const [colorsLoading, setColorsLoading] = useState(true);
   const [sizesLoading, setSizesLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    catalog: 'Seleccione',
-    availability: 'todos',
-    category: '',
-    department: 'Todos los departamentos',
-    sector: 'Todos los sectores',
-    sizes: [],
-    colors: [],
-    priceRange: { min: 0, max: 0 },
-    codigo: '',
-    dtu: '',
-    sortBy: 'Más recientes'
-  });
+  // Recuperar filtros guardados de sessionStorage
+  const getSavedFilters = () => {
+    try {
+      const saved = sessionStorage.getItem('buscarPageFilters');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('Error recuperando filtros:', e);
+    }
+    return {
+      catalog: 'Seleccione',
+      availability: 'todos',
+      category: '',
+      department: 'Todos los departamentos',
+      sector: 'Todos los sectores',
+      sizes: [],
+      colors: [],
+      priceRange: { min: 0, max: 0 },
+      codigo: '',
+      dtu: '',
+      sortBy: 'Más recientes'
+    };
+  };
+
+  const [filters, setFilters] = useState(getSavedFilters);
 
   const toggleFilterModal = useCallback(() => {
     setIsFilterModalOpen(prev => !prev);
@@ -539,10 +552,16 @@ const BuscarPage = () => {
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
+    // Guardar filtros en sessionStorage
+    try {
+      sessionStorage.setItem('buscarPageFilters', JSON.stringify(newFilters));
+    } catch (e) {
+      console.error('Error guardando filtros:', e);
+    }
   };
 
   const handleClearFilters = () => {
-    setFilters({
+    const defaultFilters = {
       catalog: 'Seleccione',
       availability: 'todos',
       category: '',
@@ -554,7 +573,14 @@ const BuscarPage = () => {
       codigo: '',
       dtu: '',
       sortBy: 'Más recientes'
-    });
+    };
+    setFilters(defaultFilters);
+    // Limpiar filtros de sessionStorage
+    try {
+      sessionStorage.removeItem('buscarPageFilters');
+    } catch (e) {
+      console.error('Error limpiando filtros:', e);
+    }
   };
 
   const handleFavoriteToggle = (productId) => {

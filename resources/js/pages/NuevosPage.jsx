@@ -7,13 +7,10 @@ import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
 import CustomButton from '../components/CustomButton';
 import './NuevosPage.css';
-import {
-  getProductsWithRatings,
-  getAvailableColors,
-  getAvailableSizes
-} from '../api/cherryApi';
 import { applyUserOffersToProducts } from '../api/userOffers';
 import { publicCatalogService } from '../services/api';
+import api from '../services/api';
+import { getProductImageUrl } from '../utils/productImageUtils';
 
 const NuevosPage = () => {
   // State management for filters and products
@@ -26,54 +23,49 @@ const NuevosPage = () => {
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [availableColors, setAvailableColors] = useState([]);
   const [availableSizes, setAvailableSizes] = useState([]);
-  const [filters, setFilters] = useState({
-    catalog: 'Seleccione',
-    availability: 'todos',
-    category: '',
-    department: 'Todos los departamentos',
-    sector: 'Todos los sectores',
-    sizes: [],
-    colors: [],
-    priceRange: { min: 0, max: 0 }
-  });
+  // Recuperar filtros guardados de sessionStorage
+  const getSavedFilters = () => {
+    try {
+      const saved = sessionStorage.getItem('nuevosPageFilters');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('Error recuperando filtros:', e);
+    }
+    return {
+      catalog: 'Seleccione',
+      availability: 'todos',
+      category: '',
+      department: 'Todos los departamentos',
+      sector: 'Todos los sectores',
+      sizes: [],
+      colors: [],
+      priceRange: { min: 0, max: 0 }
+    };
+  };
+
+  const [filters, setFilters] = useState(getSavedFilters);
+
   // Function to filter products
   const filterProducts = useCallback((products, currentFilters) => {
     if (!products || products.length === 0) return [];
 
     let filtered = [...products];
 
-
     // Filter by category (usando código)
     if (currentFilters.category && currentFilters.category !== '') {
       filtered = filtered.filter(product => {
-        const productLineaId = product.category_id;
+        const productLineaId = product.id_linea || product.category_id;
         return productLineaId == currentFilters.category;
       });
     }
 
     // Filter by catalog
-    // filters.catalog contiene el id del catálogo seleccionado, comparar con catalogoId del producto
     if (currentFilters.catalog && currentFilters.catalog !== '' && currentFilters.catalog != 'Seleccione') {
       filtered = filtered.filter(product => {
-        // Comparar el id del catálogo seleccionado con catalogoId del producto
         const productCatalogoId = product.catalogoId || product.catalog;
-        // Usar comparación flexible (==) para manejar diferentes tipos (string vs number)
-        const matches = String(productCatalogoId) == String(currentFilters.catalog);
-        
-        // Debug para primeros productos
-        if (filtered.indexOf(product) < 5) {
-          console.log('🔍 DEBUG - Comparación de catálogo (NuevosPage):', {
-            productId: product.id,
-            productCatalogoId,
-            productCatalogoIdType: typeof productCatalogoId,
-            filterCatalog: currentFilters.catalog,
-            filterCatalogType: typeof currentFilters.catalog,
-            matches,
-            comparison: `${productCatalogoId} == ${currentFilters.catalog}`
-          });
-        }
-        
-        return matches;
+        return String(productCatalogoId) == String(currentFilters.catalog);
       });
     }
 
@@ -116,23 +108,30 @@ const NuevosPage = () => {
 
     // Filter by availability
     if (currentFilters.availability === 'con-existencia') {
-      filtered = filtered.filter(product => product.stock > 0);
+      filtered = filtered.filter(product => (product.stock || product.inventario || 0) > 0);
     } else if (currentFilters.availability === 'sin-existencia') {
-      filtered = filtered.filter(product => product.stock === 0);
+      filtered = filtered.filter(product => (product.stock || product.inventario || 0) === 0);
     }
 
     // Filter by colors
     if (currentFilters.colors && currentFilters.colors.length > 0) {
       filtered = filtered.filter(product => {
+        if (product.detalles && product.detalles.length > 0) {
+          return currentFilters.colors.some(filterColor => {
+            const filterColorLower = filterColor.toLowerCase();
+            return product.detalles.some(detalle => {
+              if (!detalle.nombreColor) return false;
+              const productColorLower = detalle.nombreColor.toLowerCase();
+              return productColorLower === filterColorLower || productColorLower.includes(filterColorLower);
+            });
+          });
+        }
         if (!product.colors || product.colors.length === 0) return false;
-
         return currentFilters.colors.some(filterColor => {
           const filterColorLower = filterColor.toLowerCase();
           return product.colors.some(productColor => {
             const productColorLower = productColor.toLowerCase();
-            return productColorLower === filterColorLower ||
-              productColorLower.includes(filterColorLower) ||
-              filterColorLower.includes(productColorLower);
+            return productColorLower === filterColorLower || productColorLower.includes(filterColorLower);
           });
         });
       });
@@ -141,15 +140,22 @@ const NuevosPage = () => {
     // Filter by sizes
     if (currentFilters.sizes && currentFilters.sizes.length > 0) {
       filtered = filtered.filter(product => {
+        if (product.detalles && product.detalles.length > 0) {
+          return currentFilters.sizes.some(filterSize => {
+            const filterSizeLower = filterSize.toLowerCase();
+            return product.detalles.some(detalle => {
+              if (!detalle.detalle) return false;
+              const productSizeLower = detalle.detalle.toString().toLowerCase();
+              return productSizeLower === filterSizeLower || productSizeLower.includes(filterSizeLower);
+            });
+          });
+        }
         if (!product.sizes || product.sizes.length === 0) return false;
-
         return currentFilters.sizes.some(filterSize => {
           const filterSizeLower = filterSize.toLowerCase();
           return product.sizes.some(productSize => {
             const productSizeLower = productSize.toLowerCase();
-            return productSizeLower === filterSizeLower ||
-              productSizeLower.includes(filterSizeLower) ||
-              filterSizeLower.includes(productSizeLower);
+            return productSizeLower === filterSizeLower || productSizeLower.includes(filterSizeLower);
           });
         });
       });
@@ -169,9 +175,10 @@ const NuevosPage = () => {
       case 'precio-mayor':
         return sorted.sort((a, b) => (b.price || 0) - (a.price || 0));
       case 'más-recientes':
-        return sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      case 'más recientes':
+        return sorted.sort((a, b) => new Date(b.fechaAlta || b.fecha_alta || 0) - new Date(a.fechaAlta || a.fecha_alta || 0));
       case 'más-antiguos':
-        return sorted.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+        return sorted.sort((a, b) => new Date(a.fechaAlta || a.fecha_alta || 0) - new Date(b.fechaAlta || b.fecha_alta || 0));
       case 'nombre-a-z':
         return sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
       case 'nombre-z-a':
@@ -191,11 +198,7 @@ const NuevosPage = () => {
         let catalogsData = [];
 
         if (response.data) {
-          if (response.data.success && Array.isArray(response.data.data)) {
-            catalogsData = response.data.data;
-          } else if (response.data.success && response.data.data && response.data.data.catalogs) {
-            catalogsData = response.data.data.catalogs;
-          } else if (response.data.success && response.data.catalogs) {
+          if (response.data.success && response.data.catalogs) {
             catalogsData = response.data.catalogs;
           } else if (Array.isArray(response.data)) {
             catalogsData = response.data;
@@ -217,52 +220,133 @@ const NuevosPage = () => {
     loadCatalogs();
   }, []);
 
-  // Cargar colores y tallas disponibles
-  useEffect(() => {
-    const loadFiltersData = async () => {
-      try {
-        const [colors, sizes] = await Promise.all([
-          getAvailableColors(),
-          getAvailableSizes()
-        ]);
-
-        setAvailableColors(colors);
-        setAvailableSizes(sizes);
-      } catch (error) {
-        setAvailableColors([]);
-        setAvailableSizes([]);
-      }
-    };
-
-    loadFiltersData();
-  }, []);
-
-  // Load products - only new products with user offers
+  // Load products from backend - only new products
   useEffect(() => {
     const loadProducts = async () => {
       setLoading(true);
       try {
-
-        const result = await getProductsWithRatings('Cherry 2025 - 2026', {
-          limit: null,
-          onlyNew: true,
-          random: true
+        // Usar el backend local
+        const searchResponse = await api.get('/products/search', {
+          params: { q: '' }
         });
 
-        const newProducts = result.products || result || [];
+        if (searchResponse.data.success && searchResponse.data.data.products) {
+          const localProducts = searchResponse.data.data.products;
+          
+          // Calcular fecha límite (45 días atrás)
+          const fortyFiveDaysAgo = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);
+          
+          // Filtrar solo productos nuevos
+          const newProductsRaw = localProducts.filter(product => {
+            // Es nuevo si opc_nuevo === 'S' o fecha_alta es reciente
+            if (product.opc_nuevo === 'S') return true;
+            if (product.fecha_alta) {
+              const fechaAlta = new Date(product.fecha_alta);
+              return fechaAlta > fortyFiveDaysAgo;
+            }
+            return false;
+          });
+          
+          // Mapear productos al formato esperado
+          const mappedProducts = newProductsRaw.map(product => {
+            const rawPrice = product.precio1;
+            const numericPrice = typeof rawPrice === 'string' 
+              ? parseFloat(rawPrice.replace(/[^\d.-]/g, '')) 
+              : parseFloat(rawPrice) || 0;
+            
+            const productColors = product.detalles 
+              ? [...new Set(product.detalles.map(d => d.nombreColor).filter(Boolean))] 
+              : [];
+            
+            const productSizes = product.detalles 
+              ? [...new Set(product.detalles.map(d => d.detalle).filter(Boolean))] 
+              : [];
+            
+            let finalPrice = product.price;
+            let originalPrice = product.originalPrice;
+            let discountPercentage = product.discount;
+            
+            if (finalPrice === undefined || finalPrice === null || finalPrice === 0) {
+              const hasDiscount = product.opc_promo === 'S' && product.desc_promo > 0;
+              const originalDiscountPercentage = hasDiscount ? parseFloat(product.desc_promo) : 0;
+              discountPercentage = hasDiscount ? Math.max(0, originalDiscountPercentage - 10) : 0;
+              originalPrice = hasDiscount && numericPrice > 0 
+                ? (numericPrice / (1 - originalDiscountPercentage / 100)) 
+                : null;
+              finalPrice = hasDiscount && discountPercentage > 0 && numericPrice > 0 
+                ? (numericPrice - (numericPrice * (discountPercentage / 100))) 
+                : numericPrice;
+            }
+            
+            discountPercentage = discountPercentage !== undefined && discountPercentage !== null 
+              ? parseFloat(discountPercentage) 
+              : 0;
+            
+            return {
+              id: product.id_articulo || product.id,
+              title: product.descripcion || product.title || 'Sin nombre',
+              description: product.descripcion || 'Sin descripción',
+              price: finalPrice,
+              originalPrice: originalPrice,
+              discount: discountPercentage,
+              image: getProductImageUrl(product.id_articulo || product.id),
+              brand: product.marca || 'Sin marca',
+              stock: product.inventario || 0,
+              inventario: product.inventario || 0,
+              colors: productColors.length > 0 ? productColors : ['black'],
+              sizes: productSizes.length > 0 ? productSizes : ['M'],
+              isNew: true, // Todos son nuevos en esta página
+              rating: product.rating || 0,
+              ratingCount: product.ratingCount || product.totalRatings || 0,
+              id_linea: product.id_linea || product.linea,
+              category_id: product.id_linea || product.linea,
+              catalogoId: product.catalogoId,
+              fechaAlta: product.fecha_alta,
+              detalles: product.detalles,
+              codigo: product.codigo || product.id_articulo || product.id
+            };
+          });
 
-        const productsWithOffers = await applyUserOffersToProducts(newProducts);
-        
-        // Asegurar que todos los productos tengan isNew: true explícitamente
-        const productsWithNewFlag = productsWithOffers.map(product => ({
-          ...product,
-          isNew: true // Todos los productos en esta página son nuevos
-        }));
-        
-        setAllProducts(productsWithNewFlag);
-        setFilteredProducts([...productsWithNewFlag]);
-
+          // Aplicar ofertas de usuario
+          const productsWithOffers = await applyUserOffersToProducts(mappedProducts);
+          
+          // Extraer colores y tallas disponibles
+          const colorSet = new Set();
+          const sizeSet = new Set();
+          productsWithOffers.forEach(product => {
+            if (product.detalles && product.detalles.length > 0) {
+              product.detalles.forEach(detalle => {
+                if (detalle.nombreColor) colorSet.add(detalle.nombreColor.trim());
+                if (detalle.detalle) sizeSet.add(detalle.detalle.trim());
+              });
+            }
+            if (product.colors) product.colors.forEach(c => colorSet.add(c));
+            if (product.sizes) product.sizes.forEach(s => sizeSet.add(s));
+          });
+          
+          setAvailableColors(Array.from(colorSet).sort());
+          
+          // Ordenar tallas
+          const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+          const sizes = Array.from(sizeSet);
+          const sortedSizes = sizes.sort((a, b) => {
+            const indexA = sizeOrder.indexOf(a.toUpperCase());
+            const indexB = sizeOrder.indexOf(b.toUpperCase());
+            if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+            if (indexA !== -1) return -1;
+            if (indexB !== -1) return 1;
+            return a.localeCompare(b);
+          });
+          setAvailableSizes(sortedSizes);
+          
+          setAllProducts(productsWithOffers);
+          setFilteredProducts([...productsWithOffers]);
+        } else {
+          setAllProducts([]);
+          setFilteredProducts([]);
+        }
       } catch (error) {
+        console.error('Error cargando productos nuevos:', error);
         setAllProducts([]);
         setFilteredProducts([]);
       } finally {
@@ -278,9 +362,9 @@ const NuevosPage = () => {
     if (allProducts.length === 0) return [];
     let filtered = filterProducts(allProducts, filters);
     const sorted = sortProducts(filtered, sortBy);
-
     return sorted;
   }, [allProducts, filters, sortBy, filterProducts, sortProducts]);
+
   // Update filtered products when processed products change
   useEffect(() => {
     setFilteredProducts(processedProducts);
@@ -297,10 +381,15 @@ const NuevosPage = () => {
 
   const handleFilterChange = useCallback((newFilters) => {
     setFilters(newFilters);
+    try {
+      sessionStorage.setItem('nuevosPageFilters', JSON.stringify(newFilters));
+    } catch (e) {
+      console.error('Error guardando filtros:', e);
+    }
   }, []);
 
   const handleClearFilters = useCallback(() => {
-    setFilters({
+    const defaultFilters = {
       catalog: 'Seleccione',
       availability: 'todos',
       category: '',
@@ -309,7 +398,13 @@ const NuevosPage = () => {
       sizes: [],
       colors: [],
       priceRange: { min: 0, max: 0 }
-    });
+    };
+    setFilters(defaultFilters);
+    try {
+      sessionStorage.removeItem('nuevosPageFilters');
+    } catch (e) {
+      console.error('Error limpiando filtros:', e);
+    }
   }, []);
 
   const handleFavoriteToggle = (productId) => {
@@ -318,6 +413,7 @@ const NuevosPage = () => {
 
   // Infinite scroll
   const infiniteScroll = useInfiniteScroll(filteredProducts, 20);
+  
   // Reset infinite scroll cuando cambian los productos filtrados
   useEffect(() => {
     infiniteScroll.reset();

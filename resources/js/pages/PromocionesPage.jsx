@@ -26,16 +26,29 @@ const PromocionesPage = () => {
   const [availableSizes, setAvailableSizes] = useState([]);
   const [catalogs, setCatalogs] = useState([]);
   const [catalogLoading, setCatalogLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    availability: 'todos',
-    catalog: 'Seleccione',
-    category: '',
-    department: 'Todos los departamentos',
-    sector: 'Todos los sectores',
-    sizes: [],
-    colors: [],
-    priceRange: { min: 0, max: 0 }
-  });
+  // Recuperar filtros guardados de sessionStorage
+  const getSavedFilters = () => {
+    try {
+      const saved = sessionStorage.getItem('promocionesPageFilters');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('Error recuperando filtros:', e);
+    }
+    return {
+      availability: 'todos',
+      catalog: 'Seleccione',
+      category: '',
+      department: 'Todos los departamentos',
+      sector: 'Todos los sectores',
+      sizes: [],
+      colors: [],
+      priceRange: { min: 0, max: 0 }
+    };
+  };
+
+  const [filters, setFilters] = useState(getSavedFilters);
   const hasActiveSession = isUserSessionActive();
 
   // Cargar productos con promociones desde la base de datos local
@@ -568,18 +581,30 @@ const PromocionesPage = () => {
 
   const handleFilterChange = useCallback((newFilters) => {
     setFilters(newFilters);
+    try {
+      sessionStorage.setItem('promocionesPageFilters', JSON.stringify(newFilters));
+    } catch (e) {
+      console.error('Error guardando filtros:', e);
+    }
   }, []);
 
   const handleClearFilters = useCallback(() => {
-    setFilters({
+    const defaultFilters = {
       availability: 'todos',
+      catalog: 'Seleccione',
       category: '',
       department: 'Todos los departamentos',
       sector: 'Todos los sectores',
       sizes: [],
       colors: [],
       priceRange: { min: 0, max: 0 }
-    });
+    };
+    setFilters(defaultFilters);
+    try {
+      sessionStorage.removeItem('promocionesPageFilters');
+    } catch (e) {
+      console.error('Error limpiando filtros:', e);
+    }
   }, []);
 
   const handleFavoriteToggle = (productId) => {

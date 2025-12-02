@@ -30,6 +30,30 @@ const CatalogPage = ({ catalogId }) => {
   const colorFilter = searchParams.get('color') || '';
   const dtuFilter = searchParams.get('dtu') || '';
 
+  // Recuperar filtros guardados de sessionStorage
+  const getSavedFilters = () => {
+    try {
+      // Usar una key diferente por cada catalogId para mantener filtros separados
+      const storageKey = catalogId ? `catalogPageFilters_${catalogId}` : 'catalogPageFilters';
+      const saved = sessionStorage.getItem(storageKey);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('Error recuperando filtros:', e);
+    }
+    return {
+      catalog: 'Cherry 2025 - 2026',
+      availability: 'todos',
+      category: '',
+      department: 'Todos los departamentos',
+      sector: 'Todos los sectores',
+      sizes: [],
+      colors: [],
+      priceRange: { min: 0, max: 0 }
+    };
+  };
+
   // State management for filters and products
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [sortBy, setSortBy] = useState('más recientes');
@@ -41,16 +65,7 @@ const CatalogPage = ({ catalogId }) => {
   const [currentCatalog, setCurrentCatalog] = useState(null); // Store current catalog info
   const [availableColors, setAvailableColors] = useState([]);
   const [availableSizes, setAvailableSizes] = useState([]);
-  const [filters, setFilters] = useState({
-    catalog: 'Cherry 2025 - 2026',
-    availability: 'todos',
-    category: '',
-    department: 'Todos los departamentos',
-    sector: 'Todos los sectores',
-    sizes: [],
-    colors: [],
-    priceRange: { min: 0, max: 0 }
-  });
+  const [filters, setFilters] = useState(getSavedFilters);
 
   // Cargar colores y tallas disponibles desde productos cargados
   useEffect(() => {
@@ -579,13 +594,18 @@ const CatalogPage = ({ catalogId }) => {
 
   // Handle filter changes - Memoized
   const handleFilterChange = useCallback((newFilters) => {
-
     setFilters(newFilters);
-  }, [filters]);
+    try {
+      const storageKey = catalogId ? `catalogPageFilters_${catalogId}` : 'catalogPageFilters';
+      sessionStorage.setItem(storageKey, JSON.stringify(newFilters));
+    } catch (e) {
+      console.error('Error guardando filtros:', e);
+    }
+  }, [catalogId]);
 
   // Handle clear filters - Memoized
   const handleClearFilters = useCallback(() => {
-    setFilters({
+    const defaultFilters = {
       catalog: catalogs.length > 0 ? catalogs[0].name : 'Cherry 2025 - 2026',
       availability: 'todos',
       category: '',
@@ -594,8 +614,15 @@ const CatalogPage = ({ catalogId }) => {
       sizes: [],
       colors: [],
       priceRange: { min: 0, max: 0 }
-    });
-  }, [catalogs]);
+    };
+    setFilters(defaultFilters);
+    try {
+      const storageKey = catalogId ? `catalogPageFilters_${catalogId}` : 'catalogPageFilters';
+      sessionStorage.removeItem(storageKey);
+    } catch (e) {
+      console.error('Error limpiando filtros:', e);
+    }
+  }, [catalogs, catalogId]);
 
   // Handle favorite toggle - Memoized
   const handleFavoriteToggle = useCallback((productId) => {

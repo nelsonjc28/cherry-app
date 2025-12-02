@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { getProductsByCategory, mapApiProductToAppProduct, getAvailableColors, getAvailableSizes } from '../api/cherryApi';
 import { applyUserOffersToProducts } from '../api/userOffers';
 import ProductGrid from '../components/ProductGrid/ProductGrid';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import { publicCatalogService } from '../services/api';
+import api from '../services/api';
+import { getProductImageUrl } from '../utils/productImageUtils';
 import './CatalogosPage.css';
 
 const CatalogosPage = () => {
@@ -18,18 +19,32 @@ const CatalogosPage = () => {
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [availableColors, setAvailableColors] = useState([]);
   const [availableSizes, setAvailableSizes] = useState([]);
-  const [filters, setFilters] = useState({
-    catalog: 'Seleccione',
-    availability: 'todos',
-    category: '',
-    department: 'Todos los departamentos',
-    sector: 'Todos los sectores',
-    sizes: [],
-    colors: [],
-    priceRange: { min: 0, max: 0 },
-    codigo: '',
-    dtu: ''
-  });
+
+  // Recuperar filtros guardados de sessionStorage
+  const getSavedFilters = () => {
+    try {
+      const saved = sessionStorage.getItem('catalogosPageFilters');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('Error recuperando filtros:', e);
+    }
+    return {
+      catalog: 'Seleccione',
+      availability: 'todos',
+      category: '',
+      department: 'Todos los departamentos',
+      sector: 'Todos los sectores',
+      sizes: [],
+      colors: [],
+      priceRange: { min: 0, max: 0 },
+      codigo: '',
+      dtu: ''
+    };
+  };
+
+  const [filters, setFilters] = useState(getSavedFilters);
 
   // Obtener el catálogo desde la URL
   const productCatalog = catalog || 'primavera-verano';
@@ -73,51 +88,128 @@ const CatalogosPage = () => {
     loadCatalogs();
   }, []);
 
-  // Cargar colores y tallas disponibles
+  // Extraer colores y tallas de productos cargados
   useEffect(() => {
-    const loadFiltersData = async () => {
-      try {
-        const [colors, sizes] = await Promise.all([
-          getAvailableColors(),
-          getAvailableSizes()
-        ]);
+    if (products.length > 0) {
+      const colorSet = new Set();
+      const sizeSet = new Set();
 
-        setAvailableColors(colors);
-        setAvailableSizes(sizes);
-      } catch (error) {
-        setAvailableColors([]);
-        setAvailableSizes([]);
-      }
-    };
+      products.forEach(product => {
+        if (product.detalles && product.detalles.length > 0) {
+          product.detalles.forEach(detalle => {
+            if (detalle.nombreColor) colorSet.add(detalle.nombreColor.trim());
+            if (detalle.detalle) sizeSet.add(detalle.detalle.trim());
+          });
+        }
+        if (product.colors) product.colors.forEach(c => { if (c) colorSet.add(c.trim()); });
+        if (product.sizes) product.sizes.forEach(s => { if (s) sizeSet.add(s.trim()); });
+      });
 
-    loadFiltersData();
-  }, []);
+      setAvailableColors(Array.from(colorSet).sort());
+      
+      // Ordenar tallas
+      const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+      const sizes = Array.from(sizeSet);
+      const sortedSizes = sizes.sort((a, b) => {
+        const indexA = sizeOrder.indexOf(a.toUpperCase());
+        const indexB = sizeOrder.indexOf(b.toUpperCase());
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        return a.localeCompare(b);
+      });
+      setAvailableSizes(sortedSizes);
+    }
+  }, [products]);
 
+  // Cargar productos desde el backend local
   useEffect(() => {
     const fetchCatalogProducts = async () => {
       try {
         setLoading(true);
         setError(null);
-        // Mapear catálogos a categorías específicas
-        const categoryMap = {
-          'primavera-verano': 'vestidos',
-          'otono-invierno': 'blusas',
-          'elegante': 'pantalones',
-          'casual': 'vestidos',
-          'fiesta': 'blusas',
-          'edicion-limitada': 'accesorios',
-          'colaboraciones': 'maquillaje'
-        };
-        const category = categoryMap[productCatalog] || 'vestidos';
-        const response = await getProductsByCategory(category);
+        
+        const searchResponse = await api.get('/products/search', {
+          params: { q: '' }
+        });
 
-        // Aplicar ofertas de usuario a todos los productos
-        const productsWithOffers = await applyUserOffersToProducts(response);
+        if (searchResponse.data.success && searchResponse.data.data.products) {
+          const localProducts = searchResponse.data.data.products;
+          const fortyFiveDaysAgo = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);
+          
+          // Mapear productos al formato esperado
+          const mappedProducts = localProducts.map(product => {
+            const rawPrice = product.precio1;
+            const numericPrice = typeof rawPrice === 'string' 
+              ? parseFloat(rawPrice.replace(/[^\d.-]/g, '')) 
+              : parseFloat(rawPrice) || 0;
+            
+            const productColors = product.detalles 
+              ? [...new Set(product.detalles.map(d => d.nombreColor).filter(Boolean))] 
+              : [];
+            
+            const productSizes = product.detalles 
+              ? [...new Set(product.detalles.map(d => d.detalle).filter(Boolean))] 
+              : [];
+            
+            const isNewProduct = product.opc_nuevo === 'S' || 
+              (product.fecha_alta && new Date(product.fecha_alta) > fortyFiveDaysAgo);
+            
+            let finalPrice = product.price;
+            let originalPrice = product.originalPrice;
+            let discountPercentage = product.discount;
+            
+            if (finalPrice === undefined || finalPrice === null || finalPrice === 0) {
+              const hasDiscount = product.opc_promo === 'S' && product.desc_promo > 0;
+              const originalDiscountPercentage = hasDiscount ? parseFloat(product.desc_promo) : 0;
+              discountPercentage = hasDiscount ? Math.max(0, originalDiscountPercentage - 10) : 0;
+              originalPrice = hasDiscount && numericPrice > 0 
+                ? (numericPrice / (1 - originalDiscountPercentage / 100)) 
+                : null;
+              finalPrice = hasDiscount && discountPercentage > 0 && numericPrice > 0 
+                ? (numericPrice - (numericPrice * (discountPercentage / 100))) 
+                : numericPrice;
+            }
+            
+            return {
+              id: product.id_articulo || product.id,
+              title: product.descripcion || 'Sin nombre',
+              description: product.descripcion || 'Sin descripción',
+              price: finalPrice,
+              originalPrice: originalPrice,
+              discount: discountPercentage || 0,
+              image: getProductImageUrl(product.id_articulo || product.id),
+              brand: product.marca || 'Sin marca',
+              stock: product.inventario || 0,
+              colors: productColors.length > 0 ? productColors : ['black'],
+              sizes: productSizes.length > 0 ? productSizes : ['M'],
+              isNew: isNewProduct,
+              rating: product.rating || 0,
+              ratingCount: product.ratingCount || 0,
+              category_id: product.id_linea,
+              catalog_id: product.catalogoId,
+              catalogoId: product.catalogoId,
+              codigo: product.codigo || product.id_articulo || product.id,
+              id_articulo: product.id_articulo || product.id,
+              dtu: product.dtu || product.DTU,
+              DTU: product.DTU || product.dtu,
+              detalles: product.detalles
+            };
+          });
 
-        setProducts(productsWithOffers);
-        setFilteredProducts(productsWithOffers);
-        setTotalResults(productsWithOffers.length);
+          // Aplicar ofertas de usuario
+          const productsWithOffers = await applyUserOffersToProducts(mappedProducts);
+
+          setProducts(productsWithOffers);
+          setFilteredProducts(productsWithOffers);
+          setTotalResults(productsWithOffers.length);
+        } else {
+          setProducts([]);
+          setFilteredProducts([]);
+          setTotalResults(0);
+        }
       } catch (err) {
+        console.error('Error al cargar productos:', err);
         setError('Error al cargar los productos del catálogo');
         setProducts([]);
         setFilteredProducts([]);
@@ -226,10 +318,15 @@ const CatalogosPage = () => {
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
+    try {
+      sessionStorage.setItem('catalogosPageFilters', JSON.stringify(newFilters));
+    } catch (e) {
+      console.error('Error guardando filtros:', e);
+    }
   };
 
   const handleClearFilters = () => {
-    setFilters({
+    const defaultFilters = {
       catalog: 'Seleccione',
       availability: 'todos',
       category: '',
@@ -240,7 +337,13 @@ const CatalogosPage = () => {
       priceRange: { min: 0, max: 0 },
       codigo: '',
       dtu: ''
-    });
+    };
+    setFilters(defaultFilters);
+    try {
+      sessionStorage.removeItem('catalogosPageFilters');
+    } catch (e) {
+      console.error('Error limpiando filtros:', e);
+    }
   };
 
 

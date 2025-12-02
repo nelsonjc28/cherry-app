@@ -15,6 +15,12 @@ import useUserStore from '../store/userStore';
 
 
 
+// Función para formatear montos con separador de miles
+const formatMoney = (value) => {
+  const num = typeof value === 'number' ? value : parseFloat(value || 0);
+  return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 const CartDetailsPage = () => {
   const navigate = useNavigate();
   const {
@@ -428,8 +434,120 @@ const CartDetailsPage = () => {
 
   console.log(orderSummary);
 
+  // ===== ALERTAS DE DESCUENTO =====
+  const DISCOUNT_30_THRESHOLD = 7000;
+  const DISCOUNT_40_THRESHOLD = 15000;
+  const NEAR_THRESHOLD_PERCENT = 0.7; // 70% del umbral = "ya casi"
   
-
+  // Calcular alertas para descuentos
+  const getDiscountAlerts = () => {
+    const alerts = [];
+    
+    // Solo mostrar alertas si hay productos elegibles (sin rebaja)
+    if (eligibleTotal <= 0) return alerts;
+    
+    // Alerta para el 30%
+    if (eligibleTotal < DISCOUNT_30_THRESHOLD) {
+      const remaining = DISCOUNT_30_THRESHOLD - eligibleTotal;
+      const isNear = eligibleTotal >= (DISCOUNT_30_THRESHOLD * NEAR_THRESHOLD_PERCENT);
+      
+      if (isNear) {
+        alerts.push({
+          type: 'near',
+          icon: '🔥',
+          message: `¡Ya casi! Te faltan $${formatMoney(remaining)} para obtener tu descuento del 30%`,
+          color: '#ff9800'
+        });
+      } else {
+        alerts.push({
+          type: 'info',
+          icon: '💰',
+          message: `Te faltan $${formatMoney(remaining)} para obtener un descuento del 30%`,
+          color: '#2196f3'
+        });
+      }
+    }
+    // Alerta para el 10% adicional (si ya tiene el 30%)
+    else if (eligibleTotal >= DISCOUNT_30_THRESHOLD && eligibleTotal < DISCOUNT_40_THRESHOLD) {
+      const remaining = DISCOUNT_40_THRESHOLD - eligibleTotal;
+      const isNear = eligibleTotal >= (DISCOUNT_40_THRESHOLD * NEAR_THRESHOLD_PERCENT);
+      
+      alerts.push({
+        type: 'success',
+        icon: '✅',
+        message: `¡Felicidades! Ya tienes tu descuento del 30%`,
+        color: '#4caf50'
+      });
+      
+      if (isNear) {
+        alerts.push({
+          type: 'near',
+          icon: '🔥',
+          message: `¡Ya casi! Te faltan $${formatMoney(remaining)} para obtener un 10% adicional`,
+          color: '#ff9800'
+        });
+      } else {
+        alerts.push({
+          type: 'info',
+          icon: '🎯',
+          message: `Te faltan $${formatMoney(remaining)} para obtener un 10% adicional`,
+          color: '#2196f3'
+        });
+      }
+    }
+    // Ya tiene el 40%
+    else if (eligibleTotal >= DISCOUNT_40_THRESHOLD) {
+      alerts.push({
+        type: 'success',
+        icon: '🎉',
+        message: `¡Increíble! Tienes el descuento máximo del 40%`,
+        color: '#4caf50'
+      });
+    }
+    
+    return alerts;
+  };
+  
+  // Calcular alertas para envío gratis
+  const getShippingAlerts = () => {
+    const alerts = [];
+    const freeShippingMin = user?.free_shipping_min_amount || 3000;
+    const currentTotal = preShippingTotal;
+    
+    if (currentTotal < freeShippingMin) {
+      const remaining = freeShippingMin - currentTotal;
+      const isNear = currentTotal >= (freeShippingMin * NEAR_THRESHOLD_PERCENT);
+      
+      if (isNear) {
+        alerts.push({
+          type: 'near',
+          icon: '🚚',
+          message: `¡Ya casi! Te faltan $${formatMoney(remaining)} para envío gratis`,
+          color: '#ff9800'
+        });
+      } else {
+        alerts.push({
+          type: 'info',
+          icon: '📦',
+          message: `Te faltan $${formatMoney(remaining)} para envío gratis`,
+          color: '#9c27b0'
+        });
+      }
+    } else {
+      alerts.push({
+        type: 'success',
+        icon: '🚚',
+        message: `¡Genial! Tienes envío gratis`,
+        color: '#4caf50'
+      });
+    }
+    
+    return alerts;
+  };
+  
+  const discountAlerts = getDiscountAlerts();
+  const shippingAlerts = getShippingAlerts();
+  const allAlerts = [...discountAlerts, ...shippingAlerts];
 
   return (
     <div className="container cart-details__container">
@@ -466,6 +584,25 @@ const CartDetailsPage = () => {
                 onQuantityChange={(variantIdx, newQty) => handleQuantityChange(idx, variantIdx, newQty)}
               />
             ))}
+            
+            {/* Alertas de descuento y envío */}
+            {allAlerts.length > 0 && (
+              <div className="cart-details__alerts">
+                {allAlerts.map((alert, index) => (
+                  <div 
+                    key={index} 
+                    className={`cart-details__alert cart-details__alert--${alert.type}`}
+                    style={{ 
+                      borderLeftColor: alert.color,
+                      backgroundColor: `${alert.color}15`
+                    }}
+                  >
+                    <span className="cart-details__alert-icon">{alert.icon}</span>
+                    <span className="cart-details__alert-message">{alert.message}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="cart-details__summary-col">
             {/* Card 1: Monto del pedido */}

@@ -34,6 +34,12 @@ import useHorizontalDragScroll from '../hooks/useHorizontalDragScroll';
 import colorConverter from '../services/colorConverter';
 import { validateStock, getProductStock } from '../services/inventoryService';
 
+// Función para formatear montos con separador de miles
+const formatMoneyWithCommas = (value) => {
+  const num = typeof value === 'number' ? value : parseFloat(value || 0);
+  return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 const ProductPage = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
@@ -443,7 +449,7 @@ const ProductPage = () => {
 
 
   // Cart store
-  const { addToCart, isLoading: isAddingToCart } = useCartStore();
+  const { addToCart, isLoading: isAddingToCart, items: cartItems, totalPrice: cartTotalPrice } = useCartStore();
 
   // User discounts hook
   const { userDiscounts, loading: discountsLoading } = useUserDiscounts(product ? [product.id_articulo] : []);
@@ -785,6 +791,125 @@ const ProductPage = () => {
 
   const thumbnailsRef = useRef(null);
   const { isDragging, eventHandlers } = useHorizontalDragScroll(thumbnailsRef);
+
+  // ===== ALERTAS DE DESCUENTO PARA PÁGINA DE PRODUCTO =====
+  const DISCOUNT_30_THRESHOLD = 7000;
+  const DISCOUNT_40_THRESHOLD = 15000;
+  const NEAR_THRESHOLD_PERCENT = 0.7;
+  
+  // Calcular total elegible del carrito (productos sin rebaja)
+  const eligibleCartTotal = (cartItems || []).reduce((sum, item) => {
+    const hasNoPromo = item.desc_promo === 0 || item.desc_promo === null || item.desc_promo === undefined;
+    const hasNoUserOffer = !item.userOffer || item.userOffer.discount_category === null;
+    if (hasNoPromo && hasNoUserOffer) {
+      const itemPrice = item.precio || item.price || 0;
+      const itemQuantity = item.quantity || 0;
+      return sum + (itemPrice * itemQuantity);
+    }
+    return sum;
+  }, 0);
+
+  // Calcular total del carrito para envío
+  const cartTotal = cartTotalPrice || 0;
+  const freeShippingMin = user?.free_shipping_min_amount || 3000;
+
+  const getProductPageAlerts = () => {
+    const alerts = [];
+    
+    // Alertas para descuentos (solo si hay items elegibles o el producto actual es elegible)
+    const productHasNoPromo = !product?.desc_promo || product.desc_promo === 0;
+    
+    if (productHasNoPromo || eligibleCartTotal > 0) {
+      if (eligibleCartTotal < DISCOUNT_30_THRESHOLD) {
+        const remaining = DISCOUNT_30_THRESHOLD - eligibleCartTotal;
+        const isNear = eligibleCartTotal >= (DISCOUNT_30_THRESHOLD * NEAR_THRESHOLD_PERCENT);
+        
+        if (isNear && eligibleCartTotal > 0) {
+          alerts.push({
+            type: 'near',
+            icon: '🔥',
+            message: `¡Ya casi! Te faltan $${formatMoneyWithCommas(remaining)} para obtener tu descuento del 30%`,
+            color: '#ff9800'
+          });
+        } else {
+          alerts.push({
+            type: 'info',
+            icon: '💰',
+            message: eligibleCartTotal > 0 
+              ? `Te faltan $${formatMoneyWithCommas(remaining)} para obtener un descuento del 30%`
+              : `Agrega $${DISCOUNT_30_THRESHOLD.toLocaleString()} en productos para obtener 30% de descuento`,
+            color: '#2196f3'
+          });
+        }
+      } else if (eligibleCartTotal >= DISCOUNT_30_THRESHOLD && eligibleCartTotal < DISCOUNT_40_THRESHOLD) {
+        const remaining = DISCOUNT_40_THRESHOLD - eligibleCartTotal;
+        const isNear = eligibleCartTotal >= (DISCOUNT_40_THRESHOLD * NEAR_THRESHOLD_PERCENT);
+        
+        alerts.push({
+          type: 'success',
+          icon: '✅',
+          message: `¡Tienes 30% de descuento!`,
+          color: '#4caf50'
+        });
+        
+        if (isNear) {
+          alerts.push({
+            type: 'near',
+            icon: '🔥',
+            message: `¡Ya casi! Te faltan $${formatMoneyWithCommas(remaining)} para un 10% adicional`,
+            color: '#ff9800'
+          });
+        } else {
+          alerts.push({
+            type: 'info',
+            icon: '🎯',
+            message: `Te faltan $${formatMoneyWithCommas(remaining)} para un 10% adicional`,
+            color: '#2196f3'
+          });
+        }
+      } else if (eligibleCartTotal >= DISCOUNT_40_THRESHOLD) {
+        alerts.push({
+          type: 'success',
+          icon: '🎉',
+          message: `¡Tienes el descuento máximo del 40%!`,
+          color: '#4caf50'
+        });
+      }
+    }
+    
+    // Alertas para envío gratis
+    if (cartTotal < freeShippingMin) {
+      const remaining = freeShippingMin - cartTotal;
+      const isNear = cartTotal >= (freeShippingMin * NEAR_THRESHOLD_PERCENT);
+      
+      if (isNear && cartTotal > 0) {
+        alerts.push({
+          type: 'near',
+          icon: '🚚',
+          message: `¡Ya casi! Te faltan $${formatMoneyWithCommas(remaining)} para envío gratis`,
+          color: '#ff9800'
+        });
+      } else if (cartTotal > 0) {
+        alerts.push({
+          type: 'info',
+          icon: '📦',
+          message: `Te faltan $${formatMoneyWithCommas(remaining)} para envío gratis`,
+          color: '#9c27b0'
+        });
+      }
+    } else if (cartTotal > 0) {
+      alerts.push({
+        type: 'success',
+        icon: '🚚',
+        message: `¡Tienes envío gratis!`,
+        color: '#4caf50'
+      });
+    }
+    
+    return alerts;
+  };
+  
+  const productPageAlerts = getProductPageAlerts();
 
   if (isLoading) {
     return (
@@ -1278,6 +1403,25 @@ const ProductPage = () => {
                       </div>
                     ))}
                 </div>
+              </div>
+            )}
+
+            {/* Alertas de descuento y envío */}
+            {productPageAlerts.length > 0 && (
+              <div className="product-page__alerts">
+                {productPageAlerts.map((alert, index) => (
+                  <div 
+                    key={index} 
+                    className={`product-page__alert product-page__alert--${alert.type}`}
+                    style={{ 
+                      borderLeftColor: alert.color,
+                      backgroundColor: `${alert.color}15`
+                    }}
+                  >
+                    <span className="product-page__alert-icon">{alert.icon}</span>
+                    <span className="product-page__alert-message">{alert.message}</span>
+                  </div>
+                ))}
               </div>
             )}
 

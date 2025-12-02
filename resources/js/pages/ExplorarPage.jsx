@@ -4,10 +4,11 @@ import { Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard/ProductCard';
 import CherryButton from '../components/CherryButton/CherryButton';
 import InfiniteScrollLoader from '../components/InfiniteScrollLoader/InfiniteScrollLoader';
-import useProductsWithCache from '../hooks/useProductsWithCache';
 import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
-import { fetchProducts } from '../api/cherryApi';
+import { applyUserOffersToProducts } from '../api/userOffers';
+import api from '../services/api';
+import { getProductImageUrl } from '../utils/productImageUtils';
 import './ExplorarPage.css';
 
 const ExplorarPage = () => {
@@ -25,25 +26,93 @@ const ExplorarPage = () => {
     { id: 'accesorios', name: 'Accesorios', icon: 'category/vestir 1.svg' }
   ];
 
-  // Cargar productos con caché
-  const {
-    products: cachedProducts,
-    loading: cacheLoading,
-    loadedFromCache
-  } = useProductsWithCache(fetchProducts, []);
-
-  // Actualizar estado cuando cambian los productos
+  // Cargar productos desde el backend local
   useEffect(() => {
-    if (cachedProducts && cachedProducts.length > 0) {
-      setProducts(cachedProducts);
-      setLoading(false);
-    }
-  }, [cachedProducts]);
+    const loadProducts = async () => {
+      setLoading(true);
+      try {
+        const searchResponse = await api.get('/products/search', {
+          params: { q: '' }
+        });
 
-  // Sincronizar loading state
-  useEffect(() => {
-    setLoading(cacheLoading);
-  }, [cacheLoading]);
+        if (searchResponse.data.success && searchResponse.data.data.products) {
+          const localProducts = searchResponse.data.data.products;
+          
+          // Mapear productos al formato esperado
+          const mappedProducts = localProducts.map(product => {
+            const rawPrice = product.precio1;
+            const numericPrice = typeof rawPrice === 'string' 
+              ? parseFloat(rawPrice.replace(/[^\d.-]/g, '')) 
+              : parseFloat(rawPrice) || 0;
+            
+            const productColors = product.detalles 
+              ? [...new Set(product.detalles.map(d => d.nombreColor).filter(Boolean))] 
+              : [];
+            
+            const productSizes = product.detalles 
+              ? [...new Set(product.detalles.map(d => d.detalle).filter(Boolean))] 
+              : [];
+            
+            // Determinar si es nuevo (45 días)
+            const fortyFiveDaysAgo = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);
+            const isNewProduct = product.opc_nuevo === 'S' || 
+              (product.fecha_alta && new Date(product.fecha_alta) > fortyFiveDaysAgo);
+            
+            let finalPrice = product.price;
+            let originalPrice = product.originalPrice;
+            let discountPercentage = product.discount;
+            
+            if (finalPrice === undefined || finalPrice === null || finalPrice === 0) {
+              const hasDiscount = product.opc_promo === 'S' && product.desc_promo > 0;
+              const originalDiscountPercentage = hasDiscount ? parseFloat(product.desc_promo) : 0;
+              discountPercentage = hasDiscount ? Math.max(0, originalDiscountPercentage - 10) : 0;
+              originalPrice = hasDiscount && numericPrice > 0 
+                ? (numericPrice / (1 - originalDiscountPercentage / 100)) 
+                : null;
+              finalPrice = hasDiscount && discountPercentage > 0 && numericPrice > 0 
+                ? (numericPrice - (numericPrice * (discountPercentage / 100))) 
+                : numericPrice;
+            }
+            
+            return {
+              id: product.id_articulo || product.id,
+              title: product.descripcion || product.title || 'Sin nombre',
+              description: product.descripcion || 'Sin descripción',
+              price: finalPrice,
+              originalPrice: originalPrice,
+              discount: discountPercentage || 0,
+              image: getProductImageUrl(product.id_articulo || product.id),
+              brand: product.marca || 'Sin marca',
+              stock: product.inventario || 0,
+              colors: productColors.length > 0 ? productColors : ['black'],
+              sizes: productSizes.length > 0 ? productSizes : ['M'],
+              isNew: isNewProduct,
+              rating: product.rating || 0,
+              ratingCount: product.ratingCount || 0,
+              category: product.linea || '',
+              id_linea: product.id_linea,
+              catalogoId: product.catalogoId,
+              fechaAlta: product.fecha_alta,
+              detalles: product.detalles
+            };
+          });
+
+          // Aplicar ofertas de usuario
+          const productsWithOffers = await applyUserOffersToProducts(mappedProducts);
+          setProducts(productsWithOffers);
+        } else {
+          setProducts([]);
+        }
+      } catch (error) {
+        console.error('Error cargando productos:', error);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, []);
 
   const getFilteredAndSortedProducts = () => {
     let filtered = [...products];
@@ -52,7 +121,8 @@ const ExplorarPage = () => {
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(product => {
         const productCategory = product.category?.toLowerCase() || '';
-        return productCategory.includes(selectedCategory);
+        const productTitle = product.title?.toLowerCase() || '';
+        return productCategory.includes(selectedCategory) || productTitle.includes(selectedCategory);
       });
     }
 
@@ -69,7 +139,7 @@ const ExplorarPage = () => {
         break;
       case 'newest':
       default:
-        filtered.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        filtered.sort((a, b) => new Date(b.fechaAlta || 0) - new Date(a.fechaAlta || 0));
         break;
     }
 
@@ -85,7 +155,7 @@ const ExplorarPage = () => {
   };
 
   const handleFavoriteToggle = (productId) => {
-    };
+  };
 
   const filteredProducts = getFilteredAndSortedProducts();
 
@@ -108,7 +178,7 @@ const ExplorarPage = () => {
           <div className="container">
             <div className="explorar-loading">
               <div className="loading-spinner"></div>
-              <p>Explorando productos...</p>
+              <p>Cargando productos...</p>
             </div>
           </div>
         </main>
@@ -120,7 +190,7 @@ const ExplorarPage = () => {
     <>
       <Helmet>
         <title>Explorar - Cherry Central</title>
-        <meta name="description" content="Explora nuestra amplia colección de moda femenina. Encuentra vestidos, blusas, pantalones y más en Cherry Central." />
+        <meta name="description" content="Explora nuestra amplia colección de productos de moda femenina en Cherry Central." />
       </Helmet>
 
       <main className="explorar-page">
@@ -128,41 +198,31 @@ const ExplorarPage = () => {
           {/* Header */}
           <div className="explorar-header">
             <h1>Explorar Productos</h1>
-            <p>Descubre nuestra amplia colección de moda femenina</p>
+            <p>Encuentra lo que buscas en nuestra colección</p>
           </div>
 
-          {/* Filtros de categoría */}
-          <div className="categorias-filtro">
-            <div className="categorias-grid">
-              {categories.map((category) => (
-                <button
-                  key={category.id}
-                  className={`categoria-btn ${selectedCategory === category.id ? 'active' : ''}`}
-                  onClick={() => handleCategoryClick(category.id)}
-                >
-                  <div className="categoria-icon">
-                    <img src={getIconPath(category.icon)} alt={category.name} />
-                  </div>
-                  <span>{category.name}</span>
-                </button>
-              ))}
-            </div>
+          {/* Categories */}
+          <div className="explorar-categories">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                className={`category-chip ${selectedCategory === cat.id ? 'active' : ''}`}
+                onClick={() => handleCategoryClick(cat.id)}
+              >
+                {cat.icon && <img src={getIconPath(cat.icon)} alt={cat.name} className="category-icon" />}
+                <span>{cat.name}</span>
+              </button>
+            ))}
           </div>
 
-          {/* Controles de ordenamiento */}
-          <div className="explorar-controls">
-            <div className="results-info">
+          {/* Sort and Results */}
+          <div className="explorar-toolbar">
+            <div className="results-count">
               <span>{filteredProducts.length} productos encontrados</span>
             </div>
-            
-            <div className="sort-controls">
-              <label htmlFor="sort-select">Ordenar por:</label>
-              <select
-                id="sort-select"
-                value={sortBy}
-                onChange={(e) => handleSortChange(e.target.value)}
-                className="sort-select"
-              >
+            <div className="sort-options">
+              <label>Ordenar por:</label>
+              <select value={sortBy} onChange={(e) => handleSortChange(e.target.value)}>
                 <option value="newest">Más recientes</option>
                 <option value="price-low">Precio: menor a mayor</option>
                 <option value="price-high">Precio: mayor a menor</option>
@@ -171,85 +231,46 @@ const ExplorarPage = () => {
             </div>
           </div>
 
-          {/* Grid de productos */}
-          <div className="explorar-content">
-            {filteredProducts.length === 0 ? (
-              <div className="explorar-empty">
-                <div className="empty-icon">
-                  <img src={getIconPath('Search.svg')} alt="Sin productos" />
-                </div>
-                <h2>No se encontraron productos</h2>
-                <p>
-                  {selectedCategory === 'all' 
-                    ? 'No hay productos disponibles en este momento'
-                    : `No hay productos en la categoría "${categories.find(c => c.id === selectedCategory)?.name}"`
-                  }
-                </p>
-                <CherryButton 
-                  variant="outline" 
-                  size="medium"
-                  onClick={() => setSelectedCategory('all')}
-                >
-                  Ver todos los productos
-                </CherryButton>
+          {/* Products Grid */}
+          {filteredProducts.length === 0 ? (
+            <div className="explorar-empty">
+              <div className="empty-icon">
+                <img src={getIconPath('Search.svg')} alt="Sin productos" />
               </div>
-              ) : (
-              <>
-                <div className="explorar-products-grid">
-                  {infiniteScroll.displayedItems.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      onFavoriteToggle={handleFavoriteToggle}
-                    />
-                  ))}
-                </div>
-
-                {/* Infinite Scroll Loader */}
-                <InfiniteScrollLoader
-                  isLoading={infiniteScroll.isLoading}
-                  hasMore={infiniteScroll.hasMore}
-                  observerTarget={infiniteScroll.observerTarget}
-                />
-              </>
-            )}
-          </div>
-
-          {/* Sección de información */}
-          <div className="explorar-info">
-            <div className="info-section">
-              <h3>¿Cómo explorar productos?</h3>
-              <div className="info-grid">
-                <div className="info-item">
-                  <div className="info-icon">
-                    <img src={getIconPath('Filter.svg')} alt="Filtros" />
-                  </div>
-                  <h4>Usa los filtros</h4>
-                  <p>Selecciona una categoría para ver productos específicos</p>
-                </div>
-                
-                <div className="info-item">
-                  <div className="info-icon">
-                    <img src={getIconPath('Search.svg')} alt="Búsqueda" />
-                  </div>
-                  <h4>Busca productos</h4>
-                  <p>Utiliza la barra de búsqueda para encontrar productos específicos</p>
-                </div>
-                
-                <div className="info-item">
-                  <div className="info-icon">
-                    <img src={getIconPath('Shopping Cart.svg')} alt="Carrito" />
-                  </div>
-                  <h4>Agrega al carrito</h4>
-                  <p>Haz clic en "Agregar al carrito" para comprar</p>
-                </div>
-              </div>
+              <h3>No se encontraron productos</h3>
+              <p>Intenta seleccionar otra categoría</p>
+              <CherryButton 
+                variant="outline" 
+                size="medium"
+                onClick={() => setSelectedCategory('all')}
+              >
+                Ver todos los productos
+              </CherryButton>
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="explorar-grid">
+                {infiniteScroll.displayedItems.map((product, index) => (
+                  <ProductCard
+                    key={product.id || `product-${index}`}
+                    product={product}
+                    onFavoriteToggle={handleFavoriteToggle}
+                  />
+                ))}
+              </div>
+
+              {/* Infinite Scroll Loader */}
+              <InfiniteScrollLoader
+                isLoading={infiniteScroll.isLoading}
+                hasMore={infiniteScroll.hasMore}
+                observerTarget={infiniteScroll.observerTarget}
+              />
+            </>
+          )}
         </div>
       </main>
     </>
   );
 };
 
-export default ExplorarPage; 
+export default ExplorarPage;
