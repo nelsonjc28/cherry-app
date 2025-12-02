@@ -15,25 +15,51 @@ class MercadoPagoService
 
     public function __construct()
     {
-        // Configurar MercadoPago
-        $accessToken = config('services.mercadopago.access_token');
-        
-        if (!$accessToken) {
-            throw new \Exception('MercadoPago access token not configured');
-        }
+        try {
+            // Configurar MercadoPago
+            $accessToken = config('services.mercadopago.access_token');
+            
+            if (!$accessToken) {
+                Log::error('MercadoPago access token no configurado');
+                throw new \Exception('MercadoPago access token not configured');
+            }
 
-        MercadoPagoConfig::setAccessToken($accessToken);
-        
-        // Determinar el ambiente según la configuración
-        $environment = config('services.mercadopago.environment', 'sandbox');
-        $runtimeEnvironment = $environment === 'production' 
-            ? MercadoPagoConfig::PRODUCTION 
-            : MercadoPagoConfig::LOCAL;
-        
-        MercadoPagoConfig::setRuntimeEnviroment($runtimeEnvironment);
-        
-        $this->client = new PreferenceClient();
-        $this->paymentClient = new PaymentClient();
+            Log::debug('Configurando MercadoPago SDK', [
+                'environment' => config('services.mercadopago.environment', 'sandbox'),
+                'has_access_token' => !empty($accessToken)
+            ]);
+
+            MercadoPagoConfig::setAccessToken($accessToken);
+            
+            // Determinar el ambiente según la configuración
+            $environment = config('services.mercadopago.environment', 'sandbox');
+            $runtimeEnvironment = $environment === 'production' 
+                ? MercadoPagoConfig::PRODUCTION 
+                : MercadoPagoConfig::LOCAL;
+            
+            // Intentar con ambos métodos por compatibilidad
+            if (method_exists(MercadoPagoConfig::class, 'setRuntimeEnvironment')) {
+                MercadoPagoConfig::setRuntimeEnvironment($runtimeEnvironment);
+            } elseif (method_exists(MercadoPagoConfig::class, 'setRuntimeEnviroment')) {
+                MercadoPagoConfig::setRuntimeEnviroment($runtimeEnvironment);
+            }
+            
+            // Configurar timeout (si está disponible en el SDK)
+            if (method_exists(MercadoPagoConfig::class, 'setConnectionTimeout')) {
+                MercadoPagoConfig::setConnectionTimeout(10); // 10 segundos
+            }
+            
+            $this->client = new PreferenceClient();
+            $this->paymentClient = new PaymentClient();
+            
+            Log::debug('MercadoPago SDK configurado correctamente');
+            
+        } catch (\Exception $e) {
+            Log::error('Error configurando MercadoPago SDK', [
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
 
     /**
@@ -42,6 +68,11 @@ class MercadoPagoService
     public function createPreference(array $orderData)
     {
         try {
+            Log::info('Iniciando creación de preferencia MercadoPago', [
+                'external_reference' => $orderData['order_id'] ?? 'N/A',
+                'items_count' => count($orderData['items'] ?? [])
+            ]);
+
             $items = [];
             
             // Procesar items del pedido
@@ -55,6 +86,16 @@ class MercadoPagoService
                 ];
             }
 
+            Log::debug('Items procesados para preferencia', ['items' => $items]);
+
+            $backUrlSuccess = $this->getValidUrl('/compra-exitosa');
+            $backUrlFailure = $this->getValidUrl('/checkout/failure');
+            $backUrlPending = $this->getValidUrl('/checkout/pending');
+            
+            $appUrl = config('app.url');
+            $isLocalhost = $this->isLocalhost($appUrl);
+            $hasNgrok = !empty(env('NGROK_URL'));
+            
             $preferenceData = [
                 'items' => $items,
                 'payer' => [
@@ -71,12 +112,11 @@ class MercadoPagoService
                     ]
                 ],
                 'back_urls' => [
-                    'success' => $this->getValidUrl('/compra-exitosa'),
-                    'failure' => $this->getValidUrl('/checkout/failure'),
-                    'pending' => $this->getValidUrl('/checkout/pending')
+                    'success' => $backUrlSuccess,
+                    'failure' => $backUrlFailure,
+                    'pending' => $backUrlPending
                 ],
                 'auto_return' => 'approved',
-                'notification_url' => $this->getValidUrl('/api/mercadopago/webhook'),
                 'external_reference' => $orderData['order_id'] ?? uniqid('order_'),
                 'payment_methods' => [
                     'excluded_payment_types' => [],
@@ -98,10 +138,33 @@ class MercadoPagoService
                 'expiration_date_from' => now()->toISOString(),
                 'expiration_date_to' => now()->addHours(24)->toISOString()
             ];
+            
+            // Agregar notification_url solo si tenemos URL pública (real o ngrok)
+            // Si es localhost sin ngrok, el webhook se deshabilita (se procesa al regresar)
+            if (!$isLocalhost || $hasNgrok) {
+                $notificationUrl = $this->getValidUrl('/api/mercadopago/webhook');
+                $preferenceData['notification_url'] = $notificationUrl;
+                Log::info('✅ Webhook habilitado', ['url' => $notificationUrl]);
+            } else {
+                Log::warning('⚠️ Webhook deshabilitado - desarrollo local sin ngrok. Los pagos se verificarán al regresar del redirect.');
+            }
 
+            Log::info('Llamando a MercadoPago API para crear preferencia', [
+                'external_reference' => $preferenceData['external_reference'],
+                'notification_url' => $notificationUrl
+            ]);
 
+            // Configurar timeout antes de la llamada
+            $startTime = microtime(true);
+            
             $preference = $this->client->create($preferenceData);
             
+            $elapsedTime = microtime(true) - $startTime;
+            
+            Log::info('Preferencia creada exitosamente', [
+                'preference_id' => $preference->id ?? 'N/A',
+                'elapsed_time' => round($elapsedTime, 2) . 's'
+            ]);
 
             return $preference;
             
@@ -201,31 +264,60 @@ class MercadoPagoService
     }
 
     /**
+     * Obtener la URL del webhook (público para verificación)
+     */
+    public function getWebhookUrl()
+    {
+        $appUrl = config('app.url');
+        $isLocalhost = $this->isLocalhost($appUrl);
+        
+        // Si es localhost sin ngrok, webhook deshabilitado
+        if ($isLocalhost && empty(env('NGROK_URL'))) {
+            return null;
+        }
+        
+        return $this->getValidUrl('/api/mercadopago/webhook');
+    }
+
+    /**
+     * Verificar si una URL es localhost
+     */
+    private function isLocalhost($url)
+    {
+        return str_contains($url, 'localhost') || 
+               str_contains($url, '127.0.0.1') || 
+               str_contains($url, '::1');
+    }
+
+    /**
      * Obtener una URL válida para MercadoPago
-     * En desarrollo, usar ngrok o una URL pública válida
+     * PRIORIDAD: URL real (APP_URL) > ngrok > localhost
      */
     private function getValidUrl($path)
     {
-        // Prioridad: Variable de entorno > APP_URL > URL por defecto
-        $ngrokUrl = env('NGROK_URL');
         $appUrl = config('app.url');
+        $ngrokUrl = env('NGROK_URL');
+        $isLocalhost = $this->isLocalhost($appUrl);
         
-        // Si hay URL de ngrok configurada, usarla
-        if ($ngrokUrl) {
-            return rtrim($ngrokUrl, '/') . $path;
+        // PRIORIDAD 1: Si APP_URL es una URL real (no localhost), usarla SIEMPRE
+        // Esto es para producción o servidores con dominio real
+        if (!$isLocalhost && !empty($appUrl)) {
+            $url = rtrim($appUrl, '/') . $path;
+            Log::info('✅ Usando URL real (APP_URL)', ['url' => $url]);
+            return $url;
         }
         
-        // Si estamos en localhost, usar una URL de desarrollo válida
-        if (str_contains($appUrl, 'localhost') || str_contains($appUrl, '127.0.0.1')) {
-            // Para desarrollo, usar una URL temporal válida
-            // IMPORTANTE: Actualiza esta URL con tu URL real de ngrok
-            $developmentUrl = 'https://cherry-app-dev.ngrok.io';
-            
-            
-            return $developmentUrl . $path;
+        // PRIORIDAD 2: Si hay ngrok configurado (desarrollo con túnel público)
+        if (!empty($ngrokUrl)) {
+            $url = rtrim($ngrokUrl, '/') . $path;
+            Log::info('🔗 Usando URL de ngrok', ['url' => $url]);
+            return $url;
         }
         
-        return $appUrl . $path;
+        // PRIORIDAD 3: Localhost sin ngrok (solo para back_urls, webhook deshabilitado)
+        $url = rtrim($appUrl, '/') . $path;
+        Log::warning('⚠️ Usando localhost - webhook no funcionará automáticamente', ['url' => $url]);
+        return $url;
     }
 
     /**

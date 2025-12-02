@@ -23,8 +23,10 @@ class PaymentController extends Controller
     protected $mercadoPagoService;
     protected $externalSalesService;
 
-    public function __construct(MercadoPagoService $mercadoPagoService, ExternalSalesService $externalSalesService)
-    {
+    public function __construct(
+        MercadoPagoService $mercadoPagoService, 
+        ExternalSalesService $externalSalesService
+    ) {
         $this->mercadoPagoService = $mercadoPagoService;
         $this->externalSalesService = $externalSalesService;
     }
@@ -102,100 +104,268 @@ class PaymentController extends Controller
             ]);
         }
 
-        // Preparar datos para MercadoPago
-        $orderData = [
-            'order_id' => $order->external_reference,
-            'user' => [
-                'first_name' => $user->first_name,
-                'last_name' => $user->last_name,
-                'email' => $user->email,
-                'phone' => $user->phone
-            ],
-            'address' => [
-                'street_address' => $address->street_address,
-                'city' => $address->city,
-                'state' => $address->state,
-                'postal_code' => $address->postal_code,
-                'country' => $address->country
-            ],
-            'items' => $request->items
-        ];
+        try {
+            // Preparar datos para MercadoPago
+            $orderData = [
+                'order_id' => $order->external_reference,
+                'user' => [
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name,
+                    'email' => $user->email,
+                    'phone' => $user->phone
+                ],
+                'address' => [
+                    'street_address' => $address->street_address,
+                    'city' => $address->city,
+                    'state' => $address->state,
+                    'postal_code' => $address->postal_code,
+                    'country' => $address->country
+                ],
+                'items' => $request->items
+            ];
 
-        // Crear preferencia en MercadoPago
-        $preference = $this->mercadoPagoService->createPreference($orderData);
-        // Actualizar el pedido con el ID de preferencia
-        $order->update([
-            'mercadopago_preference_id' => $preference->id
-        ]);
-
-        DB::commit();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Preferencia de pago creada correctamente',
-            'data' => [
+            Log::info('Creando preferencia de MercadoPago', [
                 'order_id' => $order->id,
                 'external_reference' => $order->external_reference,
-                'preference_id' => $preference->id,
-                'payment_url' => $this->mercadoPagoService->getPaymentUrl($preference->id),
-                'sandbox_payment_url' => $this->mercadoPagoService->getSandboxPaymentUrl($preference->id),
-                'init_point' => $preference->init_point,
-                'sandbox_init_point' => $preference->sandbox_init_point
-            ]
-        ]);
+                'items_count' => count($request->items)
+            ]);
 
-        /*  } catch (\Exception $e) {
+            // Crear preferencia en MercadoPago con timeout
+            $preference = $this->mercadoPagoService->createPreference($orderData);
+            
+            Log::info('Preferencia creada exitosamente', [
+                'preference_id' => $preference->id,
+                'order_id' => $order->id
+            ]);
+            
+            // Actualizar el pedido con el ID de preferencia
+            $order->update([
+                'mercadopago_preference_id' => $preference->id
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Preferencia de pago creada correctamente',
+                'data' => [
+                    'order_id' => $order->id,
+                    'external_reference' => $order->external_reference,
+                    'preference_id' => $preference->id,
+                    'payment_url' => $preference->init_point ?? $this->mercadoPagoService->getPaymentUrl($preference->id),
+                    'sandbox_payment_url' => $preference->sandbox_init_point ?? $this->mercadoPagoService->getSandboxPaymentUrl($preference->id),
+                    'init_point' => $preference->init_point ?? null,
+                    'sandbox_init_point' => $preference->sandbox_init_point ?? null
+                ]
+            ]);
+
+        } catch (\Exception $e) {
             DB::rollBack();
+            
+            Log::error('Error al crear preferencia de MercadoPago', [
+                'order_id' => $order->id ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             
             return response()->json([
                 'success' => false,
                 'message' => 'Error al crear la preferencia de pago: ' . $e->getMessage()
             ], 500);
-        } */
+        }
     }
 
     /**
      * Webhook de MercadoPago
+     * Recibe notificaciones de pagos (aprobados, rechazados, pendientes, etc.)
      */
     public function webhook(Request $request)
     {
         try {
             $data = $request->all();
+            
+            Log::info('Webhook de MercadoPago recibido', ['data' => $data]);
 
             $result = $this->mercadoPagoService->processWebhook($data);
 
             if ($result && isset($result['external_reference'])) {
                 // Buscar el pedido por external_reference
-                $order = Order::where('external_reference', $result['external_reference'])->first();
+                $order = Order::where('external_reference', $result['external_reference'])
+                    ->with(['items', 'user', 'address'])
+                    ->first();
 
                 if ($order) {
-                    // Actualizar estado del pedido según el estado del pago
+                    $previousStatus = $order->status;
                     $newStatus = $this->mapPaymentStatus($result['status']);
+                    
+                    Log::info('Procesando webhook para orden', [
+                        'order_id' => $order->id,
+                        'payment_status' => $result['status'],
+                        'previous_order_status' => $previousStatus,
+                        'new_order_status' => $newStatus
+                    ]);
 
+                    // Actualizar estado del pedido
                     $order->update([
                         'status' => $newStatus,
                         'mercadopago_payment_id' => $result['payment_id'],
                         'payment_data' => json_encode($result['payment_data'])
                     ]);
 
-                    // Si el pago fue aprobado, enviar información a la API externa
+                    // === PAGO APROBADO ===
                     if ($result['status'] === 'approved' && $newStatus === 'pagado') {
-                        try {
-                            $this->externalSalesService->sendSaleToExternalApi($order);
-                        } catch (\Exception $e) {
-                            // Log del error pero no fallar el webhook
-                            Log::error('Error al enviar venta a API externa desde webhook', [
-                                'order_id' => $order->id,
-                                'error' => $e->getMessage()
-                            ]);
-                        }
+                        $this->handleApprovedPayment($order, $previousStatus);
+                    }
+                    
+                    // === PAGO RECHAZADO ===
+                    elseif ($result['status'] === 'rejected') {
+                        $this->handleRejectedPayment($order);
+                    }
+                    
+                    // === PAGO CANCELADO ===
+                    elseif ($result['status'] === 'cancelled') {
+                        $this->handleCancelledPayment($order, $previousStatus);
+                    }
+                    
+                    // === PAGO PENDIENTE (para OXXO principalmente) ===
+                    elseif (in_array($result['status'], ['pending', 'in_process'])) {
+                        $this->handlePendingPayment($order);
                     }
                 }
             }
 
             return response()->json(['status' => 'ok'], 200);
+            
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            Log::error('Error en webhook de MercadoPago', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            // Siempre responder 200 para que MercadoPago no reintente
+            return response()->json(['status' => 'error_logged'], 200);
+        }
+    }
+
+    /**
+     * Manejar pago aprobado
+     * El inventario se descuenta desde la API externa al sincronizar productos
+     */
+    private function handleApprovedPayment(Order $order, string $previousStatus)
+    {
+        Log::info('Procesando pago aprobado', ['order_id' => $order->id]);
+        
+        // 1. Enviar información a la API externa (ella se encarga del inventario)
+        try {
+            $this->externalSalesService->sendSaleToExternalApi($order);
+            Log::info('Venta enviada a API externa exitosamente', ['order_id' => $order->id]);
+        } catch (\Exception $e) {
+            Log::error('Error al enviar venta a API externa desde webhook', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+        
+        // 2. Crear notificación para el usuario
+        try {
+            Notification::create([
+                'user_id' => $order->user_id,
+                'type' => 'payment_approved',
+                'title' => '¡Pago aprobado!',
+                'message' => "Tu pago para el pedido #{$order->id} ha sido aprobado. Estamos preparando tu envío.",
+                'data' => json_encode([
+                    'order_id' => $order->id,
+                    'amount' => $order->total_amount
+                ]),
+                'read' => false
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error al crear notificación de pago aprobado', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+        
+        // 3. Notificar al admin
+        $this->notifyAdminPaymentReceived($order, $order->user);
+    }
+
+    /**
+     * Manejar pago rechazado
+     */
+    private function handleRejectedPayment(Order $order)
+    {
+        Log::info('Procesando pago rechazado', ['order_id' => $order->id]);
+        
+        // Crear notificación para el usuario
+        try {
+            Notification::create([
+                'user_id' => $order->user_id,
+                'type' => 'payment_rejected',
+                'title' => 'Pago rechazado',
+                'message' => "El pago para tu pedido #{$order->id} fue rechazado. Por favor intenta con otro método de pago.",
+                'data' => json_encode(['order_id' => $order->id]),
+                'read' => false
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error al crear notificación de pago rechazado', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Manejar pago cancelado
+     */
+    private function handleCancelledPayment(Order $order, string $previousStatus)
+    {
+        Log::info('Procesando pago cancelado', ['order_id' => $order->id]);
+        
+        // Crear notificación para el usuario
+        try {
+            Notification::create([
+                'user_id' => $order->user_id,
+                'type' => 'payment_cancelled',
+                'title' => 'Pedido cancelado',
+                'message' => "Tu pedido #{$order->id} ha sido cancelado.",
+                'data' => json_encode(['order_id' => $order->id]),
+                'read' => false
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error al crear notificación de pago cancelado', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Manejar pago pendiente (OXXO, transferencia, etc.)
+     */
+    private function handlePendingPayment(Order $order)
+    {
+        Log::info('Pago pendiente registrado', ['order_id' => $order->id]);
+        
+        // Crear notificación para el usuario
+        try {
+            $paymentMethod = $order->payment_method;
+            $message = $paymentMethod === 'oxxo' 
+                ? "Tu ticket de pago para el pedido #{$order->id} está listo. Tienes 72 horas para realizar el pago en OXXO."
+                : "Tu pago para el pedido #{$order->id} está pendiente de confirmación.";
+            
+            Notification::create([
+                'user_id' => $order->user_id,
+                'type' => 'payment_pending',
+                'title' => 'Pago pendiente',
+                'message' => $message,
+                'data' => json_encode(['order_id' => $order->id]),
+                'read' => false
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error al crear notificación de pago pendiente', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage()
+            ]);
         }
     }
 
@@ -900,6 +1070,304 @@ class PaymentController extends Controller
             'public_key' => config('services.mercadopago.public_key'),
             'currency_id' => config('services.mercadopago.currency_id', 'ARS')
         ]);
+    }
+
+    /**
+     * Verificar si la URL del webhook es accesible públicamente
+     */
+    public function checkWebhookUrl()
+    {
+        try {
+            $webhookUrl = $this->mercadoPagoService->getWebhookUrl();
+            $appUrl = config('app.url');
+            $ngrokUrl = env('NGROK_URL');
+            
+            $isLocalhost = str_contains($appUrl, 'localhost') || str_contains($appUrl, '127.0.0.1');
+            $hasNgrok = !empty($ngrokUrl);
+            
+            // Intentar hacer una petición HEAD a la URL del webhook para verificar si es accesible
+            $isAccessible = false;
+            $error = null;
+            
+            if ($webhookUrl) {
+                try {
+                    $ch = curl_init($webhookUrl);
+                    curl_setopt($ch, CURLOPT_NOBODY, true);
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+                    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                    
+                    curl_exec($ch);
+                    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    $curlError = curl_error($ch);
+                    curl_close($ch);
+                    
+                    // Cualquier código HTTP significa que la URL es accesible
+                    $isAccessible = $httpCode > 0 && empty($curlError);
+                    if (!$isAccessible && $curlError) {
+                        $error = $curlError;
+                    }
+                } catch (\Exception $e) {
+                    $error = $e->getMessage();
+                }
+            }
+            
+            return response()->json([
+                'success' => true,
+                'webhook_url' => $webhookUrl,
+                'is_accessible' => $isAccessible,
+                'error' => $error,
+                'environment' => [
+                    'is_localhost' => $isLocalhost,
+                    'has_ngrok' => $hasNgrok,
+                    'app_url' => $appUrl,
+                    'ngrok_url' => $ngrokUrl,
+                    'environment_type' => $isLocalhost ? ($hasNgrok ? 'development_with_ngrok' : 'development_local') : 'production'
+                ],
+                'recommendations' => $this->getWebhookRecommendations($isLocalhost, $hasNgrok, $isAccessible)
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error verificando URL del webhook: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener recomendaciones según el entorno
+     */
+    private function getWebhookRecommendations($isLocalhost, $hasNgrok, $isAccessible)
+    {
+        $recommendations = [];
+        
+        if ($isLocalhost && !$hasNgrok) {
+            $recommendations[] = 'Estás en desarrollo local sin ngrok. El webhook NO funcionará automáticamente.';
+            $recommendations[] = 'Los pagos se procesarán cuando el usuario regrese de Mercado Pago.';
+            $recommendations[] = 'Para desarrollo: instala ngrok y configura NGROK_URL en tu .env';
+        } elseif ($isLocalhost && $hasNgrok) {
+            if ($isAccessible) {
+                $recommendations[] = '✅ Ngrok está funcionando correctamente. El webhook funcionará.';
+            } else {
+                $recommendations[] = '⚠️ Ngrok configurado pero la URL no es accesible. Verifica que ngrok esté corriendo.';
+                $recommendations[] = 'Ejecuta: ngrok http 8000 (o el puerto de tu aplicación)';
+            }
+        } else {
+            if ($isAccessible) {
+                $recommendations[] = '✅ URL de producción accesible. El webhook funcionará correctamente.';
+            } else {
+                $recommendations[] = '⚠️ URL de producción no accesible. Verifica que tu servidor sea público.';
+                $recommendations[] = 'Asegúrate de que el firewall permita conexiones entrantes.';
+            }
+        }
+        
+        return $recommendations;
+    }
+
+    /**
+     * Endpoint de prueba para verificar conexión con MercadoPago
+     */
+    public function testMercadoPagoConnection()
+    {
+        try {
+            Log::info('Probando conexión con MercadoPago');
+            
+            // Intentar crear una preferencia de prueba muy simple
+            $testPreferenceData = [
+                'items' => [
+                    [
+                        'id' => 'test-1',
+                        'title' => 'Test Item',
+                        'quantity' => 1,
+                        'unit_price' => 10.00,
+                        'currency_id' => 'MXN'
+                    ]
+                ],
+                'payer' => [
+                    'email' => 'test@test.com'
+                ],
+                'back_urls' => [
+                    'success' => config('app.url') . '/compra-exitosa',
+                    'failure' => config('app.url') . '/checkout/failure',
+                    'pending' => config('app.url') . '/checkout/pending'
+                ],
+                'auto_return' => 'approved',
+                'external_reference' => 'test_' . time()
+            ];
+
+            $startTime = microtime(true);
+            $preference = $this->mercadoPagoService->createPreference($testPreferenceData);
+            $elapsedTime = microtime(true) - $startTime;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Conexión con MercadoPago exitosa',
+                'preference_id' => $preference->id ?? 'N/A',
+                'elapsed_time' => round($elapsedTime, 2) . 's',
+                'config' => [
+                    'environment' => config('services.mercadopago.environment', 'sandbox'),
+                    'has_access_token' => !empty(config('services.mercadopago.access_token')),
+                    'has_public_key' => !empty(config('services.mercadopago.public_key'))
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error en prueba de conexión MercadoPago', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error conectando con MercadoPago: ' . $e->getMessage(),
+                'config' => [
+                    'environment' => config('services.mercadopago.environment', 'sandbox'),
+                    'has_access_token' => !empty(config('services.mercadopago.access_token')),
+                    'has_public_key' => !empty(config('services.mercadopago.public_key'))
+                ]
+            ], 500);
+        }
+    }
+
+    /**
+     * Verificar y procesar pago cuando el usuario regresa de MercadoPago
+     * Esta función se llama desde el frontend cuando el usuario es redirigido de vuelta
+     */
+    public function verifyAndProcessPayment(Request $request)
+    {
+        try {
+            // Parámetros que envía MercadoPago en la URL de retorno
+            $paymentId = $request->input('payment_id') ?? $request->input('collection_id');
+            $status = $request->input('status') ?? $request->input('collection_status');
+            $externalReference = $request->input('external_reference');
+            $preferenceId = $request->input('preference_id');
+            
+            Log::info('Verificando pago de MercadoPago', [
+                'payment_id' => $paymentId,
+                'status' => $status,
+                'external_reference' => $externalReference,
+                'preference_id' => $preferenceId
+            ]);
+
+            // Si no hay payment_id, buscar por preference_id o external_reference
+            $order = null;
+            
+            if ($externalReference) {
+                $order = Order::where('external_reference', $externalReference)
+                    ->with(['items', 'user', 'address'])
+                    ->first();
+            }
+            
+            if (!$order && $preferenceId) {
+                $order = Order::where('mercadopago_preference_id', $preferenceId)
+                    ->with(['items', 'user', 'address'])
+                    ->first();
+            }
+
+            if (!$order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Orden no encontrada',
+                    'payment_status' => 'unknown'
+                ], 404);
+            }
+
+            // Si tenemos payment_id, obtener el estado real desde MercadoPago
+            $realStatus = $status;
+            $paymentData = null;
+            
+            if ($paymentId) {
+                try {
+                    $payment = $this->mercadoPagoService->getPayment($paymentId);
+                    $realStatus = $payment->status;
+                    $paymentData = $payment;
+                    
+                    Log::info('Estado real del pago obtenido de MercadoPago', [
+                        'payment_id' => $paymentId,
+                        'status' => $realStatus
+                    ]);
+                } catch (\Exception $e) {
+                    Log::warning('No se pudo obtener el pago de MercadoPago', [
+                        'payment_id' => $paymentId,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+
+            // Mapear estado y actualizar orden
+            $previousStatus = $order->status;
+            $newStatus = $this->mapPaymentStatus($realStatus);
+            
+            // Actualizar la orden
+            $updateData = [
+                'status' => $newStatus
+            ];
+            
+            if ($paymentId) {
+                $updateData['mercadopago_payment_id'] = $paymentId;
+            }
+            
+            if ($paymentData) {
+                $updateData['payment_data'] = json_encode($paymentData);
+            }
+            
+            $order->update($updateData);
+
+            // Procesar según el estado
+            $processed = false;
+            $message = '';
+            
+            if ($realStatus === 'approved' && $previousStatus !== 'pagado') {
+                // Pago aprobado - procesar
+                $this->handleApprovedPayment($order, $previousStatus);
+                $processed = true;
+                $message = '¡Pago aprobado! Tu pedido está siendo procesado.';
+            } elseif ($realStatus === 'approved' && $previousStatus === 'pagado') {
+                // Ya estaba procesado
+                $processed = true;
+                $message = 'Tu pedido ya fue procesado anteriormente.';
+            } elseif (in_array($realStatus, ['pending', 'in_process'])) {
+                $message = 'Tu pago está pendiente de confirmación.';
+                if ($order->payment_method === 'oxxo') {
+                    $message = 'Tu ticket de pago está listo. Tienes 72 horas para pagar en OXXO.';
+                }
+            } elseif ($realStatus === 'rejected') {
+                $this->handleRejectedPayment($order);
+                $message = 'El pago fue rechazado. Por favor intenta con otro método de pago.';
+            } else {
+                $message = 'Estado del pago: ' . $realStatus;
+            }
+
+            return response()->json([
+                'success' => true,
+                'payment_status' => $realStatus,
+                'order_status' => $newStatus,
+                'order_id' => $order->id,
+                'processed' => $processed,
+                'message' => $message,
+                'order' => [
+                    'id' => $order->id,
+                    'total_amount' => $order->total_amount,
+                    'status' => $newStatus,
+                    'payment_method' => $order->payment_method,
+                    'created_at' => $order->created_at->format('d/m/Y H:i')
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error verificando pago de MercadoPago', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al verificar el pago: ' . $e->getMessage(),
+                'payment_status' => 'error'
+            ], 500);
+        }
     }
 
     /**

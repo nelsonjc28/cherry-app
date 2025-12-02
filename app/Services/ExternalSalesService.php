@@ -126,7 +126,7 @@ class ExternalSalesService
                 'importeFinal' => (float) $importeFinal
             ];
 
-            dd($payload);
+            Log::info('Payload para API externa', ['payload' => $payload]);
             
             // Enviar a la API externa
             $response = Http::timeout(30)

@@ -91,6 +91,9 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('/payment/create-oxxo', [PaymentController::class, 'createOxxoPayment']);
     Route::get('/payment/cash-methods', [PaymentController::class, 'getCashPaymentMethods']);
     
+    // Verificar y sincronizar estado de pago manualmente
+    Route::post('/payment/sync-status/{orderId}', [PaymentController::class, 'syncPaymentStatus']);
+    
     // Order management routes
     Route::get('/orders', [PaymentController::class, 'getUserOrders']); // Obtener órdenes del usuario
     Route::get('/orders/pending-reviews', [PaymentController::class, 'getPendingReviews']); // Obtener órdenes pendientes de calificación
@@ -332,6 +335,15 @@ Route::post('/mercadopago/webhook', [PaymentController::class, 'webhook']);
 
 // MercadoPago configuration (no authentication required)
 Route::get('/mercadopago/config', [PaymentController::class, 'getMercadoPagoConfig']);
+
+// Test endpoint para verificar conexión con MercadoPago
+Route::get('/mercadopago/test-connection', [PaymentController::class, 'testMercadoPagoConnection']);
+
+// Verificar si la URL del webhook es accesible públicamente
+Route::get('/mercadopago/check-webhook-url', [PaymentController::class, 'checkWebhookUrl']);
+
+// Verificar y procesar pago cuando usuario regresa de MercadoPago (no auth - viene de redirect)
+Route::get('/payment/verify', [PaymentController::class, 'verifyAndProcessPayment']);
 
 // Payment status check (requires authentication)
 Route::get('/payment/status/{orderId}', [\App\Http\Controllers\Api\PaymentStatusController::class, 'checkPaymentStatus'])->middleware('auth:api,web');

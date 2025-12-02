@@ -1,24 +1,212 @@
 import CustomButton from '../components/CustomButton';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import './CheckoutSuccessPage.css';
 import { getIconPath } from '../utils/assetPaths';
+import api from '../services/api';
 
 export default function CheckoutSuccessPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   
-  // Obtener datos del pago desde el state de navegación
-  const orderData = location.state?.orderData;
-  const paymentStatus = location.state?.paymentStatus;
+  // Estados
+  const [loading, setLoading] = useState(true);
+  const [paymentStatus, setPaymentStatus] = useState(null);
+  const [orderData, setOrderData] = useState(null);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState(null);
+  
+  // Obtener datos del pago desde el state de navegación (pago con tarjeta)
+  const stateOrderData = location.state?.orderData;
+  const statePaymentStatus = location.state?.paymentStatus;
 
   useEffect(() => {
-    // Si no hay datos del pedido, redirigir al inicio
-    if (!orderData) {
-      navigate('/', { replace: true });
-    }
-  }, [orderData, navigate]);
+    const verifyPayment = async () => {
+      // Si viene de pago con tarjeta (tiene state)
+      if (stateOrderData) {
+        setOrderData(stateOrderData);
+        setPaymentStatus(statePaymentStatus || 'approved');
+        setMessage('¡Pago realizado con éxito!');
+        setLoading(false);
+        return;
+      }
 
+      // Si viene de MercadoPago (tiene parámetros en URL)
+      const paymentId = searchParams.get('payment_id') || searchParams.get('collection_id');
+      const status = searchParams.get('status') || searchParams.get('collection_status');
+      const externalReference = searchParams.get('external_reference');
+      const preferenceId = searchParams.get('preference_id');
+
+      // Si no hay parámetros de pago, redirigir al inicio
+      if (!paymentId && !externalReference && !preferenceId) {
+        navigate('/', { replace: true });
+        return;
+      }
+
+      try {
+        // Llamar al backend para verificar y procesar el pago
+        const response = await api.get('/payment/verify', {
+          params: {
+            payment_id: paymentId,
+            status: status,
+            external_reference: externalReference,
+            preference_id: preferenceId
+          }
+        });
+
+        if (response.data.success) {
+          setPaymentStatus(response.data.payment_status);
+          setOrderData(response.data.order);
+          setMessage(response.data.message);
+        } else {
+          setError(response.data.message || 'Error al verificar el pago');
+          setPaymentStatus('error');
+        }
+      } catch (err) {
+        console.error('Error verificando pago:', err);
+        setError(err.response?.data?.message || 'Error al verificar el pago');
+        setPaymentStatus('error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    verifyPayment();
+  }, [stateOrderData, statePaymentStatus, searchParams, navigate]);
+
+  // Limpiar carrito después de pago exitoso
+  useEffect(() => {
+    if (paymentStatus === 'approved') {
+      // Limpiar carrito del localStorage
+      localStorage.removeItem('cart');
+      localStorage.removeItem('cartItems');
+      // Disparar evento para actualizar el header
+      window.dispatchEvent(new Event('cartUpdated'));
+    }
+  }, [paymentStatus]);
+
+  // Mostrar loading mientras verifica
+  if (loading) {
+    return (
+      <div className="container checkout-success-page">
+        <div className="checkout-success-card checkout-loading">
+          <div className="checkout-spinner"></div>
+          <p>Verificando tu pago...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Mostrar error
+  if (error || paymentStatus === 'error') {
+    return (
+      <div className="container checkout-success-page">
+        <div className="checkout-success-card checkout-error">
+          <div className="checkout-error-icon">❌</div>
+          <h1 className="checkout-success-title">Error en el pago</h1>
+          <p className="checkout-success-desc">{error || 'Ocurrió un error al procesar tu pago.'}</p>
+          <div className="checkout-success-actions">
+            <CustomButton 
+              variant="filled" 
+              onClick={() => navigate('/carrito-detalle')} 
+              className="btn-checkout"
+            >
+              Volver al carrito
+            </CustomButton>
+            <CustomButton 
+              variant="outlined" 
+              onClick={() => navigate('/')}
+              className="btn-checkout"
+            >
+              Ir al inicio
+            </CustomButton>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Mostrar pago rechazado
+  if (paymentStatus === 'rejected') {
+    return (
+      <div className="container checkout-success-page">
+        <div className="checkout-success-card checkout-rejected">
+          <div className="checkout-rejected-icon">
+            <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="30" cy="30" r="28" stroke="#dc3545" strokeWidth="4"/>
+              <path d="M20 20L40 40M40 20L20 40" stroke="#dc3545" strokeWidth="4" strokeLinecap="round"/>
+            </svg>
+          </div>
+          <h1 className="checkout-success-title">Pago rechazado</h1>
+          <p className="checkout-success-desc">
+            {message || 'Tu pago no pudo ser procesado. Por favor intenta con otro método de pago.'}
+          </p>
+          <div className="checkout-success-actions">
+            <CustomButton 
+              variant="filled" 
+              onClick={() => navigate('/carrito-detalle')} 
+              className="btn-checkout"
+            >
+              Intentar de nuevo
+            </CustomButton>
+            <CustomButton 
+              variant="outlined" 
+              onClick={() => navigate('/')}
+              className="btn-checkout"
+            >
+              Ir al inicio
+            </CustomButton>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Mostrar pago pendiente (OXXO u otro)
+  if (paymentStatus === 'pending' || paymentStatus === 'in_process') {
+    return (
+      <div className="container checkout-success-page">
+        <div className="checkout-success-card checkout-pending">
+          <div className="checkout-pending-icon">
+            <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="30" cy="30" r="28" stroke="#ffc107" strokeWidth="4"/>
+              <path d="M30 15V32" stroke="#ffc107" strokeWidth="4" strokeLinecap="round"/>
+              <circle cx="30" cy="42" r="3" fill="#ffc107"/>
+            </svg>
+          </div>
+          <h1 className="checkout-success-title">Pago pendiente</h1>
+          <p className="checkout-success-desc">
+            {message || 'Tu pago está pendiente de confirmación. Te notificaremos cuando se complete.'}
+          </p>
+          {orderData && (
+            <div className="checkout-order-info">
+              <p><strong>Pedido:</strong> #{orderData.id}</p>
+              <p><strong>Total:</strong> ${Number(orderData.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+            </div>
+          )}
+          <div className="checkout-success-actions">
+            <CustomButton 
+              variant="filled" 
+              onClick={() => navigate('/perfil/mis-pedidos')} 
+              className="btn-checkout"
+            >
+              Ver mis pedidos
+            </CustomButton>
+            <CustomButton 
+              variant="outlined" 
+              onClick={() => navigate('/')}
+              className="btn-checkout"
+            >
+              Ir al inicio
+            </CustomButton>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Mostrar pago exitoso (approved)
   return (
     <div className="container checkout-success-page">
       <div className="checkout-success-card">
@@ -30,8 +218,15 @@ export default function CheckoutSuccessPage() {
         </div>
         <h1 className="checkout-success-title">¡Gracias por tu compra!</h1>
         <p className="checkout-success-desc">
-          Tu pedido se está procesando, puedes hacer seguimiento desde <a href="/seguimiento" className="checkout-success-link">AQUI</a> con el código que te ha llegado a tu correo.
+          {message || 'Tu pedido se está procesando. Recibirás un correo con los detalles de tu compra.'}
         </p>
+        {orderData && (
+          <div className="checkout-order-info">
+            <p><strong>Pedido:</strong> #{orderData.id}</p>
+            <p><strong>Total:</strong> ${Number(orderData.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+            <p><strong>Fecha:</strong> {orderData.created_at}</p>
+          </div>
+        )}
         <div className="checkout-success-social-box">
           <div className="checkout-success-social-title">Síguenos también en nuestras redes sociales</div>
           <div className="checkout-success-social-icons">
@@ -59,6 +254,14 @@ export default function CheckoutSuccessPage() {
         <div className="checkout-success-actions">
           <CustomButton 
             variant="filled" 
+            onClick={() => navigate('/perfil/mis-pedidos')} 
+            iconLeft={<img className="checkout-store-icon" src={getIconPath('Shopping Cart.svg')} alt="Pedidos" />} 
+            className="btn-checkout"
+          >
+            Ver mis pedidos
+          </CustomButton>
+          <CustomButton 
+            variant="filled" 
             onClick={() => navigate('/catalogo')} 
             iconLeft={<img className="checkout-store-icon" src={getIconPath('Store.svg')} alt="Store" />} 
             className="btn-checkout"
@@ -77,4 +280,4 @@ export default function CheckoutSuccessPage() {
       </div>
     </div>
   );
-} 
+}
