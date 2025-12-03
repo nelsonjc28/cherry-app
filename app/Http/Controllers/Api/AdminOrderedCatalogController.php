@@ -127,25 +127,35 @@ class AdminOrderedCatalogController extends Controller
 
             if ($orderedCatalogs->isNotEmpty()) {
                 $catalogs = $orderedCatalogs->map(function ($orderedCatalog) {
-                    return $orderedCatalog->catalog/* ->with('pdfs' )*/;
+                    // Asegurar que el catálogo tenga los PDFs cargados
+                    if ($orderedCatalog->catalog) {
+                        $orderedCatalog->catalog->load('pdfs');
+                    }
+                    return $orderedCatalog->catalog;
                 })->filter(function ($catalog) {
                     return $catalog && $catalog->is_active;
                 })->values();
 
                 return response()->json([
                     'success' => true,
-                    'catalogs' => $catalogs
+                    'catalogs' => $catalogs,
+                    'data' => $catalogs // Mantener retrocompatibilidad
                 ]);
             }
 
-            // Si no hay orden definido, devolver todos los catálogos activos ordenados por código
-            $catalogs = Catalog::active()->get()->sortBy(function ($catalog) {
-                return (int) $catalog->code;
-            })->values();
+            // Si no hay orden definido, devolver todos los catálogos activos ordenados por código con PDFs
+            $catalogs = Catalog::with('pdfs')
+                ->active()
+                ->get()
+                ->sortBy(function ($catalog) {
+                    return (int) $catalog->code;
+                })
+                ->values();
 
             return response()->json([
                 'success' => true,
-                'catalogs' => $catalogs
+                'catalogs' => $catalogs,
+                'data' => $catalogs // Mantener retrocompatibilidad
             ]);
         } catch (\Exception $e) {
             return response()->json([

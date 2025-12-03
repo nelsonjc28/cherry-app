@@ -1526,4 +1526,118 @@ class PaymentController extends Controller
             'methods' => $this->mercadoPagoService->getCashPaymentMethods()
         ]);
     }
+
+    /**
+     * Sincronizar estado de pago manualmente (para pagos pendientes)
+     * Útil cuando el webhook no llegó o para verificar pagos antiguos
+     */
+    public function syncPaymentStatus($orderId)
+    {
+        try {
+            /** @var User $user */
+            $user = Auth::user();
+
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no autenticado'
+                ], 401);
+            }
+
+            // Buscar la orden
+            $order = Order::where('id', $orderId)
+                ->where('user_id', $user->id)
+                ->first();
+
+            if (!$order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Orden no encontrada o no pertenece al usuario'
+                ], 404);
+            }
+
+            // Si no tiene payment_id de Mercado Pago, no se puede verificar
+            if (!$order->mercadopago_payment_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Esta orden no tiene un ID de pago de Mercado Pago para verificar'
+                ], 400);
+            }
+
+            $previousStatus = $order->status;
+
+            // Obtener el estado actual del pago desde Mercado Pago
+            $payment = $this->mercadoPagoService->getPayment($order->mercadopago_payment_id);
+            $realStatus = $payment->status;
+            $newStatus = $this->mapPaymentStatus($realStatus);
+
+            Log::info('Sincronizando estado de pago', [
+                'order_id' => $order->id,
+                'payment_id' => $order->mercadopago_payment_id,
+                'previous_status' => $previousStatus,
+                'new_status' => $newStatus,
+                'payment_status' => $realStatus
+            ]);
+
+            // Actualizar la orden
+            $order->update([
+                'status' => $newStatus,
+                'payment_data' => json_encode($payment)
+            ]);
+
+            // Procesar según el estado
+            $processed = false;
+            $message = '';
+
+            if ($realStatus === 'approved' && $previousStatus !== 'pagado') {
+                // Pago aprobado - procesar
+                $this->handleApprovedPayment($order, $previousStatus);
+                $processed = true;
+                $message = '¡Pago aprobado! Tu pedido está siendo procesado.';
+            } elseif ($realStatus === 'approved' && $previousStatus === 'pagado') {
+                $processed = true;
+                $message = 'Tu pedido ya fue procesado anteriormente.';
+            } elseif (in_array($realStatus, ['pending', 'in_process'])) {
+                $message = 'Tu pago sigue pendiente de confirmación.';
+                if ($order->payment_method === 'oxxo') {
+                    $message = 'Tu ticket de pago sigue pendiente. Tienes 72 horas para pagar en OXXO.';
+                }
+            } elseif ($realStatus === 'rejected') {
+                $this->handleRejectedPayment($order);
+                $message = 'El pago fue rechazado. Por favor intenta con otro método de pago.';
+            } elseif ($realStatus === 'cancelled') {
+                $this->handleCancelledPayment($order, $previousStatus);
+                $message = 'El pago fue cancelado.';
+            } else {
+                $message = 'Estado del pago: ' . $realStatus;
+            }
+
+            return response()->json([
+                'success' => true,
+                'payment_status' => $realStatus,
+                'order_status' => $newStatus,
+                'previous_status' => $previousStatus,
+                'processed' => $processed,
+                'message' => $message,
+                'order' => [
+                    'id' => $order->id,
+                    'total_amount' => $order->total_amount,
+                    'status' => $newStatus,
+                    'payment_method' => $order->payment_method
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error sincronizando estado de pago', [
+                'order_id' => $orderId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al sincronizar el estado del pago: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

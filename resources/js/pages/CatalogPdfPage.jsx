@@ -634,9 +634,9 @@ const CatalogPdfPage = () => {
             <CustomButton
               variant="filled"
               size="medium"
-              iconLeft={<img src={getIconPath('Whatsapp.svg')} alt="Comparar clientes" style={{ width: 16, height: 16 }} />}
               className="catalog-pdf__controls-btn"
               onClick={handleShareCatalog}
+              style={{ display: 'none' }}
             >
               <span className="catalog-pdf__whatsapp-text">Compartir a clientes</span>
             </CustomButton>

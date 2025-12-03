@@ -1233,8 +1233,8 @@ const ProductPage = () => {
             <CustomButton
               variant="filled"
               size="small"
-              iconLeft={<img src={getIconPath('Whatsapp.svg')} alt="Comparar clientes" style={{ width: 16, height: 16 }} />}
               onClick={handleShareCatalog}
+              style={{ display: 'none' }}
             >
               <span className="catalog-page__whatsapp-text"></span>
             </CustomButton>
@@ -1279,8 +1279,8 @@ const ProductPage = () => {
               <CustomButton
                 variant="filled"
                 size="medium"
-                iconLeft={<img src={getIconPath('Whatsapp.svg')} alt="Comparar clientes" style={{ width: 16, height: 16 }} />}
                 onClick={handleShareCatalog}
+                style={{ display: 'none' }}
               >
                 <span className="catalog-page__whatsapp-text">Compartir a clientes</span>
               </CustomButton>
@@ -1444,7 +1444,7 @@ const ProductPage = () => {
                           color: '#000'
                         }}>
                           {selectedColor.charAt(0).toUpperCase() + selectedColor.slice(1).toLowerCase()}
-                        </span> 🎨
+                        </span>
                       </>
                     ) : ''}
                   </div>

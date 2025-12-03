@@ -527,7 +527,12 @@ const AdminCatalogManager = () => {
                   </div>
 
                   <div className="admin-catalog-manager__catalog-status">
-                    <span className={`admin-catalog-manager__status-badge ${catalog.is_active ? 'active' : 'inactive'}`}>
+                    <span 
+                      className={`admin-catalog-manager__status-badge ${catalog.is_active ? 'active' : 'inactive'}`}
+                      onClick={() => handleToggleStatus(catalog.id)}
+                      style={{ cursor: 'pointer' }}
+                      title={`Clic para ${catalog.is_active ? 'desactivar' : 'activar'}`}
+                    >
                       {catalog.is_active ? 'Activo' : 'Inactivo'}
                     </span>
                     {catalog.code && (

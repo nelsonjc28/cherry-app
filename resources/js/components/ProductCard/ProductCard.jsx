@@ -301,6 +301,7 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
             className="share-button"
             aria-label="Compartir producto"
             title="Compartir producto"
+            style={{ display: 'none' }}
           >
             <img src={getIconPath('Share Alt.svg')} alt="Compartir" />
           </button>

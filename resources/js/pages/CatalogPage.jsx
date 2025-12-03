@@ -758,22 +758,22 @@ const CatalogPage = ({ catalogId }) => {
                 </select>
               </div>
               <div className="catalog-page__action-buttons">
-                {currentCatalog?.pdfs && currentCatalog.pdfs.length > 0 && (
+                {catalogId && currentCatalog?.is_active && currentCatalog?.pdfs && currentCatalog.pdfs.length > 0 && (
                   <CustomButton
                     variant="outline"
                     size="medium"
                     className="catalog-page__pdf-btn"
-                    iconLeft={<span style={{ fontSize: '16px' }}>🖼️</span>}
+                    iconLeft={<img src={getIconPath('File Alt.svg')} alt="Ver PDF" style={{ width: 16, height: 16 }} />}
                     onClick={() => window.location.href = `/catalogo-pdf?id=${catalogId}`}
                   >
-                    <span className="catalog-page__pdf-text">Catálogo digital</span>
+                    <span className="catalog-page__pdf-text">Ver PDF</span>
                   </CustomButton>
                 )}
                 <CustomButton
                   variant="filled"
                   size="medium"
-                  iconLeft={<img src={getIconPath('Whatsapp.svg')} alt="Comparar clientes" style={{ width: 16, height: 16 }} />}
                   onClick={handleShareCatalog}
+                  style={{ display: 'none' }}
                 >
                   <span className="catalog-page__whatsapp-text">Compartir a clientes</span>
                 </CustomButton>

@@ -24,7 +24,8 @@ const CatalogCollectionsPage = () => {
       
       if (response.data.success) {
         // Mostrar todos los catálogos públicos (ordenados desde el backend)
-        setCatalogs(response.data.catalogs || response.data.data || []);
+        const catalogsData = response.data.catalogs || response.data.data || [];
+        setCatalogs(catalogsData);
       } else {
         setCatalogs([]);
       }
@@ -91,7 +92,7 @@ const CatalogCollectionsPage = () => {
                     {catalog.description || 'Descubre nuestra colección exclusiva'}
                   </p>
 
-                  {catalog.pdfs && catalog.pdfs.length > 0 && (
+                  {catalog.is_active && catalog.pdfs && catalog.pdfs.length > 0 && (
                     <Link
                       to={`/catalogo-pdf?id=${catalog.id}`}
                       className="catalog-collections-page__pdf-link"
