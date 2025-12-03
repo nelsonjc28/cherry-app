@@ -45,8 +45,24 @@ class MercadoPagoService
             }
             
             // Configurar timeout (si está disponible en el SDK)
+            // Aumentar timeout para evitar problemas de conexión
             if (method_exists(MercadoPagoConfig::class, 'setConnectionTimeout')) {
-                MercadoPagoConfig::setConnectionTimeout(10); // 10 segundos
+                MercadoPagoConfig::setConnectionTimeout(30); // 30 segundos
+            }
+            
+            // Configurar timeout adicional si está disponible
+            if (method_exists(MercadoPagoConfig::class, 'setTimeout')) {
+                MercadoPagoConfig::setTimeout(30); // 30 segundos
+            }
+            
+            // Configurar opciones cURL si están disponibles
+            if (method_exists(MercadoPagoConfig::class, 'setCurlOptions')) {
+                MercadoPagoConfig::setCurlOptions([
+                    CURLOPT_CONNECTTIMEOUT => 30,
+                    CURLOPT_TIMEOUT => 30,
+                    CURLOPT_SSL_VERIFYPEER => true,
+                    CURLOPT_SSL_VERIFYHOST => 2
+                ]);
             }
             
             $this->client = new PreferenceClient();
@@ -151,12 +167,29 @@ class MercadoPagoService
 
             Log::info('Llamando a MercadoPago API para crear preferencia', [
                 'external_reference' => $preferenceData['external_reference'],
-                'notification_url' => $notificationUrl
+                'notification_url' => $notificationUrl ?? 'no configurado',
+                'items_count' => count($preferenceData['items']),
+                'has_back_urls' => isset($preferenceData['back_urls']),
+                'app_url' => config('app.url'),
+                'is_localhost' => $isLocalhost,
+                'has_ngrok' => $hasNgrok
             ]);
 
+            // Recrear el cliente antes de la llamada para asegurar configuración fresca
+            $this->client = new PreferenceClient();
+            
+            // Reconfigurar timeout después de crear el cliente (por si acaso)
+            if (method_exists(MercadoPagoConfig::class, 'setConnectionTimeout')) {
+                MercadoPagoConfig::setConnectionTimeout(30);
+            }
+            if (method_exists(MercadoPagoConfig::class, 'setTimeout')) {
+                MercadoPagoConfig::setTimeout(30);
+            }
+            
             // Configurar timeout antes de la llamada
             $startTime = microtime(true);
             
+            Log::debug('Iniciando llamada a MercadoPago API...');
             $preference = $this->client->create($preferenceData);
             
             $elapsedTime = microtime(true) - $startTime;
@@ -192,6 +225,18 @@ class MercadoPagoService
             throw new \Exception($errorMessage);
             
         } catch (\Exception $e) {
+            Log::error('Error general al crear preferencia', [
+                'error_class' => get_class($e),
+                'error_message' => $e->getMessage(),
+                'error_trace' => $e->getTraceAsString(),
+                'preference_data_keys' => isset($preferenceData) ? array_keys($preferenceData) : []
+            ]);
+            
+            // Verificar si es un error de timeout
+            if (str_contains($e->getMessage(), 'timeout') || str_contains($e->getMessage(), 'Connection timed out')) {
+                throw new \Exception('Error de conexión con Mercado Pago. Verifica tu conexión a internet y las credenciales configuradas. Error: ' . $e->getMessage());
+            }
+            
             throw new \Exception('Error processing payment: ' . $e->getMessage());
         }
     }
