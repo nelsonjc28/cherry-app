@@ -16,7 +16,7 @@ const CheckoutForm = ({ cartItems = [], totalAmount = 0, onPaymentSuccess, onPay
   const [selectedPaymentCardId, setSelectedPaymentCardId] = useState('');
   
   // Estado para método de pago
-  const [paymentMethod, setPaymentMethod] = useState('card'); // 'card', 'mercadopago', 'oxxo'
+  const [paymentMethod, setPaymentMethod] = useState('card'); // 'card', 'mercadopago'
   
   // Estados para mostrar formularios de agregar
   const [showAddAddressForm, setShowAddAddressForm] = useState(false);
@@ -92,9 +92,6 @@ const CheckoutForm = ({ cartItems = [], totalAmount = 0, onPaymentSuccess, onPay
     switch (paymentMethod) {
       case 'mercadopago':
         await handleMercadoPagoPayment();
-        break;
-      case 'oxxo':
-        await handleOxxoPayment();
         break;
       case 'card':
       default:
@@ -199,71 +196,6 @@ const CheckoutForm = ({ cartItems = [], totalAmount = 0, onPaymentSuccess, onPay
     }
   };
 
-  // Pago en OXXO
-  const handleOxxoPayment = async () => {
-    try {
-      setProcessing(true);
-      
-      const paymentData = {
-        address_id: parseInt(selectedAddressId),
-        total_amount: totalAmount,
-        payment_method: 'oxxo',
-        items: cartItems.map(item => ({
-          product_id: item.id_articulo || item.product_id || item.id,
-          quantity: item.quantity,
-          price: item.precio || item.price,
-          name: item.title || item.name,
-          size: item.size || item.talla || null,
-          color: item.color || null,
-          barcode: item.barcode || item.codbarra || null
-        }))
-      };
-
-      const response = await api.post('/payment/create-oxxo', paymentData);
-      
-      if (response.data.success) {
-        // Mostrar información del ticket de OXXO
-        const ticketData = response.data.data;
-        
-        Swal.fire({
-          title: '¡Ticket de pago generado!',
-          html: `
-            <div class="oxxo-ticket-info">
-              <img src="https://www.mercadopago.com/org-img/MP3/API/logos/oxxo.gif" alt="OXXO" style="width: 120px; margin-bottom: 15px;" />
-              <p><strong>Número de referencia:</strong></p>
-              <p class="oxxo-reference">${ticketData.reference || ticketData.external_reference}</p>
-              <p><strong>Monto a pagar:</strong> ${formatCurrency(totalAmount)}</p>
-              <p><strong>Vencimiento:</strong> ${ticketData.expiration_date || '72 horas'}</p>
-              <hr />
-              <p style="font-size: 14px; color: #666;">
-                Presenta este número en cualquier OXXO para realizar tu pago.
-                Tu pedido será procesado una vez confirmado el pago.
-              </p>
-            </div>
-          `,
-          icon: 'success',
-          confirmButtonText: 'Entendido',
-          confirmButtonColor: '#e74c3c'
-        });
-        
-        if (onPaymentSuccess) {
-          onPaymentSuccess(response.data);
-        }
-      } else {
-        throw new Error(response.data.message || 'Error al generar el ticket de pago');
-      }
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || error.message || 'Error al procesar el pago';
-      if (window.showToast) {
-        window.showToast(errorMessage, 'error');
-      }
-      if (onPaymentError) {
-        onPaymentError(error);
-      }
-    } finally {
-      setProcessing(false);
-    }
-  };
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('es-MX', {
@@ -452,30 +384,6 @@ const CheckoutForm = ({ cartItems = [], totalAmount = 0, onPaymentSuccess, onPay
                 )}
               </div>
             </div>
-
-            <div 
-              className={`payment-method-option ${paymentMethod === 'oxxo' ? 'selected' : ''}`}
-              onClick={() => setPaymentMethod('oxxo')}
-            >
-              <div className="payment-method-icon oxxo-icon">
-                <img 
-                  src="https://www.mercadopago.com/org-img/MP3/API/logos/oxxo.gif" 
-                  alt="OXXO"
-                  style={{ width: '40px', height: 'auto' }}
-                />
-              </div>
-              <div className="payment-method-info">
-                <span className="payment-method-title">Pago en OXXO</span>
-                <span className="payment-method-desc">Paga en efectivo en tiendas OXXO</span>
-              </div>
-              <div className="payment-method-check">
-                {paymentMethod === 'oxxo' && (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#28a745">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                  </svg>
-                )}
-              </div>
-            </div>
           </div>
 
           {/* Mostrar selector de tarjeta solo si el método es 'card' */}
@@ -559,17 +467,6 @@ const CheckoutForm = ({ cartItems = [], totalAmount = 0, onPaymentSuccess, onPay
               </div>
             </div>
           )}
-
-          {/* Mensaje informativo para OXXO */}
-          {paymentMethod === 'oxxo' && (
-            <div className="payment-method-info-box oxxo-info">
-              <div className="info-icon">🏪</div>
-              <div className="info-content">
-                <p><strong>Pago en efectivo en OXXO</strong></p>
-                <p>Recibirás un número de referencia para pagar en cualquier tienda OXXO. Tu pedido será procesado una vez confirmado el pago (máximo 72 horas).</p>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Resumen del Pedido */}
@@ -607,7 +504,7 @@ const CheckoutForm = ({ cartItems = [], totalAmount = 0, onPaymentSuccess, onPay
               (paymentMethod === 'card' && !selectedPaymentCardId) || 
               !cartItems?.length
             }
-            className={`pay-button ${paymentMethod === 'mercadopago' ? 'mercadopago-btn' : ''} ${paymentMethod === 'oxxo' ? 'oxxo-btn' : ''}`}
+            className={`pay-button ${paymentMethod === 'mercadopago' ? 'mercadopago-btn' : ''}`}
           >
             {processing ? (
               <>
@@ -627,7 +524,6 @@ const CheckoutForm = ({ cartItems = [], totalAmount = 0, onPaymentSuccess, onPay
                     Pagar con Mercado Pago
                   </>
                 )}
-                {paymentMethod === 'oxxo' && `Generar ticket OXXO - ${formatCurrency(totalAmount)}`}
               </>
             )}
           </CustomButton>

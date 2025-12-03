@@ -29,7 +29,7 @@ const CartOrderSummary = ({
   onIntegratedPaymentError
 }) => {
   // Estado para método de pago seleccionado
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('card'); // 'card', 'mercadopago', 'oxxo'
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('card'); // 'card', 'mercadopago'
   
   const [paymentCards, setPaymentCards] = useState([]);
   const [isLoadingCards, setIsLoadingCards] = useState(true);
@@ -749,82 +749,11 @@ const CartOrderSummary = ({
     }
   };
 
-  // Función para procesar pago en OXXO
-  const processOxxoPayment = async () => {
-    if (!selectedAddress) {
-      if (window.showToast) {
-        window.showToast('Selecciona una dirección de entrega', 'warning');
-      }
-      return;
-    }
-
-    const canContinue = await validateCartBeforeOrder();
-    if (!canContinue) {
-      if (window.showToast) {
-        window.showToast('Se ajustaron cantidades según stock disponible. Revisa el carrito.', 'error');
-      }
-      return;
-    }
-
-    setIsProcessingPayment(true);
-
-    try {
-      const paymentData = {
-        items: cartItems.map(item => ({
-          product_id: parseInt(item.id_articulo || item.product_id || item.id, 10),
-          name: item.title || item.name,
-          quantity: parseInt(item.quantity, 10),
-          price: parseFloat(item.precio || item.price),
-          size: item.selectedSize || null,
-          color: item.selectedColor || null,
-          barcode: item.barcode || null
-        })),
-        address_id: parseInt(selectedAddress.id, 10),
-        total_amount: parseFloat(finalTotal)
-      };
-
-      const response = await api.post('/payment/create-oxxo', paymentData);
-
-      if (response.data.success) {
-        const { data } = response.data;
-
-        if (window.showToast) {
-          window.showToast('¡Ticket de pago OXXO generado!', 'success');
-        }
-
-        // Guardar información del pedido en localStorage
-        localStorage.setItem('pending_order', JSON.stringify({
-          orderId: data.order_id,
-          externalReference: data.external_reference,
-          totalAmount: finalTotal,
-          paymentMethod: 'oxxo'
-        }));
-
-        // Redirigir a la página de Mercado Pago para generar el ticket
-        setTimeout(() => {
-          window.location.href = data.init_point || data.sandbox_init_point || data.payment_url;
-        }, 1500);
-      } else {
-        throw new Error(response.data.message || 'Error al crear el ticket de pago OXXO');
-      }
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || error.message || 'Error al procesar el pago OXXO';
-      if (window.showToast) {
-        window.showToast(errorMessage, 'error');
-      }
-    } finally {
-      setIsProcessingPayment(false);
-    }
-  };
-
   // Función para procesar el pago según el método seleccionado
   const handleProcessPayment = () => {
     switch (selectedPaymentMethod) {
       case 'mercadopago':
         processMercadoPagoPayment();
-        break;
-      case 'oxxo':
-        processOxxoPayment();
         break;
       case 'card':
       default:
@@ -965,23 +894,6 @@ const CartOrderSummary = ({
                 <div className="payment-option-text">
                   <h4>Mercado Pago</h4>
                   <p>Paga con tarjeta, transferencia o saldo de MP</p>
-                </div>
-              </div>
-            </label>
-
-            <label className={`payment-option ${selectedPaymentMethod === 'oxxo' ? 'selected' : ''}`}>
-              <input
-                type="radio"
-                name="paymentMethod"
-                value="oxxo"
-                checked={selectedPaymentMethod === 'oxxo'}
-                onChange={() => setSelectedPaymentMethod('oxxo')}
-              />
-              <div className="payment-option-content">
-                <span className="payment-option-icon">🏪</span>
-                <div className="payment-option-text">
-                  <h4>Pago en OXXO</h4>
-                  <p>Genera un ticket y paga en efectivo en OXXO</p>
                 </div>
               </div>
             </label>
@@ -1221,9 +1133,7 @@ const CartOrderSummary = ({
             ? 'Procesando pago...' 
             : selectedPaymentMethod === 'mercadopago' 
               ? 'Pagar con Mercado Pago' 
-              : selectedPaymentMethod === 'oxxo' 
-                ? 'Generar ticket OXXO' 
-                : 'Generar pedido'}
+              : 'Generar pedido'}
         </CustomButton>
         <CustomButton
           variant="outlined"

@@ -54,7 +54,7 @@ const OrderAmountCard = ({
           )}
         </div>
         <div className="cart-order-summary__total-row" style={{ marginTop: 8 }}>
-          <span>Total:</span>
+          <span>Total ({pieces} {pieces === 1 ? 'prenda' : 'prendas'}):</span>
           <span className="cart-order-summary__total-value">${formatMoney(total)}</span>
         </div>
       </div>

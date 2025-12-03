@@ -576,16 +576,7 @@ const CartDetailsPage = () => {
       ) : (
         <div className="cart-details__content">
           <div className="cart-details__products-col">
-            {productsForDisplay.map((product, idx) => (
-              <CartDetailsProductCard
-                key={`${product.sku}-${product.variants[0].color}`}
-                {...product}
-                onRemove={variantIdx => handleRemoveVariant(idx, variantIdx)}
-                onQuantityChange={(variantIdx, newQty) => handleQuantityChange(idx, variantIdx, newQty)}
-              />
-            ))}
-            
-            {/* Alertas de descuento y envío */}
+            {/* Alertas de descuento y envío - Mostrar por encima de los productos */}
             {allAlerts.length > 0 && (
               <div className="cart-details__alerts">
                 {allAlerts.map((alert, index) => (
@@ -603,6 +594,15 @@ const CartDetailsPage = () => {
                 ))}
               </div>
             )}
+            
+            {productsForDisplay.map((product, idx) => (
+              <CartDetailsProductCard
+                key={`${product.sku}-${product.variants[0].color}`}
+                {...product}
+                onRemove={variantIdx => handleRemoveVariant(idx, variantIdx)}
+                onQuantityChange={(variantIdx, newQty) => handleQuantityChange(idx, variantIdx, newQty)}
+              />
+            ))}
           </div>
           <div className="cart-details__summary-col">
             {/* Card 1: Monto del pedido */}

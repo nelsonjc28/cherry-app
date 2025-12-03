@@ -105,7 +105,12 @@ class MercadoPagoService
                     'address' => [
                         'street_name' => $orderData['address']['street_address'] ?? '',
                         'street_number' => '',
-                        'zip_code' => $orderData['address']['postal_code'] ?? ''
+                        'zip_code' => $orderData['address']['postal_code'] ?? '',
+                        'country' => 'MX' // Código ISO de México
+                    ],
+                    'identification' => [
+                        'type' => 'DNI',
+                        'number' => ''
                     ]
                 ],
                 'back_urls' => [
@@ -127,7 +132,8 @@ class MercadoPagoService
                         'zip_code' => $orderData['address']['postal_code'] ?? '',
                         'city_name' => $orderData['address']['city'] ?? '',
                         'state_name' => $orderData['address']['state'] ?? '',
-                        'country_name' => $orderData['address']['country'] ?? 'México'
+                        'country_name' => 'México',
+                        'country_id' => 'MX' // Código ISO de México para habilitar OXXO
                     ]
                 ],
                 'statement_descriptor' => 'Cherry Central',
@@ -368,20 +374,12 @@ class MercadoPagoService
 
     /**
      * Obtener el currency_id correcto basado en las credenciales
+     * OXXO solo está disponible en México con MXN
      */
     private function getCurrencyId()
     {
-        $accessToken = config('services.mercadopago.access_token');
-        
-        // Determinar el país basado en el access token o configuración
-        // Las credenciales de prueba suelen indicar el país
-        if (str_contains($accessToken, 'TEST-')) {
-            // Para cuentas de prueba, intentar detectar el país
-            // Si no se puede detectar, usar ARS como default para cuentas de prueba
-            return 'ARS'; // Argentina (peso argentino)
-        }
-        
-        // Para producción, usar la configuración o default
+        // Siempre usar MXN para México (OXXO solo está disponible en México)
+        // Si necesitas otro país, configúralo en MERCADOPAGO_CURRENCY_ID
         return config('services.mercadopago.currency_id', 'MXN');
     }
 
@@ -395,6 +393,7 @@ class MercadoPagoService
                 'transaction_amount' => (float) $paymentData['transaction_amount'],
                 'description' => $paymentData['description'] ?? 'Compra en Cherry Central',
                 'payment_method_id' => $paymentData['payment_method_id'] ?? 'oxxo', // oxxo, paycash, etc.
+                'currency_id' => $this->getCurrencyId(), // Asegurar que use MXN para México
                 'payer' => [
                     'email' => $paymentData['payer']['email'],
                     'first_name' => $paymentData['payer']['first_name'] ?? '',
