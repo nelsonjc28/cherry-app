@@ -44,26 +44,7 @@ class MercadoPagoService
                 MercadoPagoConfig::setRuntimeEnviroment($runtimeEnvironment);
             }
             
-            // Configurar timeout (si está disponible en el SDK)
-            // Aumentar timeout para evitar problemas de conexión
-            if (method_exists(MercadoPagoConfig::class, 'setConnectionTimeout')) {
-                MercadoPagoConfig::setConnectionTimeout(30); // 30 segundos
-            }
-            
-            // Configurar timeout adicional si está disponible
-            if (method_exists(MercadoPagoConfig::class, 'setTimeout')) {
-                MercadoPagoConfig::setTimeout(30); // 30 segundos
-            }
-            
-            // Configurar opciones cURL si están disponibles
-            if (method_exists(MercadoPagoConfig::class, 'setCurlOptions')) {
-                MercadoPagoConfig::setCurlOptions([
-                    CURLOPT_CONNECTTIMEOUT => 30,
-                    CURLOPT_TIMEOUT => 30,
-                    CURLOPT_SSL_VERIFYPEER => true,
-                    CURLOPT_SSL_VERIFYHOST => 2
-                ]);
-            }
+            // No configurar timeout - dejar que el SDK use sus valores por defecto
             
             $this->client = new PreferenceClient();
             $this->paymentClient = new PaymentClient();
@@ -178,15 +159,7 @@ class MercadoPagoService
             // Recrear el cliente antes de la llamada para asegurar configuración fresca
             $this->client = new PreferenceClient();
             
-            // Reconfigurar timeout después de crear el cliente (por si acaso)
-            if (method_exists(MercadoPagoConfig::class, 'setConnectionTimeout')) {
-                MercadoPagoConfig::setConnectionTimeout(30);
-            }
-            if (method_exists(MercadoPagoConfig::class, 'setTimeout')) {
-                MercadoPagoConfig::setTimeout(30);
-            }
-            
-            // Configurar timeout antes de la llamada
+            // Configurar tiempo de inicio para medir duración
             $startTime = microtime(true);
             
             Log::debug('Iniciando llamada a MercadoPago API...');
