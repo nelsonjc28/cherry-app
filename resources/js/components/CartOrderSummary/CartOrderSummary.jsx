@@ -616,65 +616,40 @@ const CartOrderSummary = ({
   };
 
 
-  // ===== DESCUENTO POR DAYS 45 + TOTAL + desc_promo =====
-  let finalTotal = Number(total);
-  let dayFortyFiveApplied = false;
-  let dayFortyFiveDiscountPercentage = 0;
-
-  // 1️⃣ Calcular total elegible (solo productos con desc_promo = 0 y sin userOffer)
+  // ===== USAR EL TOTAL FINAL QUE YA VIENE CON DESCUENTOS Y ENVÍO =====
+  // El total que se pasa desde CartDetailsPage ya incluye:
+  // - Descuentos de productos individuales (desc_promo)
+  // - Descuentos del 30% o 40% (aplicados sobre productos elegibles)
+  // - Envío (si no hay envío gratis)
+  // Por lo tanto, usamos directamente este total sin recalcular
+  const finalTotal = Number(total);
+  
+  // Calcular información de descuentos solo para logging
   const eligibleItems = cartItems.filter(item => {
     const hasNoPromo = item.desc_promo === 0 || item.desc_promo === null || item.desc_promo === undefined;
     const hasNoUserOffer = !item.userOffer || item.userOffer.discount_category === null;
     return hasNoPromo && hasNoUserOffer;
   });
 
-  // Calcular total elegible (suma de precios de productos elegibles)
   const eligibleTotal = eligibleItems.reduce((sum, item) => {
     const itemPrice = item.precio || item.price || 0;
     const itemQuantity = item.quantity || 0;
     return sum + (itemPrice * itemQuantity);
   }, 0);
 
-  // 2️⃣ Aplicar descuentos automáticamente según el total elegible (sin necesidad de tener daysFortyFive activo)
-  // El descuento se aplica automáticamente cuando el total elegible >= 7000
-  // El descuento se aplica solo sobre el total elegible, no sobre productos con desc_promo o userOffer
-  if (eligibleTotal >= 7000) {
-    let discountAmount = 0;
-    if (eligibleTotal >= 15000) {
-      // 40% descuento sobre el total elegible
-      dayFortyFiveDiscountPercentage = 40;
-      discountAmount = eligibleTotal * 0.40;
-      dayFortyFiveApplied = true;
-    } else if (eligibleTotal >= 7000) {
-      // 30% descuento sobre el total elegible
-      dayFortyFiveDiscountPercentage = 30;
-      discountAmount = eligibleTotal * 0.30;
-      dayFortyFiveApplied = true;
-    }
-    
-    // Aplicar el descuento al total final
-    finalTotal = finalTotal - discountAmount;
-    finalTotal = Math.max(0, finalTotal); // Asegurar que no sea negativo
-    finalTotal = parseFloat(finalTotal.toFixed(2));
+  let dayFortyFiveApplied = false;
+  let dayFortyFiveDiscountPercentage = 0;
+  if (eligibleTotal >= 15000) {
+    dayFortyFiveDiscountPercentage = 40;
+    dayFortyFiveApplied = true;
+  } else if (eligibleTotal >= 7000) {
+    dayFortyFiveDiscountPercentage = 30;
+    dayFortyFiveApplied = true;
   }
 
-  let envio = 0;
-  // Reglas de envío:
-  // - Si freeShipping es true y viene un monto mínimo (>0), comparar contra ese monto
-  //   - Si finalTotal >= monto mínimo -> envío 0
-  //   - Si finalTotal < monto mínimo -> cobrar 150
-  // - Si freeShipping es false -> aplicar regla general (menor a 3000 cobra 150)
-  if (freeShipping === true && Number(freeShippingMinAmount) > 0) {
-    if (finalTotal < Number(freeShippingMinAmount)) {
-      finalTotal = Number(finalTotal) + 150;
-      envio = 150;
-    }
-  } else {
-    if (finalTotal < 3000 && freeShipping == false) {
-      finalTotal = Number(finalTotal) + 150;
-      envio = 150;
-    }
-  }
+  // Calcular envío solo para logging (comparar total con subtotal)
+  const baseTotal = Number(subtotal);
+  const envio = finalTotal > baseTotal ? (finalTotal - baseTotal) : 0;
 
   console.log(freeShipping);
 

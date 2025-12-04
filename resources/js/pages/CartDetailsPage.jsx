@@ -423,7 +423,7 @@ const CartDetailsPage = () => {
     pieces: totalItems,
     subtotal: baseTotal.toFixed(2),
     discountTotal: dayFortyFiveDiscountAmount > 0 ? dayFortyFiveDiscountAmount.toFixed(2) : '0.00',
-    total: baseTotal.toFixed(2), // Total SIN descuento - CartOrderSummary lo aplicará
+    total: parseFloat(finalTotalWithShipping), // Total FINAL con descuentos y envío incluidos
     daysFortyFive: user?.day_forty_five,
     freeShipping: user?.free_shipping,
     freeShippingMinAmount: user?.free_shipping_min_amount || 0,
