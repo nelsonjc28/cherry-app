@@ -16,6 +16,12 @@ const OrderAmountCard = ({
   isFreeShipping = false,
   total = 0
 }) => {
+  // Convertir a número para asegurar comparación correcta
+  const discount30 = Number(discountThirtyAmount) || 0;
+  const discount10 = Number(discountAdditionalTenAmount) || 0;
+  const has30Percent = discount30 > 0;
+  const has40Percent = discount30 > 0 && discount10 > 0;
+
   return (
     <div className="address-selector">
       <div className="cart-order-summary__section-title">Monto del pedido</div>
@@ -28,21 +34,38 @@ const OrderAmountCard = ({
           <span>Sub-Total</span>
           <span>${formatMoney(subtotal)}</span>
         </div>
-        {/* Solo mostrar descuentos cuando aplique el 10% adicional (40% total) */}
-        {discountAdditionalTenAmount > 0 && (
+        {/* Mostrar descuentos cuando aplique el 30% o el 40% */}
+        {has30Percent && (
           <>
-            <div className="cart-order-summary__row">
-              <span>Descuento</span>
-              <span className="cart-order-summary__free-shipping">30%</span>
-            </div>
-            <div className="cart-order-summary__row">
-              <span>Adicional</span>
-              <span className="cart-order-summary__free-shipping">10%</span>
-            </div>
-            <div className="cart-order-summary__row">
-              <span>Total descuento</span>
-              <span className="cart-order-summary__free-shipping">-${formatMoney(discount)}</span>
-            </div>
+            {has40Percent ? (
+              // Descuento del 40% (30% + 10% adicional)
+              <>
+                <div className="cart-order-summary__row">
+                  <span>Descuento</span>
+                  <span className="cart-order-summary__free-shipping">30%</span>
+                </div>
+                <div className="cart-order-summary__row">
+                  <span>Adicional</span>
+                  <span className="cart-order-summary__free-shipping">10%</span>
+                </div>
+                <div className="cart-order-summary__row">
+                  <span>Total descuento</span>
+                  <span className="cart-order-summary__free-shipping">-${formatMoney(discount)}</span>
+                </div>
+              </>
+            ) : (
+              // Solo descuento del 30%
+              <>
+                <div className="cart-order-summary__row">
+                  <span>Descuento</span>
+                  <span className="cart-order-summary__free-shipping">30%</span>
+                </div>
+                <div className="cart-order-summary__row">
+                  <span>Total descuento</span>
+                  <span className="cart-order-summary__free-shipping">-${formatMoney(discount30)}</span>
+                </div>
+              </>
+            )}
           </>
         )}
         <div className="cart-order-summary__row">
