@@ -131,6 +131,38 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
     fetchGroupImages(selectedCatalog.id, group.id);
   };
 
+  const handleToggleGroupStatus = async (groupId) => {
+    try {
+      setGroupsLoading(true);
+      setError('');
+      
+      const response = await catalogService.toggleImageGroupStatus(selectedCatalog.id, groupId);
+      
+      if (response.data.success) {
+        // Actualizar el estado del grupo en la lista local
+        setImageGroups(imageGroups.map(group => 
+          group.id === groupId 
+            ? { ...group, is_active: response.data.data.is_active }
+            : group
+        ));
+        
+        window.showToast(
+          `Grupo ${response.data.data.is_active ? 'activado' : 'desactivado'} exitosamente`,
+          'success'
+        );
+      } else {
+        setError(response.data.message || 'Error al cambiar el estado del grupo');
+        window.showToast(response.data.message || 'Error al cambiar el estado del grupo', 'error');
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Error al cambiar el estado del grupo';
+      setError(errorMessage);
+      window.showToast(errorMessage, 'error');
+    } finally {
+      setGroupsLoading(false);
+    }
+  };
+
   const handleDeleteGroup = async (groupId) => {
     const result = await Swal.fire({
       title: '¿Eliminar grupo?',
@@ -630,7 +662,15 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
                     <p>{group.description || 'Sin descripción'}</p>
                     <div className="catalog-pdf-module__group-stats">
                       <span>🖼️ {group.images_count || 0} imágenes</span>
-                      <span className={`status ${group.is_active ? 'active' : 'inactive'}`}>
+                      <span 
+                        className={`status ${group.is_active ? 'active' : 'inactive'}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleGroupStatus(group.id);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                        title={`Click para ${group.is_active ? 'desactivar' : 'activar'}`}
+                      >
                         {group.is_active ? 'Activo' : 'Inactivo'}
                       </span>
                     </div>

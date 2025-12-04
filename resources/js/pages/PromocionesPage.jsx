@@ -51,6 +51,14 @@ const PromocionesPage = () => {
   const [filters, setFilters] = useState(getSavedFilters);
   const hasActiveSession = isUserSessionActive();
 
+  // Sincronizar filtros guardados cuando se monta el componente
+  useEffect(() => {
+    const savedFilters = getSavedFilters();
+    if (savedFilters) {
+      setFilters(savedFilters);
+    }
+  }, []); // Solo ejecutar una vez al montar
+
   // Cargar productos con promociones desde la base de datos local
   useEffect(() => {
     const loadPromoProducts = async () => {

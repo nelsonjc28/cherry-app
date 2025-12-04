@@ -140,13 +140,15 @@ const CatalogPdfPage = () => {
       if (response.data.success) {
         const groups = response.data.data.image_groups || [];
         setImageGroups(groups);
-        // Ya no seleccionamos automáticamente el primer grupo
-        // El usuario debe hacer click en un grupo para verlo
+        
+        // Siempre mostrar la vista de grupos inicialmente
+        // El useEffect se encargará de abrir automáticamente si hay solo uno
         setCurrentView('groups');
       } else {
         setError('Error al cargar los grupos de imágenes');
       }
     } catch (error) {
+      console.error('Error al cargar grupos de imágenes:', error);
       setError('Error al cargar los grupos de imágenes');
     } finally {
       setImageGroupsLoading(false);
@@ -182,10 +184,12 @@ const CatalogPdfPage = () => {
           setPageIndex(0);
         }
       } else {
+        console.error('Error en respuesta de getImageGroupImages:', response.data);
         setError('Error al cargar las imágenes del grupo');
       }
     } catch (error) {
-      setError('Error al cargar las imágenes del grupo');
+      console.error('Error al cargar imágenes del grupo:', error);
+      setError('Error al cargar las imágenes del grupo: ' + (error.message || 'Error desconocido'));
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -285,6 +289,13 @@ const CatalogPdfPage = () => {
   // Función para cambiar de grupo de imágenes
   const handleImageGroupChange = async (imageGroup) => {
     try {
+      // Verificar que selectedCatalog esté disponible
+      if (!selectedCatalog || !selectedCatalog.id) {
+        console.error('selectedCatalog no está disponible');
+        setError('Error: Catálogo no seleccionado');
+        return;
+      }
+
       setSelectedImageGroup(imageGroup);
       setImages([]);
       setPageIndex(0);
@@ -299,7 +310,8 @@ const CatalogPdfPage = () => {
       // Cargar las imágenes del grupo
       await fetchImageGroupImages(selectedCatalog.id, imageGroup.id);
     } catch (error) {
-      setError('Error al cambiar de grupo de imágenes');
+      console.error('Error al cambiar de grupo de imágenes:', error);
+      setError('Error al cambiar de grupo de imágenes: ' + (error.message || 'Error desconocido'));
     }
   };
 
@@ -453,7 +465,7 @@ const CatalogPdfPage = () => {
     const queryParams = new URLSearchParams(window.location.search);
     const groupId = queryParams.get('group');
 
-    if (catalogId && groupId && imageGroups.length > 0) {
+    if (catalogId && groupId && imageGroups.length > 0 && selectedCatalog) {
       const groupToOpen = imageGroups.find(
         (g) => String(g.id) === String(groupId)
       );
@@ -461,7 +473,30 @@ const CatalogPdfPage = () => {
         handleImageGroupChange(groupToOpen);
       }
     }
-  }, [catalogId, imageGroups]);
+  }, [catalogId, imageGroups, selectedCatalog]);
+
+  // 👉 Abrir automáticamente el único grupo si solo hay uno
+  useEffect(() => {
+    // Solo ejecutar si:
+    // 1. Hay grupos cargados
+    // 2. Hay exactamente un grupo
+    // 3. El catálogo está seleccionado
+    // 4. No hay un grupo ya seleccionado
+    // 5. No hay un groupId en la URL (para no interferir con la navegación directa)
+    const queryParams = new URLSearchParams(window.location.search);
+    const groupId = queryParams.get('group');
+    
+    if (
+      imageGroups.length === 1 && 
+      selectedCatalog && 
+      !selectedImageGroup && 
+      !groupId &&
+      currentView === 'groups'
+    ) {
+      // Abrir automáticamente el único grupo
+      handleImageGroupChange(imageGroups[0]);
+    }
+  }, [imageGroups, selectedCatalog, selectedImageGroup, currentView]);
 
 
 

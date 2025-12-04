@@ -1219,13 +1219,13 @@ class AdminCatalogController extends Controller
                 $displayOrder = CatalogImageGroup::where('catalog_id', $catalogId)->max('display_order') + 1;
             }
 
-            // Crear el grupo de imágenes
+            // Crear el grupo de imágenes (siempre activo por defecto)
             $imageGroup = CatalogImageGroup::create([
                 'catalog_id' => $catalogId,
                 'name' => $request->name,
                 'description' => $request->description,
                 'slug' => Str::slug($request->name),
-                'is_active' => $request->is_active ?? true,
+                'is_active' => $request->has('is_active') ? (bool)$request->is_active : true,
                 'display_order' => $displayOrder
             ]);
 
@@ -1304,6 +1304,39 @@ class AdminCatalogController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al eliminar el grupo de imágenes: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Cambiar el estado activo/inactivo de un grupo de imágenes
+     */
+    public function toggleImageGroupStatus($catalogId, $groupId)
+    {
+        try {
+            $catalog = Catalog::findOrFail($catalogId);
+            $group = CatalogImageGroup::where('id', $groupId)
+                ->where('catalog_id', $catalogId)
+                ->firstOrFail();
+
+            $group->is_active = !$group->is_active;
+            $group->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Estado del grupo cambiado exitosamente',
+                'data' => ['is_active' => $group->is_active]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error al cambiar estado del grupo de imágenes', [
+                'catalog_id' => $catalogId,
+                'group_id' => $groupId,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cambiar el estado: ' . $e->getMessage()
             ], 500);
         }
     }

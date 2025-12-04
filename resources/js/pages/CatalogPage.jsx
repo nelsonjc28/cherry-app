@@ -66,6 +66,8 @@ const CatalogPage = ({ catalogId }) => {
   const [availableColors, setAvailableColors] = useState([]);
   const [availableSizes, setAvailableSizes] = useState([]);
   const [filters, setFilters] = useState(getSavedFilters);
+  const [hasImageGroups, setHasImageGroups] = useState(false);
+  const [checkingImageGroups, setCheckingImageGroups] = useState(false);
 
   // Cargar colores y tallas disponibles desde productos cargados
   useEffect(() => {
@@ -346,6 +348,25 @@ const CatalogPage = ({ catalogId }) => {
             const catalogResponse = await publicCatalogService.getById(catalogId);
             if (catalogResponse.data.success) {
               setCurrentCatalog(catalogResponse.data.data);
+              
+              // Verificar si el catálogo tiene grupos de imágenes activos
+              try {
+                setCheckingImageGroups(true);
+                const groupsResponse = await publicCatalogService.getCatalogImageGroups(catalogId);
+                if (groupsResponse.data.success) {
+                  const groups = groupsResponse.data.data.image_groups || [];
+                  // Verificar que haya al menos un grupo activo
+                  const activeGroups = groups.filter(group => group.is_active === true);
+                  setHasImageGroups(activeGroups.length > 0);
+                } else {
+                  setHasImageGroups(false);
+                }
+              } catch (error) {
+                console.error('Error al verificar grupos de imágenes:', error);
+                setHasImageGroups(false);
+              } finally {
+                setCheckingImageGroups(false);
+              }
             }
 
             // Cargar productos del catálogo desde la base de datos local
@@ -773,15 +794,14 @@ const CatalogPage = ({ catalogId }) => {
                 </select>
               </div>
               <div className="catalog-page__action-buttons">
-                {catalogId && currentCatalog?.is_active && currentCatalog?.pdfs && currentCatalog.pdfs.length > 0 && (
+                {catalogId && currentCatalog?.is_active && hasImageGroups && !checkingImageGroups && (
                   <CustomButton
-                    variant="outline"
+                    variant="outlined"
                     size="medium"
-                    className="catalog-page__pdf-btn"
-                    iconLeft={<img src={getIconPath('File Alt.svg')} alt="Ver PDF" style={{ width: 16, height: 16 }} />}
+                    className="filters-btn"
                     onClick={() => window.location.href = `/catalogo-pdf?id=${catalogId}`}
                   >
-                    <span className="catalog-page__pdf-text">Ver PDF</span>
+                    Ver PDF
                   </CustomButton>
                 )}
                 <CustomButton

@@ -1224,6 +1224,16 @@ export const catalogService = {
       throw error;
     }
   },
+
+  // Cambiar estado de grupo de imágenes (admin)
+  toggleImageGroupStatus: async (catalogId, groupId) => {
+    try {
+      const response = await api.patch(`/admin/catalogs/${catalogId}/image-groups/${groupId}/toggle`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 // Servicio de autenticación
