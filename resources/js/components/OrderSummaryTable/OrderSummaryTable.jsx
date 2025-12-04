@@ -11,7 +11,7 @@ const formatNumber = (value) => {
 const OrderSummaryTable = ({ quantity, priceWithoutDiscount, priceWithDiscount, discount, savings }) => {
   return (
     <div className="order-summary-table order-summary-table--inline">
-      <span className="order-summary-label">Total del producto:</span>
+      <span className="order-summary-label">Total del producto ({quantity} {quantity === 1 ? 'pieza' : 'piezas'}):</span>
       <span className="order-summary-value order-summary-total-value">${formatNumber(priceWithDiscount)}</span>
     </div>
   );

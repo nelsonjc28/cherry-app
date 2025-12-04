@@ -29,7 +29,7 @@ const CartOrderSummary = ({
   onIntegratedPaymentError
 }) => {
   // Estado para método de pago seleccionado
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('card'); // 'card', 'mercadopago'
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('mercadopago'); // Solo Mercado Pago
   
   const [paymentCards, setPaymentCards] = useState([]);
   const [isLoadingCards, setIsLoadingCards] = useState(true);
@@ -749,17 +749,9 @@ const CartOrderSummary = ({
     }
   };
 
-  // Función para procesar el pago según el método seleccionado
+  // Función para procesar el pago - Siempre usa Mercado Pago
   const handleProcessPayment = () => {
-    switch (selectedPaymentMethod) {
-      case 'mercadopago':
-        processMercadoPagoPayment();
-        break;
-      case 'card':
-      default:
-        processIntegratedPayment();
-        break;
-    }
+    processMercadoPagoPayment();
   };
 
   const validateCartBeforeOrder = async () => {
@@ -855,169 +847,25 @@ const CartOrderSummary = ({
           <div className="cart-order-summary__divider" />
         </>
       )}
-      {/* Selector de método de pago */}
+      {/* Método de pago - Solo Mercado Pago */}
       <div className="cart-order-summary__divider" />
       <div className="cart-order-summary__section payment-method-section">
         <div className="cart-order-summary__section-title section-title-flex">
-          <span className="cart-order-summary__card-icon">💰</span>
+          <img 
+            src="/images/mercadopago-logo.png" 
+            alt="Mercado Pago" 
+            style={{ width: '40px', height: '40px', marginRight: '8px', display: 'block', objectFit: 'contain' }}
+            onError={(e) => {
+              // Fallback al icono SVG si la imagen no carga
+              e.target.src = getIconPath('Handshake.svg');
+            }}
+          />
           <span>Método de Pago</span>
         </div>
-        <div className="cart-order-summary__section-content payment-method-content">
-          <div className="payment-method-options">
-            <label className={`payment-option ${selectedPaymentMethod === 'card' ? 'selected' : ''}`}>
-              <input
-                type="radio"
-                name="paymentMethod"
-                value="card"
-                checked={selectedPaymentMethod === 'card'}
-                onChange={() => setSelectedPaymentMethod('card')}
-              />
-              <div className="payment-option-content">
-                <span className="payment-option-icon">💳</span>
-                <div className="payment-option-text">
-                  <h4>Tarjeta de Crédito/Débito</h4>
-                  <p>Paga con tu tarjeta guardada o ingresa una nueva</p>
-                </div>
-              </div>
-            </label>
-
-            <label className={`payment-option ${selectedPaymentMethod === 'mercadopago' ? 'selected' : ''}`}>
-              <input
-                type="radio"
-                name="paymentMethod"
-                value="mercadopago"
-                checked={selectedPaymentMethod === 'mercadopago'}
-                onChange={() => setSelectedPaymentMethod('mercadopago')}
-              />
-              <div className="payment-option-content">
-                <span className="payment-option-icon">🛒</span>
-                <div className="payment-option-text">
-                  <h4>Mercado Pago</h4>
-                  <p>Paga con tarjeta, transferencia o saldo de MP</p>
-                </div>
-              </div>
-            </label>
-          </div>
-        </div>
       </div>
 
-      {/* Formulario de tarjeta integrado - Solo visible cuando se selecciona tarjeta */}
-      {selectedPaymentMethod === 'card' && (
-      <>
-      <div className="cart-order-summary__divider" />
-      <div className="cart-order-summary__section payment-method-section">
-        <div className="cart-order-summary__section-title section-title-flex">
-          <span className="cart-order-summary__card-icon">💳</span>
-          <span>Datos de la Tarjeta</span>
-        </div>
-        <div className="cart-order-summary__section-content payment-method-content">
-
-          {/* Selector de tarjetas guardadas con botón + */}
-          <div className="form-group">
-            <label htmlFor="savedCards" className="saved-cards-title">Tarjetas Guardadas</label>
-            {isLoadingCards ? (
-              <div className="loading-cards">
-                <span>Cargando tarjetas guardadas...</span>
-              </div>
-            ) : (
-              <div className="saved-cards-selector">
-                <select
-                  id="savedCards"
-                  key={`cards-${cardsVersion}`}
-                  value={selectedPaymentCard?.id || ''}
-                  onChange={(e) => {
-                    const cardId = e.target.value;
-                    const card = cardId ? paymentCards.find(c => c.id === parseInt(cardId)) : null;
-                    handleCardSelection(card);
-                  }}
-                >
-                  <option value="">
-                    {paymentCards.length > 0
-                      ? "Selecciona una tarjeta"
-                      : "No hay tarjetas guardadas - Ingresar nueva"
-                    }
-                  </option>
-                  {paymentCards.map(card => (
-                    <option key={card.id} value={card.id}>
-                      {card.brand_display_name} **** {card.last_four} - {card.cardholder_name}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className="add-card-btn"
-                  onClick={() => setShowAddCardModal(true)}
-                  title="Agregar nueva tarjeta"
-                >
-                  +
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Campos del formulario */}
-          <div className="form-group input-with-icon">
-            <input
-              type="text"
-              id="cardNumber"
-              value={cardData.cardNumber}
-              onChange={(e) => handleInputChange('cardNumber', formatCardNumber(e.target.value))}
-              placeholder="Número de Tarjeta"
-              maxLength="19"
-              className="input-with-right-icon"
-            />
-            <span className="input-icon lock-icon">🔒</span>
-            {errors.cardNumber && <span className="error-message">{errors.cardNumber}</span>}
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <input
-                type="text"
-                id="expirationDate"
-                value={cardData.expirationDate}
-                onChange={(e) => handleInputChange('expirationDate', formatExpirationDate(e.target.value))}
-                placeholder="Fecha de vencimiento (MM/YY)"
-                maxLength="5"
-              />
-              {errors.expirationDate && <span className="error-message">{errors.expirationDate}</span>}
-            </div>
-
-            <div className="form-group">
-              <input
-                type="text"
-                id="securityCode"
-                value={cardData.securityCode}
-                onChange={(e) => handleInputChange('securityCode', e.target.value.replace(/\D/g, '').substring(0, 4))}
-                placeholder="Código de seguridad"
-                maxLength="4"
-              />
-              {errors.securityCode && <span className="error-message">{errors.securityCode}</span>}
-            </div>
-          </div>
-
-          <div className="form-group">
-            <input
-              type="text"
-              id="cardholderName"
-              value={cardData.cardholderName}
-              onChange={(e) => handleInputChange('cardholderName', e.target.value.toUpperCase())}
-              placeholder="Nombre del titular"
-            />
-            {errors.cardholderName && <span className="error-message">{errors.cardholderName}</span>}
-          </div>
-
-          {/* Campo oculto para cuotas (siempre 1) */}
-          <input type="hidden" name="installments" value="1" />
-
-          {errors.address && <div className="error-message">{errors.address}</div>}
-        </div>
-      </div>
-      </>
-      )}
-
-      {/* Modal para agregar nueva tarjeta */}
-      {showAddCardModal && (
+      {/* Modal para agregar nueva tarjeta - ELIMINADO */}
+      {false && (
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -1131,9 +979,7 @@ const CartOrderSummary = ({
         >
           {isProcessingPayment 
             ? 'Procesando pago...' 
-            : selectedPaymentMethod === 'mercadopago' 
-              ? 'Pagar con Mercado Pago' 
-              : 'Generar pedido'}
+            : 'Pagar con Mercado Pago'}
         </CustomButton>
         <CustomButton
           variant="outlined"

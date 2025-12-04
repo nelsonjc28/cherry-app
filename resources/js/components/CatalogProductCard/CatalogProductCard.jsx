@@ -183,6 +183,11 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
           <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
         )}
 
+        {/* Próximamente badge - if product is new and out of stock */}
+        {isNew && stock <= 0 && (
+          <span className="catalog-offer-badge catalog-out-of-stock-badge">Próximamente</span>
+        )}
+
         {/* Out of stock badge - only if NOT new */}
         {!isNew && stock <= 0 && (
           <span className="catalog-offer-badge catalog-out-of-stock-badge">Agotado</span>
