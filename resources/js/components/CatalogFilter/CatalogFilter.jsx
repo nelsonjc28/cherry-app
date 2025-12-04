@@ -35,7 +35,7 @@ const CatalogFilter = ({
 
   // Get dynamic data from API
   const { data: apiColors = [] } = useAvailableColors(filters.catalog);
-  const { data: apiAvailableCategories = [] } = useAvailableCategories(filters.catalog);
+  const { data: apiAvailableCategories = [], isLoading: isLoadingApiCategories } = useAvailableCategories(filters.catalog);
   
   // Estado para categorías cargadas desde el endpoint /api/categories
   const [categoriesFromAPI, setCategoriesFromAPI] = useState([]);
@@ -46,44 +46,135 @@ const CatalogFilter = ({
     const loadCategories = async () => {
       try {
         setCategoriesLoading(true);
-        const response = await api.get('/categories');
-        if (response.data.success && response.data.categories) {
+        console.log('🔄 Iniciando carga de categorías desde /api/categories...');
+        
+        // Intentar cargar categorías con timeout
+        const response = await Promise.race([
+          api.get('/categories'),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout: La solicitud tardó más de 10 segundos')), 10000)
+          )
+        ]);
+        
+        console.log('📡 Respuesta de /api/categories:', {
+          success: response.data?.success,
+          hasCategories: !!response.data?.categories,
+          categoriesCount: response.data?.categories?.length || 0,
+          responseData: response.data
+        });
+        
+        if (response.data && response.data.success && response.data.categories && Array.isArray(response.data.categories)) {
           // Mapear las categorías al formato esperado por CatalogFilter
-          const mappedCategories = response.data.categories.map(category => ({
-            code: category.code || category.id,
-            name: category.name
-          }));
+          const mappedCategories = response.data.categories
+            .filter(category => category && category.name) // Filtrar categorías inválidas
+            .map(category => ({
+              code: category.code || category.id?.toString() || null,
+              name: category.name
+            }))
+            .filter(category => category.code !== null); // Filtrar categorías sin code válido
+          
+          console.log('✅ Categorías mapeadas desde /api/categories:', {
+            count: mappedCategories.length,
+            sample: mappedCategories.slice(0, 3)
+          });
           setCategoriesFromAPI(mappedCategories);
         } else {
+          console.warn('⚠️ Respuesta de /api/categories no tiene el formato esperado:', {
+            hasData: !!response.data,
+            success: response.data?.success,
+            hasCategories: !!response.data?.categories,
+            isArray: Array.isArray(response.data?.categories),
+            responseData: response.data
+          });
           setCategoriesFromAPI([]);
         }
       } catch (error) {
-        console.error('Error cargando categorías:', error);
+        console.error('❌ Error cargando categorías desde /api/categories:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          url: error.config?.url,
+          fullError: error
+        });
+        
+        // Si es un error 404 o 500, puede ser un problema del servidor
+        if (error.response?.status === 404) {
+          console.warn('⚠️ Endpoint /api/categories no encontrado (404). Verificar rutas en producción.');
+        } else if (error.response?.status === 500) {
+          console.error('❌ Error del servidor (500) al obtener categorías. Revisar logs del servidor.');
+        } else if (!error.response) {
+          console.error('❌ Error de red al obtener categorías. Verificar conexión y configuración de API.');
+        }
+        
+        // No establecer como array vacío, dejar que use el fallback de apiAvailableCategories
         setCategoriesFromAPI([]);
       } finally {
         setCategoriesLoading(false);
       }
     };
 
-    loadCategories();
+    // Verificar que api esté disponible antes de hacer la llamada
+    if (typeof api !== 'undefined' && api) {
+      loadCategories();
+    } else {
+      console.error('❌ API no está disponible. Verificar configuración de axios.');
+      setCategoriesLoading(false);
+    }
+  }, []); // Solo ejecutar una vez al montar el componente
+  
+  // Log adicional para verificar que el useEffect se ejecutó
+  useEffect(() => {
+    console.log('🔄 CatalogFilter montado, iniciando carga de categorías...', {
+      apiAvailable: typeof api !== 'undefined',
+      baseURL: api?.defaults?.baseURL || 'no configurado'
+    });
   }, []);
   
   // Usar categorías pasadas como prop si están disponibles, sino usar las del endpoint /api/categories, sino las de la API externa
-  const availableCategories = propAvailableCategories !== null && Array.isArray(propAvailableCategories) && propAvailableCategories.length > 0
-    ? propAvailableCategories
-    : categoriesFromAPI.length > 0
-    ? categoriesFromAPI
-    : apiAvailableCategories;
+  // Prioridad: prop > categoriesFromAPI > apiAvailableCategories
+  let availableCategories = [];
   
-  // Debug: Log para verificar categorías disponibles
+  if (propAvailableCategories !== null && Array.isArray(propAvailableCategories) && propAvailableCategories.length > 0) {
+    availableCategories = propAvailableCategories;
+    console.log('✅ Usando categorías desde prop');
+  } else if (categoriesFromAPI.length > 0) {
+    availableCategories = categoriesFromAPI;
+    console.log('✅ Usando categorías desde /api/categories:', categoriesFromAPI.length);
+  } else if (apiAvailableCategories && Array.isArray(apiAvailableCategories) && apiAvailableCategories.length > 0) {
+    availableCategories = apiAvailableCategories;
+    console.log('✅ Usando categorías desde API externa (fallback):', apiAvailableCategories.length);
+  } else {
+    console.warn('⚠️ No hay categorías disponibles de ninguna fuente');
+    availableCategories = [];
+  }
+  
+  // Si aún no hay categorías y ya terminó de cargar, intentar usar apiAvailableCategories aunque esté vacío inicialmente
+  // Esto es para casos donde la carga es asíncrona
+  if (availableCategories.length === 0 && !categoriesLoading && !isLoadingApiCategories && apiAvailableCategories && apiAvailableCategories.length > 0) {
+    console.log('🔄 Reintentando con apiAvailableCategories después de carga completa');
+    availableCategories = apiAvailableCategories;
+  }
+  
+  // Debug: Log para verificar categorías disponibles (siempre mostrar para debugging)
   console.log('🔍 Categorías en filtros:', {
     hideCategorySelector,
-    propAvailableCategories,
-    categoriesFromAPI,
-    apiAvailableCategories,
-    availableCategories,
+    propAvailableCategories: propAvailableCategories?.length || 0,
+    categoriesFromAPI: categoriesFromAPI.length,
+    categoriesFromAPISample: categoriesFromAPI.slice(0, 3), // Primeras 3 para debug
+    apiAvailableCategories: apiAvailableCategories?.length || 0,
+    apiAvailableCategoriesSample: apiAvailableCategories?.slice(0, 3), // Primeras 3 para debug
+    isLoadingApiCategories,
+    availableCategories: availableCategories.length,
     categoriesLength: availableCategories.length,
-    categoriesLoading
+    categoriesLoading,
+    finalCategories: availableCategories.slice(0, 5), // Mostrar solo las primeras 5 para no saturar
+    source: propAvailableCategories?.length > 0 ? 'prop' : categoriesFromAPI.length > 0 ? 'api/categories' : apiAvailableCategories?.length > 0 ? 'api-externa' : 'ninguna',
+    filtersCatalog: filters.catalog, // Para ver qué catálogo se está usando
+    // Información adicional para debugging
+    hasPropCategories: !!propAvailableCategories,
+    hasCategoriesFromAPI: categoriesFromAPI.length > 0,
+    hasApiCategories: apiAvailableCategories && apiAvailableCategories.length > 0
   });
 
   // Toggle section expansion

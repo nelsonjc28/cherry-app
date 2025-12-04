@@ -19,19 +19,43 @@ class CategoryController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
+            // Obtener todas las categorías activas
             $categories = Category::active()
                 ->ordered()
                 ->select(['id', 'name', 'slug', 'code', 'description'])
                 ->get();
 
+            // Log para debugging
+            \Log::info('Categorías obtenidas desde CategoryController', [
+                'count' => $categories->count(),
+                'total_categories' => Category::count(),
+                'active_categories' => Category::where('is_active', true)->count(),
+                'categories' => $categories->map(fn($cat) => [
+                    'id' => $cat->id, 
+                    'name' => $cat->name, 
+                    'code' => $cat->code,
+                    'is_active' => $cat->is_active
+                ])->toArray()
+            ]);
+
+            // Si no hay categorías activas, devolver array vacío pero con success: true
             return response()->json([
                 'success' => true,
-                'categories' => $categories
+                'categories' => $categories,
+                'count' => $categories->count()
             ]);
         } catch (\Exception $e) {
+            \Log::error('Error al obtener categorías', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
-                'error' => 'Error al obtener categorías: ' . $e->getMessage()
+                'error' => 'Error al obtener categorías: ' . $e->getMessage(),
+                'categories' => []
             ], 500);
         }
     }
