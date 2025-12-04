@@ -43,12 +43,15 @@ const Header = () => {
   const userMenuRef = useRef(null);
   const mobileSearchInputRef = useRef(null);
 
-  // Inicializar carrito al montar el Header
+  // Inicializar carrito al montar el Header o cuando cambia el usuario
   useEffect(() => {
-    if (initCart) {
+    if (initCart && user) {
+      // Si hay usuario, forzar recarga desde BD para sincronizar entre dispositivos
+      initCart(true);
+    } else if (initCart) {
       initCart();
     }
-  }, [initCart]);
+  }, [initCart, user]);
 
   // Debug: Log del totalPrice cuando cambia
   useEffect(() => {

@@ -91,8 +91,9 @@ const useUserStore = create((set, get) => ({
 
       // Inicializar carrito después del login y sincronizar localStorage a BD
       const cartStore = useCartStore.getState();
+      cartStore.resetInitialization(); // Resetear para forzar recarga
       await cartStore.syncCartFromLocalStorage(); // Sincronizar primero
-      await cartStore.initCart(); // Luego inicializar desde BD
+      await cartStore.initCart(true); // Luego inicializar desde BD (forzar recarga)
 
       return data.user;
     } catch (err) {
@@ -219,6 +220,14 @@ const useUserStore = create((set, get) => ({
       }
 
       set({ user, loading: false, initialized: true });
+      
+      // Si hay usuario autenticado, inicializar carrito desde BD
+      if (user) {
+        const cartStore = useCartStore.getState();
+        cartStore.resetInitialization(); // Resetear para forzar recarga
+        cartStore.initCart(true); // Cargar desde BD (forzar recarga)
+      }
+      
       return user;
     } catch (err) {
       set({ user: null, error: err.message, loading: false, initialized: true });

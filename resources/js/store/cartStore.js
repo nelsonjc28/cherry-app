@@ -98,10 +98,10 @@ const useCartStore = create(
       isInitialized: false,
 
       // Initialize cart - carga desde BD si hay sesión, sino desde localStorage
-      initCart: async () => {
+      initCart: async (forceReload = false) => {
         const { isInitialized } = get();
-        if (isInitialized) {
-          return; // Ya inicializado
+        if (isInitialized && !forceReload) {
+          return; // Ya inicializado (a menos que se fuerce recarga)
         }
 
         set({ isLoading: true });
@@ -163,6 +163,11 @@ const useCartStore = create(
           console.error('Error initializing cart:', error);
           set({ isLoading: false, isInitialized: true });
         }
+      },
+
+      // Resetear estado de inicialización (útil cuando usuario inicia sesión)
+      resetInitialization: () => {
+        set({ isInitialized: false });
       },
 
       // Sincronizar carrito de localStorage a BD (cuando usuario inicia sesión)
