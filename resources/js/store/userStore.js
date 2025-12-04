@@ -89,9 +89,10 @@ const useUserStore = create((set, get) => ({
       setToken(data.token);
       set({ user: data.user, token: data.token, loading: false, error: null });
 
-      // Inicializar carrito después del login
+      // Inicializar carrito después del login y sincronizar localStorage a BD
       const cartStore = useCartStore.getState();
-      await cartStore.initCart();
+      await cartStore.syncCartFromLocalStorage(); // Sincronizar primero
+      await cartStore.initCart(); // Luego inicializar desde BD
 
       return data.user;
     } catch (err) {
@@ -117,6 +118,14 @@ const useUserStore = create((set, get) => ({
     } catch (err) {
       // Even if server logout fails, clear local state
     } finally {
+      // Limpiar carrito en BD antes de cerrar sesión
+      try {
+        const cartStore = useCartStore.getState();
+        await cartStore.clearCart();
+      } catch (error) {
+        console.error('Error clearing cart on logout:', error);
+      }
+
       // Clear local state regardless of server response
       set({
         user: null,

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import './CheckoutSuccessPage.css';
 import { getIconPath } from '../utils/assetPaths';
 import api from '../services/api';
+import useCartStore from '../store/cartStore';
 
 export default function CheckoutSuccessPage() {
   const navigate = useNavigate();
@@ -78,9 +79,9 @@ export default function CheckoutSuccessPage() {
   // Limpiar carrito después de pago exitoso
   useEffect(() => {
     if (paymentStatus === 'approved') {
-      // Limpiar carrito del localStorage
-      localStorage.removeItem('cart');
-      localStorage.removeItem('cartItems');
+      // Limpiar carrito usando el store (maneja BD y localStorage)
+      const { clearCart } = useCartStore.getState();
+      clearCart();
       // Disparar evento para actualizar el header
       window.dispatchEvent(new Event('cartUpdated'));
     }

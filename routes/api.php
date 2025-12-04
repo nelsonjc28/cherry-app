@@ -29,11 +29,20 @@ use App\Http\Controllers\Api\ProductSyncController;
 use App\Http\Controllers\Api\ProductSearchController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\TopSellingController;
+use App\Http\Controllers\Api\CartController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/complete-profile', [AuthController::class, 'completeProfile'])->middleware('auth:api');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api');
+
+// Cart routes (requires authentication)
+Route::middleware('auth:api')->group(function () {
+    Route::get('/cart', [CartController::class, 'index']);
+    Route::put('/cart', [CartController::class, 'update']);
+    Route::delete('/cart', [CartController::class, 'destroy']);
+    Route::post('/cart/sync', [CartController::class, 'sync']);
+});
 
 // Password Reset routes with code
 Route::post('/password/send-code', [App\Http\Controllers\Api\PasswordResetController::class, 'sendResetCode']);

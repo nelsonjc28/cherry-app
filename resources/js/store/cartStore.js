@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { cartApi } from '../api/cartApi';
 
 /**
  * Helper function to calculate item price considering Buy X Get Y offers
@@ -49,7 +50,39 @@ const calculateItemPrice = (item) => {
 };
 
 /**
- * Store for managing shopping cart state (solo frontend/localStorage)
+ * Helper function to check if user is authenticated
+ */
+const isAuthenticated = () => {
+  const token = localStorage.getItem('token');
+  return !!token;
+};
+
+/**
+ * Helper function to save cart to database (if authenticated)
+ */
+const saveCartToDatabase = async (cartState) => {
+  if (!isAuthenticated()) {
+    return; // No guardar en BD si no hay sesión
+  }
+
+  try {
+    await cartApi.updateCart({
+      items: cartState.items,
+      total_items: cartState.totalItems,
+      total_price: cartState.totalPrice,
+      coupon_code: cartState.couponCode,
+      discount: cartState.discount
+    });
+  } catch (error) {
+    console.error('Error saving cart to database:', error);
+    // No lanzar error, solo loguear para no interrumpir el flujo
+  }
+};
+
+/**
+ * Store for managing shopping cart state
+ * - Si hay sesión: guarda en BD y localStorage
+ * - Si no hay sesión: guarda solo en localStorage
  */
 const useCartStore = create(
   persist(
@@ -62,20 +95,114 @@ const useCartStore = create(
       error: null,
       couponCode: null,
       discount: 0,
+      isInitialized: false,
 
-      // Initialize cart from localStorage
-      initCart: () => {
-        const { items } = get();
+      // Initialize cart - carga desde BD si hay sesión, sino desde localStorage
+      initCart: async () => {
+        const { isInitialized } = get();
+        if (isInitialized) {
+          return; // Ya inicializado
+        }
 
-        const totalItems = items.reduce((sum, item) => {
-          const baseQuantity = item.quantity || 0;
-          const freeItems = item.freeItemsCount || 0;
-          return sum + baseQuantity + freeItems;
-        }, 0);
+        set({ isLoading: true });
 
-        const totalPrice = items.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+        try {
+          if (isAuthenticated()) {
+            // Cargar desde BD
+            const dbCart = await cartApi.getCart();
+            
+            if (dbCart && dbCart.items && dbCart.items.length > 0) {
+              // Hay carrito en BD, usarlo
+              const totalItems = dbCart.items.reduce((sum, item) => {
+                const baseQuantity = item.quantity || 0;
+                const freeItems = item.freeItemsCount || 0;
+                return sum + baseQuantity + freeItems;
+              }, 0);
 
-        set({ totalItems, totalPrice });
+              const totalPrice = dbCart.items.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+
+              set({
+                items: dbCart.items,
+                totalItems,
+                totalPrice,
+                couponCode: dbCart.coupon_code || null,
+                discount: dbCart.discount || 0,
+                isInitialized: true,
+                isLoading: false
+              });
+            } else {
+              // No hay carrito en BD, verificar localStorage y sincronizar
+              const { items } = get();
+              if (items && items.length > 0) {
+                // Sincronizar localStorage a BD
+                await get().syncCartFromLocalStorage();
+              } else {
+                set({ isInitialized: true, isLoading: false });
+              }
+            }
+          } else {
+            // No hay sesión, solo cargar desde localStorage
+            const { items } = get();
+
+            const totalItems = items.reduce((sum, item) => {
+              const baseQuantity = item.quantity || 0;
+              const freeItems = item.freeItemsCount || 0;
+              return sum + baseQuantity + freeItems;
+            }, 0);
+
+            const totalPrice = items.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+
+            set({
+              totalItems,
+              totalPrice,
+              isInitialized: true,
+              isLoading: false
+            });
+          }
+        } catch (error) {
+          console.error('Error initializing cart:', error);
+          set({ isLoading: false, isInitialized: true });
+        }
+      },
+
+      // Sincronizar carrito de localStorage a BD (cuando usuario inicia sesión)
+      syncCartFromLocalStorage: async () => {
+        if (!isAuthenticated()) {
+          return;
+        }
+
+        const { items, totalItems, totalPrice, couponCode, discount } = get();
+
+        try {
+          const syncedCart = await cartApi.syncCart({
+            items,
+            total_items: totalItems,
+            total_price: totalPrice,
+            coupon_code: couponCode,
+            discount
+          });
+
+          if (syncedCart && syncedCart.items) {
+            // Actualizar con el carrito combinado de BD
+            const totalItemsSynced = syncedCart.items.reduce((sum, item) => {
+              const baseQuantity = item.quantity || 0;
+              const freeItems = item.freeItemsCount || 0;
+              return sum + baseQuantity + freeItems;
+            }, 0);
+
+            const totalPriceSynced = syncedCart.items.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+
+            set({
+              items: syncedCart.items,
+              totalItems: totalItemsSynced,
+              totalPrice: totalPriceSynced,
+              couponCode: syncedCart.coupon_code || null,
+              discount: syncedCart.discount || 0
+            });
+          }
+        } catch (error) {
+          console.error('Error syncing cart from localStorage:', error);
+        }
       },
 
       // Add product to cart (con stock por talla y color)
@@ -178,11 +305,18 @@ const useCartStore = create(
         }, 0);
         const totalPrice = updatedItems.reduce((sum, item) => sum + calculateItemPrice(item), 0);
 
-        set({
+        const newState = {
           items: updatedItems,
           totalItems,
           totalPrice
-        });
+        };
+
+        set(newState);
+
+        // Guardar en BD si hay sesión
+        if (isAuthenticated()) {
+          saveCartToDatabase({ ...newState, couponCode: get().couponCode, discount: get().discount });
+        }
       },
 
       removeItem: (productId, color, size) => {
@@ -196,18 +330,35 @@ const useCartStore = create(
         const totalItems = updatedItems.reduce((sum, item) => sum + (item.quantity || 0) + (item.freeItemsCount || 0), 0);
         const totalPrice = updatedItems.reduce((sum, item) => sum + calculateItemPrice(item), 0);
 
-        set({ items: updatedItems, totalItems, totalPrice });
+        const newState = { items: updatedItems, totalItems, totalPrice };
+        set(newState);
+
+        // Guardar en BD si hay sesión
+        if (isAuthenticated()) {
+          saveCartToDatabase({ ...newState, couponCode: get().couponCode, discount: get().discount });
+        }
       },
 
-      clearCart: () => {
-        set({
+      clearCart: async () => {
+        const newState = {
           items: [],
           totalItems: 0,
           totalPrice: 0,
           couponCode: null,
           discount: 0,
           isLoading: false
-        });
+        };
+
+        set(newState);
+
+        // Limpiar en BD si hay sesión
+        if (isAuthenticated()) {
+          try {
+            await cartApi.clearCart();
+          } catch (error) {
+            console.error('Error clearing cart in database:', error);
+          }
+        }
       },
 
       applyBuyXGetYOffers: (items) => {
@@ -400,7 +551,14 @@ const useCartStore = create(
         const { items } = get();
         const totalItems = items.reduce((sum, item) => (sum + (item.quantity || 0) + (item.freeItemsCount || 0)), 0);
         const totalPrice = items.reduce((sum, item) => sum + calculateItemPrice(item), 0);
-        set({ totalItems, totalPrice });
+        
+        const newState = { totalItems, totalPrice };
+        set(newState);
+
+        // Guardar en BD si hay sesión
+        if (isAuthenticated()) {
+          saveCartToDatabase({ items, ...newState, couponCode: get().couponCode, discount: get().discount });
+        }
       }
     }),
     {

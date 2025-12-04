@@ -2,23 +2,140 @@ const API_BASE_URL = '/api';
 
 // Cart API functions
 export const cartApi = {
-  // Get cart
+  // Get cart from database
   getCart: async () => {
-    const response = await fetch(`${API_BASE_URL}/cart`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error('Error fetching cart');
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return null;
     }
-    
-    return response.json();
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/cart`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          // Token inválido, limpiar
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          return null;
+        }
+        throw new Error('Error fetching cart');
+      }
+      
+      const data = await response.json();
+      return data.cart;
+    } catch (error) {
+      console.error('Error fetching cart from database:', error);
+      return null;
+    }
   },
 
-  // Add item to cart
+  // Update cart in database
+  updateCart: async (cartData) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/cart`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(cartData)
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          return null;
+        }
+        throw new Error('Error updating cart');
+      }
+      
+      const data = await response.json();
+      return data.cart;
+    } catch (error) {
+      console.error('Error updating cart in database:', error);
+      return null;
+    }
+  },
+
+  // Clear cart in database
+  clearCart: async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/cart`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          return null;
+        }
+        throw new Error('Error clearing cart');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error clearing cart in database:', error);
+      return null;
+    }
+  },
+
+  // Sync cart from localStorage to database
+  syncCart: async (cartData) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/cart/sync`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(cartData)
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          return null;
+        }
+        throw new Error('Error syncing cart');
+      }
+      
+      const data = await response.json();
+      return data.cart;
+    } catch (error) {
+      console.error('Error syncing cart to database:', error);
+      return null;
+    }
+  },
+
+  // Legacy methods (kept for compatibility but not used)
   addToCart: async (productId, quantity = 1) => {
     const response = await fetch(`${API_BASE_URL}/cart/add`, {
       method: 'POST',
