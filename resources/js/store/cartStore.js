@@ -132,10 +132,23 @@ const useCartStore = create(
               });
             } else {
               // No hay carrito en BD, verificar localStorage y sincronizar
-              const { items } = get();
-              if (items && items.length > 0) {
+              // Obtener directamente de localStorage antes de limpiarlo
+              const localStorageCart = localStorage.getItem('cherry-central-cart');
+              let hasLocalItems = false;
+              
+              if (localStorageCart) {
+                try {
+                  const parsed = JSON.parse(localStorageCart);
+                  hasLocalItems = parsed.state?.items && parsed.state.items.length > 0;
+                } catch (error) {
+                  console.error('Error parsing localStorage cart:', error);
+                }
+              }
+              
+              if (hasLocalItems) {
                 // Sincronizar localStorage a BD
                 await get().syncCartFromLocalStorage();
+                set({ isInitialized: true, isLoading: false });
               } else {
                 set({ isInitialized: true, isLoading: false });
               }
@@ -176,42 +189,86 @@ const useCartStore = create(
           return;
         }
 
-        const { items, totalItems, totalPrice, couponCode, discount } = get();
+        // Obtener items de localStorage directamente (antes de que se limpien)
+        const localStorageCart = localStorage.getItem('cherry-central-cart');
+        let localItems = [];
+        let localTotals = { totalItems: 0, totalPrice: 0, couponCode: null, discount: 0 };
 
-        try {
-          const syncedCart = await cartApi.syncCart({
-            items,
-            total_items: totalItems,
-            total_price: totalPrice,
-            coupon_code: couponCode,
-            discount
-          });
+        if (localStorageCart) {
+          try {
+            const parsed = JSON.parse(localStorageCart);
+            localItems = parsed.state?.items || [];
+            localTotals = {
+              totalItems: parsed.state?.totalItems || 0,
+              totalPrice: parsed.state?.totalPrice || 0,
+              couponCode: parsed.state?.couponCode || null,
+              discount: parsed.state?.discount || 0
+            };
+          } catch (error) {
+            console.error('Error parsing localStorage cart:', error);
+          }
+        }
 
-          if (syncedCart && syncedCart.items) {
-            // Actualizar con el carrito combinado de BD
-            const totalItemsSynced = syncedCart.items.reduce((sum, item) => {
+        // Si hay items en localStorage, sincronizar a BD
+        if (localItems && localItems.length > 0) {
+          try {
+            const syncedCart = await cartApi.syncCart({
+              items: localItems,
+              total_items: localTotals.totalItems,
+              total_price: localTotals.totalPrice,
+              coupon_code: localTotals.couponCode,
+              discount: localTotals.discount
+            });
+
+            if (syncedCart && syncedCart.items) {
+              // Actualizar con el carrito combinado de BD
+              const totalItemsSynced = syncedCart.items.reduce((sum, item) => {
+                const baseQuantity = item.quantity || 0;
+                const freeItems = item.freeItemsCount || 0;
+                return sum + baseQuantity + freeItems;
+              }, 0);
+
+              const totalPriceSynced = syncedCart.items.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+
+              set({
+                items: syncedCart.items,
+                totalItems: totalItemsSynced,
+                totalPrice: totalPriceSynced,
+                couponCode: syncedCart.coupon_code || null,
+                discount: syncedCart.discount || 0
+              });
+            }
+          } catch (error) {
+            console.error('Error syncing cart from localStorage:', error);
+          }
+        } else {
+          // No hay items en localStorage, cargar desde BD
+          const dbCart = await cartApi.getCart();
+          if (dbCart && dbCart.items && dbCart.items.length > 0) {
+            const totalItems = dbCart.items.reduce((sum, item) => {
               const baseQuantity = item.quantity || 0;
               const freeItems = item.freeItemsCount || 0;
               return sum + baseQuantity + freeItems;
             }, 0);
 
-            const totalPriceSynced = syncedCart.items.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+            const totalPrice = dbCart.items.reduce((sum, item) => sum + calculateItemPrice(item), 0);
 
             set({
-              items: syncedCart.items,
-              totalItems: totalItemsSynced,
-              totalPrice: totalPriceSynced,
-              couponCode: syncedCart.coupon_code || null,
-              discount: syncedCart.discount || 0
+              items: dbCart.items,
+              totalItems,
+              totalPrice,
+              couponCode: dbCart.coupon_code || null,
+              discount: dbCart.discount || 0
             });
           }
-        } catch (error) {
-          console.error('Error syncing cart from localStorage:', error);
         }
+
+        // Limpiar localStorage después de sincronizar
+        localStorage.removeItem('cherry-central-cart');
       },
 
       // Add product to cart (con stock por talla y color)
-      addToCart: (product, quantity = 1, productDetaill) => {
+      addToCart: async (product, quantity = 1, productDetaill) => {
         const { items } = get();
 
         // Función para obtener stock de un producto específico
@@ -249,7 +306,7 @@ const useCartStore = create(
               userOffer: product.userOffer || existing.userOffer
             };
             window.showToast('Has alcanzado el stock máximo disponible para esta prenda.', 'error')
-            process.exit();
+            return;
           } else {
             // Preservar userOffer al actualizar cantidad
             updatedItems[existingIndex] = { 
@@ -280,15 +337,25 @@ const useCartStore = create(
 
         const totalPrice = updatedItems.reduce((sum, item) => sum + calculateItemPrice(item), 0);
 
-        set({
+        const newState = {
           items: updatedItems,
           totalItems,
           totalPrice
-        });
+        };
+
+        set(newState);
+
+        // Si hay sesión, guardar SOLO en BD (no en localStorage)
+        if (isAuthenticated()) {
+          await saveCartToDatabase({ ...newState, couponCode: get().couponCode, discount: get().discount });
+          // Limpiar localStorage cuando hay sesión activa
+          localStorage.removeItem('cherry-central-cart');
+        }
+        // Si no hay sesión, el persist middleware guardará en localStorage automáticamente
       },
 
       // El resto de tu store permanece intacto...
-      updateQuantity: (productId, newQuantity, color, size) => {
+      updateQuantity: async (productId, newQuantity, color, size) => {
         if (newQuantity < 1) return;
 
         const { items } = get();
@@ -318,13 +385,16 @@ const useCartStore = create(
 
         set(newState);
 
-        // Guardar en BD si hay sesión
+        // Si hay sesión, guardar SOLO en BD (no en localStorage)
         if (isAuthenticated()) {
-          saveCartToDatabase({ ...newState, couponCode: get().couponCode, discount: get().discount });
+          await saveCartToDatabase({ ...newState, couponCode: get().couponCode, discount: get().discount });
+          // Limpiar localStorage cuando hay sesión activa
+          localStorage.removeItem('cherry-central-cart');
         }
+        // Si no hay sesión, el persist middleware guardará en localStorage automáticamente
       },
 
-      removeItem: (productId, color, size) => {
+      removeItem: async (productId, color, size) => {
         const { items } = get();
         const updatedItems = items.filter(item =>
           !(item.id_articulo === productId &&
@@ -338,10 +408,13 @@ const useCartStore = create(
         const newState = { items: updatedItems, totalItems, totalPrice };
         set(newState);
 
-        // Guardar en BD si hay sesión
+        // Si hay sesión, guardar SOLO en BD (no en localStorage)
         if (isAuthenticated()) {
-          saveCartToDatabase({ ...newState, couponCode: get().couponCode, discount: get().discount });
+          await saveCartToDatabase({ ...newState, couponCode: get().couponCode, discount: get().discount });
+          // Limpiar localStorage cuando hay sesión activa
+          localStorage.removeItem('cherry-central-cart');
         }
+        // Si no hay sesión, el persist middleware guardará en localStorage automáticamente
       },
 
       clearCart: async () => {
@@ -356,7 +429,7 @@ const useCartStore = create(
 
         set(newState);
 
-        // Limpiar en BD si hay sesión
+        // Si hay sesión, limpiar SOLO en BD
         if (isAuthenticated()) {
           try {
             await cartApi.clearCart();
@@ -364,6 +437,9 @@ const useCartStore = create(
             console.error('Error clearing cart in database:', error);
           }
         }
+        
+        // Siempre limpiar localStorage también
+        localStorage.removeItem('cherry-central-cart');
       },
 
       applyBuyXGetYOffers: (items) => {
@@ -552,7 +628,7 @@ const useCartStore = create(
         return updatedItems;
       },
 
-      recalculateTotals: () => {
+      recalculateTotals: async () => {
         const { items } = get();
         const totalItems = items.reduce((sum, item) => (sum + (item.quantity || 0) + (item.freeItemsCount || 0)), 0);
         const totalPrice = items.reduce((sum, item) => sum + calculateItemPrice(item), 0);
@@ -560,22 +636,37 @@ const useCartStore = create(
         const newState = { totalItems, totalPrice };
         set(newState);
 
-        // Guardar en BD si hay sesión
+        // Si hay sesión, guardar SOLO en BD (no en localStorage)
         if (isAuthenticated()) {
-          saveCartToDatabase({ items, ...newState, couponCode: get().couponCode, discount: get().discount });
+          await saveCartToDatabase({ items, ...newState, couponCode: get().couponCode, discount: get().discount });
+          // Limpiar localStorage cuando hay sesión activa
+          localStorage.removeItem('cherry-central-cart');
         }
+        // Si no hay sesión, el persist middleware guardará en localStorage automáticamente
       }
     }),
     {
       name: 'cherry-central-cart',
-      partialize: (state) => ({
-        items: state.items,
-        totalItems: state.totalItems,
-        totalPrice: state.totalPrice,
-        couponCode: state.couponCode,
-        discount: state.discount
-      }),
+      partialize: (state) => {
+        // Si hay sesión activa, NO guardar en localStorage
+        if (isAuthenticated()) {
+          return {}; // Retornar objeto vacío para no persistir
+        }
+        // Si no hay sesión, guardar normalmente
+        return {
+          items: state.items,
+          totalItems: state.totalItems,
+          totalPrice: state.totalPrice,
+          couponCode: state.couponCode,
+          discount: state.discount
+        };
+      },
       onRehydrateStorage: () => (state) => {
+        // Solo rehidratar si NO hay sesión activa
+        if (isAuthenticated()) {
+          return; // No cargar desde localStorage si hay sesión
+        }
+        
         if (state && state.items) {
           const totalItems = state.items.reduce((sum, item) => (sum + (item.quantity || 0) + (item.freeItemsCount || 0)), 0);
           const totalPrice = state.items.reduce((sum, item) => sum + calculateItemPrice(item), 0);
