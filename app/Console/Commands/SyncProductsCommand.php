@@ -27,7 +27,7 @@ class SyncProductsCommand extends Command
      */
     protected $description = 'Sincronizar productos desde la API externa';
 
-    private const EXTERNAL_API_URL = 'https://cherryapi.estrategiadmgs.com.mx/cherryApi/';
+    private const EXTERNAL_API_URL = 'https://cherryapi.estrategiadmgs.com.mx/cherryApi/789/articulos';
 
     /**
      * Execute the console command.
@@ -41,21 +41,51 @@ class SyncProductsCommand extends Command
 
             // Obtener productos de la API externa
             $this->info('Conectando con la API externa...');
-            $response = Http::timeout(120)
+            $response = Http::timeout(600)
                 ->withoutVerifying()
+                ->withOptions([
+                    'verify' => false,
+                    'curl' => [
+                        CURLOPT_SSL_VERIFYPEER => false,
+                        CURLOPT_SSL_VERIFYHOST => false,
+                        CURLOPT_TIMEOUT => 600, // 10 minutos
+                    ]
+                ])
                 ->get(self::EXTERNAL_API_URL);
 
             if (!$response->successful()) {
                 throw new \Exception('Error al conectar con la API externa: ' . $response->status());
             }
 
-            $externalProducts = $response->json();
+            $responseData = $response->json();
 
-            if (!is_array($externalProducts)) {
+            // Verificar si los productos están dentro de una clave 'data'
+            if (isset($responseData['data']) && is_array($responseData['data'])) {
+                $externalProducts = $responseData['data'];
+                $this->info('Productos encontrados dentro de la clave "data"');
+            } elseif (is_array($responseData)) {
+                $externalProducts = $responseData;
+                $this->info('Productos en el nivel raíz de la respuesta');
+            } else {
                 throw new \Exception('La respuesta de la API no es un array válido');
             }
 
-            $this->info('Productos recibidos: ' . count($externalProducts));
+            // Filtrar elementos que no son productos válidos (deben ser arrays con id_articulo)
+            $originalCount = count($externalProducts);
+            $externalProducts = array_filter($externalProducts, function($product) {
+                // Solo filtrar si NO es un array o si NO tiene id_articulo definido
+                if (!is_array($product)) {
+                    return false;
+                }
+                // Verificar que tenga id_articulo y que no sea null
+                return isset($product['id_articulo']) && $product['id_articulo'] !== null;
+            });
+
+            // Reindexar el array después de filtrar
+            $externalProducts = array_values($externalProducts);
+            $filteredCount = count($externalProducts);
+
+            $this->info("Productos filtrados: {$originalCount} originales -> {$filteredCount} válidos");
 
             $stats = [
                 'generos_creados' => 0,

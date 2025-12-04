@@ -16,6 +16,8 @@ use App\Models\PaymentCard;
 use App\Models\User;
 use App\Models\Notification;
 use App\Services\ExternalSalesService;
+use App\Mail\OrderConfirmationMail;
+use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
 
 class PaymentController extends Controller
@@ -101,6 +103,32 @@ class PaymentController extends Controller
                 'quantity' => $item['quantity'],
                 'price' => $item['price'],
                 'subtotal' => $item['quantity'] * $item['price']
+            ]);
+        }
+
+        DB::commit();
+
+        // Enviar email de confirmación al cliente
+        try {
+            Mail::to($user->email)->send(new OrderConfirmationMail($order));
+        } catch (\Exception $e) {
+            // Log del error pero no fallar la transacción
+            Log::error('Error al enviar email de confirmación de pedido (preferencia)', [
+                'order_id' => $order->id,
+                'user_email' => $user->email,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        // Enviar email de confirmación al cliente
+        try {
+            Mail::to($user->email)->send(new OrderConfirmationMail($order));
+        } catch (\Exception $e) {
+            // Log del error pero no fallar la transacción
+            Log::error('Error al enviar email de confirmación de pedido', [
+                'order_id' => $order->id,
+                'user_email' => $user->email,
+                'error' => $e->getMessage()
             ]);
         }
 
@@ -194,6 +222,21 @@ class PaymentController extends Controller
             ]);
 
             DB::commit();
+
+            // Recargar el pedido con relaciones para el email
+            $order->load(['user', 'address', 'items']);
+
+            // Enviar email de confirmación al cliente
+            try {
+                Mail::to($user->email)->send(new OrderConfirmationMail($order));
+            } catch (\Exception $e) {
+                // Log del error pero no fallar la transacción
+                Log::error('Error al enviar email de confirmación de pedido (preferencia)', [
+                    'order_id' => $order->id,
+                    'user_email' => $user->email,
+                    'error' => $e->getMessage()
+                ]);
+            }
 
             return response()->json([
                 'success' => true,
@@ -583,6 +626,21 @@ class PaymentController extends Controller
 
                 DB::commit();
 
+                // Recargar el pedido con relaciones para el email
+                $order->load(['user', 'address', 'items']);
+
+                // Enviar email de confirmación al cliente
+                try {
+                    Mail::to($user->email)->send(new OrderConfirmationMail($order));
+                } catch (\Exception $e) {
+                    // Log del error pero no fallar la transacción
+                    Log::error('Error al enviar email de confirmación de pedido', [
+                        'order_id' => $order->id,
+                        'user_email' => $user->email,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+
                 // Solo enviar a API externa si el pago fue aprobado
                 if ($payment->status === 'approved') {
                     try {
@@ -827,6 +885,18 @@ class PaymentController extends Controller
             }
 
             DB::commit();
+
+        // Enviar email de confirmación al cliente
+        try {
+            Mail::to($user->email)->send(new OrderConfirmationMail($order));
+        } catch (\Exception $e) {
+            // Log del error pero no fallar la transacción
+            Log::error('Error al enviar email de confirmación de pedido (preferencia)', [
+                'order_id' => $order->id,
+                'user_email' => $user->email,
+                'error' => $e->getMessage()
+            ]);
+        }
 
             return response()->json([
                 'success' => true,
@@ -1520,6 +1590,21 @@ class PaymentController extends Controller
             ]);
 
             DB::commit();
+
+            // Recargar el pedido con relaciones para el email
+            $order->load(['user', 'address', 'items']);
+
+            // Enviar email de confirmación al cliente
+            try {
+                Mail::to($user->email)->send(new OrderConfirmationMail($order));
+            } catch (\Exception $e) {
+                // Log del error pero no fallar la transacción
+                Log::error('Error al enviar email de confirmación de pedido OXXO', [
+                    'order_id' => $order->id,
+                    'user_email' => $user->email,
+                    'error' => $e->getMessage()
+                ]);
+            }
 
             // Obtener datos del ticket para mostrar al usuario
             $ticketData = [
