@@ -699,21 +699,34 @@ const CartOrderSummary = ({
     setIsProcessingPayment(true);
 
     try {
+      // Asegurar que finalTotal incluya descuentos y envío
+      // finalTotal ya tiene:
+      // - Descuentos de productos individuales (incluidos en el total inicial)
+      // - Descuentos del 30% o 40% (aplicados sobre productos elegibles)
+      // - Envío (agregado si no hay envío gratis)
+      
       // Formatear total_amount con 2 decimales
       const formattedTotalAmount = parseFloat(Number(finalTotal).toFixed(2));
+      
+      console.log('💰 Monto a enviar a Mercado Pago:', {
+        total_inicial: total,
+        descuentos_aplicados: dayFortyFiveApplied ? `${dayFortyFiveDiscountPercentage}%` : 'ninguno',
+        envio: envio > 0 ? `$${envio}` : 'gratis',
+        total_final: formattedTotalAmount
+      });
       
       const paymentData = {
         items: cartItems.map(item => ({
           product_id: parseInt(item.id_articulo || item.product_id || item.id, 10),
           name: item.title || item.name,
           quantity: parseInt(item.quantity, 10),
-          price: parseFloat(item.precio || item.price),
+          price: parseFloat(item.precio || item.price), // Precio ya incluye descuentos individuales (desc_promo)
           size: item.selectedSize || null,
           color: item.selectedColor || null,
           barcode: item.barcode || null
         })),
         address_id: parseInt(selectedAddress.id, 10),
-        total_amount: formattedTotalAmount
+        total_amount: formattedTotalAmount // Total final con descuentos y envío incluidos
       };
 
       const response = await api.post('/payment/create-preference', paymentData);
