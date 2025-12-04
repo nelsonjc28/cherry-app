@@ -209,61 +209,79 @@ const useCartStore = create(
           }
         }
 
-        // Si hay items en localStorage, sincronizar a BD
-        if (localItems && localItems.length > 0) {
-          try {
-            const syncedCart = await cartApi.syncCart({
-              items: localItems,
-              total_items: localTotals.totalItems,
-              total_price: localTotals.totalPrice,
-              coupon_code: localTotals.couponCode,
-              discount: localTotals.discount
-            });
+        // Siempre sincronizar, incluso si no hay items en localStorage
+        // Esto asegura que se cargue el carrito de BD si existe
+        try {
+          const syncedCart = await cartApi.syncCart({
+            items: localItems, // Puede estar vacío, pero el backend lo manejará
+            total_items: localTotals.totalItems,
+            total_price: localTotals.totalPrice,
+            coupon_code: localTotals.couponCode,
+            discount: localTotals.discount
+          });
 
-            if (syncedCart && syncedCart.items) {
+          if (syncedCart) {
+            // Hay respuesta del servidor (puede tener items o estar vacío)
+            const syncedItems = syncedCart.items || [];
+            
+            if (syncedItems.length > 0) {
+              // Aplicar ofertas Buy X Get Y al carrito combinado
+              const itemsWithOffers = get().applyBuyXGetYOffers(syncedItems);
+              
               // Actualizar con el carrito combinado de BD
-              const totalItemsSynced = syncedCart.items.reduce((sum, item) => {
+              const totalItemsSynced = itemsWithOffers.reduce((sum, item) => {
                 const baseQuantity = item.quantity || 0;
                 const freeItems = item.freeItemsCount || 0;
                 return sum + baseQuantity + freeItems;
               }, 0);
 
-              const totalPriceSynced = syncedCart.items.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+              const totalPriceSynced = itemsWithOffers.reduce((sum, item) => sum + calculateItemPrice(item), 0);
 
               set({
-                items: syncedCart.items,
+                items: itemsWithOffers,
                 totalItems: totalItemsSynced,
                 totalPrice: totalPriceSynced,
                 couponCode: syncedCart.coupon_code || null,
                 discount: syncedCart.discount || 0
               });
+            } else {
+              // Carrito vacío en BD, pero puede haber items en localStorage que se combinaron
+              // Si no hay items después de combinar, limpiar el estado
+              set({
+                items: [],
+                totalItems: 0,
+                totalPrice: 0,
+                couponCode: syncedCart.coupon_code || null,
+                discount: syncedCart.discount || 0
+              });
             }
-          } catch (error) {
-            console.error('Error syncing cart from localStorage:', error);
-          }
-        } else {
-          // No hay items en localStorage, cargar desde BD
-          const dbCart = await cartApi.getCart();
-          if (dbCart && dbCart.items && dbCart.items.length > 0) {
-            const totalItems = dbCart.items.reduce((sum, item) => {
-              const baseQuantity = item.quantity || 0;
-              const freeItems = item.freeItemsCount || 0;
-              return sum + baseQuantity + freeItems;
-            }, 0);
+          } else {
+            // No hay respuesta del servidor, cargar desde localStorage si existe
+            if (localItems && localItems.length > 0) {
+              const itemsWithOffers = get().applyBuyXGetYOffers(localItems);
+              const totalItems = itemsWithOffers.reduce((sum, item) => {
+                const baseQuantity = item.quantity || 0;
+                const freeItems = item.freeItemsCount || 0;
+                return sum + baseQuantity + freeItems;
+              }, 0);
 
-            const totalPrice = dbCart.items.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+              const totalPrice = itemsWithOffers.reduce((sum, item) => sum + calculateItemPrice(item), 0);
 
-            set({
-              items: dbCart.items,
-              totalItems,
-              totalPrice,
-              couponCode: dbCart.coupon_code || null,
-              discount: dbCart.discount || 0
-            });
+              set({
+                items: itemsWithOffers,
+                totalItems,
+                totalPrice,
+                couponCode: localTotals.couponCode,
+                discount: localTotals.discount
+              });
+            }
           }
+        } catch (error) {
+          console.error('Error syncing cart from localStorage:', error);
+          // Si falla la sincronización, mantener items de localStorage temporalmente
         }
 
-        // Limpiar localStorage después de sincronizar
+        // Limpiar localStorage después de sincronizar (solo si la sincronización fue exitosa)
         localStorage.removeItem('cherry-central-cart');
       },
 

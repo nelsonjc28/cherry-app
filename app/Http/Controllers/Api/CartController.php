@@ -125,43 +125,78 @@ class CartController extends Controller
         }
 
         $validated = $request->validate([
-            'items' => 'required|array',
-            'total_items' => 'required|integer|min:0',
-            'total_price' => 'required|numeric|min:0',
+            'items' => 'nullable|array',
+            'total_items' => 'nullable|integer|min:0',
+            'total_price' => 'nullable|numeric|min:0',
             'coupon_code' => 'nullable|string',
             'discount' => 'nullable|numeric|min:0'
         ]);
 
-        // Si el usuario ya tiene un carrito en BD, combinar items (priorizar BD si hay conflictos)
+        // Si no se envían items, usar arrays vacíos
+        $localItems = $validated['items'] ?? [];
+        $localTotalItems = $validated['total_items'] ?? 0;
+        $localTotalPrice = $validated['total_price'] ?? 0;
+
+        // Buscar carrito existente en BD
         $existingCart = Cart::where('user_id', $user->id)->first();
 
         if ($existingCart && !empty($existingCart->items)) {
-            // Combinar items: agregar items de localStorage que no estén en BD
-            $bdItems = $existingCart->items ?? [];
-            $localItems = $validated['items'] ?? [];
-            
-            // Crear un mapa de items de BD por clave única (id_articulo-color-size)
-            $bdItemsMap = [];
-            foreach ($bdItems as $item) {
-                $key = $this->getItemKey($item);
-                $bdItemsMap[$key] = $item;
-            }
-
-            // Agregar items de localStorage que no existan en BD
-            foreach ($localItems as $item) {
-                $key = $this->getItemKey($item);
-                if (!isset($bdItemsMap[$key])) {
+            // Hay carrito en BD: combinar con localStorage (si hay items)
+            if (!empty($localItems)) {
+                // Combinar items: agregar items de localStorage que no estén en BD
+                // Si hay duplicados (mismo producto-color-talla), sumar cantidades
+                $bdItems = $existingCart->items ?? [];
+                
+                // Crear un mapa de items de BD por clave única (id_articulo-color-size)
+                $bdItemsMap = [];
+                foreach ($bdItems as $item) {
+                    $key = $this->getItemKey($item);
                     $bdItemsMap[$key] = $item;
                 }
-            }
 
-            $mergedItems = array_values($bdItemsMap);
+                // Combinar items de localStorage con items de BD
+                foreach ($localItems as $item) {
+                    $key = $this->getItemKey($item);
+                    if (isset($bdItemsMap[$key])) {
+                        // Si existe, sumar cantidades (no perder items)
+                        $existingQuantity = $bdItemsMap[$key]['quantity'] ?? 0;
+                        $newQuantity = $item['quantity'] ?? 0;
+                        $bdItemsMap[$key]['quantity'] = $existingQuantity + $newQuantity;
+                        
+                        // Preservar userOffer si existe en alguno de los dos
+                        if (isset($item['userOffer']) && !isset($bdItemsMap[$key]['userOffer'])) {
+                            $bdItemsMap[$key]['userOffer'] = $item['userOffer'];
+                        }
+                    } else {
+                        // Si no existe, agregarlo
+                        $bdItemsMap[$key] = $item;
+                    }
+                }
+
+                $mergedItems = array_values($bdItemsMap);
+            } else {
+                // No hay items en localStorage, mantener carrito de BD
+                $mergedItems = $existingCart->items;
+            }
             
-            // Recalcular totales
-            $totalItems = array_sum(array_column($mergedItems, 'quantity'));
-            $totalPrice = array_sum(array_map(function($item) {
-                return ($item['price'] ?? $item['precio'] ?? 0) * ($item['quantity'] ?? 0);
-            }, $mergedItems));
+            // Recalcular totales considerando freeItemsCount y ofertas
+            $totalItems = 0;
+            $totalPrice = 0;
+            
+            foreach ($mergedItems as $item) {
+                $quantity = $item['quantity'] ?? 0;
+                $freeItems = $item['freeItemsCount'] ?? 0;
+                $totalItems += $quantity + $freeItems;
+                
+                // Calcular precio considerando ofertas Buy X Get Y
+                $itemPrice = $item['price'] ?? $item['precio'] ?? 0;
+                if (isset($item['userOffer']) && $item['userOffer']['discount_category'] === 'buy_x_get_y') {
+                    $paidQuantity = $item['_paidQuantity'] ?? ($quantity - $freeItems);
+                    $totalPrice += $itemPrice * $paidQuantity;
+                } else {
+                    $totalPrice += $itemPrice * $quantity;
+                }
+            }
 
             $cart = $existingCart->update([
                 'items' => $mergedItems,
@@ -173,17 +208,31 @@ class CartController extends Controller
 
             $cart = $existingCart->fresh();
         } else {
-            // Crear nuevo carrito con items de localStorage
-            $cart = Cart::updateOrCreate(
-                ['user_id' => $user->id],
-                [
-                    'items' => $validated['items'],
-                    'total_items' => $validated['total_items'],
-                    'total_price' => $validated['total_price'],
-                    'coupon_code' => $validated['coupon_code'] ?? null,
-                    'discount' => $validated['discount'] ?? 0
-                ]
-            );
+            // No hay carrito en BD: crear uno nuevo con items de localStorage (si existen)
+            if (!empty($localItems)) {
+                $cart = Cart::updateOrCreate(
+                    ['user_id' => $user->id],
+                    [
+                        'items' => $localItems,
+                        'total_items' => $localTotalItems,
+                        'total_price' => $localTotalPrice,
+                        'coupon_code' => $validated['coupon_code'] ?? null,
+                        'discount' => $validated['discount'] ?? 0
+                    ]
+                );
+            } else {
+                // No hay items en localStorage ni en BD: crear carrito vacío
+                $cart = Cart::updateOrCreate(
+                    ['user_id' => $user->id],
+                    [
+                        'items' => [],
+                        'total_items' => 0,
+                        'total_price' => 0,
+                        'coupon_code' => null,
+                        'discount' => 0
+                    ]
+                );
+            }
         }
 
         Log::info('Carrito sincronizado desde localStorage', [
