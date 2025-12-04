@@ -61,8 +61,20 @@ const DestacadosPage = () => {
     // filters.category contiene el code de la categoría, comparar con id_linea del producto
     if (currentFilters.category && currentFilters.category !== '') {
       filtered = filtered.filter(product => {
-        const productLineaId = product.id_linea;
-        return productLineaId == currentFilters.category;
+        const productLineaId = product.id_linea || product.linea?.id_linea || product.category_id;
+        const matches = String(productLineaId) == String(currentFilters.category);
+        
+        // Debug para primeros productos
+        if (filtered.indexOf(product) < 3) {
+          console.log('🔍 DEBUG DestacadosPage - Filtro de categoría:', {
+            productId: product.id,
+            productLineaId,
+            filterCategory: currentFilters.category,
+            matches
+          });
+        }
+        
+        return matches;
       });
     }
     // Filter by catalog

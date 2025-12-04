@@ -34,14 +34,14 @@ const NuevosPage = () => {
       console.error('Error recuperando filtros:', e);
     }
     return {
-      catalog: 'Seleccione',
-      availability: 'todos',
-      category: '',
-      department: 'Todos los departamentos',
-      sector: 'Todos los sectores',
-      sizes: [],
-      colors: [],
-      priceRange: { min: 0, max: 0 }
+    catalog: 'Seleccione',
+    availability: 'todos',
+    category: '',
+    department: 'Todos los departamentos',
+    sector: 'Todos los sectores',
+    sizes: [],
+    colors: [],
+    priceRange: { min: 0, max: 0 }
     };
   };
 
@@ -56,8 +56,20 @@ const NuevosPage = () => {
     // Filter by category (usando código)
     if (currentFilters.category && currentFilters.category !== '') {
       filtered = filtered.filter(product => {
-        const productLineaId = product.id_linea || product.category_id;
-        return productLineaId == currentFilters.category;
+        const productLineaId = product.id_linea || product.category_id || product.linea?.id_linea;
+        const matches = String(productLineaId) == String(currentFilters.category);
+        
+        // Debug para primeros productos
+        if (filtered.indexOf(product) < 3) {
+          console.log('🔍 DEBUG NuevosPage - Filtro de categoría:', {
+            productId: product.id,
+            productLineaId,
+            filterCategory: currentFilters.category,
+            matches
+          });
+        }
+        
+        return matches;
       });
     }
 

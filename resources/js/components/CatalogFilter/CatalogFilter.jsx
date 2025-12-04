@@ -4,6 +4,7 @@ import { getIconPath } from '../../utils/assetPaths';
 import CustomButton from '../CustomButton';
 import { useAvailableColors, useAvailableCategories } from '../../hooks/useProducts';
 import colorConverter from '../../services/colorConverter';
+import api from '../../services/api';
 
 const CatalogFilter = ({
   filters,
@@ -14,6 +15,7 @@ const CatalogFilter = ({
   catalogs = [],
   catalogLoading = false,
   hideCatalogSelector = false,
+  hideCategorySelector = false, // Mostrar categorías por defecto
   availableColors = [],
   availableSizes = [],
   availableCategories: propAvailableCategories = null // Categorías pasadas como prop (prioridad)
@@ -35,10 +37,54 @@ const CatalogFilter = ({
   const { data: apiColors = [] } = useAvailableColors(filters.catalog);
   const { data: apiAvailableCategories = [] } = useAvailableCategories(filters.catalog);
   
-  // Usar categorías pasadas como prop si están disponibles, sino usar las de la API
+  // Estado para categorías cargadas desde el endpoint /api/categories
+  const [categoriesFromAPI, setCategoriesFromAPI] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  
+  // Cargar categorías desde el endpoint /api/categories
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        setCategoriesLoading(true);
+        const response = await api.get('/categories');
+        if (response.data.success && response.data.categories) {
+          // Mapear las categorías al formato esperado por CatalogFilter
+          const mappedCategories = response.data.categories.map(category => ({
+            code: category.code || category.id,
+            name: category.name
+          }));
+          setCategoriesFromAPI(mappedCategories);
+        } else {
+          setCategoriesFromAPI([]);
+        }
+      } catch (error) {
+        console.error('Error cargando categorías:', error);
+        setCategoriesFromAPI([]);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    loadCategories();
+  }, []);
+  
+  // Usar categorías pasadas como prop si están disponibles, sino usar las del endpoint /api/categories, sino las de la API externa
   const availableCategories = propAvailableCategories !== null && Array.isArray(propAvailableCategories) && propAvailableCategories.length > 0
     ? propAvailableCategories
+    : categoriesFromAPI.length > 0
+    ? categoriesFromAPI
     : apiAvailableCategories;
+  
+  // Debug: Log para verificar categorías disponibles
+  console.log('🔍 Categorías en filtros:', {
+    hideCategorySelector,
+    propAvailableCategories,
+    categoriesFromAPI,
+    apiAvailableCategories,
+    availableCategories,
+    categoriesLength: availableCategories.length,
+    categoriesLoading
+  });
 
   // Toggle section expansion
   const toggleSection = (section) => {
@@ -50,8 +96,6 @@ const CatalogFilter = ({
 
   // Handle filter changes
   const handleFilterChange = (filterType, value) => {
-
-
     const newFilters = { ...filters };
 
     switch (filterType) {
@@ -62,6 +106,10 @@ const CatalogFilter = ({
         break;
       case 'category':
         newFilters.category = value;
+        console.log('🔍 Filtro de categoría cambiado:', {
+          categoryValue: value,
+          availableCategories: availableCategories.find(cat => (cat.code || cat.id) == value)
+        });
         break;
       case 'availability':
         newFilters.availability = value;
@@ -173,28 +221,42 @@ const CatalogFilter = ({
               </div>
             )}
 
-            {/* Category selector */}
-            {availableCategories.length > 0 && (
-              <div className="filter-section  expandable">
+            {/* Category selector - mostrar siempre si no está oculto explícitamente */}
+            {!hideCategorySelector && (
+              <div className="filter-section expandable">
                 <button
                   className="filter-section-header"
                   onClick={() => toggleSection('category')}
                 >
                   <h3 className="filter-title">Categoría</h3>
-                  <img src={getIconPath('Chevron Down.svg')} alt="Filter" className={`chevron ${expandedSections.clothing ? 'expanded' : ''}`} />
+                  <img src={getIconPath('Chevron Down.svg')} alt="Filter" className={`chevron ${expandedSections.category ? 'expanded' : ''}`} />
                 </button>
                 {expandedSections.category && (
                   <select
                     value={filters.category || ''}
-                    onChange={(e) => handleFilterChange('category', e.target.value)}
+                    onChange={(e) => {
+                      const selectedValue = e.target.value;
+                      console.log('🔍 Select de categoría cambiado:', {
+                        selectedValue,
+                        selectedCategory: availableCategories.find(cat => String(cat.code || cat.id) === String(selectedValue))
+                      });
+                      handleFilterChange('category', selectedValue);
+                    }}
                     className="filter-select"
                   >
                     <option value="">Todas las categorías</option>
-                    {availableCategories.map((category) => (
-                      <option key={category.code} value={category.code}>
-                        {category.name}
-                      </option>
-                    ))}
+                    {availableCategories.length > 0 ? (
+                      availableCategories.map((category) => {
+                        const categoryCode = String(category.code || category.id);
+                        return (
+                          <option key={categoryCode} value={categoryCode}>
+                            {category.name}
+                          </option>
+                        );
+                      })
+                    ) : (
+                      <option value="" disabled>Cargando categorías...</option>
+                    )}
                   </select>
                 )}
               </div>
