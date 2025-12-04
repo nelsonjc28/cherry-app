@@ -92,8 +92,8 @@ const useUserStore = create((set, get) => ({
       // Inicializar carrito después del login y sincronizar localStorage a BD
       const cartStore = useCartStore.getState();
       cartStore.resetInitialization(); // Resetear para forzar recarga
-      await cartStore.syncCartFromLocalStorage(); // Sincronizar primero
-      await cartStore.initCart(true); // Luego inicializar desde BD (forzar recarga)
+      await cartStore.syncCartFromLocalStorage(); // Sincronizar (esto ya carga el carrito combinado)
+      // NO llamar a initCart aquí porque syncCartFromLocalStorage ya actualiza el estado
 
       return data.user;
     } catch (err) {
@@ -221,11 +221,33 @@ const useUserStore = create((set, get) => ({
 
       set({ user, loading: false, initialized: true });
       
-      // Si hay usuario autenticado, inicializar carrito desde BD
+      // Si hay usuario autenticado, sincronizar carrito de localStorage a BD si existe
       if (user) {
         const cartStore = useCartStore.getState();
-        cartStore.resetInitialization(); // Resetear para forzar recarga
-        cartStore.initCart(true); // Cargar desde BD (forzar recarga)
+        const localStorageCart = localStorage.getItem('cherry-central-cart');
+        if (localStorageCart) {
+          try {
+            const parsed = JSON.parse(localStorageCart);
+            const hasLocalItems = parsed.state?.items && parsed.state.items.length > 0;
+            if (hasLocalItems) {
+              // Hay items en localStorage, sincronizar primero
+              cartStore.resetInitialization();
+              await cartStore.syncCartFromLocalStorage();
+            } else {
+              // No hay items en localStorage, solo cargar desde BD
+              cartStore.resetInitialization();
+              await cartStore.initCart(true);
+            }
+          } catch (error) {
+            // Error parseando localStorage, solo cargar desde BD
+            cartStore.resetInitialization();
+            await cartStore.initCart(true);
+          }
+        } else {
+          // No hay localStorage, solo cargar desde BD
+          cartStore.resetInitialization();
+          await cartStore.initCart(true);
+        }
       }
       
       return user;

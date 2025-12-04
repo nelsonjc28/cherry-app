@@ -211,6 +211,7 @@ const useCartStore = create(
 
         // Siempre sincronizar, incluso si no hay items en localStorage
         // Esto asegura que se cargue el carrito de BD si existe
+        let syncSuccess = false;
         try {
           const syncedCart = await cartApi.syncCart({
             items: localItems, // Puede estar vacío, pero el backend lo manejará
@@ -224,39 +225,39 @@ const useCartStore = create(
             // Hay respuesta del servidor (puede tener items o estar vacío)
             const syncedItems = syncedCart.items || [];
             
-            if (syncedItems.length > 0) {
-              // Aplicar ofertas Buy X Get Y al carrito combinado
-              const itemsWithOffers = get().applyBuyXGetYOffers(syncedItems);
-              
-              // Actualizar con el carrito combinado de BD
-              const totalItemsSynced = itemsWithOffers.reduce((sum, item) => {
-                const baseQuantity = item.quantity || 0;
-                const freeItems = item.freeItemsCount || 0;
-                return sum + baseQuantity + freeItems;
-              }, 0);
+            // Aplicar ofertas Buy X Get Y al carrito combinado
+            const itemsWithOffers = syncedItems.length > 0 
+              ? get().applyBuyXGetYOffers(syncedItems)
+              : [];
+            
+            // Calcular totales
+            const totalItemsSynced = itemsWithOffers.reduce((sum, item) => {
+              const baseQuantity = item.quantity || 0;
+              const freeItems = item.freeItemsCount || 0;
+              return sum + baseQuantity + freeItems;
+            }, 0);
 
-              const totalPriceSynced = itemsWithOffers.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+            const totalPriceSynced = itemsWithOffers.reduce((sum, item) => sum + calculateItemPrice(item), 0);
 
-              set({
-                items: itemsWithOffers,
-                totalItems: totalItemsSynced,
-                totalPrice: totalPriceSynced,
-                couponCode: syncedCart.coupon_code || null,
-                discount: syncedCart.discount || 0
-              });
-            } else {
-              // Carrito vacío en BD, pero puede haber items en localStorage que se combinaron
-              // Si no hay items después de combinar, limpiar el estado
-              set({
-                items: [],
-                totalItems: 0,
-                totalPrice: 0,
-                couponCode: syncedCart.coupon_code || null,
-                discount: syncedCart.discount || 0
-              });
-            }
+            // Actualizar estado con el carrito combinado (puede estar vacío si ambos estaban vacíos)
+            set({
+              items: itemsWithOffers,
+              totalItems: totalItemsSynced,
+              totalPrice: totalPriceSynced,
+              couponCode: syncedCart.coupon_code || null,
+              discount: syncedCart.discount || 0,
+              isInitialized: true, // Marcar como inicializado para evitar que initCart sobrescriba
+              isLoading: false
+            });
+
+            syncSuccess = true;
+            console.log('Carrito sincronizado exitosamente:', {
+              itemsFromLocalStorage: localItems.length,
+              itemsAfterSync: itemsWithOffers.length,
+              syncedItems: syncedItems.length
+            });
           } else {
-            // No hay respuesta del servidor, cargar desde localStorage si existe
+            // No hay respuesta del servidor, mantener items de localStorage si existen
             if (localItems && localItems.length > 0) {
               const itemsWithOffers = get().applyBuyXGetYOffers(localItems);
               const totalItems = itemsWithOffers.reduce((sum, item) => {
@@ -272,17 +273,57 @@ const useCartStore = create(
                 totalItems,
                 totalPrice,
                 couponCode: localTotals.couponCode,
-                discount: localTotals.discount
+                discount: localTotals.discount,
+                isInitialized: true,
+                isLoading: false
+              });
+              console.warn('No se recibió respuesta del servidor, manteniendo carrito de localStorage');
+            } else {
+              set({
+                isInitialized: true,
+                isLoading: false
               });
             }
           }
         } catch (error) {
           console.error('Error syncing cart from localStorage:', error);
-          // Si falla la sincronización, mantener items de localStorage temporalmente
+          // Si falla la sincronización, mantener items de localStorage si existen
+          if (localItems && localItems.length > 0) {
+            const itemsWithOffers = get().applyBuyXGetYOffers(localItems);
+            const totalItems = itemsWithOffers.reduce((sum, item) => {
+              const baseQuantity = item.quantity || 0;
+              const freeItems = item.freeItemsCount || 0;
+              return sum + baseQuantity + freeItems;
+            }, 0);
+
+            const totalPrice = itemsWithOffers.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+
+            set({
+              items: itemsWithOffers,
+              totalItems,
+              totalPrice,
+              couponCode: localTotals.couponCode,
+              discount: localTotals.discount,
+              isInitialized: true,
+              isLoading: false
+            });
+            console.warn('Error al sincronizar, manteniendo carrito de localStorage');
+          } else {
+            set({
+              isInitialized: true,
+              isLoading: false
+            });
+          }
         }
 
-        // Limpiar localStorage después de sincronizar (solo si la sincronización fue exitosa)
-        localStorage.removeItem('cherry-central-cart');
+        // Limpiar localStorage SOLO si la sincronización fue exitosa
+        // y tenemos confirmación de que los items se guardaron en BD
+        if (syncSuccess) {
+          localStorage.removeItem('cherry-central-cart');
+          console.log('localStorage limpiado después de sincronización exitosa');
+        } else {
+          console.warn('localStorage NO limpiado porque la sincronización no fue exitosa');
+        }
       },
 
       // Add product to cart (con stock por talla y color)
