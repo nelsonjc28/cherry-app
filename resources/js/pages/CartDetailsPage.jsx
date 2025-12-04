@@ -412,8 +412,17 @@ const CartDetailsPage = () => {
   } else {
     shippingAmount = preShippingTotal < 3000 ? 150 : 0;
   }
-  const finalTotalWithShipping = (preShippingTotal + shippingAmount).toFixed(2);
+  const finalTotalWithShipping = parseFloat((preShippingTotal + shippingAmount).toFixed(2));
   const isFreeShippingApplied = shippingAmount === 0;
+
+  // Log para verificar cálculo
+  console.log('📊 Cálculo de totales en CartDetailsPage:', {
+    baseTotal: baseTotal,
+    dayFortyFiveDiscountAmount: dayFortyFiveDiscountAmount,
+    preShippingTotal: preShippingTotal,
+    shippingAmount: shippingAmount,
+    finalTotalWithShipping: finalTotalWithShipping
+  });
 
   // Order summary data
   const orderSummary = {
@@ -423,7 +432,7 @@ const CartDetailsPage = () => {
     pieces: totalItems,
     subtotal: baseTotal.toFixed(2),
     discountTotal: dayFortyFiveDiscountAmount > 0 ? dayFortyFiveDiscountAmount.toFixed(2) : '0.00',
-    total: parseFloat(finalTotalWithShipping), // Total FINAL con descuentos y envío incluidos
+    total: finalTotalWithShipping, // Total FINAL con descuentos y envío incluidos
     daysFortyFive: user?.day_forty_five,
     freeShipping: user?.free_shipping,
     freeShippingMinAmount: user?.free_shipping_min_amount || 0,

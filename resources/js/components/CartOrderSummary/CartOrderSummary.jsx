@@ -675,20 +675,36 @@ const CartOrderSummary = ({
 
     try {
       // Asegurar que finalTotal incluya descuentos y envío
-      // finalTotal ya tiene:
-      // - Descuentos de productos individuales (incluidos en el total inicial)
+      // finalTotal viene del prop 'total' que ya incluye:
+      // - Descuentos de productos individuales (desc_promo)
       // - Descuentos del 30% o 40% (aplicados sobre productos elegibles)
       // - Envío (agregado si no hay envío gratis)
       
-      // Formatear total_amount con 2 decimales
-      const formattedTotalAmount = parseFloat(Number(finalTotal).toFixed(2));
+      // IMPORTANTE: Usar el total FINAL que viene del prop 'total'
+      // Este total ya incluye descuentos y envío calculados en CartDetailsPage
+      // NO usar subtotal ni recalcular
+      const totalFinal = Number(total);
+      const formattedTotalAmount = parseFloat(totalFinal.toFixed(2));
       
       console.log('💰 Monto a enviar a Mercado Pago:', {
-        total_inicial: total,
+        prop_total_recibido: total,
+        prop_subtotal_recibido: subtotal,
+        total_final_usado: totalFinal,
+        formatted_total_amount: formattedTotalAmount,
         descuentos_aplicados: dayFortyFiveApplied ? `${dayFortyFiveDiscountPercentage}%` : 'ninguno',
-        envio: envio > 0 ? `$${envio}` : 'gratis',
-        total_final: formattedTotalAmount
+        envio_calculado: envio > 0 ? `$${envio}` : 'gratis',
+        diferencia_total_subtotal: (totalFinal - Number(subtotal)).toFixed(2)
       });
+      
+      // Verificar que estamos usando el total correcto (debe ser diferente del subtotal)
+      if (Math.abs(totalFinal - Number(subtotal)) < 0.01 && Number(subtotal) > 0) {
+        console.error('❌ ERROR: El total es igual al subtotal. Se está enviando el monto incorrecto.');
+        console.error('Subtotal:', subtotal, 'Total:', totalFinal);
+      }
+      
+      // Asegurar que usamos el total FINAL, no el subtotal
+      // El prop 'total' debe venir con descuentos y envío ya incluidos desde CartDetailsPage
+      const totalAmountToSend = formattedTotalAmount;
       
       const paymentData = {
         items: cartItems.map(item => ({
@@ -701,8 +717,14 @@ const CartOrderSummary = ({
           barcode: item.barcode || null
         })),
         address_id: parseInt(selectedAddress.id, 10),
-        total_amount: formattedTotalAmount // Total final con descuentos y envío incluidos
+        total_amount: totalAmountToSend // Total FINAL con descuentos y envío incluidos
       };
+      
+      console.log('📤 Datos enviados a Mercado Pago:', {
+        total_amount: paymentData.total_amount,
+        subtotal_recibido: subtotal,
+        diferencia: (paymentData.total_amount - Number(subtotal)).toFixed(2)
+      });
 
       const response = await api.post('/payment/create-preference', paymentData);
 

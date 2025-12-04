@@ -105,6 +105,56 @@ class PaymentController extends Controller
         }
 
         try {
+            // Calcular suma de items para verificar diferencia con total_amount
+            $itemsTotal = 0;
+            foreach ($request->items as $item) {
+                $itemsTotal += ($item['price'] * $item['quantity']);
+            }
+            
+            $totalAmount = (float) $request->total_amount;
+            $difference = $totalAmount - $itemsTotal;
+            
+            Log::info('Cálculo de totales para Mercado Pago', [
+                'items_total' => $itemsTotal,
+                'total_amount_recibido' => $totalAmount,
+                'diferencia' => $difference
+            ]);
+            
+            // Si hay diferencia, ajustar items para que sumen el total_amount
+            $itemsForMercadoPago = $request->items;
+            if (abs($difference) > 0.01) {
+                if ($difference > 0) {
+                    // Diferencia positiva (envío agregado) - agregar item de envío
+                    $itemsForMercadoPago[] = [
+                        'product_id' => 0,
+                        'name' => 'Envío',
+                        'quantity' => 1,
+                        'price' => $difference,
+                        'size' => null,
+                        'color' => null,
+                        'barcode' => null
+                    ];
+                } else {
+                    // Diferencia negativa (descuento adicional) - ajustar precios proporcionalmente
+                    // Calcular factor de ajuste
+                    $adjustmentFactor = $totalAmount / $itemsTotal;
+                    
+                    // Aplicar factor a cada item para que sumen el total_amount
+                    foreach ($itemsForMercadoPago as &$item) {
+                        $item['price'] = round($item['price'] * $adjustmentFactor, 2);
+                    }
+                    unset($item); // Liberar referencia
+                    
+                    Log::info('Ajuste de precios aplicado', [
+                        'factor_ajuste' => $adjustmentFactor,
+                        'total_original_items' => $itemsTotal,
+                        'total_ajustado' => array_sum(array_map(function($item) {
+                            return $item['price'] * $item['quantity'];
+                        }, $itemsForMercadoPago))
+                    ]);
+                }
+            }
+            
             // Preparar datos para MercadoPago
             $orderData = [
                 'order_id' => $order->external_reference,
@@ -121,7 +171,7 @@ class PaymentController extends Controller
                     'postal_code' => $address->postal_code,
                     'country' => $address->country
                 ],
-                'items' => $request->items
+                'items' => $itemsForMercadoPago
             ];
 
             Log::info('Creando preferencia de MercadoPago', [
