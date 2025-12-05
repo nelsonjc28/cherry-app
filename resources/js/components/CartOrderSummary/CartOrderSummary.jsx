@@ -401,13 +401,6 @@ const CartOrderSummary = ({
     setIsProcessingPayment(true);
 
     // ⚠️ SIN TRY-CATCH - Para ver el error exacto en la consola
-    console.log('=== INICIANDO PROCESO DE PAGO ===');
-    console.log('Datos del formulario:', {
-      cardNumber: cardData.cardNumber.substring(0, 4) + '****',
-      expirationDate: cardData.expirationDate,
-      cardholderName: cardData.cardholderName,
-      hasSecurityCode: !!cardData.securityCode
-    });
 
     // Formatear correctamente la fecha de expiración
     const [month, year] = cardData.expirationDate.split('/');
@@ -433,12 +426,6 @@ const CartOrderSummary = ({
       paymentMethodId = 'visa'; // default
     }
 
-    console.log('Creando token de tarjeta...', {
-      hasSDK: !!window.mp,
-      protocol: window.location.protocol,
-      hostname: window.location.hostname
-    });
-
     // Crear el token de tarjeta con MercadoPago
     const cardToken = await window.mp.createCardToken({
       cardNumber: cardNumber,
@@ -448,12 +435,9 @@ const CartOrderSummary = ({
       securityCode: cardData.securityCode
     });
 
-    console.log('Token recibido:', cardToken);
-
     // Verificar si hay errores en el cardToken (puede venir como array de errores)
     if (cardToken.error || (Array.isArray(cardToken) && cardToken.length > 0 && cardToken[0].code)) {
       const error = cardToken.error || cardToken[0];
-      console.error('Error en cardToken:', error);
 
       // Mostrar error amigable con toast
       let errorMessage = 'Error al procesar la tarjeta';
@@ -483,7 +467,6 @@ const CartOrderSummary = ({
     const finalPaymentMethodId = cardToken.payment_method_id || paymentMethodId;
 
     if (!finalPaymentMethodId) {
-      console.error('No se pudo obtener payment_method_id');
       if (window.showToast) {
         window.showToast('No se pudo obtener el método de pago de la tarjeta', 'error');
       }
@@ -522,18 +505,8 @@ const CartOrderSummary = ({
       eligible_total: eligibleTotal
     };
 
-    console.log('Enviando datos al backend:', {
-      token: paymentData.token.substring(0, 10) + '...',
-      payment_method_id: paymentData.payment_method_id,
-      transaction_amount: paymentData.transaction_amount,
-      items_count: paymentData.items.length,
-      address_id: paymentData.address_id
-    });
-
     // ⚠️ SIN TRY-CATCH - Esto permitirá ver errores exactos del backend
     const response = await api.post('/payment/process-integrated', paymentData);
-
-    console.log('Respuesta del backend:', response.data);
 
     if (response.data.success) {
       const { data } = response.data;
@@ -569,7 +542,6 @@ const CartOrderSummary = ({
         }
       }
     } else {
-      console.error('Error en respuesta del backend:', response.data);
       if (window.showToast) {
         window.showToast(response.data.message || 'Error al procesar el pago', 'error');
       }
@@ -651,8 +623,6 @@ const CartOrderSummary = ({
   const baseTotal = Number(subtotal);
   const envio = finalTotal > baseTotal ? (finalTotal - baseTotal) : 0;
 
-  console.log(freeShipping);
-
   // Función para procesar pago con Mercado Pago (redirección)
   // Esta función NO requiere HTTPS porque usa Checkout Pro (redirección completa)
   const processMercadoPagoPayment = async () => {
@@ -686,22 +656,6 @@ const CartOrderSummary = ({
       const totalFinal = Number(total);
       const formattedTotalAmount = parseFloat(totalFinal.toFixed(2));
       
-      console.log('💰 Monto a enviar a Mercado Pago:', {
-        prop_total_recibido: total,
-        prop_subtotal_recibido: subtotal,
-        total_final_usado: totalFinal,
-        formatted_total_amount: formattedTotalAmount,
-        descuentos_aplicados: dayFortyFiveApplied ? `${dayFortyFiveDiscountPercentage}%` : 'ninguno',
-        envio_calculado: envio > 0 ? `$${envio}` : 'gratis',
-        diferencia_total_subtotal: (totalFinal - Number(subtotal)).toFixed(2)
-      });
-      
-      // Verificar que estamos usando el total correcto (debe ser diferente del subtotal)
-      if (Math.abs(totalFinal - Number(subtotal)) < 0.01 && Number(subtotal) > 0) {
-        console.error('❌ ERROR: El total es igual al subtotal. Se está enviando el monto incorrecto.');
-        console.error('Subtotal:', subtotal, 'Total:', totalFinal);
-      }
-      
       // Asegurar que usamos el total FINAL, no el subtotal
       // El prop 'total' debe venir con descuentos y envío ya incluidos desde CartDetailsPage
       const totalAmountToSend = formattedTotalAmount;
@@ -719,12 +673,6 @@ const CartOrderSummary = ({
         address_id: parseInt(selectedAddress.id, 10),
         total_amount: totalAmountToSend // Total FINAL con descuentos y envío incluidos
       };
-      
-      console.log('📤 Datos enviados a Mercado Pago:', {
-        total_amount: paymentData.total_amount,
-        subtotal_recibido: subtotal,
-        diferencia: (paymentData.total_amount - Number(subtotal)).toFixed(2)
-      });
 
       const response = await api.post('/payment/create-preference', paymentData);
 

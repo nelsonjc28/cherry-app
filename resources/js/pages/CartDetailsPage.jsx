@@ -415,15 +415,6 @@ const CartDetailsPage = () => {
   const finalTotalWithShipping = parseFloat((preShippingTotal + shippingAmount).toFixed(2));
   const isFreeShippingApplied = shippingAmount === 0;
 
-  // Log para verificar cálculo
-  console.log('📊 Cálculo de totales en CartDetailsPage:', {
-    baseTotal: baseTotal,
-    dayFortyFiveDiscountAmount: dayFortyFiveDiscountAmount,
-    preShippingTotal: preShippingTotal,
-    shippingAmount: shippingAmount,
-    finalTotalWithShipping: finalTotalWithShipping
-  });
-
   // Order summary data
   const orderSummary = {
     creditDays: '',
@@ -440,8 +431,6 @@ const CartDetailsPage = () => {
     onGenerateOrder: handleGenerateOrder,
     onClearCart: handleClearCart
   };
-
-  console.log(orderSummary);
 
   // ===== ALERTAS DE DESCUENTO =====
   const DISCOUNT_30_THRESHOLD = 7000;

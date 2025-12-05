@@ -137,8 +137,22 @@ class CartController extends Controller
         $localTotalItems = $validated['total_items'] ?? 0;
         $localTotalPrice = $validated['total_price'] ?? 0;
 
+        Log::info('Sincronizando carrito', [
+            'user_id' => $user->id,
+            'localItems_count' => count($localItems),
+            'localItems' => $localItems,
+            'localTotalItems' => $localTotalItems,
+            'localTotalPrice' => $localTotalPrice
+        ]);
+
         // Buscar carrito existente en BD
         $existingCart = Cart::where('user_id', $user->id)->first();
+        
+        Log::info('Carrito existente en BD', [
+            'exists' => $existingCart !== null,
+            'bdItems_count' => $existingCart ? count($existingCart->items ?? []) : 0,
+            'bdItems' => $existingCart ? $existingCart->items : null
+        ]);
 
         if ($existingCart && !empty($existingCart->items)) {
             // Hay carrito en BD: combinar con localStorage (si hay items)
@@ -210,6 +224,11 @@ class CartController extends Controller
         } else {
             // No hay carrito en BD: crear uno nuevo con items de localStorage (si existen)
             if (!empty($localItems)) {
+                Log::info('Creando nuevo carrito con items de localStorage', [
+                    'items_count' => count($localItems),
+                    'items' => $localItems
+                ]);
+                
                 $cart = Cart::updateOrCreate(
                     ['user_id' => $user->id],
                     [
@@ -220,8 +239,18 @@ class CartController extends Controller
                         'discount' => $validated['discount'] ?? 0
                     ]
                 );
+                
+                Log::info('Carrito creado exitosamente', [
+                    'cart_id' => $cart->id,
+                    'items_count' => count($cart->items ?? []),
+                    'items' => $cart->items,
+                    'total_items' => $cart->total_items,
+                    'total_price' => $cart->total_price
+                ]);
             } else {
                 // No hay items en localStorage ni en BD: crear carrito vacío
+                Log::info('Creando carrito vacío (sin items en localStorage ni BD)');
+                
                 $cart = Cart::updateOrCreate(
                     ['user_id' => $user->id],
                     [
@@ -235,15 +264,29 @@ class CartController extends Controller
             }
         }
 
-        Log::info('Carrito sincronizado desde localStorage', [
+        Log::info('✅ Carrito sincronizado desde localStorage', [
             'user_id' => $user->id,
+            'cart_id' => $cart->id,
+            'items_count_in_db' => count($cart->items ?? []),
+            'items_in_db' => $cart->items,
             'total_items' => $cart->total_items,
-            'total_price' => $cart->total_price
+            'total_price' => $cart->total_price,
+            'localItems_received' => count($localItems),
+            'localItems_received_data' => $localItems,
+            'was_merged' => $existingCart && !empty($existingCart->items) && !empty($localItems)
         ]);
 
+        // IMPORTANTE: Devolver el carrito completo con todos los datos para confirmar guardado
         return response()->json([
             'success' => true,
-            'cart' => $cart
+            'cart' => $cart,
+            'message' => 'Carrito sincronizado exitosamente',
+            'debug' => [
+                'cart_id' => $cart->id,
+                'items_count' => count($cart->items ?? []),
+                'items' => $cart->items,
+                'localItems_received' => count($localItems)
+            ]
         ]);
     }
 

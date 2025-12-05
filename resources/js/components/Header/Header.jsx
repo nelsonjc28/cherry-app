@@ -21,7 +21,7 @@ const Header = () => {
   const cartItems = cartStore?.items || [];
   const totalItems = cartStore?.totalItems || 0;
   const totalPrice = cartStore?.totalPrice || 0;
-  const { initCart } = cartStore;
+  const { initCart, isInitialized } = cartStore;
 
   // Check if current page is admin
   const isAdminPage = location.pathname.startsWith('/admin');
@@ -46,12 +46,19 @@ const Header = () => {
   // Inicializar carrito al montar el Header o cuando cambia el usuario
   useEffect(() => {
     if (initCart && user) {
-      // Si hay usuario, forzar recarga desde BD para sincronizar entre dispositivos
-      initCart(true);
-    } else if (initCart) {
-      initCart();
+      // Si hay usuario, verificar si ya está inicializado antes de recargar
+      // Esto evita sobrescribir el carrito que se acaba de sincronizar
+      if (!isInitialized) {
+        // Solo inicializar si no está inicializado (evita sobrescribir después de sync)
+        initCart(true);
+      }
+    } else if (initCart && !user) {
+      // Sin usuario, solo inicializar si no está inicializado
+      if (!isInitialized) {
+        initCart();
+      }
     }
-  }, [initCart, user]);
+  }, [initCart, user, isInitialized]);
 
   // Debug: Log del totalPrice cuando cambia
   useEffect(() => {

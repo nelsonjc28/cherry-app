@@ -12,8 +12,6 @@ const useHomeCatalogs = () => {
       try {
         setLoading(true);
         const response = await api.get('/home-catalogs');
-
-        console.log(response.data);
         
         if (response.data.success && response.data.catalogs) {
           // Mapear los catálogos con sus PDFs

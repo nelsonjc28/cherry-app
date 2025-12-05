@@ -15,27 +15,12 @@ const calculateItemPrice = (item) => {
   if (item.userOffer?.discount_category === 'buy_x_get_y') {
     // Usar _paidQuantity si está disponible (calculado por applyBuyXGetYOffers)
     if (item._paidQuantity !== undefined) {
-      console.log('Calculando precio Buy X Get Y:', {
-        productId: item.id_articulo,
-        quantity,
-        _paidQuantity: item._paidQuantity,
-        itemPrice,
-        totalPrice: itemPrice * item._paidQuantity
-      });
       return itemPrice * item._paidQuantity;
     }
     
     // Si no tiene _paidQuantity pero tiene freeItemsCount, calcularlo
     if (item.freeItemsCount && item.freeItemsCount > 0) {
       const paidQuantity = quantity - item.freeItemsCount;
-      console.log('Calculando precio Buy X Get Y (fallback):', {
-        productId: item.id_articulo,
-        quantity,
-        freeItemsCount: item.freeItemsCount,
-        paidQuantity,
-        itemPrice,
-        totalPrice: itemPrice * paidQuantity
-      });
       return itemPrice * paidQuantity;
     }
   }
@@ -76,6 +61,33 @@ const saveCartToDatabase = async (cartState) => {
   } catch (error) {
     console.error('Error saving cart to database:', error);
     // No lanzar error, solo loguear para no interrumpir el flujo
+  }
+};
+
+/**
+ * Helper function to save cart to localStorage when there's no session
+ * This ensures immediate persistence before sync
+ */
+const saveCartToLocalStorage = (items, totalItems, totalPrice, couponCode = null, discount = 0) => {
+  if (isAuthenticated()) {
+    return; // No guardar en localStorage si hay sesión
+  }
+  
+  const persistData = {
+    state: {
+      items: items || [],
+      totalItems: totalItems || 0,
+      totalPrice: totalPrice || 0,
+      couponCode: couponCode || null,
+      discount: discount || 0
+    },
+    version: 0
+  };
+  
+  try {
+    localStorage.setItem('cherry-central-cart', JSON.stringify(persistData));
+  } catch (error) {
+    // Error guardando en localStorage
   }
 };
 
@@ -189,41 +201,101 @@ const useCartStore = create(
           return;
         }
 
-        // Obtener items de localStorage directamente (antes de que se limpien)
-        const localStorageCart = localStorage.getItem('cherry-central-cart');
+        // PASO 1: Leer localStorage INMEDIATAMENTE y hacer una copia completa
+        // Esto evita que cualquier código (incluido persist middleware) lo limpie
+        let localStorageCartString = null;
+        try {
+          const raw = localStorage.getItem('cherry-central-cart');
+          if (raw) {
+            // Crear una copia completa del string
+            localStorageCartString = JSON.stringify(JSON.parse(raw));
+          }
+        } catch (error) {
+          // Error leyendo localStorage
+        }
+        
         let localItems = [];
         let localTotals = { totalItems: 0, totalPrice: 0, couponCode: null, discount: 0 };
 
-        if (localStorageCart) {
+        // PASO 2: Parsear los datos de localStorage (usando la copia guardada)
+        if (localStorageCartString) {
           try {
-            const parsed = JSON.parse(localStorageCart);
-            localItems = parsed.state?.items || [];
-            localTotals = {
-              totalItems: parsed.state?.totalItems || 0,
-              totalPrice: parsed.state?.totalPrice || 0,
-              couponCode: parsed.state?.couponCode || null,
-              discount: parsed.state?.discount || 0
-            };
+            const parsed = JSON.parse(localStorageCartString);
+            // Intentar diferentes estructuras posibles
+            if (parsed.state) {
+              // Estructura de Zustand persist
+              localItems = parsed.state.items || [];
+              localTotals = {
+                totalItems: parsed.state.totalItems || 0,
+                totalPrice: parsed.state.totalPrice || 0,
+                couponCode: parsed.state.couponCode || null,
+                discount: parsed.state.discount || 0
+              };
+            } else if (parsed.items) {
+              // Estructura directa
+              localItems = parsed.items || [];
+              localTotals = {
+                totalItems: parsed.totalItems || 0,
+                totalPrice: parsed.totalPrice || 0,
+                couponCode: parsed.couponCode || null,
+                discount: parsed.discount || 0
+              };
+            } else {
+              // Intentar como array directo
+              localItems = Array.isArray(parsed) ? parsed : [];
+            }
+            
           } catch (error) {
-            console.error('Error parsing localStorage cart:', error);
+            // Error parsing localStorage cart
+          }
+        } else {
+          // Verificar si localStorage fue limpiado después de leerlo
+          const checkAgain = localStorage.getItem('cherry-central-cart');
+          if (checkAgain) {
+            try {
+              const reparsed = JSON.parse(checkAgain);
+              if (reparsed.state) {
+                localItems = reparsed.state.items || [];
+                localTotals = {
+                  totalItems: reparsed.state.totalItems || 0,
+                  totalPrice: reparsed.state.totalPrice || 0,
+                  couponCode: reparsed.state.couponCode || null,
+                  discount: reparsed.state.discount || 0
+                };
+              }
+            } catch (e) {
+              // Error parseando segunda lectura
+            }
           }
         }
 
-        // Siempre sincronizar, incluso si no hay items en localStorage
-        // Esto asegura que se cargue el carrito de BD si existe
+        // PASO 3: Preparar payload para enviar al backend
+        // SIEMPRE enviar, incluso si no hay items en localStorage (para cargar BD)
+        const syncPayload = {
+          items: localItems, // IMPORTANTE: Enviar items de localStorage
+          total_items: localTotals.totalItems,
+          total_price: localTotals.totalPrice,
+          coupon_code: localTotals.couponCode,
+          discount: localTotals.discount
+        };
+        
         let syncSuccess = false;
+        let syncedCart = null;
+        
         try {
-          const syncedCart = await cartApi.syncCart({
-            items: localItems, // Puede estar vacío, pero el backend lo manejará
-            total_items: localTotals.totalItems,
-            total_price: localTotals.totalPrice,
-            coupon_code: localTotals.couponCode,
-            discount: localTotals.discount
-          });
+          // PASO 3: Enviar al backend y esperar confirmación
+          syncedCart = await cartApi.syncCart(syncPayload);
+          
+          console.log('🔵 syncCartFromLocalStorage: PASO 4 - Respuesta del backend:', syncedCart);
 
           if (syncedCart) {
             // Hay respuesta del servidor (puede tener items o estar vacío)
             const syncedItems = syncedCart.items || [];
+            
+            console.log('🔵 Items sincronizados:', {
+              syncedItemsCount: syncedItems.length,
+              syncedItems: syncedItems
+            });
             
             // Aplicar ofertas Buy X Get Y al carrito combinado
             const itemsWithOffers = syncedItems.length > 0 
@@ -250,14 +322,13 @@ const useCartStore = create(
               isLoading: false
             });
 
+            // PASO 6: Confirmar éxito SOLO si recibimos confirmación del backend
             syncSuccess = true;
-            console.log('Carrito sincronizado exitosamente:', {
-              itemsFromLocalStorage: localItems.length,
-              itemsAfterSync: itemsWithOffers.length,
-              syncedItems: syncedItems.length
-            });
           } else {
-            // No hay respuesta del servidor, mantener items de localStorage si existen
+            // No hay respuesta válida del backend
+            syncSuccess = false;
+            
+            // Si hay items en localStorage, mantenerlos en el estado
             if (localItems && localItems.length > 0) {
               const itemsWithOffers = get().applyBuyXGetYOffers(localItems);
               const totalItems = itemsWithOffers.reduce((sum, item) => {
@@ -277,7 +348,6 @@ const useCartStore = create(
                 isInitialized: true,
                 isLoading: false
               });
-              console.warn('No se recibió respuesta del servidor, manteniendo carrito de localStorage');
             } else {
               set({
                 isInitialized: true,
@@ -286,7 +356,8 @@ const useCartStore = create(
             }
           }
         } catch (error) {
-          console.error('Error syncing cart from localStorage:', error);
+          syncSuccess = false;
+          
           // Si falla la sincronización, mantener items de localStorage si existen
           if (localItems && localItems.length > 0) {
             const itemsWithOffers = get().applyBuyXGetYOffers(localItems);
@@ -307,7 +378,6 @@ const useCartStore = create(
               isInitialized: true,
               isLoading: false
             });
-            console.warn('Error al sincronizar, manteniendo carrito de localStorage');
           } else {
             set({
               isInitialized: true,
@@ -316,13 +386,9 @@ const useCartStore = create(
           }
         }
 
-        // Limpiar localStorage SOLO si la sincronización fue exitosa
-        // y tenemos confirmación de que los items se guardaron en BD
-        if (syncSuccess) {
+        // PASO 7: Limpiar localStorage SOLO si recibimos confirmación de que se guardó en BD
+        if (syncSuccess && syncedCart && syncedCart.id) {
           localStorage.removeItem('cherry-central-cart');
-          console.log('localStorage limpiado después de sincronización exitosa');
-        } else {
-          console.warn('localStorage NO limpiado porque la sincronización no fue exitosa');
         }
       },
 
@@ -409,8 +475,24 @@ const useCartStore = create(
           await saveCartToDatabase({ ...newState, couponCode: get().couponCode, discount: get().discount });
           // Limpiar localStorage cuando hay sesión activa
           localStorage.removeItem('cherry-central-cart');
+        } else {
+          // Si no hay sesión, guardar inmediatamente en localStorage
+          // IMPORTANTE: Guardar ANTES de que el persist middleware pueda interferir
+          console.log('🟢 addToCart: Sin sesión, guardando en localStorage ANTES de set()...');
+          saveCartToLocalStorage(updatedItems, totalItems, totalPrice, get().couponCode, get().discount);
+          
+          // Verificar inmediatamente después
+          const verifySaved = localStorage.getItem('cherry-central-cart');
+          if (verifySaved) {
+            const parsed = JSON.parse(verifySaved);
+            console.log('🟢 addToCart: Verificación inmediata - localStorage guardado:', {
+              itemsCount: parsed.state?.items?.length || 0,
+              items: parsed.state?.items || []
+            });
+          } else {
+            console.error('❌ addToCart: ERROR - localStorage NO se guardó correctamente');
+          }
         }
-        // Si no hay sesión, el persist middleware guardará en localStorage automáticamente
       },
 
       // El resto de tu store permanece intacto...
@@ -449,8 +531,24 @@ const useCartStore = create(
           await saveCartToDatabase({ ...newState, couponCode: get().couponCode, discount: get().discount });
           // Limpiar localStorage cuando hay sesión activa
           localStorage.removeItem('cherry-central-cart');
+        } else {
+          // Si no hay sesión, guardar inmediatamente en localStorage
+          // IMPORTANTE: Guardar ANTES de que el persist middleware pueda interferir
+          console.log('🟢 addToCart: Sin sesión, guardando en localStorage ANTES de set()...');
+          saveCartToLocalStorage(updatedItems, totalItems, totalPrice, get().couponCode, get().discount);
+          
+          // Verificar inmediatamente después
+          const verifySaved = localStorage.getItem('cherry-central-cart');
+          if (verifySaved) {
+            const parsed = JSON.parse(verifySaved);
+            console.log('🟢 addToCart: Verificación inmediata - localStorage guardado:', {
+              itemsCount: parsed.state?.items?.length || 0,
+              items: parsed.state?.items || []
+            });
+          } else {
+            console.error('❌ addToCart: ERROR - localStorage NO se guardó correctamente');
+          }
         }
-        // Si no hay sesión, el persist middleware guardará en localStorage automáticamente
       },
 
       removeItem: async (productId, color, size) => {
@@ -472,8 +570,24 @@ const useCartStore = create(
           await saveCartToDatabase({ ...newState, couponCode: get().couponCode, discount: get().discount });
           // Limpiar localStorage cuando hay sesión activa
           localStorage.removeItem('cherry-central-cart');
+        } else {
+          // Si no hay sesión, guardar inmediatamente en localStorage
+          // IMPORTANTE: Guardar ANTES de que el persist middleware pueda interferir
+          console.log('🟢 addToCart: Sin sesión, guardando en localStorage ANTES de set()...');
+          saveCartToLocalStorage(updatedItems, totalItems, totalPrice, get().couponCode, get().discount);
+          
+          // Verificar inmediatamente después
+          const verifySaved = localStorage.getItem('cherry-central-cart');
+          if (verifySaved) {
+            const parsed = JSON.parse(verifySaved);
+            console.log('🟢 addToCart: Verificación inmediata - localStorage guardado:', {
+              itemsCount: parsed.state?.items?.length || 0,
+              items: parsed.state?.items || []
+            });
+          } else {
+            console.error('❌ addToCart: ERROR - localStorage NO se guardó correctamente');
+          }
         }
-        // Si no hay sesión, el persist middleware guardará en localStorage automáticamente
       },
 
       clearCart: async () => {
@@ -493,7 +607,7 @@ const useCartStore = create(
           try {
             await cartApi.clearCart();
           } catch (error) {
-            console.error('Error clearing cart in database:', error);
+            // Error clearing cart in database
           }
         }
         
@@ -502,17 +616,6 @@ const useCartStore = create(
       },
 
       applyBuyXGetYOffers: (items) => {
-        console.log('applyBuyXGetYOffers llamado con items:', items.map(item => ({
-          id: item.id_articulo,
-          color: item.selectedColor,
-          size: item.selectedSize,
-          quantity: item.quantity,
-          hasUserOffer: !!item.userOffer,
-          discount_category: item.userOffer?.discount_category,
-          buy_quantity: item.userOffer?.buy_quantity,
-          get_quantity: item.userOffer?.get_quantity
-        })));
-
         // 1. Separar items con y sin oferta Buy X Get Y
         const itemsWithOffer = items.filter(item => 
           item.userOffer && item.userOffer.discount_category === 'buy_x_get_y'
@@ -551,17 +654,8 @@ const useCartStore = create(
           // Sumar todas las cantidades de todas las tallas del grupo
           const totalQuantity = group.items.reduce((sum, item) => sum + (parseInt(item.quantity) || 0), 0);
           
-          console.log('Procesando grupo Buy X Get Y:', {
-            key,
-            totalQuantity,
-            buyQuantity,
-            getQuantity,
-            itemsCount: group.items.length
-          });
-
           // Si no hay cantidad suficiente o no hay items gratis, no aplicar oferta
           if (totalQuantity < buyQuantity || getQuantity === 0) {
-            console.log('No se aplica oferta: cantidad insuficiente o getQuantity=0');
             group.items.forEach(item => {
               processedGroups[`${item.id_articulo}_${item.selectedColor || 'default'}_${item.selectedSize || 'default'}`] = {
                 ...item,
@@ -587,18 +681,6 @@ const useCartStore = create(
           
           // Total de items pagados
           const paidItems = paidFromGroups + remainderItems;
-
-          console.log('Buy X Get Y aplicado al grupo:', {
-            key,
-            totalQuantity,
-            buyQuantity,
-            getQuantity,
-            completeGroups,
-            freeItems,
-            paidFromGroups,
-            remainderItems,
-            paidItems
-          });
 
           // 4. Distribuir items pagados y gratis proporcionalmente entre las tallas
           // Usar un algoritmo que asegure que la suma total sea exacta
@@ -646,14 +728,6 @@ const useCartStore = create(
               _freeQuantity: itemFreeQuantity
             };
           });
-          
-          console.log('Distribución final del grupo:', {
-            key,
-            totalPaidItems: paidItems,
-            totalFreeItems: freeItems,
-            distributedPaid: totalDistributedPaid,
-            distributedFree: totalDistributedFree
-          });
         });
 
         // 5. Combinar items procesados con items sin oferta
@@ -674,16 +748,6 @@ const useCartStore = create(
           return item;
         });
 
-        console.log('Items después de aplicar Buy X Get Y:', updatedItems.map(item => ({
-          id: item.id_articulo,
-          color: item.selectedColor,
-          size: item.selectedSize,
-          quantity: item.quantity,
-          _paidQuantity: item._paidQuantity,
-          freeItemsCount: item.freeItemsCount,
-          hasUserOffer: !!item.userOffer
-        })));
-
         return updatedItems;
       },
 
@@ -700,16 +764,32 @@ const useCartStore = create(
           await saveCartToDatabase({ items, ...newState, couponCode: get().couponCode, discount: get().discount });
           // Limpiar localStorage cuando hay sesión activa
           localStorage.removeItem('cherry-central-cart');
+        } else {
+          // Si no hay sesión, guardar inmediatamente en localStorage
+          saveCartToLocalStorage(items, totalItems, totalPrice, get().couponCode, get().discount);
         }
-        // Si no hay sesión, el persist middleware guardará en localStorage automáticamente
       }
     }),
     {
       name: 'cherry-central-cart',
       partialize: (state) => {
         // Si hay sesión activa, NO guardar en localStorage
+        // Pero retornar el estado actual de localStorage si existe para NO limpiarlo
         if (isAuthenticated()) {
-          return {}; // Retornar objeto vacío para no persistir
+          // Leer localStorage actual y retornarlo para preservarlo
+          // Esto evita que Zustand lo limpie cuando hay sesión
+          try {
+            const existing = localStorage.getItem('cherry-central-cart');
+            if (existing) {
+              const parsed = JSON.parse(existing);
+              // Retornar el estado existente para preservarlo
+              return parsed.state || parsed;
+            }
+          } catch (e) {
+            // Si hay error, retornar undefined para no hacer nada
+          }
+          // Si no hay localStorage existente, retornar undefined (no hacer nada)
+          return undefined;
         }
         // Si no hay sesión, guardar normalmente
         return {

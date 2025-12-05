@@ -54,7 +54,6 @@ const useUserStore = create((set, get) => ({
 
       const data = await res.json();;
 
-      console.log(data.user);
       if (!res.ok) {
         let errorMessage = 'Error al iniciar sesión.';
         if (data.errors) {
@@ -86,11 +85,72 @@ const useUserStore = create((set, get) => ({
         set({ error: errorMessage, loading: false });
         return null;
       }
+      // CRÍTICO: Leer y guardar localStorage ANTES de establecer el token
+      // porque el persist middleware limpiará localStorage cuando detecta sesión
+      const cartStore = useCartStore.getState();
+      
+      // PASO 1: Leer localStorage ANTES de cualquier operación
+      const localStorageCartBeforeLogin = localStorage.getItem('cherry-central-cart');
+      console.log('🔵 login: PASO 1 - localStorage ANTES de establecer token:', {
+        exists: localStorageCartBeforeLogin !== null,
+        length: localStorageCartBeforeLogin?.length || 0,
+        raw: localStorageCartBeforeLogin
+      });
+      
+      // PASO 2: Guardar una copia completa en memoria para restaurar si se limpia
+      let savedCartString = null;
+      let savedCartData = null;
+      if (localStorageCartBeforeLogin) {
+        savedCartString = localStorageCartBeforeLogin; // Guardar string completo
+        try {
+          savedCartData = JSON.parse(localStorageCartBeforeLogin);
+          console.log('🔵 login: PASO 2 - Datos del carrito guardados en memoria:', {
+            itemsCount: savedCartData?.state?.items?.length || 0,
+            items: savedCartData?.state?.items?.map(i => ({ 
+              id: i.id_articulo, 
+              color: i.selectedColor, 
+              size: i.selectedSize, 
+              qty: i.quantity 
+            })) || []
+          });
+        } catch (e) {
+          console.error('❌ login: Error parseando localStorage antes de login:', e);
+        }
+      } else {
+        console.warn('⚠️ login: No hay carrito en localStorage antes de iniciar sesión');
+      }
+      
+      // PASO 3: Establecer el token (esto puede activar el persist middleware que limpia localStorage)
       setToken(data.token);
       set({ user: data.user, token: data.token, loading: false, error: null });
 
-      // Inicializar carrito después del login y sincronizar localStorage a BD
-      const cartStore = useCartStore.getState();
+      // PASO 4: Verificar si localStorage se limpió DESPUÉS de establecer token
+      const localStorageCartAfterLogin = localStorage.getItem('cherry-central-cart');
+      console.log('🔵 login: PASO 4 - localStorage DESPUÉS de establecer token:', {
+        exists: localStorageCartAfterLogin !== null,
+        length: localStorageCartAfterLogin?.length || 0,
+        wasCleared: localStorageCartBeforeLogin && !localStorageCartAfterLogin
+      });
+
+      // PASO 5: Si localStorage se limpió, restaurarlo INMEDIATAMENTE
+      if (savedCartString && !localStorageCartAfterLogin) {
+        console.warn('⚠️ login: PASO 5 - localStorage se limpió después de establecer token, RESTAURANDO...');
+        localStorage.setItem('cherry-central-cart', savedCartString);
+        console.log('✅ login: localStorage restaurado exitosamente');
+        
+        // Verificar que se restauró
+        const verifyRestored = localStorage.getItem('cherry-central-cart');
+        if (verifyRestored) {
+          console.log('✅ login: Verificación - localStorage restaurado correctamente:', {
+            length: verifyRestored.length,
+            itemsCount: savedCartData?.state?.items?.length || 0
+          });
+        } else {
+          console.error('❌ login: ERROR - localStorage NO se restauró correctamente');
+        }
+      }
+
+      // PASO 6: Inicializar carrito después del login y sincronizar localStorage a BD
       cartStore.resetInitialization(); // Resetear para forzar recarga
       await cartStore.syncCartFromLocalStorage(); // Sincronizar (esto ya carga el carrito combinado)
       // NO llamar a initCart aquí porque syncCartFromLocalStorage ya actualiza el estado
@@ -124,7 +184,7 @@ const useUserStore = create((set, get) => ({
         const cartStore = useCartStore.getState();
         await cartStore.clearCart();
       } catch (error) {
-        console.error('Error clearing cart on logout:', error);
+        // Error clearing cart on logout
       }
 
       // Clear local state regardless of server response

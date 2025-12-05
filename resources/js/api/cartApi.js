@@ -30,7 +30,6 @@ export const cartApi = {
       const data = await response.json();
       return data.cart;
     } catch (error) {
-      console.error('Error fetching cart from database:', error);
       return null;
     }
   },
@@ -64,7 +63,6 @@ export const cartApi = {
       const data = await response.json();
       return data.cart;
     } catch (error) {
-      console.error('Error updating cart in database:', error);
       return null;
     }
   },
@@ -96,7 +94,6 @@ export const cartApi = {
       
       return await response.json();
     } catch (error) {
-      console.error('Error clearing cart in database:', error);
       return null;
     }
   },
@@ -119,18 +116,24 @@ export const cartApi = {
       });
       
       if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        
         if (response.status === 401) {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           return null;
         }
-        throw new Error('Error syncing cart');
+        throw new Error(`Error syncing cart: ${response.status} - ${JSON.stringify(errorData)}`);
       }
       
       const data = await response.json();
+      
+      if (!data.cart) {
+        return null;
+      }
+      
       return data.cart;
     } catch (error) {
-      console.error('Error syncing cart to database:', error);
       return null;
     }
   },
