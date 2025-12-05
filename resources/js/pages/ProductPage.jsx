@@ -871,7 +871,7 @@ const ProductPage = () => {
         alerts.push({
           type: 'success',
           icon: '🎉',
-          message: `¡Tienes el descuento máximo del 40%!`,
+          message: `¡Tienes el descuento máximo del 30% + 10% adicional!`,
           color: '#4caf50'
         });
       }

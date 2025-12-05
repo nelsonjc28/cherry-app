@@ -42,10 +42,44 @@ const CartDetailsPage = () => {
   // State for selected payment card
   const [selectedPaymentCard, setSelectedPaymentCard] = useState(null);
 
+  // State for delivery type (envio or retiro)
+  const [deliveryType, setDeliveryType] = useState('envio'); // 'envio' or 'retiro'
+  
+  // State for store address (from contact_info)
+  const [storeAddress, setStoreAddress] = useState(null);
+
   // Initialize cart from localStorage
   useEffect(() => {
     initCart();
   }, [initCart]);
+
+  // Fetch store address from contact_info
+  useEffect(() => {
+    const fetchStoreAddress = async () => {
+      try {
+        const response = await api.get('/contact-info');
+        if (response.data.success && response.data.data) {
+          const contactInfo = response.data.data;
+          // Create a store address object similar to Address model
+          setStoreAddress({
+            id: 'store',
+            name: 'Retiro en tienda',
+            street_address: contactInfo.address_street || '',
+            city: contactInfo.address_city || '',
+            state: '',
+            postal_code: '',
+            country: 'México',
+            additional_info: null,
+            is_default: false
+          });
+        }
+      } catch (error) {
+        // Error fetching store address
+      }
+    };
+    
+    fetchStoreAddress();
+  }, []);
 
   // Scroll to top when component mounts
   useEffect(() => {
@@ -258,9 +292,20 @@ const CartDetailsPage = () => {
     setSelectedAddress(address);
   };
 
+  // Update selectedAddress when deliveryType changes
+  useEffect(() => {
+    if (deliveryType === 'retiro' && storeAddress) {
+      setSelectedAddress(storeAddress);
+    } else if (deliveryType === 'envio' && selectedAddress?.id === 'store') {
+      // Clear store address when switching to delivery
+      setSelectedAddress(null);
+    }
+  }, [deliveryType, storeAddress]);
+
   // Handle generate order with MercadoPago
   const handleGenerateOrder = async () => {
-    if (!selectedAddress) {
+    // Si es envío, validar que haya dirección seleccionada
+    if (deliveryType === 'envio' && !selectedAddress) {
       if (window.showToast) {
         window.showToast('Por favor selecciona una dirección de entrega', 'warning');
       }
@@ -299,7 +344,8 @@ const CartDetailsPage = () => {
 
           return mappedItem;
         }),
-        address_id: selectedAddress.id,
+        address_id: deliveryType === 'envio' ? selectedAddress.id : null,
+        delivery_type: deliveryType, // 'envio' or 'retiro'
         total_amount: totalPrice
       };;
 
@@ -389,9 +435,11 @@ const CartDetailsPage = () => {
   let discountAdditionalTenAmount = 0;
   if (eligibleTotal >= 7000) {
     if (eligibleTotal >= 15000) {
-      // 40% descuento sobre el total elegible
+      // 30% descuento sobre el total elegible
       discountThirtyAmount = eligibleTotal * 0.30;
-      discountAdditionalTenAmount = eligibleTotal * 0.10;
+      // 10% adicional sobre el total después del 30%
+      const totalAfterThirty = eligibleTotal - discountThirtyAmount;
+      discountAdditionalTenAmount = totalAfterThirty * 0.10;
       dayFortyFiveDiscountAmount = discountThirtyAmount + discountAdditionalTenAmount;
     } else if (eligibleTotal >= 7000) {
       // 30% descuento sobre el total elegible
@@ -406,12 +454,20 @@ const CartDetailsPage = () => {
   // Calcular totales para el card de Monto del pedido (similar a CartOrderSummary)
   const preShippingTotal = Math.max(0, baseTotal - dayFortyFiveDiscountAmount);
   let shippingAmount = 0;
-  const freeShippingMin = user?.free_shipping_min_amount || 0;
-  if (user?.free_shipping && freeShippingMin > 0) {
-    shippingAmount = preShippingTotal < freeShippingMin ? 150 : 0;
+  
+  // Si es retiro, no cobrar envío
+  if (deliveryType === 'retiro') {
+    shippingAmount = 0;
   } else {
-    shippingAmount = preShippingTotal < 3000 ? 150 : 0;
+    // Si es envío, aplicar la lógica de envío gratis
+    const freeShippingMin = user?.free_shipping_min_amount || 0;
+    if (user?.free_shipping && freeShippingMin > 0) {
+      shippingAmount = preShippingTotal < freeShippingMin ? 150 : 0;
+    } else {
+      shippingAmount = preShippingTotal < 3000 ? 150 : 0;
+    }
   }
+  
   const finalTotalWithShipping = parseFloat((preShippingTotal + shippingAmount).toFixed(2));
   const isFreeShippingApplied = shippingAmount === 0;
 
@@ -493,12 +549,12 @@ const CartDetailsPage = () => {
         });
       }
     }
-    // Ya tiene el 40%
+    // Ya tiene el 30% + 10% adicional
     else if (eligibleTotal >= DISCOUNT_40_THRESHOLD) {
       alerts.push({
         type: 'success',
         icon: '🎉',
-        message: `¡Increíble! Tienes el descuento máximo del 40%`,
+        message: `¡Increíble! Tienes el descuento máximo del 30% + 10% adicional`,
         color: '#4caf50'
       });
     }
@@ -509,6 +565,12 @@ const CartDetailsPage = () => {
   // Calcular alertas para envío gratis
   const getShippingAlerts = () => {
     const alerts = [];
+    
+    // Si es retiro en tienda, no mostrar alertas de envío
+    if (deliveryType === 'retiro') {
+      return alerts;
+    }
+    
     const freeShippingMin = user?.free_shipping_min_amount || 3000;
     const currentTotal = preShippingTotal;
     
@@ -613,20 +675,74 @@ const CartDetailsPage = () => {
               shipping={shippingAmount}
               isFreeShipping={isFreeShippingApplied}
               total={parseFloat(finalTotalWithShipping)}
+              deliveryType={deliveryType}
             />
             {/* Datos del comprador (debajo de Monto del pedido) */}
             <BuyerInfo className="cart-details__buyer-info" />
-            <AddressSelector
-              selectedAddressId={selectedAddress?.id}
-              onAddressChange={handleAddressChange}
-              className="cart-details__address-selector"
-            />
+            
+            {/* Opciones de entrega */}
+            <div className="cart-details__delivery-options">
+              <div className="cart-details__section-title">Tipo de entrega</div>
+              <div className="cart-details__delivery-options-content">
+                <label className="cart-details__delivery-option">
+                  <input
+                    type="radio"
+                    name="deliveryType"
+                    value="envio"
+                    checked={deliveryType === 'envio'}
+                    onChange={(e) => setDeliveryType(e.target.value)}
+                  />
+                  <span>Envío a domicilio</span>
+                </label>
+                <label className="cart-details__delivery-option">
+                  <input
+                    type="radio"
+                    name="deliveryType"
+                    value="retiro"
+                    checked={deliveryType === 'retiro'}
+                    onChange={(e) => setDeliveryType(e.target.value)}
+                  />
+                  <span>Retiro en tienda</span>
+                </label>
+              </div>
+            </div>
+            
+            {deliveryType === 'envio' && (
+              <AddressSelector
+                selectedAddressId={selectedAddress?.id}
+                onAddressChange={handleAddressChange}
+                className="cart-details__address-selector"
+              />
+            )}
+            
+            {deliveryType === 'retiro' && storeAddress && (
+              <div className="cart-details__store-address">
+                <div className="cart-details__section-title">Dirección de entrega</div>
+                <div className="cart-details__store-address-content">
+                  <div className="cart-details__store-address-name">
+                    <strong>{storeAddress.name}</strong>
+                  </div>
+                  <div className="cart-details__store-address-details">
+                    {storeAddress.street_address && (
+                      <div>{storeAddress.street_address}</div>
+                    )}
+                    {storeAddress.city && (
+                      <div>{storeAddress.city}</div>
+                    )}
+                    {storeAddress.country && (
+                      <div>{storeAddress.country}</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Datos de la Tarjeta (resumen con formulario integrado) */}
             <CartOrderSummary
               {...orderSummary}
               cartItems={cartItems}
               selectedAddress={selectedAddress}
+              deliveryType={deliveryType}
               selectedPaymentCard={selectedPaymentCard}
               onPaymentCardChange={setSelectedPaymentCard}
               onIntegratedPaymentSuccess={handleIntegratedPaymentSuccess}

@@ -14,7 +14,8 @@ const OrderAmountCard = ({
   discountAdditionalTenAmount = 0,
   shipping = 0,
   isFreeShipping = false,
-  total = 0
+  total = 0,
+  deliveryType = 'envio' // 'envio' or 'retiro'
 }) => {
   // Convertir a número para asegurar comparación correcta
   const discount30 = Number(discountThirtyAmount) || 0;
@@ -38,7 +39,7 @@ const OrderAmountCard = ({
         {has30Percent && (
           <>
             {has40Percent ? (
-              // Descuento del 40% (30% + 10% adicional)
+              // Descuento del 30% + 10% adicional sobre el total después del 30%
               <>
                 <div className="cart-order-summary__row">
                   <span>Descuento</span>
@@ -68,14 +69,16 @@ const OrderAmountCard = ({
             )}
           </>
         )}
-        <div className="cart-order-summary__row">
-          <span>Envío:</span>
-          {(isFreeShipping && Number(shipping) === 0) ? (
-            <span className="cart-order-summary__free-shipping">Envío gratis</span>
-          ) : (
-            <span>${formatMoney(shipping)}</span>
-          )}
-        </div>
+        {deliveryType === 'envio' && (
+          <div className="cart-order-summary__row">
+            <span>Envío:</span>
+            {(isFreeShipping && Number(shipping) === 0) ? (
+              <span className="cart-order-summary__free-shipping">Envío gratis</span>
+            ) : (
+              <span>${formatMoney(shipping)}</span>
+            )}
+          </div>
+        )}
         <div className="cart-order-summary__total-row" style={{ marginTop: 8 }}>
           <span>Total:</span>
           <span className="cart-order-summary__total-value">${formatMoney(total)}</span>
@@ -94,6 +97,7 @@ OrderAmountCard.propTypes = {
   shipping: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   isFreeShipping: PropTypes.bool,
   total: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  deliveryType: PropTypes.string,
 };
 
 export default OrderAmountCard;

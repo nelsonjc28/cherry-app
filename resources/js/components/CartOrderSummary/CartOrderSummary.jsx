@@ -26,7 +26,8 @@ const CartOrderSummary = ({
   selectedPaymentCard = null,
   onPaymentCardChange,
   onIntegratedPaymentSuccess,
-  onIntegratedPaymentError
+  onIntegratedPaymentError,
+  deliveryType = 'envio' // 'envio' or 'retiro'
 }) => {
   // Estado para método de pago seleccionado
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('mercadopago'); // Solo Mercado Pago
@@ -382,6 +383,14 @@ const CartOrderSummary = ({
       return;
     }
 
+    // Si es envío, validar que haya dirección seleccionada
+    if (deliveryType === 'envio' && !selectedAddress) {
+      if (window.showToast) {
+        window.showToast('Selecciona una dirección de entrega', 'warning');
+      }
+      return;
+    }
+
     const canContinue = await validateCartBeforeOrder();
     if (!canContinue) {
       // Detener compra
@@ -498,7 +507,8 @@ const CartOrderSummary = ({
 
         return mappedItem;
       }),
-      address_id: parseInt(selectedAddress.id, 10),
+      address_id: deliveryType === 'envio' && selectedAddress ? parseInt(selectedAddress.id, 10) : null,
+      delivery_type: deliveryType, // 'envio' or 'retiro'
       // Información para crear/actualizar registro dayFortyFive
       day_forty_five_applied: dayFortyFiveApplied,
       day_forty_five_discount_percentage: dayFortyFiveDiscountPercentage,
@@ -591,7 +601,7 @@ const CartOrderSummary = ({
   // ===== USAR EL TOTAL FINAL QUE YA VIENE CON DESCUENTOS Y ENVÍO =====
   // El total que se pasa desde CartDetailsPage ya incluye:
   // - Descuentos de productos individuales (desc_promo)
-  // - Descuentos del 30% o 40% (aplicados sobre productos elegibles)
+  // - Descuentos del 30% o 30% + 10% adicional (aplicados sobre productos elegibles)
   // - Envío (si no hay envío gratis)
   // Por lo tanto, usamos directamente este total sin recalcular
   const finalTotal = Number(total);
@@ -626,7 +636,8 @@ const CartOrderSummary = ({
   // Función para procesar pago con Mercado Pago (redirección)
   // Esta función NO requiere HTTPS porque usa Checkout Pro (redirección completa)
   const processMercadoPagoPayment = async () => {
-    if (!selectedAddress) {
+    // Si es envío, validar que haya dirección seleccionada
+    if (deliveryType === 'envio' && !selectedAddress) {
       if (window.showToast) {
         window.showToast('Selecciona una dirección de entrega', 'warning');
       }
@@ -647,7 +658,7 @@ const CartOrderSummary = ({
       // Asegurar que finalTotal incluya descuentos y envío
       // finalTotal viene del prop 'total' que ya incluye:
       // - Descuentos de productos individuales (desc_promo)
-      // - Descuentos del 30% o 40% (aplicados sobre productos elegibles)
+      // - Descuentos del 30% o 30% + 10% adicional (aplicados sobre productos elegibles)
       // - Envío (agregado si no hay envío gratis)
       
       // IMPORTANTE: Usar el total FINAL que viene del prop 'total'
@@ -670,7 +681,8 @@ const CartOrderSummary = ({
           color: item.selectedColor || null,
           barcode: item.barcode || null
         })),
-        address_id: parseInt(selectedAddress.id, 10),
+        address_id: deliveryType === 'envio' && selectedAddress ? parseInt(selectedAddress.id, 10) : null,
+        delivery_type: deliveryType, // 'envio' or 'retiro'
         total_amount: totalAmountToSend // Total FINAL con descuentos y envío incluidos
       };
 
