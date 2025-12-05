@@ -5,7 +5,7 @@
     "isEntry": true
   },
   "resources/js/main.jsx": {
-    "file": "assets/main-Bcit7ja0.js",
+    "file": "assets/main-BFFMgdez.js",
     "name": "main",
     "src": "resources/js/main.jsx",
     "isEntry": true,
@@ -16,7 +16,7 @@
       "resources/js/utils/shareProductUtils.js"
     ],
     "css": [
-      "assets/main-CUaBC7VM.css"
+      "assets/main-BNDwVdmq.css"
     ]
   },
   "resources/js/utils/searchNormalizer.js": {
@@ -26,7 +26,7 @@
     "isDynamicEntry": true
   },
   "resources/js/utils/shareProductUtils.js": {
-    "file": "assets/shareProductUtils-DQmzKteQ.js",
+    "file": "assets/shareProductUtils-Ce4LeQ3_.js",
     "name": "shareProductUtils",
     "src": "resources/js/utils/shareProductUtils.js",
     "isDynamicEntry": true,

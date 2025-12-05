@@ -308,7 +308,7 @@
 .order-admin-card__content {
   padding: 20px;
   display: grid;
-  grid-template-columns: 1fr 1fr 2fr;
+  grid-template-columns: 1fr 1fr;
   gap: 30px;
 }
 
@@ -321,6 +321,15 @@
   color: var(--color-primary);
   border-bottom: 2px solid var(--color-primary);
   padding-bottom: 5px;
+}
+
+.order-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  padding-top: 10px;
+  border-top: 1px solid #e9ecef;
+  margin-top: 10px;
 }
 
 .customer-info p,

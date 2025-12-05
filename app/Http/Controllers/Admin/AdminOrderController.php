@@ -18,7 +18,7 @@ class AdminOrderController extends Controller
     public function index()
     {
         try {
-            $orders = Order::with(['user', 'items', 'address'])
+            $orders = Order::with(['user', 'items.product', 'address'])
                 ->orderBy('created_at', 'desc')
                 ->get();
 
@@ -138,7 +138,7 @@ class AdminOrderController extends Controller
     public function show($orderId)
     {
         try {
-            $order = Order::with(['user', 'items', 'address'])->findOrFail($orderId);
+            $order = Order::with(['user', 'items.product', 'address'])->findOrFail($orderId);
 
             $formattedOrder = [
                 'id' => $order->id,
@@ -209,7 +209,8 @@ class AdminOrderController extends Controller
 
     /**
      * Get product image URL based on product ID
-     * Uses the same logic as PaymentController
+     * Uses the same logic as frontend productImageUtils.js
+     * Simply constructs the URL without HTTP verification (let browser handle fallback)
      */
     private function getProductImageUrl($productId)
     {
@@ -217,49 +218,12 @@ class AdminOrderController extends Controller
             return asset('images/placeholder-product.png');
         }
         
-        // Primero probar con el ID original (sin ceros)
-        $originalUrl = "https://cherry-fotos.s3.amazonaws.com/shopify/{$productId}/{$productId}_1.jpg";
+        // Convertir a string para manejar correctamente
+        $productIdStr = (string) $productId;
         
-        // Verificar rápidamente si la imagen original existe
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $originalUrl);
-        curl_setopt($ch, CURLOPT_NOBODY, true);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 2);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        
-        curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        
-        // Si la imagen original existe, usarla
-        if ($httpCode === 200) {
-            return $originalUrl;
-        }
-        
-        // Si no existe, probar con formato con ceros a la izquierda
-        $formattedId = str_pad($productId, 11, '0', STR_PAD_LEFT);
-        $formattedUrl = "https://cherry-fotos.s3.amazonaws.com/shopify/{$formattedId}/{$formattedId}_1.jpg";
-        
-        // Verificar si la imagen formateada existe
-        $ch2 = curl_init();
-        curl_setopt($ch2, CURLOPT_URL, $formattedUrl);
-        curl_setopt($ch2, CURLOPT_NOBODY, true);
-        curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch2, CURLOPT_TIMEOUT, 2);
-        curl_setopt($ch2, CURLOPT_SSL_VERIFYPEER, false);
-        
-        curl_exec($ch2);
-        $httpCode2 = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
-        curl_close($ch2);
-        
-        // Si la imagen formateada existe, usarla
-        if ($httpCode2 === 200) {
-            return $formattedUrl;
-        }
-        
-        // Si ninguna existe, devolver la original (será manejada por el fallback del frontend)
-        return $originalUrl;
+        // Construir URL directamente como en el frontend
+        // El frontend usa: https://cherry-fotos.s3.amazonaws.com/shopify/${externalProductId}/${externalProductId}_1.jpg
+        return "https://cherry-fotos.s3.amazonaws.com/shopify/{$productIdStr}/{$productIdStr}_1.jpg";
     }
 
     /**

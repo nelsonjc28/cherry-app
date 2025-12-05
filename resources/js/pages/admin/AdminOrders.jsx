@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import CherryButton from '../../components/CherryButton/CherryButton';
 import AdminNotifications from '../../components/AdminNotifications/AdminNotifications';
+import OrderDetailModal from '../../components/OrderDetailModal/OrderDetailModal';
 import { adminOrderService, adminNotificationService } from '../../services/api';
 import { getIconPath } from '../../utils/assetPaths';
 import './AdminOrders.css';
@@ -39,6 +40,8 @@ const AdminOrders = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [highlightedOrderId, setHighlightedOrderId] = useState(null);
+  const [selectedOrderForDetail, setSelectedOrderForDetail] = useState(null);
+  const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -189,6 +192,16 @@ const AdminOrders = () => {
     }).format(amount);
   };
 
+  const handleViewOrderDetails = (order) => {
+    setSelectedOrderForDetail(order);
+    setShowOrderDetailModal(true);
+  };
+
+  const handleCloseOrderDetailModal = () => {
+    setShowOrderDetailModal(false);
+    setSelectedOrderForDetail(null);
+  };
+
   if (loading) {
     return (
       <div className="admin-orders">
@@ -336,46 +349,14 @@ const AdminOrders = () => {
                   )}
                 </div>
 
-                <div className="products-info">
-                  <h4>Productos ({order.items?.length || 0})</h4>
-                  <div className="products-list">
-                    {order.items?.map((item, index) => (
-                      <div key={index} className="product-item">
-                        <div className="product-image">
-                          <img 
-                            src={item.image || '/images/catalogProductImages/Rectangle 4922.png'} 
-                            alt={item.title}
-                            onError={(e) => {
-                              e.target.src = '/images/catalogProductImages/Rectangle 4922.png';
-                            }}
-                          />
-                        </div>
-                        <div className="product-details">
-                          <div className="product-name">{item.title}</div>
-                          <div className="product-specs">
-                            <span>ID: {item.product_id}</span>
-                            <span>Cantidad: {item.quantity}</span>
-                            <span>Precio: {formatCurrency(item.price)}</span>
-                          </div>
-                          <div className="product-attributes">
-                            {item.size && <span className="attribute-badge size">Talla: {item.size}</span>}
-                            {item.color && (
-                              <span 
-                                className="attribute-badge color" 
-                                style={{ 
-                                  '--color-value': item.color,
-                                  '--text-color': getContrastColor(item.color)
-                                }}
-                              >
-                                Color: {item.color}
-                              </span>
-                            )}
-                            {item.barcode && <span className="attribute-badge barcode">Código: {item.barcode}</span>}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div className="order-actions">
+                  <CherryButton
+                    variant="outline"
+                    size="medium"
+                    onClick={() => handleViewOrderDetails(order)}
+                  >
+                    Ver Detalles de Productos ({order.items?.length || 0})
+                  </CherryButton>
                 </div>
               </div>
             </div>
@@ -452,6 +433,19 @@ const AdminOrders = () => {
           fetchUnreadCount(); // Actualizar contador al cerrar
         }}
       />
+
+      {/* Modal de detalles de orden */}
+      {selectedOrderForDetail && (
+        <OrderDetailModal
+          order={{
+            ...selectedOrderForDetail,
+            statusColor: getStatusColor(selectedOrderForDetail.status),
+            status: selectedOrderForDetail.statusDisplay || selectedOrderForDetail.status
+          }}
+          isOpen={showOrderDetailModal}
+          onClose={handleCloseOrderDetailModal}
+        />
+      )}
     </div>
   );
 };

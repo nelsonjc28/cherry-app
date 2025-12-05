@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import CherryButton from '../CherryButton/CherryButton';
 import './OrderDetailModal.css';
 
-const OrderDetailModal = ({ order, isOpen, onClose }) => {
+const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) => {
   if (!isOpen || !order) return null;
 
 
@@ -55,6 +55,33 @@ const OrderDetailModal = ({ order, isOpen, onClose }) => {
             </div>
           </div>
 
+          {/* Información del cliente */}
+          <div className="order-detail-section">
+            <h3>Cliente</h3>
+            <div className="order-detail-info">
+              <div className="info-row">
+                <span className="label">Nombre:</span>
+                <span className="value">{order.customerName || 'N/A'}</span>
+              </div>
+              <div className="info-row">
+                <span className="label">Email:</span>
+                <span className="value">{order.customerEmail || 'N/A'}</span>
+              </div>
+              {order.paymentMethod && (
+                <div className="info-row">
+                  <span className="label">Método de pago:</span>
+                  <span className="value">{order.paymentMethod}</span>
+                </div>
+              )}
+              {order.paymentId && (
+                <div className="info-row">
+                  <span className="label">ID de pago:</span>
+                  <span className="value">{order.paymentId}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Productos */}
           <div className="order-detail-section">
             <h3>Productos ({order.items?.length || 0})</h3>
@@ -74,7 +101,7 @@ const OrderDetailModal = ({ order, isOpen, onClose }) => {
                       <h4 className="product-item__title">{item.title || 'Producto'}</h4>
                       <div className="product-item__info">
                         <div className="info-row">
-                          <span className="label">ID:</span>
+                          <span className="label">ID Producto:</span>
                           <span className="value">{item.product_id}</span>
                         </div>
                         <div className="info-row">
@@ -91,6 +118,24 @@ const OrderDetailModal = ({ order, isOpen, onClose }) => {
                             ${(parseFloat(item.subtotal) || 0).toFixed(2)}
                           </span>
                         </div>
+                        {item.size && (
+                          <div className="info-row">
+                            <span className="label">Talla:</span>
+                            <span className="value">{item.size}</span>
+                          </div>
+                        )}
+                        {item.color && (
+                          <div className="info-row">
+                            <span className="label">Color:</span>
+                            <span className="value">{item.color}</span>
+                          </div>
+                        )}
+                        {item.barcode && (
+                          <div className="info-row">
+                            <span className="label">Código de barras:</span>
+                            <span className="value">{item.barcode}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -155,7 +200,7 @@ const OrderDetailModal = ({ order, isOpen, onClose }) => {
           >
             Cerrar
           </CherryButton>
-          {(order.status === 'Enviado' || order.status === 'enviado') && order.items?.[0] && !order.items[0].hasReview && (
+          {showReviewButton && (order.status === 'Enviado' || order.status === 'enviado') && order.items?.[0] && !order.items[0].hasReview && (
             <CherryButton 
               variant="red" 
               size="medium"
@@ -167,7 +212,7 @@ const OrderDetailModal = ({ order, isOpen, onClose }) => {
               ⭐ Calificar y comentar
             </CherryButton>
           )}
-          {(order.status === 'Enviado' || order.status === 'enviado') && order.items?.[0] && order.items[0].hasReview && (
+          {showReviewButton && (order.status === 'Enviado' || order.status === 'enviado') && order.items?.[0] && order.items[0].hasReview && (
             <div className="order-detail__reviewed">
               <span className="reviewed-text">✅ Ya calificado</span>
             </div>
@@ -181,7 +226,8 @@ const OrderDetailModal = ({ order, isOpen, onClose }) => {
 OrderDetailModal.propTypes = {
   order: PropTypes.object,
   isOpen: PropTypes.bool.isRequired,
-  onClose: PropTypes.func.isRequired
+  onClose: PropTypes.func.isRequired,
+  showReviewButton: PropTypes.bool
 };
 
 export default OrderDetailModal;
