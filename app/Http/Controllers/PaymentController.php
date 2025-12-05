@@ -38,7 +38,9 @@ class PaymentController extends Controller
      */
     public function createPaymentPreference(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $deliveryType = $request->input('delivery_type', 'envio');
+        
+        $rules = [
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|integer',
             'items.*.name' => 'required|string',
@@ -47,9 +49,18 @@ class PaymentController extends Controller
             'items.*.size' => 'nullable|string',
             'items.*.color' => 'nullable|string',
             'items.*.barcode' => 'nullable|string',
-            'address_id' => 'required|exists:addresses,id',
+            'delivery_type' => 'nullable|string|in:envio,retiro',
             'total_amount' => 'required|numeric|min:0.01'
-        ]);
+        ];
+        
+        // address_id es requerido solo si es envío
+        if ($deliveryType === 'envio') {
+            $rules['address_id'] = 'required|exists:addresses,id';
+        } else {
+            $rules['address_id'] = 'nullable';
+        }
+        
+        $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
             return response()->json([
@@ -70,13 +81,18 @@ class PaymentController extends Controller
         }
 
         /*  try { */
-        // Verificar que la dirección pertenece al usuario
-        $address = $user->addresses()->find($request->address_id);
-        if (!$address) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Dirección no encontrada o no pertenece al usuario'
-            ], 404);
+        // Verificar que la dirección pertenece al usuario solo si es envío
+        $addressId = null;
+        $address = null;
+        if ($deliveryType === 'envio') {
+            $address = $user->addresses()->find($request->address_id);
+            if (!$address) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dirección no encontrada o no pertenece al usuario'
+                ], 404);
+            }
+            $addressId = $request->address_id;
         }
 
         DB::beginTransaction();
@@ -84,7 +100,7 @@ class PaymentController extends Controller
         // Crear el pedido en la base de datos
         $order = Order::create([
             'user_id' => $user->id,
-            'address_id' => $request->address_id,
+            'address_id' => $addressId,
             'total_amount' => $request->total_amount,
             'status' => 'pending',
             'payment_method' => 'mercadopago',
@@ -192,14 +208,21 @@ class PaymentController extends Controller
                     'email' => $user->email,
                     'phone' => $user->phone
                 ],
-                'address' => [
+                'address' => $addressId && $address ? [
                     'street_address' => $address->street_address,
                     'city' => $address->city,
                     'state' => $address->state,
                     'postal_code' => $address->postal_code,
                     'country' => $address->country
+                ] : [
+                    'street_address' => '',
+                    'city' => '',
+                    'state' => '',
+                    'postal_code' => '',
+                    'country' => 'México'
                 ],
-                'items' => $itemsForMercadoPago
+                'items' => $itemsForMercadoPago,
+                'delivery_type' => $deliveryType
             ];
 
             Log::info('Creando preferencia de MercadoPago', [
@@ -516,9 +539,9 @@ class PaymentController extends Controller
             $requestData['address_id'] = (int) $requestData['address_id'];
         }
 
+        $deliveryType = $requestData['delivery_type'] ?? 'envio';
 
-
-        $validator = Validator::make($requestData, [
+        $rules = [
             'token' => 'required|string',
             'payment_method_id' => 'required|string',
             'transaction_amount' => 'required|numeric|min:0.01',
@@ -531,8 +554,17 @@ class PaymentController extends Controller
             'items.*.size' => 'nullable|string',
             'items.*.color' => 'nullable|string',
             'items.*.barcode' => 'nullable|string',
-            'address_id' => 'required|exists:addresses,id'
-        ]);
+            'delivery_type' => 'nullable|string|in:envio,retiro'
+        ];
+        
+        // address_id es requerido solo si es envío
+        if ($deliveryType === 'envio') {
+            $rules['address_id'] = 'required|exists:addresses,id';
+        } else {
+            $rules['address_id'] = 'nullable';
+        }
+        
+        $validator = Validator::make($requestData, $rules);
 
         if ($validator->fails()) {
             return response()->json([
@@ -553,13 +585,17 @@ class PaymentController extends Controller
         }
 
         try {
-            // Verificar que la dirección pertenece al usuario
-            $address = $user->addresses()->find($requestData['address_id']);
-            if (!$address) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Dirección no encontrada o no pertenece al usuario'
-                ], 404);
+            // Verificar que la dirección pertenece al usuario solo si es envío
+            $addressId = null;
+            if ($deliveryType === 'envio') {
+                $address = $user->addresses()->find($requestData['address_id']);
+                if (!$address) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Dirección no encontrada o no pertenece al usuario'
+                    ], 404);
+                }
+                $addressId = $requestData['address_id'];
             }
 
             // Generar referencia externa antes de crear el pago
@@ -594,7 +630,7 @@ class PaymentController extends Controller
                 // Crear el pedido en la base de datos
                 $order = Order::create([
                     'user_id' => $user->id,
-                    'address_id' => $requestData['address_id'],
+                    'address_id' => $addressId,
                     'total_amount' => $requestData['transaction_amount'],
                     'status' => $orderStatus, // Estado según el estado del pago
                     'payment_method' => 'mercadopago_integrated',
@@ -1495,7 +1531,9 @@ class PaymentController extends Controller
      */
     public function createOxxoPayment(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $deliveryType = $request->input('delivery_type', 'envio');
+        
+        $rules = [
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required',
             'items.*.name' => 'required|string',
@@ -1504,10 +1542,19 @@ class PaymentController extends Controller
             'items.*.size' => 'nullable|string',
             'items.*.color' => 'nullable|string',
             'items.*.barcode' => 'nullable|string',
-            'address_id' => 'required|exists:addresses,id',
+            'delivery_type' => 'nullable|string|in:envio,retiro',
             'total_amount' => 'required|numeric|min:0.01',
             'payment_method' => 'nullable|string|in:oxxo,paycash'
-        ]);
+        ];
+        
+        // address_id es requerido solo si es envío
+        if ($deliveryType === 'envio') {
+            $rules['address_id'] = 'required|exists:addresses,id';
+        } else {
+            $rules['address_id'] = 'nullable';
+        }
+        
+        $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
             return response()->json([
@@ -1528,13 +1575,17 @@ class PaymentController extends Controller
         }
 
         try {
-            // Verificar que la dirección pertenece al usuario
-            $address = $user->addresses()->find($request->address_id);
-            if (!$address) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Dirección no encontrada o no pertenece al usuario'
-                ], 404);
+            // Verificar que la dirección pertenece al usuario solo si es envío
+            $addressId = null;
+            if ($deliveryType === 'envio') {
+                $address = $user->addresses()->find($request->address_id);
+                if (!$address) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Dirección no encontrada o no pertenece al usuario'
+                    ], 404);
+                }
+                $addressId = $request->address_id;
             }
 
             DB::beginTransaction();
@@ -1545,7 +1596,7 @@ class PaymentController extends Controller
             // Crear el pedido en la base de datos con estado pendiente de pago
             $order = Order::create([
                 'user_id' => $user->id,
-                'address_id' => $request->address_id,
+                'address_id' => $addressId,
                 'total_amount' => $request->total_amount,
                 'status' => 'pendiente_pago',
                 'payment_method' => 'oxxo',

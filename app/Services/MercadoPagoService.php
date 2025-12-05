@@ -125,7 +125,7 @@ class MercadoPagoService
                     'excluded_payment_methods' => [],
                     'installments' => 12
                 ],
-                'shipments' => [
+                'shipments' => ($orderData['delivery_type'] ?? 'envio') === 'retiro' ? null : [
                     'receiver_address' => [
                         'street_name' => $orderData['address']['street_address'] ?? '',
                         'street_number' => '',
