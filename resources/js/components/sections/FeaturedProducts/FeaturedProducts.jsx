@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import ProductGrid from '../../ProductGrid/ProductGrid';
 import ProductSlider from '../../ProductSlider/ProductSlider';
-import { useExternalApiContext } from '../../../contexts/ExternalApiContext';
+import api from '../../../services/api';
+import { getProductImageUrl } from '../../../utils/productImageUtils';
 import './FeaturedProducts.css';
 
 const FeaturedProducts = ({ 
@@ -13,79 +14,72 @@ const FeaturedProducts = ({
   className = "",
   useApi = true
 }) => {
-  const { getRandomProductsCached, loading, error } = useExternalApiContext();
   const [apiProducts, setApiProducts] = useState([]);
   const [localLoading, setLocalLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Función para obtener calificaciones de productos desde la BD en una sola petición
-  const fetchProductRatings = async (productIds) => {
-    try {
-      const response = await fetch('/api/products/ratings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ product_ids: productIds })
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.data.ratings) {
-          return data.data.ratings;
-        }
-      }
-      return {};
-    } catch (error) {
-      return {};
-    }
-  };
-
-  // Cargar productos desde la API si useApi es true
+  // Cargar productos nuevos desde la base de datos local
   useEffect(() => {
-    const loadRandomProducts = async () => {
+    const loadNewProducts = async () => {
       try {
         setLocalLoading(true);
+        setError(null);
         
-        const productsData = await getRandomProductsCached(4); // Cambio de 6 a 4 productos
-        
-        if (productsData && productsData.length > 0) {
-          // Obtener calificaciones de la BD para los productos de la API externa
-          const productIds = productsData.map(product => product.id);
-          const ratings = await fetchProductRatings(productIds);
-          
-          // Actualizar productos con las calificaciones reales
-          const productsWithRatings = productsData.map(product => {
-            const localRating = ratings[product.id];
-            const finalRating = localRating?.average || 0;
-            const finalRatingCount = localRating?.count || 0;
-            
-            return {
-              ...product,
-              // Incluir rating y ratingCount si existen en la base de datos local
-              rating: finalRating,
-              ratingCount: finalRatingCount
-            };
+        if (useApi) {
+          // Obtener productos nuevos (últimos 45 días) desde el backend local
+          const response = await api.get('/products/new', {
+            params: { limit: 4 }
           });
           
-          setApiProducts(productsWithRatings.slice(0, 4)); // Asegurar solo 4 productos
+          if (response.data.success && response.data.data) {
+            // Mapear productos al formato esperado por ProductCard
+            const mappedProducts = response.data.data.map(product => {
+              // Construir URL de imagen usando getProductImageUrl
+              const imageUrl = product.image || 
+                (product.id ? getProductImageUrl(product.id, 1) : null);
+              
+              return {
+                id: product.id,
+                id_articulo: product.id_articulo || product.id,
+                title: product.title || product.description,
+                description: product.description,
+                price: product.price || 0,
+                originalPrice: product.originalPrice,
+                discount: product.discount || 0,
+                image: imageUrl,
+                brand: product.brand,
+                stock: product.stock || product.inventario || 0,
+                inventario: product.inventario || product.stock || 0,
+                colors: product.colors || [],
+                sizes: product.sizes || [],
+                isNew: product.isNew !== undefined ? product.isNew : true,
+                rating: product.rating || 0,
+                ratingCount: product.ratingCount || 0,
+                id_linea: product.id_linea,
+                category_id: product.category_id || product.id_linea,
+                catalogoId: product.catalogoId,
+                fecha_alta: product.fecha_alta
+              };
+            });
+            
+            setApiProducts(mappedProducts);
+          } else {
+            setApiProducts([]);
+          }
         } else {
-          // Si no hay productos de la API, mostrar array vacío
-          setApiProducts([]);
+          setApiProducts(products);
         }
-      } catch (error) {
+      } catch (err) {
+        console.error('Error cargando productos nuevos:', err);
+        setError(err.message || 'Error al cargar productos');
         setApiProducts([]);
       } finally {
         setLocalLoading(false);
       }
     };
 
-    if (useApi) {
-      loadRandomProducts();
-    } else {
-      setApiProducts(products);
-      setLocalLoading(false);
-    }
-  }, []); // SOLO se ejecuta una vez al montar el componente
+    loadNewProducts();
+  }, [useApi]); // Se ejecuta cuando useApi cambia
 
   const handleFavoriteToggle = (productId) => {
     // Here you would typically update your favorites state/API
@@ -96,7 +90,7 @@ const FeaturedProducts = ({
       <section className={`featured-products ${className}`}>
         <div className="container">
           <div className="loading-spinner">
-            <p>Cargando productos más vendidos...</p>
+            <p>Cargando productos nuevos...</p>
           </div>
         </div>
       </section>

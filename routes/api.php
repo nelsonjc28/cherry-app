@@ -289,6 +289,7 @@ Route::get('/products/with-offers', [ProductSearchController::class, 'getProduct
 // IMPORTANTE: Esta ruta debe estar ANTES de /products/{id} para evitar conflictos
 Route::get('/products/top-selling', [TopSellingController::class, 'index']);
 
+Route::get('/products/new', [ProductController::class, 'getNewProducts']);
 Route::get('/products/{id}', [ProductController::class, 'show']);
 
 // Public welcome sections routes (no authentication required)

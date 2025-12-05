@@ -237,5 +237,154 @@ class ProductController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Obtener productos nuevos (últimos 45 días)
+     * Limitado a 4 productos para la sección "Checa lo mas nuevo"
+     */
+    public function getNewProducts(Request $request): JsonResponse
+    {
+        try {
+            $limit = $request->input('limit', 4);
+            
+            // Calcular fecha límite (45 días atrás)
+            $now = time();
+            $fortyFiveDaysAgo = $now - (45 * 24 * 60 * 60);
+            $fortyFiveDaysAgoDate = date('Y-m-d', $fortyFiveDaysAgo);
+
+            // Obtener productos nuevos con sus detalles
+            $productos = DB::table('productos')
+                ->leftJoin('detalles', 'productos.id', '=', 'detalles.producto_id')
+                ->select(
+                    'productos.id',
+                    'productos.descripcion',
+                    'productos.marca',
+                    'productos.precio1',
+                    'productos.precio2',
+                    'productos.precio3',
+                    'productos.precio4',
+                    'productos.precio5',
+                    'productos.precio6',
+                    'productos.precio7',
+                    'productos.precio8',
+                    'productos.precio9',
+                    'productos.precio10',
+                    'productos.imagen',
+                    'productos.inventario',
+                    'productos.fecha_alta',
+                    'productos.opc_nuevo',
+                    'productos.opc_promo',
+                    'productos.desc_promo',
+                    'productos.id_linea',
+                    'productos.catalogoId',
+                    'productos.sector_id',
+                    'productos.genero_id',
+                    'detalles.nombreColor',
+                    'detalles.detalle',
+                    'detalles.inventario_d'
+                )
+                ->where(function ($query) use ($fortyFiveDaysAgoDate) {
+                    $query->where('productos.opc_nuevo', 'S')
+                        ->orWhere(function ($q) use ($fortyFiveDaysAgoDate) {
+                            $q->whereNotNull('productos.fecha_alta')
+                              ->where('productos.fecha_alta', '>=', $fortyFiveDaysAgoDate);
+                        });
+                })
+                ->where('productos.activo', 1)
+                ->orderBy('productos.fecha_alta', 'desc')
+                ->orderBy('productos.id', 'desc')
+                ->distinct()
+                ->limit($limit)
+                ->get()
+                ->groupBy('id')
+                ->map(function ($productGroup) {
+                    $producto = $productGroup->first();
+                    
+                    // Convertir precio
+                    $precio1Raw = $producto->precio1;
+                    $precio1 = 0;
+                    if (is_numeric($precio1Raw)) {
+                        $precio1 = (float) $precio1Raw;
+                    } elseif (is_string($precio1Raw)) {
+                        $precio1 = (float) str_replace(',', '', $precio1Raw);
+                    }
+
+                    // Calcular descuento
+                    $descPromoValue = (float) ($producto->desc_promo ?? 0);
+                    $hasDiscount = $descPromoValue > 0;
+                    $discountPercentage = $hasDiscount ? max(0, $descPromoValue - 10) : 0;
+                    $originalPrice = $hasDiscount && $precio1 > 0 ? $precio1 : null;
+                    $finalPrice = $hasDiscount && $discountPercentage > 0 && $precio1 > 0 
+                        ? ($precio1 - ($precio1 * ($discountPercentage / 100))) 
+                        : $precio1;
+
+                    // Obtener colores y tallas únicos
+                    $colors = $productGroup->pluck('nombreColor')
+                        ->filter()
+                        ->unique()
+                        ->values()
+                        ->toArray();
+                    
+                    $sizes = $productGroup->pluck('detalle')
+                        ->filter()
+                        ->unique()
+                        ->values()
+                        ->toArray();
+
+                    // Calcular inventario total
+                    $inventarioTotal = $productGroup->sum('inventario_d') ?: (float) ($producto->inventario ?? 0);
+
+                    // Obtener rating
+                    $reviews = Review::where('product_id', $producto->id)
+                        ->where('is_approved', true)
+                        ->get();
+                    
+                    $rating = 0;
+                    $ratingCount = count($reviews);
+                    if ($ratingCount > 0) {
+                        $rating = round($reviews->sum('rating') / $ratingCount, 2);
+                    }
+
+                    return [
+                        'id' => $producto->id,
+                        'id_articulo' => $producto->id,
+                        'title' => $producto->descripcion,
+                        'description' => $producto->descripcion,
+                        'price' => $finalPrice,
+                        'originalPrice' => $originalPrice,
+                        'discount' => $discountPercentage,
+                        'image' => $producto->imagen ?: null,
+                        'brand' => $producto->marca ?? 'Sin marca',
+                        'stock' => $inventarioTotal,
+                        'inventario' => $inventarioTotal,
+                        'colors' => $colors,
+                        'sizes' => $sizes,
+                        'isNew' => true,
+                        'rating' => $rating,
+                        'ratingCount' => $ratingCount,
+                        'id_linea' => $producto->id_linea,
+                        'category_id' => $producto->id_linea,
+                        'catalogoId' => $producto->catalogoId,
+                        'fecha_alta' => $producto->fecha_alta ? date('Y-m-d', strtotime($producto->fecha_alta)) : null,
+                        'opc_nuevo' => $producto->opc_nuevo ?? 'N',
+                        'opc_promo' => $producto->opc_promo ?? 'N',
+                        'desc_promo' => $descPromoValue
+                    ];
+                })
+                ->values()
+                ->toArray();
+
+            return response()->json([
+                'success' => true,
+                'data' => $productos
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al obtener productos nuevos: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
 
