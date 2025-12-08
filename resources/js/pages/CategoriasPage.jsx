@@ -119,6 +119,26 @@ const CategoriasPage = () => {
 
           {/* Iconos de categorías */}
           <div className="categorias-icons">
+            {/* Botón "Ver Todos" hasta arriba */}
+            <div className="categoria-icon-wrapper categoria-icon-wrapper--first">
+              <div
+                className="category-icon"
+                onClick={() => navigate('/buscar')}
+                style={{ cursor: 'pointer' }}
+              >
+                <p className="category-name">Ver Todos</p>
+                <div className="icon-container">
+                  <img
+                    src={getIconPath('Package.svg')}
+                    alt="Ver todos los productos"
+                    className="category-image"
+                    loading="lazy"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            {/* Categorías */}
             {displayCategories.map((category) => {
               const iconPath = getCategoryIconPath(category.slug || category.name);
               return (
@@ -135,36 +155,6 @@ const CategoriasPage = () => {
                 </div>
               );
             })}
-            <div class="categoria-icon-wrapper">
-              <a href="#" data-discover="true">
-                <div class="category-icon" onClick={() => navigate('/buscar')}>
-                  <p class="category-name">Ver Todos</p>
-                  <div class="icon-container">
-                    <img alt="Categoría: Capas" class="category-image" loading="lazy" src={getIconPath('Package.svg')}>
-                    </img>
-                  </div>
-                </div>
-              </a>
-            </div>
-            {/* <div className="categoria-icon-wrapper">
-              <div
-                className="category-icon"
-                onClick={() => navigate('/buscar')}
-                style={{ cursor: 'pointer' }}
-              >
-                <p className="category-name">Ver Todos</p>
-                <div className="icon-container">
-                  <img
-                    src={getIconPath('Package.svg')}
-                    alt="Ver todos los productos"
-                    className="category-image"
-                    loading="lazy"
-                  />
-                </div>
-              </div>
-            </div> */}
-            {/* Icono para ver todos los productos */}
-
           </div>
 
         </div>

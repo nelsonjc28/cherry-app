@@ -7,6 +7,7 @@ use App\Models\OrderItem;
 use App\Models\Detalle;
 use App\Models\Producto;
 use App\Models\User;
+use App\Models\ContactInfo;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -23,9 +24,38 @@ class ExternalSalesService
             $user = $order->user;
             $address = $order->address;
             
+            // Obtener delivery_type desde payment_data o determinar por address
+            $paymentData = $order->payment_data ?? [];
+            $deliveryType = $paymentData['delivery_type'] ?? ($address ? 'envio' : 'retiro');
+            
+            // Si es retiro en tienda y no hay address, usar dirección de la tienda
+            if ($deliveryType === 'retiro' && !$address) {
+                $contactInfo = ContactInfo::getContactInfo();
+                // Crear un objeto temporal con la dirección de la tienda
+                $address = (object) [
+                    'street_address' => $contactInfo->address_street ?? '',
+                    'city' => $contactInfo->address_city ?? '',
+                    'state' => 'Ciudad de México',
+                    'postal_code' => '06080',
+                    'country' => 'México'
+                ];
+            }
+            
+            // Si aún no hay address, usar valores por defecto
+            if (!$address) {
+                $address = (object) [
+                    'street_address' => '',
+                    'city' => '',
+                    'state' => '',
+                    'postal_code' => '',
+                    'country' => 'México'
+                ];
+            }
+            
             // Obtener número de pedido (usar el ID del pedido)
             $numeroPedido = $order->id;
-            $nombrePedido = 'SC' . str_pad($numeroPedido, 4, '0', STR_PAD_LEFT);
+            // Usar formato "PV" como en el ejemplo de la API externa
+            $nombrePedido = 'PV' . str_pad($numeroPedido, 4, '0', STR_PAD_LEFT);
             
             // Preparar items con idArtd e idArticulo
             $items = [];
@@ -85,11 +115,10 @@ class ExternalSalesService
             }
             
             // Obtener información del pago de MercadoPago
-            $paymentData = $order->payment_data ?? [];
             $mercadopagoPaymentId = $order->mercadopago_payment_id ?? null;
             
             // Preparar datos del cliente
-            $clienteData = $this->prepareClienteData($user, $address);
+            $clienteData = $this->prepareClienteData($user, $address, $deliveryType);
             
             // Calcular importes
             $costoEnvio = 0; // Por ahora 0, se puede calcular después
@@ -188,23 +217,31 @@ class ExternalSalesService
     /**
      * Preparar datos del cliente según el formato requerido
      */
-    private function prepareClienteData(User $user, $address): array
+    private function prepareClienteData(User $user, $address, string $deliveryType = 'envio'): array
     {
         // Separar dirección en componentes
-        $streetParts = $this->parseStreetAddress($address->street_address ?? '');
+        $streetAddress = $address->street_address ?? '';
+        $streetParts = $this->parseStreetAddress($streetAddress);
+        
+        // Si es retiro en tienda, agregar nota en el nombre o en notas
+        $nombre = trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? ''));
+        if ($deliveryType === 'retiro') {
+            $nombre .= ' (RETIRO EN TIENDA)';
+        }
         
         return [
             'id_cliente' => (string) $user->id,
             'id_vendedor' => '0000',
-            'nombre' => trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')),
+            'nombre' => $nombre,
             'rfc' => $user->rfc ?? 'XAXX010101000',
-            'calle' => $streetParts['street'] ?? ($address->street_address ?? ''),
+            'calle' => $streetParts['street'] ?? $streetAddress,
             'no_int' => $streetParts['no_int'] ?? null,
             'no_ext' => $streetParts['no_ext'] ?? null,
             'municipio' => $address->city ?? '',
             'colonia' => null,
             'estado' => $address->state ?? '',
-            'ciudad' => $address->city ?? '',
+            // Normalizar ciudad: si es "Ciudad de México" usar "CDMX", sino usar el valor original
+            'ciudad' => $this->normalizeCity($address->city ?? ''),
             'pais' => $address->country ?? 'México',
             'codpos' => $address->postal_code ?? '',
             'precio' => 1,
@@ -253,7 +290,7 @@ class ExternalSalesService
             'descuento' => 0.0,
             'desc_volumen' => 0.0,
             'id_comprador' => '00',
-            'notas' => null,
+            'notas' => $deliveryType === 'retiro' ? 'RETIRO EN TIENDA' : null,
             'pag_web' => null,
             'opccredito' => 'N',
             'id_uso' => 'G01',
@@ -292,6 +329,26 @@ class ExternalSalesService
             'no_ext' => null,
             'no_int' => null
         ];
+    }
+    
+    /**
+     * Normalizar nombre de ciudad según formato esperado por la API externa
+     */
+    private function normalizeCity(?string $city): string
+    {
+        if (empty($city)) {
+            return '';
+        }
+        
+        // Normalizar "Ciudad de México" a "CDMX"
+        $normalized = trim($city);
+        if (stripos($normalized, 'Ciudad de México') !== false || 
+            stripos($normalized, 'CDMX') !== false ||
+            stripos($normalized, 'Ciudad de Mexico') !== false) {
+            return 'CDMX';
+        }
+        
+        return $normalized;
     }
 }
 

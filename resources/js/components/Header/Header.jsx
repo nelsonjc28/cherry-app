@@ -118,10 +118,10 @@ const Header = () => {
 
     // Solo mostrar las categorías del menú configuradas
     if (menuCategories && menuCategories.length > 0) {
-      // Crear array con "Todas las categorías" primero, luego las demás
+      // Crear array con "Todos los productos" primero, luego las demás
       const allItems = [
-        { name: 'Todas las categorías', link: '/categorias' },
         { name: 'Todos los productos', link: '/buscar#' },
+        { name: 'Todas las categorías', link: '/categorias' },
         ...menuCategories.map(cat => ({
           name: cat.name,
           link: `/categoria/${cat.slug}`

@@ -321,11 +321,21 @@ class PaymentController extends Controller
                         'new_order_status' => $newStatus
                     ]);
 
+                    // Preservar delivery_type si existe en payment_data anterior
+                    $previousPaymentData = $order->payment_data ?? [];
+                    $newPaymentData = $result['payment_data'] ?? [];
+                    if (is_string($previousPaymentData)) {
+                        $previousPaymentData = json_decode($previousPaymentData, true) ?? [];
+                    }
+                    if (isset($previousPaymentData['delivery_type'])) {
+                        $newPaymentData['delivery_type'] = $previousPaymentData['delivery_type'];
+                    }
+                    
                     // Actualizar estado del pedido
                     $order->update([
                         'status' => $newStatus,
                         'mercadopago_payment_id' => $result['payment_id'],
-                        'payment_data' => json_encode($result['payment_data'])
+                        'payment_data' => json_encode($newPaymentData)
                     ]);
 
                     // === PAGO APROBADO ===
@@ -381,7 +391,21 @@ class PaymentController extends Controller
             ]);
         }
         
-        // 2. Crear notificación para el usuario
+        // 2. Enviar email de confirmación al cliente
+        try {
+            // Recargar el pedido con relaciones para el email
+            $order->load(['user', 'address', 'items']);
+            Mail::to($order->user->email)->send(new OrderConfirmationMail($order));
+            Log::info('Email de confirmación enviado al cliente', ['order_id' => $order->id]);
+        } catch (\Exception $e) {
+            Log::error('Error al enviar email de confirmación de pedido desde webhook', [
+                'order_id' => $order->id,
+                'user_email' => $order->user->email ?? null,
+                'error' => $e->getMessage()
+            ]);
+        }
+        
+        // 3. Crear notificación para el usuario
         try {
             Notification::create([
                 'user_id' => $order->user_id,
@@ -401,7 +425,7 @@ class PaymentController extends Controller
             ]);
         }
         
-        // 3. Notificar al admin
+        // 4. Notificar al admin
         $this->notifyAdminPaymentReceived($order, $order->user);
     }
 
@@ -627,6 +651,10 @@ class PaymentController extends Controller
             if (!in_array($payment->status, ['rejected', 'cancelled'])) {
                 DB::beginTransaction();
 
+                // Preparar payment_data con delivery_type incluido
+                $paymentDataToStore = is_array($payment) ? $payment : (array) $payment;
+                $paymentDataToStore['delivery_type'] = $deliveryType;
+                
                 // Crear el pedido en la base de datos
                 $order = Order::create([
                     'user_id' => $user->id,
@@ -636,7 +664,7 @@ class PaymentController extends Controller
                     'payment_method' => 'mercadopago_integrated',
                     'external_reference' => $externalReference,
                     'mercadopago_payment_id' => $payment->id,
-                    'payment_data' => json_encode($payment)
+                    'payment_data' => json_encode($paymentDataToStore)
                 ]);
 
                 // Crear los items del pedido
@@ -1466,7 +1494,16 @@ class PaymentController extends Controller
             }
             
             if ($paymentData) {
-                $updateData['payment_data'] = json_encode($paymentData);
+                // Preservar delivery_type si existe en payment_data anterior
+                $previousPaymentData = $order->payment_data ?? [];
+                if (is_string($previousPaymentData)) {
+                    $previousPaymentData = json_decode($previousPaymentData, true) ?? [];
+                }
+                $paymentDataArray = is_array($paymentData) ? $paymentData : (array) $paymentData;
+                if (isset($previousPaymentData['delivery_type'])) {
+                    $paymentDataArray['delivery_type'] = $previousPaymentData['delivery_type'];
+                }
+                $updateData['payment_data'] = json_encode($paymentDataArray);
             }
             
             $order->update($updateData);
@@ -1634,10 +1671,14 @@ class PaymentController extends Controller
             // Crear pago en efectivo con MercadoPago
             $payment = $this->mercadoPagoService->createCashPayment($paymentData);
 
+            // Preparar payment_data con delivery_type incluido
+            $paymentDataToStore = is_array($payment) ? $payment : (array) $payment;
+            $paymentDataToStore['delivery_type'] = $deliveryType;
+
             // Actualizar el pedido con los datos del pago
             $order->update([
                 'mercadopago_payment_id' => $payment->id,
-                'payment_data' => json_encode($payment)
+                'payment_data' => json_encode($paymentDataToStore)
             ]);
 
             DB::commit();
@@ -1765,10 +1806,20 @@ class PaymentController extends Controller
                 'payment_status' => $realStatus
             ]);
 
+            // Preservar delivery_type si existe en payment_data anterior
+            $previousPaymentData = $order->payment_data ?? [];
+            if (is_string($previousPaymentData)) {
+                $previousPaymentData = json_decode($previousPaymentData, true) ?? [];
+            }
+            $paymentArray = is_array($payment) ? $payment : (array) $payment;
+            if (isset($previousPaymentData['delivery_type'])) {
+                $paymentArray['delivery_type'] = $previousPaymentData['delivery_type'];
+            }
+            
             // Actualizar la orden
             $order->update([
                 'status' => $newStatus,
-                'payment_data' => json_encode($payment)
+                'payment_data' => json_encode($paymentArray)
             ]);
 
             // Procesar según el estado

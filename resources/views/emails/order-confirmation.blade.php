@@ -10,7 +10,7 @@ Te confirmamos que hemos recibido tu pedido **#{{ $order->id }}** correctamente.
 **Número de Pedido:** #{{ $order->id }}  
 **Fecha:** {{ $order->created_at->format('d/m/Y H:i') }}  
 **Estado:** {{ $order->status_display }}  
-**Método de Pago:** {{ ucfirst(str_replace('_', ' ', $order->payment_method)) }}  
+**Método de Pago:** {{ ucfirst(str_replace(['_', 'mercadopago', 'integrated'], [' ', 'Mercado Pago', ''], $order->payment_method)) }}  
 **Total:** ${{ number_format($order->total_amount, 2, '.', ',') }}
 
 ## Productos
@@ -25,12 +25,16 @@ Te confirmamos que hemos recibido tu pedido **#{{ $order->id }}** correctamente.
 
 @endforeach
 
-## Dirección de Envío
+## Dirección de Entrega
 
-{{ $order->address->street }}, {{ $order->address->number }}  
-{{ $order->address->neighborhood }}  
+@if($order->address)
+{{ $order->address->street_address }}  
 {{ $order->address->city }}, {{ $order->address->state }}  
-C.P. {{ $order->address->postal_code }}
+C.P. {{ $order->address->postal_code }}  
+{{ $order->address->country }}
+@else
+**Retiro en Tienda**
+@endif
 
 @if($order->status === 'pending' || $order->status === 'pendiente_pago')
 <x-mail::panel>

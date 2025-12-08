@@ -7,7 +7,9 @@ use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use App\Services\MercadoPagoService;
+use App\Mail\OrderConfirmationMail;
 
 class PaymentStatusController extends Controller
 {
@@ -78,19 +80,34 @@ class PaymentStatusController extends Controller
 
             // Si el estado cambió, actualizar la orden
             if ($order->status !== $newOrderStatus) {
+                $previousStatus = $order->status;
                 $order->update([
                     'status' => $newOrderStatus,
                     'payment_data' => json_encode($payment)
                 ]);
 
-                // Si el pago fue aprobado, enviar a API externa
-                if ($payment->status === 'approved' && $newOrderStatus === 'pagado') {
+                // Si el pago fue aprobado, enviar a API externa y email de confirmación
+                if ($payment->status === 'approved' && $newOrderStatus === 'pagado' && $previousStatus !== 'pagado') {
+                    // Enviar a API externa
                     try {
                         $externalSalesService = app(\App\Services\ExternalSalesService::class);
                         $externalSalesService->sendSaleToExternalApi($order);
                     } catch (\Exception $e) {
                         Log::error('Error al enviar venta a API externa después de verificación', [
                             'order_id' => $order->id,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                    
+                    // Enviar email de confirmación
+                    try {
+                        $order->load(['user', 'address', 'items']);
+                        Mail::to($order->user->email)->send(new OrderConfirmationMail($order));
+                        Log::info('Email de confirmación enviado al cliente desde verificación de estado', ['order_id' => $order->id]);
+                    } catch (\Exception $e) {
+                        Log::error('Error al enviar email de confirmación desde verificación de estado', [
+                            'order_id' => $order->id,
+                            'user_email' => $order->user->email ?? null,
                             'error' => $e->getMessage()
                         ]);
                     }

@@ -88,6 +88,74 @@
   background: #fff;
 }
 
+/* Sección de beneficios */
+.cart-modal__benefits {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+  border: 1px solid #e9ecef;
+}
+
+.cart-modal__benefits-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #373737;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cart-modal__benefit-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 0;
+  font-size: 13px;
+  color: #666;
+  line-height: 1.4;
+}
+
+.cart-modal__benefit-item:not(:last-child) {
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 10px;
+  margin-bottom: 8px;
+}
+
+.cart-modal__benefit-item--active {
+  color: #4caf50;
+}
+
+.cart-modal__benefit-item--active .cart-modal__benefit-icon {
+  color: #4caf50;
+  font-weight: bold;
+}
+
+.cart-modal__benefit-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.cart-modal__benefit-text {
+  flex: 1;
+}
+
+.cart-modal__benefit-text strong {
+  color: #373737;
+  font-weight: 600;
+}
+
+.cart-modal__benefit-item--active .cart-modal__benefit-text strong {
+  color: #4caf50;
+}
+
+.cart-modal__benefit-remaining {
+  color: #ff9800;
+  font-weight: 500;
+  font-size: 12px;
+}
+
 .cart-modal__subtotal-row {
   display: flex;
   align-items: center;
@@ -152,6 +220,30 @@
 
   .cart-modal__footer {
     padding: 29px 32px 0 32px;
+  }
+
+  .cart-modal__benefits {
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+
+  .cart-modal__benefits-title {
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+
+  .cart-modal__benefit-item {
+    font-size: 14px;
+    padding: 10px 0;
+  }
+
+  .cart-modal__benefit-item:not(:last-child) {
+    padding-bottom: 12px;
+    margin-bottom: 10px;
+  }
+
+  .cart-modal__benefit-icon {
+    font-size: 18px;
   }
 
   .cart-modal__subtotal-label {

@@ -51,6 +51,7 @@
   margin-top: 40px;
   margin-bottom: 40px;
   justify-items: center;
+  grid-auto-flow: row;
 }
 
 .categoria-icon-wrapper {
@@ -61,6 +62,12 @@
   gap: 10px;
   cursor: pointer;
   align-self: stretch;
+}
+
+.categoria-icon-wrapper--first {
+  order: -1;
+  grid-row-start: 1;
+  grid-column-start: 1;
 }
 
 .categoria-icon-wrapper > .category-icon {
