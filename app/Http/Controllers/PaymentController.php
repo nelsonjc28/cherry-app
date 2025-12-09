@@ -1187,30 +1187,29 @@ class PaymentController extends Controller
     }
 
     /**
-     * Get product image URL using the same logic as ProductCard
-     * First checks if product has imagen field, otherwise constructs URL from product ID
+     * Get product image URL using the same logic as ProductController
+     * Returns producto->imagen directly, just like ProductController does
      * 
      * @param \App\Models\Producto|null $product The product model (can be null)
      * @param string|int|null $productId The product ID as fallback
-     * @return string The image URL
+     * @return string|null The image URL (can be null, frontend handles fallback)
      */
     private function getProductImageUrlFromProduct($product, $productId)
     {
-        // Si el producto tiene imagen en la BD, usarla directamente (como en ProductController)
-        if ($product && isset($product->imagen) && !empty(trim($product->imagen))) {
+        // Exactamente como ProductController: devolver imagen directamente si existe
+        if ($product && $product->imagen) {
             return $product->imagen;
         }
         
-        // Si no tiene imagen en BD o el producto no existe, construir URL desde el ID (como en AdminCatalogController)
-        // Esto es importante porque algunos productos pueden no existir en la tabla productos pero sí tener imágenes en S3
+        // Si el producto no existe pero tenemos productId, construir URL desde el ID
+        // (esto es para productos que pueden no estar en la BD pero sí tener imágenes en S3)
         if ($productId) {
             $productIdStr = trim((string) $productId);
-            // Construir URL de S3 directamente desde el productId
             return "https://cherry-fotos.s3.amazonaws.com/shopify/{$productIdStr}/{$productIdStr}_1.jpg";
         }
         
-        // Fallback: placeholder (solo si no hay productId)
-        return asset('images/placeholder-product.png');
+        // Devolver null para que el frontend maneje el fallback (como ProductController)
+        return null;
     }
 
     /**
