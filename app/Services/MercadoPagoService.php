@@ -86,8 +86,8 @@ class MercadoPagoService
             Log::debug('Items procesados para preferencia', ['items' => $items]);
 
             $backUrlSuccess = $this->getValidUrl('/compra-exitosa');
-            $backUrlFailure = $this->getValidUrl('/checkout/failure');
-            $backUrlPending = $this->getValidUrl('/checkout/pending');
+            $backUrlFailure = $this->getValidUrl('/carrito-detalle');
+            $backUrlPending = $this->getValidUrl('/carrito-detalle');
             
             $appUrl = config('app.url');
             $isLocalhost = $this->isLocalhost($appUrl);

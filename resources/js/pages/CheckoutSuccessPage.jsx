@@ -39,9 +39,17 @@ export default function CheckoutSuccessPage() {
       const externalReference = searchParams.get('external_reference');
       const preferenceId = searchParams.get('preference_id');
 
-      // Si no hay parámetros de pago, redirigir al inicio
-      if (!paymentId && !externalReference && !preferenceId) {
-        navigate('/', { replace: true });
+      // Limpiar valores "null" string a null real
+      const cleanPaymentId = (paymentId && paymentId !== 'null' && paymentId !== '') ? paymentId : null;
+      const cleanStatus = (status && status !== 'null' && status !== '') ? status : null;
+      const cleanExternalRef = (externalReference && externalReference !== 'null' && externalReference !== '') ? externalReference : null;
+      const cleanPreferenceId = (preferenceId && preferenceId !== 'null' && preferenceId !== '') ? preferenceId : null;
+
+      // Si no hay parámetros de pago válidos, redirigir al carrito
+      if (!cleanPaymentId && !cleanExternalRef && !cleanPreferenceId) {
+        // Si viene de Mercado Pago pero sin parámetros válidos, probablemente canceló o hubo error
+        // Redirigir al carrito
+        navigate('/carrito-detalle', { replace: true });
         return;
       }
 
@@ -49,10 +57,10 @@ export default function CheckoutSuccessPage() {
         // Llamar al backend para verificar y procesar el pago
         const response = await api.get('/payment/verify', {
           params: {
-            payment_id: paymentId,
-            status: status,
-            external_reference: externalReference,
-            preference_id: preferenceId
+            payment_id: cleanPaymentId,
+            status: cleanStatus,
+            external_reference: cleanExternalRef,
+            preference_id: cleanPreferenceId
           }
         });
 
@@ -66,7 +74,17 @@ export default function CheckoutSuccessPage() {
         }
       } catch (err) {
         console.error('Error verificando pago:', err);
-        setError(err.response?.data?.message || 'Error al verificar el pago');
+        
+        // Si hay external_reference o preference_id válidos pero el error es de conexión,
+        // probablemente es porque estamos en localhost y Mercado Pago no puede acceder
+        if ((cleanExternalRef || cleanPreferenceId) && 
+            (err.code === 'ERR_CONNECTION_CLOSED' || 
+             err.message?.includes('ERR_CONNECTION') ||
+             err.message?.includes('Network Error'))) {
+          setError('No se pudo verificar el pago porque estás usando localhost. Para desarrollo local, configura ngrok o usa una URL pública.');
+        } else {
+          setError(err.response?.data?.message || 'Error al verificar el pago');
+        }
         setPaymentStatus('error');
       } finally {
         setLoading(false);

@@ -1374,8 +1374,8 @@ class PaymentController extends Controller
                 ],
                 'back_urls' => [
                     'success' => config('app.url') . '/compra-exitosa',
-                    'failure' => config('app.url') . '/checkout/failure',
-                    'pending' => config('app.url') . '/checkout/pending'
+                    'failure' => config('app.url') . '/carrito-detalle',
+                    'pending' => config('app.url') . '/carrito-detalle'
                 ],
                 'auto_return' => 'approved',
                 'external_reference' => 'test_' . time()
