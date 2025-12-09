@@ -1125,32 +1125,14 @@ class PaymentController extends Controller
                     'date' => $order->created_at->format('d/m/Y'),
                     'totalAmount' => (float) $order->total_amount,
                     'items' => $order->items->map(function ($item) {
-                        // Si la relación no cargó el producto (por diferencia de tipos), buscarlo manualmente
-                        $product = $item->product;
-                        if (!$product && $item->product_id) {
-                            $product = \App\Models\Producto::find((string) $item->product_id);
-                        }
-                        
-                        // Obtener URL de imagen usando la misma lógica que los ProductCard
-                        $imageUrl = $this->getProductImageUrlFromProduct($product, $item->product_id);
-
-                        // Usar siempre el producto relacionado si está disponible
-                        $productTitle = null;
-                        if ($product && $product->descripcion) {
-                            $productTitle = $product->descripcion;
-                        } elseif ($item->name) {
-                            $productTitle = $item->name;
-                        } else {
-                            $productTitle = 'Producto';
-                        }
-
+                        // Usar exactamente la misma lógica que AdminOrderController
                         return [
                             'id' => $item->id,
                             'product_id' => $item->product_id,
-                            'name' => $productTitle,
+                            'name' => $item->name ?? 'Producto',
                             'quantity' => $item->quantity,
                             'price' => (float) $item->price,
-                            'image' => $imageUrl
+                            'image' => $this->getProductImageUrlSimple($item->product_id)
                         ];
                     })
                 ];
