@@ -107,32 +107,26 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
             </div>
           </div>
 
-          {/* Información del cliente */}
-          <div className="order-detail-section">
-            <h3>Cliente</h3>
-            <div className="order-detail-info">
-              <div className="info-row">
-                <span className="label">Nombre:</span>
-                <span className="value">{order.customerName || 'N/A'}</span>
+          {/* Información de pago */}
+          {(order.paymentMethod || order.paymentId) && (
+            <div className="order-detail-section">
+              <h3>Información de Pago</h3>
+              <div className="order-detail-info">
+                {order.paymentMethod && (
+                  <div className="info-row">
+                    <span className="label">Método de pago:</span>
+                    <span className="value">{order.paymentMethod}</span>
+                  </div>
+                )}
+                {order.paymentId && (
+                  <div className="info-row">
+                    <span className="label">ID de pago:</span>
+                    <span className="value">{order.paymentId}</span>
+                  </div>
+                )}
               </div>
-              <div className="info-row">
-                <span className="label">Email:</span>
-                <span className="value">{order.customerEmail || 'N/A'}</span>
-              </div>
-              {order.paymentMethod && (
-                <div className="info-row">
-                  <span className="label">Método de pago:</span>
-                  <span className="value">{order.paymentMethod}</span>
-                </div>
-              )}
-              {order.paymentId && (
-                <div className="info-row">
-                  <span className="label">ID de pago:</span>
-                  <span className="value">{order.paymentId}</span>
-                </div>
-              )}
             </div>
-          </div>
+          )}
 
           {/* Productos */}
           <div className="order-detail-section">

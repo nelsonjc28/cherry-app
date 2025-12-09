@@ -974,9 +974,9 @@ class PaymentController extends Controller
                 ], 401);
             }
 
-            // Obtener órdenes del usuario con items relacionados
+            // Obtener órdenes del usuario con items y productos relacionados
             $orders = Order::where('user_id', $user->id)
-                ->with(['items', 'address'])
+                ->with(['items.product', 'address'])
                 ->orderBy('created_at', 'desc')
                 ->get();
 
@@ -990,8 +990,22 @@ class PaymentController extends Controller
                     'statusRaw' => $order->status, // Estado original para comparaciones en el frontend
                     'statusColor' => $this->getStatusColor($order->status),
                     'items' => $order->items->map(function ($item) use ($user, $order) {
-                        // Generar URL de imagen basada en el product_id
-                        $imageUrl = $this->getProductImageUrl($item->product_id);
+                        // Obtener URL de imagen desde el producto relacionado o construirla desde el ID
+                        $imageUrl = null;
+                        if ($item->product && $item->product->imagen) {
+                            // Si el producto tiene imagen en la BD, usarla directamente
+                            $imageUrl = $item->product->imagen;
+                        } elseif ($item->product_id) {
+                            // Si no tiene imagen en BD, construir URL desde el ID (el frontend manejará el fallback)
+                            $productIdStr = (string) $item->product_id;
+                            // Si el ID tiene 11 dígitos, usarlo directamente
+                            if (strlen($productIdStr) === 11) {
+                                $imageUrl = "https://cherry-fotos.s3.amazonaws.com/shopify/{$productIdStr}/{$productIdStr}_1.jpg";
+                            } else {
+                                // Intentar con el ID original primero
+                                $imageUrl = "https://cherry-fotos.s3.amazonaws.com/shopify/{$productIdStr}/{$productIdStr}_1.jpg";
+                            }
+                        }
 
                         // Verificar si ya existe una reseña para este producto en esta orden
                         $hasReview = \App\Models\Review::where('user_id', $user->id)
@@ -1002,7 +1016,7 @@ class PaymentController extends Controller
                         return [
                             'id' => $item->id,
                             'product_id' => $item->product_id,
-                            'title' => $item->name ?? 'Producto',
+                            'title' => $item->name ?? ($item->product->descripcion ?? 'Producto'),
                             'quantity' => (int) $item->quantity,
                             'price' => (float) $item->price,
                             'subtotal' => (float) $item->subtotal,
@@ -1097,10 +1111,10 @@ class PaymentController extends Controller
                 ], 401);
             }
 
-            // Obtener órdenes enviadas que no han sido calificadas
+            // Obtener órdenes enviadas que no han sido calificadas con productos relacionados
             $orders = Order::where('user_id', $user->id)
                 ->where('status', 'enviado')
-                ->with(['items'])
+                ->with(['items.product'])
                 ->orderBy('created_at', 'desc')
                 ->get();
 
@@ -1127,13 +1141,30 @@ class PaymentController extends Controller
                     'date' => $order->created_at->format('d/m/Y'),
                     'totalAmount' => (float) $order->total_amount,
                     'items' => $order->items->map(function ($item) {
+                        // Obtener URL de imagen desde el producto relacionado o construirla desde el ID
+                        $imageUrl = null;
+                        if ($item->product && $item->product->imagen) {
+                            // Si el producto tiene imagen en la BD, usarla directamente
+                            $imageUrl = $item->product->imagen;
+                        } elseif ($item->product_id) {
+                            // Si no tiene imagen en BD, construir URL desde el ID (el frontend manejará el fallback)
+                            $productIdStr = (string) $item->product_id;
+                            // Si el ID tiene 11 dígitos, usarlo directamente
+                            if (strlen($productIdStr) === 11) {
+                                $imageUrl = "https://cherry-fotos.s3.amazonaws.com/shopify/{$productIdStr}/{$productIdStr}_1.jpg";
+                            } else {
+                                // Intentar con el ID original primero
+                                $imageUrl = "https://cherry-fotos.s3.amazonaws.com/shopify/{$productIdStr}/{$productIdStr}_1.jpg";
+                            }
+                        }
+
                         return [
                             'id' => $item->id,
                             'product_id' => $item->product_id,
-                            'name' => $item->name,
+                            'name' => $item->name ?? ($item->product->descripcion ?? 'Producto'),
                             'quantity' => $item->quantity,
                             'price' => (float) $item->price,
-                            'image' => $this->getProductImageUrl($item->product_id)
+                            'image' => $imageUrl
                         ];
                     })
                 ];

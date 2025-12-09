@@ -1,7 +1,7 @@
 /* Profile Layout Styles - Mobile First */
 .profile-layout {
   min-height: calc(100vh - 120px);
-  background-color: #fff;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
   padding: 20px 0;
   overflow-x: hidden;
   width: 100%;
@@ -10,30 +10,32 @@
 .profile-layout__content {
   display: grid;
   grid-template-columns: 1fr;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  border-radius: 8px;
+  gap: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .profile-layout__main {
   background-color: #fff;
-  border-radius: 0 0 8px 8px;
-  padding: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   min-height: 600px;
 }
 
 /* Desktop Styles */
 @media (min-width: 768px) {
   .profile-layout {
-    padding: 35px 0;
+    padding: 40px 20px;
   }
 
   .profile-layout__content {
-    grid-template-columns: 400px 1fr;
+    grid-template-columns: 320px 1fr;
+    gap: 30px;
   }
 
   .profile-layout__main {
-    padding: 45px;
-    border-radius: 0 8px 8px 0;
+    padding: 40px;
+    border-radius: 12px;
   }
 }

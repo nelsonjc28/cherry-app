@@ -8,12 +8,13 @@
 }
 
 .personal-data__title {
-  font-size: 24px;
-  font-weight: 400;
+  font-size: 28px;
+  font-weight: 600;
   color: var(--color-text);
   margin: 0;
-  padding-bottom: 5px;
-  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--color-primary);
+  letter-spacing: -0.5px;
 }
 
 .personal-data__form {
@@ -59,11 +60,11 @@
 }
 
 .personal-data__input {
-  padding: 7px 0;
+  padding: 10px 0;
   border: none;
-  border-bottom: 1px solid #AAAAAA;
+  border-bottom: 2px solid #e0e0e0;
   border-radius: 0;
-  font-size: 15px;
+  font-size: 16px;
   color: var(--color-text);
   background-color: transparent;
   transition: all 0.3s ease;
@@ -78,13 +79,17 @@
 }
 
 .personal-data__input:hover {
-  border-bottom-color: #d0d0d0;
+  border-bottom-color: #c0c0c0;
+  background-color: #fafafa;
+  padding-left: 4px;
 }
 
 .personal-data__input:focus {
   outline: none;
   border-bottom-color: var(--color-primary);
+  border-bottom-width: 3px;
   transform: translateY(-2px);
+  padding-left: 4px;
 }
 
 .personal-data__input:focus::placeholder {
@@ -122,9 +127,9 @@
 
 
 .personal-data__select {
-  padding: 7px 20px 7px 0;
+  padding: 10px 20px 10px 0;
   border: none;
-  border-bottom: 1px solid #AAAAAA;
+  border-bottom: 2px solid #e0e0e0;
   border-radius: 0;
   font-size: 16px;
   color: var(--color-text);
@@ -142,14 +147,18 @@
 }
 
 .personal-data__select:hover {
-  border-bottom-color: #d0d0d0;
+  border-bottom-color: #c0c0c0;
+  background-color: #fafafa;
+  padding-left: 4px;
   background-image: url("data:image/svg+xml;charset=UTF-8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6,9 12,15 18,9'></polyline></svg>");
 }
 
 .personal-data__select:focus {
   outline: none;
   border-bottom-color: var(--color-primary);
+  border-bottom-width: 3px;
   transform: translateY(-2px);
+  padding-left: 4px;
   background-image: url("data:image/svg+xml;charset=UTF-8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23EA2630' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6,9 12,15 18,9'></polyline></svg>");
 }
 
