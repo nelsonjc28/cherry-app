@@ -605,9 +605,24 @@ const CartDetailsPage = () => {
     return alerts;
   };
   
+  // Detectar si hay productos con rebaja
+  const hasProductsWithDiscount = cartItems.some(item => {
+    const hasPromo = item.desc_promo && item.desc_promo > 0;
+    const hasUserOffer = item.userOffer && item.userOffer.discount_category !== null;
+    return hasPromo || hasUserOffer;
+  });
+
+  // Alerta sobre productos con rebaja
+  const discountWarningAlert = hasProductsWithDiscount ? [{
+    type: 'warning',
+    icon: 'ℹ️',
+    message: 'Recuerda que en productos con rebaja no se aplica el descuento del 30%+10% adicional',
+    color: '#ff9800'
+  }] : [];
+
   const discountAlerts = getDiscountAlerts();
   const shippingAlerts = getShippingAlerts();
-  const allAlerts = [...discountAlerts, ...shippingAlerts];
+  const allAlerts = [...discountWarningAlert, ...discountAlerts, ...shippingAlerts];
 
   return (
     <div className="container cart-details__container">

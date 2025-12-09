@@ -741,5 +741,5 @@ class ProductSyncController extends Controller
                 'message' => 'Error al reemplazar productos: ' . $e->getMessage()
             ], 500);
         }
-    }
+}
 }

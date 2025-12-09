@@ -45,8 +45,10 @@ const BuscarPage = () => {
     }
     return {
       catalog: 'Seleccione',
+      catalogs: [], // Array para selección múltiple
       availability: 'todos',
       category: '',
+      categories: [], // Array para selección múltiple
       department: 'Todos los departamentos',
       sector: 'Todos los sectores',
       sizes: [],
@@ -359,38 +361,31 @@ const BuscarPage = () => {
   useEffect(() => {
     let filtered = [...products];
 
-    // Filtrar por catálogo
-    // filters.catalog contiene el id del catálogo seleccionado, comparar con catalogoId del producto
-    if (filters.catalog && filters.catalog !== 'Todos los catálogos' && filters.catalog !== 'Seleccione') {
+    // Filtrar por catálogo (soporta selección múltiple)
+    // Si no hay catálogos seleccionados o está vacío, mostrar todos
+    const selectedCatalogs = Array.isArray(filters.catalogs) && filters.catalogs.length > 0
+      ? filters.catalogs.filter(cat => cat !== 'todos') // Excluir la opción "todos"
+      : (filters.catalog && filters.catalog !== 'Todos los catálogos' && filters.catalog !== 'Seleccione' && filters.catalog !== '' ? [String(filters.catalog)] : []);
+    
+    // Solo filtrar si hay catálogos específicos seleccionados
+    if (selectedCatalogs.length > 0) {
       filtered = filtered.filter(product => {
-        // Comparar el id del catálogo seleccionado con catalogoId del producto
-        const productCatalogoId = product.catalogoId;
-        // Usar comparación flexible (==) para manejar diferentes tipos (string vs number)
-        const matches = String(productCatalogoId) == String(filters.catalog);
-        
-        // Debug para primeros productos
-        if (filtered.indexOf(product) < 5) {
-          console.log('🔍 DEBUG - Comparación de catálogo:', {
-            productId: product.id,
-            productCatalogoId,
-            productCatalogoIdType: typeof productCatalogoId,
-            filterCatalog: filters.catalog,
-            filterCatalogType: typeof filters.catalog,
-            matches,
-            comparison: `${productCatalogoId} == ${filters.catalog}`
-          });
-        }
-        
-        return matches;
+        const productCatalogoId = String(product.catalogoId || '');
+        return selectedCatalogs.some(catalogId => String(catalogId) === productCatalogoId);
       });
     }
 
-    // Aplicar filtros adicionales (usando código)
-    // filters.category contiene el code de la categoría, comparar con id_linea del producto
-    if (filters.category && filters.category !== '') {
+    // Filtrar por categoría (soporta selección múltiple)
+    // Si no hay categorías seleccionadas o está vacío, mostrar todas
+    const selectedCategories = Array.isArray(filters.categories) && filters.categories.length > 0
+      ? filters.categories.filter(cat => cat !== 'todos') // Excluir la opción "todos"
+      : (filters.category && filters.category !== '' ? (Array.isArray(filters.category) ? filters.category.filter(cat => cat !== 'todos') : [String(filters.category)]) : []);
+    
+    // Solo filtrar si hay categorías específicas seleccionadas
+    if (selectedCategories.length > 0) {
       filtered = filtered.filter(product => {
-        const productLineaId = product.id_linea;
-        return productLineaId == filters.category;
+        const productLineaId = String(product.id_linea || '');
+        return selectedCategories.some(categoryCode => String(categoryCode) === productLineaId);
       });
     }
 

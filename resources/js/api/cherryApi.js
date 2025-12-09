@@ -957,11 +957,15 @@ export const searchProductsAdvanced = async (query, filters = {}, catalog = 'Che
       finalProducts = finalProducts.filter(product => product.inventario > 0);
     }
 
-    // Filtrar por categoría (usando código)
-    if (filters.category && filters.category !== '') {
+    // Filtrar por categoría (soporta selección múltiple)
+    const selectedCategories = Array.isArray(filters.categories) && filters.categories.length > 0
+      ? filters.categories.filter(cat => cat !== 'todos') // Excluir la opción "todos"
+      : (filters.category && filters.category !== '' ? (Array.isArray(filters.category) ? filters.category.filter(cat => cat !== 'todos') : [String(filters.category)]) : []);
+    
+    if (selectedCategories.length > 0) {
       finalProducts = finalProducts.filter(product => {
-        const productLineaId = product.linea?.id_linea;
-        return productLineaId == filters.category;
+        const productLineaId = String(product.linea?.id_linea || '');
+        return selectedCategories.some(categoryCode => String(categoryCode) === productLineaId);
       });
     }
 

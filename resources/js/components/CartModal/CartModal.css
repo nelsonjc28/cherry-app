@@ -88,6 +88,32 @@
   background: #fff;
 }
 
+/* Mensaje de advertencia sobre productos con rebaja */
+.cart-modal__discount-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  border-left: 4px solid #ff9800;
+}
+
+.cart-modal__discount-warning-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.cart-modal__discount-warning-text {
+  font-size: 13px;
+  color: #856404;
+  line-height: 1.4;
+  flex: 1;
+}
+
 /* Sección de beneficios */
 .cart-modal__benefits {
   background: #f8f9fa;
@@ -220,6 +246,15 @@
 
   .cart-modal__footer {
     padding: 29px 32px 0 32px;
+  }
+
+  .cart-modal__discount-warning {
+    padding: 14px;
+    margin-bottom: 16px;
+  }
+
+  .cart-modal__discount-warning-text {
+    font-size: 14px;
   }
 
   .cart-modal__benefits {

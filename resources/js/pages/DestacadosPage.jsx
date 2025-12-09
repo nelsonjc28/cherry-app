@@ -57,32 +57,27 @@ const DestacadosPage = () => {
 
     let filtered = [...products];
 
-    // Filter by category (usando código)
-    // filters.category contiene el code de la categoría, comparar con id_linea del producto
-    if (currentFilters.category && currentFilters.category !== '') {
+    // Filtrar por categoría (soporta selección múltiple)
+    const selectedCategories = Array.isArray(currentFilters.categories) && currentFilters.categories.length > 0
+      ? currentFilters.categories.filter(cat => cat !== 'todos') // Excluir la opción "todos"
+      : (currentFilters.category && currentFilters.category !== '' ? (Array.isArray(currentFilters.category) ? currentFilters.category.filter(cat => cat !== 'todos') : [String(currentFilters.category)]) : []);
+    
+    if (selectedCategories.length > 0) {
       filtered = filtered.filter(product => {
-        const productLineaId = product.id_linea || product.linea?.id_linea || product.category_id;
-        const matches = String(productLineaId) == String(currentFilters.category);
-        
-        // Debug para primeros productos
-        if (filtered.indexOf(product) < 3) {
-          console.log('🔍 DEBUG DestacadosPage - Filtro de categoría:', {
-            productId: product.id,
-            productLineaId,
-            filterCategory: currentFilters.category,
-            matches
-          });
-        }
-        
-        return matches;
+        const productLineaId = String(product.id_linea || product.linea?.id_linea || product.category_id || '');
+        return selectedCategories.some(categoryCode => String(categoryCode) === productLineaId);
       });
     }
-    // Filter by catalog
-    // filters.catalog contiene el id del catálogo seleccionado, comparar con catalogoId del producto
-    if (currentFilters.catalog && currentFilters.catalog !== '' && currentFilters.catalog != 'Seleccione') {
+    
+    // Filtrar por catálogo (soporta selección múltiple)
+    const selectedCatalogs = Array.isArray(currentFilters.catalogs) && currentFilters.catalogs.length > 0
+      ? currentFilters.catalogs.filter(cat => cat !== 'todos') // Excluir la opción "todos"
+      : (currentFilters.catalog && currentFilters.catalog !== '' && currentFilters.catalog !== 'Seleccione' && currentFilters.catalog !== '' ? [String(currentFilters.catalog)] : []);
+    
+    if (selectedCatalogs.length > 0) {
       filtered = filtered.filter(product => {
-        const productCatalogoId = product.catalogoId;
-        return productCatalogoId == currentFilters.catalog;
+        const productCatalogoId = String(product.catalogoId || '');
+        return selectedCatalogs.some(catalogId => String(catalogId) === productCatalogoId);
       });
     }
     // Filter by department

@@ -325,53 +325,28 @@ const DestacadosOfertasPage = () => {
       });
     }
 
-    // Filtrar por catálogo
-    // Comparar el id del catálogo seleccionado con catalogoId del producto
-    if (filters.catalog && filters.catalog !== 'Todos los catálogos' && filters.catalog !== 'Seleccione') {
+    // Filtrar por catálogo (soporta selección múltiple)
+    const selectedCatalogs = Array.isArray(filters.catalogs) && filters.catalogs.length > 0
+      ? filters.catalogs.filter(cat => cat !== 'todos') // Excluir la opción "todos"
+      : (filters.catalog && filters.catalog !== 'Todos los catálogos' && filters.catalog !== 'Seleccione' && filters.catalog !== '' ? [String(filters.catalog)] : []);
+    
+    if (selectedCatalogs.length > 0) {
       filtered = filtered.filter(product => {
-        const productCatalogoId = product.catalogoId;
-        // Usar comparación flexible (==) como en BuscarPage
-        return productCatalogoId == filters.catalog;
+        const productCatalogoId = String(product.catalogoId || '');
+        return selectedCatalogs.some(catalogId => String(catalogId) === productCatalogoId);
       });
     }
 
-    // Filtrar por categoría
-    // Comparar el code (id_linea) de la categoría seleccionada con id_linea del producto
-    // filters.category contiene el code que es el id_linea como string
-    if (filters.category && filters.category !== '') {
-      // Debug: Verificar filtro de categoría
-      console.log('🔍 DEBUG - Filtro de categoría:', {
-        filterCategory: filters.category,
-        filterCategoryType: typeof filters.category,
-        totalProducts: filtered.length,
-        sampleProducts: filtered.slice(0, 3).map(p => ({
-          id: p.id,
-          id_linea: p.id_linea,
-          id_lineaType: typeof p.id_linea,
-          linea: p.linea
-        }))
-      });
-      
+    // Filtrar por categoría (soporta selección múltiple)
+    const selectedCategories = Array.isArray(filters.categories) && filters.categories.length > 0
+      ? filters.categories.filter(cat => cat !== 'todos') // Excluir la opción "todos"
+      : (filters.category && filters.category !== '' ? (Array.isArray(filters.category) ? filters.category.filter(cat => cat !== 'todos') : [String(filters.category)]) : []);
+    
+    if (selectedCategories.length > 0) {
       filtered = filtered.filter(product => {
-        const productLineaId = product.id_linea;
-        const matches = productLineaId == filters.category;
-        
-        // Debug para primeros productos
-        if (filtered.indexOf(product) < 3) {
-          console.log('🔍 DEBUG - Comparación:', {
-            productId: product.id,
-            productLineaId,
-            filterCategory: filters.category,
-            matches,
-            comparison: `${productLineaId} == ${filters.category}`
-          });
-        }
-        
-        // Usar comparación flexible (==) como en BuscarPage para manejar diferentes tipos
-        return matches;
+        const productLineaId = String(product.id_linea || '');
+        return selectedCategories.some(categoryCode => String(categoryCode) === productLineaId);
       });
-      
-      console.log('🔍 DEBUG - Productos después del filtro de categoría:', filtered.length);
     }
 
     // Filtrar por precio

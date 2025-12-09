@@ -265,7 +265,14 @@
 
   .promociones-page__sidebar {
     display: block;
-    flex: 0 0 250px;
+    flex: 0 0 280px;
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    height: fit-content;
+    position: sticky;
+    top: 100px;
   }
 
   .promociones-page__mobile-filter-controls {

@@ -138,27 +138,15 @@ const CatalogPage = ({ catalogId }) => {
     let filtered = [...products];
 
 
-    // Filter by category (if a category code is selected)
-    // filters.category contiene el code de la categoría, comparar con id_linea del producto
-    if (currentFilters.category && currentFilters.category !== '') {
+    // Filter by category (soporta selección múltiple)
+    const selectedCategories = Array.isArray(currentFilters.categories) && currentFilters.categories.length > 0
+      ? currentFilters.categories.filter(cat => cat !== 'todos') // Excluir la opción "todos"
+      : (currentFilters.category && currentFilters.category !== '' ? (Array.isArray(currentFilters.category) ? currentFilters.category.filter(cat => cat !== 'todos') : [String(currentFilters.category)]) : []);
+    
+    if (selectedCategories.length > 0) {
       filtered = filtered.filter(product => {
-        const productLineaId = product.id_linea || product.linea?.id_linea || product.category_id;
-        const matches = String(productLineaId) == String(currentFilters.category);
-        
-        // Debug para primeros productos
-        if (filtered.indexOf(product) < 3) {
-          console.log('🔍 DEBUG - Filtro de categoría:', {
-            productId: product.id,
-            productLineaId,
-            productLineaIdType: typeof productLineaId,
-            filterCategory: currentFilters.category,
-            filterCategoryType: typeof currentFilters.category,
-            matches,
-            comparison: `${productLineaId} == ${currentFilters.category}`
-          });
-        }
-        
-        return matches;
+        const productLineaId = String(product.id_linea || product.linea?.id_linea || product.category_id || '');
+        return selectedCategories.some(categoryCode => String(categoryCode) === productLineaId);
       });
     }
 
@@ -643,8 +631,10 @@ const CatalogPage = ({ catalogId }) => {
   const handleClearFilters = useCallback(() => {
     const defaultFilters = {
       catalog: catalogs.length > 0 ? catalogs[0].name : 'Cherry 2025 - 2026',
+      catalogs: [], // Array para selección múltiple
       availability: 'todos',
       category: '',
+      categories: [], // Array para selección múltiple
       department: 'Todos los departamentos',
       sector: 'Todos los sectores',
       sizes: [],

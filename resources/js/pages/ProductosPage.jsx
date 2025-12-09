@@ -242,19 +242,27 @@ const ProductosPage = () => {
   useEffect(() => {
     let filtered = [...products];
 
-    // Filtrar por catálogo
-    if (filters.catalog && filters.catalog !== 'Todos los catálogos' && filters.catalog !== 'Seleccione') {
+    // Filtrar por catálogo (soporta selección múltiple)
+    const selectedCatalogs = Array.isArray(filters.catalogs) && filters.catalogs.length > 0
+      ? filters.catalogs.filter(cat => cat !== 'todos') // Excluir la opción "todos"
+      : (filters.catalog && filters.catalog !== 'Todos los catálogos' && filters.catalog !== 'Seleccione' && filters.catalog !== '' ? [String(filters.catalog)] : []);
+    
+    if (selectedCatalogs.length > 0) {
       filtered = filtered.filter(product => {
-        const productCatalogoId = product.catalogoId;
-        return String(productCatalogoId) === String(filters.catalog);
+        const productCatalogoId = String(product.catalogoId || '');
+        return selectedCatalogs.some(catalogId => String(catalogId) === productCatalogoId);
       });
     }
 
-    // Filtrar por categoría
-    if (filters.category && filters.category !== '' && filters.category !== 'Todas las categorías') {
+    // Filtrar por categoría (soporta selección múltiple)
+    const selectedCategories = Array.isArray(filters.categories) && filters.categories.length > 0
+      ? filters.categories.filter(cat => cat !== 'todos') // Excluir la opción "todos"
+      : (filters.category && filters.category !== '' && filters.category !== 'Todas las categorías' ? (Array.isArray(filters.category) ? filters.category.filter(cat => cat !== 'todos') : [String(filters.category)]) : []);
+    
+    if (selectedCategories.length > 0) {
       filtered = filtered.filter(product => {
-        const productLineaId = product.id_linea;
-        return productLineaId == filters.category;
+        const productLineaId = String(product.id_linea || '');
+        return selectedCategories.some(categoryCode => String(categoryCode) === productLineaId);
       });
     }
 

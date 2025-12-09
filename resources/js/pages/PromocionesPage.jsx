@@ -359,45 +359,16 @@ const PromocionesPage = () => {
     
     let filtered = [...products];
 
-    // Filtrar por categoría (usando código)
-    // filters.category contiene el code que es el id_linea como string
-    if (currentFilters.category && currentFilters.category !== '') {
-      console.log('🔍 DEBUG - Filtro de categoría activo:', {
-        filterCategory: currentFilters.category,
-        filterCategoryType: typeof currentFilters.category,
-        totalProducts: filtered.length,
-        sampleProducts: filtered.slice(0, 3).map(p => ({
-          id: p.id,
-          id_linea: p.id_linea,
-          id_lineaType: typeof p.id_linea,
-          linea: p.linea
-        }))
-      });
-      
+    // Filtrar por categoría (soporta selección múltiple)
+    const selectedCategories = Array.isArray(currentFilters.categories) && currentFilters.categories.length > 0
+      ? currentFilters.categories.filter(cat => cat !== 'todos') // Excluir la opción "todos"
+      : (currentFilters.category && currentFilters.category !== '' ? (Array.isArray(currentFilters.category) ? currentFilters.category.filter(cat => cat !== 'todos') : [String(currentFilters.category)]) : []);
+    
+    if (selectedCategories.length > 0) {
       filtered = filtered.filter(product => {
-        const productLineaId = product.id_linea || product.linea;
-        const matches = productLineaId == currentFilters.category;
-        
-        // Debug para primeros productos
-        if (filtered.indexOf(product) < 5) {
-          console.log('🔍 DEBUG - Comparación:', {
-            productId: product.id,
-            productLineaId,
-            productLineaIdType: typeof productLineaId,
-            filterCategory: currentFilters.category,
-            filterCategoryType: typeof currentFilters.category,
-            matches,
-            comparison: `${productLineaId} == ${currentFilters.category}`,
-            strictEqual: productLineaId === currentFilters.category,
-            looseEqual: productLineaId == currentFilters.category
-          });
-        }
-        
-        // Usar comparación flexible (==) como en BuscarPage para manejar diferentes tipos
-        return matches;
+        const productLineaId = String(product.id_linea || product.linea || '');
+        return selectedCategories.some(categoryCode => String(categoryCode) === productLineaId);
       });
-      
-      console.log('🔍 DEBUG - Productos después del filtro de categoría:', filtered.length);
     }
 
     // Filtrar por departamento

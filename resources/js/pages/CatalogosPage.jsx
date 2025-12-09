@@ -226,18 +226,27 @@ const CatalogosPage = () => {
     if (!products || products.length === 0) return [];
     let filtered = [...products];
 
-    // Filtrar por catálogo
-    if (currentFilters.catalog && currentFilters.catalog !== 'Todos los catálogos' && currentFilters.catalog !== 'Seleccione') {
+    // Filtrar por catálogo (soporta selección múltiple)
+    const selectedCatalogs = Array.isArray(currentFilters.catalogs) && currentFilters.catalogs.length > 0
+      ? currentFilters.catalogs.filter(cat => cat !== 'todos') // Excluir la opción "todos"
+      : (currentFilters.catalog && currentFilters.catalog !== 'Todos los catálogos' && currentFilters.catalog !== 'Seleccione' && currentFilters.catalog !== '' ? [String(currentFilters.catalog)] : []);
+    
+    if (selectedCatalogs.length > 0) {
       filtered = filtered.filter(product => {
-        return product.catalog_id === currentFilters.catalog;
+        const productCatalogId = String(product.catalog_id || '');
+        return selectedCatalogs.some(catalogId => String(catalogId) === productCatalogId);
       });
     }
 
-    // Filtros igual que en CatalogPage.jsx (usando código)
-    if (currentFilters.category && currentFilters.category !== '') {
+    // Filtrar por categoría (soporta selección múltiple)
+    const selectedCategories = Array.isArray(currentFilters.categories) && currentFilters.categories.length > 0
+      ? currentFilters.categories.filter(cat => cat !== 'todos') // Excluir la opción "todos"
+      : (currentFilters.category && currentFilters.category !== '' ? (Array.isArray(currentFilters.category) ? currentFilters.category.filter(cat => cat !== 'todos') : [String(currentFilters.category)]) : []);
+    
+    if (selectedCategories.length > 0) {
       filtered = filtered.filter(product => {
-        const productLineaId = product.category_id;
-        return productLineaId == currentFilters.category;
+        const productLineaId = String(product.category_id || '');
+        return selectedCategories.some(categoryCode => String(categoryCode) === productLineaId);
       });
     }
     if (currentFilters.priceRange.min > 0 || currentFilters.priceRange.max > 0) {

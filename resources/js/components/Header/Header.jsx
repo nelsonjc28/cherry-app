@@ -388,8 +388,21 @@ const Header = () => {
         title: item.title || item.name,
         variants: [],
         totalQuantity: 0,
-        totalPrice: 0
+        totalPrice: 0,
+        desc_promo: item.desc_promo, // Incluir desc_promo para detectar rebajas
+        userOffer: item.userOffer, // Incluir userOffer para detectar rebajas
+        precio: item.precio || item.price, // Incluir precio para cálculos
+        price: item.price || item.precio // Incluir price como alternativa
       };
+    } else {
+      // Si el grupo ya existe, actualizar desc_promo y userOffer si el nuevo item tiene rebaja
+      // (si alguno tiene rebaja, el grupo completo se considera con rebaja)
+      if (item.desc_promo && item.desc_promo > 0) {
+        groups[key].desc_promo = item.desc_promo;
+      }
+      if (item.userOffer && item.userOffer.discount_category !== null) {
+        groups[key].userOffer = item.userOffer;
+      }
     }
 
     // Add size variant
@@ -430,7 +443,11 @@ const Header = () => {
     title: groupedItem.title,
     quantity: groupedItem.totalQuantity,
     priceWithDiscount: groupedItem.totalPrice, // Pasar número sin formatear
-    variants: groupedItem.variants
+    variants: groupedItem.variants,
+    desc_promo: groupedItem.desc_promo, // Incluir para detectar rebajas
+    userOffer: groupedItem.userOffer, // Incluir para detectar rebajas
+    precio: groupedItem.precio, // Incluir precio
+    price: groupedItem.price // Incluir price como alternativa
   }));
 
   // Component for a mobile menu item

@@ -33,9 +33,12 @@ const CatalogFilter = ({
   // State to show/hide the accordion
   const [showAccordion, setShowAccordion] = useState(true);
 
-  // Get dynamic data from API
-  const { data: apiColors = [] } = useAvailableColors(filters.catalog);
-  const { data: apiAvailableCategories = [], isLoading: isLoadingApiCategories } = useAvailableCategories(filters.catalog);
+  // Get dynamic data from API - usar primer catálogo seleccionado o el catálogo único
+  const selectedCatalogsForAPI = Array.isArray(filters.catalogs) && filters.catalogs.length > 0
+    ? filters.catalogs[0]
+    : (filters.catalog || 'Cherry 2025 - 2026');
+  const { data: apiColors = [] } = useAvailableColors(selectedCatalogsForAPI);
+  const { data: apiAvailableCategories = [], isLoading: isLoadingApiCategories } = useAvailableCategories(selectedCatalogsForAPI);
   
   // Estado para categorías cargadas desde el endpoint /api/categories
   const [categoriesFromAPI, setCategoriesFromAPI] = useState([]);
@@ -191,14 +194,66 @@ const CatalogFilter = ({
 
     switch (filterType) {
       case 'catalog':
-        newFilters.catalog = value;
-        // Reset category when catalog changes
-        newFilters.category = '';
+        // Normalizar value a string para comparación consistente
+        const catalogValue = String(value);
+        
+        // Manejar como array para selección múltiple
+        if (!newFilters.catalogs) {
+          newFilters.catalogs = [];
+        }
+        if (Array.isArray(newFilters.catalog)) {
+          // Si ya es array, convertir todos a strings
+          newFilters.catalogs = newFilters.catalog.map(cat => String(cat));
+        } else if (newFilters.catalog) {
+          // Si es string, convertir a array con ese valor (normalizado a string)
+          newFilters.catalogs = [String(newFilters.catalog)];
+        }
+        
+        // Normalizar todos los valores del array a strings para comparación consistente
+        newFilters.catalogs = newFilters.catalogs.map(cat => String(cat));
+        
+        // Toggle del valor en el array (comparación con strings)
+        if (newFilters.catalogs.includes(catalogValue)) {
+          newFilters.catalogs = newFilters.catalogs.filter(cat => String(cat) !== catalogValue);
+        } else {
+          newFilters.catalogs = [...newFilters.catalogs, catalogValue];
+        }
+        
+        // Mantener compatibilidad con filtro único (para páginas que aún lo usan)
+        newFilters.catalog = newFilters.catalogs.length === 1 ? newFilters.catalogs[0] : (newFilters.catalogs.length > 0 ? newFilters.catalogs : '');
         break;
       case 'category':
-        newFilters.category = value;
+        // Normalizar value a string para comparación consistente
+        const categoryValue = String(value);
+        
+        // Manejar como array para selección múltiple
+        if (!newFilters.categories) {
+          newFilters.categories = [];
+        }
+        if (Array.isArray(newFilters.category)) {
+          // Si ya es array, convertir todos a strings
+          newFilters.categories = newFilters.category.map(cat => String(cat));
+        } else if (newFilters.category) {
+          // Si es string, convertir a array con ese valor (normalizado a string)
+          newFilters.categories = [String(newFilters.category)];
+        }
+        
+        // Normalizar todos los valores del array a strings para comparación consistente
+        newFilters.categories = newFilters.categories.map(cat => String(cat));
+        
+        // Toggle del valor en el array (comparación con strings)
+        if (newFilters.categories.includes(categoryValue)) {
+          newFilters.categories = newFilters.categories.filter(cat => String(cat) !== categoryValue);
+        } else {
+          newFilters.categories = [...newFilters.categories, categoryValue];
+        }
+        
+        // Mantener compatibilidad con filtro único (para páginas que aún lo usan)
+        newFilters.category = newFilters.categories.length === 1 ? newFilters.categories[0] : (newFilters.categories.length > 0 ? newFilters.categories : '');
+        
         console.log('🔍 Filtro de categoría cambiado:', {
-          categoryValue: value,
+          categoryValue: categoryValue,
+          categoriesArray: newFilters.categories,
           availableCategories: availableCategories.find(cat => (cat.code || cat.id) == value)
         });
         break;
@@ -248,7 +303,23 @@ const CatalogFilter = ({
 
 
   // Get available sizes from props instead of static array
-  const sizes = availableSizes.length > 0 ? availableSizes : ['XS', 'S', 'M', 'L', 'XL', 'XXL'];;;;
+  // Ordenar tallas: primero números, luego letras
+  const rawSizes = availableSizes.length > 0 ? availableSizes : ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  const sizes = [...rawSizes].sort((a, b) => {
+    const aIsNumber = !isNaN(parseInt(a));
+    const bIsNumber = !isNaN(parseInt(b));
+    
+    // Si ambos son números o ambos son letras, ordenar normalmente
+    if (aIsNumber && bIsNumber) {
+      return parseInt(a) - parseInt(b);
+    }
+    if (!aIsNumber && !bIsNumber) {
+      return a.localeCompare(b);
+    }
+    
+    // Si uno es número y otro es letra, el número va primero
+    return aIsNumber ? -1 : 1;
+  });
 
   // Create color options from props data with real hex values
   const colors = availableColors.map(color => ({
@@ -258,7 +329,28 @@ const CatalogFilter = ({
   }));
 
   return (
-    <div className={`catalog-filter ${isMobile ? 'mobile' : 'desktop'}`}>
+    <div 
+      className={`catalog-filter ${isMobile ? 'mobile' : 'desktop'}`}
+      onWheel={(e) => {
+        // Prevenir que el scroll se propague al contenedor padre
+        const target = e.currentTarget;
+        const filterContent = target.querySelector('.filter-content');
+        if (filterContent) {
+          const { scrollTop, scrollHeight, clientHeight } = filterContent;
+          const isAtTop = scrollTop === 0;
+          const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
+          
+          // Si estamos en el top y scrolleamos hacia arriba, o en el bottom y scrolleamos hacia abajo
+          // permitir que el scroll se propague
+          if ((isAtTop && e.deltaY < 0) || (isAtBottom && e.deltaY > 0)) {
+            return; // Permitir scroll del padre
+          }
+          
+          // De lo contrario, prevenir la propagación
+          e.stopPropagation();
+        }
+      }}
+    >
       {/* Mobile header */}
       {isMobile && (
         <div className="filter-mobile-header">
@@ -267,7 +359,7 @@ const CatalogFilter = ({
         </div>
       )}
 
-      <div className="filter-content">
+      <div className="filter-content" onWheel={(e) => e.stopPropagation()}>
 
         {/* Filter button */}
         {!isMobile && (
@@ -296,19 +388,82 @@ const CatalogFilter = ({
                   <img src={getIconPath('Chevron Down.svg')} alt="Filter" className={`chevron ${expandedSections.catalog ? 'expanded' : ''}`} />
                 </button>
                 {expandedSections.catalog && (
-                  <select
-                    value={filters.catalog}
-                    onChange={(e) => handleFilterChange('catalog', e.target.value)}
-                    className="filter-select"
-                  >
-                    <option value=''>Seleccione</option>
-
-                    {catalogs.map((catalog) => (
-                      <option key={catalog.id} value={catalog.id}>{catalog.name}</option>
-                    ))}
-                  </select>
+                  <div className="filter-section-content">
+                    <div className="multiselect-container">
+                      <label className="multiselect-option">
+                        <input
+                          type="checkbox"
+                          checked={(() => {
+                            const selectedCatalogs = Array.isArray(filters.catalogs) 
+                              ? filters.catalogs.map(cat => String(cat))
+                              : (filters.catalog ? [String(filters.catalog)] : []);
+                            return selectedCatalogs.includes('todos');
+                          })()}
+                          onChange={(e) => {
+                            const selectedCatalogs = Array.isArray(filters.catalogs) 
+                              ? filters.catalogs.map(cat => String(cat))
+                              : (filters.catalog ? [String(filters.catalog)] : []);
+                            const newFilters = { ...filters };
+                            
+                            if (e.target.checked) {
+                              newFilters.catalogs = ['todos', ...selectedCatalogs.filter(cat => cat !== 'todos')];
+                            } else {
+                              newFilters.catalogs = selectedCatalogs.filter(cat => cat !== 'todos');
+                            }
+                            
+                            newFilters.catalog = newFilters.catalogs.length === 1 && !newFilters.catalogs.includes('todos') 
+                              ? newFilters.catalogs[0] 
+                              : (newFilters.catalogs.length > 0 ? newFilters.catalogs : '');
+                            
+                            onFilterChange(newFilters);
+                          }}
+                        />
+                        <span className="multiselect-label" style={{ fontWeight: 'bold' }}>Seleccione</span>
+                      </label>
+                      {catalogs.map((catalog) => {
+                        const catalogId = String(catalog.id);
+                        const selectedCatalogs = Array.isArray(filters.catalogs) 
+                          ? filters.catalogs.map(cat => String(cat))
+                          : (filters.catalog ? [String(filters.catalog)] : []);
+                        const isChecked = selectedCatalogs.includes(catalogId);
+                        
+                        return (
+                          <label key={catalog.id} className="multiselect-option">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                const currentSelected = Array.isArray(filters.catalogs) 
+                                  ? filters.catalogs.map(cat => String(cat))
+                                  : (filters.catalog ? [String(filters.catalog)] : []);
+                                const newFilters = { ...filters };
+                                
+                                if (e.target.checked) {
+                                  newFilters.catalogs = [...currentSelected.filter(cat => cat !== 'todos'), catalogId];
+                                } else {
+                                  newFilters.catalogs = currentSelected.filter(cat => cat !== catalogId);
+                                }
+                                
+                                newFilters.catalog = newFilters.catalogs.length === 1 && !newFilters.catalogs.includes('todos') 
+                                  ? newFilters.catalogs[0] 
+                                  : (newFilters.catalogs.length > 0 ? newFilters.catalogs : '');
+                                
+                                onFilterChange(newFilters);
+                              }}
+                            />
+                            <span className="multiselect-label">{catalog.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <div className="filter-selected-count">
+                      {Array.isArray(filters.catalogs) && filters.catalogs.length > 0 
+                        ? `${filters.catalogs.length} opción${filters.catalogs.length !== 1 ? 'es' : ''} seleccionada${filters.catalogs.length !== 1 ? 's' : ''}`
+                        : 'Seleccione un catálogo'
+                      }
+                    </div>
+                  </div>
                 )}
-
               </div>
             )}
 
@@ -323,32 +478,93 @@ const CatalogFilter = ({
                   <img src={getIconPath('Chevron Down.svg')} alt="Filter" className={`chevron ${expandedSections.category ? 'expanded' : ''}`} />
                 </button>
                 {expandedSections.category && (
-                  <select
-                    value={filters.category || ''}
-                    onChange={(e) => {
-                      const selectedValue = e.target.value;
-                      console.log('🔍 Select de categoría cambiado:', {
-                        selectedValue,
-                        selectedCategory: availableCategories.find(cat => String(cat.code || cat.id) === String(selectedValue))
-                      });
-                      handleFilterChange('category', selectedValue);
-                    }}
-                    className="filter-select"
-                  >
-                    <option value="">Todas las categorías</option>
+                  <div className="filter-section-content">
                     {availableCategories.length > 0 ? (
-                      availableCategories.map((category) => {
-                        const categoryCode = String(category.code || category.id);
-                        return (
-                          <option key={categoryCode} value={categoryCode}>
-                            {category.name}
-                          </option>
-                        );
-                      })
+                      <>
+                        <div className="multiselect-container">
+                          <label className="multiselect-option">
+                            <input
+                              type="checkbox"
+                              checked={(() => {
+                                const selectedCategories = Array.isArray(filters.categories) 
+                                  ? filters.categories.map(cat => String(cat))
+                                  : (filters.category ? (Array.isArray(filters.category) ? filters.category.map(cat => String(cat)) : [String(filters.category)]) : []);
+                                return selectedCategories.includes('todos');
+                              })()}
+                              onChange={(e) => {
+                                const selectedCategories = Array.isArray(filters.categories) 
+                                  ? filters.categories.map(cat => String(cat))
+                                  : (filters.category ? (Array.isArray(filters.category) ? filters.category.map(cat => String(cat)) : [String(filters.category)]) : []);
+                                const newFilters = { ...filters };
+                                
+                                if (e.target.checked) {
+                                  newFilters.categories = ['todos', ...selectedCategories.filter(cat => cat !== 'todos')];
+                                } else {
+                                  newFilters.categories = selectedCategories.filter(cat => cat !== 'todos');
+                                }
+                                
+                                newFilters.category = newFilters.categories.length === 1 && !newFilters.categories.includes('todos') 
+                                  ? newFilters.categories[0] 
+                                  : (newFilters.categories.length > 0 ? newFilters.categories : '');
+                                
+                                onFilterChange(newFilters);
+                              }}
+                            />
+                            <span className="multiselect-label" style={{ fontWeight: 'bold' }}>Seleccione</span>
+                          </label>
+                          {availableCategories.map((category) => {
+                            const categoryCode = String(category.code || category.id);
+                            const selectedCategories = Array.isArray(filters.categories) 
+                              ? filters.categories.map(cat => String(cat))
+                              : (filters.category ? (Array.isArray(filters.category) ? filters.category.map(cat => String(cat)) : [String(filters.category)]) : []);
+                            const isChecked = selectedCategories.includes(categoryCode);
+                            
+                            return (
+                              <label key={categoryCode} className="multiselect-option">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={(e) => {
+                                    const currentSelected = Array.isArray(filters.categories) 
+                                      ? filters.categories.map(cat => String(cat))
+                                      : (filters.category ? (Array.isArray(filters.category) ? filters.category.map(cat => String(cat)) : [String(filters.category)]) : []);
+                                    const newFilters = { ...filters };
+                                    
+                                    if (e.target.checked) {
+                                      newFilters.categories = [...currentSelected.filter(cat => cat !== 'todos'), categoryCode];
+                                    } else {
+                                      newFilters.categories = currentSelected.filter(cat => cat !== categoryCode);
+                                    }
+                                    
+                                    newFilters.category = newFilters.categories.length === 1 && !newFilters.categories.includes('todos') 
+                                      ? newFilters.categories[0] 
+                                      : (newFilters.categories.length > 0 ? newFilters.categories : '');
+                                    
+                                    onFilterChange(newFilters);
+                                  }}
+                                />
+                                <span className="multiselect-label">{category.name}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                        <div className="filter-selected-count">
+                          {(() => {
+                            const selectedCategories = Array.isArray(filters.categories) 
+                              ? filters.categories 
+                              : (filters.category ? (Array.isArray(filters.category) ? filters.category : [String(filters.category)]) : []);
+                            const count = selectedCategories.length;
+                            
+                            return count > 0
+                              ? `${count} opción${count !== 1 ? 'es' : ''} seleccionada${count !== 1 ? 's' : ''}`
+                              : 'Seleccione una categoría';
+                          })()}
+                        </div>
+                      </>
                     ) : (
-                      <option value="" disabled>Cargando categorías...</option>
+                      <div className="filter-loading">Cargando categorías...</div>
                     )}
-                  </select>
+                  </div>
                 )}
               </div>
             )}

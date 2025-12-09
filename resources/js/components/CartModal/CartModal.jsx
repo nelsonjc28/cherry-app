@@ -22,6 +22,19 @@ const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout 
     };
   }, [open, subtotal]);
 
+  // Detectar si hay productos con rebaja
+  const hasProductsWithDiscount = useMemo(() => {
+    if (!cartItems || cartItems.length === 0) {
+      return false;
+    }
+    
+    return cartItems.some(item => {
+      const hasPromo = item.desc_promo && item.desc_promo > 0;
+      const hasUserOffer = item.userOffer && item.userOffer.discount_category !== null;
+      return hasPromo || hasUserOffer;
+    });
+  }, [cartItems]);
+
   // Calcular beneficios disponibles
   const benefits = useMemo(() => {
     if (!cartItems || cartItems.length === 0) {
@@ -93,6 +106,16 @@ const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout 
           )}
         </div>
         <div className="cart-modal__footer">
+          {/* Mensaje sobre productos con rebaja */}
+          {hasProductsWithDiscount && (
+            <div className="cart-modal__discount-warning">
+              <span className="cart-modal__discount-warning-icon">ℹ️</span>
+              <span className="cart-modal__discount-warning-text">
+                Recuerda que en productos con rebaja no se aplica el descuento del 30%+10% adicional
+              </span>
+            </div>
+          )}
+          
           {/* Sección de beneficios */}
           {cartItems.length > 0 && (
             <div className="cart-modal__benefits">
