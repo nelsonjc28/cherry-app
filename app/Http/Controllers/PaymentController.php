@@ -990,22 +990,8 @@ class PaymentController extends Controller
                     'statusRaw' => $order->status, // Estado original para comparaciones en el frontend
                     'statusColor' => $this->getStatusColor($order->status),
                     'items' => $order->items->map(function ($item) use ($user, $order) {
-                        // Obtener URL de imagen desde el producto relacionado o construirla desde el ID
-                        $imageUrl = null;
-                        if ($item->product && $item->product->imagen) {
-                            // Si el producto tiene imagen en la BD, usarla directamente
-                            $imageUrl = $item->product->imagen;
-                        } elseif ($item->product_id) {
-                            // Si no tiene imagen en BD, construir URL desde el ID (el frontend manejará el fallback)
-                            $productIdStr = (string) $item->product_id;
-                            // Si el ID tiene 11 dígitos, usarlo directamente
-                            if (strlen($productIdStr) === 11) {
-                                $imageUrl = "https://cherry-fotos.s3.amazonaws.com/shopify/{$productIdStr}/{$productIdStr}_1.jpg";
-                            } else {
-                                // Intentar con el ID original primero
-                                $imageUrl = "https://cherry-fotos.s3.amazonaws.com/shopify/{$productIdStr}/{$productIdStr}_1.jpg";
-                            }
-                        }
+                        // Obtener URL de imagen usando la misma lógica que los ProductCard
+                        $imageUrl = $this->getProductImageUrlFromProduct($item->product, $item->product_id);
 
                         // Verificar si ya existe una reseña para este producto en esta orden
                         $hasReview = \App\Models\Review::where('user_id', $user->id)
@@ -1141,22 +1127,8 @@ class PaymentController extends Controller
                     'date' => $order->created_at->format('d/m/Y'),
                     'totalAmount' => (float) $order->total_amount,
                     'items' => $order->items->map(function ($item) {
-                        // Obtener URL de imagen desde el producto relacionado o construirla desde el ID
-                        $imageUrl = null;
-                        if ($item->product && $item->product->imagen) {
-                            // Si el producto tiene imagen en la BD, usarla directamente
-                            $imageUrl = $item->product->imagen;
-                        } elseif ($item->product_id) {
-                            // Si no tiene imagen en BD, construir URL desde el ID (el frontend manejará el fallback)
-                            $productIdStr = (string) $item->product_id;
-                            // Si el ID tiene 11 dígitos, usarlo directamente
-                            if (strlen($productIdStr) === 11) {
-                                $imageUrl = "https://cherry-fotos.s3.amazonaws.com/shopify/{$productIdStr}/{$productIdStr}_1.jpg";
-                            } else {
-                                // Intentar con el ID original primero
-                                $imageUrl = "https://cherry-fotos.s3.amazonaws.com/shopify/{$productIdStr}/{$productIdStr}_1.jpg";
-                            }
-                        }
+                        // Obtener URL de imagen usando la misma lógica que los ProductCard
+                        $imageUrl = $this->getProductImageUrlFromProduct($item->product, $item->product_id);
 
                         return [
                             'id' => $item->id,
@@ -1183,8 +1155,34 @@ class PaymentController extends Controller
     }
 
     /**
+     * Get product image URL using the same logic as ProductCard
+     * First checks if product has imagen field, otherwise constructs URL from product ID
+     * 
+     * @param \App\Models\Producto|null $product The product model (can be null)
+     * @param string|int|null $productId The product ID as fallback
+     * @return string The image URL
+     */
+    private function getProductImageUrlFromProduct($product, $productId)
+    {
+        // Si el producto tiene imagen en la BD, usarla directamente (como en ProductController)
+        if ($product && $product->imagen && !empty(trim($product->imagen))) {
+            return $product->imagen;
+        }
+        
+        // Si no tiene imagen en BD, construir URL desde el ID (como en AdminCatalogController)
+        if ($productId) {
+            $productIdStr = trim((string) $productId);
+            return "https://cherry-fotos.s3.amazonaws.com/shopify/{$productIdStr}/{$productIdStr}_1.jpg";
+        }
+        
+        // Fallback: placeholder
+        return asset('images/placeholder-product.png');
+    }
+
+    /**
      * Get product image URL based on product ID
      * Tries both formatted and original ID formats to find the correct image
+     * @deprecated Use getProductImageUrlFromProduct instead
      */
     private function getProductImageUrl($productId)
     {
