@@ -999,10 +999,20 @@ class PaymentController extends Controller
                             ->where('product_id', $item->product_id)
                             ->exists();
 
+                        // Usar siempre el producto relacionado si está disponible, de lo contrario usar el name guardado
+                        $productTitle = null;
+                        if ($item->product && $item->product->descripcion) {
+                            $productTitle = $item->product->descripcion;
+                        } elseif ($item->name) {
+                            $productTitle = $item->name;
+                        } else {
+                            $productTitle = 'Producto';
+                        }
+
                         return [
                             'id' => $item->id,
                             'product_id' => $item->product_id,
-                            'title' => $item->name ?? ($item->product->descripcion ?? 'Producto'),
+                            'title' => $productTitle,
                             'quantity' => (int) $item->quantity,
                             'price' => (float) $item->price,
                             'subtotal' => (float) $item->subtotal,
@@ -1130,10 +1140,20 @@ class PaymentController extends Controller
                         // Obtener URL de imagen usando la misma lógica que los ProductCard
                         $imageUrl = $this->getProductImageUrlFromProduct($item->product, $item->product_id);
 
+                        // Usar siempre el producto relacionado si está disponible
+                        $productTitle = null;
+                        if ($item->product && $item->product->descripcion) {
+                            $productTitle = $item->product->descripcion;
+                        } elseif ($item->name) {
+                            $productTitle = $item->name;
+                        } else {
+                            $productTitle = 'Producto';
+                        }
+
                         return [
                             'id' => $item->id,
                             'product_id' => $item->product_id,
-                            'name' => $item->name ?? ($item->product->descripcion ?? 'Producto'),
+                            'name' => $productTitle,
                             'quantity' => $item->quantity,
                             'price' => (float) $item->price,
                             'image' => $imageUrl
