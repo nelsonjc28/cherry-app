@@ -1187,28 +1187,29 @@ class PaymentController extends Controller
     }
 
     /**
-     * Get product image URL using the same logic as ProductController
-     * Returns producto->imagen directly, just like ProductController does
+     * Get product image URL using the same logic as ProductCard
+     * First tries producto->imagen, then constructs URL from productId (like ProductCard does)
      * 
      * @param \App\Models\Producto|null $product The product model (can be null)
      * @param string|int|null $productId The product ID as fallback
-     * @return string|null The image URL (can be null, frontend handles fallback)
+     * @return string The image URL
      */
     private function getProductImageUrlFromProduct($product, $productId)
     {
-        // Exactamente como ProductController: devolver imagen directamente si existe
-        if ($product && $product->imagen) {
+        // Si el producto tiene imagen en la BD, usarla directamente (como ProductController)
+        if ($product && $product->imagen && trim($product->imagen) !== '') {
             return $product->imagen;
         }
         
-        // Si el producto no existe pero tenemos productId, construir URL desde el ID
-        // (esto es para productos que pueden no estar en la BD pero sí tener imágenes en S3)
+        // Si no tiene imagen o el producto no existe, construir URL desde el productId
+        // Esto es exactamente lo que hace ProductCard cuando no hay imagen en el campo
         if ($productId) {
             $productIdStr = trim((string) $productId);
+            // Construir URL de S3 igual que getProductImageUrl en productImageUtils.js
             return "https://cherry-fotos.s3.amazonaws.com/shopify/{$productIdStr}/{$productIdStr}_1.jpg";
         }
         
-        // Devolver null para que el frontend maneje el fallback (como ProductController)
+        // Solo devolver null si no hay productId (el frontend manejará el fallback)
         return null;
     }
 
