@@ -993,10 +993,16 @@ class PaymentController extends Controller
                         // Si la relación no cargó el producto (por diferencia de tipos), buscarlo manualmente
                         $product = $item->product;
                         if (!$product && $item->product_id) {
+                            // Intentar buscar como string primero (tipo de dato del modelo Producto)
                             $product = \App\Models\Producto::find((string) $item->product_id);
+                            // Si no se encuentra, intentar buscar directamente en la BD
+                            if (!$product) {
+                                $product = \App\Models\Producto::where('id', (string) $item->product_id)->first();
+                            }
                         }
                         
                         // Obtener URL de imagen usando la misma lógica que los ProductCard
+                        // Siempre pasar productId para construir URL si el producto no existe o no tiene imagen
                         $imageUrl = $this->getProductImageUrlFromProduct($product, $item->product_id);
 
                         // Verificar si ya existe una reseña para este producto en esta orden
