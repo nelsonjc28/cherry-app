@@ -40,6 +40,8 @@ class OrderItem extends Model
 
     /**
      * Get the product associated with this order item.
+     * Note: Producto model uses string ID, but product_id is stored as integer.
+     * Laravel should handle the conversion, but we ensure it works by using a custom query.
      */
     public function product(): BelongsTo
     {

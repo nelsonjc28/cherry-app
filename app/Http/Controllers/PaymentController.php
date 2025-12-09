@@ -990,8 +990,14 @@ class PaymentController extends Controller
                     'statusRaw' => $order->status, // Estado original para comparaciones en el frontend
                     'statusColor' => $this->getStatusColor($order->status),
                     'items' => $order->items->map(function ($item) use ($user, $order) {
+                        // Si la relación no cargó el producto (por diferencia de tipos), buscarlo manualmente
+                        $product = $item->product;
+                        if (!$product && $item->product_id) {
+                            $product = \App\Models\Producto::find((string) $item->product_id);
+                        }
+                        
                         // Obtener URL de imagen usando la misma lógica que los ProductCard
-                        $imageUrl = $this->getProductImageUrlFromProduct($item->product, $item->product_id);
+                        $imageUrl = $this->getProductImageUrlFromProduct($product, $item->product_id);
 
                         // Verificar si ya existe una reseña para este producto en esta orden
                         $hasReview = \App\Models\Review::where('user_id', $user->id)
@@ -1001,8 +1007,8 @@ class PaymentController extends Controller
 
                         // Usar siempre el producto relacionado si está disponible, de lo contrario usar el name guardado
                         $productTitle = null;
-                        if ($item->product && $item->product->descripcion) {
-                            $productTitle = $item->product->descripcion;
+                        if ($product && $product->descripcion) {
+                            $productTitle = $product->descripcion;
                         } elseif ($item->name) {
                             $productTitle = $item->name;
                         } else {
@@ -1137,13 +1143,19 @@ class PaymentController extends Controller
                     'date' => $order->created_at->format('d/m/Y'),
                     'totalAmount' => (float) $order->total_amount,
                     'items' => $order->items->map(function ($item) {
+                        // Si la relación no cargó el producto (por diferencia de tipos), buscarlo manualmente
+                        $product = $item->product;
+                        if (!$product && $item->product_id) {
+                            $product = \App\Models\Producto::find((string) $item->product_id);
+                        }
+                        
                         // Obtener URL de imagen usando la misma lógica que los ProductCard
-                        $imageUrl = $this->getProductImageUrlFromProduct($item->product, $item->product_id);
+                        $imageUrl = $this->getProductImageUrlFromProduct($product, $item->product_id);
 
                         // Usar siempre el producto relacionado si está disponible
                         $productTitle = null;
-                        if ($item->product && $item->product->descripcion) {
-                            $productTitle = $item->product->descripcion;
+                        if ($product && $product->descripcion) {
+                            $productTitle = $product->descripcion;
                         } elseif ($item->name) {
                             $productTitle = $item->name;
                         } else {
@@ -1185,17 +1197,19 @@ class PaymentController extends Controller
     private function getProductImageUrlFromProduct($product, $productId)
     {
         // Si el producto tiene imagen en la BD, usarla directamente (como en ProductController)
-        if ($product && $product->imagen && !empty(trim($product->imagen))) {
+        if ($product && isset($product->imagen) && !empty(trim($product->imagen))) {
             return $product->imagen;
         }
         
-        // Si no tiene imagen en BD, construir URL desde el ID (como en AdminCatalogController)
+        // Si no tiene imagen en BD o el producto no existe, construir URL desde el ID (como en AdminCatalogController)
+        // Esto es importante porque algunos productos pueden no existir en la tabla productos pero sí tener imágenes en S3
         if ($productId) {
             $productIdStr = trim((string) $productId);
+            // Construir URL de S3 directamente desde el productId
             return "https://cherry-fotos.s3.amazonaws.com/shopify/{$productIdStr}/{$productIdStr}_1.jpg";
         }
         
-        // Fallback: placeholder
+        // Fallback: placeholder (solo si no hay productId)
         return asset('images/placeholder-product.png');
     }
 
