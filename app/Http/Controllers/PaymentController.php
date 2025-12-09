@@ -974,61 +974,37 @@ class PaymentController extends Controller
                 ], 401);
             }
 
-            // Obtener órdenes del usuario con items y productos relacionados
+            // Obtener órdenes del usuario con items y productos relacionados (igual que AdminOrderController)
             $orders = Order::where('user_id', $user->id)
                 ->with(['items.product', 'address'])
                 ->orderBy('created_at', 'desc')
                 ->get();
 
-            // Mapear órdenes al formato esperado por el frontend
+            // Mapear órdenes al formato esperado por el frontend (igual que AdminOrderController)
             $formattedOrders = $orders->map(function ($order) use ($user) {
                 return [
                     'id' => $order->id,
                     'date' => $order->created_at->format('d \d\e F Y'),
                     'orderNumber' => str_pad($order->id, 8, '0', STR_PAD_LEFT),
                     'status' => $this->mapOrderStatus($order->status),
-                    'statusRaw' => $order->status, // Estado original para comparaciones en el frontend
+                    'statusRaw' => $order->status,
                     'statusColor' => $this->getStatusColor($order->status),
                     'items' => $order->items->map(function ($item) use ($user, $order) {
-                        // Si la relación no cargó el producto (por diferencia de tipos), buscarlo manualmente
-                        $product = $item->product;
-                        if (!$product && $item->product_id) {
-                            // Intentar buscar como string primero (tipo de dato del modelo Producto)
-                            $product = \App\Models\Producto::find((string) $item->product_id);
-                            // Si no se encuentra, intentar buscar directamente en la BD
-                            if (!$product) {
-                                $product = \App\Models\Producto::where('id', (string) $item->product_id)->first();
-                            }
-                        }
-                        
-                        // Obtener URL de imagen usando la misma lógica que los ProductCard
-                        // Siempre pasar productId para construir URL si el producto no existe o no tiene imagen
-                        $imageUrl = $this->getProductImageUrlFromProduct($product, $item->product_id);
-
+                        // Usar exactamente la misma lógica que AdminOrderController
                         // Verificar si ya existe una reseña para este producto en esta orden
                         $hasReview = \App\Models\Review::where('user_id', $user->id)
                             ->where('order_id', $order->id)
                             ->where('product_id', $item->product_id)
                             ->exists();
 
-                        // Usar siempre el producto relacionado si está disponible, de lo contrario usar el name guardado
-                        $productTitle = null;
-                        if ($product && $product->descripcion) {
-                            $productTitle = $product->descripcion;
-                        } elseif ($item->name) {
-                            $productTitle = $item->name;
-                        } else {
-                            $productTitle = 'Producto';
-                        }
-
                         return [
                             'id' => $item->id,
                             'product_id' => $item->product_id,
-                            'title' => $productTitle,
+                            'title' => $item->name ?? 'Producto',
                             'quantity' => (int) $item->quantity,
                             'price' => (float) $item->price,
                             'subtotal' => (float) $item->subtotal,
-                            'image' => $imageUrl,
+                            'image' => $this->getProductImageUrlSimple($item->product_id),
                             'size' => $item->size,
                             'color' => $item->color,
                             'barcode' => $item->barcode,
@@ -1193,30 +1169,24 @@ class PaymentController extends Controller
     }
 
     /**
-     * Get product image URL using the same logic as ProductCard
-     * First tries producto->imagen, then constructs URL from productId (like ProductCard does)
+     * Get product image URL - igual que AdminOrderController
+     * Construye URL directamente desde productId sin verificaciones
      * 
-     * @param \App\Models\Producto|null $product The product model (can be null)
-     * @param string|int|null $productId The product ID as fallback
+     * @param string|int|null $productId The product ID
      * @return string The image URL
      */
-    private function getProductImageUrlFromProduct($product, $productId)
+    private function getProductImageUrlSimple($productId)
     {
-        // Si el producto tiene imagen en la BD, usarla directamente (como ProductController)
-        if ($product && $product->imagen && trim($product->imagen) !== '') {
-            return $product->imagen;
+        if (!$productId) {
+            return asset('images/placeholder-product.png');
         }
         
-        // Si no tiene imagen o el producto no existe, construir URL desde el productId
-        // Esto es exactamente lo que hace ProductCard cuando no hay imagen en el campo
-        if ($productId) {
-            $productIdStr = trim((string) $productId);
-            // Construir URL de S3 igual que getProductImageUrl en productImageUtils.js
-            return "https://cherry-fotos.s3.amazonaws.com/shopify/{$productIdStr}/{$productIdStr}_1.jpg";
-        }
+        // Convertir a string para manejar correctamente
+        $productIdStr = (string) $productId;
         
-        // Solo devolver null si no hay productId (el frontend manejará el fallback)
-        return null;
+        // Construir URL directamente como en AdminOrderController y el frontend
+        // El frontend usa: https://cherry-fotos.s3.amazonaws.com/shopify/${externalProductId}/${externalProductId}_1.jpg
+        return "https://cherry-fotos.s3.amazonaws.com/shopify/{$productIdStr}/{$productIdStr}_1.jpg";
     }
 
     /**
