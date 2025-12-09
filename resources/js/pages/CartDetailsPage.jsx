@@ -294,13 +294,18 @@ const CartDetailsPage = () => {
 
   // Update selectedAddress when deliveryType changes
   useEffect(() => {
-    if (deliveryType === 'retiro' && storeAddress) {
-      setSelectedAddress(storeAddress);
-    } else if (deliveryType === 'envio' && selectedAddress?.id === 'store') {
-      // Clear store address when switching to delivery
-      setSelectedAddress(null);
+    if (deliveryType === 'retiro') {
+      // Siempre establecer la dirección de la tienda cuando es retiro
+      if (storeAddress) {
+        setSelectedAddress(storeAddress);
+      }
+    } else if (deliveryType === 'envio') {
+      // Cuando cambia a envío, limpiar si era dirección de tienda
+      if (selectedAddress?.id === 'store') {
+        setSelectedAddress(null);
+      }
     }
-  }, [deliveryType, storeAddress]);
+  }, [deliveryType, storeAddress, selectedAddress]);
 
   // Handle generate order with MercadoPago
   const handleGenerateOrder = async () => {
@@ -756,7 +761,7 @@ const CartDetailsPage = () => {
             <CartOrderSummary
               {...orderSummary}
               cartItems={cartItems}
-              selectedAddress={selectedAddress}
+              selectedAddress={deliveryType === 'retiro' && storeAddress ? storeAddress : selectedAddress}
               deliveryType={deliveryType}
               selectedPaymentCard={selectedPaymentCard}
               onPaymentCardChange={setSelectedPaymentCard}

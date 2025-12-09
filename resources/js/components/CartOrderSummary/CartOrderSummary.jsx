@@ -794,8 +794,11 @@ const CartOrderSummary = ({
             <div className="cart-order-summary__section-content">
               <div className="cart-order-summary__address-name">
                 <strong>{selectedAddress.name}</strong>
-                {selectedAddress.is_default && (
+                {selectedAddress.is_default && selectedAddress.id !== 'store' && (
                   <span className="cart-order-summary__default-badge">Predeterminada</span>
+                )}
+                {selectedAddress.id === 'store' && (
+                  <span className="cart-order-summary__default-badge" style={{ backgroundColor: '#10b981' }}>Tienda</span>
                 )}
               </div>
               <div className="cart-order-summary__address-street">

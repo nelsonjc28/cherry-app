@@ -164,7 +164,113 @@
   border-color: var(--color-primary);
 }
 
-/* Orders List */
+/* Orders Table */
+.admin-orders__table-container {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
+  margin-bottom: 30px;
+}
+
+.admin-orders__table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1000px;
+}
+
+.admin-orders__table thead {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-bottom: 2px solid var(--color-primary);
+}
+
+.admin-orders__table th {
+  padding: 15px 12px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.admin-orders__table tbody tr {
+  border-bottom: 1px solid #e9ecef;
+  transition: background-color 0.2s ease;
+}
+
+.admin-orders__table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.admin-orders__table tbody tr.highlighted {
+  background-color: rgba(234, 38, 48, 0.1);
+  border-left: 4px solid var(--color-primary);
+  animation: highlightPulse 2s ease-in-out;
+}
+
+.admin-orders__table td {
+  padding: 15px 12px;
+  font-size: 14px;
+  color: #333;
+  vertical-align: middle;
+}
+
+.order-number-cell {
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.order-date-cell,
+.order-time-cell {
+  color: #666;
+  white-space: nowrap;
+}
+
+.order-customer-cell {
+  min-width: 200px;
+}
+
+.customer-name {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.customer-email {
+  font-size: 12px;
+  color: #666;
+}
+
+.order-pieces-cell {
+  text-align: center;
+  font-weight: 500;
+  color: #333;
+}
+
+.order-total-cell {
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+}
+
+.order-status-cell {
+  min-width: 150px;
+}
+
+.status-cell-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.order-actions-cell {
+  white-space: nowrap;
+}
+
+/* Orders List (legacy - mantener por si acaso) */
 .admin-orders__list {
   display: flex;
   flex-direction: column;
@@ -592,6 +698,21 @@
 
   .filter-group {
     min-width: auto;
+  }
+
+  .admin-orders__table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-orders__table {
+    font-size: 12px;
+  }
+
+  .admin-orders__table th,
+  .admin-orders__table td {
+    padding: 10px 8px;
+    font-size: 12px;
   }
 
   .order-admin-card__header {

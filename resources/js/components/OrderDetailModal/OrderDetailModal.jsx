@@ -6,6 +6,58 @@ import './OrderDetailModal.css';
 const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) => {
   if (!isOpen || !order) return null;
 
+  // Agrupar productos por product_id
+  const groupedProducts = React.useMemo(() => {
+    if (!order.items || order.items.length === 0) return [];
+    
+    const grouped = {};
+    
+    order.items.forEach((item) => {
+      const productId = item.product_id;
+      
+      if (!grouped[productId]) {
+        // Solo usar imagen si existe y no es el placeholder
+        const validImage = item.image && item.image !== '/images/catalogProductImages/Rectangle 4922.png' 
+          ? item.image 
+          : null;
+        
+        grouped[productId] = {
+          product_id: productId,
+          title: item.title || 'Producto',
+          image: validImage,
+          items: [],
+          totalQuantity: 0,
+          totalSubtotal: 0,
+          sizes: [],
+          colors: [],
+          barcodes: []
+        };
+      }
+      
+      // Si el grupo no tiene imagen y este item tiene una válida, actualizarla
+      if (!grouped[productId].image && item.image && item.image !== '/images/catalogProductImages/Rectangle 4922.png') {
+        grouped[productId].image = item.image;
+      }
+      
+      grouped[productId].items.push(item);
+      grouped[productId].totalQuantity += item.quantity || 0;
+      grouped[productId].totalSubtotal += parseFloat(item.subtotal) || 0;
+      
+      if (item.size && !grouped[productId].sizes.includes(item.size)) {
+        grouped[productId].sizes.push(item.size);
+      }
+      
+      if (item.color && !grouped[productId].colors.includes(item.color)) {
+        grouped[productId].colors.push(item.color);
+      }
+      
+      if (item.barcode && !grouped[productId].barcodes.includes(item.barcode)) {
+        grouped[productId].barcodes.push(item.barcode);
+      }
+    });
+    
+    return Object.values(grouped);
+  }, [order.items]);
 
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
@@ -84,61 +136,59 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
 
           {/* Productos */}
           <div className="order-detail-section">
-            <h3>Productos ({order.items?.length || 0})</h3>
+            <h3>Productos ({groupedProducts.length})</h3>
             <div className="order-detail-products">
-              {order.items?.map((item, index) => (
-                  <div key={item.id || index} className="product-item">
+              {groupedProducts.map((group, index) => (
+                <div key={group.product_id || index} className="product-item">
+                  {group.image && group.image !== '/images/catalogProductImages/Rectangle 4922.png' && (
                     <div className="product-item__image">
                       <img 
-                        src={item.image || '/images/catalogProductImages/Rectangle 4922.png'} 
-                        alt={item.title || 'Producto'}
+                        src={group.image} 
+                        alt={group.title}
                         onError={(e) => {
-                          e.target.src = '/images/catalogProductImages/Rectangle 4922.png';
+                          e.target.parentElement.style.display = 'none';
                         }}
                       />
                     </div>
-                    <div className="product-item__details">
-                      <h4 className="product-item__title">{item.title || 'Producto'}</h4>
-                      <div className="product-item__info">
-                        <div className="info-row">
-                          <span className="label">ID Producto:</span>
-                          <span className="value">{item.product_id}</span>
-                        </div>
-                        <div className="info-row">
-                          <span className="label">Cantidad:</span>
-                          <span className="value">{item.quantity}</span>
-                        </div>
-                        <div className="info-row">
-                          <span className="label">Precio unitario:</span>
-                          <span className="value">${(parseFloat(item.price) || 0).toFixed(2)}</span>
-                        </div>
-                        <div className="info-row">
-                          <span className="label">Subtotal:</span>
-                          <span className="value subtotal">
-                            ${(parseFloat(item.subtotal) || 0).toFixed(2)}
-                          </span>
-                        </div>
-                        {item.size && (
-                          <div className="info-row">
-                            <span className="label">Talla:</span>
-                            <span className="value">{item.size}</span>
-                          </div>
-                        )}
-                        {item.color && (
-                          <div className="info-row">
-                            <span className="label">Color:</span>
-                            <span className="value">{item.color}</span>
-                          </div>
-                        )}
-                        {item.barcode && (
-                          <div className="info-row">
-                            <span className="label">Código de barras:</span>
-                            <span className="value">{item.barcode}</span>
-                          </div>
-                        )}
+                  )}
+                  <div className="product-item__details">
+                    <h4 className="product-item__title">{group.title}</h4>
+                    <div className="product-item__info">
+                      <div className="info-row">
+                        <span className="label">ID Producto:</span>
+                        <span className="value">{group.product_id}</span>
                       </div>
+                      <div className="info-row">
+                        <span className="label">Cantidad total:</span>
+                        <span className="value">{group.totalQuantity} unidades</span>
+                      </div>
+                      <div className="info-row">
+                        <span className="label">Subtotal:</span>
+                        <span className="value subtotal">
+                          ${group.totalSubtotal.toFixed(2)}
+                        </span>
+                      </div>
+                      {group.sizes.length > 0 && (
+                        <div className="info-row">
+                          <span className="label">Tallas:</span>
+                          <span className="value">{group.sizes.join(', ')}</span>
+                        </div>
+                      )}
+                      {group.colors.length > 0 && (
+                        <div className="info-row">
+                          <span className="label">Colores:</span>
+                          <span className="value">{group.colors.join(', ')}</span>
+                        </div>
+                      )}
+                      {group.barcodes.length > 0 && (
+                        <div className="info-row">
+                          <span className="label">Códigos de barras:</span>
+                          <span className="value">{group.barcodes.join(', ')}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
+                </div>
               ))}
             </div>
           </div>
@@ -177,7 +227,7 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
               <div className="summary-row">
                 <span className="label">Subtotal productos:</span>
                 <span className="value">
-                  ${order.items?.reduce((sum, item) => sum + (parseFloat(item.subtotal) || 0), 0).toFixed(2)}
+                  ${groupedProducts.reduce((sum, group) => sum + group.totalSubtotal, 0).toFixed(2)}
                 </span>
               </div>
               <div className="summary-row">

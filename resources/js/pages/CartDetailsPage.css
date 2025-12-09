@@ -311,7 +311,7 @@ body, .cart-details__container {
 }
 
 .cart-details__delivery-option span {
-  font-size: 15px;
+  font-size: 17px;
   color: var(--color-text);
   font-weight: 400;
 }

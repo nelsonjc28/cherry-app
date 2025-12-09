@@ -1163,6 +1163,7 @@ class AdminCatalogController extends Controller
                         'name' => $group->name,
                         'description' => $group->description,
                         'slug' => $group->slug,
+                        'is_active' => $group->is_active,
                         'images_count' => $group->images_count,
                         'display_order' => $group->display_order,
                         'cover_image' => $group->images->first() ? [

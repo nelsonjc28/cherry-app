@@ -343,9 +343,9 @@ const CatalogPage = ({ catalogId }) => {
                 const groupsResponse = await publicCatalogService.getCatalogImageGroups(catalogId);
                 if (groupsResponse.data.success) {
                   const groups = groupsResponse.data.data.image_groups || [];
-                  // Verificar que haya al menos un grupo activo
-                  const activeGroups = groups.filter(group => group.is_active === true);
-                  setHasImageGroups(activeGroups.length > 0);
+                  // El endpoint ya filtra solo grupos activos, pero verificamos que haya grupos y que tengan imágenes
+                  const groupsWithImages = groups.filter(group => (group.images_count || 0) > 0);
+                  setHasImageGroups(groupsWithImages.length > 0);
                 } else {
                   setHasImageGroups(false);
                 }

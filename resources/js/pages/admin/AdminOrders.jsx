@@ -293,74 +293,88 @@ const AdminOrders = () => {
         </div>
       </div>
 
-      <div className="admin-orders__list">
+      <div className="admin-orders__table-container">
         {paginatedOrders.length === 0 ? (
           <div className="admin-orders__empty">
             <p>No se encontraron órdenes con los filtros seleccionados.</p>
           </div>
         ) : (
-          paginatedOrders.map((order) => (
-            <div 
-              key={order.id} 
-              className={`order-admin-card ${highlightedOrderId === order.id ? 'highlighted' : ''}`}
-            >
-              <div className="order-admin-card__header">
-                <div className="order-info">
-                  <div className="order-number">#{order.orderNumber}</div>
-                  <div className="order-date">{order.date}</div>
-                </div>
-                <div className="order-status">
-                  <span className={`status-badge status-badge--${getStatusColor(order.status)}`}>
-                    {order.statusDisplay || order.status}
-                  </span>
-                  {getStatusOptions(order.status).length > 0 && (
-                    <div className="status-actions">
-                      {getStatusOptions(order.status).map((status) => (
-                        <button
-                          key={status}
-                          onClick={() => handleStatusChange(order.id, status)}
-                          className="status-change-btn"
-                          title={`Cambiar a ${status}`}
-                        >
-                          <img src={getIconPath('Edit.svg')} alt="Cambiar estado" />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="order-admin-card__content">
-                <div className="customer-info">
-                  <h4>Cliente</h4>
-                  <p><strong>Nombre:</strong> {order.customerName}</p>
-                  <p><strong>Email:</strong> {order.customerEmail}</p>
-                  {order.address && (
-                    <p><strong>Dirección:</strong> {order.address.street}, {order.address.city}, {order.address.state}</p>
-                  )}
-                </div>
-
-                <div className="payment-info">
-                  <h4>Pago</h4>
-                  <p><strong>Total:</strong> {formatCurrency(order.totalAmount)}</p>
-                  <p><strong>Método:</strong> {order.paymentMethod}</p>
-                  {order.paymentId && (
-                    <p><strong>ID Pago:</strong> {order.paymentId}</p>
-                  )}
-                </div>
-
-                <div className="order-actions">
-                  <CherryButton
-                    variant="outline"
-                    size="medium"
-                    onClick={() => handleViewOrderDetails(order)}
+          <table className="admin-orders__table">
+            <thead>
+              <tr>
+                <th>No. de pedido</th>
+                <th>Fecha</th>
+                <th>Hora</th>
+                <th>Cliente</th>
+                <th>Cant. de piezas</th>
+                <th>Total</th>
+                <th>Estatus</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedOrders.map((order) => {
+                const orderDate = new Date(order.created_at);
+                const dateStr = orderDate.toLocaleDateString('es-MX', { 
+                  year: 'numeric', 
+                  month: '2-digit', 
+                  day: '2-digit' 
+                });
+                const timeStr = orderDate.toLocaleTimeString('es-MX', { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                });
+                const totalPieces = order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+                
+                return (
+                  <tr 
+                    key={order.id}
+                    className={highlightedOrderId === order.id ? 'highlighted' : ''}
                   >
-                    Ver Detalles de Productos ({order.items?.length || 0})
-                  </CherryButton>
-                </div>
-              </div>
-            </div>
-          ))
+                    <td className="order-number-cell">#{order.orderNumber}</td>
+                    <td className="order-date-cell">{dateStr}</td>
+                    <td className="order-time-cell">{timeStr}</td>
+                    <td className="order-customer-cell">
+                      <div className="customer-name">{order.customerName}</div>
+                      <div className="customer-email">{order.customerEmail}</div>
+                    </td>
+                    <td className="order-pieces-cell">{totalPieces}</td>
+                    <td className="order-total-cell">{formatCurrency(order.totalAmount)}</td>
+                    <td className="order-status-cell">
+                      <div className="status-cell-content">
+                        <span className={`status-badge status-badge--${getStatusColor(order.status)}`}>
+                          {order.statusDisplay || order.status}
+                        </span>
+                        {getStatusOptions(order.status).length > 0 && (
+                          <div className="status-actions">
+                            {getStatusOptions(order.status).map((status) => (
+                              <button
+                                key={status}
+                                onClick={() => handleStatusChange(order.id, status)}
+                                className="status-change-btn"
+                                title={`Cambiar a ${status}`}
+                              >
+                                <img src={getIconPath('Edit.svg')} alt="Cambiar estado" />
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="order-actions-cell">
+                      <CherryButton
+                        variant="outline"
+                        size="small"
+                        onClick={() => handleViewOrderDetails(order)}
+                      >
+                        Ver Detalle
+                      </CherryButton>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </div>
 
