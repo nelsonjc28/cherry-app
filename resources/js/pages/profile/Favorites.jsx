@@ -336,11 +336,11 @@ const Favorites = () => {
               
               <div 
                 className="favorites-page__product-image"
-                onClick={() => handleProductClick(product.id)}
+                onClick={() => handleProductClick(product.id_articulo || product.id)}
                 style={{ cursor: 'pointer' }}
               >
                 <img 
-                  src={generateS3ImageUrl(product.id_articulo)} 
+                  src={product.image || generateS3ImageUrl(product.id_articulo || product.id)} 
                   alt={product.title}
                   onError={(e) => {
                     e.target.src = '/images/FeaturedProducts/example_image_card.png';
