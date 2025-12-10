@@ -45,9 +45,22 @@ const CartDetailsPage = () => {
   // State for delivery type (envio or retiro)
   const [deliveryType, setDeliveryType] = useState('envio'); // 'envio' or 'retiro'
   
-  // State for store address (from contact_info)
-  const [storeAddress, setStoreAddress] = useState(null);
-  const [storeMapUrl, setStoreMapUrl] = useState('https://www.google.com/maps/embed?pb=!1m12!1m8!1m3!1d3830947.253725377!2d-99.1779212!3d20.3350315!3m2!1i1024!2i768!4f13.1!2m1!1scherry%20tienda%20mx%20direccion!5e0!3m2!1ses-419!2sve!4v1753274350284!5m2!1ses-419!2sve');
+  // State for store address (from contact_info) - valores por defecto para asegurar que siempre haya datos
+  const defaultStoreAddress = {
+    id: 'store',
+    name: 'Retiro en tienda',
+    street_address: 'José María Izazaga 127 piso 2 Col.',
+    city: 'Centros México D.F. C.P. 06080',
+    state: '',
+    postal_code: '',
+    country: 'México',
+    additional_info: null,
+    is_default: false
+  };
+  const defaultMapUrl = 'https://www.google.com/maps/embed?pb=!1m12!1m8!1m3!1d3830947.253725377!2d-99.1779212!3d20.3350315!3m2!1i1024!2i768!4f13.1!2m1!1scherry%20tienda%20mx%20direccion!5e0!3m2!1ses-419!2sve!4v1753274350284!5m2!1ses-419!2sve';
+  
+  const [storeAddress, setStoreAddress] = useState(defaultStoreAddress);
+  const [storeMapUrl, setStoreMapUrl] = useState(defaultMapUrl);
 
   // Initialize cart from localStorage
   useEffect(() => {
@@ -74,10 +87,40 @@ const CartDetailsPage = () => {
             is_default: false
           });
           // Store map URL for displaying map (con fallback si está vacío)
-          setStoreMapUrl(contactInfo.map_url || 'https://www.google.com/maps/embed?pb=!1m12!1m8!1m3!1d3830947.253725377!2d-99.1779212!3d20.3350315!3m2!1i1024!2i768!4f13.1!2m1!1scherry%20tienda%20mx%20direccion!5e0!3m2!1ses-419!2sve!4v1753274350284!5m2!1ses-419!2sve');
+          const defaultMapUrl = 'https://www.google.com/maps/embed?pb=!1m12!1m8!1m3!1d3830947.253725377!2d-99.1779212!3d20.3350315!3m2!1i1024!2i768!4f13.1!2m1!1scherry%20tienda%20mx%20direccion!5e0!3m2!1ses-419!2sve!4v1753274350284!5m2!1ses-419!2sve';
+          const mapUrl = contactInfo.map_url && contactInfo.map_url.trim() !== '' 
+            ? contactInfo.map_url 
+            : defaultMapUrl;
+          setStoreMapUrl(mapUrl);
+        } else {
+          // Si no hay datos, usar valores por defecto
+          setStoreAddress({
+            id: 'store',
+            name: 'Retiro en tienda',
+            street_address: 'José María Izazaga 127 piso 2 Col.',
+            city: 'Centros México D.F. C.P. 06080',
+            state: '',
+            postal_code: '',
+            country: 'México',
+            additional_info: null,
+            is_default: false
+          });
+          setStoreMapUrl('https://www.google.com/maps/embed?pb=!1m12!1m8!1m3!1d3830947.253725377!2d-99.1779212!3d20.3350315!3m2!1i1024!2i768!4f13.1!2m1!1scherry%20tienda%20mx%20direccion!5e0!3m2!1ses-419!2sve!4v1753274350284!5m2!1ses-419!2sve');
         }
       } catch (error) {
-        // Error fetching store address
+        // Error fetching store address - usar valores por defecto
+        setStoreAddress({
+          id: 'store',
+          name: 'Retiro en tienda',
+          street_address: 'José María Izazaga 127 piso 2 Col.',
+          city: 'Centros México D.F. C.P. 06080',
+          state: '',
+          postal_code: '',
+          country: 'México',
+          additional_info: null,
+          is_default: false
+        });
+        setStoreMapUrl('https://www.google.com/maps/embed?pb=!1m12!1m8!1m3!1d3830947.253725377!2d-99.1779212!3d20.3350315!3m2!1i1024!2i768!4f13.1!2m1!1scherry%20tienda%20mx%20direccion!5e0!3m2!1ses-419!2sve!4v1753274350284!5m2!1ses-419!2sve');
       }
     };
     
@@ -740,38 +783,40 @@ const CartDetailsPage = () => {
               />
             )}
             
-            {deliveryType === 'retiro' && storeAddress && (
+            {deliveryType === 'retiro' && (
               <div className="cart-details__store-address">
                 <div className="cart-details__section-title">Dirección de entrega</div>
                 <div className="cart-details__store-address-content">
                   <div className="cart-details__store-address-name">
-                    <strong>{storeAddress.name}</strong>
+                    <strong>{storeAddress?.name || 'Retiro en tienda'}</strong>
                   </div>
                   <div className="cart-details__store-address-details">
-                    {storeAddress.street_address && (
+                    {storeAddress?.street_address && (
                       <div>{storeAddress.street_address}</div>
                     )}
-                    {storeAddress.city && (
+                    {storeAddress?.city && (
                       <div>{storeAddress.city}</div>
                     )}
-                    {storeAddress.country && (
+                    {storeAddress?.country && (
                       <div>{storeAddress.country}</div>
                     )}
                   </div>
                 </div>
-                {/* Mapa de la tienda */}
-                <div className="cart-details__store-map-wrapper">
-                  <iframe
-                    title="Ubicación de la tienda"
-                    src={storeMapUrl}
-                    width="100%"
-                    height="250"
-                    style={{ border: 0, borderRadius: '8px' }}
-                    allowFullScreen=""
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  ></iframe>
-                </div>
+                {/* Mapa de la tienda - siempre mostrar si es retiro */}
+                {storeMapUrl && (
+                  <div className="cart-details__store-map-wrapper">
+                    <iframe
+                      title="Ubicación de la tienda"
+                      src={storeMapUrl}
+                      width="100%"
+                      height="250"
+                      style={{ border: 0, borderRadius: '8px' }}
+                      allowFullScreen=""
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    ></iframe>
+                  </div>
+                )}
               </div>
             )}
 
