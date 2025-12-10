@@ -47,6 +47,7 @@ const CartDetailsPage = () => {
   
   // State for store address (from contact_info)
   const [storeAddress, setStoreAddress] = useState(null);
+  const [storeMapUrl, setStoreMapUrl] = useState(null);
 
   // Initialize cart from localStorage
   useEffect(() => {
@@ -72,6 +73,10 @@ const CartDetailsPage = () => {
             additional_info: null,
             is_default: false
           });
+          // Store map URL for displaying map
+          if (contactInfo.map_url) {
+            setStoreMapUrl(contactInfo.map_url);
+          }
         }
       } catch (error) {
         // Error fetching store address
@@ -756,6 +761,21 @@ const CartDetailsPage = () => {
                     )}
                   </div>
                 </div>
+                {/* Mapa de la tienda */}
+                {storeMapUrl && (
+                  <div className="cart-details__store-map-wrapper">
+                    <iframe
+                      title="Ubicación de la tienda"
+                      src={storeMapUrl}
+                      width="100%"
+                      height="250"
+                      style={{ border: 0, borderRadius: '8px' }}
+                      allowFullScreen=""
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    ></iframe>
+                  </div>
+                )}
               </div>
             )}
 

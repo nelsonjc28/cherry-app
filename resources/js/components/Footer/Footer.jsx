@@ -1,7 +1,38 @@
 import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import './Footer.css';
 
 const Footer = () => {
+  const [contactInfo, setContactInfo] = useState({
+    address_street: 'José María Izazaga 127 piso 2 Col.',
+    address_city: 'Centros México D.F. C.P. 06080',
+    phone: '55-5542-4442 al 45',
+    email: 'cherryonline@cherry.com.mx',
+    map_url: 'https://www.google.com/maps/embed?pb=!1m12!1m8!1m3!1d3830947.253725377!2d-99.1779212!3d20.3350315!3m2!1i1024!2i768!4f13.1!2m1!1scherry%20tienda%20mx%20direccion!5e0!3m2!1ses-419!2sve!4v1753274350284!5m2!1ses-419!2sve'
+  });
+
+  useEffect(() => {
+    const fetchContactInfo = async () => {
+      try {
+        const response = await fetch('/api/contact-info');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            setContactInfo(prev => ({
+              ...prev,
+              ...data.data,
+              map_url: data.data.map_url || prev.map_url
+            }));
+          }
+        }
+      } catch (error) {
+        // Error fetching contact info, use defaults
+      }
+    };
+
+    fetchContactInfo();
+  }, []);
+
   return (
     <footer className="footer">
       <div className="footer-content">
@@ -31,22 +62,38 @@ const Footer = () => {
           <div className='content-footer-info'>
             <div className="footer-contact-section">
               <h3>Dirección:</h3>
-              <p>José María Izazaga 127 piso 2 Col. Centro, México DFCP 06080</p>
+              <p>{contactInfo.address_street} {contactInfo.address_city}</p>
             </div>
 
             <div className="footer-contact-row">
 
               <div className="footer-contact-section">
                 <h3>Teléfono:</h3>
-                <p>55-5542-4442 al 45</p>
+                <p>{contactInfo.phone}</p>
               </div>
 
               <div className="footer-contact-section">
                 <h3>Correo electrónico:</h3>
-                <p>cherryonline@cherry.com.mx</p>
+                <p>{contactInfo.email}</p>
               </div>
             </div>
           </div>
+          
+          {/* Mapa */}
+          {contactInfo.map_url && (
+            <div className="footer-map-wrapper">
+              <iframe
+                title="Ubicación Cherry"
+                src={contactInfo.map_url}
+                width="100%"
+                height="200"
+                style={{ border: 0, borderRadius: '8px' }}
+                allowFullScreen=""
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              ></iframe>
+            </div>
+          )}
 
           <div className="footer-social">
             <h3>Síguenos:</h3>
@@ -83,3 +130,4 @@ const Footer = () => {
 };
 
 export default Footer; 
+

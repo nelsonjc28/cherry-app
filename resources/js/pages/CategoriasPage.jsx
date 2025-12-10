@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link, useNavigate } from 'react-router-dom';
 import CategoryIcon from '../components/CategoryIcon/CategoryIcon';
-import { getCategoryIconPath, getIconPath } from '../utils/assetPaths';
+import { getCategoryIconPath, getIconPath, getImagePath, getCurrentOrigin } from '../utils/assetPaths';
 import '../components/CategoryIcon/CategoryIcon.css';
 import useCategories from '../hooks/useCategories';
 import useMenuCategories from '../hooks/useMenuCategories';
@@ -129,10 +129,14 @@ const CategoriasPage = () => {
                 <p className="category-name">Ver Todos</p>
                 <div className="icon-container">
                   <img
-                    src={getIconPath('Package.svg')}
+                    src={`${getCurrentOrigin()}/icons/category/ver-todos.png`}
                     alt="Ver todos los productos"
                     className="category-image"
                     loading="lazy"
+                    onError={(e) => {
+                      // Fallback si no existe el archivo
+                      e.target.src = getIconPath('Package.svg');
+                    }}
                   />
                 </div>
               </div>
