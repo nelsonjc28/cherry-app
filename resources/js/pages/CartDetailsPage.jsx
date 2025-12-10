@@ -47,7 +47,7 @@ const CartDetailsPage = () => {
   
   // State for store address (from contact_info)
   const [storeAddress, setStoreAddress] = useState(null);
-  const [storeMapUrl, setStoreMapUrl] = useState(null);
+  const [storeMapUrl, setStoreMapUrl] = useState('https://www.google.com/maps/embed?pb=!1m12!1m8!1m3!1d3830947.253725377!2d-99.1779212!3d20.3350315!3m2!1i1024!2i768!4f13.1!2m1!1scherry%20tienda%20mx%20direccion!5e0!3m2!1ses-419!2sve!4v1753274350284!5m2!1ses-419!2sve');
 
   // Initialize cart from localStorage
   useEffect(() => {
@@ -73,10 +73,8 @@ const CartDetailsPage = () => {
             additional_info: null,
             is_default: false
           });
-          // Store map URL for displaying map
-          if (contactInfo.map_url) {
-            setStoreMapUrl(contactInfo.map_url);
-          }
+          // Store map URL for displaying map (con fallback si está vacío)
+          setStoreMapUrl(contactInfo.map_url || 'https://www.google.com/maps/embed?pb=!1m12!1m8!1m3!1d3830947.253725377!2d-99.1779212!3d20.3350315!3m2!1i1024!2i768!4f13.1!2m1!1scherry%20tienda%20mx%20direccion!5e0!3m2!1ses-419!2sve!4v1753274350284!5m2!1ses-419!2sve');
         }
       } catch (error) {
         // Error fetching store address
@@ -762,20 +760,18 @@ const CartDetailsPage = () => {
                   </div>
                 </div>
                 {/* Mapa de la tienda */}
-                {storeMapUrl && (
-                  <div className="cart-details__store-map-wrapper">
-                    <iframe
-                      title="Ubicación de la tienda"
-                      src={storeMapUrl}
-                      width="100%"
-                      height="250"
-                      style={{ border: 0, borderRadius: '8px' }}
-                      allowFullScreen=""
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                    ></iframe>
-                  </div>
-                )}
+                <div className="cart-details__store-map-wrapper">
+                  <iframe
+                    title="Ubicación de la tienda"
+                    src={storeMapUrl}
+                    width="100%"
+                    height="250"
+                    style={{ border: 0, borderRadius: '8px' }}
+                    allowFullScreen=""
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  ></iframe>
+                </div>
               </div>
             )}
 
