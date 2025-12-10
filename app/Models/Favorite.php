@@ -30,6 +30,14 @@ class Favorite extends Model
     }
 
     /**
+     * Relación con el producto
+     */
+    public function product()
+    {
+        return $this->belongsTo(Producto::class, 'product_id', 'id');
+    }
+
+    /**
      * Verificar si un producto está en favoritos del usuario
      */
     public static function isFavorited($userId, $productId)

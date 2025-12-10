@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Favorite;
+use App\Models\Producto;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -20,29 +21,63 @@ class FavoriteController extends Controller
                 return response()->json(['error' => 'No autenticado'], 401);
             }
 
-            // Obtener solo los IDs de productos favoritos del usuario
-            $favoriteProductIds = Favorite::where('user_id', $user->id)
-                ->pluck('product_id')
-                ->toArray();
+            // Obtener favoritos con la relación al producto usando eager loading
+            $favorites = Favorite::where('user_id', $user->id)
+                ->with('product')
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            // Obtener solo los IDs de productos favoritos (para compatibilidad con código existente)
+            $favoriteProductIds = $favorites->pluck('product_id')->toArray();
+
+            // Formatear favoritos con información completa del producto
+            $favoritesWithProducts = $favorites->map(function ($favorite) {
+                $product = $favorite->product;
+                return [
+                    'id' => $favorite->id,
+                    'product_id' => $favorite->product_id,
+                    'created_at' => $favorite->created_at,
+                    'product' => $product ? [
+                        'id' => $product->id,
+                        'descripcion' => $product->descripcion,
+                        'imagen' => $product->imagen,
+                        'precio1' => $product->precio1,
+                        'precio2' => $product->precio2,
+                        'precio3' => $product->precio3,
+                        'desc_promo' => $product->desc_promo,
+                        'marca' => $product->marca,
+                        'sku' => $product->sku,
+                        'ean' => $product->ean,
+                        'fecha_alta' => $product->fecha_alta,
+                        'activo' => $product->activo,
+                        'opc_nuevo' => $product->opc_nuevo,
+                        'opc_promo' => $product->opc_promo,
+                        // Agregar más campos según sea necesario
+                    ] : null
+                ];
+            });
 
             // Si no hay favoritos, retornar array vacío sin mensaje de error
             if (empty($favoriteProductIds)) {
                 return response()->json([
                     'success' => true,
-                    'favorite_product_ids' => []
+                    'favorite_product_ids' => [],
+                    'favorites' => []
                 ]);
             }
 
             return response()->json([
                 'success' => true,
-                'favorite_product_ids' => $favoriteProductIds
+                'favorite_product_ids' => $favoriteProductIds,
+                'favorites' => $favoritesWithProducts
             ]);
             
         } catch (\Exception $e) {
             // En caso de error, retornar array vacío sin mensaje
             return response()->json([
                 'success' => true,
-                'favorite_product_ids' => []
+                'favorite_product_ids' => [],
+                'favorites' => []
             ]);
         }
     }
@@ -59,13 +94,28 @@ class FavoriteController extends Controller
             }
 
             $request->validate([
-                'product_id' => 'required|string',
-                'product_title' => 'nullable|string',
-                'product_image' => 'nullable|string',
-                'product_price' => 'nullable|numeric'
+                'product_id' => 'required|string'
             ]);
 
-            $favorite = Favorite::addToFavorites($user->id, $request->all());
+            // Consultar el producto completo desde la tabla productos
+            $producto = Producto::find($request->product_id);
+            
+            if (!$producto) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Producto no encontrado'
+                ], 404);
+            }
+
+            // Preparar datos del producto para guardar en favoritos
+            $productData = [
+                'product_id' => $producto->id,
+                'product_title' => $producto->descripcion ?? null,
+                'product_image' => $producto->imagen ?? null,
+                'product_price' => $producto->precio1 ?? null
+            ];
+
+            $favorite = Favorite::addToFavorites($user->id, $productData);
 
             return response()->json([
                 'success' => true,
@@ -157,38 +207,51 @@ class FavoriteController extends Controller
             }
 
             $request->validate([
-                'product_id' => 'required|string',
-                'product_title' => 'nullable|string',
-                'product_image' => 'nullable|string',
-                'product_price' => 'nullable|numeric'
+                'product_id' => 'required|string'
             ]);
 
-            // Usar updateOrCreate para hacer una sola operación
-            $favorite = Favorite::updateOrCreate(
-                [
-                    'user_id' => $user->id,
-                    'product_id' => $request->product_id
-                ],
-                [
-                    'product_title' => $request->product_title ?? null,
-                    'product_image' => $request->product_image ?? null,
-                    'product_price' => $request->product_price ?? null
-                ]
-            );
+            // Verificar si ya existe el favorito
+            $existingFavorite = Favorite::where('user_id', $user->id)
+                ->where('product_id', $request->product_id)
+                ->first();
 
-            // Verificar si se creó o actualizó
-            $wasRecentlyCreated = $favorite->wasRecentlyCreated;
-            
-            if ($wasRecentlyCreated) {
-                $message = 'Producto agregado a favoritos';
-                $action = 'added';
-                $isFavorited = true;
-            } else {
-                // Si ya existía, lo removemos
-                $favorite->delete();
+            if ($existingFavorite) {
+                // Si ya existe, lo removemos
+                $existingFavorite->delete();
                 $message = 'Producto removido de favoritos';
                 $action = 'removed';
                 $isFavorited = false;
+            } else {
+                // Si no existe, consultar el producto completo desde la tabla productos
+                $producto = Producto::find($request->product_id);
+                
+                if (!$producto) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Producto no encontrado'
+                    ], 404);
+                }
+
+                // Preparar datos del producto para guardar en favoritos
+                $productData = [
+                    'product_id' => $producto->id,
+                    'product_title' => $producto->descripcion ?? null,
+                    'product_image' => $producto->imagen ?? null,
+                    'product_price' => $producto->precio1 ?? null
+                ];
+
+                // Crear el favorito con toda la información del producto
+                $favorite = Favorite::create([
+                    'user_id' => $user->id,
+                    'product_id' => $productData['product_id'],
+                    'product_title' => $productData['product_title'],
+                    'product_image' => $productData['product_image'],
+                    'product_price' => $productData['product_price']
+                ]);
+
+                $message = 'Producto agregado a favoritos';
+                $action = 'added';
+                $isFavorited = true;
             }
 
             // Limpiar caché relacionado

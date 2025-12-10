@@ -35,50 +35,42 @@ const Favorites = () => {
       setLoading(true);
       setError(null);
       
-      // Usar el contexto de favoritos
-      if (favoritesContext && favoritesContext.size > 0) {
-        const favoriteIds = Array.from(favoritesContext);
+      // Obtener favoritos directamente del endpoint que ahora incluye información completa del producto
+      const response = await api.get('/favorites');
+      
+      if (response.data.success) {
+        // El backend ahora devuelve 'favorites' con información completa del producto
+        const favoritesData = response.data.favorites || [];
         
-        try {
-          // Obtener todos los productos de la API externa directamente
-          const response = await fetch('https://cherryapi.estrategiadmgs.com.mx/cherryApi/');
-          const allProducts = await response.json();
-          
-          if (Array.isArray(allProducts)) {
-            // Filtrar solo los productos que están en favoritos
-            const favoriteProductsData = allProducts.filter(product => 
-              favoriteIds.includes(product.id_articulo)
-            );
-            
-            // Mapear a el formato esperado por la página
-            const favorites = favoriteProductsData.map(product => ({
-              id: product.id_articulo,
-              id_articulo: product.id_articulo, // Asegurar que esté disponible
-              title: product.descripcion || product.title || `Producto ${product.id_articulo}`,
-              image: product.imagen || `https://cherry-fotos.s3.amazonaws.com/shopify/${product.id_articulo}/${product.id_articulo}_1.jpg`,
-              price: parseFloat(product.precio1) || 0,
-              originalPrice: product.originalPrice,
-              discount: product.discount,
-              favoriteId: product.id_articulo
-            }));
-            setFavoriteProducts(favorites);
-            setTotalFavorites(favorites.length);
-            setCurrentPage(page);
-          } else {
-            throw new Error('Error: allProducts no es un array');
-          }
-        } catch (apiError) {
-          // Fallback: crear productos básicos
-          const favorites = favoriteIds.map(id => ({
-            id: id,
-            title: `Producto ${id}`,
-            image: `https://cherry-fotos.s3.amazonaws.com/shopify/${id}/${id}_1.jpg`,
-            price: 0,
-            favoriteId: id
-          }));
+        if (favoritesData.length > 0) {
+          // Mapear los favoritos con información completa del producto
+          const favorites = favoritesData
+            .filter(fav => fav.product !== null) // Filtrar favoritos sin producto
+            .map(fav => {
+              const product = fav.product;
+              return {
+                id: product.id,
+                id_articulo: product.id,
+                title: product.descripcion || `Producto ${product.id}`,
+                image: product.imagen || generateS3ImageUrl(product.id),
+                price: parseFloat(product.precio1) || 0,
+                originalPrice: product.desc_promo && product.desc_promo > 0 
+                  ? parseFloat(product.precio1) || 0 
+                  : null,
+                discount: product.desc_promo || 0,
+                favoriteId: fav.id, // ID del registro de favorito
+                marca: product.marca,
+                sku: product.sku,
+                ean: product.ean
+              };
+            });
           
           setFavoriteProducts(favorites);
           setTotalFavorites(favorites.length);
+          setCurrentPage(page);
+        } else {
+          setFavoriteProducts([]);
+          setTotalFavorites(0);
           setCurrentPage(page);
         }
       } else {
@@ -88,6 +80,8 @@ const Favorites = () => {
       }
     } catch (err) {
       setError('Error al cargar favoritos');
+      setFavoriteProducts([]);
+      setTotalFavorites(0);
     } finally {
       setLoading(false);
     }
@@ -357,7 +351,7 @@ const Favorites = () => {
               <div className="favorites-page__product-info">
                 <h3 
                   className="favorites-page__product-title"
-                  onClick={() => handleProductClick(product.id)}
+                  onClick={() => handleProductClick(product.id_articulo || product.id)}
                   style={{ cursor: 'pointer' }}
                 >
                   {product.title}
@@ -387,7 +381,7 @@ const Favorites = () => {
                 <CherryButton
                   variant="outline"
                   size="small"
-                  onClick={() => handleFavoriteToggle(product.favoriteId || product.id_articulo)}
+                  onClick={() => handleFavoriteToggle(product.id_articulo || product.id)}
                   className="favorites-page__remove-btn"
                 >
                   Remover
