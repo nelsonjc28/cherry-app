@@ -41,9 +41,21 @@ function MobileView({
         <span className={`cart-details-product-card__discount-badge${isDiscount ? '' : ' no-discount'}`}>{discountLabel}</span>
       </div>
       <div className="cart-details-product-card__main-content">
-        <div className="cart-details-product-card__image-block">
-          <img src={image} alt={title} className="cart-details-product-card__image" loading="lazy" />
-        </div>
+        {image && 
+         image !== '/images/catalogProductImages/Rectangle 4922.png' && 
+         image !== '/images/placeholder.jpg' && (
+          <div className="cart-details-product-card__image-block">
+            <img 
+              src={image} 
+              alt={title} 
+              className="cart-details-product-card__image" 
+              loading="lazy"
+              onError={(e) => {
+                e.target.parentElement.style.display = 'none';
+              }}
+            />
+          </div>
+        )}
         <div className="cart-details-product-card__info-block">
           <div className="cart-details-product-card__title">
             <Link to={`/producto/${sku}`} className="catalog-product-title-link">

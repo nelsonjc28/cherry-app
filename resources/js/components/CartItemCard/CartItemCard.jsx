@@ -16,10 +16,22 @@ const CartItemCard = ({
   return (
     <div className="cart-item-card">
       <div className="cart-item-card__main-grid">
-        {/* Image */}
-        <div className="cart-item-card__image-col">
-          <img src={image} alt={title} className="cart-item-card__image" loading="lazy" />
-        </div>
+        {/* Image - Solo mostrar si existe y no es el placeholder */}
+        {image && 
+         image !== '/images/catalogProductImages/Rectangle 4922.png' && 
+         image !== '/images/placeholder.jpg' && (
+          <div className="cart-item-card__image-col">
+            <img 
+              src={image} 
+              alt={title} 
+              className="cart-item-card__image" 
+              loading="lazy"
+              onError={(e) => {
+                e.target.parentElement.style.display = 'none';
+              }}
+            />
+          </div>
+        )}
         {/* Main Info */}
         <div className="cart-item-card__info-col">
           <div className="cart-item-card__info-row">

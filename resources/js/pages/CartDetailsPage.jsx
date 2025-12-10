@@ -188,7 +188,9 @@ const CartDetailsPage = () => {
                         (groupedProduct.originalPrice && groupedProduct.originalPrice > groupedProduct.precio);
     
     return {
-      image: groupedProduct.image || '/images/placeholder.jpg',
+      image: groupedProduct.image && groupedProduct.image !== '/images/catalogProductImages/Rectangle 4922.png' 
+        ? groupedProduct.image 
+        : null,
       sku: groupedProduct.id_articulo,
       title: groupedProduct.title,
       price: parseFloat(groupedProduct.precio).toFixed(2),

@@ -125,16 +125,26 @@ const useCartStore = create(
             
             if (dbCart && dbCart.items && dbCart.items.length > 0) {
               // Hay carrito en BD, usarlo
-              const totalItems = dbCart.items.reduce((sum, item) => {
+              // Limpiar imágenes placeholder antes de usar
+              const cleanedItems = dbCart.items.map(item => {
+                if (item.image === '/images/catalogProductImages/Rectangle 4922.png' || 
+                    item.image === '/images/placeholder.jpg' ||
+                    !item.image) {
+                  return { ...item, image: null };
+                }
+                return item;
+              });
+
+              const totalItems = cleanedItems.reduce((sum, item) => {
                 const baseQuantity = item.quantity || 0;
                 const freeItems = item.freeItemsCount || 0;
                 return sum + baseQuantity + freeItems;
               }, 0);
 
-              const totalPrice = dbCart.items.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+              const totalPrice = cleanedItems.reduce((sum, item) => sum + calculateItemPrice(item), 0);
 
               set({
-                items: dbCart.items,
+                items: cleanedItems,
                 totalItems,
                 totalPrice,
                 couponCode: dbCart.coupon_code || null,

@@ -20,11 +20,23 @@ function DesktopView({
   onQuantityChange
 }) {
   return (
-    <div className={`cart-details-product-card${isDiscount ? '' : ' no-discount'}`}>
+      <div className={`cart-details-product-card${isDiscount ? '' : ' no-discount'}`}>
       <div className="cart-details-product-card__desktop-row">
-        <div className="cart-details-product-card__image-block">
-          <img src={image} alt={title} className="cart-details-product-card__image" loading="lazy" />
-        </div>
+        {image && 
+         image !== '/images/catalogProductImages/Rectangle 4922.png' && 
+         image !== '/images/placeholder.jpg' && (
+          <div className="cart-details-product-card__image-block">
+            <img 
+              src={image} 
+              alt={title} 
+              className="cart-details-product-card__image" 
+              loading="lazy"
+              onError={(e) => {
+                e.target.parentElement.style.display = 'none';
+              }}
+            />
+          </div>
+        )}
         <div className="cart-details-product-card__desktop-content">
           <div className="cart-details-product-card__header-row">
             <div className="cart-details-product-card__sku-price-row">
