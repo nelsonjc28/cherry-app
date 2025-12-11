@@ -38,15 +38,11 @@ const FeaturedProducts = ({
               // Usar id_articulo o id para construir la URL de imagen desde S3 (igual que ProductCard)
               const productId = product.id_articulo || product.id;
               
-              // Si hay imagen válida del backend, usarla; sino construir desde S3
-              let imageUrl = null;
-              if (product.image && 
-                  product.image.trim() !== '' && 
-                  !product.image.includes('placeholder') &&
-                  !product.image.includes('Rectangle 4922')) {
-                imageUrl = product.image;
-              } else if (productId) {
-                // Construir URL desde S3 usando el ID (igual que ProductCard)
+              // Usar imagen del backend directamente (igual que ProductCard hace con image || '')
+              // Si no hay imagen del backend, construir desde S3 usando el ID
+              let imageUrl = product.image || '';
+              if (!imageUrl && productId) {
+                // Construir URL desde S3 usando el ID solo si no hay imagen del backend
                 imageUrl = getProductImageUrl(productId, 1);
               }
               
