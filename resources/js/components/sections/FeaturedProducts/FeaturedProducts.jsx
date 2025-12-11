@@ -35,16 +35,12 @@ const FeaturedProducts = ({
           if (response.data.success && response.data.data) {
             // Mapear productos al formato esperado por ProductCard (igual que en CatalogPage y otras páginas)
             const mappedProducts = response.data.data.map(product => {
-              // Usar id_articulo o id para construir la URL de imagen desde S3 (igual que ProductCard)
+              // Usar id_articulo o id para construir la URL de imagen desde S3
               const productId = product.id_articulo || product.id;
               
-              // Usar imagen del backend directamente (igual que ProductCard hace con image || '')
-              // Si no hay imagen del backend, construir desde S3 usando el ID
-              let imageUrl = product.image || '';
-              if (!imageUrl && productId) {
-                // Construir URL desde S3 usando el ID solo si no hay imagen del backend
-                imageUrl = getProductImageUrl(productId, 1);
-              }
+              // Siempre construir URL desde S3 usando la ruta base correcta
+              // https://cherry-fotos.s3.amazonaws.com/shopify/{productId}/{productId}_1.jpg
+              const imageUrl = productId ? getProductImageUrl(productId, 1) : '';
               
               // Extraer colores y tallas de arrays o detalles
               const productColors = product.colors || [];
