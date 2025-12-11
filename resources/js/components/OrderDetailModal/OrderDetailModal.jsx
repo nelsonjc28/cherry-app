@@ -107,6 +107,91 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
             </div>
           </div>
 
+          {/* Información del Cliente */}
+          {(order.customerName || order.customerEmail || order.customerPhone) && (
+            <div className="order-detail-section">
+              <h3>Información del Cliente</h3>
+              <div className="order-detail-info">
+                {order.customerName && (
+                  <div className="info-row">
+                    <span className="label">Nombre completo:</span>
+                    <span className="value">
+                      {order.customerFirstName || ''} 
+                      {order.customerMiddleName ? ' ' + order.customerMiddleName : ''} 
+                      {order.customerLastName ? ' ' + order.customerLastName : ''}
+                      {!order.customerFirstName && !order.customerLastName && order.customerName}
+                    </span>
+                  </div>
+                )}
+                {order.customerEmail && (
+                  <div className="info-row">
+                    <span className="label">Email:</span>
+                    <span className="value">{order.customerEmail}</span>
+                  </div>
+                )}
+                {order.customerPhone && (
+                  <div className="info-row">
+                    <span className="label">Teléfono:</span>
+                    <span className="value">{order.customerPhone}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Dirección de envío */}
+          {order.address && (
+            <div className="order-detail-section">
+              <h3>Dirección de Envío</h3>
+              <div className="order-detail-address">
+                <div className="address-info">
+                  {order.address.street_address && (
+                    <div className="info-row">
+                      <span className="label">Dirección (Calle y Número):</span>
+                      <span className="value">{order.address.street_address}</span>
+                    </div>
+                  )}
+                  {order.address.municipality && (
+                    <div className="info-row">
+                      <span className="label">Colonia/Asentamiento:</span>
+                      <span className="value">{order.address.municipality}</span>
+                    </div>
+                  )}
+                  {order.address.city && (
+                    <div className="info-row">
+                      <span className="label">Municipio:</span>
+                      <span className="value">{order.address.city}</span>
+                    </div>
+                  )}
+                  {order.address.state && (
+                    <div className="info-row">
+                      <span className="label">Estado:</span>
+                      <span className="value">{order.address.state}</span>
+                    </div>
+                  )}
+                  {order.address.country && (
+                    <div className="info-row">
+                      <span className="label">País:</span>
+                      <span className="value">{order.address.country}</span>
+                    </div>
+                  )}
+                  {order.address.additional_info && (
+                    <div className="info-row">
+                      <span className="label">Información adicional:</span>
+                      <span className="value">{order.address.additional_info}</span>
+                    </div>
+                  )}
+                  {order.address.postal_code && (
+                    <div className="info-row">
+                      <span className="label">Código postal:</span>
+                      <span className="value">{order.address.postal_code}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Información de pago */}
           {(order.paymentMethod || order.paymentId) && (
             <div className="order-detail-section">
@@ -147,72 +232,60 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
                   )}
                   <div className="product-item__details">
                     <h4 className="product-item__title">{group.title}</h4>
-                    <div className="product-item__info">
-                      <div className="info-row">
-                        <span className="label">ID Producto:</span>
-                        <span className="value">{group.product_id}</span>
-                      </div>
-                      <div className="info-row">
-                        <span className="label">Cantidad total:</span>
-                        <span className="value">{group.totalQuantity} unidades</span>
-                      </div>
-                      <div className="info-row">
-                        <span className="label">Subtotal:</span>
-                        <span className="value subtotal">
-                          ${group.totalSubtotal.toFixed(2)}
-                        </span>
-                      </div>
-                      {group.sizes.length > 0 && (
-                        <div className="info-row">
-                          <span className="label">Tallas:</span>
-                          <span className="value">{group.sizes.join(', ')}</span>
-                        </div>
-                      )}
-                      {group.colors.length > 0 && (
-                        <div className="info-row">
-                          <span className="label">Colores:</span>
-                          <span className="value">{group.colors.join(', ')}</span>
-                        </div>
-                      )}
-                      {group.barcodes.length > 0 && (
-                        <div className="info-row">
-                          <span className="label">Códigos de barras:</span>
-                          <span className="value">{group.barcodes.join(', ')}</span>
-                        </div>
-                      )}
+                    <div className="info-row">
+                      <span className="label">ID Producto:</span>
+                      <span className="value">{group.product_id}</span>
                     </div>
+                    <div className="info-row">
+                      <span className="label">Cantidad total:</span>
+                      <span className="value">{group.totalQuantity} unidades</span>
+                    </div>
+                    <div className="info-row">
+                      <span className="label">Subtotal:</span>
+                      <span className="value subtotal">
+                        ${group.totalSubtotal.toFixed(2)}
+                      </span>
+                    </div>
+                    
+                    {/* Tabla de desglose por talla y código de barras */}
+                    {group.items && group.items.length > 0 && (
+                      <div className="product-item__breakdown">
+                        <h5 className="product-item__breakdown-title">Desglose por Talla y Código de Barras</h5>
+                        <div className="product-item__breakdown-table-wrapper">
+                          <table className="product-item__breakdown-table">
+                            <thead>
+                              <tr>
+                                <th>Color</th>
+                                <th>Talla</th>
+                                <th>Cantidad</th>
+                                <th>Código de Barras</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {group.items.map((item, itemIdx) => (
+                                <tr key={itemIdx}>
+                                  <td>{item.color || '-'}</td>
+                                  <td>{item.size || '-'}</td>
+                                  <td className="product-item__breakdown-quantity">{item.quantity || 0}</td>
+                                  <td className="product-item__breakdown-barcode">
+                                    {item.barcode ? (
+                                      <span className="product-item__barcode">{item.barcode}</span>
+                                    ) : (
+                                      <span className="product-item__barcode-empty">-</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
           </div>
-
-          {/* Dirección de envío */}
-          {order.address && (
-            <div className="order-detail-section">
-              <h3>Dirección de Envío</h3>
-              <div className="order-detail-address">
-                <div className="address-info">
-                  <div className="info-row">
-                    <span className="label">Calle:</span>
-                    <span className="value">{order.address.street}</span>
-                  </div>
-                  <div className="info-row">
-                    <span className="label">Ciudad:</span>
-                    <span className="value">{order.address.city}</span>
-                  </div>
-                  <div className="info-row">
-                    <span className="label">Estado:</span>
-                    <span className="value">{order.address.state}</span>
-                  </div>
-                  <div className="info-row">
-                    <span className="label">Código postal:</span>
-                    <span className="value">{order.address.postal_code}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Resumen de precios */}
           <div className="order-detail-section">

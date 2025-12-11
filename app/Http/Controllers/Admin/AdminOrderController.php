@@ -34,6 +34,10 @@ class AdminOrderController extends Controller
                     'paymentId' => $order->mercadopago_payment_id,
                     'customerName' => $order->user ? $order->user->first_name . ' ' . $order->user->last_name : 'Usuario eliminado',
                     'customerEmail' => $order->user ? $order->user->email : 'N/A',
+                    'customerPhone' => $order->user ? $order->user->phone : null,
+                    'customerFirstName' => $order->user ? $order->user->first_name : null,
+                    'customerLastName' => $order->user ? $order->user->last_name : null,
+                    'customerMiddleName' => $order->user ? $order->user->middle_name : null,
                     'created_at' => $order->created_at->toISOString(),
                     'items' => $order->items->map(function ($item) {
                         return [
@@ -50,10 +54,14 @@ class AdminOrderController extends Controller
                         ];
                     }),
                     'address' => $order->address ? [
-                        'street' => $order->address->street_address,
+                        'street_address' => $order->address->street_address,
                         'city' => $order->address->city,
+                        'municipality' => $order->address->municipality,
                         'state' => $order->address->state,
-                        'postal_code' => $order->address->postal_code
+                        'postal_code' => $order->address->postal_code,
+                        'country' => $order->address->country,
+                        'additional_info' => $order->address->additional_info,
+                        'name' => $order->address->name
                     ] : null
                 ];
             });
@@ -151,6 +159,10 @@ class AdminOrderController extends Controller
                 'paymentId' => $order->mercadopago_payment_id,
                 'customerName' => $order->user ? $order->user->first_name . ' ' . $order->user->last_name : 'Usuario eliminado',
                 'customerEmail' => $order->user ? $order->user->email : 'N/A',
+                'customerPhone' => $order->user ? $order->user->phone : null,
+                'customerFirstName' => $order->user ? $order->user->first_name : null,
+                'customerLastName' => $order->user ? $order->user->last_name : null,
+                'customerMiddleName' => $order->user ? $order->user->middle_name : null,
                 'created_at' => $order->created_at->toISOString(),
                 'items' => $order->items->map(function ($item) {
                     return [
@@ -167,10 +179,14 @@ class AdminOrderController extends Controller
                     ];
                 }),
                 'address' => $order->address ? [
-                    'street' => $order->address->street_address,
+                    'street_address' => $order->address->street_address,
                     'city' => $order->address->city,
+                    'municipality' => $order->address->municipality,
                     'state' => $order->address->state,
-                    'postal_code' => $order->address->postal_code
+                    'postal_code' => $order->address->postal_code,
+                    'country' => $order->address->country,
+                    'additional_info' => $order->address->additional_info,
+                    'name' => $order->address->name
                 ] : null
             ];
 
