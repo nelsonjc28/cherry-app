@@ -128,8 +128,16 @@ class PaymentController extends Controller
         $order->load(['user', 'address', 'items']);
 
         // Enviar email de confirmación al cliente (también en estado pending para pruebas)
-        Mail::to($user->email)->send(new OrderConfirmationMail($order));
-        Log::info('Email de confirmación enviado al cliente (createPreference - pending)', ['order_id' => $order->id]);
+        try {
+            Mail::to($user->email)->send(new OrderConfirmationMail($order));
+            Log::info('Email de confirmación enviado al cliente (createPreference - pending)', ['order_id' => $order->id]);
+        } catch (\Exception $e) {
+            Log::error('Error al enviar email de confirmación (createPreference)', [
+                'order_id' => $order->id,
+                'user_email' => $user->email,
+                'error' => $e->getMessage()
+            ]);
+        }
 
         try {
             // Calcular suma de items para verificar diferencia con total_amount
@@ -233,8 +241,16 @@ class PaymentController extends Controller
             $order->load(['user', 'address', 'items']);
 
             // Enviar email de confirmación al cliente (también en estado pending para pruebas)
-            Mail::to($user->email)->send(new OrderConfirmationMail($order));
-            Log::info('Email de confirmación enviado al cliente (createPreference - pending)', ['order_id' => $order->id]);
+            try {
+                Mail::to($user->email)->send(new OrderConfirmationMail($order));
+                Log::info('Email de confirmación enviado al cliente (createPreference - pending)', ['order_id' => $order->id]);
+            } catch (\Exception $e) {
+                Log::error('Error al enviar email de confirmación (createPreference)', [
+                    'order_id' => $order->id,
+                    'user_email' => $user->email,
+                    'error' => $e->getMessage()
+                ]);
+            }
 
             return response()->json([
                 'success' => true,
@@ -369,8 +385,16 @@ class PaymentController extends Controller
         // 2. Enviar email de confirmación al cliente
         // Recargar el pedido con relaciones para el email
         $order->load(['user', 'address', 'items']);
-        Mail::to($order->user->email)->send(new OrderConfirmationMail($order));
-        Log::info('Email de confirmación enviado al cliente (webhook - approved)', ['order_id' => $order->id]);
+        try {
+            Mail::to($order->user->email)->send(new OrderConfirmationMail($order));
+            Log::info('Email de confirmación enviado al cliente (webhook - approved)', ['order_id' => $order->id]);
+        } catch (\Exception $e) {
+            Log::error('Error al enviar email de confirmación (webhook - approved)', [
+                'order_id' => $order->id,
+                'user_email' => $order->user->email ?? 'N/A',
+                'error' => $e->getMessage()
+            ]);
+        }
         
         // 3. Crear notificación para el usuario
         try {
@@ -661,11 +685,20 @@ class PaymentController extends Controller
                 $order->load(['user', 'address', 'items']);
 
                 // Enviar email de confirmación al cliente (también en pending para pruebas)
-                Mail::to($user->email)->send(new OrderConfirmationMail($order));
-                Log::info('Email de confirmación enviado al cliente (pago integrado)', [
-                    'order_id' => $order->id,
-                    'payment_status' => $payment->status
-                ]);
+                try {
+                    Mail::to($user->email)->send(new OrderConfirmationMail($order));
+                    Log::info('Email de confirmación enviado al cliente (pago integrado)', [
+                        'order_id' => $order->id,
+                        'payment_status' => $payment->status
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Error al enviar email de confirmación (pago integrado)', [
+                        'order_id' => $order->id,
+                        'user_email' => $user->email,
+                        'payment_status' => $payment->status,
+                        'error' => $e->getMessage()
+                    ]);
+                }
 
                 // Solo enviar a API externa si el pago fue aprobado
                 if ($payment->status === 'approved') {
@@ -918,11 +951,20 @@ class PaymentController extends Controller
             $order->load(['user', 'address', 'items']);
 
             // Enviar email de confirmación al cliente (también en pending para pruebas)
-            Mail::to($user->email)->send(new OrderConfirmationMail($order));
-            Log::info('Email de confirmación enviado al cliente (updateOrderStatus)', [
-                'order_id' => $order->id,
-                'new_status' => $newStatus
-            ]);
+            try {
+                Mail::to($user->email)->send(new OrderConfirmationMail($order));
+                Log::info('Email de confirmación enviado al cliente (updateOrderStatus)', [
+                    'order_id' => $order->id,
+                    'new_status' => $newStatus
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Error al enviar email de confirmación (updateOrderStatus)', [
+                    'order_id' => $order->id,
+                    'user_email' => $user->email,
+                    'new_status' => $newStatus,
+                    'error' => $e->getMessage()
+                ]);
+            }
 
             return response()->json([
                 'success' => true,

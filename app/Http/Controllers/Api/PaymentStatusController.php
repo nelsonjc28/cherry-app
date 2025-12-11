@@ -101,11 +101,20 @@ class PaymentStatusController extends Controller
                     
                     // Enviar email de confirmación
                     $order->load(['user', 'address', 'items']);
-                    Mail::to($order->user->email)->send(new OrderConfirmationMail($order));
-                    Log::info('Email de confirmación enviado al cliente desde verificación de estado', [
-                        'order_id' => $order->id,
-                        'payment_status' => $payment->status
-                    ]);
+                    try {
+                        Mail::to($order->user->email)->send(new OrderConfirmationMail($order));
+                        Log::info('Email de confirmación enviado al cliente desde verificación de estado', [
+                            'order_id' => $order->id,
+                            'payment_status' => $payment->status
+                        ]);
+                    } catch (\Exception $e) {
+                        Log::error('Error al enviar email de confirmación (verificación de estado)', [
+                            'order_id' => $order->id,
+                            'user_email' => $order->user->email ?? 'N/A',
+                            'payment_status' => $payment->status,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
                 }
             }
 
