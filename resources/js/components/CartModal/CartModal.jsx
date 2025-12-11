@@ -96,16 +96,18 @@ const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout 
           </button>
         </div>
         <div className="cart-modal__divider" />
-        <div className="cart-modal__items-list">
-          {cartItems.length === 0 ? (
-            <div className="cart-modal__empty">Tu carrito está vacío.</div>
-          ) : (
-            cartItems.map((item) => (
-              <CartItemCard key={item.id} {...item} />
-            ))
-          )}
-        </div>
-        <div className="cart-modal__footer">
+        {/* Área scrolleable: productos + información de descuentos */}
+        <div className="cart-modal__scrollable-content">
+          <div className="cart-modal__items-list">
+            {cartItems.length === 0 ? (
+              <div className="cart-modal__empty">Tu carrito está vacío.</div>
+            ) : (
+              cartItems.map((item) => (
+                <CartItemCard key={item.id} {...item} />
+              ))
+            )}
+          </div>
+          
           {/* Mensaje sobre productos con rebaja */}
           {hasProductsWithDiscount && (
             <div className="cart-modal__discount-warning">
@@ -190,7 +192,10 @@ const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout 
               )}
             </div>
           )}
-
+        </div>
+        
+        {/* Footer fijo: Total y botones */}
+        <div className="cart-modal__footer">
           <div className="cart-modal__subtotal-row">
             <span className="cart-modal__subtotal-label">Total:</span>
             <span className="cart-modal__subtotal-value">{subtotal}</span>
@@ -201,18 +206,10 @@ const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout 
               size="large"
               onClick={onViewCart}
               iconLeft={<img className="cart-modal__cart-icon" src={getIconPath('Shopping Cart.svg')} alt="Cart" />}
-              className="cart-modal__action-btn"
+              className="cart-modal__action-btn cherry-button--red"
             >
               Ver detalle del carrito
             </CustomButton>
-            <CherryButton
-              variant="red"
-              size="large"
-              onClick={onCheckout}
-              className="cart-modal__action-btn order-letter-btn"
-            >
-              Generar pedido
-            </CherryButton>
           </div>
         </div>
       </div>
