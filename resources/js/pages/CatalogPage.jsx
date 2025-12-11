@@ -233,7 +233,7 @@ const CatalogPage = ({ catalogId }) => {
       });;
     }
 
-    // Filter by sizes
+    // Filter by sizes - EXACT MATCH ONLY (restrictive)
     if (currentFilters.sizes && currentFilters.sizes.length > 0) {
       const beforeSizes = filtered.length;
       filtered = filtered.filter(product => {
@@ -241,24 +241,18 @@ const CatalogPage = ({ catalogId }) => {
           return false;
         }
 
+        // Use exact match only - no includes() to avoid "4" matching "14"
         const matches = currentFilters.sizes.some(filterSize => {
-          const filterSizeLower = filterSize.toLowerCase();
+          const filterSizeLower = filterSize.toLowerCase().trim();
           return product.sizes.some(productSize => {
-            const productSizeLower = productSize.toLowerCase();
-            const match = productSizeLower === filterSizeLower ||
-              productSizeLower.includes(filterSizeLower) ||
-              filterSizeLower.includes(productSizeLower);
-            if (match) {
-            }
-            return match;
+            const productSizeLower = productSize.toString().toLowerCase().trim();
+            // Exact match only - no partial matching
+            return productSizeLower === filterSizeLower;
           });
         });
 
-        if (!matches) {
-        }
-
         return matches;
-      });;
+      });
     }
 
     return filtered;

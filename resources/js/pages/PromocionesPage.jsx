@@ -432,18 +432,17 @@ const PromocionesPage = () => {
       });
     }
 
-    // Filtrar por tallas
+    // Filtrar por tallas - EXACT MATCH ONLY (restrictive)
     if (currentFilters.sizes && currentFilters.sizes.length > 0) {
       filtered = filtered.filter(product => {
         if (!product.sizes || product.sizes.length === 0) return false;
         
         return currentFilters.sizes.some(filterSize => {
-          const filterSizeLower = filterSize.toLowerCase();
+          const filterSizeLower = filterSize.toLowerCase().trim();
           return product.sizes.some(productSize => {
-            const productSizeLower = productSize.toLowerCase();
-            return productSizeLower === filterSizeLower || 
-                   productSizeLower.includes(filterSizeLower) ||
-                   filterSizeLower.includes(productSizeLower);
+            const productSizeLower = productSize.toString().toLowerCase().trim();
+            // Exact match only - no partial matching
+            return productSizeLower === filterSizeLower;
           });
         });
       });

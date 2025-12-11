@@ -34,13 +34,24 @@ const FeaturedProducts = ({
           if (response.data.success && response.data.data) {
             // Mapear productos al formato esperado por ProductCard
             const mappedProducts = response.data.data.map(product => {
-              // Construir URL de imagen usando getProductImageUrl
-              const imageUrl = product.image || 
-                (product.id ? getProductImageUrl(product.id, 1) : null);
+              // Usar id_articulo o id para construir la URL de imagen desde S3 (igual que ProductCard)
+              const productId = product.id_articulo || product.id;
+              
+              // Si hay imagen válida del backend, usarla; sino construir desde S3
+              let imageUrl = null;
+              if (product.image && 
+                  product.image.trim() !== '' && 
+                  !product.image.includes('placeholder') &&
+                  !product.image.includes('Rectangle 4922')) {
+                imageUrl = product.image;
+              } else if (productId) {
+                // Construir URL desde S3 usando el ID (igual que ProductCard)
+                imageUrl = getProductImageUrl(productId, 1);
+              }
               
               return {
                 id: product.id,
-                id_articulo: product.id_articulo || product.id,
+                id_articulo: productId,
                 title: product.title || product.description,
                 description: product.description,
                 price: product.price || 0,

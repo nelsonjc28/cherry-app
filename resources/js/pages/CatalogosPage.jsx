@@ -306,11 +306,11 @@ const CatalogosPage = () => {
         if (!product.sizes || product.sizes.length === 0) return false;
 
         return currentFilters.sizes.some(filterSize => {
-          const filterSizeLower = filterSize.toLowerCase();
+          const filterSizeLower = filterSize.toLowerCase().trim();
           return product.sizes.some(productSize => {
-            const productSizeLower = productSize.toString().toLowerCase();
-            return productSizeLower === filterSizeLower ||
-              productSizeLower.includes(filterSizeLower);
+            const productSizeLower = productSize.toString().toLowerCase().trim();
+            // Exact match only - no partial matching
+            return productSizeLower === filterSizeLower;
           });
         });
       });

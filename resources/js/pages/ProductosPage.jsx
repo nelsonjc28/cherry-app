@@ -306,25 +306,27 @@ const ProductosPage = () => {
       });
     }
 
-    // Filtrar por tallas
+    // Filtrar por tallas - EXACT MATCH ONLY (restrictive)
     if (filters.sizes && filters.sizes.length > 0) {
       filtered = filtered.filter(product => {
         if (product.detalles && product.detalles.length > 0) {
           return filters.sizes.some(filterSize => {
-            const filterSizeLower = filterSize.toLowerCase();
+            const filterSizeLower = filterSize.toLowerCase().trim();
             return product.detalles.some(detalle => {
               if (!detalle.detalle) return false;
-              const productSizeLower = detalle.detalle.toString().toLowerCase();
-              return productSizeLower === filterSizeLower || productSizeLower.includes(filterSizeLower);
+              const productSizeLower = detalle.detalle.toString().toLowerCase().trim();
+              // Exact match only - no partial matching
+              return productSizeLower === filterSizeLower;
             });
           });
         }
         if (product.sizes && product.sizes.length > 0) {
           return filters.sizes.some(filterSize => {
-            const filterSizeLower = filterSize.toLowerCase();
+            const filterSizeLower = filterSize.toLowerCase().trim();
             return product.sizes.some(productSize => {
-              const productSizeLower = productSize.toString().toLowerCase();
-              return productSizeLower === filterSizeLower || productSizeLower.includes(filterSizeLower);
+              const productSizeLower = productSize.toString().toLowerCase().trim();
+              // Exact match only - no partial matching
+              return productSizeLower === filterSizeLower;
             });
           });
         }
