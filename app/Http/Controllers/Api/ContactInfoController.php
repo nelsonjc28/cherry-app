@@ -58,6 +58,19 @@ class ContactInfoController extends Controller
             'online_hours',
         ]);
 
+        // Si map_url viene como iframe completo, extraer solo la URL
+        if (isset($data['map_url']) && !empty($data['map_url'])) {
+            $mapUrl = $data['map_url'];
+            
+            // Si contiene un iframe, extraer el src
+            if (preg_match('/<iframe[^>]+src=["\']([^"\']+)["\']/', $mapUrl, $matches)) {
+                $data['map_url'] = $matches[1];
+            } elseif (preg_match('/src=["\']([^"\']+)["\']/', $mapUrl, $matches)) {
+                $data['map_url'] = $matches[1];
+            }
+            // Si ya es una URL directa, mantenerla tal cual
+        }
+
         $contactInfo = ContactInfo::updateContactInfo($data);
 
         return response()->json([

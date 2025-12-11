@@ -786,25 +786,9 @@ const CartDetailsPage = () => {
             {deliveryType === 'retiro' && (
               <div className="cart-details__store-address">
                 <div className="cart-details__section-title">Dirección de entrega</div>
-                <div className="cart-details__store-address-content">
-                  <div className="cart-details__store-address-name">
-                    <strong>{storeAddress?.name || 'Retiro en tienda'}</strong>
-                  </div>
-                  <div className="cart-details__store-address-details">
-                    {storeAddress?.street_address && (
-                      <div>{storeAddress.street_address}</div>
-                    )}
-                    {storeAddress?.city && (
-                      <div>{storeAddress.city}</div>
-                    )}
-                    {storeAddress?.country && (
-                      <div>{storeAddress.country}</div>
-                    )}
-                  </div>
-                </div>
-                {/* Mapa de la tienda - siempre mostrar si es retiro */}
+                {/* Mapa de la tienda - Desktop */}
                 {storeMapUrl && (
-                  <div className="cart-details__store-map-wrapper">
+                  <div className="cart-details__store-map-wrapper cart-details__store-map-wrapper--desktop">
                     <iframe
                       title="Ubicación de la tienda"
                       src={storeMapUrl}
@@ -815,6 +799,22 @@ const CartDetailsPage = () => {
                       loading="lazy"
                       referrerPolicy="no-referrer-when-downgrade"
                     ></iframe>
+                  </div>
+                )}
+                {/* Botón para abrir en Google Maps - Mobile */}
+                {storeAddress && (
+                  <div className="cart-details__store-map-button cart-details__store-map-button--mobile">
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                        `${storeAddress.street_address || ''} ${storeAddress.city || ''} ${storeAddress.country || ''}`.trim()
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="cart-details__google-maps-btn"
+                    >
+                      <img src="/icons/Map Pin.svg" alt="Mapa" style={{ width: '20px', height: '20px', marginRight: '8px' }} />
+                      Ver en Google Maps
+                    </a>
                   </div>
                 )}
               </div>
