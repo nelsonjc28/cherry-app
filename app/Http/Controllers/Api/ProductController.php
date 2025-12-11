@@ -346,7 +346,7 @@ class ProductController extends Controller
                         'price' => $finalPrice,
                         'originalPrice' => $originalPrice,
                         'discount' => $discountPercentage,
-                        'image' => $producto->imagen ?: null,
+                        'image' => $this->getProductImageUrl($producto->id, $producto->imagen),
                         'brand' => $producto->marca ?? 'Sin marca',
                         'stock' => $inventarioTotal,
                         'inventario' => $inventarioTotal,
