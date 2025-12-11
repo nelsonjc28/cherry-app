@@ -667,9 +667,11 @@
 
 .catalog-pdf__groups-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 24px;
   padding: 20px 0;
+  justify-items: center;
+  justify-content: center;
 }
 
 .catalog-pdf__group-card {
@@ -824,8 +826,10 @@
   }
   
   .catalog-pdf__groups-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
     gap: 16px;
+    justify-items: center;
+    justify-content: center;
   }
   
   .catalog-pdf__group-image {
@@ -859,8 +863,10 @@
 /* Para pantallas muy pequeñas, mantener 2 columnas */
 @media (max-width: 480px) {
   .catalog-pdf__groups-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
     gap: 12px;
+    justify-items: center;
+    justify-content: center;
   }
   
   .catalog-pdf__group-image {
