@@ -1712,8 +1712,16 @@ class PaymentController extends Controller
             $order->load(['user', 'address', 'items']);
 
             // Enviar email de confirmación al cliente (también en pendiente_pago para pruebas)
-            Mail::to($user->email)->send(new OrderConfirmationMail($order));
-            Log::info('Email de confirmación enviado al cliente (createOxxoPayment - pendiente_pago)', ['order_id' => $order->id]);
+            try {
+                Mail::to($user->email)->send(new OrderConfirmationMail($order));
+                Log::info('Email de confirmación enviado al cliente (createOxxoPayment - pendiente_pago)', ['order_id' => $order->id]);
+            } catch (\Exception $e) {
+                Log::error('Error al enviar email de confirmación (createOxxoPayment)', [
+                    'order_id' => $order->id,
+                    'user_email' => $user->email,
+                    'error' => $e->getMessage()
+                ]);
+            }
 
             // Obtener datos del ticket para mostrar al usuario
             $ticketData = [
