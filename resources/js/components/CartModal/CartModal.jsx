@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import CartItemCard from '../CartItemCard';
-import CherryButton from '../CherryButton';
 import CustomButton from '../CustomButton';
 import './CartModal.css';
 import { getIconPath } from '../../utils/assetPaths';

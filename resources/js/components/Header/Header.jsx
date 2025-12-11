@@ -1007,7 +1007,6 @@ const Header = () => {
           return formatted;
         })()}
         onViewCart={() => { setCartModalOpen(false); navigate('/carrito-detalle'); }}
-        onCheckout={() => { setCartModalOpen(false); navigate('/carrito-detalle'); }}
       />
 
       {user && isAdmin() && (

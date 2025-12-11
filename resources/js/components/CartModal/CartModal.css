@@ -227,8 +227,20 @@
   font-weight: 400;
 }
 
-.order-letter-btn {
+.cart-modal__action-btn.cherry-button--red {
+  background-color: #EA2630;
   color: #fff;
+  border-color: #EA2630;
+}
+
+.cart-modal__action-btn.cherry-button--red:hover {
+  background-color: #c21828;
+  border-color: #c21828;
+  color: #fff;
+}
+
+.cart-modal__action-btn.cherry-button--red .cart-modal__cart-icon {
+  filter: brightness(0) invert(1);
 }
 
 /* Desktop (min-width: 768px) */

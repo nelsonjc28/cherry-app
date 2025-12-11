@@ -7,8 +7,7 @@ const Footer = () => {
     address_street: 'José María Izazaga 127 piso 2 Col.',
     address_city: 'Centros México D.F. C.P. 06080',
     phone: '55-5542-4442 al 45',
-    email: 'cherryonline@cherry.com.mx',
-    map_url: 'https://www.google.com/maps/embed?pb=!1m12!1m8!1m3!1d3830947.253725377!2d-99.1779212!3d20.3350315!3m2!1i1024!2i768!4f13.1!2m1!1scherry%20tienda%20mx%20direccion!5e0!3m2!1ses-419!2sve!4v1753274350284!5m2!1ses-419!2sve'
+    email: 'cherryonline@cherry.com.mx'
   });
 
   useEffect(() => {
@@ -20,8 +19,7 @@ const Footer = () => {
           if (data.success && data.data) {
             setContactInfo(prev => ({
               ...prev,
-              ...data.data,
-              map_url: data.data.map_url || prev.map_url
+              ...data.data
             }));
           }
         }
@@ -79,21 +77,6 @@ const Footer = () => {
             </div>
           </div>
           
-          {/* Mapa */}
-          {contactInfo.map_url && (
-            <div className="footer-map-wrapper">
-              <iframe
-                title="Ubicación Cherry"
-                src={contactInfo.map_url}
-                width="100%"
-                height="200"
-                style={{ border: 0, borderRadius: '8px' }}
-                allowFullScreen=""
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              ></iframe>
-            </div>
-          )}
 
           <div className="footer-social">
             <h3>Síguenos:</h3>
