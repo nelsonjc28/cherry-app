@@ -350,6 +350,59 @@ body, .cart-details__container {
   flex-direction: column;
   gap: 4px;
   font-size: 14px;
+}
+
+.cart-details__store-map-wrapper {
+  margin-top: 20px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cart-details__store-map-wrapper iframe {
+  display: block; /* Eliminar espacio extra debajo del iframe */
+}
+
+/* Ocultar mapa en móvil */
+.cart-details__store-map-wrapper--desktop {
+  display: none;
+}
+
+/* Ocultar botón en desktop */
+.cart-details__store-map-button--mobile {
+  display: block;
+  margin-top: 20px;
+}
+
+.cart-details__google-maps-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 12px 16px;
+  background-color: #EA2630;
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.cart-details__google-maps-btn:hover {
+  background-color: #c21828;
+  color: white;
+}
+
+/* Desktop: mostrar mapa, ocultar botón */
+@media (min-width: 768px) {
+  .cart-details__store-map-wrapper--desktop {
+    display: block;
+  }
+  
+  .cart-details__store-map-button--mobile {
+    display: none;
+  }
+}
   color: var(--color-text-light);
   line-height: 1.5;
 }
