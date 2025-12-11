@@ -247,12 +247,11 @@ class ProductController extends Controller
         try {
             $limit = $request->input('limit', 4);
             
-            // Calcular fecha límite (45 días atrás)
-            $now = time();
-            $fortyFiveDaysAgo = $now - (45 * 24 * 60 * 60);
-            $fortyFiveDaysAgoDate = date('Y-m-d', $fortyFiveDaysAgo);
+            // Calcular fecha límite (45 días atrás desde hoy)
+            $fortyFiveDaysAgoDate = now()->subDays(45)->format('Y-m-d');
 
             // Obtener productos nuevos con sus detalles
+            // Solo productos con fecha_alta dentro de los últimos 45 días
             $productos = DB::table('productos')
                 ->leftJoin('detalles', 'productos.id', '=', 'detalles.producto_id')
                 ->select(
@@ -283,13 +282,8 @@ class ProductController extends Controller
                     'detalles.detalle',
                     'detalles.inventario_d'
                 )
-                ->where(function ($query) use ($fortyFiveDaysAgoDate) {
-                    $query->where('productos.opc_nuevo', 'S')
-                        ->orWhere(function ($q) use ($fortyFiveDaysAgoDate) {
-                            $q->whereNotNull('productos.fecha_alta')
-                              ->where('productos.fecha_alta', '>=', $fortyFiveDaysAgoDate);
-                        });
-                })
+                ->whereNotNull('productos.fecha_alta')
+                ->where('productos.fecha_alta', '>=', $fortyFiveDaysAgoDate)
                 ->where('productos.activo', 1)
                 ->orderBy('productos.fecha_alta', 'desc')
                 ->orderBy('productos.id', 'desc')
