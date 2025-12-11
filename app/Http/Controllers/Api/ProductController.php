@@ -284,7 +284,6 @@ class ProductController extends Controller
                 )
                 ->whereNotNull('productos.fecha_alta')
                 ->where('productos.fecha_alta', '>=', $fortyFiveDaysAgoDate)
-                ->where('productos.activo', 1)
                 ->orderBy('productos.fecha_alta', 'desc')
                 ->orderBy('productos.id', 'desc')
                 ->distinct()
