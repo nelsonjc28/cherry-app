@@ -379,5 +379,32 @@ class ProductController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Generar URL de imagen del producto desde S3
+     * @param string|int $productId - ID del producto
+     * @param string|null $imagenFromDb - Imagen desde la base de datos (si existe)
+     * @return string URL de la imagen
+     */
+    private function getProductImageUrl($productId, $imagenFromDb = null)
+    {
+        // Si hay imagen en la BD y no es un placeholder, usarla
+        if ($imagenFromDb && trim($imagenFromDb) !== '' && 
+            !str_contains($imagenFromDb, 'placeholder') && 
+            !str_contains($imagenFromDb, 'Rectangle 4922')) {
+            return $imagenFromDb;
+        }
+
+        // Si no hay productId, devolver placeholder
+        if (!$productId) {
+            return asset('images/placeholder-product.png');
+        }
+
+        // Convertir a string para manejar correctamente
+        $productIdStr = trim((string) $productId);
+        
+        // Generar URL de S3: https://cherry-fotos.s3.amazonaws.com/shopify/{productId}/{productId}_1.jpg
+        return "https://cherry-fotos.s3.amazonaws.com/shopify/{$productIdStr}/{$productIdStr}_1.jpg";
+    }
 }
 
