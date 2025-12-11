@@ -744,6 +744,18 @@ const CatalogPage = ({ catalogId }) => {
                   <option value="nombre-z-a">Nombre: Z-A</option>
                 </select>
               </div>
+              <div className="catalog-page__action-buttons">
+                {catalogId && currentCatalog?.is_active && hasImageGroups && !checkingImageGroups && (
+                  <CustomButton
+                    variant="outlined"
+                    size="medium"
+                    className="filters-btn"
+                    onClick={() => window.location.href = `/catalogo-pdf?id=${catalogId}`}
+                  >
+                    Ver PDF
+                  </CustomButton>
+                )}
+              </div>
             </div>
           </div>
 
