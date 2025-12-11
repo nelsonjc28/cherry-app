@@ -752,8 +752,9 @@ const CatalogPdfPage = () => {
                         className="catalog-pdf__group-card"
                         onClick={() => handleImageGroupChange(group)}
                         title={`Ver imágenes del grupo "${group.name}"`}
+                        style={{ cursor: 'pointer' }}
                       >
-                        {/* Imagen de portada del grupo */}
+                        {/* Solo imagen de portada del grupo */}
                         <div className="catalog-pdf__group-image">
                           {group.cover_image && group.cover_image.thumbnail_url ? (
                             <img
@@ -770,20 +771,6 @@ const CatalogPdfPage = () => {
                             style={{ display: (group.cover_image && group.cover_image.thumbnail_url) ? 'none' : 'flex' }}
                           >
                             {group.images_count > 0 ? '📁' : '📂'}
-                          </div>
-                        </div>
-
-                        {/* Información del grupo */}
-                        <div className="catalog-pdf__group-info">
-                          <h3 className="catalog-pdf__group-name">{group.name}</h3>
-                          <p className="catalog-pdf__group-description">{group.description || 'Sin descripción'}</p>
-                          <div className="catalog-pdf__group-stats">
-                            <span className="catalog-pdf__group-count">
-                              🖼️ {group.images_count} imágenes
-                            </span>
-                            <span className="catalog-pdf__group-order">
-                              📋 Orden: {group.display_order}
-                            </span>
                           </div>
                         </div>
                       </div>
