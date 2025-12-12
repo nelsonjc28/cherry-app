@@ -31,6 +31,13 @@ const Footer = () => {
     fetchContactInfo();
   }, []);
 
+  // Construir URL de Google Maps con la dirección
+  const getGoogleMapsUrl = () => {
+    const fullAddress = `${contactInfo.address_street} ${contactInfo.address_city}`;
+    const encodedAddress = encodeURIComponent(fullAddress);
+    return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+  };
+
   return (
     <footer className="footer">
       <div className="footer-content">
@@ -60,7 +67,14 @@ const Footer = () => {
           <div className='content-footer-info'>
             <div className="footer-contact-section">
               <h3>Dirección:</h3>
-              <p>{contactInfo.address_street} {contactInfo.address_city}</p>
+              <a 
+                href={getGoogleMapsUrl()} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="footer-address-link"
+              >
+                {contactInfo.address_street} {contactInfo.address_city}
+              </a>
             </div>
 
             <div className="footer-contact-row">

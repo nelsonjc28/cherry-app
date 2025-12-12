@@ -153,6 +153,22 @@
   color: #ffffff;
 }
 
+.footer-address-link {
+  font-size: 14px;
+  margin: 0;
+  line-height: 1.4;
+  color: #ffffff;
+  text-decoration: none;
+  transition: opacity 0.3s ease;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.footer-address-link:hover {
+  opacity: 0.7;
+  text-decoration: underline;
+}
+
 /* Row layout for phone and email */
 .footer-contact-row {
   display: flex;
