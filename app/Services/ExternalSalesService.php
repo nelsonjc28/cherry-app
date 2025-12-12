@@ -350,19 +350,9 @@ class ExternalSalesService
         }
         
         // Estructura simplificada según la especificación de la API externa
-        // id_cliente como string con 12 ceros antes del ID (ejemplo: ID 2 -> "000000000002")
-        // Se mantiene como string para conservar los ceros a la izquierda en el JSON
-        $idStr = (string) $user->id;
-        $idClienteFormateado = str_pad($idStr, 12, '0', STR_PAD_LEFT);
-        
-        // Log para verificar el formato del id_cliente
-        Log::info('Formato de id_cliente', [
-            'user_id_original' => $user->id,
-            'id_cliente_formateado' => $idClienteFormateado
-        ]);
-        
+        // Usar 'id' en lugar de 'id_cliente' con el número original del usuario
         return [
-            'id_cliente' => $idClienteFormateado,
+            'id' => (int) $user->id,
             'nombre' => $nombre,
             'rfc' => $user->rfc ?? 'XAXX010101000',
             'calle' => $streetParts['street'] ?? $streetAddress,
