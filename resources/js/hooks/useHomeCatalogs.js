@@ -12,7 +12,7 @@ const useHomeCatalogs = () => {
       try {
         setLoading(true);
         const response = await api.get('/home-catalogs');
-        
+
         if (response.data.success && response.data.catalogs) {
           // Mapear los catálogos con sus PDFs
           const catalogsWithImages = response.data.catalogs.map(catalog => {

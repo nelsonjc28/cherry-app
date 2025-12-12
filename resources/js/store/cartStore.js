@@ -177,15 +177,15 @@ const useCartStore = create(
             }
           } else {
             // No hay sesión, solo cargar desde localStorage
-            const { items } = get();
+        const { items } = get();
 
-            const totalItems = items.reduce((sum, item) => {
-              const baseQuantity = item.quantity || 0;
-              const freeItems = item.freeItemsCount || 0;
-              return sum + baseQuantity + freeItems;
-            }, 0);
+        const totalItems = items.reduce((sum, item) => {
+          const baseQuantity = item.quantity || 0;
+          const freeItems = item.freeItemsCount || 0;
+          return sum + baseQuantity + freeItems;
+        }, 0);
 
-            const totalPrice = items.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+        const totalPrice = items.reduce((sum, item) => sum + calculateItemPrice(item), 0);
 
             set({
               totalItems,
@@ -663,7 +663,7 @@ const useCartStore = create(
           
           // Sumar todas las cantidades de todas las tallas del grupo
           const totalQuantity = group.items.reduce((sum, item) => sum + (parseInt(item.quantity) || 0), 0);
-          
+
           // Si no hay cantidad suficiente o no hay items gratis, no aplicar oferta
           if (totalQuantity < buyQuantity || getQuantity === 0) {
             group.items.forEach(item => {
@@ -803,11 +803,11 @@ const useCartStore = create(
         }
         // Si no hay sesión, guardar normalmente
         return {
-          items: state.items,
-          totalItems: state.totalItems,
-          totalPrice: state.totalPrice,
-          couponCode: state.couponCode,
-          discount: state.discount
+        items: state.items,
+        totalItems: state.totalItems,
+        totalPrice: state.totalPrice,
+        couponCode: state.couponCode,
+        discount: state.discount
         };
       },
       onRehydrateStorage: () => (state) => {

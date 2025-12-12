@@ -53,7 +53,7 @@ const Favorites = () => {
                 id_articulo: product.id,
                 title: product.descripcion || `Producto ${product.id}`,
                 image: product.imagen || generateS3ImageUrl(product.id),
-                price: parseFloat(product.precio1) || 0,
+              price: parseFloat(product.precio1) || 0,
                 originalPrice: product.desc_promo && product.desc_promo > 0 
                   ? parseFloat(product.precio1) || 0 
                   : null,

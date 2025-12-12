@@ -90,8 +90,8 @@ class PaymentStatusController extends Controller
                 // NOTA: El email se envía desde el webhook (handleApprovedPayment) para evitar duplicados
                 if ($payment->status === 'approved' && $newOrderStatus === 'pagado' && $previousStatus !== 'pagado') {
                     // Enviar a API externa (lanzará excepción si hay error)
-                    $externalSalesService = app(\App\Services\ExternalSalesService::class);
-                    $externalSalesService->sendSaleToExternalApi($order);
+                        $externalSalesService = app(\App\Services\ExternalSalesService::class);
+                        $externalSalesService->sendSaleToExternalApi($order);
                     
                     // El email se envía desde el webhook para evitar duplicados
                     // Si el webhook no se ejecutó por alguna razón, se puede llamar handleApprovedPayment aquí

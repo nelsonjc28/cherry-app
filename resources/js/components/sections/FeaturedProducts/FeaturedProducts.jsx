@@ -41,7 +41,7 @@ const FeaturedProducts = ({
               // Siempre construir URL desde S3 usando la ruta base correcta
               // https://cherry-fotos.s3.amazonaws.com/shopify/{productId}/{productId}_1.jpg
               const imageUrl = productId ? getProductImageUrl(productId, 1) : '';
-              
+          
               // Extraer colores y tallas de arrays o detalles
               const productColors = product.colors || [];
               const availableColors = productColors.length > 0 ? productColors : [];
@@ -53,8 +53,8 @@ const FeaturedProducts = ({
               const isNewProduct = product.isNew !== undefined ? product.isNew : 
                 (product.opc_nuevo === 'S' || 
                  (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 45 * 24 * 60 * 60 * 1000)));
-              
-              return {
+            
+            return {
                 id: product.id,
                 id_articulo: productId,
                 title: product.title || product.description || 'Sin nombre',
@@ -85,9 +85,9 @@ const FeaturedProducts = ({
                 detalles: product.detalles || [],
                 linea: product.id_linea,
                 precio1: product.price || 0
-              };
-            });
-            
+            };
+          });
+          
             // Aplicar ofertas de usuario (igual que en otras páginas)
             const productsWithOffers = await applyUserOffersToProducts(mappedProducts);
             

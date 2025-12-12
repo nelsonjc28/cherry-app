@@ -166,13 +166,13 @@ const MyOrders = () => {
                     <div className="order-card__image">
                       {order.items && order.items.length > 0 ? (
                         <>
-                          <img
+                      <img
                             src={order.items[0]?.image || '/images/catalogProductImages/Rectangle 4922.png'}
                             alt={order.items[0]?.title || 'Producto'}
-                            onError={(e) => {
-                              e.target.src = '/images/catalogProductImages/Rectangle 4922.png';
-                            }}
-                          />
+                        onError={(e) => {
+                          e.target.src = '/images/catalogProductImages/Rectangle 4922.png';
+                        }}
+                      />
                           {order.items.length > 1 && (
                             <div className="order-card__more-items-badge">
                               +{order.items.length - 1}
@@ -211,22 +211,22 @@ const MyOrders = () => {
                             </div>
                             {order.items.length === 1 && (
                               <>
-                                <div className="order-card__total-line">
+                        <div className="order-card__total-line">
                                   Precio unitario: <span>${(parseFloat(order.items[0]?.price) || 0).toFixed(2)}</span>
-                                </div>
-                                <div className="order-card__total-line">
+                        </div>
+                        <div className="order-card__total-line">
                                   Subtotal: <span>${(parseFloat(order.items[0]?.subtotal) || 0).toFixed(2)}</span>
-                                </div>
+                        </div>
                               </>
                             )}
-                            <div className="order-card__total-line">
+                        <div className="order-card__total-line">
                               Total: <span>${(parseFloat(order.totalAmount) || 0).toFixed(2)}</span>
-                            </div>
+                        </div>
                           </>
                         ) : (
-                          <div className="order-card__total-line">
-                            Total: <span>${(parseFloat(order.totalAmount) || 0).toFixed(2)}</span>
-                          </div>
+                        <div className="order-card__total-line">
+                          Total: <span>${(parseFloat(order.totalAmount) || 0).toFixed(2)}</span>
+                        </div>
                         )}
                       </div>
                     </div>

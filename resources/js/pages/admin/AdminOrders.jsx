@@ -328,9 +328,9 @@ const AdminOrders = () => {
                 
                 return (
                   <tr 
-                    key={order.id}
+              key={order.id} 
                     className={highlightedOrderId === order.id ? 'highlighted' : ''}
-                  >
+            >
                     <td className="order-number-cell">#{order.orderNumber}</td>
                     <td className="order-date-cell">{dateStr}</td>
                     <td className="order-time-cell">{timeStr}</td>
@@ -342,24 +342,24 @@ const AdminOrders = () => {
                     <td className="order-total-cell">{formatCurrency(order.totalAmount)}</td>
                     <td className="order-status-cell">
                       <div className="status-cell-content">
-                        <span className={`status-badge status-badge--${getStatusColor(order.status)}`}>
-                          {order.statusDisplay || order.status}
-                        </span>
-                        {getStatusOptions(order.status).length > 0 && (
-                          <div className="status-actions">
-                            {getStatusOptions(order.status).map((status) => (
-                              <button
-                                key={status}
-                                onClick={() => handleStatusChange(order.id, status)}
-                                className="status-change-btn"
-                                title={`Cambiar a ${status}`}
-                              >
-                                <img src={getIconPath('Edit.svg')} alt="Cambiar estado" />
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                  <span className={`status-badge status-badge--${getStatusColor(order.status)}`}>
+                    {order.statusDisplay || order.status}
+                  </span>
+                  {getStatusOptions(order.status).length > 0 && (
+                    <div className="status-actions">
+                      {getStatusOptions(order.status).map((status) => (
+                        <button
+                          key={status}
+                          onClick={() => handleStatusChange(order.id, status)}
+                          className="status-change-btn"
+                          title={`Cambiar a ${status}`}
+                        >
+                          <img src={getIconPath('Edit.svg')} alt="Cambiar estado" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                     </td>
                     <td className="order-actions-cell">
                       <CherryButton

@@ -381,7 +381,7 @@ const CheckoutForm = ({ cartItems = [], totalAmount = 0, onPaymentSuccess, onPay
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#28a745">
                     <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
                   </svg>
-                )}
+            )}
               </div>
             </div>
           </div>
@@ -389,63 +389,63 @@ const CheckoutForm = ({ cartItems = [], totalAmount = 0, onPaymentSuccess, onPay
           {/* Mostrar selector de tarjeta solo si el método es 'card' */}
           {paymentMethod === 'card' && (
             <>
-              {checkoutData.has_payment_cards ? (
-                <div className="payment-selection">
-                  <select
-                    value={selectedPaymentCardId}
-                    onChange={(e) => setSelectedPaymentCardId(e.target.value)}
-                    className="payment-select"
-                    required
-                  >
-                    <option value="">Selecciona una tarjeta</option>
-                    {checkoutData.payment_cards.map((card) => (
-                      <option key={card.id} value={card.id}>
-                        {card.brand_display_name} **** {card.masked_number.slice(-4)} - {card.cardholder_name}
-                      </option>
-                    ))}
-                  </select>
-                  
-                  {selectedPaymentCardId && (
-                    <div className="selected-card-details">
-                      {(() => {
-                        const selectedCard = checkoutData.payment_cards.find(
-                          card => card.id.toString() === selectedPaymentCardId
-                        );
-                        return selectedCard ? (
-                          <div className="payment-card">
-                            <div className="card-header">
-                              <img 
-                                src={getCardIcon(selectedCard.brand)} 
-                                alt={selectedCard.brand_display_name}
-                                className="card-icon"
-                              />
-                              <span className="card-brand">{selectedCard.brand_display_name}</span>
-                              <span className="card-type">({selectedCard.card_type_display_name})</span>
-                            </div>
-                            <div className="card-details">
-                              <p className="card-number">{selectedCard.masked_number}</p>
-                              <p className="card-holder">{selectedCard.cardholder_name}</p>
-                              <p className="card-expiry">Vence: {selectedCard.expiry_date}</p>
-                              {selectedCard.is_expired && (
-                                <p className="card-expired">⚠️ Esta tarjeta está expirada</p>
-                              )}
-                            </div>
-                          </div>
-                        ) : null;
-                      })()}
-                    </div>
-                  )}
-                  
-                  <button 
-                    className="add-button-secondary"
-                    onClick={() => setShowAddCardForm(true)}
-                  >
-                    + Usar otra tarjeta
-                  </button>
+          {checkoutData.has_payment_cards ? (
+            <div className="payment-selection">
+              <select
+                value={selectedPaymentCardId}
+                onChange={(e) => setSelectedPaymentCardId(e.target.value)}
+                className="payment-select"
+                required
+              >
+                <option value="">Selecciona una tarjeta</option>
+                {checkoutData.payment_cards.map((card) => (
+                  <option key={card.id} value={card.id}>
+                    {card.brand_display_name} **** {card.masked_number.slice(-4)} - {card.cardholder_name}
+                  </option>
+                ))}
+              </select>
+              
+              {selectedPaymentCardId && (
+                <div className="selected-card-details">
+                  {(() => {
+                    const selectedCard = checkoutData.payment_cards.find(
+                      card => card.id.toString() === selectedPaymentCardId
+                    );
+                    return selectedCard ? (
+                      <div className="payment-card">
+                        <div className="card-header">
+                          <img 
+                            src={getCardIcon(selectedCard.brand)} 
+                            alt={selectedCard.brand_display_name}
+                            className="card-icon"
+                          />
+                          <span className="card-brand">{selectedCard.brand_display_name}</span>
+                          <span className="card-type">({selectedCard.card_type_display_name})</span>
+                        </div>
+                        <div className="card-details">
+                          <p className="card-number">{selectedCard.masked_number}</p>
+                          <p className="card-holder">{selectedCard.cardholder_name}</p>
+                          <p className="card-expiry">Vence: {selectedCard.expiry_date}</p>
+                          {selectedCard.is_expired && (
+                            <p className="card-expired">⚠️ Esta tarjeta está expirada</p>
+                          )}
+                        </div>
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
-              ) : (
-                <div className="no-payment-cards">
-                  <p>No tienes tarjetas de pago guardadas</p>
+              )}
+              
+              <button 
+                className="add-button-secondary"
+                onClick={() => setShowAddCardForm(true)}
+              >
+                + Usar otra tarjeta
+              </button>
+            </div>
+          ) : (
+            <div className="no-payment-cards">
+              <p>No tienes tarjetas de pago guardadas</p>
                   <button 
                     className="add-button"
                     onClick={() => setShowAddCardForm(true)}

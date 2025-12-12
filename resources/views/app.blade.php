@@ -404,32 +404,32 @@
                         registration.addEventListener('updatefound', () => {
                             const newWorker = registration.installing;
                             if (newWorker) {
-                                newWorker.addEventListener('statechange', () => {
-                                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                        // New content is available, show update prompt
-                                        Toast.show(
-                                            'Hay una nueva versión disponible de Cherry App',
-                                            'info',
-                                            0, // No auto-hide
-                                            [
-                                                {
-                                                    text: 'Actualizar',
-                                                    primary: true,
-                                                    onClick: () => {
-                                                        newWorker.postMessage({ type: 'SKIP_WAITING' });
-                                                        Toast.show('Actualizando aplicación...', 'success', 2000);
-                                                    }
-                                                },
-                                                {
-                                                    text: 'Más tarde',
-                                                    onClick: () => {
-                                                        Toast.show('Puedes actualizar más tarde desde el menú', 'info', 3000);
-                                                    }
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // New content is available, show update prompt
+                                    Toast.show(
+                                        'Hay una nueva versión disponible de Cherry App',
+                                        'info',
+                                        0, // No auto-hide
+                                        [
+                                            {
+                                                text: 'Actualizar',
+                                                primary: true,
+                                                onClick: () => {
+                                                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                                    Toast.show('Actualizando aplicación...', 'success', 2000);
                                                 }
-                                            ]
-                                        );
-                                    }
-                                });
+                                            },
+                                            {
+                                                text: 'Más tarde',
+                                                onClick: () => {
+                                                    Toast.show('Puedes actualizar más tarde desde el menú', 'info', 3000);
+                                                }
+                                            }
+                                        ]
+                                    );
+                                }
+                            });
                             }
                         });
                     })

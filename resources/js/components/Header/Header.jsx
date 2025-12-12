@@ -55,8 +55,8 @@ const Header = () => {
     } else if (initCart && !user) {
       // Sin usuario, solo inicializar si no está inicializado
       if (!isInitialized) {
-        initCart();
-      }
+      initCart();
+    }
     }
   }, [initCart, user, isInitialized]);
 
@@ -492,13 +492,13 @@ const Header = () => {
           </button>
         </div>
         {isOpen && (
-          <div className="mobile-submenu">
-            {menuData[menuKey]?.columns.map((column, columnIndex) => (
-              <div className="mobile-submenu-section" key={columnIndex}>
-                <h3 className="mobile-submenu-title">{column.title}</h3>
-                <ul className="mobile-submenu-items">
-                  {column.items.map((item, itemIndex) => (
-                    <li key={itemIndex}>
+          <div className={`mobile-submenu ${menuKey === 'categorias' ? 'mobile-submenu--single-column' : ''}`}>
+            {menuKey === 'categorias' ? (
+              // Para categorías: mostrar todas en una sola lista sin secciones
+              <ul className="mobile-submenu-items">
+                {menuData[menuKey]?.columns.flatMap((column) =>
+                  column.items.map((item, itemIndex) => (
+                    <li key={`${column.title}-${itemIndex}`}>
                       <Link
                         to={item.link}
                         className="mobile-submenu-link"
@@ -510,10 +510,33 @@ const Header = () => {
                         {item.name}
                       </Link>
                     </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+                  ))
+                )}
+              </ul>
+            ) : (
+              // Para otros menús: mantener estructura con secciones
+              menuData[menuKey]?.columns.map((column, columnIndex) => (
+                <div className="mobile-submenu-section" key={columnIndex}>
+                  <h3 className="mobile-submenu-title">{column.title}</h3>
+                  <ul className="mobile-submenu-items">
+                    {column.items.map((item, itemIndex) => (
+                      <li key={itemIndex}>
+                        <Link
+                          to={item.link}
+                          className="mobile-submenu-link"
+                          onClick={(e) => {
+                            setMobileMenuOpen(false);
+                            handleMenuClick(e, item, menuKey);
+                          }}
+                        >
+                          {item.name}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))
+            )}
           </div>
         )}
       </li>

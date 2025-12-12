@@ -955,6 +955,17 @@
   margin-bottom: 15px;
 }
 
+/* Para categorías en móvil: una sola columna sin espacios entre secciones */
+.mobile-submenu--single-column {
+  padding: 5px 15px 15px;
+}
+
+.mobile-submenu--single-column .mobile-submenu-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
 .mobile-submenu-title {
   font-size: 14px;
   font-weight: 400;

@@ -109,25 +109,25 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
 
           {/* Información del Cliente */}
           {(order.customerName || order.customerEmail || order.customerPhone) && (
-            <div className="order-detail-section">
+          <div className="order-detail-section">
               <h3>Información del Cliente</h3>
               <div className="order-detail-info">
                 {order.customerName && (
-                  <div className="info-row">
+                        <div className="info-row">
                     <span className="label">Nombre completo:</span>
                     <span className="value">
                       {order.customerFirstName || ''} 
                       {order.customerMiddleName ? ' ' + order.customerMiddleName : ''} 
                       {order.customerLastName ? ' ' + order.customerLastName : ''}
                       {!order.customerFirstName && !order.customerLastName && order.customerName}
-                    </span>
-                  </div>
+                          </span>
+                        </div>
                 )}
                 {order.customerEmail && (
                   <div className="info-row">
                     <span className="label">Email:</span>
                     <span className="value">{order.customerEmail}</span>
-                  </div>
+                      </div>
                 )}
                 {order.customerPhone && (
                   <div className="info-row">
@@ -152,22 +152,22 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
                     </div>
                   )}
                   {order.address.municipality && (
-                    <div className="info-row">
+                  <div className="info-row">
                       <span className="label">Colonia/Asentamiento:</span>
                       <span className="value">{order.address.municipality}</span>
-                    </div>
+                  </div>
                   )}
                   {order.address.city && (
-                    <div className="info-row">
+                  <div className="info-row">
                       <span className="label">Municipio:</span>
-                      <span className="value">{order.address.city}</span>
-                    </div>
+                    <span className="value">{order.address.city}</span>
+                  </div>
                   )}
                   {order.address.state && (
-                    <div className="info-row">
-                      <span className="label">Estado:</span>
-                      <span className="value">{order.address.state}</span>
-                    </div>
+                  <div className="info-row">
+                    <span className="label">Estado:</span>
+                    <span className="value">{order.address.state}</span>
+                  </div>
                   )}
                   {order.address.country && (
                     <div className="info-row">
@@ -182,10 +182,10 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
                     </div>
                   )}
                   {order.address.postal_code && (
-                    <div className="info-row">
-                      <span className="label">Código postal:</span>
-                      <span className="value">{order.address.postal_code}</span>
-                    </div>
+                  <div className="info-row">
+                    <span className="label">Código postal:</span>
+                    <span className="value">{order.address.postal_code}</span>
+                  </div>
                   )}
                 </div>
               </div>

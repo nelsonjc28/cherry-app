@@ -95,18 +95,8 @@ const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout 
           </button>
         </div>
         <div className="cart-modal__divider" />
-        {/* Área scrolleable: productos + información de descuentos */}
+        {/* Área scrolleable: información de descuentos + productos */}
         <div className="cart-modal__scrollable-content">
-          <div className="cart-modal__items-list">
-            {cartItems.length === 0 ? (
-              <div className="cart-modal__empty">Tu carrito está vacío.</div>
-            ) : (
-              cartItems.map((item) => (
-                <CartItemCard key={item.id} {...item} />
-              ))
-            )}
-          </div>
-          
           {/* Mensaje sobre productos con rebaja */}
           {hasProductsWithDiscount && (
             <div className="cart-modal__discount-warning">
@@ -191,6 +181,16 @@ const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout 
               )}
             </div>
           )}
+          
+          <div className="cart-modal__items-list">
+            {cartItems.length === 0 ? (
+              <div className="cart-modal__empty">Tu carrito está vacío.</div>
+            ) : (
+              cartItems.map((item) => (
+                <CartItemCard key={item.id} {...item} />
+              ))
+            )}
+          </div>
         </div>
         
         {/* Footer fijo: Total y botones */}

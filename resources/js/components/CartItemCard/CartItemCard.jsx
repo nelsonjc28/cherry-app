@@ -20,7 +20,7 @@ const CartItemCard = ({
         {image && 
          image !== '/images/catalogProductImages/Rectangle 4922.png' && 
          image !== '/images/placeholder.jpg' && (
-          <div className="cart-item-card__image-col">
+        <div className="cart-item-card__image-col">
             <img 
               src={image} 
               alt={title} 
@@ -30,7 +30,7 @@ const CartItemCard = ({
                 e.target.parentElement.style.display = 'none';
               }}
             />
-          </div>
+        </div>
         )}
         {/* Main Info */}
         <div className="cart-item-card__info-col">
