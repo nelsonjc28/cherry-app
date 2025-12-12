@@ -85,12 +85,12 @@ class PaymentController extends Controller
         $addressId = null;
         $address = null;
         if ($deliveryType === 'envio') {
-            $address = $user->addresses()->find($request->address_id);
-            if (!$address) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Dirección no encontrada o no pertenece al usuario'
-                ], 404);
+        $address = $user->addresses()->find($request->address_id);
+        if (!$address) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Dirección no encontrada o no pertenece al usuario'
+            ], 404);
             }
             $addressId = $request->address_id;
         }
@@ -188,23 +188,23 @@ class PaymentController extends Controller
                         }, $itemsForMercadoPago))
                     ]);
                 }
-            }
-            
-            // Preparar datos para MercadoPago
-            $orderData = [
-                'order_id' => $order->external_reference,
-                'user' => [
-                    'first_name' => $user->first_name,
-                    'last_name' => $user->last_name,
-                    'email' => $user->email,
-                    'phone' => $user->phone
-                ],
+        }
+
+        // Preparar datos para MercadoPago
+        $orderData = [
+            'order_id' => $order->external_reference,
+            'user' => [
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'email' => $user->email,
+                'phone' => $user->phone
+            ],
                 'address' => $addressId && $address ? [
-                    'street_address' => $address->street_address,
-                    'city' => $address->city,
-                    'state' => $address->state,
-                    'postal_code' => $address->postal_code,
-                    'country' => $address->country
+                'street_address' => $address->street_address,
+                'city' => $address->city,
+                'state' => $address->state,
+                'postal_code' => $address->postal_code,
+                'country' => $address->country
                 ] : [
                     'street_address' => '',
                     'city' => '',
@@ -223,19 +223,19 @@ class PaymentController extends Controller
             ]);
 
             // Crear preferencia en MercadoPago con timeout
-            $preference = $this->mercadoPagoService->createPreference($orderData);
+        $preference = $this->mercadoPagoService->createPreference($orderData);
             
             Log::info('Preferencia creada exitosamente', [
                 'preference_id' => $preference->id,
                 'order_id' => $order->id
             ]);
             
-            // Actualizar el pedido con el ID de preferencia
-            $order->update([
-                'mercadopago_preference_id' => $preference->id
-            ]);
+        // Actualizar el pedido con el ID de preferencia
+        $order->update([
+            'mercadopago_preference_id' => $preference->id
+        ]);
 
-            DB::commit();
+        DB::commit();
 
             // Recargar el pedido con relaciones para el email
             $order->load(['user', 'address', 'items']);
@@ -252,13 +252,13 @@ class PaymentController extends Controller
                 ]);
             }
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Preferencia de pago creada correctamente',
-                'data' => [
-                    'order_id' => $order->id,
-                    'external_reference' => $order->external_reference,
-                    'preference_id' => $preference->id,
+        return response()->json([
+            'success' => true,
+            'message' => 'Preferencia de pago creada correctamente',
+            'data' => [
+                'order_id' => $order->id,
+                'external_reference' => $order->external_reference,
+                'preference_id' => $preference->id,
                     'payment_url' => $preference->init_point ?? $this->mercadoPagoService->getPaymentUrl($preference->id),
                     'sandbox_payment_url' => $preference->sandbox_init_point ?? $this->mercadoPagoService->getSandboxPaymentUrl($preference->id),
                     'init_point' => $preference->init_point ?? null,
@@ -304,7 +304,7 @@ class PaymentController extends Controller
                 if ($order) {
                     $previousStatus = $order->status;
                     $newStatus = $this->mapPaymentStatus($result['status']);
-                    
+
                     Log::info('Procesando webhook para orden', [
                         'order_id' => $order->id,
                         'payment_status' => $result['status'],
@@ -390,7 +390,7 @@ class PaymentController extends Controller
         
         // 1. Enviar información a la API externa (ella se encarga del inventario)
         // Lanzará excepción si hay error (sin try-catch para ver el error completo)
-        $this->externalSalesService->sendSaleToExternalApi($order);
+                            $this->externalSalesService->sendSaleToExternalApi($order);
         Log::info('Venta enviada a API externa exitosamente', ['order_id' => $order->id]);
         
         // 2. Enviar email de confirmación al cliente
@@ -399,13 +399,13 @@ class PaymentController extends Controller
         try {
             Mail::to($order->user->email)->send(new OrderConfirmationMail($order));
             Log::info('Email de confirmación enviado al cliente (webhook - approved)', ['order_id' => $order->id]);
-        } catch (\Exception $e) {
+                        } catch (\Exception $e) {
             Log::error('Error al enviar email de confirmación (webhook - approved)', [
-                'order_id' => $order->id,
+                                'order_id' => $order->id,
                 'user_email' => $order->user->email ?? 'N/A',
-                'error' => $e->getMessage()
-            ]);
-        }
+                                'error' => $e->getMessage()
+                            ]);
+                        }
         
         // 3. Crear notificación para el usuario
         try {
@@ -614,12 +614,12 @@ class PaymentController extends Controller
             // Verificar que la dirección pertenece al usuario solo si es envío
             $addressId = null;
             if ($deliveryType === 'envio') {
-                $address = $user->addresses()->find($requestData['address_id']);
-                if (!$address) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Dirección no encontrada o no pertenece al usuario'
-                    ], 404);
+            $address = $user->addresses()->find($requestData['address_id']);
+            if (!$address) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dirección no encontrada o no pertenece al usuario'
+                ], 404);
                 }
                 $addressId = $requestData['address_id'];
             }
@@ -656,7 +656,7 @@ class PaymentController extends Controller
                 // Preparar payment_data con delivery_type incluido
                 $paymentDataToStore = is_array($payment) ? $payment : (array) $payment;
                 $paymentDataToStore['delivery_type'] = $deliveryType;
-                
+
                 // Crear el pedido en la base de datos
                 $order = Order::create([
                     'user_id' => $user->id,

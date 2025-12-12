@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { getImagePath, getIconPath } from '../../utils/assetPaths';
 import { formatPrice } from '../../utils/formatters';
 import useUserStore from '../../store/userStore';
@@ -16,6 +16,7 @@ import './Header.css';
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { user, fetchUser, logout, isAdmin } = useUserStore();
   const cartStore = useCartStore();
   const cartItems = cartStore?.items || [];
@@ -68,6 +69,17 @@ const Header = () => {
   // Log del estado del menú para debugging
   useEffect(() => {
   }, [userMenuOpen]);
+
+  // Sincronizar el término de búsqueda con la URL cuando estamos en la página de búsqueda
+  useEffect(() => {
+    if (location.pathname === '/buscar') {
+      const queryParam = searchParams.get('q') || '';
+      setSearchTerm(queryParam);
+    } else {
+      // Limpiar el término de búsqueda cuando salimos de la página de búsqueda
+      setSearchTerm('');
+    }
+  }, [location.pathname, searchParams]);
 
   // Cargar notificaciones no leídas para admins y usuarios
   useEffect(() => {
@@ -264,7 +276,7 @@ const Header = () => {
       }
 
       navigate(`/buscar?${searchParams.toString()}`);
-      setSearchTerm('');
+      // No limpiar searchTerm para que se mantenga en el input
     }
   };
 

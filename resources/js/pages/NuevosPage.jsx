@@ -433,6 +433,22 @@ const NuevosPage = () => {
     infiniteScroll.reset();
   }, [filteredProducts.length]);
 
+  // Check if any filters are active
+  const hasActiveFilters = () => {
+    return (
+      (filters.catalog && filters.catalog !== 'Seleccione') ||
+      (filters.catalogs && filters.catalogs.length > 0) ||
+      (filters.category && filters.category !== '') ||
+      (filters.categories && filters.categories.length > 0) ||
+      (filters.sizes && filters.sizes.length > 0) ||
+      (filters.colors && filters.colors.length > 0) ||
+      (filters.priceRange && (filters.priceRange.min > 0 || filters.priceRange.max > 0)) ||
+      (filters.availability && filters.availability !== 'todos') ||
+      (filters.department && filters.department !== 'Todos los departamentos') ||
+      (filters.sector && filters.sector !== 'Todos los sectores')
+    );
+  };
+
   const totalResults = filteredProducts.length;
 
   return (
@@ -446,15 +462,17 @@ const NuevosPage = () => {
         <div className="container">
           {/* Header section with title and filters  -  MOBILE */}
           <div className="nuevos-page__header-mobile">
-            <div className="nuevos-page__title-section">
-              <h1 className="nuevos-page__title">Productos Nuevos</h1>
-              <div className='nuevos-page__content-texts'>
-                <span className="nuevos-page__results-count">
-                  ({totalResults})
-                  <p className="nuevos-page__text-results-count">Resultados</p>
-                </span>
+            {!hasActiveFilters() && (
+              <div className="nuevos-page__title-section">
+                <h1 className="nuevos-page__title">Productos Nuevos</h1>
+                <div className='nuevos-page__content-texts'>
+                  <span className="nuevos-page__results-count">
+                    ({totalResults})
+                    <p className="nuevos-page__text-results-count">Resultados</p>
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="nuevos-page__controls">
               <div className="nuevos-page__sort-section">
@@ -486,15 +504,17 @@ const NuevosPage = () => {
 
           {/* Header section with title and filters  -  DESKTOP */}
           <div className="nuevos-page__header-desktop">
-            <div className="nuevos-page__title-section">
-              <h1 className="nuevos-page__title">Productos Nuevos</h1>
-              <div className='nuevos-page__content-texts'>
-                <span className="nuevos-page__results-count">
-                  ({totalResults})
-                  <p className="nuevos-page__text-results-count">Resultados</p>
-                </span>
+            {!hasActiveFilters() && (
+              <div className="nuevos-page__title-section">
+                <h1 className="nuevos-page__title">Productos Nuevos</h1>
+                <div className='nuevos-page__content-texts'>
+                  <span className="nuevos-page__results-count">
+                    ({totalResults})
+                    <p className="nuevos-page__text-results-count">Resultados</p>
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="nuevos-page__controls">
               <div className="nuevos-page__sort-section">

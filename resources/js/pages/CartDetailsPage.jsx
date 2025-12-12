@@ -776,11 +776,11 @@ const CartDetailsPage = () => {
             </div>
             
             {deliveryType === 'envio' && (
-              <AddressSelector
-                selectedAddressId={selectedAddress?.id}
-                onAddressChange={handleAddressChange}
-                className="cart-details__address-selector"
-              />
+            <AddressSelector
+              selectedAddressId={selectedAddress?.id}
+              onAddressChange={handleAddressChange}
+              className="cart-details__address-selector"
+            />
             )}
             
             {deliveryType === 'retiro' && (

@@ -600,6 +600,24 @@ const BuscarPage = () => {
     return parts.join(', ');
   };
 
+  // Check if any filters are active
+  const hasActiveFilters = () => {
+    return (
+      (filters.catalog && filters.catalog !== 'Seleccione') ||
+      (filters.catalogs && filters.catalogs.length > 0) ||
+      (filters.category && filters.category !== '') ||
+      (filters.categories && filters.categories.length > 0) ||
+      (filters.sizes && filters.sizes.length > 0) ||
+      (filters.colors && filters.colors.length > 0) ||
+      (filters.priceRange && (filters.priceRange.min > 0 || filters.priceRange.max > 0)) ||
+      (filters.availability && filters.availability !== 'todos') ||
+      (filters.department && filters.department !== 'Todos los departamentos') ||
+      (filters.sector && filters.sector !== 'Todos los sectores') ||
+      (filters.codigo && filters.codigo !== '') ||
+      (filters.dtu && filters.dtu !== '')
+    );
+  };
+
   return (
     <>
       <Helmet>
@@ -639,15 +657,6 @@ const BuscarPage = () => {
             </div>
           </div>
           {/* <div className="container"> */}
-            {/* Header de búsqueda */}
-            <div className="buscar-header">
-              <h1>Resultados de búsqueda</h1>
-              {(query || colorFilter || skuFilter) && (
-                <p className="buscar-query">
-                  <strong>{getSearchDescription()}</strong>
-                </p>
-              )}
-            </div>
             <p className="buscar-results">
               {filteredProducts.length} productos encontrados
             </p>

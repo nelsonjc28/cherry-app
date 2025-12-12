@@ -33,17 +33,17 @@ const ProductosPage = () => {
       console.error('Error recuperando filtros:', e);
     }
     return {
-      catalog: 'Seleccione',
-      availability: 'todos',
-      category: 'Todas las categorías',
-      department: 'Todos los departamentos',
-      sector: 'Todos los sectores',
-      sizes: [],
-      colors: [],
-      priceRange: { min: 0, max: 0 },
-      codigo: '',
-      dtu: '',
-      sortBy: 'Más recientes'
+    catalog: 'Seleccione',
+    availability: 'todos',
+    category: 'Todas las categorías',
+    department: 'Todos los departamentos',
+    sector: 'Todos los sectores',
+    sizes: [],
+    colors: [],
+    priceRange: { min: 0, max: 0 },
+    codigo: '',
+    dtu: '',
+    sortBy: 'Más recientes'
     };
   };
 
@@ -294,10 +294,10 @@ const ProductosPage = () => {
           });
         }
         if (product.colors && product.colors.length > 0) {
-          return filters.colors.some(filterColor => {
-            const filterColorLower = filterColor.toLowerCase();
-            return product.colors.some(productColor => {
-              const productColorLower = productColor.toLowerCase();
+        return filters.colors.some(filterColor => {
+          const filterColorLower = filterColor.toLowerCase();
+          return product.colors.some(productColor => {
+            const productColorLower = productColor.toLowerCase();
               return productColorLower === filterColorLower || productColorLower.includes(filterColorLower);
             });
           });
@@ -321,9 +321,9 @@ const ProductosPage = () => {
           });
         }
         if (product.sizes && product.sizes.length > 0) {
-          return filters.sizes.some(filterSize => {
+        return filters.sizes.some(filterSize => {
             const filterSizeLower = filterSize.toLowerCase().trim();
-            return product.sizes.some(productSize => {
+          return product.sizes.some(productSize => {
               const productSizeLower = productSize.toString().toLowerCase().trim();
               // Exact match only - no partial matching
               return productSizeLower === filterSizeLower;
@@ -438,6 +438,24 @@ const ProductosPage = () => {
     infiniteScroll.reset();
   }, [filteredProducts.length]);
 
+  // Check if any filters are active
+  const hasActiveFilters = () => {
+    return (
+      (filters.catalog && filters.catalog !== 'Seleccione') ||
+      (filters.catalogs && filters.catalogs.length > 0) ||
+      (filters.category && filters.category !== '' && filters.category !== 'Todas las categorías') ||
+      (filters.categories && filters.categories.length > 0) ||
+      (filters.sizes && filters.sizes.length > 0) ||
+      (filters.colors && filters.colors.length > 0) ||
+      (filters.priceRange && (filters.priceRange.min > 0 || filters.priceRange.max > 0)) ||
+      (filters.availability && filters.availability !== 'todos') ||
+      (filters.department && filters.department !== 'Todos los departamentos') ||
+      (filters.sector && filters.sector !== 'Todos los sectores') ||
+      (filters.codigo && filters.codigo !== '') ||
+      (filters.dtu && filters.dtu !== '')
+    );
+  };
+
   if (loading) {
     return (
       <>
@@ -452,7 +470,7 @@ const ProductosPage = () => {
               <p>Cargando productos...</p>
             </div>
           </div>
-        </main>
+  </main>
       </>
     );
   }
@@ -497,10 +515,12 @@ const ProductosPage = () => {
           </div>
 
           {/* Header */}
-          <div className="productos-header">
-            <h1>Todos los Productos</h1>
-            <p>Descubre nuestra amplia colección de moda</p>
-          </div>
+          {!hasActiveFilters() && (
+            <div className="productos-header">
+              <h1>Todos los Productos</h1>
+              <p>Descubre nuestra amplia colección de moda</p>
+            </div>
+          )}
 
           <p className="productos-results">
             {filteredProducts.length} productos encontrados
@@ -617,4 +637,4 @@ const ProductosPage = () => {
   );
 };
 
-export default ProductosPage;
+export default ProductosPage; 
