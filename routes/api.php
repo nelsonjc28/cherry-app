@@ -42,6 +42,10 @@ Route::middleware('auth:api')->group(function () {
     Route::put('/cart', [CartController::class, 'update']);
     Route::delete('/cart', [CartController::class, 'destroy']);
     Route::post('/cart/sync', [CartController::class, 'sync']);
+    
+    // Test External API routes (requires authentication)
+    Route::get('/test-external-api/cart-info', [App\Http\Controllers\Api\TestExternalApiController::class, 'getCartInfo']);
+    Route::post('/test-external-api/test-payment', [App\Http\Controllers\Api\TestExternalApiController::class, 'testPayment']);
 });
 
 // Password Reset routes with code

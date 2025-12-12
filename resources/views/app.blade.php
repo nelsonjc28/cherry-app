@@ -4,7 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ config('app.name', 'Cherry App') }}</title>
+    <title>Cherry - Tienda de Ropa y Calzado para Dama en México</title>
+    <meta name="description" content="CHERRY es una Tienda de Ropa y Calzado para Dama en Mexico. Constantemente estamos recibiendo Modelos Nuevos tenemos vestidos, blusas, pantalones, faldas y más." />
     
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="/manifest.json">
@@ -22,7 +23,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Cherry App">
+    <meta name="apple-mobile-web-app-title" content="Cherry">
     
     <!-- Apple Touch Icons for splash screen with white background -->
     <link rel="apple-touch-startup-image" href="/icons/logo-blanco.png">
@@ -31,7 +32,11 @@
     <link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" href="/icons/logo-blanco.png">
     
     <!-- Additional PWA Meta Tags for better installation -->
-    <meta name="application-name" content="Cherry App">
+    <meta name="application-name" content="Cherry">
+    
+    <!-- SEO Meta Tags -->
+    <meta property="og:site_name" content="Cherry" />
+    <meta property="og:image" content="{{ url('/icons/logo-cherry.png') }}" />
     <meta name="msapplication-TileColor" content="#E91E63">
     <meta name="msapplication-TileImage" content="/mstile-144x144.png">
     

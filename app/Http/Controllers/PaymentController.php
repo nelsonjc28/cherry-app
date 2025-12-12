@@ -330,7 +330,8 @@ class PaymentController extends Controller
                     ]);
 
                     // === PAGO APROBADO ===
-                    if ($result['status'] === 'approved' && $newStatus === 'pagado') {
+                    // Solo procesar si cambió de estado (evitar duplicados)
+                    if ($result['status'] === 'approved' && $newStatus === 'pagado' && $previousStatus !== 'pagado') {
                         $this->handleApprovedPayment($order, $previousStatus);
                     }
                     
@@ -369,18 +370,28 @@ class PaymentController extends Controller
      */
     private function handleApprovedPayment(Order $order, string $previousStatus)
     {
-        Log::info('Procesando pago aprobado', ['order_id' => $order->id]);
+        // Verificar que realmente cambió de estado para evitar procesamiento duplicado
+        // Recargar el estado actual desde la BD para evitar condiciones de carrera
+        $order->refresh();
+        if ($order->status === 'pagado' && $previousStatus === 'pagado') {
+            Log::info('Pago ya fue procesado anteriormente, omitiendo procesamiento duplicado', [
+                'order_id' => $order->id,
+                'current_status' => $order->status,
+                'previous_status' => $previousStatus
+            ]);
+            return;
+        }
+        
+        Log::info('Procesando pago aprobado', [
+            'order_id' => $order->id,
+            'previous_status' => $previousStatus,
+            'current_status' => $order->status
+        ]);
         
         // 1. Enviar información a la API externa (ella se encarga del inventario)
-        try {
-            $this->externalSalesService->sendSaleToExternalApi($order);
-            Log::info('Venta enviada a API externa exitosamente', ['order_id' => $order->id]);
-        } catch (\Exception $e) {
-            Log::error('Error al enviar venta a API externa desde webhook', [
-                'order_id' => $order->id,
-                'error' => $e->getMessage()
-            ]);
-        }
+        // Lanzará excepción si hay error (sin try-catch para ver el error completo)
+        $this->externalSalesService->sendSaleToExternalApi($order);
+        Log::info('Venta enviada a API externa exitosamente', ['order_id' => $order->id]);
         
         // 2. Enviar email de confirmación al cliente
         // Recargar el pedido con relaciones para el email
@@ -684,34 +695,31 @@ class PaymentController extends Controller
                 // Recargar el pedido con relaciones
                 $order->load(['user', 'address', 'items']);
 
-                // Enviar email de confirmación al cliente (también en pending para pruebas)
-                try {
-                    Mail::to($user->email)->send(new OrderConfirmationMail($order));
-                    Log::info('Email de confirmación enviado al cliente (pago integrado)', [
-                        'order_id' => $order->id,
-                        'payment_status' => $payment->status
-                    ]);
-                } catch (\Exception $e) {
-                    Log::error('Error al enviar email de confirmación (pago integrado)', [
-                        'order_id' => $order->id,
-                        'user_email' => $user->email,
-                        'payment_status' => $payment->status,
-                        'error' => $e->getMessage()
-                    ]);
+                // Solo enviar email si el pago NO es approved (el webhook lo hará cuando sea approved)
+                // Para pagos pending, enviar email inmediatamente
+                if ($payment->status !== 'approved') {
+                    try {
+                        Mail::to($user->email)->send(new OrderConfirmationMail($order));
+                        Log::info('Email de confirmación enviado al cliente (pago integrado - pending)', [
+                            'order_id' => $order->id,
+                            'payment_status' => $payment->status
+                        ]);
+                    } catch (\Exception $e) {
+                        Log::error('Error al enviar email de confirmación (pago integrado)', [
+                            'order_id' => $order->id,
+                            'user_email' => $user->email,
+                            'payment_status' => $payment->status,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
                 }
 
                 // Solo enviar a API externa si el pago fue aprobado
                 if ($payment->status === 'approved') {
-                    // Enviar información a la API externa
-                    try {
-                        $this->externalSalesService->sendSaleToExternalApi($order);
-                    } catch (\Exception $e) {
-                        // Log del error pero no fallar la transacción
-                        Log::error('Error al enviar venta a API externa después de pago aprobado', [
-                            'order_id' => $order->id,
-                            'error' => $e->getMessage()
-                        ]);
-                    }
+                    // El email se enviará desde el webhook cuando Mercado Pago confirme el pago
+                    // Para evitar duplicados, no enviamos aquí
+                    // Enviar información a la API externa (lanzará excepción si hay error)
+                    $this->externalSalesService->sendSaleToExternalApi($order);
                 }
 
                 // Notificar al admin del pago realizado (solo si está aprobado o pendiente)
@@ -946,25 +954,8 @@ class PaymentController extends Controller
 
             DB::commit();
 
-            // NOTA: El email de confirmación se envía cuando el pago es aprobado
-            // Recargar el pedido con relaciones para el email
-            $order->load(['user', 'address', 'items']);
-
-            // Enviar email de confirmación al cliente (también en pending para pruebas)
-            try {
-                Mail::to($user->email)->send(new OrderConfirmationMail($order));
-                Log::info('Email de confirmación enviado al cliente (updateOrderStatus)', [
-                    'order_id' => $order->id,
-                    'new_status' => $newStatus
-                ]);
-            } catch (\Exception $e) {
-                Log::error('Error al enviar email de confirmación (updateOrderStatus)', [
-                    'order_id' => $order->id,
-                    'user_email' => $user->email,
-                    'new_status' => $newStatus,
-                    'error' => $e->getMessage()
-                ]);
-            }
+            // NOTA: El email de confirmación se envía cuando el pago es aprobado desde el webhook
+            // No enviar email aquí porque este método es para cambios manuales de estado
 
             return response()->json([
                 'success' => true,

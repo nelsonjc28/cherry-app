@@ -86,35 +86,16 @@ class PaymentStatusController extends Controller
                     'payment_data' => json_encode($payment)
                 ]);
 
-                // Si el pago fue aprobado, enviar a API externa y email de confirmación
+                // Si el pago fue aprobado, enviar a API externa
+                // NOTA: El email se envía desde el webhook (handleApprovedPayment) para evitar duplicados
                 if ($payment->status === 'approved' && $newOrderStatus === 'pagado' && $previousStatus !== 'pagado') {
-                    // Enviar a API externa
-                    try {
-                        $externalSalesService = app(\App\Services\ExternalSalesService::class);
-                        $externalSalesService->sendSaleToExternalApi($order);
-                    } catch (\Exception $e) {
-                        Log::error('Error al enviar venta a API externa después de verificación', [
-                            'order_id' => $order->id,
-                            'error' => $e->getMessage()
-                        ]);
-                    }
+                    // Enviar a API externa (lanzará excepción si hay error)
+                    $externalSalesService = app(\App\Services\ExternalSalesService::class);
+                    $externalSalesService->sendSaleToExternalApi($order);
                     
-                    // Enviar email de confirmación
-                    $order->load(['user', 'address', 'items']);
-                    try {
-                        Mail::to($order->user->email)->send(new OrderConfirmationMail($order));
-                        Log::info('Email de confirmación enviado al cliente desde verificación de estado', [
-                            'order_id' => $order->id,
-                            'payment_status' => $payment->status
-                        ]);
-                    } catch (\Exception $e) {
-                        Log::error('Error al enviar email de confirmación (verificación de estado)', [
-                            'order_id' => $order->id,
-                            'user_email' => $order->user->email ?? 'N/A',
-                            'payment_status' => $payment->status,
-                            'error' => $e->getMessage()
-                        ]);
-                    }
+                    // El email se envía desde el webhook para evitar duplicados
+                    // Si el webhook no se ejecutó por alguna razón, se puede llamar handleApprovedPayment aquí
+                    // Pero por ahora, confiamos en que el webhook se ejecutará
                 }
             }
 

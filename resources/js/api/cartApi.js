@@ -229,7 +229,7 @@ export const cartApi = {
 
   // Clear cart
   clearCart: async () => {
-    const response = await fetch(`${API_BASE_URL}/cart/clear`, {
+    const response = await fetch(`${API_BASE_URL}/cart`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,

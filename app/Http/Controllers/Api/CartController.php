@@ -98,12 +98,18 @@ class CartController extends Controller
         $cart = Cart::where('user_id', $user->id)->first();
 
         if ($cart) {
+            // Limpiar completamente el carrito en la base de datos
             $cart->update([
                 'items' => [],
                 'total_items' => 0,
                 'total_price' => 0,
                 'coupon_code' => null,
                 'discount' => 0
+            ]);
+            
+            \Log::info('Carrito vaciado para usuario', [
+                'user_id' => $user->id,
+                'cart_id' => $cart->id
             ]);
         }
 

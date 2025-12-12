@@ -99,32 +99,60 @@ const HomePage = () => {
   return (
     <>
       <Helmet>
-        <title>Cherry Central - Moda Femenina Online | Vestidos, Blusas y Más</title>
-        <meta name="description" content="Descubre la mejor moda femenina en Cherry Central. Vestidos elegantes, blusas modernas, pantalones y accesorios únicos. ¡Afíliate y empieza tu negocio!" />
-        <meta name="keywords" content="moda femenina, vestidos elegantes, blusas modernas, pantalones de mujer, accesorios únicos, cherry central, tienda online moda" />
-        <link rel="canonical" href="https://cherrycentral.com/" />
+        <title>Cherry - Tienda de Ropa y Calzado para Dama en México</title>
+        <meta name="description" content="CHERRY es una Tienda de Ropa y Calzado para Dama en Mexico. Constantemente estamos recibiendo Modelos Nuevos tenemos vestidos, blusas, pantalones, faldas y más." />
+        <meta name="keywords" content="ropa para dama, calzado para dama, vestidos, blusas, pantalones, faldas, moda femenina, tienda online México, Cherry" />
+        <link rel="canonical" href="https://cherrydistribuidores.com.mx/" />
+        
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://cherrydistribuidores.com.mx/" />
+        <meta property="og:title" content="Cherry - Tienda de Ropa y Calzado para Dama en México" />
+        <meta property="og:description" content="CHERRY es una Tienda de Ropa y Calzado para Dama en Mexico. Constantemente estamos recibiendo Modelos Nuevos tenemos vestidos, blusas, pantalones, faldas y más." />
+        <meta property="og:image" content="https://cherrydistribuidores.com.mx/icons/logo-cherry.png" />
+        
+        {/* Twitter */}
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content="https://cherrydistribuidores.com.mx/" />
+        <meta property="twitter:title" content="Cherry - Tienda de Ropa y Calzado para Dama en México" />
+        <meta property="twitter:description" content="CHERRY es una Tienda de Ropa y Calzado para Dama en Mexico. Constantemente estamos recibiendo Modelos Nuevos tenemos vestidos, blusas, pantalones, faldas y más." />
+        <meta property="twitter:image" content="https://cherrydistribuidores.com.mx/icons/logo-cherry.png" />
+        
+        {/* Schema.org Organization with Logo - Required by Google */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "Cherry",
+            "url": "https://cherrydistribuidores.com.mx",
+            "logo": "https://cherrydistribuidores.com.mx/icons/logo-cherry.png",
+            "description": "CHERRY es una Tienda de Ropa y Calzado para Dama en Mexico. Constantemente estamos recibiendo Modelos Nuevos tenemos vestidos, blusas, pantalones, faldas y más.",
+            "sameAs": []
+          })}
+        </script>
         
         {/* Schema.org for HomePage */}
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
             "@type": "WebPage",
-            "name": "Cherry Central - Inicio",
-            "description": "Tienda online de moda femenina con los mejores diseños y programa de afiliados",
-            "url": "https://cherrycentral.com/",
+            "name": "Cherry - Tienda de Ropa y Calzado para Dama",
+            "description": "CHERRY es una Tienda de Ropa y Calzado para Dama en Mexico. Constantemente estamos recibiendo Modelos Nuevos tenemos vestidos, blusas, pantalones, faldas y más.",
+            "url": "https://cherrydistribuidores.com.mx/",
             "mainEntity": {
               "@type": "Store",
-              "name": "Cherry Central",
-              "description": "Tienda de moda femenina online",
+              "name": "Cherry",
+              "description": "CHERRY es una Tienda de Ropa y Calzado para Dama en Mexico. Constantemente estamos recibiendo Modelos Nuevos tenemos vestidos, blusas, pantalones, faldas y más.",
+              "image": "https://cherrydistribuidores.com.mx/icons/logo-cherry.png",
               "hasOfferCatalog": {
                 "@type": "OfferCatalog",
-                "name": "Catálogo de Moda Femenina",
+                "name": "Catálogo de Ropa y Calzado para Dama",
                 "itemListElement": [
                   {
                     "@type": "Offer",
                     "itemOffered": {
                       "@type": "Product",
-                      "name": "Vestidos Elegantes",
+                      "name": "Vestidos",
                       "category": "Vestidos"
                     }
                   },
@@ -132,8 +160,24 @@ const HomePage = () => {
                     "@type": "Offer", 
                     "itemOffered": {
                       "@type": "Product",
-                      "name": "Blusas Modernas",
+                      "name": "Blusas",
                       "category": "Blusas"
+                    }
+                  },
+                  {
+                    "@type": "Offer",
+                    "itemOffered": {
+                      "@type": "Product",
+                      "name": "Pantalones",
+                      "category": "Pantalones"
+                    }
+                  },
+                  {
+                    "@type": "Offer",
+                    "itemOffered": {
+                      "@type": "Product",
+                      "name": "Faldas",
+                      "category": "Faldas"
                     }
                   }
                 ]

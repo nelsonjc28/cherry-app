@@ -36,6 +36,7 @@ import FavoritosPage from '../pages/FavoritosPage';
 import AdminPanelPage from '../pages/AdminPanelPage';
 import ReviewFormPage from '../pages/ReviewFormPage';
 import PaymentPendingPage from '../pages/PaymentPendingPage';
+import TestExternalApiPage from '../pages/TestExternalApiPage';
 
 // Profile pages
 import ProfileLayout from '../pages/profile/ProfileLayout';
@@ -121,6 +122,9 @@ const SimpleApp = () => {
                   
                   {/* Review routes */}
                   <Route path="/escribir-resena/:orderId/:productId" element={<ReviewFormPage />} />
+                  
+                  {/* Test routes */}
+                  <Route path="/test-external-api" element={<TestExternalApiPage />} />
                   
                   {/* Admin routes */}
                   <Route path="/admin/*" element={

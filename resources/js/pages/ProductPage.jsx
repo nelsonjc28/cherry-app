@@ -1212,11 +1212,58 @@ const ProductPage = () => {
     .map((p, i) => ({ label: `Precio${i + 1}`, value: p }))
     .filter(p => p.value && p.value > 0);
 
+  // Construir URL completa del producto para el schema
+  const productUrl = `${window.location.origin}/producto/${id_articulo}`;
+  const productImageUrl = generateS3ImageUrl(id_articulo);
+  
+  // Construir schema JSON-LD para SEO (requerido por Google)
+  const productSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": descripcion,
+    "description": descripcion,
+    "image": productImageUrl,
+    "brand": {
+      "@type": "Brand",
+      "name": marca || "Cherry Central"
+    },
+    "sku": sku || id_articulo,
+    "mpn": id_articulo,
+    "offers": {
+      "@type": "Offer",
+      "url": productUrl,
+      "priceCurrency": "MXN",
+      "price": finalPrice || precio1 || 0,
+      "priceValidUntil": new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 año desde ahora
+      "availability": getTotalInventory() > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      "itemCondition": "https://schema.org/NewCondition",
+      "seller": {
+        "@type": "Organization",
+        "name": "Cherry Central"
+      }
+    }
+  };
+  
+  // Agregar aggregateRating si hay calificaciones
+  if (ratingData && ratingData.count > 0 && ratingData.average > 0) {
+    productSchema.aggregateRating = {
+      "@type": "AggregateRating",
+      "ratingValue": ratingData.average,
+      "reviewCount": ratingData.count,
+      "bestRating": 5,
+      "worstRating": 1
+    };
+  }
+
   return (
     <>
       <Helmet>
         <title>{descripcion} - Cherry</title>
         <meta name="description" content={descripcion} />
+        {/* Schema.org structured data for Product - Required by Google */}
+        <script type="application/ld+json">
+          {JSON.stringify(productSchema)}
+        </script>
       </Helmet>
 
       <div className="product-page">

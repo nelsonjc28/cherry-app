@@ -1,7 +1,7 @@
 {
-  "name": "Cherry App - Moda y Accesorios",
+  "name": "Cherry - Tienda de Ropa y Calzado para Dama",
   "short_name": "Cherry",
-  "description": "Tu tienda de moda y accesorios favorita. Encuentra las últimas tendencias en ropa, calzado y más.",
+  "description": "CHERRY es una Tienda de Ropa y Calzado para Dama en Mexico. Constantemente estamos recibiendo Modelos Nuevos tenemos vestidos, blusas, pantalones, faldas y más.",
   "start_url": "/",
   "id": "/",
   "display": "standalone",
