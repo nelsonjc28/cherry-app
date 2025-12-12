@@ -31,13 +31,19 @@ self.addEventListener('install', (event) => {
   
   event.waitUntil(
     Promise.all([
-      // Cache estático
+      // Cache estático (con manejo de errores para archivos que no existen)
       caches.open(STATIC_CACHE).then((cache) => {
-        return cache.addAll(urlsToCache);
+        return Promise.allSettled(
+          urlsToCache.map(url => 
+            cache.add(url).catch(() => {
+              // Ignorar errores de archivos que no existen
+            })
+          )
+        );
       }),
-      // Pre-cache URLs críticas
+      // Pre-cache URLs críticas (con manejo de errores)
       caches.open(DYNAMIC_CACHE).then((cache) => {
-        return Promise.all(
+        return Promise.allSettled(
           CRITICAL_URLS.map(url => 
             fetch(url)
               .then(response => {
@@ -45,7 +51,9 @@ self.addEventListener('install', (event) => {
                   return cache.put(url, response);
                 }
               })
-              .catch(error => {})
+              .catch(() => {
+                // Ignorar errores silenciosamente
+              })
           )
         );
       })
@@ -274,70 +282,6 @@ function shouldCacheResource(url) {
 function shouldUseStaticCache(url) {
   return url.includes('/build/') || url.includes('/icons/') || url.includes('manifest.json');
 }
-
-// Manejar mensajes del service worker
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-    
-    // Notificar al cliente que se está actualizando
-    self.clients.matchAll().then(clients => {
-      clients.forEach(client => {
-        client.postMessage({
-          type: 'TOAST',
-          message: 'Actualizando Cherry App...',
-          toastType: 'info',
-          duration: 2000
-        });
-      });
-    });
-  }
-});
-
-// Manejar notificaciones push (para futuras funcionalidades)
-self.addEventListener('push', (event) => {
-  const options = {
-    body: event.data ? event.data.text() : 'Nueva notificación de Cherry',
-    icon: '/icons/icon-144x144.png',
-    badge: '/icons/icon-144x144.png',
-    vibrate: [100, 50, 100],
-    data: {
-      dateOfArrival: Date.now(),
-      primaryKey: 1
-    },
-    actions: [
-      {
-        action: 'explore',
-        title: 'Ver más',
-        icon: '/icons/icon-144x144.png'
-      },
-      {
-        action: 'close',
-        title: 'Cerrar',
-        icon: '/icons/icon-144x144.png'
-      }
-    ]
-  };
-
-  event.waitUntil(
-    self.registration.showNotification('Cherry App', options)
-  );
-});
-
-// Manejar clics en notificaciones
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-
-  if (event.action === 'explore') {
-    event.waitUntil(
-      clients.openWindow('/')
-    );
-  } else {
-    event.waitUntil(
-      clients.openWindow('/')
-    );
-  }
-});
 
 // Manejar mensajes del service worker
 self.addEventListener('message', (event) => {

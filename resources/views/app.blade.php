@@ -395,46 +395,51 @@
             }
         }
         
+        // Registrar Service Worker de forma silenciosa (sin mostrar errores al usuario)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
                     .then((registration) => {
-                
-                        
                         // Check for updates
                         registration.addEventListener('updatefound', () => {
                             const newWorker = registration.installing;
-                            newWorker.addEventListener('statechange', () => {
-                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    // New content is available, show update prompt
-                                    Toast.show(
-                                        'Hay una nueva versión disponible de Cherry App',
-                                        'info',
-                                        0, // No auto-hide
-                                        [
-                                            {
-                                                text: 'Actualizar',
-                                                primary: true,
-                                                onClick: () => {
-                                                    newWorker.postMessage({ type: 'SKIP_WAITING' });
-                                                    Toast.show('Actualizando aplicación...', 'success', 2000);
+                            if (newWorker) {
+                                newWorker.addEventListener('statechange', () => {
+                                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                        // New content is available, show update prompt
+                                        Toast.show(
+                                            'Hay una nueva versión disponible de Cherry App',
+                                            'info',
+                                            0, // No auto-hide
+                                            [
+                                                {
+                                                    text: 'Actualizar',
+                                                    primary: true,
+                                                    onClick: () => {
+                                                        newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                                        Toast.show('Actualizando aplicación...', 'success', 2000);
+                                                    }
+                                                },
+                                                {
+                                                    text: 'Más tarde',
+                                                    onClick: () => {
+                                                        Toast.show('Puedes actualizar más tarde desde el menú', 'info', 3000);
+                                                    }
                                                 }
-                                            },
-                                            {
-                                                text: 'Más tarde',
-                                                onClick: () => {
-                                                    Toast.show('Puedes actualizar más tarde desde el menú', 'info', 3000);
-                                                }
-                                            }
-                                        ]
-                                    );
-                                }
-                            });
+                                            ]
+                                        );
+                                    }
+                                });
+                            }
                         });
                     })
                     .catch((error) => {
-                
-                        Toast.show('Error al registrar el service worker', 'error', 5000);
+                        // Solo loggear el error en desarrollo, no mostrar al usuario
+                        // Esto evita que Google vea errores al indexar la página
+                        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                            console.error('Error al registrar el service worker:', error);
+                        }
+                        // No mostrar toast de error en producción para evitar problemas con Google
                     });
             });
         }
