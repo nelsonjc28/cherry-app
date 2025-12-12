@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Cherry - Tienda de Ropa y Calzado para Dama en México</title>
-    <meta name="description" content="CHERRY es una Tienda de Ropa y Calzado para Dama en Mexico. Constantemente estamos recibiendo Modelos Nuevos tenemos vestidos, blusas, pantalones, faldas y más." />
+    <meta name="description" content="Empieza a vender por catálogo, gana dinero y conviértete en tu propio jefe. Tú eliges cómo y cuándo comenzar a vender. ¡Emprende hoy mismo con Cherry!!!" />
     
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="/manifest.json">

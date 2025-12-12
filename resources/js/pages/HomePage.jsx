@@ -100,7 +100,7 @@ const HomePage = () => {
     <>
       <Helmet>
         <title>Cherry - Tienda de Ropa y Calzado para Dama en México</title>
-        <meta name="description" content="CHERRY es una Tienda de Ropa y Calzado para Dama en Mexico. Constantemente estamos recibiendo Modelos Nuevos tenemos vestidos, blusas, pantalones, faldas y más." />
+        <meta name="description" content="Empieza a vender por catálogo, gana dinero y conviértete en tu propio jefe. Tú eliges cómo y cuándo comenzar a vender. ¡Emprende hoy mismo con Cherry!!!" />
         <meta name="keywords" content="ropa para dama, calzado para dama, vestidos, blusas, pantalones, faldas, moda femenina, tienda online México, Cherry" />
         <link rel="canonical" href="https://cherrydistribuidores.com.mx/" />
         
@@ -108,14 +108,14 @@ const HomePage = () => {
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://cherrydistribuidores.com.mx/" />
         <meta property="og:title" content="Cherry - Tienda de Ropa y Calzado para Dama en México" />
-        <meta property="og:description" content="CHERRY es una Tienda de Ropa y Calzado para Dama en Mexico. Constantemente estamos recibiendo Modelos Nuevos tenemos vestidos, blusas, pantalones, faldas y más." />
+        <meta property="og:description" content="Empieza a vender por catálogo, gana dinero y conviértete en tu propio jefe. Tú eliges cómo y cuándo comenzar a vender. ¡Emprende hoy mismo con Cherry!!!" />
         <meta property="og:image" content="https://cherrydistribuidores.com.mx/icons/logo-cherry.png" />
         
         {/* Twitter */}
         <meta property="twitter:card" content="summary_large_image" />
         <meta property="twitter:url" content="https://cherrydistribuidores.com.mx/" />
         <meta property="twitter:title" content="Cherry - Tienda de Ropa y Calzado para Dama en México" />
-        <meta property="twitter:description" content="CHERRY es una Tienda de Ropa y Calzado para Dama en Mexico. Constantemente estamos recibiendo Modelos Nuevos tenemos vestidos, blusas, pantalones, faldas y más." />
+        <meta property="twitter:description" content="Empieza a vender por catálogo, gana dinero y conviértete en tu propio jefe. Tú eliges cómo y cuándo comenzar a vender. ¡Emprende hoy mismo con Cherry!!!" />
         <meta property="twitter:image" content="https://cherrydistribuidores.com.mx/icons/logo-cherry.png" />
         
         {/* Schema.org Organization with Logo - Required by Google */}
@@ -126,7 +126,7 @@ const HomePage = () => {
             "name": "Cherry",
             "url": "https://cherrydistribuidores.com.mx",
             "logo": "https://cherrydistribuidores.com.mx/icons/logo-cherry.png",
-            "description": "CHERRY es una Tienda de Ropa y Calzado para Dama en Mexico. Constantemente estamos recibiendo Modelos Nuevos tenemos vestidos, blusas, pantalones, faldas y más.",
+            "description": "Empieza a vender por catálogo, gana dinero y conviértete en tu propio jefe. Tú eliges cómo y cuándo comenzar a vender. ¡Emprende hoy mismo con Cherry!!!",
             "sameAs": []
           })}
         </script>
@@ -137,12 +137,12 @@ const HomePage = () => {
             "@context": "https://schema.org",
             "@type": "WebPage",
             "name": "Cherry - Tienda de Ropa y Calzado para Dama",
-            "description": "CHERRY es una Tienda de Ropa y Calzado para Dama en Mexico. Constantemente estamos recibiendo Modelos Nuevos tenemos vestidos, blusas, pantalones, faldas y más.",
+            "description": "Empieza a vender por catálogo, gana dinero y conviértete en tu propio jefe. Tú eliges cómo y cuándo comenzar a vender. ¡Emprende hoy mismo con Cherry!!!",
             "url": "https://cherrydistribuidores.com.mx/",
             "mainEntity": {
               "@type": "Store",
               "name": "Cherry",
-              "description": "CHERRY es una Tienda de Ropa y Calzado para Dama en Mexico. Constantemente estamos recibiendo Modelos Nuevos tenemos vestidos, blusas, pantalones, faldas y más.",
+              "description": "Empieza a vender por catálogo, gana dinero y conviértete en tu propio jefe. Tú eliges cómo y cuándo comenzar a vender. ¡Emprende hoy mismo con Cherry!!!",
               "image": "https://cherrydistribuidores.com.mx/icons/logo-cherry.png",
               "hasOfferCatalog": {
                 "@type": "OfferCatalog",
