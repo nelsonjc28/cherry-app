@@ -1110,8 +1110,10 @@ class PaymentController extends Controller
                 return [
                     'id' => $order->id,
                     'date' => $order->created_at->format('d \d\e F Y'),
+                    'created_at' => $order->created_at->toISOString(),
                     'orderNumber' => str_pad($order->id, 8, '0', STR_PAD_LEFT),
                     'status' => $this->mapOrderStatus($order->status),
+                    'statusDisplay' => $order->statusDisplay ?? $this->mapOrderStatus($order->status),
                     'statusRaw' => $order->status,
                     'statusColor' => $this->getStatusColor($order->status),
                     'items' => $order->items->map(function ($item) use ($user, $order) {
