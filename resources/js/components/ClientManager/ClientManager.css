@@ -118,6 +118,40 @@
   border-top: 1px solid var(--color-border, #e0e0e0);
 }
 
+/* Search Styles */
+.client-manager__search {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.client-manager__search-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.client-manager__search-group label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.client-manager__search-input {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.client-manager__search-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
 /* List Styles */
 .client-manager__list-header {
   margin-bottom: 1rem;

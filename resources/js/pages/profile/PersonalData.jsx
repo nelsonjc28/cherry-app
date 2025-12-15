@@ -289,6 +289,13 @@ const PersonalData = () => {
 
       <div className="personal-data__actions">
         <CherryButton
+          variant="outline"
+          onClick={() => setShowAccountStatementModal(true)}
+          className="cherry-button--account-statement"
+        >
+          Ver Estados de Cuenta
+        </CherryButton>
+        <CherryButton
           variant="red"
           onClick={handleSave}
           disabled={isSubmitting}
@@ -301,6 +308,12 @@ const PersonalData = () => {
           {isSubmitting ? 'Guardando...' : 'Guardar cambios'}
         </CherryButton>
       </div>
+
+      {/* Modal de Estados de Cuenta */}
+      <AccountStatementModal
+        isOpen={showAccountStatementModal}
+        onClose={() => setShowAccountStatementModal(false)}
+      />
     </div>
   );
 };

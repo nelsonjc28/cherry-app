@@ -73,6 +73,7 @@ Route::get('/public/catalogs-with-images', [AdminCatalogController::class, 'getC
 // Profile routes - require authentication
 Route::middleware(['auth:api'])->group(function () {
     Route::post('/profile/update', [ProfileController::class, 'update']);
+    Route::get('/account-statements', [ProfileController::class, 'getAccountStatements']);
     
     // Address routes
     Route::get('/addresses', [AddressController::class, 'index']);
@@ -164,6 +165,7 @@ Route::middleware(['auth:api'])->group(function () {
     // Client routes - require authentication and admin role
     Route::get('/admin/clients', [ClientController::class, 'getClients']);
     Route::get('/admin/clients/{id}', [ClientController::class, 'getClient']);
+    Route::get('/admin/clients/{id}/account-statements', [ClientController::class, 'getClientAccountStatements']);
     Route::post('/admin/clients', [ClientController::class, 'createClient']);
     Route::post('/admin/clients/{id}', [ClientController::class, 'updateClient']);
     Route::delete('/admin/clients/{id}', [ClientController::class, 'deleteClient']);

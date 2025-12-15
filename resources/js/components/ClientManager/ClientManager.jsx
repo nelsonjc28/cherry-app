@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import CherryButton from '../CherryButton/CherryButton';
+import AccountStatementModal from '../AccountStatementModal/AccountStatementModal';
 import './ClientManager.css';
 
 const ClientManager = () => {
   const [clients, setClients] = useState([]);
+  const [allClients, setAllClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showAccountStatementModal, setShowAccountStatementModal] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState(null);
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -39,6 +44,7 @@ const ClientManager = () => {
       
       const data = await response.json();
       setClients(data.users);
+      setAllClients(data.users);
     } catch (err) {
       setError(err.message);
       window.showToast('Error al cargar clientes: ' + err.message, 'error');
@@ -104,6 +110,7 @@ const ClientManager = () => {
       // Refresh clients list
       await fetchClients();
       resetForm();
+      setSearchTerm(''); // Limpiar búsqueda después de crear/editar
       
       window.showToast(
         editingClient ? 'Cliente actualizado exitosamente' : 'Cliente registrado exitosamente',
@@ -127,6 +134,32 @@ const ClientManager = () => {
       role_id: client.role_id
     });
     setShowForm(true);
+  };
+
+  // Filtrar clientes según el término de búsqueda
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setClients(allClients);
+      return;
+    }
+
+    const filtered = allClients.filter(client => {
+      const searchLower = searchTerm.toLowerCase();
+      const fullName = `${client.first_name} ${client.last_name} ${client.middle_name || ''}`.toLowerCase();
+      const email = (client.email || '').toLowerCase();
+      const phone = (client.phone || '').toLowerCase();
+      
+      return fullName.includes(searchLower) || 
+             email.includes(searchLower) || 
+             phone.includes(searchLower);
+    });
+
+    setClients(filtered);
+  }, [searchTerm, allClients]);
+
+  const handleViewAccountStatement = (clientId) => {
+    setSelectedClientId(clientId);
+    setShowAccountStatementModal(true);
   };
 
   const handleDelete = async (clientId) => {
@@ -313,6 +346,21 @@ const ClientManager = () => {
         </div>
       )}
 
+      {/* Search Bar */}
+      <div className="client-manager__search">
+        <div className="client-manager__search-group">
+          <label htmlFor="client-search">Buscar Cliente:</label>
+          <input
+            id="client-search"
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Buscar por nombre, email o teléfono..."
+            className="client-manager__search-input"
+          />
+        </div>
+      </div>
+
       {/* Clients List */}
       <div className="client-manager__list">
         <div className="client-manager__list-header">
@@ -340,6 +388,13 @@ const ClientManager = () => {
                 </div>
                 <div className="client-manager__client-actions">
                   <CherryButton 
+                    onClick={() => handleViewAccountStatement(client.id)}
+                    variant="outline"
+                    size="small"
+                  >
+                    Estados de Cuenta
+                  </CherryButton>
+                  <CherryButton 
                     onClick={() => handleEdit(client)}
                     variant="outline"
                     size="small"
@@ -359,6 +414,18 @@ const ClientManager = () => {
           </div>
         )}
       </div>
+
+      {/* Modal de Estados de Cuenta */}
+      {showAccountStatementModal && (
+        <AccountStatementModal
+          isOpen={showAccountStatementModal}
+          onClose={() => {
+            setShowAccountStatementModal(false);
+            setSelectedClientId(null);
+          }}
+          userId={selectedClientId}
+        />
+      )}
     </div>
   );
 };

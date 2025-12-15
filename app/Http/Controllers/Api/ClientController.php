@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Role;
+use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -238,6 +239,54 @@ class ClientController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al eliminar cliente: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get account statements for a specific client
+     */
+    public function getClientAccountStatements($id)
+    {
+        try {
+            $client = User::where('role_id', 2)->find($id);
+            
+            if (!$client) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cliente no encontrado'
+                ], 404);
+            }
+
+            // Obtener todas las órdenes del cliente pagadas
+            $orders = Order::where('user_id', $client->id)
+                ->whereIn('status', ['pagado', 'en_espera_envio', 'enviado'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            // Formatear órdenes como estados de cuenta
+            $statements = $orders->map(function ($order) {
+                return [
+                    'fecha' => $order->created_at->toISOString(),
+                    'cargo' => (float) $order->total_amount,
+                    'referencia' => 'Orden #' . str_pad($order->id, 8, '0', STR_PAD_LEFT)
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'statements' => $statements,
+                'client' => [
+                    'id' => $client->id,
+                    'name' => $client->first_name . ' ' . $client->last_name,
+                    'email' => $client->email
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener los estados de cuenta: ' . $e->getMessage()
             ], 500);
         }
     }

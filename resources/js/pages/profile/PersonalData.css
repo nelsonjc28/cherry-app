@@ -199,8 +199,21 @@
   padding-top: 20px;
 }
 
+.personal-data__actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
 .personal-data__actions .cherry-button {
-  width: 100%;
+  width: auto;
+  flex: 1;
+  min-width: 150px;
+}
+
+.cherry-button--account-statement {
+  flex: 0 1 auto;
 }
 
 /* Fix icon behavior in the edit button */
