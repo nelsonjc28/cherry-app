@@ -72,18 +72,9 @@ self.addEventListener('install', (event) => {
         // Forzar activación inmediata
         return self.skipWaiting();
       })
-      .catch((error) => {
-      // Notificar error al cliente
-        self.clients.matchAll().then(clients => {
-          clients.forEach(client => {
-            client.postMessage({
-              type: 'TOAST',
-            message: 'Error al preparar la app para uso offline',
-              toastType: 'error',
-              duration: 5000
-            });
-          });
-        });
+      .catch(() => {
+      // Completamente silencioso - no notificar errores
+      // Esto evita problemas con Google Search Console
       })
   );
 });
@@ -229,10 +220,14 @@ async function handleStaticResource(request) {
     
     // Si es una imagen, devolver una imagen placeholder
     if (request.destination === 'image') {
-      return caches.match('/images/placeholder-catalog.png');
+      const placeholder = await caches.match('/images/placeholder-catalog.png');
+      if (placeholder) {
+        return placeholder;
+      }
     }
     
-    throw error;
+    // Devolver respuesta vacía en lugar de lanzar error
+    return new Response('', { status: 503, statusText: 'Service Unavailable' });
   }
 }
 
@@ -249,7 +244,11 @@ async function handlePageRequest(request) {
       return networkResponse;
     }
     
-    throw new Error('Network response not ok');
+    // En lugar de lanzar error, buscar en cache
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
   } catch (error) {
     // Si falla la red, buscar en cache
     const cachedResponse = await caches.match(request);

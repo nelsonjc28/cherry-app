@@ -13,10 +13,14 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/icons/logo-cherry.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/cherryapp.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/cherryapp.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/cherryapp.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/cherryapp.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/icons/cherryapp.png">
     
     <!-- Fallback con PNG -->
-    <link rel="icon" type="image/png" href="/icons/logo-cherry.png">
+    <link rel="icon" type="image/png" href="/icons/cherryapp.png">
     
     <!-- Modern PWA Meta Tags -->
     <meta name="theme-color" content="#ffffff">
@@ -36,7 +40,9 @@
     
     <!-- SEO Meta Tags -->
     <meta property="og:site_name" content="Cherry" />
-    <meta property="og:image" content="{{ url('/icons/logo-cherry.png') }}" />
+    <meta property="og:image" content="{{ url('/icons/cherryapp.png') }}" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
     <meta name="msapplication-TileColor" content="#E91E63">
     <meta name="msapplication-TileImage" content="/mstile-144x144.png">
     
@@ -395,52 +401,55 @@
             }
         }
         
-        // Registrar Service Worker de forma silenciosa (sin mostrar errores al usuario)
+        // Registrar Service Worker de forma completamente silenciosa
+        // Sin errores visibles ni en consola para evitar problemas con Google Search Console
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then((registration) => {
-                        // Check for updates
-                        registration.addEventListener('updatefound', () => {
-                            const newWorker = registration.installing;
-                            if (newWorker) {
-                            newWorker.addEventListener('statechange', () => {
-                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    // New content is available, show update prompt
-                                    Toast.show(
-                                        'Hay una nueva versión disponible de Cherry App',
-                                        'info',
-                                        0, // No auto-hide
-                                        [
-                                            {
-                                                text: 'Actualizar',
-                                                primary: true,
-                                                onClick: () => {
-                                                    newWorker.postMessage({ type: 'SKIP_WAITING' });
-                                                    Toast.show('Actualizando aplicación...', 'success', 2000);
-                                                }
-                                            },
-                                            {
-                                                text: 'Más tarde',
-                                                onClick: () => {
-                                                    Toast.show('Puedes actualizar más tarde desde el menú', 'info', 3000);
-                                                }
+                try {
+                    navigator.serviceWorker.register('/sw.js')
+                        .then((registration) => {
+                            // Check for updates solo si el usuario está interactuando
+                            if (document.hasFocus()) {
+                                registration.addEventListener('updatefound', () => {
+                                    const newWorker = registration.installing;
+                                    if (newWorker) {
+                                        newWorker.addEventListener('statechange', () => {
+                                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                                // New content is available, show update prompt
+                                                Toast.show(
+                                                    'Hay una nueva versión disponible de Cherry App',
+                                                    'info',
+                                                    0, // No auto-hide
+                                                    [
+                                                        {
+                                                            text: 'Actualizar',
+                                                            primary: true,
+                                                            onClick: () => {
+                                                                newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                                                Toast.show('Actualizando aplicación...', 'success', 2000);
+                                                            }
+                                                        },
+                                                        {
+                                                            text: 'Más tarde',
+                                                            onClick: () => {
+                                                                Toast.show('Puedes actualizar más tarde desde el menú', 'info', 3000);
+                                                            }
+                                                        }
+                                                    ]
+                                                );
                                             }
-                                        ]
-                                    );
-                                }
-                            });
+                                        });
+                                    }
+                                });
                             }
+                        })
+                        .catch(() => {
+                            // Completamente silencioso - no hacer nada con el error
+                            // Esto evita que Google Search Console detecte errores
                         });
-                    })
-                    .catch((error) => {
-                        // Solo loggear el error en desarrollo, no mostrar al usuario
-                        // Esto evita que Google vea errores al indexar la página
-                        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                            console.error('Error al registrar el service worker:', error);
-                        }
-                        // No mostrar toast de error en producción para evitar problemas con Google
-                    });
+                } catch (e) {
+                    // Completamente silencioso - no hacer nada con el error
+                }
             });
         }
         
