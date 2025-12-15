@@ -29,8 +29,6 @@ const RegisterPage = () => {
     postalCode: "",
     street: "",
     country: "México",
-    receivePromotions: false,
-    acceptTerms: false,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -159,9 +157,6 @@ const RegisterPage = () => {
       }
       if (formData.password !== formData.confirmPassword) {
         errors.confirmPassword = 'Las contraseñas no coinciden';
-      }
-      if (!formData.acceptTerms) {
-        errors.acceptTerms = 'Debes aceptar los términos y condiciones';
       }
     }
 
@@ -500,33 +495,6 @@ const RegisterPage = () => {
                     Tu contraseña debe tener mínimo 8 caracteres y al menos una letra y un número
                   </p>
 
-                  <div className="register-checkbox-group">
-                    <label className="register-checkbox-label">
-                      <input
-                        type="checkbox"
-                        name="receivePromotions"
-                        checked={formData.receivePromotions}
-                        onChange={handleInputChange}
-                      />
-                      <span className="register-checkmark"></span>
-                      Deseo recibir información sobre rebajas
-                    </label>
-                  </div>
-
-                  <div className="register-checkbox-group">
-                    <label className="register-checkbox-label">
-                      <input
-                        type="checkbox"
-                        name="acceptTerms"
-                        checked={formData.acceptTerms}
-                        onChange={handleInputChange}
-                        required
-                      />
-                      <span className="checkmark"></span>Al crear tu cuenta estás aceptando los términos y condiciones
-                    </label>
-                    {formErrors.acceptTerms && <span className="error-message">{formErrors.acceptTerms}</span>}
-                  </div>
-
                   <div className="register-button-container">
                     <CustomButton
                       variant="filled"
@@ -538,6 +506,9 @@ const RegisterPage = () => {
                         {isSubmitting ? 'Creando cuenta...' : 'Crear cuenta'}
                       </span>
                     </CustomButton>
+                    <p className="register-terms-text">
+                      Al registrarte aceptas términos y condiciones
+                    </p>
                   </div>
                 </form>
                 {/* ) }  : (

@@ -239,11 +239,31 @@ class MercadoPagoService
     public function processWebhook(array $data)
     {
         try {
+            // Log del webhook recibido
+            Log::info('Webhook recibido de MercadoPago (raw data)', [
+                'webhook_data' => $data
+            ]);
 
             if (isset($data['type']) && $data['type'] === 'payment') {
                 $paymentId = $data['data']['id'];
                 $payment = $this->getPayment($paymentId);
                 
+                // Log completo del pago obtenido de MercadoPago
+                Log::info('Pago completo obtenido de MercadoPago', [
+                    'payment_id' => $paymentId,
+                    'payment_object' => $payment,
+                    'payment_array' => (array) $payment,
+                    'status' => $payment->status ?? null,
+                    'external_reference' => $payment->external_reference ?? null,
+                    'transaction_amount' => $payment->transaction_amount ?? null,
+                    'currency_id' => $payment->currency_id ?? null,
+                    'date_created' => $payment->date_created ?? null,
+                    'date_approved' => $payment->date_approved ?? null,
+                    'payment_method_id' => $payment->payment_method_id ?? null,
+                    'payment_type_id' => $payment->payment_type_id ?? null,
+                    'payer' => $payment->payer ?? null,
+                    'status_detail' => $payment->status_detail ?? null,
+                ]);
 
                 return [
                     'payment_id' => $paymentId,
@@ -255,6 +275,10 @@ class MercadoPagoService
 
             return null;
         } catch (\Exception $e) {
+            Log::error('Error procesando webhook de MercadoPago', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             throw $e;
         }
     }

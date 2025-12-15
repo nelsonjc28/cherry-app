@@ -21,6 +21,77 @@ class PaymentStatusController extends Controller
     }
 
     /**
+     * Mapear payment_method_id de MercadoPago a nombre legible
+     */
+    private function mapPaymentMethodId($paymentMethodId)
+    {
+        if (!$paymentMethodId) {
+            return 'mercadopago';
+        }
+
+        // Métodos de pago en efectivo
+        $cashMethods = [
+            'oxxo' => 'OXXO',
+            'seven_eleven' => '7-Eleven',
+            'extra' => 'Extra',
+            'farmacias_del_ahorro' => 'Farmacias del Ahorro',
+            'farmacias_benavides' => 'Farmacias Benavides',
+            'farmacias_guadalajara' => 'Farmacias Guadalajara',
+            'farmacias_similares' => 'Farmacias Similares',
+            'soriana' => 'Soriana',
+            'cfe' => 'CFE',
+            'banamex' => 'Banamex',
+            'bancomer' => 'Bancomer',
+            'santander' => 'Santander',
+            'hsbc' => 'HSBC',
+            'scotiabank' => 'Scotiabank',
+        ];
+
+        // Métodos de tarjeta
+        $cardMethods = [
+            'visa' => 'Tarjeta',
+            'master' => 'Tarjeta',
+            'amex' => 'Tarjeta',
+            'diners' => 'Tarjeta',
+            'elo' => 'Tarjeta',
+            'cabal' => 'Tarjeta',
+            'naranja' => 'Tarjeta',
+            'nativa' => 'Tarjeta',
+            'tarshop' => 'Tarjeta',
+            'cencosud' => 'Tarjeta',
+            'argencard' => 'Tarjeta',
+        ];
+
+        // Otros métodos
+        $otherMethods = [
+            'account_money' => 'Saldo en cuenta',
+            'debit_card' => 'Tarjeta de débito',
+            'credit_card' => 'Tarjeta de crédito',
+            'bank_transfer' => 'Transferencia bancaria',
+            'atm' => 'Cajero automático',
+            'ticket' => 'Ticket',
+        ];
+
+        // Buscar en métodos de efectivo
+        if (isset($cashMethods[$paymentMethodId])) {
+            return $cashMethods[$paymentMethodId];
+        }
+
+        // Buscar en métodos de tarjeta
+        if (isset($cardMethods[$paymentMethodId])) {
+            return $cardMethods[$paymentMethodId];
+        }
+
+        // Buscar en otros métodos
+        if (isset($otherMethods[$paymentMethodId])) {
+            return $otherMethods[$paymentMethodId];
+        }
+
+        // Si no se encuentra, capitalizar la primera letra
+        return ucfirst(str_replace('_', ' ', $paymentMethodId));
+    }
+
+    /**
      * Verificar el estado actual de un pago en MercadoPago
      */
     public function checkPaymentStatus(Request $request, $orderId)
@@ -78,11 +149,16 @@ class PaymentStatusController extends Controller
 
             $newOrderStatus = $orderStatusMap[$payment->status] ?? 'pendiente_pago';
 
+            // Mapear payment_method_id a nombre legible
+            $paymentMethodId = $payment->payment_method_id ?? null;
+            $paymentMethod = $this->mapPaymentMethodId($paymentMethodId);
+            
             // Si el estado cambió, actualizar la orden
             if ($order->status !== $newOrderStatus) {
                 $previousStatus = $order->status;
                 $order->update([
                     'status' => $newOrderStatus,
+                    'payment_method' => $paymentMethod,
                     'payment_data' => json_encode($payment)
                 ]);
 

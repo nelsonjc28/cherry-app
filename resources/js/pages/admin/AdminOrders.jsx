@@ -345,20 +345,6 @@ const AdminOrders = () => {
                   <span className={`status-badge status-badge--${getStatusColor(order.status)}`}>
                     {order.statusDisplay || order.status}
                   </span>
-                  {getStatusOptions(order.status).length > 0 && (
-                    <div className="status-actions">
-                      {getStatusOptions(order.status).map((status) => (
-                        <button
-                          key={status}
-                          onClick={() => handleStatusChange(order.id, status)}
-                          className="status-change-btn"
-                          title={`Cambiar a ${status}`}
-                        >
-                          <img src={getIconPath('Edit.svg')} alt="Cambiar estado" />
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
                     </td>
                     <td className="order-actions-cell">

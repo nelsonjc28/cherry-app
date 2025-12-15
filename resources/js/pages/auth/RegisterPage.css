@@ -291,14 +291,24 @@
   font-weight: bold;
 }
 
+.register-terms-text {
+  font-size: 12px;
+  color: #ffffff;
+  text-align: center;
+  margin-top: 12px;
+  line-height: 1.4;
+}
+
 .register-button-container {
   display: flex;
+  flex-direction: column;
   justify-content: stretch;
   width: 100%;
   margin-top: 10px;
 }
 
-.register-button-container>* {
+.register-button-container > button,
+.register-button-container > .cherry-button {
   width: 100%;
 }
 

@@ -318,14 +318,31 @@ class PaymentController extends Controller
                     if (is_string($previousPaymentData)) {
                         $previousPaymentData = json_decode($previousPaymentData, true) ?? [];
                     }
+                    if (is_string($newPaymentData)) {
+                        $newPaymentData = json_decode($newPaymentData, true) ?? [];
+                    }
+                    if (is_object($newPaymentData)) {
+                        $newPaymentData = (array) $newPaymentData;
+                    }
                     if (isset($previousPaymentData['delivery_type'])) {
                         $newPaymentData['delivery_type'] = $previousPaymentData['delivery_type'];
                     }
+                    
+                    // Obtener payment_method_id del pago y mapearlo
+                    $paymentMethodId = null;
+                    if (is_object($result['payment_data'])) {
+                        $paymentMethodId = $result['payment_data']->payment_method_id ?? null;
+                    } elseif (is_array($newPaymentData)) {
+                        $paymentMethodId = $newPaymentData['payment_method_id'] ?? null;
+                    }
+                    
+                    $paymentMethod = $this->mapPaymentMethodId($paymentMethodId);
                     
                     // Actualizar estado del pedido
                     $order->update([
                         'status' => $newStatus,
                         'mercadopago_payment_id' => $result['payment_id'],
+                        'payment_method' => $paymentMethod,
                         'payment_data' => json_encode($newPaymentData)
                     ]);
 
@@ -512,6 +529,77 @@ class PaymentController extends Controller
     }
 
     /**
+     * Mapear payment_method_id de MercadoPago a nombre legible
+     */
+    private function mapPaymentMethodId($paymentMethodId)
+    {
+        if (!$paymentMethodId) {
+            return 'mercadopago';
+        }
+
+        // Métodos de pago en efectivo
+        $cashMethods = [
+            'oxxo' => 'OXXO',
+            'seven_eleven' => '7-Eleven',
+            'extra' => 'Extra',
+            'farmacias_del_ahorro' => 'Farmacias del Ahorro',
+            'farmacias_benavides' => 'Farmacias Benavides',
+            'farmacias_guadalajara' => 'Farmacias Guadalajara',
+            'farmacias_similares' => 'Farmacias Similares',
+            'soriana' => 'Soriana',
+            'cfe' => 'CFE',
+            'banamex' => 'Banamex',
+            'bancomer' => 'Bancomer',
+            'santander' => 'Santander',
+            'hsbc' => 'HSBC',
+            'scotiabank' => 'Scotiabank',
+        ];
+
+        // Métodos de tarjeta
+        $cardMethods = [
+            'visa' => 'Tarjeta',
+            'master' => 'Tarjeta',
+            'amex' => 'Tarjeta',
+            'diners' => 'Tarjeta',
+            'elo' => 'Tarjeta',
+            'cabal' => 'Tarjeta',
+            'naranja' => 'Tarjeta',
+            'nativa' => 'Tarjeta',
+            'tarshop' => 'Tarjeta',
+            'cencosud' => 'Tarjeta',
+            'argencard' => 'Tarjeta',
+        ];
+
+        // Otros métodos
+        $otherMethods = [
+            'account_money' => 'Saldo en cuenta',
+            'debit_card' => 'Tarjeta de débito',
+            'credit_card' => 'Tarjeta de crédito',
+            'bank_transfer' => 'Transferencia bancaria',
+            'atm' => 'Cajero automático',
+            'ticket' => 'Ticket',
+        ];
+
+        // Buscar en métodos de efectivo
+        if (isset($cashMethods[$paymentMethodId])) {
+            return $cashMethods[$paymentMethodId];
+        }
+
+        // Buscar en métodos de tarjeta
+        if (isset($cardMethods[$paymentMethodId])) {
+            return $cardMethods[$paymentMethodId];
+        }
+
+        // Buscar en otros métodos
+        if (isset($otherMethods[$paymentMethodId])) {
+            return $otherMethods[$paymentMethodId];
+        }
+
+        // Si no se encuentra, capitalizar la primera letra
+        return ucfirst(str_replace('_', ' ', $paymentMethodId));
+    }
+
+    /**
      * Mapear estados de MercadoPago a estados internos (para webhook)
      */
     private function mapPaymentStatus($mercadoPagoStatus)
@@ -657,13 +745,17 @@ class PaymentController extends Controller
                 $paymentDataToStore = is_array($payment) ? $payment : (array) $payment;
                 $paymentDataToStore['delivery_type'] = $deliveryType;
 
+                // Obtener payment_method_id del pago y mapearlo
+                $paymentMethodId = $payment->payment_method_id ?? $requestData['payment_method_id'] ?? null;
+                $paymentMethod = $this->mapPaymentMethodId($paymentMethodId);
+                
                 // Crear el pedido en la base de datos
                 $order = Order::create([
                     'user_id' => $user->id,
                     'address_id' => $addressId,
                     'total_amount' => $requestData['transaction_amount'],
                     'status' => $orderStatus, // Estado según el estado del pago
-                    'payment_method' => 'mercadopago_integrated',
+                    'payment_method' => $paymentMethod,
                     'external_reference' => $externalReference,
                     'mercadopago_payment_id' => $payment->id,
                     'payment_data' => json_encode($paymentDataToStore)
@@ -1691,9 +1783,19 @@ class PaymentController extends Controller
             $paymentDataToStore = is_array($payment) ? $payment : (array) $payment;
             $paymentDataToStore['delivery_type'] = $deliveryType;
 
+            // Obtener payment_method_id del pago y mapearlo
+            $paymentMethodId = null;
+            if (is_object($payment)) {
+                $paymentMethodId = $payment->payment_method_id ?? null;
+            } elseif (is_array($paymentDataToStore)) {
+                $paymentMethodId = $paymentDataToStore['payment_method_id'] ?? null;
+            }
+            $paymentMethod = $this->mapPaymentMethodId($paymentMethodId);
+
             // Actualizar el pedido con los datos del pago
             $order->update([
-                'mercadopago_payment_id' => $payment->id,
+                'mercadopago_payment_id' => is_object($payment) ? $payment->id : ($payment['id'] ?? null),
+                'payment_method' => $paymentMethod,
                 'payment_data' => json_encode($paymentDataToStore)
             ]);
 
@@ -1832,9 +1934,19 @@ class PaymentController extends Controller
                 $paymentArray['delivery_type'] = $previousPaymentData['delivery_type'];
             }
             
+            // Obtener payment_method_id del pago y mapearlo
+            $paymentMethodId = null;
+            if (is_object($payment)) {
+                $paymentMethodId = $payment->payment_method_id ?? null;
+            } elseif (is_array($paymentArray)) {
+                $paymentMethodId = $paymentArray['payment_method_id'] ?? null;
+            }
+            $paymentMethod = $this->mapPaymentMethodId($paymentMethodId);
+            
             // Actualizar la orden
             $order->update([
                 'status' => $newStatus,
+                'payment_method' => $paymentMethod,
                 'payment_data' => json_encode($paymentArray)
             ]);
 
