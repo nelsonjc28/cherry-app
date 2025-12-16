@@ -78,10 +78,39 @@ const collectProductImageFiles = async (productId, maxImages = 12) => {
 };
 
 /**
+ * Formatear precio para compartir (sin símbolo de peso, solo número)
+ */
+const formatPriceForShare = (price) => {
+  if (!price || price === 0) return '0';
+  return price.toFixed(2).replace(/\.00$/, '');
+};
+
+/**
+ * Generar texto de compartir con formato específico
+ */
+const generateShareText = (product) => {
+  const { title, price, finalPrice, discountPercentage, hasDiscount } = product;
+  
+  let text = `Checa este producto que tenemos para ti *${title}*`;
+  
+  if (hasDiscount && discountPercentage > 0) {
+    // Precio original tachado, precio con descuento y porcentaje
+    text += ` ~$${formatPriceForShare(price)}~ $${formatPriceForShare(finalPrice)} ${discountPercentage}%`;
+  } else {
+    // Solo precio original sin tachar
+    text += ` $${formatPriceForShare(price)}`;
+  }
+  
+  text += ` pregunta por colores y tallas disponibles`;
+  
+  return text;
+};
+
+/**
  * Compartir producto con todas sus imágenes usando Web Share API
  */
 export const shareProductWithImages = async (product) => {
-  const { id, title, price } = product;
+  const { id, title, price, finalPrice, discountPercentage, hasDiscount } = product;
   const productUrl = `${window.location.origin}/producto/${id}`;
 
   try {
@@ -92,23 +121,29 @@ export const shareProductWithImages = async (product) => {
     // Cargar imágenes como Files en memoria
     const imageFiles = await collectProductImageFiles(id, 12);
 
+    // Generar texto de compartir con formato específico
+    const shareText = generateShareText({
+      title,
+      price: price || 0,
+      finalPrice: finalPrice || price || 0,
+      discountPercentage: discountPercentage || 0,
+      hasDiscount: hasDiscount || false
+    });
+
     if (imageFiles.length === 0) {
       // Sin imágenes: al menos comparte texto
       if (navigator.share) {
         await navigator.share({
           title: title,
-          text: `Mira este producto: ${title}${price ? ` - ${price}` : ''}`,
+          text: shareText,
           url: productUrl
         });
       } else {
-        await navigator.clipboard.writeText(productUrl);
+        await navigator.clipboard.writeText(`${shareText}\n\n${productUrl}`);
         if (window.showToast) window.showToast('Enlace copiado al portapapeles', 'success');
       }
       return;
     }
-
-    // Preparar texto para compartir
-    const shareText = `Mira este producto: ${title}${price ? ` - ${price}` : ''}\n\n${productUrl}`;
 
     // Intentar compartir directamente con las imágenes usando Web Share API
     if (navigator.share) {
@@ -168,7 +203,7 @@ export const shareProductWithImages = async (product) => {
       await downloadFileToDevice(file);
       await new Promise(r => setTimeout(r, 200));
     }
-    await navigator.clipboard.writeText(productUrl);
+    await navigator.clipboard.writeText(`${shareText}\n\n${productUrl}`);
     if (window.showToast) {
       window.showToast('Imágenes descargadas. Enlace copiado al portapapeles.', 'success');
     }
@@ -186,7 +221,14 @@ export const shareProductWithImages = async (product) => {
         await downloadFileToDevice(file);
         await new Promise(r => setTimeout(r, 200));
       }
-      await navigator.clipboard.writeText(productUrl);
+      const fallbackShareText = generateShareText({
+        title,
+        price: price || 0,
+        finalPrice: finalPrice || price || 0,
+        discountPercentage: discountPercentage || 0,
+        hasDiscount: hasDiscount || false
+      });
+      await navigator.clipboard.writeText(`${fallbackShareText}\n\n${productUrl}`);
       if (window.showToast) {
         window.showToast('Imágenes descargadas. Enlace copiado.', 'info');
       }

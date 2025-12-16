@@ -77,12 +77,65 @@ const ProductPage = () => {
       
       // Compartir usando las imágenes del producto en S3 (todas las disponibles)
       const { shareProductWithImages } = await import('../utils/shareProductUtils');
+      
+      // Calcular información de precio y descuento directamente
+      const basePrice = product?.precio1 || 0;
+      
+      // Calcular descuento con la misma lógica que calculateDiscountPercentage
+      let discountPercentage = 0;
+      const userOffer = product?.userOffer || userDiscounts[product.id_articulo];
+      const hasUserOffer = Boolean(product?.hasUserOffer || userOffer);
+      
+      if (hasUserOffer && userOffer && userOffer.discount_percentage > 0) {
+        discountPercentage = Math.round(userOffer.discount_percentage);
+      } else if (product?.desc_promo && product.desc_promo > 0) {
+        const reducedDiscount = Math.max(0, product.desc_promo - 10);
+        discountPercentage = Math.round(reducedDiscount);
+      } else if (product?.discount && product.discount > 0) {
+        discountPercentage = Math.round(product.discount);
+      } else if (product?.originalPrice && product?.price && product.originalPrice > product.price) {
+        discountPercentage = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
+      }
+      
+      // Calcular precio final con la misma lógica que calculateFinalPrice
+      let finalPrice = basePrice;
+      if (product?.price && product.price !== basePrice) {
+        finalPrice = product.price;
+      } else if (discountPercentage > 0 && basePrice > 0) {
+        finalPrice = basePrice - (basePrice * (discountPercentage / 100));
+      }
+      
+      const hasDiscount = discountPercentage > 0 && basePrice > finalPrice;
+      
       await shareProductWithImages({
         id: product.id_articulo || product.id || product.codigo,
         title: product.descripcion || 'Producto Cherry',
-        price: product?.precio1 || 0
+        price: basePrice,
+        finalPrice: finalPrice,
+        discountPercentage: hasDiscount ? discountPercentage : 0,
+        hasDiscount: hasDiscount
       });
-      return;
+    } catch (error) {
+      console.error("Error al compartir:", error);
+      
+      let errorMessage = "No se pudo compartir el producto.";
+      
+      if (error.message) {
+        errorMessage = `Error: ${error.message}`;
+      }
+      
+      if (window.showToast) {
+        window.showToast(errorMessage, "error");
+      }
+    }
+  }, [product, userDiscounts]);
+
+  const handleShareImage = useCallback(async () => {
+    try {
+      // Validar que el producto existe
+      if (!product) {
+        throw new Error("No hay información del producto disponible");
+      }
 
       // Mostrar mensaje de carga
       if (window.showToast) {
@@ -430,7 +483,7 @@ const ProductPage = () => {
         window.showToast(errorMessage, "error");
       }
     }
-  }, [product]);
+  }, [product, userDiscounts]);
 
   // Rating states
   // Rating data ahora viene del producto directamente
