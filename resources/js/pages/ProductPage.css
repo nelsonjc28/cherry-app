@@ -1116,6 +1116,11 @@
     display: none;
   }
 
+  /* Mostrar texto del botón de compartir en móvil */
+  .catalog-page__whatsapp-text {
+    display: inline !important;
+  }
+
   .product-page__breadcrumb {
     margin-bottom: 0;
     font-size: 12px;

@@ -86,10 +86,10 @@ export const shareProductWithImages = async (product) => {
 
   try {
     if (window.showToast) {
-      window.showToast('Descargando imágenes del producto...', 'info');
+      window.showToast('Cargando imágenes del producto...', 'info');
     }
 
-    // Descargar imágenes como Files
+    // Cargar imágenes como Files en memoria
     const imageFiles = await collectProductImageFiles(id, 12);
 
     if (imageFiles.length === 0) {
@@ -107,43 +107,95 @@ export const shareProductWithImages = async (product) => {
       return;
     }
 
-    // 1) Descargar al dispositivo (secuencial para evitar bloqueos del navegador)
-    for (const file of imageFiles) {
-      await downloadFileToDevice(file);
-      // Pequeño delay entre descargas
-      await new Promise(r => setTimeout(r, 200));
-    }
-
-    // 2) Luego compartir imágenes con el texto
+    // Preparar texto para compartir
     const shareText = `Mira este producto: ${title}${price ? ` - ${price}` : ''}\n\n${productUrl}`;
 
+    // Intentar compartir directamente con las imágenes usando Web Share API
     if (navigator.share) {
+      // Verificar si puede compartir archivos
       if (navigator.canShare && navigator.canShare({ files: imageFiles })) {
-        await navigator.share({
-          title: title,
-          text: shareText,
-          files: imageFiles
-        });
-      } else {
+        try {
+          await navigator.share({
+            title: title,
+            text: shareText,
+            files: imageFiles
+          });
+          if (window.showToast) window.showToast('¡Producto compartido!', 'success');
+          return;
+        } catch (shareError) {
+          // Si el usuario cancela, no hacer nada más
+          if (shareError.name === 'AbortError') {
+            return;
+          }
+          // Si hay otro error, intentar compartir solo texto
+          console.warn('Error al compartir con archivos, intentando solo texto:', shareError);
+        }
+      }
+      
+      // Si no puede compartir archivos o falló, intentar compartir solo texto/URL
+      try {
         await navigator.share({
           title: title,
           text: shareText,
           url: productUrl
         });
+        // Si compartió solo texto, descargar las imágenes como fallback
+        if (window.showToast) {
+          window.showToast('Compartido. Descargando imágenes...', 'info');
+        }
+        // Descargar imágenes secuencialmente
+        for (const file of imageFiles) {
+          await downloadFileToDevice(file);
+          await new Promise(r => setTimeout(r, 200));
+        }
+        if (window.showToast) {
+          window.showToast('Imágenes descargadas', 'success');
+        }
+        return;
+      } catch (textShareError) {
+        if (textShareError.name === 'AbortError') {
+          return;
+        }
+        throw textShareError;
       }
-      if (window.showToast) window.showToast('¡Imágenes descargadas y producto compartido!', 'success');
-    } else {
-      // Fallback: copiar URL
-      await navigator.clipboard.writeText(productUrl);
-      if (window.showToast) window.showToast('Imágenes descargadas. Enlace copiado al portapapeles.', 'info');
+    }
+
+    // Si no hay soporte para navigator.share, descargar las imágenes y copiar URL
+    if (window.showToast) {
+      window.showToast('Descargando imágenes...', 'info');
+    }
+    for (const file of imageFiles) {
+      await downloadFileToDevice(file);
+      await new Promise(r => setTimeout(r, 200));
+    }
+    await navigator.clipboard.writeText(productUrl);
+    if (window.showToast) {
+      window.showToast('Imágenes descargadas. Enlace copiado al portapapeles.', 'success');
     }
   } catch (error) {
     if (error.name === 'AbortError') return;
-    // Fallback final
+    console.error('Error al compartir producto:', error);
+    
+    // Fallback final: descargar imágenes y copiar URL
     try {
+      if (window.showToast) {
+        window.showToast('Descargando imágenes...', 'info');
+      }
+      const imageFiles = await collectProductImageFiles(id, 12);
+      for (const file of imageFiles) {
+        await downloadFileToDevice(file);
+        await new Promise(r => setTimeout(r, 200));
+      }
       await navigator.clipboard.writeText(productUrl);
-      if (window.showToast) window.showToast('No se pudo compartir. Enlace copiado.', 'error');
-    } catch {}
+      if (window.showToast) {
+        window.showToast('Imágenes descargadas. Enlace copiado.', 'info');
+      }
+    } catch (fallbackError) {
+      console.error('Error en fallback:', fallbackError);
+      if (window.showToast) {
+        window.showToast('No se pudo compartir. Intenta nuevamente.', 'error');
+      }
+    }
   }
 };
 
