@@ -57,6 +57,10 @@ Route::post('/password/reset', [App\Http\Controllers\Api\PasswordResetController
 Route::get('/reviews/product/{productId}', [App\Http\Controllers\ReviewController::class, 'getProductReviews']);
 Route::get('/reviews/approved', [App\Http\Controllers\ReviewController::class, 'getApprovedReviews']);
 
+// Public product image routes (no auth required) - Proxy/cache para imágenes de productos
+Route::get('/product-images/{productId}/{imageNumber?}', [App\Http\Controllers\Api\ProductImageController::class, 'serveImage'])->where(['productId' => '[0-9A-Za-z]+', 'imageNumber' => '[0-9]+']);
+Route::get('/product-images', [App\Http\Controllers\Api\ProductImageController::class, 'getProductImages']);
+
 // User discount routes (requires auth - flexible)
 Route::middleware(['auth:api,web'])->post('/user-discounts/check', [App\Http\Controllers\Api\UserDiscountController::class, 'checkUserDiscounts']);
 Route::middleware(['auth:api,web'])->get('/user-offer-products', [App\Http\Controllers\Api\UserDiscountController::class, 'getUserOfferProducts']);

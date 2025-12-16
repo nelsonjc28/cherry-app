@@ -43,6 +43,7 @@ const downloadFileToDevice = async (file) => {
 
 /**
  * Descargar todas las imágenes disponibles de un producto como Files
+ * Usa el endpoint del servidor que cachea las imágenes localmente
  * - Recorre {id}_{n}.jpg hasta maxImages
  * - Se detiene tras 2 fallos consecutivos una vez encontrada al menos 1
  */
@@ -50,8 +51,12 @@ const collectProductImageFiles = async (productId, maxImages = 12) => {
   const files = [];
   let consecutiveMisses = 0;
 
+  // Usar endpoint del servidor que cachea las imágenes
+  const baseUrl = `${window.location.origin}/api/product-images`;
+
   for (let i = 1; i <= maxImages; i++) {
-    const url = `https://cherry-fotos.s3.amazonaws.com/shopify/${productId}/${productId}_${i}.jpg`;
+    // Usar endpoint del servidor en lugar de S3 directamente
+    const url = `${baseUrl}/${productId}/${i}`;
     const file = await fetchImageAsFile(url, `${productId}_${i}.jpg`);
     if (file) {
       files.push(file);
@@ -62,7 +67,7 @@ const collectProductImageFiles = async (productId, maxImages = 12) => {
     }
   }
 
-  // Fallback: intentar al menos la primera imagen via helper existente
+  // Fallback: intentar al menos la primera imagen desde S3 directamente
   if (files.length === 0) {
     const fallback = generateS3ImageUrls(productId, 1);
     const file = await fetchImageAsFile(fallback[0], `${productId}_1.jpg`);

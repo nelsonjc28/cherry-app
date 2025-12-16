@@ -1281,9 +1281,8 @@ const ProductPage = () => {
               variant="filled"
               size="small"
               onClick={handleShareCatalog}
-              style={{ display: 'none' }}
             >
-              <span className="catalog-page__whatsapp-text"></span>
+              <span className="catalog-page__whatsapp-text">Compartir a clientes</span>
             </CustomButton>
           </div>
 
@@ -1327,7 +1326,6 @@ const ProductPage = () => {
                 variant="filled"
                 size="medium"
                 onClick={handleShareCatalog}
-                style={{ display: 'none' }}
               >
                 <span className="catalog-page__whatsapp-text">Compartir a clientes</span>
               </CustomButton>
