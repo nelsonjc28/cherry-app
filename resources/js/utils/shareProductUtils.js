@@ -88,8 +88,12 @@ const formatPriceForShare = (price) => {
 /**
  * Generar texto de compartir con formato específico
  */
-const generateShareText = (product) => {
-  const { title, price, finalPrice, discountPercentage, hasDiscount } = product;
+const generateShareText = (productData) => {
+  const title = productData.title || 'Producto';
+  const price = productData.price || 0;
+  const finalPrice = productData.finalPrice || price || 0;
+  const discountPercentage = productData.discountPercentage || 0;
+  const hasDiscount = productData.hasDiscount || false;
   
   let text = `Checa este producto que tenemos para ti *${title}*`;
   
@@ -110,7 +114,13 @@ const generateShareText = (product) => {
  * Compartir producto con todas sus imágenes usando Web Share API
  */
 export const shareProductWithImages = async (product) => {
-  const { id, title, price, finalPrice, discountPercentage, hasDiscount } = product;
+  const id = product.id;
+  const title = product.title || 'Producto Cherry';
+  const price = product.price || 0;
+  const finalPrice = product.finalPrice || product.price || 0;
+  const discountPercentage = product.discountPercentage || 0;
+  const hasDiscount = product.hasDiscount || false;
+  
   const productUrl = `${window.location.origin}/producto/${id}`;
 
   try {
@@ -124,10 +134,10 @@ export const shareProductWithImages = async (product) => {
     // Generar texto de compartir con formato específico
     const shareText = generateShareText({
       title,
-      price: price || 0,
-      finalPrice: finalPrice || price || 0,
-      discountPercentage: discountPercentage || 0,
-      hasDiscount: hasDiscount || false
+      price,
+      finalPrice,
+      discountPercentage,
+      hasDiscount
     });
 
     if (imageFiles.length === 0) {
@@ -216,13 +226,13 @@ export const shareProductWithImages = async (product) => {
       if (window.showToast) {
         window.showToast('Descargando imágenes...', 'info');
       }
-      const imageFiles = await collectProductImageFiles(id, 12);
-      for (const file of imageFiles) {
+      const fallbackImageFiles = await collectProductImageFiles(id, 12);
+      for (const file of fallbackImageFiles) {
         await downloadFileToDevice(file);
         await new Promise(r => setTimeout(r, 200));
       }
       const fallbackShareText = generateShareText({
-        title,
+        title: title || 'Producto Cherry',
         price: price || 0,
         finalPrice: finalPrice || price || 0,
         discountPercentage: discountPercentage || 0,

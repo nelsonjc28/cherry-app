@@ -267,15 +267,15 @@ const Header = () => {
     e.preventDefault();
     if (searchTerm.trim()) {
       // Enviar el string completo como término de búsqueda general
-      const searchParams = new URLSearchParams();
-      searchParams.set('q', searchTerm.trim());
+      const urlSearchParams = new URLSearchParams();
+      urlSearchParams.set('q', searchTerm.trim());
 
       // Cerrar el menú móvil si está abierto
       if (mobileMenuOpen) {
         setMobileMenuOpen(false);
       }
 
-      navigate(`/buscar?${searchParams.toString()}`);
+      navigate(`/buscar?${urlSearchParams.toString()}`);
       // No limpiar searchTerm para que se mantenga en el input
     }
   };
@@ -354,9 +354,9 @@ const Header = () => {
       e.preventDefault(); // Prevenir la navegación del Link
       const singularName = pluralToSingular(item.name);
       setSearchTerm(singularName);
-      const searchParams = new URLSearchParams();
-      searchParams.set('q', singularName);
-      navigate(`/buscar?${searchParams.toString()}`);
+      const urlSearchParams = new URLSearchParams();
+      urlSearchParams.set('q', singularName);
+      navigate(`/buscar?${urlSearchParams.toString()}`);
     }
     // Para otros casos, dejar que el Link navegue normalmente
   };

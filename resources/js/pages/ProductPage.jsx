@@ -68,6 +68,9 @@ const ProductPage = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // User discounts hook - debe estar antes de handleShareCatalog
+  const { userDiscounts, loading: discountsLoading } = useUserDiscounts(product ? [product.id_articulo] : []);
+
   const handleShareCatalog = useCallback(async () => {
     try {
       // Validar que el producto existe
@@ -503,9 +506,6 @@ const ProductPage = () => {
 
   // Cart store
   const { addToCart, isLoading: isAddingToCart, items: cartItems, totalPrice: cartTotalPrice } = useCartStore();
-
-  // User discounts hook
-  const { userDiscounts, loading: discountsLoading } = useUserDiscounts(product ? [product.id_articulo] : []);
 
   // Load product data from local database
   useEffect(() => {
