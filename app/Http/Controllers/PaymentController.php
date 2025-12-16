@@ -124,20 +124,11 @@ class PaymentController extends Controller
 
         DB::commit();
 
-        // Recargar el pedido con relaciones para el email
+        // Recargar el pedido con relaciones
         $order->load(['user', 'address', 'items']);
 
-        // Enviar email de confirmación al cliente (también en estado pending para pruebas)
-        try {
-            Mail::to($user->email)->send(new OrderConfirmationMail($order));
-            Log::info('Email de confirmación enviado al cliente (createPreference - pending)', ['order_id' => $order->id]);
-        } catch (\Exception $e) {
-            Log::error('Error al enviar email de confirmación (createPreference)', [
-                'order_id' => $order->id,
-                'user_email' => $user->email,
-                'error' => $e->getMessage()
-            ]);
-        }
+        // NO enviar email aquí - se enviará cuando el pago sea aprobado desde el webhook
+        // Esto evita envíos duplicados de correo
 
         try {
             // Calcular suma de items para verificar diferencia con total_amount
@@ -237,20 +228,11 @@ class PaymentController extends Controller
 
         DB::commit();
 
-            // Recargar el pedido con relaciones para el email
+            // Recargar el pedido con relaciones
             $order->load(['user', 'address', 'items']);
 
-            // Enviar email de confirmación al cliente (también en estado pending para pruebas)
-            try {
-                Mail::to($user->email)->send(new OrderConfirmationMail($order));
-                Log::info('Email de confirmación enviado al cliente (createPreference - pending)', ['order_id' => $order->id]);
-            } catch (\Exception $e) {
-                Log::error('Error al enviar email de confirmación (createPreference)', [
-                    'order_id' => $order->id,
-                    'user_email' => $user->email,
-                    'error' => $e->getMessage()
-                ]);
-            }
+            // NO enviar email aquí - se enviará cuando el pago sea aprobado desde el webhook
+            // Esto evita envíos duplicados de correo
 
         return response()->json([
             'success' => true,
@@ -390,11 +372,27 @@ class PaymentController extends Controller
         // Verificar que realmente cambió de estado para evitar procesamiento duplicado
         // Recargar el estado actual desde la BD para evitar condiciones de carrera
         $order->refresh();
+        
+        // Si el estado ya es 'pagado' y no cambió, significa que ya se procesó
         if ($order->status === 'pagado' && $previousStatus === 'pagado') {
             Log::info('Pago ya fue procesado anteriormente, omitiendo procesamiento duplicado', [
                 'order_id' => $order->id,
                 'current_status' => $order->status,
                 'previous_status' => $previousStatus
+            ]);
+            return;
+        }
+        
+        // Verificar si ya se envió el correo revisando payment_data
+        $paymentData = $order->payment_data ?? [];
+        if (is_string($paymentData)) {
+            $paymentData = json_decode($paymentData, true) ?? [];
+        }
+        
+        // Si ya se marcó como email enviado, no enviar de nuevo
+        if (isset($paymentData['confirmation_email_sent']) && $paymentData['confirmation_email_sent'] === true) {
+            Log::info('Email de confirmación ya fue enviado anteriormente, omitiendo envío duplicado', [
+                'order_id' => $order->id
             ]);
             return;
         }
@@ -407,7 +405,7 @@ class PaymentController extends Controller
         
         // 1. Enviar información a la API externa (ella se encarga del inventario)
         // Lanzará excepción si hay error (sin try-catch para ver el error completo)
-                            $this->externalSalesService->sendSaleToExternalApi($order);
+        $this->externalSalesService->sendSaleToExternalApi($order);
         Log::info('Venta enviada a API externa exitosamente', ['order_id' => $order->id]);
         
         // 2. Enviar email de confirmación al cliente
@@ -415,14 +413,19 @@ class PaymentController extends Controller
         $order->load(['user', 'address', 'items']);
         try {
             Mail::to($order->user->email)->send(new OrderConfirmationMail($order));
+            
+            // Marcar en payment_data que el correo fue enviado para evitar duplicados
+            $paymentData['confirmation_email_sent'] = true;
+            $order->update(['payment_data' => json_encode($paymentData)]);
+            
             Log::info('Email de confirmación enviado al cliente (webhook - approved)', ['order_id' => $order->id]);
-                        } catch (\Exception $e) {
+        } catch (\Exception $e) {
             Log::error('Error al enviar email de confirmación (webhook - approved)', [
-                                'order_id' => $order->id,
+                'order_id' => $order->id,
                 'user_email' => $order->user->email ?? 'N/A',
-                                'error' => $e->getMessage()
-                            ]);
-                        }
+                'error' => $e->getMessage()
+            ]);
+        }
         
         // 3. Crear notificación para el usuario
         try {
@@ -787,24 +790,9 @@ class PaymentController extends Controller
                 // Recargar el pedido con relaciones
                 $order->load(['user', 'address', 'items']);
 
-                // Solo enviar email si el pago NO es approved (el webhook lo hará cuando sea approved)
-                // Para pagos pending, enviar email inmediatamente
-                if ($payment->status !== 'approved') {
-                    try {
-                        Mail::to($user->email)->send(new OrderConfirmationMail($order));
-                        Log::info('Email de confirmación enviado al cliente (pago integrado - pending)', [
-                            'order_id' => $order->id,
-                            'payment_status' => $payment->status
-                        ]);
-                    } catch (\Exception $e) {
-                        Log::error('Error al enviar email de confirmación (pago integrado)', [
-                            'order_id' => $order->id,
-                            'user_email' => $user->email,
-                            'payment_status' => $payment->status,
-                            'error' => $e->getMessage()
-                        ]);
-                    }
-                }
+                // NO enviar email aquí - el webhook se encargará de enviar el correo cuando el pago sea aprobado
+                // Esto evita envíos duplicados de correo
+                // Para pagos pending/in_process, el webhook también los manejará cuando cambien de estado
 
                 // Solo enviar a API externa si el pago fue aprobado
                 if ($payment->status === 'approved') {
