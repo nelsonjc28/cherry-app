@@ -2,7 +2,7 @@ import { Helmet } from 'react-helmet-async';
 import { useState } from "react";
 import { useNavigate } from 'react-router-dom';
 import "./RegisterPage.css";
-import { getIconPath, getImagePath } from '../../utils/assetPaths';
+import { getIconPath, getImagePath, getHeroIconPath } from '../../utils/assetPaths';
 import { Link } from 'react-router-dom';
 import CustomButton from '../../components/CustomButton';
 import useUserStore from '../../store/userStore';
@@ -330,6 +330,41 @@ const RegisterPage = () => {
       <Helmet>
         <title>Registro | Cherry Central</title>
       </Helmet>
+
+      {/* Banner de Afiliación */}
+      <section className="register-banner" aria-labelledby="register-banner-heading">
+        <div className="register-banner__image">
+          <img src={`${window.location.origin}/images/AuthPages/register-banner-girl.png`} alt="Affiliate Girl" />
+          <div className="register-banner__globes">
+            <div className="register-banner__globe register-banner__globe--big"></div>
+            <div className="register-banner__globe register-banner__globe--small"></div>
+          </div>
+        </div>
+
+        <div className="register-banner__content">
+          <div className="register-banner__logo">
+            <img src={`${window.location.origin}/images/logo.svg`} alt="Cherry" width={175} />
+          </div>
+          <p className="register-banner__steps">
+            en <span>3 pasos</span>
+          </p>
+          <h2 id="register-banner-heading" className="register-banner__title">
+            ¡Afíliate ahora mismo y comienza tu propio negocio!
+          </h2>
+          <Link
+            to="/registro"
+            className="register-banner__btn"
+            title="Únete a nuestro programa de afiliados y comienza tu negocio"
+            aria-label="Afiliate a Cherry Central y comienza tu negocio"
+          >
+            Afiliate ahora
+            <svg width="5" height="9" viewBox="0 0 5 9" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4.86328 4.39453C4.99349 4.26432 4.99349 4.08203 4.86328 3.95182L1.0612 0.0976563C0.93099 -0.0325521 0.722656 -0.0325521 0.61849 0.0976563L0.0976562 0.61849C-0.0325521 0.722656 -0.0325521 0.93099 0.0976562 1.0612L3.17057 4.16016L0.0976562 7.28516C-0.0325521 7.41536 -0.0325521 7.59766 0.0976562 7.72786L0.61849 8.2487C0.722656 8.37891 0.93099 8.37891 1.0612 8.2487L4.86328 4.39453Z" fill="#F5F5FF" />
+            </svg>
+          </Link>
+        </div>
+      </section>
+
       <div className="register-page">
         <div className="container">
           <div className="register-content">
