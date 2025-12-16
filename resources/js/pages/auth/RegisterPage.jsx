@@ -332,7 +332,7 @@ const RegisterPage = () => {
       </Helmet>
 
       {/* Banner de Afiliación */}
-      <section className="register-banner" aria-labelledby="register-banner-heading">
+      <section className="register-banner background-gradient" aria-labelledby="register-banner-heading">
         <div className="register-banner__image">
           <img src={`${window.location.origin}/images/AuthPages/register-banner-girl.png`} alt="Affiliate Girl" />
           <div className="register-banner__globes">
@@ -343,7 +343,7 @@ const RegisterPage = () => {
 
         <div className="register-banner__content">
           <div className="register-banner__logo">
-            <img src={`${window.location.origin}/images/logo.svg`} alt="Cherry" width={175} />
+            <img src={`${window.location.origin}/images/logo.svg`} alt="Cherry" width={150} />
           </div>
           <p className="register-banner__steps">
             en <span>3 pasos</span>
@@ -486,6 +486,26 @@ const RegisterPage = () => {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Banner de Afiliación 2 */}
+      <section className="register-banner-second" aria-labelledby="register-banner-bottom-heading">
+        <div className="register-banner-second__image">
+          <img src={`${window.location.origin}/images/AuthPages/phone-banner.png`} alt="Affiliate Phone" />
+          <div className="register-banner-second__globes">
+            <div className="register-banner-second__globe register-banner-second__globe--big"></div>
+            <div className="register-banner-second__globe register-banner-second__globe--small"></div>
+          </div>
+        </div>
+
+        <div className="register-banner-second__content">
+          <p className="register-banner-second__steps">
+            <span>¡Afíliate hoy mismo!</span>
+          </p>
+          <h2 id="register-banner-bottom-heading" className="register-banner-second__title">
+            Y sé parte de la familia Cherry y lidera tu futuro como empresario
+          </h2>
         </div>
       </section>
 
