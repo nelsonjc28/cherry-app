@@ -316,13 +316,6 @@
   left: 150px;
 }
 
- /* Register page*/ 
-.register-page {
-  min-height: 100vh;
-  padding: 15px 0;
-  background-color: var(--background-color);
-}
-
 /* Error message styles */
 .error-message {
   color: #dc3545;
@@ -387,10 +380,11 @@
   font-size: 1.2rem;
 }
 
-.register-right {
+.register-page-form {
+  min-height: 100vh;
+  padding: 15px;
   background-color: #B8B7B7;
   border-radius: 8px;
-  padding: 30px 14px 15px 14px;
 }
 
 .register-form-container {
@@ -834,9 +828,6 @@
   }
 
   /*Register page*/
-  .register-page {
-    padding: 30px 0;
-  }
 
   .register-content {
     flex-direction: row;
@@ -862,9 +853,9 @@
     font-size: 1rem;
   }
 
-  .register-right {
+  .register-page-form {
     flex: 1;
-    padding: 20px 8px;
+    padding: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
