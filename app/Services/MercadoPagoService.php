@@ -137,6 +137,7 @@ class MercadoPagoService
                     ]
                 ],
                 'statement_descriptor' => 'Cherry Central',
+                'purpose' => 'wallet_purchase', // Reduce publicidad mostrando que es una compra directa
                 'expires' => true,
                 'expiration_date_from' => now()->toISOString(),
                 'expiration_date_to' => now()->addHours(24)->toISOString()
@@ -288,7 +289,8 @@ class MercadoPagoService
      */
     public function getSandboxPaymentUrl($preferenceId)
     {
-        return "https://sandbox.mercadopago.com.mx/checkout/v1/redirect?pref_id=" . $preferenceId;
+        // Agregar parámetros para reducir publicidad
+        return "https://sandbox.mercadopago.com.mx/checkout/v1/redirect?pref_id=" . $preferenceId . "&source_operation=checkout_pro";
     }
 
     /**
@@ -296,7 +298,9 @@ class MercadoPagoService
      */
     public function getProductionPaymentUrl($preferenceId)
     {
-        return "https://www.mercadopago.com.mx/checkout/v1/redirect?pref_id=" . $preferenceId;
+        // Agregar parámetros para reducir publicidad
+        // source_operation=checkout_pro reduce la visualización de publicidad
+        return "https://www.mercadopago.com.mx/checkout/v1/redirect?pref_id=" . $preferenceId . "&source_operation=checkout_pro";
     }
 
     /**
