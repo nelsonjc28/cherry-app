@@ -28,6 +28,10 @@ class ExternalSalesService
         $paymentData = $order->payment_data ?? [];
         $deliveryType = $paymentData['delivery_type'] ?? ($address ? 'envio' : 'retiro');
         
+        // Normalizar método de envío para la API externa
+        // 'envio' = Envío a domicilio, 'retiro' = Retiro en tienda
+        $metodoEnvio = $deliveryType === 'retiro' ? 'RETIRO EN TIENDA' : 'ENVIO A DOMICILIO';
+        
         // Si es retiro en tienda y no hay address, usar dirección de la tienda
         if ($deliveryType === 'retiro' && !$address) {
             $contactInfo = ContactInfo::getContactInfo();
@@ -148,8 +152,28 @@ class ExternalSalesService
         $clienteData = $this->prepareClienteData($user, $address, $deliveryType);
         
         // Calcular importes
-        $costoEnvio = 0; // Por ahora 0, se puede calcular después
         $importeTotal = $importeNeto - $descuentos;
+        
+        // Obtener costo de envío desde payment_data o calcularlo
+        // El costo de envío puede venir en payment_data['shipping_amount'] o calcularse
+        // como la diferencia entre total_amount y importeTotal
+        $costoEnvio = 0;
+        if (isset($paymentData['shipping_amount'])) {
+            $costoEnvio = (float) $paymentData['shipping_amount'];
+        } else {
+            // Calcular como diferencia entre total_amount y importeTotal
+            // Si total_amount > importeTotal, la diferencia es el costo de envío
+            $totalAmount = (float) $order->total_amount;
+            if ($totalAmount > $importeTotal) {
+                $costoEnvio = $totalAmount - $importeTotal;
+            }
+        }
+        
+        // Si es retiro en tienda, el costo de envío siempre es 0
+        if ($deliveryType === 'retiro') {
+            $costoEnvio = 0;
+        }
+        
         $importeFinal = $importeTotal + $costoEnvio;
         
         // Validar que importeFinal sea válido
@@ -180,6 +204,7 @@ class ExternalSalesService
                 'tipoPago' => 'MP' // MercadoPago
             ],
             'cliente' => $clienteData,
+            'metodoEnvio' => $metodoEnvio, // Método de envío: 'ENVIO A DOMICILIO' o 'RETIRO EN TIENDA'
             'decto1' => 0.0,
             'impoDecto1' => 0.0,
             'refDecto1' => null,
@@ -343,11 +368,8 @@ class ExternalSalesService
         $streetAddress = $address->street_address ?? '';
         $streetParts = $this->parseStreetAddress($streetAddress);
         
-        // Si es retiro en tienda, agregar nota en el nombre
+        // Nombre del cliente sin concatenar método de envío (ya va en campo separado)
         $nombre = trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? ''));
-        if ($deliveryType === 'retiro') {
-            $nombre .= ' (RETIRO EN TIENDA)';
-        }
         
         // Estructura simplificada según la especificación de la API externa
         // Usar 'id' en lugar de 'id_cliente' con el número original del usuario

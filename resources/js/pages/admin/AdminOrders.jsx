@@ -335,8 +335,7 @@ const AdminOrders = () => {
                     <td className="order-date-cell">{dateStr}</td>
                     <td className="order-time-cell">{timeStr}</td>
                     <td className="order-customer-cell">
-                      <div className="customer-name">{order.customerName}</div>
-                      <div className="customer-email">{order.customerEmail}</div>
+                      {order.customerName}
                     </td>
                     <td className="order-pieces-cell">{totalPieces}</td>
                     <td className="order-total-cell">{formatCurrency(order.totalAmount)}</td>

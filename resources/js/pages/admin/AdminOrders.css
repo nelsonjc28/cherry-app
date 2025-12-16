@@ -198,13 +198,13 @@
 }
 
 .admin-orders__table th:nth-child(1) { width: 10%; } /* No. de pedido */
-.admin-orders__table th:nth-child(2) { width: 9%; }  /* Fecha */
-.admin-orders__table th:nth-child(3) { width: 8%; }  /* Hora */
-.admin-orders__table th:nth-child(4) { width: 20%; } /* Cliente */
+.admin-orders__table th:nth-child(2) { width: 8%; }  /* Fecha */
+.admin-orders__table th:nth-child(3) { width: 7%; }  /* Hora */
+.admin-orders__table th:nth-child(4) { width: 30%; } /* Cliente - Más ancho */
 .admin-orders__table th:nth-child(5) { width: 8%; }  /* Cant. piezas */
 .admin-orders__table th:nth-child(6) { width: 10%; } /* Total */
-.admin-orders__table th:nth-child(7) { width: 18%; } /* Estatus */
-.admin-orders__table th:nth-child(8) { width: 17%; } /* Acciones */
+.admin-orders__table th:nth-child(7) { width: 15%; } /* Estatus */
+.admin-orders__table th:nth-child(8) { width: 12%; } /* Acciones */
 
 .admin-orders__table tbody tr {
   border-bottom: 1px solid #e9ecef;
@@ -243,22 +243,8 @@
 }
 
 .order-customer-cell {
-  max-width: 100%;
-}
-
-.customer-name {
   font-weight: 500;
   color: #333;
-  margin-bottom: 2px;
-  font-size: 13px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.customer-email {
-  font-size: 11px;
-  color: #666;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
