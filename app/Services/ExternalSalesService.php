@@ -54,8 +54,8 @@ class ExternalSalesService
         
         // Obtener número de pedido (usar el ID del pedido)
         $numeroPedido = $order->id;
-        // Usar formato "PV" como en el ejemplo de la API externa
-        $nombrePedido = 'PV' . str_pad($numeroPedido, 4, '0', STR_PAD_LEFT);
+        // Usar formato "CD" para el nombre del pedido
+        $nombrePedido = 'CD' . str_pad($numeroPedido, 4, '0', STR_PAD_LEFT);
         
         // Preparar items con idArtd e idArticulo
         // IMPORTANTE: Por cada talla/color comprada se envía un item separado
