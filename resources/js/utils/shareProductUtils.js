@@ -157,50 +157,63 @@ export const shareProductWithImages = async (product) => {
 
     // Intentar compartir directamente con las imágenes usando Web Share API
     if (navigator.share) {
-      // Verificar si puede compartir archivos
-      if (navigator.canShare && navigator.canShare({ files: imageFiles })) {
-        try {
-          await navigator.share({
-            title: title,
-            text: shareText,
-            files: imageFiles
-          });
-          if (window.showToast) window.showToast('¡Producto compartido!', 'success');
-          return;
-        } catch (shareError) {
-          // Si el usuario cancela, no hacer nada más
-          if (shareError.name === 'AbortError') {
-            return;
-          }
-          // Si hay otro error, intentar compartir solo texto
-          console.warn('Error al compartir con archivos, intentando solo texto:', shareError);
-        }
-      }
-      
-      // Si no puede compartir archivos o falló, intentar compartir solo texto/URL
+      // Estrategia: Compartir primero el texto para asegurar que se incluya en WhatsApp
+      // WhatsApp a menudo ignora el texto cuando se comparten archivos directamente
       try {
+        // Primero compartir el texto con la URL
         await navigator.share({
           title: title,
-          text: shareText,
+          text: `${shareText}\n\n${productUrl}`,
           url: productUrl
         });
-        // Si compartió solo texto, descargar las imágenes como fallback
+        
+        // Luego descargar las imágenes para que el usuario pueda adjuntarlas manualmente
         if (window.showToast) {
-          window.showToast('Compartido. Descargando imágenes...', 'info');
+          window.showToast('Texto compartido. Descargando imágenes...', 'info');
         }
+        
+        // Pequeño delay para que el usuario vea el mensaje
+        await new Promise(r => setTimeout(r, 500));
+        
         // Descargar imágenes secuencialmente
         for (const file of imageFiles) {
           await downloadFileToDevice(file);
           await new Promise(r => setTimeout(r, 200));
         }
+        
         if (window.showToast) {
-          window.showToast('Imágenes descargadas', 'success');
+          window.showToast('Imágenes descargadas. Puedes adjuntarlas manualmente.', 'success');
         }
         return;
       } catch (textShareError) {
+        // Si el usuario cancela, no hacer nada más
         if (textShareError.name === 'AbortError') {
           return;
         }
+        
+        // Si falla compartir texto, intentar compartir con archivos como fallback
+        console.warn('Error al compartir texto, intentando con archivos:', textShareError);
+        
+        // Verificar si puede compartir archivos
+        if (navigator.canShare && navigator.canShare({ files: imageFiles })) {
+          try {
+            // Intentar compartir con texto y archivos juntos
+            await navigator.share({
+              title: title,
+              text: shareText,
+              files: imageFiles
+            });
+            if (window.showToast) window.showToast('¡Producto compartido!', 'success');
+            return;
+          } catch (shareError) {
+            if (shareError.name === 'AbortError') {
+              return;
+            }
+            throw shareError;
+          }
+        }
+        
+        // Si no puede compartir archivos, lanzar el error original
         throw textShareError;
       }
     }
