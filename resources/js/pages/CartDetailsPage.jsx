@@ -783,44 +783,6 @@ const CartDetailsPage = () => {
             />
             )}
             
-            {deliveryType === 'retiro' && (
-              <div className="cart-details__store-address">
-                <div className="cart-details__section-title">Dirección de entrega</div>
-                {/* Mapa de la tienda - Desktop */}
-                {storeMapUrl && (
-                  <div className="cart-details__store-map-wrapper cart-details__store-map-wrapper--desktop">
-                    <iframe
-                      title="Ubicación de la tienda"
-                      src={storeMapUrl}
-                      width="100%"
-                      height="250"
-                      style={{ border: 0, borderRadius: '8px' }}
-                      allowFullScreen=""
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                    ></iframe>
-                  </div>
-                )}
-                {/* Botón para abrir en Google Maps - Mobile */}
-                {storeAddress && (
-                  <div className="cart-details__store-map-button cart-details__store-map-button--mobile">
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                        `${storeAddress.street_address || ''} ${storeAddress.city || ''} ${storeAddress.country || ''}`.trim()
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="cart-details__google-maps-btn"
-                    >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '8px' }}>
-                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="white"/>
-                      </svg>
-                      Ver en Google Maps
-                    </a>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Datos de la Tarjeta (resumen con formulario integrado) */}
             <CartOrderSummary
