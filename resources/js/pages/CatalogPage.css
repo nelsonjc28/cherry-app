@@ -16,17 +16,16 @@
 
 .catalog-page__title-section {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   gap: 0.5rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid rgba(231, 231, 231, 1);
+  flex-shrink: 0;
 }
 
 .catalog-page__content-texts {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 4px;
+  margin-left: 0.5rem;
 }
 
 .catalog-page__action-buttons {
@@ -35,7 +34,7 @@
   gap: 8px;
 }
 
-.catalog-page__pdf-btn {
+.catalog-page__pdf-button-wrapper .filters-btn {
   background: #EA2630 !important;
   color: white !important;
   border: 1px solid #EA2630 !important;
@@ -45,7 +44,7 @@
   min-height: 32px;
 }
 
-.catalog-page__pdf-btn:hover {
+.catalog-page__pdf-button-wrapper .filters-btn:hover {
   background: #c21828 !important;
   border-color: #c21828 !important;
   transform: translateY(-1px);
@@ -84,12 +83,52 @@
   gap: 1rem;
 }
 
-.catalog-page__sort-section {
+.catalog-page__header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
+  width: 100%;
+  position: relative;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(231, 231, 231, 1);
+}
+
+.catalog-page__pdf-button-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Desktop: tamaño fijo del botón PDF */
+@media (min-width: 768px) {
+  .catalog-page__pdf-button-wrapper {
+    flex: 0 0 auto;
+    min-width: auto;
+  }
+  
+  .catalog-page__pdf-btn {
+    font-size: 1rem;
+    padding: 10px 20px;
+    min-height: 40px;
+    white-space: nowrap;
+  }
+}
+
+.catalog-page__sort-section {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
   gap: 0.5rem;
-  padding-top: 0.5rem;
+  flex-shrink: 0;
+}
+
+.catalog-page__share-button-wrapper {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .catalog-page__sort-label {
@@ -232,8 +271,8 @@
 
   .catalog-page__title-section {
     flex-direction: row;
-    justify-content: space-between;
-    gap: 200px;
+    align-items: center;
+    gap: 0.5rem;
     margin: 0;
   }
 
@@ -242,14 +281,36 @@
   }
 
   .catalog-page__controls {
-    flex-direction: row;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .catalog-page__header-row {
+    display: flex;
     justify-content: space-between;
-    gap: 50px;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    position: relative;
+  }
+
+  .catalog-page__pdf-button-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
   }
 
   .catalog-page__sort-section {
     padding: 0;
+    justify-content: flex-end;
+    flex-shrink: 0;
+  }
+
+  .catalog-page__content-texts {
+    flex-shrink: 0;
   }
 
   .catalog-page__compare-clients-btn {
@@ -313,8 +374,9 @@
 @media (min-width: 1200px) {
   .catalog-page__header-desktop {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
     padding-bottom: 8px;
     margin-bottom: 24px;
     margin-top: 0;
@@ -327,10 +389,40 @@
 
   .catalog-page__title-section {
     border-bottom: none;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .catalog-page__header-row {
+    border-bottom: 1px solid rgba(231, 231, 231, 1);
   }
 
   .catalog-page__whatsapp-text {
     display: inline;
+  }
+
+  .catalog-page__controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .catalog-page__header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+    width: 100%;
+    position: relative;
+  }
+
+  .catalog-page__pdf-button-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 0 0 auto;
+    min-width: auto;
   }
 
   .catalog-page__action-buttons {
@@ -339,7 +431,8 @@
     gap: 12px;
   }
 
-  .catalog-page__pdf-btn {
+  .catalog-page__pdf-button-wrapper .filters-btn {
+    white-space: nowrap;
     background: #EA2630 !important;
     color: white !important;
     border: 1px solid #EA2630 !important;
@@ -349,7 +442,7 @@
     min-height: 40px;
   }
 
-  .catalog-page__pdf-btn:hover {
+  .catalog-page__pdf-button-wrapper .filters-btn:hover {
     background: #c21828 !important;
     border-color: #c21828 !important;
     transform: translateY(-1px);

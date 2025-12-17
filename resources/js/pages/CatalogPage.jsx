@@ -707,29 +707,39 @@ const CatalogPage = ({ catalogId }) => {
         <div className="container">
           {/* Header section with title and filters  -  MOBILE */}
           <div className="catalog-page__header-mobile">
-            <div className="catalog-page__title-section">
-              <h1 className="catalog-page__title">
-                {currentCatalog ? currentCatalog.name : 'Catálogo de productos'}
-              </h1>
-              <div className='catalog-page__content-texts'>
-                <span className="catalog-page__results-count">
-                  ({totalResults})
-                  <p className="catalog-page__text-results-count">Resultados</p>
-                </span>
-              </div>
+            <div className="catalog-page__mobile-filter-controls">
+              <button
+                className="catalog-page__mobile-filter-btn"
+                onClick={toggleFilterModal}
+              >
+                <img src={getIconPath('Filter.svg')} alt="Filtros" />
+                <img src={getIconPath('Chevron Down.svg')} alt="Expandir" />
+              </button>
             </div>
-
-            <div className="catalog-page__controls">
-              <div className="catalog-page__sort-section">
-                <div className="catalog-page__mobile-filter-controls">
-                  <button
-                    className="catalog-page__mobile-filter-btn"
-                    onClick={toggleFilterModal}
-                  >
-                    <img src={getIconPath('Filter.svg')} alt="Filtros" />
-                    <img src={getIconPath('Chevron Down.svg')} alt="Expandir" />
-                  </button>
+            <div className="catalog-page__header-row">
+              <div className="catalog-page__title-section">
+                <h1 className="catalog-page__title">
+                  {currentCatalog ? currentCatalog.name : 'Catálogo de productos'}
+                </h1>
+                <div className='catalog-page__content-texts'>
+                  <span className="catalog-page__results-count">
+                    ({totalResults})
+                    <p className="catalog-page__text-results-count">Resultados</p>
+                  </span>
                 </div>
+              </div>
+              <div className="catalog-page__pdf-button-wrapper">
+                {catalogId && currentCatalog?.is_active && hasImageGroups && !checkingImageGroups && (
+                  <button
+                    type="button"
+                    className="custom-btn custom-btn--outlined custom-btn--medium filters-btn"
+                    onClick={() => window.location.href = `/catalogo-pdf?id=${catalogId}`}
+                  >
+                    <span className="custom-btn__content">Ver catálogo PDF</span>
+                  </button>
+                )}
+              </div>
+              <div className="catalog-page__sort-section">
                 <label htmlFor="sort-select" className="catalog-page__sort-label">Ordenar por:</label>
                 <select
                   id="sort-select"
@@ -744,40 +754,50 @@ const CatalogPage = ({ catalogId }) => {
                   <option value="nombre-z-a">Nombre: Z-A</option>
                 </select>
               </div>
-              <div className="catalog-page__action-buttons">
-                {catalogId && currentCatalog?.is_active && hasImageGroups && !checkingImageGroups && (
+              {catalogId && currentCatalog?.is_active && hasImageGroups && !checkingImageGroups && (
+                <div className="catalog-page__share-button-wrapper">
                   <CustomButton
-                    variant="outlined"
+                    variant="filled"
                     size="medium"
-                    className="filters-btn"
-                    onClick={() => window.location.href = `/catalogo-pdf?id=${catalogId}`}
+                    onClick={handleShareCatalog}
+                    style={{ display: 'none' }}
                   >
-                    Ver catálogo PDF
+                    <span className="catalog-page__whatsapp-text">Compartir a clientes</span>
                   </CustomButton>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Header section with title and filters  -  DESKTOP */}
           <div className="catalog-page__header-desktop">
-            <div className="catalog-page__title-section">
-              <h1 className="catalog-page__title">
-                {currentCatalog ? currentCatalog.name : 'Catálogo de productos'}
-              </h1>
-              <div className='catalog-page__content-texts'>
-                <span className="catalog-page__results-count">
-                  ({totalResults})
-                  <p className="catalog-page__text-results-count">Resultados</p>
-                </span>
+            <div className="catalog-page__header-row">
+              <div className="catalog-page__title-section">
+                <h1 className="catalog-page__title">
+                  {currentCatalog ? currentCatalog.name : 'Catálogo de productos'}
+                </h1>
+                <div className='catalog-page__content-texts'>
+                  <span className="catalog-page__results-count">
+                    ({totalResults})
+                    <p className="catalog-page__text-results-count">Resultados</p>
+                  </span>
+                </div>
               </div>
-            </div>
-
-            <div className="catalog-page__controls">
+              <div className="catalog-page__pdf-button-wrapper">
+                {catalogId && currentCatalog?.is_active && hasImageGroups && !checkingImageGroups && (
+                  <button
+                    type="button"
+                    className="custom-btn custom-btn--outlined custom-btn--medium filters-btn"
+                    onClick={() => window.location.href = `/catalogo-pdf?id=${catalogId}`}
+                  >
+                    <span className="custom-btn__content">Ver catálogo PDF</span>
+                  </button>
+                )}
+              </div>
               <div className="catalog-page__sort-section">
-                <label htmlFor="sort-select" className="catalog-page__sort-label">Ordenar por:</label>
+                <label htmlFor="sort-select-desktop" className="catalog-page__sort-label">Ordenar por:</label>
                 <select
-                  id="sort-select"
+                  id="sort-select-desktop"
                   value={sortBy}
                   onChange={handleSortChange}
                   className="catalog-page__sort-select"
@@ -789,26 +809,18 @@ const CatalogPage = ({ catalogId }) => {
                   <option value="nombre-z-a">Nombre: Z-A</option>
                 </select>
               </div>
-              <div className="catalog-page__action-buttons">
-                {catalogId && currentCatalog?.is_active && hasImageGroups && !checkingImageGroups && (
+              {catalogId && currentCatalog?.is_active && hasImageGroups && !checkingImageGroups && (
+                <div className="catalog-page__share-button-wrapper">
                   <CustomButton
-                    variant="outlined"
+                    variant="filled"
                     size="medium"
-                    className="filters-btn"
-                    onClick={() => window.location.href = `/catalogo-pdf?id=${catalogId}`}
+                    onClick={handleShareCatalog}
+                    style={{ display: 'none' }}
                   >
-                    Ver catálogo PDF
+                    <span className="catalog-page__whatsapp-text">Compartir a clientes</span>
                   </CustomButton>
-                )}
-                <CustomButton
-                  variant="filled"
-                  size="medium"
-                  onClick={handleShareCatalog}
-                  style={{ display: 'none' }}
-                >
-                  <span className="catalog-page__whatsapp-text">Compartir a clientes</span>
-                </CustomButton>
-              </div>
+                </div>
+              )}
             </div>
           </div>
 
