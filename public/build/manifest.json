@@ -5,18 +5,15 @@
     "isEntry": true
   },
   "resources/js/main.jsx": {
-    "file": "assets/main-z1qa3bsq.js",
+    "file": "assets/main-D6wXyNET.js",
     "name": "main",
     "src": "resources/js/main.jsx",
     "isEntry": true,
     "dynamicImports": [
-      "resources/js/utils/searchNormalizer.js",
-      "resources/js/utils/shareProductUtils.js",
-      "resources/js/utils/shareProductUtils.js",
-      "resources/js/utils/shareProductUtils.js"
+      "resources/js/utils/searchNormalizer.js"
     ],
     "css": [
-      "assets/main-LCCbeQEd.css"
+      "assets/main-CsaOEAGS.css"
     ]
   },
   "resources/js/utils/searchNormalizer.js": {
@@ -24,14 +21,5 @@
     "name": "searchNormalizer",
     "src": "resources/js/utils/searchNormalizer.js",
     "isDynamicEntry": true
-  },
-  "resources/js/utils/shareProductUtils.js": {
-    "file": "assets/shareProductUtils-1lpSXeWQ.js",
-    "name": "shareProductUtils",
-    "src": "resources/js/utils/shareProductUtils.js",
-    "isDynamicEntry": true,
-    "imports": [
-      "resources/js/main.jsx"
-    ]
   }
 }

@@ -46,6 +46,7 @@ const CartDetailsPage = () => {
   const [deliveryType, setDeliveryType] = useState('envio'); // 'envio' or 'retiro'
   
   // State for store address (from contact_info) - valores por defecto para asegurar que siempre haya datos
+  // Estos valores deben coincidir exactamente con los de ContactPage.jsx
   const defaultStoreAddress = {
     id: 'store',
     name: 'Retiro en tienda',
@@ -93,34 +94,14 @@ const CartDetailsPage = () => {
             : defaultMapUrl;
           setStoreMapUrl(mapUrl);
         } else {
-          // Si no hay datos, usar valores por defecto
-          setStoreAddress({
-            id: 'store',
-            name: 'Retiro en tienda',
-            street_address: 'José María Izazaga 127 piso 2 Col.',
-            city: 'Centros México D.F. C.P. 06080',
-            state: '',
-            postal_code: '',
-            country: 'México',
-            additional_info: null,
-            is_default: false
-          });
-          setStoreMapUrl('https://www.google.com/maps/embed?pb=!1m12!1m8!1m3!1d3830947.253725377!2d-99.1779212!3d20.3350315!3m2!1i1024!2i768!4f13.1!2m1!1scherry%20tienda%20mx%20direccion!5e0!3m2!1ses-419!2sve!4v1753274350284!5m2!1ses-419!2sve');
+          // Si no hay datos, usar valores por defecto (deben coincidir con ContactPage.jsx)
+          setStoreAddress(defaultStoreAddress);
+          setStoreMapUrl(defaultMapUrl);
         }
       } catch (error) {
-        // Error fetching store address - usar valores por defecto
-        setStoreAddress({
-          id: 'store',
-          name: 'Retiro en tienda',
-          street_address: 'José María Izazaga 127 piso 2 Col.',
-          city: 'Centros México D.F. C.P. 06080',
-          state: '',
-          postal_code: '',
-          country: 'México',
-          additional_info: null,
-          is_default: false
-        });
-        setStoreMapUrl('https://www.google.com/maps/embed?pb=!1m12!1m8!1m3!1d3830947.253725377!2d-99.1779212!3d20.3350315!3m2!1i1024!2i768!4f13.1!2m1!1scherry%20tienda%20mx%20direccion!5e0!3m2!1ses-419!2sve!4v1753274350284!5m2!1ses-419!2sve');
+        // Error fetching store address - usar valores por defecto (deben coincidir con ContactPage.jsx)
+        setStoreAddress(defaultStoreAddress);
+        setStoreMapUrl(defaultMapUrl);
       }
     };
     
