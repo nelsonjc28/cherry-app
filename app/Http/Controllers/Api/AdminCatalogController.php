@@ -1442,6 +1442,97 @@ class AdminCatalogController extends Controller
     }
 
     /**
+     * Subir PDF directamente al catálogo
+     */
+    public function uploadCatalogPdf(Request $request, $catalogId)
+    {
+        try {
+            // Verificar si el archivo fue recibido (error 413)
+            if (!$request->hasFile('pdf')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El archivo es demasiado grande o no se recibió correctamente. Verifica la configuración de upload_max_filesize y post_max_size en php.ini'
+                ], 413);
+            }
+
+            $catalog = Catalog::findOrFail($catalogId);
+
+            // Sin límite de tamaño - solo validar que sea un PDF válido
+            $validator = Validator::make($request->all(), [
+                'pdf' => 'required|file|mimes:pdf',
+            ], [
+                'pdf.required' => 'Debes seleccionar un archivo PDF',
+                'pdf.mimes' => 'El archivo debe ser un PDF válido'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error de validación',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Eliminar PDF anterior si existe
+            if ($catalog->pdf_path && file_exists(public_path($catalog->pdf_path))) {
+                @unlink(public_path($catalog->pdf_path));
+            }
+
+            // Procesar el nuevo PDF
+            $pdf = $request->file('pdf');
+            $pdfName = time() . '_' . uniqid() . '.' . $pdf->getClientOriginalExtension();
+            $pdfPath = 'catalog-pdfs/' . $pdfName;
+
+            // Crear directorio si no existe
+            $uploadPath = public_path('catalog-pdfs');
+            if (!file_exists($uploadPath)) {
+                mkdir($uploadPath, 0755, true);
+            }
+
+            // Mover el PDF
+            if (!$pdf->move($uploadPath, $pdfName)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error al guardar el archivo PDF'
+                ], 500);
+            }
+
+            // Actualizar el catálogo con la información del PDF
+            $catalog->pdf_path = $pdfPath;
+            $catalog->pdf_name = $pdf->getClientOriginalName();
+            $catalog->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'PDF subido exitosamente',
+                'data' => [
+                    'pdf_path' => $catalog->pdf_path,
+                    'pdf_name' => $catalog->pdf_name,
+                    'pdf_url' => asset($catalog->pdf_path)
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error al subir PDF al catálogo', [
+                'catalog_id' => $catalogId,
+                'error' => $e->getMessage()
+            ]);
+
+            // Si el error es relacionado con el tamaño del archivo
+            if (strpos($e->getMessage(), '413') !== false || strpos($e->getMessage(), 'too large') !== false) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El archivo es demasiado grande. Verifica la configuración de upload_max_filesize y post_max_size en php.ini'
+                ], 413);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al subir el PDF: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Crear thumbnail de una imagen
      */
     private function createThumbnail($sourcePath, $thumbnailPath, $maxWidth = 300, $maxHeight = 300)

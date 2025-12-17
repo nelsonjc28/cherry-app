@@ -251,3 +251,137 @@ export const shareProductWithImages = async (product) => {
   }
 };
 
+/**
+ * Compartir PDF de catálogo usando Web Share API
+ */
+export const shareCatalogPdf = async (pdfInfo) => {
+  const { pdf_url, pdf_name, catalogName } = pdfInfo;
+  const catalogUrl = window.location.href;
+
+  if (!pdf_url) {
+    throw new Error('No hay PDF disponible para compartir');
+  }
+
+  try {
+    if (window.showToast) {
+      window.showToast('Cargando PDF del catálogo...', 'info');
+    }
+
+    // Descargar el PDF desde el servidor
+    const response = await fetch(pdf_url);
+    if (!response.ok) {
+      throw new Error('Error al descargar el PDF');
+    }
+
+    const blob = await response.blob();
+    const file = new File([blob], pdf_name || 'catalogo.pdf', { type: 'application/pdf' });
+
+    // Generar texto de compartir
+    const shareText = `Checa este catálogo que tenemos para ti: ${catalogName || 'Catálogo Cherry'}\n\nPregunta por productos disponibles y precios especiales.`;
+
+    // Intentar compartir directamente con el PDF usando Web Share API
+    if (navigator.share) {
+      // Verificar si puede compartir archivos
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            title: catalogName || 'Catálogo Cherry',
+            text: shareText,
+            files: [file]
+          });
+          if (window.showToast) window.showToast('¡Catálogo PDF compartido!', 'success');
+          return;
+        } catch (shareError) {
+          // Si el usuario cancela, no hacer nada más
+          if (shareError.name === 'AbortError') {
+            return;
+          }
+          // Si hay otro error, intentar compartir solo texto
+          console.warn('Error al compartir con archivo, intentando solo texto:', shareError);
+        }
+      }
+      
+      // Si no puede compartir archivos o falló, intentar compartir solo texto/URL
+      try {
+        await navigator.share({
+          title: catalogName || 'Catálogo Cherry',
+          text: shareText,
+          url: catalogUrl
+        });
+        // Si compartió solo texto, descargar el PDF como fallback
+        if (window.showToast) {
+          window.showToast('Compartido. Descargando PDF...', 'info');
+        }
+        // Descargar PDF
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = pdf_name || 'catalogo.pdf';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        if (window.showToast) {
+          window.showToast('PDF descargado', 'success');
+        }
+        return;
+      } catch (textShareError) {
+        if (textShareError.name === 'AbortError') {
+          return;
+        }
+        throw textShareError;
+      }
+    }
+
+    // Si no hay soporte para navigator.share, descargar el PDF y copiar URL
+    if (window.showToast) {
+      window.showToast('Descargando PDF...', 'info');
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = pdf_name || 'catalogo.pdf';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    await navigator.clipboard.writeText(`${shareText}\n\n${catalogUrl}`);
+    if (window.showToast) {
+      window.showToast('PDF descargado. Enlace copiado al portapapeles.', 'success');
+    }
+  } catch (error) {
+    if (error.name === 'AbortError') return;
+    console.error('Error al compartir PDF del catálogo:', error);
+    
+    // Fallback final: descargar PDF y copiar URL
+    try {
+      if (window.showToast) {
+        window.showToast('Descargando PDF...', 'info');
+      }
+      const fallbackResponse = await fetch(pdf_url);
+      if (!fallbackResponse.ok) {
+        throw new Error('Error al descargar el PDF');
+      }
+      const fallbackBlob = await fallbackResponse.blob();
+      const fallbackUrl = URL.createObjectURL(fallbackBlob);
+      const fallbackA = document.createElement('a');
+      fallbackA.href = fallbackUrl;
+      fallbackA.download = pdf_name || 'catalogo.pdf';
+      document.body.appendChild(fallbackA);
+      fallbackA.click();
+      document.body.removeChild(fallbackA);
+      URL.revokeObjectURL(fallbackUrl);
+      const fallbackShareText = `Checa este catálogo que tenemos para ti: ${catalogName || 'Catálogo Cherry'}\n\nPregunta por productos disponibles y precios especiales.`;
+      await navigator.clipboard.writeText(`${fallbackShareText}\n\n${catalogUrl}`);
+      if (window.showToast) {
+        window.showToast('PDF descargado. Enlace copiado.', 'info');
+      }
+    } catch (fallbackError) {
+      console.error('Error en fallback:', fallbackError);
+      if (window.showToast) {
+        window.showToast('No se pudo compartir. Intenta nuevamente.', 'error');
+      }
+    }
+  }
+};
+

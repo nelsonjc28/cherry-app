@@ -1248,6 +1248,20 @@ export const catalogService = {
       throw error;
     }
   },
+
+  // Subir PDF directamente al catálogo (admin)
+  uploadCatalogPdf: async (catalogId, formData) => {
+    try {
+      const response = await api.post(`/admin/catalogs/${catalogId}/upload-pdf`, formData, {
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 // Servicio de autenticación

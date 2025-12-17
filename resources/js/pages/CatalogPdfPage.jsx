@@ -7,6 +7,7 @@ import './CatalogPdfPage.css';
 import { getIconPath } from '../utils/assetPaths';
 import CustomButton from '../components/CustomButton';
 import { publicCatalogService } from '../services/api';
+import { shareCatalogPdf } from '../utils/shareProductUtils';
 
 
 /**
@@ -111,10 +112,8 @@ const CatalogPdfPage = () => {
   };
 
   const handleShareCatalog = useCallback(async () => {
-    // Verificar si hay PDF cargado en algún grupo
-    const groupWithPdf = imageGroups.find(group => group.pdf_path);
-    
-    if (!groupWithPdf) {
+    // Verificar si hay PDF cargado directamente en el catálogo
+    if (!selectedCatalog || !selectedCatalog.pdf_path) {
       if (window.showToast) {
         window.showToast('No hay PDF disponible para compartir', 'error');
       }
@@ -122,57 +121,24 @@ const CatalogPdfPage = () => {
     }
 
     try {
-      if (window.showToast) {
-        window.showToast('Cargando PDF...', 'info');
-      }
+      const pdfUrl = selectedCatalog.pdf_path.startsWith('http') 
+        ? selectedCatalog.pdf_path 
+        : `${window.location.origin}/${selectedCatalog.pdf_path}`;
 
-      // Descargar el PDF desde el servidor
-      const pdfUrl = `${window.location.origin}/${groupWithPdf.pdf_path}`;
-      const response = await fetch(pdfUrl);
-      
-      if (!response.ok) {
-        throw new Error('Error al descargar el PDF');
-      }
-      
-      const blob = await response.blob();
-      const file = new File([blob], groupWithPdf.pdf_name || 'catalogo.pdf', { type: 'application/pdf' });
-
-      // Compartir usando Web Share API
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: selectedCatalog?.name || 'Catálogo de productos Cherry',
-          text: `Mira el catálogo ${selectedCatalog?.name} de Cherry`,
-          files: [file]
-        });
-        if (window.showToast) {
-          window.showToast('¡Catálogo compartido!', 'success');
-        }
-      } else {
-        // Fallback: descargar el PDF y copiar URL
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = groupWithPdf.pdf_name || 'catalogo.pdf';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        const shareUrl = `${window.location.origin}${window.location.pathname}?id=${selectedCatalog?.id}`;
-        await navigator.clipboard.writeText(shareUrl);
-        if (window.showToast) {
-          window.showToast('PDF descargado. Enlace copiado al portapapeles', 'success');
-        }
-      }
+      await shareCatalogPdf({
+        pdf_url: pdfUrl,
+        pdf_name: selectedCatalog.pdf_name,
+        catalogName: selectedCatalog.name || 'Catálogo Cherry'
+      });
     } catch (error) {
       if (error.name !== 'AbortError') {
-        console.error('Error al compartir:', error);
+        console.error('Error al compartir catálogo:', error);
         if (window.showToast) {
           window.showToast('Error al compartir el catálogo', 'error');
         }
       }
     }
-  }, [selectedCatalog, imageGroups]);
+  }, [selectedCatalog]);
 
 
   const fetchImageGroups = async (catalogId) => {
@@ -709,7 +675,7 @@ const CatalogPdfPage = () => {
             <h1 className="catalog-pdf__title">{selectedCatalog?.name || 'Catálogo PDF'}</h1>
           </div>
           <div className="catalog-pdf__controls">
-            {imageGroups.some(group => group.pdf_path) && (
+            {selectedCatalog?.pdf_path && (
               <CustomButton
                 variant="filled"
                 size="medium"

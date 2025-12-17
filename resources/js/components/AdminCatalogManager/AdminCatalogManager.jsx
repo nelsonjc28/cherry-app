@@ -27,6 +27,8 @@ const AdminCatalogManager = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [catalogPdfFile, setCatalogPdfFile] = useState(null);
 
   useEffect(() => {
 
@@ -157,13 +159,92 @@ const AdminCatalogManager = () => {
       image: null,
       is_active: catalog.is_active
     });
-         setImagePreview(catalog.image ? `/${catalog.image}` : null);
+    setImagePreview(catalog.image ? `/${catalog.image}` : null);
+    setCatalogPdfFile(null);
     setShowForm(true);
     
     // 🚀 SCROLL AUTOMÁTICO HACIA ARRIBA al editar catálogo
     setTimeout(() => {
       window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });;
     }, 100);
+  };
+
+  const handleCatalogPdfUpload = async (catalogId = null) => {
+    const targetCatalogId = catalogId || editingCatalog?.id;
+    const fileToUpload = catalogId ? null : catalogPdfFile;
+
+    if (!fileToUpload && !catalogId) {
+      window.showToast('Por favor, selecciona un archivo PDF', 'error');
+      return;
+    }
+
+    // Si se llama desde la tarjeta, crear un input de archivo
+    if (catalogId) {
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'application/pdf';
+      fileInput.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+          setUploadingPdf(true);
+          const formDataObj = new FormData();
+          formDataObj.append('pdf', file);
+
+          const response = await catalogService.uploadCatalogPdf(catalogId, formDataObj);
+          
+          if (response.data.success) {
+            window.showToast('PDF subido exitosamente', 'success');
+            await fetchCatalogs();
+          } else {
+            window.showToast(response.data.message || 'Error al subir PDF', 'error');
+          }
+        } catch (error) {
+          const errorMessage = error.response?.data?.message || 'Error al subir PDF';
+          window.showToast(errorMessage, 'error');
+        } finally {
+          setUploadingPdf(false);
+        }
+      };
+      fileInput.click();
+      return;
+    }
+
+    // Si se llama desde el formulario de edición
+    if (!fileToUpload || !targetCatalogId) {
+      window.showToast('Por favor, selecciona un archivo PDF', 'error');
+      return;
+    }
+
+    try {
+      setUploadingPdf(true);
+      const formDataObj = new FormData();
+      formDataObj.append('pdf', fileToUpload);
+
+      const response = await catalogService.uploadCatalogPdf(targetCatalogId, formDataObj);
+      
+      if (response.data.success) {
+        window.showToast('PDF subido exitosamente', 'success');
+        setCatalogPdfFile(null);
+        await fetchCatalogs();
+        // Actualizar el catálogo en edición con la nueva información del PDF
+        if (editingCatalog) {
+          setEditingCatalog({
+            ...editingCatalog,
+            pdf_path: response.data.data.pdf_path,
+            pdf_name: response.data.data.pdf_name
+          });
+        }
+      } else {
+        window.showToast(response.data.message || 'Error al subir PDF', 'error');
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Error al subir PDF';
+      window.showToast(errorMessage, 'error');
+    } finally {
+      setUploadingPdf(false);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -217,6 +298,7 @@ const AdminCatalogManager = () => {
     setEditingCatalog(null);
     setShowForm(false);
     setError('');
+    setCatalogPdfFile(null);
   };
 
   const openProductManager = (catalog) => {
@@ -438,6 +520,68 @@ const AdminCatalogManager = () => {
               )}
             </div>
 
+            {editingCatalog && (
+              <div className="admin-catalog-manager__form-group" style={{ 
+                border: '2px solid #007bff', 
+                padding: '15px', 
+                borderRadius: '8px',
+                backgroundColor: '#f8f9fa'
+              }}>
+                <label htmlFor="catalog-pdf" style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '10px', display: 'block' }}>
+                  📄 PDF del Catálogo
+                  {editingCatalog.pdf_path && (
+                    <span className="pdf-status" style={{ color: '#28a745', marginLeft: '10px', fontWeight: 'bold' }}>
+                      ✓ PDF cargado: {editingCatalog.pdf_name}
+                    </span>
+                  )}
+                </label>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px' }}>
+                  <input
+                    type="file"
+                    id="catalog-pdf"
+                    accept="application/pdf"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      setCatalogPdfFile(file);
+                      if (file) {
+                        window.showToast(`Archivo seleccionado: ${file.name}. Haz clic en "Subir PDF" para continuar.`, 'info');
+                      }
+                    }}
+                    className="form-control"
+                    style={{ flex: 1 }}
+                  />
+                  {catalogPdfFile && (
+                    <button
+                      type="button"
+                      onClick={() => handleCatalogPdfUpload()}
+                      disabled={uploadingPdf}
+                      className="admin-catalog-manager__submit-btn"
+                      style={{ padding: '8px 16px', fontSize: '14px', backgroundColor: '#28a745', color: 'white' }}
+                    >
+                      {uploadingPdf ? '⏳ Subiendo...' : '📤 Subir PDF'}
+                    </button>
+                  )}
+                </div>
+                {editingCatalog.pdf_path && (
+                  <div style={{ marginTop: '10px' }}>
+                    <a
+                      href={`/${editingCatalog.pdf_path}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#007bff', textDecoration: 'none', fontSize: '14px' }}
+                    >
+                      📄 Ver PDF actual
+                    </a>
+                  </div>
+                )}
+                {!editingCatalog.pdf_path && (
+                  <p style={{ color: '#666', fontSize: '13px', marginTop: '5px', fontStyle: 'italic' }}>
+                    No hay PDF cargado. Selecciona un archivo PDF y haz clic en "Subir PDF".
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="admin-catalog-manager__form-group">
               <label className="admin-catalog-manager__checkbox-label">
                 <input
@@ -524,6 +668,11 @@ const AdminCatalogManager = () => {
                     <span className="admin-catalog-manager__stat">
                       🛍️ {catalog.products?.length || 0} productos
                     </span>
+                    {catalog.pdf_path && (
+                      <span className="admin-catalog-manager__stat" style={{ color: '#28a745', fontWeight: 'bold' }}>
+                        📄 PDF disponible
+                      </span>
+                    )}
                   </div>
 
                   <div className="admin-catalog-manager__catalog-status">
@@ -558,6 +707,19 @@ const AdminCatalogManager = () => {
                     title="Gestionar Imágenes del Catálogo"
                   >
                     🖼️
+                  </button>
+                  
+                  <button
+                    className="admin-catalog-manager__action-btn admin-catalog-manager__action-btn--catalog-pdf"
+                    onClick={() => handleCatalogPdfUpload(catalog.id)}
+                    disabled={uploadingPdf}
+                    title={catalog.pdf_path ? 'Reemplazar PDF del Catálogo' : 'Subir PDF del Catálogo'}
+                    style={{ 
+                      backgroundColor: catalog.pdf_path ? '#28a745' : '#007bff',
+                      color: 'white'
+                    }}
+                  >
+                    {uploadingPdf ? '⏳' : (catalog.pdf_path ? '📄✓' : '📄')}
                   </button>
                   
                   <button

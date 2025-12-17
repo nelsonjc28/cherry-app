@@ -12,6 +12,7 @@ import api from '../services/api';
 import { applyUserOffersToProducts } from '../api/userOffers';
 import { catalogService, publicCatalogService } from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
+import { shareCatalogPdf } from '../utils/shareProductUtils';
 
 // Función para mezclar array de forma aleatoria (Fisher-Yates shuffle)
 const shuffleArray = (array) => {
@@ -68,6 +69,8 @@ const CatalogPage = ({ catalogId }) => {
   const [filters, setFilters] = useState(getSavedFilters);
   const [hasImageGroups, setHasImageGroups] = useState(false);
   const [checkingImageGroups, setCheckingImageGroups] = useState(false);
+  const [hasCatalogPdf, setHasCatalogPdf] = useState(false);
+  const [catalogPdfInfo, setCatalogPdfInfo] = useState(null);
 
   // Cargar colores y tallas disponibles desde productos cargados
   useEffect(() => {
@@ -329,7 +332,23 @@ const CatalogPage = ({ catalogId }) => {
             // Cargar información del catálogo
             const catalogResponse = await publicCatalogService.getById(catalogId);
             if (catalogResponse.data.success) {
-              setCurrentCatalog(catalogResponse.data.data);
+              const catalog = catalogResponse.data.data;
+              setCurrentCatalog(catalog);
+              
+              // Verificar si el catálogo tiene PDF directamente
+              if (catalog.pdf_path && catalog.pdf_name) {
+                setHasCatalogPdf(true);
+                setCatalogPdfInfo({
+                  pdf_path: catalog.pdf_path,
+                  pdf_name: catalog.pdf_name,
+                  pdf_url: catalog.pdf_path.startsWith('http') 
+                    ? catalog.pdf_path 
+                    : `${window.location.origin}/${catalog.pdf_path}`
+                });
+              } else {
+                setHasCatalogPdf(false);
+                setCatalogPdfInfo(null);
+              }
               
               // Verificar si el catálogo tiene grupos de imágenes activos
               try {
@@ -650,21 +669,28 @@ const CatalogPage = ({ catalogId }) => {
   }, []);
 
   // Handle share functionality - Memoized
-  const handleShareCatalog = useCallback(() => {
-    const catalogUrl = `${window.location.origin}/catalogo`;
-
-    if (navigator.share) {
-      // Use native sharing if available
-      navigator.share({
-        title: 'Catálogo de productos Cherry',
-        text: 'Explora nuestro catálogo completo de productos Cherry. Encuentra las últimas tendencias en moda y accesorios.',
-        url: catalogUrl
-      });
-    } else {
-      // Fallback to clipboard copy
-      copyToClipboard(catalogUrl);
+  const handleShareCatalog = useCallback(async () => {
+    // Solo compartir si hay PDF del catálogo
+    if (!catalogPdfInfo || !catalogPdfInfo.pdf_url) {
+      if (window.showToast) {
+        window.showToast('No hay PDF disponible para compartir', 'error');
+      }
+      return;
     }
-  }, []);
+
+    try {
+      await shareCatalogPdf({
+        pdf_url: catalogPdfInfo.pdf_url,
+        pdf_name: catalogPdfInfo.pdf_name,
+        catalogName: currentCatalog?.name || 'Catálogo Cherry'
+      });
+    } catch (error) {
+      console.error('Error al compartir catálogo:', error);
+      if (window.showToast) {
+        window.showToast('Error al compartir el catálogo', 'error');
+      }
+    }
+  }, [catalogPdfInfo, currentCatalog]);
 
   const copyToClipboard = useCallback(async (text) => {
     try {
@@ -729,7 +755,7 @@ const CatalogPage = ({ catalogId }) => {
                 </div>
               </div>
               <div className="catalog-page__pdf-button-wrapper">
-                {catalogId && currentCatalog?.is_active && hasImageGroups && !checkingImageGroups && (
+                {catalogId && currentCatalog?.is_active && hasCatalogPdf && !checkingImageGroups && (
                   <button
                     type="button"
                     className="custom-btn custom-btn--outlined custom-btn--medium filters-btn"
@@ -754,13 +780,12 @@ const CatalogPage = ({ catalogId }) => {
                   <option value="nombre-z-a">Nombre: Z-A</option>
                 </select>
               </div>
-              {catalogId && currentCatalog?.is_active && hasImageGroups && !checkingImageGroups && (
+              {catalogId && currentCatalog?.is_active && hasCatalogPdf && !checkingImageGroups && (
                 <div className="catalog-page__share-button-wrapper">
                   <CustomButton
                     variant="filled"
                     size="medium"
                     onClick={handleShareCatalog}
-                    style={{ display: 'none' }}
                   >
                     <span className="catalog-page__whatsapp-text">Compartir a clientes</span>
                   </CustomButton>
@@ -784,7 +809,7 @@ const CatalogPage = ({ catalogId }) => {
                 </div>
               </div>
               <div className="catalog-page__pdf-button-wrapper">
-                {catalogId && currentCatalog?.is_active && hasImageGroups && !checkingImageGroups && (
+                {catalogId && currentCatalog?.is_active && hasCatalogPdf && !checkingImageGroups && (
                   <button
                     type="button"
                     className="custom-btn custom-btn--outlined custom-btn--medium filters-btn"
@@ -809,13 +834,12 @@ const CatalogPage = ({ catalogId }) => {
                   <option value="nombre-z-a">Nombre: Z-A</option>
                 </select>
               </div>
-              {catalogId && currentCatalog?.is_active && hasImageGroups && !checkingImageGroups && (
+              {catalogId && currentCatalog?.is_active && hasCatalogPdf && !checkingImageGroups && (
                 <div className="catalog-page__share-button-wrapper">
                   <CustomButton
                     variant="filled"
                     size="medium"
                     onClick={handleShareCatalog}
-                    style={{ display: 'none' }}
                   >
                     <span className="catalog-page__whatsapp-text">Compartir a clientes</span>
                   </CustomButton>

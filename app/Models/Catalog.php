@@ -15,7 +15,9 @@ class Catalog extends Model
         'code',
         'image',
         'is_active',
-        'display_order'
+        'display_order',
+        'pdf_path',
+        'pdf_name'
     ];
 
     protected $casts = [
