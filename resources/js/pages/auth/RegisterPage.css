@@ -58,6 +58,10 @@
   font-weight: 600;
   text-decoration: none;
   transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  font-family: inherit;
 }
 
 .register-banner__btn:hover {
@@ -383,7 +387,7 @@
 .register-page-form {
   min-height: 100vh;
   padding: 15px;
-  background-color: #B8B7B7;
+  background-color: #F2F2F2;
   border-radius: 8px;
 }
 

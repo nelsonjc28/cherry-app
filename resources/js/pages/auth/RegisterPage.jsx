@@ -1,5 +1,5 @@
 import { Helmet } from 'react-helmet-async';
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from 'react-router-dom';
 import "./RegisterPage.css";
 import { getIconPath, getImagePath, getHeroIconPath } from '../../utils/assetPaths';
@@ -10,6 +10,7 @@ import useUserStore from '../../store/userStore';
 const RegisterPage = () => {
   const navigate = useNavigate();
   const { register, loading, error } = useUserStore();
+  const firstNameInputRef = useRef(null);
 
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -308,6 +309,16 @@ const RegisterPage = () => {
     setShowConfirmPassword(!showConfirmPassword);
   };
 
+  const scrollToFormAndFocus = () => {
+    if (firstNameInputRef.current) {
+      firstNameInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Pequeño delay para asegurar que el scroll termine antes de enfocar
+      setTimeout(() => {
+        firstNameInputRef.current.focus();
+      }, 500);
+    }
+  };
+
   const days = Array.from({ length: 31 }, (_, i) => i + 1)
   const months = [
     "Enero",
@@ -351,8 +362,9 @@ const RegisterPage = () => {
           <h2 id="register-banner-heading" className="register-banner__title">
             ¡Afíliate ahora mismo y comienza tu propio negocio!
           </h2>
-          <Link
-            to="/registro"
+          <button
+            type="button"
+            onClick={scrollToFormAndFocus}
             className="register-banner__btn"
             title="Únete a nuestro programa de afiliados y comienza tu negocio"
             aria-label="Afiliate a Cherry Central y comienza tu negocio"
@@ -361,7 +373,7 @@ const RegisterPage = () => {
             <svg width="5" height="9" viewBox="0 0 5 9" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M4.86328 4.39453C4.99349 4.26432 4.99349 4.08203 4.86328 3.95182L1.0612 0.0976563C0.93099 -0.0325521 0.722656 -0.0325521 0.61849 0.0976563L0.0976562 0.61849C-0.0325521 0.722656 -0.0325521 0.93099 0.0976562 1.0612L3.17057 4.16016L0.0976562 7.28516C-0.0325521 7.41536 -0.0325521 7.59766 0.0976562 7.72786L0.61849 8.2487C0.722656 8.37891 0.93099 8.37891 1.0612 8.2487L4.86328 4.39453Z" fill="#F5F5FF" />
             </svg>
-          </Link>
+          </button>
         </div>
       </section>
 
@@ -539,6 +551,7 @@ const RegisterPage = () => {
               <div className="register-form-group">
                 <label>Nombre</label>
                 <input
+                  ref={firstNameInputRef}
                   type="text"
                   name="firstName"
                   placeholder="Tu nombre"
