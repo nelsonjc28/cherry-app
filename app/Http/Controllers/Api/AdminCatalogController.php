@@ -1077,6 +1077,8 @@ class AdminCatalogController extends Controller
                                 'slug' => $group->slug,
                                 'images_count' => $group->group_images_count,
                                 'display_order' => $group->display_order,
+                                'pdf_path' => $group->pdf_path,
+                                'pdf_name' => $group->pdf_name,
                                 'cover_image' => $group->cover_image ? [
                                     'id' => $group->cover_image->id,
                                     'image_url' => $group->cover_image->image_url,
@@ -1166,6 +1168,8 @@ class AdminCatalogController extends Controller
                         'is_active' => $group->is_active,
                         'images_count' => $group->images_count,
                         'display_order' => $group->display_order,
+                        'pdf_path' => $group->pdf_path,
+                        'pdf_name' => $group->pdf_name,
                         'cover_image' => $group->images->first() ? [
                             'id' => $group->images->first()->id,
                             'image_url' => $group->images->first()->image_url,
@@ -1338,6 +1342,105 @@ class AdminCatalogController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al cambiar el estado: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Subir PDF a un grupo de imágenes
+     */
+    public function uploadGroupPdf(Request $request, $catalogId, $groupId)
+    {
+        try {
+            // Verificar si el archivo fue recibido (error 413)
+            if (!$request->hasFile('pdf')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El archivo es demasiado grande o no se recibió correctamente. Verifica la configuración de upload_max_filesize y post_max_size en php.ini'
+                ], 413);
+            }
+
+            $catalog = Catalog::findOrFail($catalogId);
+            $group = CatalogImageGroup::where('id', $groupId)
+                ->where('catalog_id', $catalogId)
+                ->firstOrFail();
+
+            // Límite máximo: 50MB (51200 KB)
+            // Nota: También necesitas aumentar upload_max_filesize y post_max_size en php.ini
+            $maxSizeKB = 51200; // 50MB
+
+            $validator = Validator::make($request->all(), [
+                'pdf' => 'required|file|mimes:pdf|max:' . $maxSizeKB,
+            ], [
+                'pdf.required' => 'Debes seleccionar un archivo PDF',
+                'pdf.mimes' => 'El archivo debe ser un PDF válido',
+                'pdf.max' => 'El archivo PDF no debe superar 50MB. Si tu servidor tiene un límite menor, contacta al administrador para aumentar upload_max_filesize y post_max_size en php.ini'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error de validación',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Eliminar PDF anterior si existe
+            if ($group->pdf_path && Storage::disk('public')->exists($group->pdf_path)) {
+                Storage::disk('public')->delete($group->pdf_path);
+            }
+
+            // Procesar el nuevo PDF
+            $pdf = $request->file('pdf');
+            $pdfName = time() . '_' . uniqid() . '.' . $pdf->getClientOriginalExtension();
+            $pdfPath = 'catalog-pdfs/' . $pdfName;
+
+            // Crear directorio si no existe
+            $uploadPath = public_path('catalog-pdfs');
+            if (!file_exists($uploadPath)) {
+                mkdir($uploadPath, 0755, true);
+            }
+
+            // Mover el PDF
+            if (!$pdf->move($uploadPath, $pdfName)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error al guardar el archivo PDF'
+                ], 500);
+            }
+
+            // Actualizar el grupo con la información del PDF
+            $group->pdf_path = $pdfPath;
+            $group->pdf_name = $pdf->getClientOriginalName();
+            $group->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'PDF subido exitosamente',
+                'data' => [
+                    'pdf_path' => $group->pdf_path,
+                    'pdf_name' => $group->pdf_name,
+                    'pdf_url' => asset($group->pdf_path)
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error al subir PDF al grupo', [
+                'catalog_id' => $catalogId,
+                'group_id' => $groupId,
+                'error' => $e->getMessage()
+            ]);
+
+            // Si el error es relacionado con el tamaño del archivo
+            if (strpos($e->getMessage(), '413') !== false || strpos($e->getMessage(), 'too large') !== false) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El archivo es demasiado grande. Verifica la configuración de upload_max_filesize y post_max_size en php.ini'
+                ], 413);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al subir el PDF: ' . $e->getMessage()
             ], 500);
         }
     }

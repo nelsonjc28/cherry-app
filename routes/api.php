@@ -245,6 +245,7 @@ Route::delete('/admin/catalogs/{catalogId}/pdfs/{pdfId}', [AdminCatalogControlle
         Route::post('/admin/catalogs/update/order', [AdminCatalogController::class, 'updateOrder']);
         Route::delete('/admin/catalogs/{catalogId}/image-groups/{groupId}', [AdminCatalogController::class, 'deleteImageGroup']);
         Route::patch('/admin/catalogs/{catalogId}/image-groups/{groupId}/toggle', [AdminCatalogController::class, 'toggleImageGroupStatus']);
+        Route::post('/admin/catalogs/{catalogId}/image-groups/{groupId}/upload-pdf', [AdminCatalogController::class, 'uploadGroupPdf']);
         
         // Catalog Offers routes - require authentication and admin role
         Route::get('/admin/catalog-offers', [AdminCatalogOfferController::class, 'index']);

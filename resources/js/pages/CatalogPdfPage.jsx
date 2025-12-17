@@ -110,26 +110,69 @@ const CatalogPdfPage = () => {
     }
   };
 
-  const handleShareCatalog = useCallback(() => {
-    let shareUrl = `${window.location.origin}${window.location.pathname}?id=${selectedCatalog?.id}`;
-
-    if (selectedImageGroup) {
-      shareUrl += `&group=${selectedImageGroup.id}`;
+  const handleShareCatalog = useCallback(async () => {
+    // Verificar si hay PDF cargado en algún grupo
+    const groupWithPdf = imageGroups.find(group => group.pdf_path);
+    
+    if (!groupWithPdf) {
+      if (window.showToast) {
+        window.showToast('No hay PDF disponible para compartir', 'error');
+      }
+      return;
     }
 
-    if (navigator.share) {
-      navigator.share({
-        title: selectedCatalog?.name || 'Catálogo de productos Cherry',
-        text: selectedImageGroup
-          ? `Mira el grupo "${selectedImageGroup.name}" del catálogo ${selectedCatalog?.name}.`
-          : `Explora el catálogo completo de productos Cherry.`,
-        url: shareUrl,
-      });
-    } else {
-      navigator.clipboard.writeText(shareUrl);
-      alert('Enlace copiado al portapapeles');
+    try {
+      if (window.showToast) {
+        window.showToast('Cargando PDF...', 'info');
+      }
+
+      // Descargar el PDF desde el servidor
+      const pdfUrl = `${window.location.origin}/${groupWithPdf.pdf_path}`;
+      const response = await fetch(pdfUrl);
+      
+      if (!response.ok) {
+        throw new Error('Error al descargar el PDF');
+      }
+      
+      const blob = await response.blob();
+      const file = new File([blob], groupWithPdf.pdf_name || 'catalogo.pdf', { type: 'application/pdf' });
+
+      // Compartir usando Web Share API
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: selectedCatalog?.name || 'Catálogo de productos Cherry',
+          text: `Mira el catálogo ${selectedCatalog?.name} de Cherry`,
+          files: [file]
+        });
+        if (window.showToast) {
+          window.showToast('¡Catálogo compartido!', 'success');
+        }
+      } else {
+        // Fallback: descargar el PDF y copiar URL
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = groupWithPdf.pdf_name || 'catalogo.pdf';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        const shareUrl = `${window.location.origin}${window.location.pathname}?id=${selectedCatalog?.id}`;
+        await navigator.clipboard.writeText(shareUrl);
+        if (window.showToast) {
+          window.showToast('PDF descargado. Enlace copiado al portapapeles', 'success');
+        }
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        console.error('Error al compartir:', error);
+        if (window.showToast) {
+          window.showToast('Error al compartir el catálogo', 'error');
+        }
+      }
     }
-  }, [selectedCatalog, selectedImageGroup]);
+  }, [selectedCatalog, imageGroups]);
 
 
   const fetchImageGroups = async (catalogId) => {
@@ -666,15 +709,16 @@ const CatalogPdfPage = () => {
             <h1 className="catalog-pdf__title">{selectedCatalog?.name || 'Catálogo PDF'}</h1>
           </div>
           <div className="catalog-pdf__controls">
-            <CustomButton
-              variant="filled"
-              size="medium"
-              className="catalog-pdf__controls-btn"
-              onClick={handleShareCatalog}
-              style={{ display: 'none' }}
-            >
-              <span className="catalog-pdf__whatsapp-text">Compartir a clientes</span>
-            </CustomButton>
+            {imageGroups.some(group => group.pdf_path) && (
+              <CustomButton
+                variant="filled"
+                size="medium"
+                className="catalog-pdf__controls-btn"
+                onClick={handleShareCatalog}
+              >
+                <span className="catalog-pdf__whatsapp-text">Compartir a clientes</span>
+              </CustomButton>
+            )}
           </div>
         </header>
 

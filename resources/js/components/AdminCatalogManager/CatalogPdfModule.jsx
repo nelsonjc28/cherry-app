@@ -163,6 +163,53 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
     }
   };
 
+  const handleUploadGroupPdf = async (groupId, event) => {
+    event.stopPropagation();
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'application/pdf';
+    fileInput.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      if (file.size > 50 * 1024 * 1024) { // 50MB
+        window.showToast('El archivo PDF no debe superar 50MB', 'error');
+        return;
+      }
+
+      try {
+        setGroupsLoading(true);
+        setError('');
+        
+        const formData = new FormData();
+        formData.append('pdf', file);
+
+        const response = await catalogService.uploadGroupPdf(selectedCatalog.id, groupId, formData);
+        
+        if (response.data.success) {
+          // Actualizar el grupo en la lista local
+          setImageGroups(imageGroups.map(group => 
+            group.id === groupId 
+              ? { ...group, pdf_path: response.data.data.pdf_path, pdf_name: response.data.data.pdf_name }
+              : group
+          ));
+          
+          window.showToast('PDF subido exitosamente', 'success');
+        } else {
+          setError(response.data.message || 'Error al subir el PDF');
+          window.showToast(response.data.message || 'Error al subir el PDF', 'error');
+        }
+      } catch (error) {
+        const errorMessage = error.response?.data?.message || 'Error al subir el PDF';
+        setError(errorMessage);
+        window.showToast(errorMessage, 'error');
+      } finally {
+        setGroupsLoading(false);
+      }
+    };
+    fileInput.click();
+  };
+
   const handleDeleteGroup = async (groupId) => {
     const result = await Swal.fire({
       title: '¿Eliminar grupo?',
@@ -662,6 +709,9 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
                     <p>{group.description || 'Sin descripción'}</p>
                     <div className="catalog-pdf-module__group-stats">
                       <span>🖼️ {group.images_count || 0} imágenes</span>
+                      {group.pdf_path && (
+                        <span style={{ color: '#28a745', fontWeight: 'bold' }}>📄 PDF cargado</span>
+                      )}
                       <span 
                         className={`status ${group.is_active ? 'active' : 'inactive'}`}
                         onClick={(e) => {
@@ -679,16 +729,24 @@ const CatalogPdfModule = ({ onBack, initialCatalog = null }) => {
                     <button
                       className="catalog-pdf-module__action-btn"
                       onClick={() => handleSelectImageGroup(group)}
-                      title="Gestionar imágenes de este grupo"
+                      data-tooltip="Gestionar imágenes de este grupo"
                     >
-                      📁 Gestionar Imágenes
+                      📁
+                    </button>
+                    <button
+                      className="catalog-pdf-module__action-btn"
+                      onClick={(e) => handleUploadGroupPdf(group.id, e)}
+                      data-tooltip={group.pdf_path ? 'Reemplazar PDF' : 'Subir PDF'}
+                      style={{ backgroundColor: group.pdf_path ? '#ffc107' : '#17a2b8' }}
+                    >
+                      📄
                     </button>
                     <button
                       className="catalog-pdf-module__action-btn catalog-pdf-module__action-btn--delete"
                       onClick={() => handleDeleteGroup(group.id)}
-                      title="Eliminar grupo"
+                      data-tooltip="Eliminar grupo"
                     >
-                      🗑️ Eliminar
+                      🗑️
                     </button>
                   </div>
                 </div>

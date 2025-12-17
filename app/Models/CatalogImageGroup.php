@@ -16,7 +16,9 @@ class CatalogImageGroup extends Model
         'description',
         'slug',
         'is_active',
-        'display_order'
+        'display_order',
+        'pdf_path',
+        'pdf_name'
     ];
 
     protected $casts = [

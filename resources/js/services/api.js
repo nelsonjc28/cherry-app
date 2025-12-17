@@ -1234,6 +1234,20 @@ export const catalogService = {
       throw error;
     }
   },
+
+  // Subir PDF a un grupo de imágenes (admin)
+  uploadGroupPdf: async (catalogId, groupId, formData) => {
+    try {
+      const response = await api.post(`/admin/catalogs/${catalogId}/image-groups/${groupId}/upload-pdf`, formData, {
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 // Servicio de autenticación

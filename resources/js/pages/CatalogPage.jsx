@@ -752,7 +752,7 @@ const CatalogPage = ({ catalogId }) => {
                     className="filters-btn"
                     onClick={() => window.location.href = `/catalogo-pdf?id=${catalogId}`}
                   >
-                    Ver PDF
+                    Ver catálogo PDF
                   </CustomButton>
                 )}
               </div>
@@ -797,7 +797,7 @@ const CatalogPage = ({ catalogId }) => {
                     className="filters-btn"
                     onClick={() => window.location.href = `/catalogo-pdf?id=${catalogId}`}
                   >
-                    Ver PDF
+                    Ver catálogo PDF
                   </CustomButton>
                 )}
                 <CustomButton
