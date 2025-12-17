@@ -1365,16 +1365,12 @@ class AdminCatalogController extends Controller
                 ->where('catalog_id', $catalogId)
                 ->firstOrFail();
 
-            // Límite máximo: 50MB (51200 KB)
-            // Nota: También necesitas aumentar upload_max_filesize y post_max_size en php.ini
-            $maxSizeKB = 51200; // 50MB
-
+            // Sin límite de tamaño - solo validar que sea un PDF válido
             $validator = Validator::make($request->all(), [
-                'pdf' => 'required|file|mimes:pdf|max:' . $maxSizeKB,
+                'pdf' => 'required|file|mimes:pdf',
             ], [
                 'pdf.required' => 'Debes seleccionar un archivo PDF',
-                'pdf.mimes' => 'El archivo debe ser un PDF válido',
-                'pdf.max' => 'El archivo PDF no debe superar 50MB. Si tu servidor tiene un límite menor, contacta al administrador para aumentar upload_max_filesize y post_max_size en php.ini'
+                'pdf.mimes' => 'El archivo debe ser un PDF válido'
             ]);
 
             if ($validator->fails()) {
