@@ -1,8 +1,323 @@
-/* Mobile First Styles */
-.register-page {
-  min-height: 100vh;
-  padding: 15px 0;
-  background-color: var(--background-color);
+.register-banner {
+  background: #fff4f5;
+  width: 100%;
+  color: black;
+  display: flex;
+  flex-direction: column-reverse;
+  overflow: hidden;
+  height: 450px;
+}
+
+.background-gradient {
+  background: linear-gradient(110deg, #fdf2f2 60%, #fd7f96 60%, #88313b 100%);
+}
+
+.register-banner__image {
+  height: 50%;
+  position: relative;
+}
+
+.register-banner__logo {
+  margin-bottom: 10px;
+}
+
+.register-banner__image img[alt="Affiliate Girl"] {
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  position: relative;
+}
+
+.register-banner__title {
+  font-size: 20px;
+  color: #373737;
+  font-weight: 500;
+  margin-bottom: 20px;
+  line-height: 25px;
+}
+
+.register-banner__content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  grid-column: 2;
+  z-index: 1;
+  padding: 15px 17px 0;
+}
+
+.register-banner__btn {
+  width: 100%;
+  background: var(--color-primary);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 30px;
+  border-radius: 6px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  font-family: inherit;
+}
+
+.register-banner__btn:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+}
+
+.register-banner__steps {
+  font-size: 25px;
+  font-weight: 500;
+  margin: 0;
+  color: #373737;
+}
+
+.register-banner__steps span {
+  color: #EA2630;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* DECORATIVE GLOBES */
+.register-banner__globes {
+  position: absolute;
+  top: 40%;
+  left: 40%;
+  transform: translate(-50%, -50%);
+}
+
+.register-banner__globe--big {
+  width: 200px;
+  aspect-ratio: 1;
+  background-color: #F73859;
+  border-radius: 100%;
+  z-index: 1;
+  position: absolute;
+  top: -100px;
+  transform: translateX(-50%);
+}
+
+.register-banner__globe--small {
+  width: 80px;
+  aspect-ratio: 1;
+  background-color: #F9738A;
+  border-radius: 100%;
+  z-index: 2;
+  position: absolute;
+  left: 150px;
+}
+
+/* How It Works Section */
+.how-it-works {
+  background-color: #fff;
+  padding: 40px 20px;
+  border-bottom: 1px solid rgba(234, 38, 48, 0.25);
+}
+
+.how-it-works__title {
+  text-align: center;
+  font-size: 25px;
+  font-weight: 400;
+  color: #373737;
+  margin-bottom: 20px;
+}
+
+.how-it-works__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.how-it-works__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 15px;
+}
+
+.how-it-works__number {
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.how-it-works__number span {
+  font-size: 30px;
+  font-weight: 700;
+  color: #EA2630;
+}
+
+.how-it-works__step-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #373737;
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
+.how-it-works__step-description {
+  font-size: 13px;
+  font-weight: 400;
+  color: #666;
+  line-height: 1.5;
+  max-width: 280px;
+  margin: 0;
+}
+
+/* Register Includes Section */
+.register-includes {
+  padding: 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.register-includes__title {
+  text-align: center;
+  font-size: 25px;
+  font-weight: 400;
+  color: #373737;
+  margin-bottom: 20px;
+}
+
+.register-includes__grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.register-includes__column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.register-includes__column:first-child {
+  margin-bottom: 10px;
+}
+
+.register-includes__item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.register-includes__check {
+  width: 35px;
+  height: 35px;
+  min-width: 35px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.register-includes__check svg {
+  width: 16px;
+  height: 12px;
+}
+
+.register-includes__item span {
+  font-size: 16px;
+  font-weight: 400;
+  color: #373737;
+  line-height: 1.4;
+}
+
+/* Second Banner */
+.register-banner-second {
+  background: #fff4f5;
+  width: 100%;
+  color: black;
+  display: flex;
+  flex-direction: column-reverse;
+  overflow: hidden;
+  height: 460px;
+}
+
+.register-banner-second__image {
+  height: 300px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.register-banner-second__image img {
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  position: relative;
+}
+
+.register-banner-second__content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  z-index: 1;
+  padding: 10px 20px 0 20px;
+}
+
+.register-banner-second__title {
+  font-size: 20px;
+  color: #373737;
+  font-weight: 500;
+  margin-bottom: 20px;
+  line-height: 25px;
+}
+
+.register-banner-second__steps {
+  font-size: 25px;
+  font-weight: 500;
+  margin: 0;
+  color: #373737;
+}
+
+.register-banner-second__steps span {
+  color: #EA2630;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Second Banner Globes */
+.register-banner-second__globes {
+  position: absolute;
+  top: 40%;
+  left: 40%;
+  transform: translate(-50%, -50%);
+}
+
+.register-banner-second__globe--big {
+  width: 200px;
+  aspect-ratio: 1;
+  background-color: #F73859;
+  border-radius: 100%;
+  z-index: 0;
+  position: absolute;
+  top: -100px;
+  transform: translateX(-50%);
+}
+
+.register-banner-second__globe--small {
+  width: 80px;
+  aspect-ratio: 1;
+  background-color: #F9738A;
+  border-radius: 100%;
+  z-index: 0;
+  position: absolute;
+  left: 150px;
 }
 
 /* Error message styles */
@@ -69,10 +384,17 @@
   font-size: 1.2rem;
 }
 
-.register-right {
-  background-color: #B8B7B7;
+.register-page-form {
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 15px;
+  background-color: #F2F2F2;
   border-radius: 8px;
-  padding: 30px 14px 15px 14px;
+  margin: 20px auto;
+  width: calc(100% - 30px);
+  min-width: 340px;
+  max-width: 900px;
 }
 
 .register-form-container {
@@ -98,7 +420,7 @@
 
 .register-subtitle {
   font-size: 25px;
-  color: #fff;
+  color: #373737;
   font-weight: 400;
 }
 
@@ -128,7 +450,7 @@
 }
 
 .register-form-group label {
-  color: #fff;
+  color: #373737;
   font-size: 16px;
   font-weight: 400;
 }
@@ -230,14 +552,14 @@
 }
 
 .register-section-title {
-  color: #fff;
+  color: #373737;
   font-size: 20px;
   font-weight: 400;
 }
 
 .register-password-hint {
-  color: #fff;
-  font-size: 16px;
+  color: #373737;
+  font-size: 14px;
   font-weight: 400;
   line-height: 1.4;
   margin-top: -10px;
@@ -293,7 +615,7 @@
 
 .register-terms-text {
   font-size: 12px;
-  color: #ffffff;
+  color: #373737;
   text-align: center;
   margin-top: 12px;
   line-height: 1.4;
@@ -307,16 +629,215 @@
   margin-top: 10px;
 }
 
-.register-button-container > button,
-.register-button-container > .cherry-button {
+.register-button-container>button,
+.register-button-container>.cherry-button {
   width: 100%;
 }
 
-/* Desktop Styles */
 @media (min-width: 768px) {
-  .register-page {
-    padding: 30px 0;
+  .register-banner {
+    flex-direction: row-reverse;
+    height: 356px;
   }
+
+  .register-banner__content {
+    padding: 35px 10px 30px 60px;
+  }
+
+  .register-banner__globes {
+    top: 30%;
+    left: 45%;
+  }
+
+  .register-banner__globe--big {
+    width: 250px;
+    aspect-ratio: 1;
+    background-color: #F73859;
+    border-radius: 100%;
+    z-index: 1;
+    position: absolute;
+    top: -50px;
+    transform: unset;
+  }
+
+  .register-banner__title {
+    font-size: 37px;
+    line-height: 45px;
+    margin-bottom: 30px;
+  }
+
+  .register-banner__image {
+    height: 100%;
+  }
+
+  .register-banner__image img[alt="Affiliate Girl"] {
+    height: 100%;
+    margin-top: 0;
+  }
+
+  .register-banner__globe--small {
+    width: 140px;
+    aspect-ratio: 1;
+    background-color: #F9738A;
+    border-radius: 100%;
+    z-index: 2;
+    position: absolute;
+    left: 140px;
+    top: 90px;
+  }
+
+  .register-banner__btn {
+    width: fit-content;
+  }
+
+  .register-banner__steps {
+    font-size: 37px;
+    font-weight: 500;
+    margin: 0;
+    color: #373737;
+  }
+
+  .register-banner__steps span {
+    color: #EA2630;
+    font-size: 50px;
+    font-weight: 700;
+  }
+
+  /* Desktop Styles for How It Works */
+  .how-it-works {
+    padding: 60px 0;
+  }
+
+  .how-it-works__title {
+    font-size: 37px;
+    margin-bottom: 50px;
+  }
+
+  .how-it-works__steps {
+    flex-direction: row;
+    justify-content: center;
+    gap: 50px;
+  }
+
+  .how-it-works__step {
+    flex: 1;
+    max-width: 320px;
+  }
+
+  .how-it-works__number {
+    width: 76px;
+    height: 76px;
+  }
+
+  .how-it-works__number span {
+    font-size: 40px;
+  }
+
+  .how-it-works__step-title {
+    font-size: 20px;
+  }
+
+  .how-it-works__step-description {
+    font-size: 16px;
+    max-width: 300px;
+  }
+
+  .register-includes {
+    padding: 50px 0;
+  }
+
+  .register-includes__title {
+    font-size: 36px;
+    margin-bottom: 45px;
+  }
+
+  .register-includes__grid {
+    flex-direction: row;
+    justify-content: center;
+    gap: 150px;
+  }
+
+  .register-includes__column {
+    gap: 25px;
+  }
+
+  .register-includes__column:first-child {
+    margin-bottom: 0;
+  }
+
+  .register-includes__check {
+    width: 50px;
+    height: 50px;
+    min-width: 50px;
+  }
+
+  .register-includes__check svg {
+    width: 18px;
+    height: 14px;
+  }
+
+  .register-includes__item span {
+    font-size: 17px;
+  }
+
+  /* Second Banner Desktop */
+  .register-banner-second {
+    flex-direction: row-reverse;
+    height: 356px;
+    justify-content: center;
+    gap: 50px;
+  }
+
+  .register-banner-second__image {
+    height: 100%;
+  }
+
+  .register-banner-second__image img {
+    height: 100%;
+    margin-top: 0;
+  }
+
+  .register-banner-second__content {
+    width: 40%;
+    padding: 0px;
+  }
+
+  .register-banner-second__title {
+    font-size: 30px;
+    line-height: 40px;
+  }
+
+  .register-banner-second__steps {
+    font-size: 37px;
+    font-weight: 500;
+    margin: 0;
+    color: #373737;
+  }
+
+  .register-banner-second__steps span {
+    color: #EA2630;
+    font-size: 50px;
+    font-weight: 700;
+  }
+
+  .register-banner-second__globes {
+    top: 30%;
+    left: 45%;
+  }
+
+  .register-banner-second__globe--big {
+    width: 250px;
+    top: -50px;
+    transform: unset;
+  }
+
+  .register-banner-second__globe--small {
+    width: 140px;
+    left: 140px;
+    top: 90px;
+  }
+
+  /*Register page*/
 
   .register-content {
     flex-direction: row;
@@ -342,12 +863,13 @@
     font-size: 1rem;
   }
 
-  .register-right {
-    flex: 1;
-    padding: 20px 8px;
+  .register-page-form {
+    padding: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 900px;
+    max-width: 900px;
   }
 
   .register-form-container {
@@ -389,3 +911,4 @@
     width: 200px;
   }
 }
+
