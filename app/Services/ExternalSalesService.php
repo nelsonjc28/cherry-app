@@ -372,16 +372,18 @@ class ExternalSalesService
         $nombre = trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? ''));
         
         // Estructura simplificada según la especificación de la API externa
-        // Usar 'id' en lugar de 'id_cliente' con el número original del usuario
+        // Formato del id: "CD" + 4 ceros + id del cliente (ej: CD00002, CD00123)
+        $idFormatted = 'CD' . str_pad((string) $user->id, 4, '0', STR_PAD_LEFT);
+        
         return [
-            'id' => (int) $user->id,
+            'id' => $idFormatted,
             'nombre' => $nombre,
             'rfc' => $user->rfc ?? 'XAXX010101000',
             'calle' => $streetParts['street'] ?? $streetAddress,
             'no_int' => $streetParts['no_int'] ?? null,
             'no_ext' => $streetParts['no_ext'] ?? null,
             'municipio' => $address->municipality ?? $address->city ?? '',
-            'colonia' => null,
+            'colonia' => $address->colonia ?? null,
             'estado' => $address->state ?? '',
             'ciudad' => $this->normalizeCity($address->city ?? ''),
             'pais' => $address->country ?? 'México',

@@ -20,6 +20,7 @@ class Address extends Model
         'street_address',
         'city',
         'municipality',
+        'colonia',
         'state',
         'postal_code',
         'country',
