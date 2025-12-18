@@ -8,6 +8,9 @@
 /* Header section */
 .catalog-page__header-mobile {
   padding: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.50rem;
 }
 
 .catalog-page__header-desktop {
@@ -26,6 +29,71 @@
   align-items: center;
   gap: 4px;
   margin-left: 0.5rem;
+}
+
+/* Mobile filter row - contains filter button and sort */
+.catalog-page__mobile-filter-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(231, 231, 231, 1);
+}
+
+/* Mobile actions row - PDF and Share buttons */
+.catalog-page__mobile-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  width: 100%;
+  padding-top: 0.5rem;
+}
+
+.catalog-page__mobile-pdf-btn {
+  background: #EA2630;
+  color: white;
+  border: 1px solid #EA2630;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 8px 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.catalog-page__mobile-pdf-btn:hover {
+  background: #c21828;
+  border-color: #c21828;
+}
+
+.catalog-page__mobile-share-btn {
+  flex: 1;
+  background: #EA2630;
+  color: white;
+  border: 1px solid #EA2630;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.catalog-page__mobile-share-btn:hover {
+  background: #c21828;
+  border-color: #c21828;
+}
+
+/* Ocultar acciones móviles en tablet/desktop */
+@media (min-width: 768px) {
+  .catalog-page__mobile-actions {
+    display: none;
+  }
 }
 
 .catalog-page__action-buttons {
@@ -90,31 +158,23 @@
   gap: 1rem;
   width: 100%;
   position: relative;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid rgba(231, 231, 231, 1);
 }
 
+/* Mobile: solo título en header-row, sin borde */
+@media (max-width: 767px) {
+  .catalog-page__header-row {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+/* Mobile: ocultar botón PDF y compartir */
 .catalog-page__pdf-button-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex: 1;
-  min-width: 0;
+  display: none;
 }
 
-/* Desktop: tamaño fijo del botón PDF */
-@media (min-width: 768px) {
-  .catalog-page__pdf-button-wrapper {
-    flex: 0 0 auto;
-    min-width: auto;
-  }
-  
-  .catalog-page__pdf-btn {
-    font-size: 1rem;
-    padding: 10px 20px;
-    min-height: 40px;
-    white-space: nowrap;
-  }
+.catalog-page__share-button-wrapper {
+  display: none;
 }
 
 .catalog-page__sort-section {
@@ -122,12 +182,6 @@
   justify-content: flex-end;
   align-items: center;
   gap: 0.5rem;
-  flex-shrink: 0;
-}
-
-.catalog-page__share-button-wrapper {
-  display: flex;
-  align-items: center;
   flex-shrink: 0;
 }
 
@@ -188,18 +242,17 @@
 .catalog-page__mobile-filter-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0.5rem;
-  width: 100%;
-  background: white;
+  width: auto;
+  background: none;
   border: none;
   border-radius: 4px;
   font-size: 0.9rem;
   color: #373737;
   cursor: pointer;
   transition: background-color 0.3s ease;
-  background: none;
-  padding-right: 20px;
+  padding: 0;
 }
 
 .catalog-page__mobile-filter-btn:hover {
@@ -299,8 +352,21 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    flex: 1;
-    min-width: 0;
+    flex: 0 0 auto;
+    min-width: auto;
+  }
+  
+  .catalog-page__pdf-btn {
+    font-size: 1rem;
+    padding: 10px 20px;
+    min-height: 40px;
+    white-space: nowrap;
+  }
+
+  .catalog-page__share-button-wrapper {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
   }
 
   .catalog-page__sort-section {
@@ -394,9 +460,9 @@
     gap: 0.5rem;
   }
 
-  .catalog-page__header-row {
+  /* .catalog-page__header-row {
     border-bottom: 1px solid rgba(231, 231, 231, 1);
-  }
+  } */
 
   .catalog-page__whatsapp-text {
     display: inline;

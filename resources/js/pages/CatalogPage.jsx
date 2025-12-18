@@ -145,7 +145,7 @@ const CatalogPage = ({ catalogId }) => {
     const selectedCategories = Array.isArray(currentFilters.categories) && currentFilters.categories.length > 0
       ? currentFilters.categories.filter(cat => cat !== 'todos') // Excluir la opción "todos"
       : (currentFilters.category && currentFilters.category !== '' ? (Array.isArray(currentFilters.category) ? currentFilters.category.filter(cat => cat !== 'todos') : [String(currentFilters.category)]) : []);
-    
+
     if (selectedCategories.length > 0) {
       filtered = filtered.filter(product => {
         const productLineaId = String(product.id_linea || product.linea?.id_linea || product.category_id || '');
@@ -334,22 +334,22 @@ const CatalogPage = ({ catalogId }) => {
             if (catalogResponse.data.success) {
               const catalog = catalogResponse.data.data;
               setCurrentCatalog(catalog);
-              
+
               // Verificar si el catálogo tiene PDF directamente
               if (catalog.pdf_path && catalog.pdf_name) {
                 setHasCatalogPdf(true);
                 setCatalogPdfInfo({
                   pdf_path: catalog.pdf_path,
                   pdf_name: catalog.pdf_name,
-                  pdf_url: catalog.pdf_path.startsWith('http') 
-                    ? catalog.pdf_path 
+                  pdf_url: catalog.pdf_path.startsWith('http')
+                    ? catalog.pdf_path
                     : `${window.location.origin}/${catalog.pdf_path}`
                 });
               } else {
                 setHasCatalogPdf(false);
                 setCatalogPdfInfo(null);
               }
-              
+
               // Verificar si el catálogo tiene grupos de imágenes activos
               try {
                 setCheckingImageGroups(true);
@@ -377,47 +377,47 @@ const CatalogPage = ({ catalogId }) => {
               const localResponse = await publicCatalogService.getProducts(catalogId);
               if (localResponse.data.success && localResponse.data.data.products) {
                 const backendProducts = localResponse.data.data.products;
-                
+
                 // Mapear productos del backend al formato esperado (igual que BuscarPage)
                 localProducts = backendProducts.map(product => {
                   const rawPrice = product.precio1;
                   const numericPrice = typeof rawPrice === 'string' ? parseFloat(rawPrice.replace(/[^\d.-]/g, '')) : parseFloat(rawPrice) || 0;
-                  
+
                   // Extraer colores de detalles
-                  const productColors = product.detalles ? 
-                    [...new Set(product.detalles.map(d => d.nombreColor).filter(Boolean))] : 
+                  const productColors = product.detalles ?
+                    [...new Set(product.detalles.map(d => d.nombreColor).filter(Boolean))] :
                     [];
                   const availableColors = productColors.length > 0 ? productColors : ['black'];
-                  
+
                   // Extraer tallas de detalles
-                  const productSizes = product.detalles ? 
-                    [...new Set(product.detalles.map(d => d.detalle).filter(Boolean))] : 
+                  const productSizes = product.detalles ?
+                    [...new Set(product.detalles.map(d => d.detalle).filter(Boolean))] :
                     [];
                   const availableSizes = productSizes.length > 0 ? productSizes : ['M'];
-                  
+
                   // Determinar si es nuevo (45 días)
-                  const isNewProduct = product.opc_nuevo === 'S' || 
-                                     (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 45 * 24 * 60 * 60 * 1000));
-                  
+                  const isNewProduct = product.opc_nuevo === 'S' ||
+                    (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 45 * 24 * 60 * 60 * 1000));
+
                   // Usar los valores que ya vienen calculados del backend (con descuento reducido del 10% aplicado)
                   let finalPrice = product.price;
                   let originalPrice = product.originalPrice;
                   let discountPercentage = product.discount;
-                  
+
                   // Si el backend no envió estos valores, calcularlos aquí como fallback
                   if (finalPrice === undefined || finalPrice === null || finalPrice === 0) {
                     const hasDiscount = product.opc_promo === 'S' && product.desc_promo > 0;
                     const originalDiscountPercentage = hasDiscount ? parseFloat(product.desc_promo) : 0;
                     discountPercentage = hasDiscount ? Math.max(0, originalDiscountPercentage - 10) : 0;
                     originalPrice = hasDiscount && numericPrice > 0 ? numericPrice : null;
-                    finalPrice = hasDiscount && discountPercentage > 0 && numericPrice > 0 
-                      ? (numericPrice - (numericPrice * (discountPercentage / 100))) 
+                    finalPrice = hasDiscount && discountPercentage > 0 && numericPrice > 0
+                      ? (numericPrice - (numericPrice * (discountPercentage / 100)))
                       : numericPrice;
                   }
-                  
+
                   // Asegurar que discountPercentage sea un número
                   discountPercentage = discountPercentage !== undefined && discountPercentage !== null ? parseFloat(discountPercentage) : 0;
-                  
+
                   return {
                     id: product.id_articulo || product.id,
                     title: product.descripcion || product.title || 'Sin nombre',
@@ -477,18 +477,18 @@ const CatalogPage = ({ catalogId }) => {
                 const rawPrice = product.precio1;
                 const numericPrice = typeof rawPrice === 'string' ? parseFloat(rawPrice.replace(/[^\d.-]/g, '')) : parseFloat(rawPrice) || 0;
 
-                const productColors = product.detalles ? 
-                  [...new Set(product.detalles.map(d => d.nombreColor).filter(Boolean))] : 
+                const productColors = product.detalles ?
+                  [...new Set(product.detalles.map(d => d.nombreColor).filter(Boolean))] :
                   [];
                 const availableColors = productColors.length > 0 ? productColors : ['black'];
 
-                const productSizes = product.detalles ? 
-                  [...new Set(product.detalles.map(d => d.detalle).filter(Boolean))] : 
+                const productSizes = product.detalles ?
+                  [...new Set(product.detalles.map(d => d.detalle).filter(Boolean))] :
                   [];
                 const availableSizes = productSizes.length > 0 ? productSizes : ['M'];
 
-                const isNewProduct = product.opc_nuevo === 'S' || 
-                                   (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 45 * 24 * 60 * 60 * 1000));
+                const isNewProduct = product.opc_nuevo === 'S' ||
+                  (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 45 * 24 * 60 * 60 * 1000));
 
                 let finalPrice = product.price;
                 let originalPrice = product.originalPrice;
@@ -499,8 +499,8 @@ const CatalogPage = ({ catalogId }) => {
                   const originalDiscountPercentage = hasDiscount ? parseFloat(product.desc_promo) : 0;
                   discountPercentage = hasDiscount ? Math.max(0, originalDiscountPercentage - 10) : 0;
                   originalPrice = hasDiscount && numericPrice > 0 ? numericPrice : null;
-                  finalPrice = hasDiscount && discountPercentage > 0 && numericPrice > 0 
-                    ? (numericPrice - (numericPrice * (discountPercentage / 100))) 
+                  finalPrice = hasDiscount && discountPercentage > 0 && numericPrice > 0
+                    ? (numericPrice - (numericPrice * (discountPercentage / 100)))
                     : numericPrice;
                 }
 
@@ -733,15 +733,7 @@ const CatalogPage = ({ catalogId }) => {
         <div className="container">
           {/* Header section with title and filters  -  MOBILE */}
           <div className="catalog-page__header-mobile">
-            <div className="catalog-page__mobile-filter-controls">
-              <button
-                className="catalog-page__mobile-filter-btn"
-                onClick={toggleFilterModal}
-              >
-                <img src={getIconPath('Filter.svg')} alt="Filtros" />
-                <img src={getIconPath('Chevron Down.svg')} alt="Expandir" />
-              </button>
-            </div>
+            {/* Primera fila: Título + contador */}
             <div className="catalog-page__header-row">
               <div className="catalog-page__title-section">
                 <h1 className="catalog-page__title">
@@ -750,21 +742,25 @@ const CatalogPage = ({ catalogId }) => {
                 <div className='catalog-page__content-texts'>
                   <span className="catalog-page__results-count">
                     ({totalResults})
-                    <p className="catalog-page__text-results-count">Resultados</p>
                   </span>
                 </div>
               </div>
-              <div className="catalog-page__pdf-button-wrapper">
-                {catalogId && currentCatalog?.is_active && hasCatalogPdf && !checkingImageGroups && (
-                  <button
-                    type="button"
-                    className="custom-btn custom-btn--outlined custom-btn--medium filters-btn"
-                    onClick={() => window.location.href = `/catalogo-pdf?id=${catalogId}`}
-                  >
-                    <span className="custom-btn__content">Ver catálogo PDF</span>
-                  </button>
-                )}
-              </div>
+              <CustomButton
+                variant="filled"
+                size="small"
+                onClick={handleShareCatalog}
+                iconLeft={<img src={getIconPath('Whatsapp.svg')} alt="Compartir clientes" style={{ width: 16, height: 16 }} />}>
+              </CustomButton>
+            </div>
+            {/* Segunda fila: Filtro + Ordenar */}
+            <div className="catalog-page__mobile-filter-controls">
+              <button
+                className="catalog-page__mobile-filter-btn"
+                onClick={toggleFilterModal}
+              >
+                <img src={getIconPath('Filter.svg')} alt="Filtros" />
+                <img src={getIconPath('Chevron Down.svg')} alt="Expandir" />
+              </button>
               <div className="catalog-page__sort-section">
                 <label htmlFor="sort-select" className="catalog-page__sort-label">Ordenar por:</label>
                 <select
@@ -780,18 +776,19 @@ const CatalogPage = ({ catalogId }) => {
                   <option value="nombre-z-a">Nombre: Z-A</option>
                 </select>
               </div>
-              {catalogId && currentCatalog?.is_active && hasCatalogPdf && !checkingImageGroups && (
-                <div className="catalog-page__share-button-wrapper">
-                  <CustomButton
-                    variant="filled"
-                    size="medium"
-                    onClick={handleShareCatalog}
-                  >
-                    <span className="catalog-page__whatsapp-text">Compartir a clientes</span>
-                  </CustomButton>
-                </div>
-              )}
             </div>
+
+            {catalogId && currentCatalog?.is_active && hasCatalogPdf && !checkingImageGroups && (
+              <div className="catalog-page__mobile-actions">
+                <button
+                  type="button"
+                  className="catalog-page__mobile-pdf-btn"
+                  onClick={() => window.location.href = `/catalogo-pdf?id=${catalogId}`}
+                >
+                  Ver catálogo PDF
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Header section with title and filters  -  DESKTOP */}
