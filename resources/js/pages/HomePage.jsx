@@ -149,35 +149,67 @@ const HomePage = () => {
                 "name": "Catálogo de Ropa y Calzado para Dama",
                 "itemListElement": [
                   {
-                    "@type": "Offer",
-                    "itemOffered": {
+                    "@type": "ListItem",
+                    "position": 1,
+                    "item": {
                       "@type": "Product",
                       "name": "Vestidos",
-                      "category": "Vestidos"
+                      "url": "https://cherrydistribuidores.com.mx/categoria/vestidos",
+                      "image": "https://cherrydistribuidores.com.mx/images/category/vestido.png",
+                      "offers": {
+                        "@type": "AggregateOffer",
+                        "offerCount": "1",
+                        "lowPrice": "0",
+                        "priceCurrency": "MXN"
+                      }
                     }
                   },
                   {
-                    "@type": "Offer", 
-                    "itemOffered": {
+                    "@type": "ListItem",
+                    "position": 2,
+                    "item": {
                       "@type": "Product",
                       "name": "Blusas",
-                      "category": "Blusas"
+                      "url": "https://cherrydistribuidores.com.mx/categoria/blusas",
+                      "image": "https://cherrydistribuidores.com.mx/images/category/Blusa.png",
+                      "offers": {
+                        "@type": "AggregateOffer",
+                        "offerCount": "1",
+                        "lowPrice": "0",
+                        "priceCurrency": "MXN"
+                      }
                     }
                   },
                   {
-                    "@type": "Offer",
-                    "itemOffered": {
+                    "@type": "ListItem",
+                    "position": 3,
+                    "item": {
                       "@type": "Product",
                       "name": "Pantalones",
-                      "category": "Pantalones"
+                      "url": "https://cherrydistribuidores.com.mx/categoria/pantalones",
+                      "image": "https://cherrydistribuidores.com.mx/images/category/pantalones.png",
+                      "offers": {
+                        "@type": "AggregateOffer",
+                        "offerCount": "1",
+                        "lowPrice": "0",
+                        "priceCurrency": "MXN"
+                      }
                     }
                   },
                   {
-                    "@type": "Offer",
-                    "itemOffered": {
+                    "@type": "ListItem",
+                    "position": 4,
+                    "item": {
                       "@type": "Product",
                       "name": "Faldas",
-                      "category": "Faldas"
+                      "url": "https://cherrydistribuidores.com.mx/categoria/faldas",
+                      "image": "https://cherrydistribuidores.com.mx/images/category/falda.png",
+                      "offers": {
+                        "@type": "AggregateOffer",
+                        "offerCount": "1",
+                        "lowPrice": "0",
+                        "priceCurrency": "MXN"
+                      }
                     }
                   }
                 ]
