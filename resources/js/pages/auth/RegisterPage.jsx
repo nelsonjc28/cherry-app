@@ -1,8 +1,8 @@
 import { Helmet } from 'react-helmet-async';
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from 'react-router-dom';
 import "./RegisterPage.css";
-import { getIconPath, getImagePath } from '../../utils/assetPaths';
+import { getIconPath, getImagePath, getHeroIconPath } from '../../utils/assetPaths';
 import { Link } from 'react-router-dom';
 import CustomButton from '../../components/CustomButton';
 import useUserStore from '../../store/userStore';
@@ -10,6 +10,7 @@ import useUserStore from '../../store/userStore';
 const RegisterPage = () => {
   const navigate = useNavigate();
   const { register, loading, error } = useUserStore();
+  const firstNameInputRef = useRef(null);
 
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -308,6 +309,16 @@ const RegisterPage = () => {
     setShowConfirmPassword(!showConfirmPassword);
   };
 
+  const scrollToFormAndFocus = () => {
+    if (firstNameInputRef.current) {
+      firstNameInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Pequeño delay para asegurar que el scroll termine antes de enfocar
+      setTimeout(() => {
+        firstNameInputRef.current.focus();
+      }, 500);
+    }
+  };
+
   const days = Array.from({ length: 31 }, (_, i) => i + 1)
   const months = [
     "Enero",
@@ -330,188 +341,347 @@ const RegisterPage = () => {
       <Helmet>
         <title>Registro | Cherry Central</title>
       </Helmet>
-      <div className="register-page">
-        <div className="container">
-          <div className="register-content">
-            <div className="register-left">
-              <div className="register-shopping-image">
-                <img
-                  src="images/AuthPages/girl-bags.png"
-                  alt="Mujer con bolsas de compras"
-                  className="shopping-image"
-                />
+
+      {/* Banner de Afiliación */}
+      <section className="register-banner background-gradient" aria-labelledby="register-banner-heading">
+        <div className="register-banner__image">
+          <img src={`${window.location.origin}/images/AuthPages/register-banner-girl.png`} alt="Affiliate Girl" />
+          <div className="register-banner__globes">
+            <div className="register-banner__globe register-banner__globe--big"></div>
+            <div className="register-banner__globe register-banner__globe--small"></div>
+          </div>
+        </div>
+
+        <div className="register-banner__content">
+          <div className="register-banner__logo">
+            <img src={`${window.location.origin}/images/logo.svg`} alt="Cherry" width={150} />
+          </div>
+          <p className="register-banner__steps">
+            en <span>3 pasos</span>
+          </p>
+          <h2 id="register-banner-heading" className="register-banner__title">
+            ¡Afíliate ahora mismo y comienza tu propio negocio!
+          </h2>
+          <button
+            type="button"
+            onClick={scrollToFormAndFocus}
+            className="register-banner__btn"
+            title="Únete a nuestro programa de afiliados y comienza tu negocio"
+            aria-label="Afiliate a Cherry Central y comienza tu negocio"
+          >
+            Afiliate ahora
+            <svg width="5" height="9" viewBox="0 0 5 9" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4.86328 4.39453C4.99349 4.26432 4.99349 4.08203 4.86328 3.95182L1.0612 0.0976563C0.93099 -0.0325521 0.722656 -0.0325521 0.61849 0.0976563L0.0976562 0.61849C-0.0325521 0.722656 -0.0325521 0.93099 0.0976562 1.0612L3.17057 4.16016L0.0976562 7.28516C-0.0325521 7.41536 -0.0325521 7.59766 0.0976562 7.72786L0.61849 8.2487C0.722656 8.37891 0.93099 8.37891 1.0612 8.2487L4.86328 4.39453Z" fill="#F5F5FF" />
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      {/* Sección ¿Cómo funciona? */}
+      <section className="how-it-works">
+        <div className="how-it-works__container">
+          <h2 className="how-it-works__title">¿Cómo funciona?</h2>
+
+          <div className="how-it-works__steps">
+            <div className="how-it-works__step">
+              <div className="how-it-works__number">
+                <span>1</span>
               </div>
-              <div className="register-benefits-section">
-                <h2 className="register-benefits-title">Descubre los beneficios:</h2>
-                <ul className="register-benefits-list cherry-divider">
-                  <li>Te guiamos con capacitación constante.</li>
-                  <li>Precios exclusivos para que incrementes tus ganancias.</li>
-                  <li>Tus primeros catálogos con 50% de descuento.</li>
-                  <li>Cambios o devoluciones sin preocuparte, con garantía de 30 días.</li>
-                  <li>Tú decides tus horarios y donde quieres crecer tu negocio.</li>
-                </ul>
+              <h3 className="how-it-works__step-title">Te registras</h3>
+              <p className="how-it-works__step-description">
+                Únete a nuestra comunidad y descubre todo lo que Cherry tiene para ofrecerte. con un solo clic, podrás acceder.
+              </p>
+            </div>
+
+            <div className="how-it-works__step">
+              <div className="how-it-works__number">
+                <span>2</span>
+              </div>
+              <h3 className="how-it-works__step-title">Comparte tu enlace personalizado</h3>
+              <p className="how-it-works__step-description">
+                Ahora puedes invitar a tus amigos a unirse a Cherry de una manera fácil y divertida.
+              </p>
+            </div>
+
+            <div className="how-it-works__step">
+              <div className="how-it-works__number">
+                <span>3</span>
+              </div>
+              <h3 className="how-it-works__step-title">Recibe tus ganancias cada quincena</h3>
+              <p className="how-it-works__step-description">
+                En Cherry, valoramos tu esfuerzo y dedicación.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Sección ¿Qué incluye tu registro? */}
+      <section className="register-includes">
+        <div className="register-includes__container">
+          <h2 className="register-includes__title">¿Qué incluye tu registro?</h2>
+
+          <div className="register-includes__grid">
+            <div className="register-includes__column">
+              <div className="register-includes__item">
+                <div className="register-includes__check">
+                  <svg width="16" height="12" viewBox="0 0 16 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
+                  </svg>
+                </div>
+                <span>Acceso a tu panel personal</span>
+              </div>
+
+              <div className="register-includes__item">
+                <div className="register-includes__check">
+                  <svg width="16" height="12" viewBox="0 0 16 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
+                  </svg>
+                </div>
+                <span>Link único para compra</span>
+              </div>
+
+              <div className="register-includes__item">
+                <div className="register-includes__check">
+                  <svg width="16" height="12" viewBox="0 0 16 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
+                  </svg>
+                </div>
+                <span>Categorías digital descargable</span>
+              </div>
+
+              <div className="register-includes__item">
+                <div className="register-includes__check">
+                  <svg width="16" height="12" viewBox="0 0 16 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
+                  </svg>
+                </div>
+                <span>Material promocional</span>
               </div>
             </div>
 
-            <div className="register-right">
-              <div className="register-form-container">
-                <div className="register-form-header">
-                  <Link to="/">
-                    <img src={getImagePath('logo.svg')} alt="Cherry" />
-                  </Link>
-                  {currentStep === 1 ? (
-                    <>
-                      <h2 className="register-subtitle">Afíliate a nosotros</h2>
-                      <div className="white-divider"></div>
-                    </>
-                  ) : (
-                    <>
-                      <div style={{ marginTop: '20px' }}>
-                        <h3 style={{ color: 'white', marginBottom: '10px' }}>Hola! {formData.firstName}</h3>
-                        <h4 style={{ color: 'white', marginBottom: '20px' }}>Paso 2. Completa tus datos</h4>
-                      </div>
-                      <div className="white-divider"></div>
-                    </>
-                  )}
+            <div className="register-includes__column">
+              <div className="register-includes__item">
+                <div className="register-includes__check">
+                  <svg width="16" height="12" viewBox="0 0 16 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
+                  </svg>
                 </div>
+                <span>Publicaciones sin límites</span>
+              </div>
 
-                {/* {currentStep === 1 ? ( */}
+              <div className="register-includes__item">
+                <div className="register-includes__check">
+                  <svg width="16" height="12" viewBox="0 0 16 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
+                  </svg>
+                </div>
+                <span>Comenzar a interactuas</span>
+              </div>
 
-                <form onSubmit={handleSubmit} className="register-form">
-                  <div className="register-form-row">
-                    <div className="register-form-group">
-                      <label>Nombre</label>
-                      <input
-                        type="text"
-                        name="firstName"
-                        placeholder="Tu nombre"
-                        value={formData.firstName}
-                        onChange={handleInputChange}
-                        required
-                      />
-                      {formErrors.firstName && <span className="error-message">{formErrors.firstName}</span>}
-                    </div>
-                    <div className="register-form-group">
-                      <label>Apellidos</label>
-                      <input
-                        type="text"
-                        name="lastName"
-                        placeholder="Tus apellidos"
-                        value={formData.lastName}
-                        onChange={handleInputChange}
-                        required
-                      />
-                      {formErrors.lastName && <span className="error-message">{formErrors.lastName}</span>}
-                    </div>
-                  </div>
+              <div className="register-includes__item">
+                <div className="register-includes__check">
+                  <svg width="16" height="12" viewBox="0 0 16 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
+                  </svg>
+                </div>
+                <span>Rapidez para compartir</span>
+              </div>
 
-                  <div className="register-form-row">
-                    <div className="register-form-group">
-                      <label>Teléfono</label>
-                      <input
-                        type="tel"
-                        name="phone"
-                        placeholder="10 dígitos"
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                        required
-                        pattern="[0-9]{10}"
-                        maxLength="10"
-                        onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')}
-                      />
-                      {formErrors.phone && <span className="error-message">{formErrors.phone}</span>}
-                    </div>
-                    <div className="register-form-group">
-                      <label>Correo electrónico</label>
-                      <input
-                        type="email"
-                        name="email"
-                        placeholder="tu@email.com"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        required
-                      />
-                      {formErrors.email && <span className="error-message">{formErrors.email}</span>}
-                    </div>
-                  </div>
+              <div className="register-includes__item">
+                <div className="register-includes__check">
+                  <svg width="16" height="12" viewBox="0 0 16 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
+                  </svg>
+                </div>
+                <span>¡Gana!</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-                  <div className="register-section-title" style={{ color: 'white', marginTop: '20px' }}>Contraseña</div>
-                  <div className="white-divider"></div>
+      {/* Banner de Afiliación 2 */}
+      <section className="register-banner-second" aria-labelledby="register-banner-bottom-heading">
+        <div className="register-banner-second__image">
+          <img src={`${window.location.origin}/images/AuthPages/phone-banner.png`} alt="Affiliate Phone" />
+          <div className="register-banner-second__globes">
+            <div className="register-banner-second__globe register-banner-second__globe--big"></div>
+            <div className="register-banner-second__globe register-banner-second__globe--small"></div>
+          </div>
+        </div>
 
-                  <div className="register-form-row">
-                    <div className="register-form-group">
-                      <label>Contraseña</label>
-                      <div className="login-input-container">
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          name="password"
-                          placeholder="Mínimo 8 caracteres"
-                          value={formData.password}
-                          onChange={handleInputChange}
-                          required
-                          minLength="8"
-                        />
-                        <button
-                          type="button"
-                          className={`login-password-toggle ${showPassword ? 'active' : ''}`}
-                          onClick={togglePasswordVisibility}
-                        >
-                          <img
-                            src={getIconPath('Eye.svg')}
-                            alt={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                          />
-                        </button>
-                      </div>
-                      {formErrors.password && <span className="error-message">{formErrors.password}</span>}
-                    </div>
-                    <div className="register-form-group">
-                      <label>Confirmar contraseña</label>
-                      <div className="login-input-container">
-                        <input
-                          type={showConfirmPassword ? "text" : "password"}
-                          name="confirmPassword"
-                          placeholder="Repite tu contraseña"
-                          value={formData.confirmPassword}
-                          onChange={handleInputChange}
-                          required
-                          minLength="8"
-                        />
-                        <button
-                          type="button"
-                          className={`login-password-toggle ${showConfirmPassword ? 'active' : ''}`}
-                          onClick={toggleConfirmPasswordVisibility}
-                        >
-                          <img
-                            src={getIconPath('Eye.svg')}
-                            alt={showConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                          />
-                        </button>
-                      </div>
-                      {formErrors.confirmPassword && <span className="error-message">{formErrors.confirmPassword}</span>}
-                    </div>
-                  </div>
+        <div className="register-banner-second__content">
+          <p className="register-banner-second__steps">
+            <span>¡Afíliate hoy mismo!</span>
+          </p>
+          <h2 id="register-banner-bottom-heading" className="register-banner-second__title">
+            Y sé parte de la familia Cherry y lidera tu futuro como empresario
+          </h2>
+        </div>
+      </section>
 
-                  <p className="register-password-hint">
-                    Tu contraseña debe tener mínimo 8 caracteres y al menos una letra y un número
-                  </p>
+      {/* Sección del Formulario de Registro */}
+      <div className="register-page-form">
+        <div className="register-form-container">
+          <div className="register-form-header">
+            <Link to="/">
+              <img src={getImagePath('logo.svg')} alt="Cherry" />
+            </Link>
+            {currentStep === 1 ? (
+              <>
+                <h2 className="register-subtitle">Afíliate a nosotros</h2>
+                <div className="white-divider"></div>
+              </>
+            ) : (
+              <>
+                <div style={{ marginTop: '20px' }}>
+                  <h3 style={{ color: 'white', marginBottom: '10px' }}>Hola! {formData.firstName}</h3>
+                  <h4 style={{ color: 'white', marginBottom: '20px' }}>Paso 2. Completa tus datos</h4>
+                </div>
+                <div className="white-divider"></div>
+              </>
+            )}
+          </div>
 
-                  <div className="register-button-container">
-                    <CustomButton
-                      variant="filled"
-                      size='medium'
-                      type="submit"
-                      disabled={isSubmitting || loading}
-                      iconRight={<img src={getIconPath('White Chevron Right.svg')} alt="crear cuenta" style={{ width: 16, height: 16 }} />}>
-                      <span className="register-submit-button">
-                        {isSubmitting ? 'Creando cuenta...' : 'Crear cuenta'}
-                      </span>
-                    </CustomButton>
-                    <p className="register-terms-text">
-                      Al registrarte aceptas términos y condiciones
-                    </p>
-                  </div>
-                </form>
-                {/* ) }  : (
+          {/* {currentStep === 1 ? ( */}
+
+          <form onSubmit={handleSubmit} className="register-form">
+            <div className="register-form-row">
+              <div className="register-form-group">
+                <label>Nombre</label>
+                <input
+                  ref={firstNameInputRef}
+                  type="text"
+                  name="firstName"
+                  placeholder="Tu nombre"
+                  value={formData.firstName}
+                  onChange={handleInputChange}
+                  required
+                />
+                {formErrors.firstName && <span className="error-message">{formErrors.firstName}</span>}
+              </div>
+              <div className="register-form-group">
+                <label>Apellidos</label>
+                <input
+                  type="text"
+                  name="lastName"
+                  placeholder="Tus apellidos"
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                  required
+                />
+                {formErrors.lastName && <span className="error-message">{formErrors.lastName}</span>}
+              </div>
+            </div>
+
+            <div className="register-form-row">
+              <div className="register-form-group">
+                <label>Teléfono</label>
+                <input
+                  type="tel"
+                  name="phone"
+                  placeholder="10 dígitos"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  required
+                  pattern="[0-9]{10}"
+                  maxLength="10"
+                  onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')}
+                />
+                {formErrors.phone && <span className="error-message">{formErrors.phone}</span>}
+              </div>
+              <div className="register-form-group">
+                <label>Correo electrónico</label>
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="tu@email.com"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                />
+                {formErrors.email && <span className="error-message">{formErrors.email}</span>}
+              </div>
+            </div>
+
+            <div className="register-section-title" style={{ marginTop: '20px' }}>Contraseña</div>
+            <div className="white-divider"></div>
+
+            <div className="register-form-row">
+              <div className="register-form-group">
+                <label>Contraseña</label>
+                <div className="login-input-container">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    placeholder="Mínimo 8 caracteres"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    required
+                    minLength="8"
+                  />
+                  <button
+                    type="button"
+                    className={`login-password-toggle ${showPassword ? 'active' : ''}`}
+                    onClick={togglePasswordVisibility}
+                  >
+                    <img
+                      src={getIconPath('Eye.svg')}
+                      alt={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    />
+                  </button>
+                </div>
+                {formErrors.password && <span className="error-message">{formErrors.password}</span>}
+              </div>
+              <div className="register-form-group">
+                <label>Confirmar contraseña</label>
+                <div className="login-input-container">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    name="confirmPassword"
+                    placeholder="Repite tu contraseña"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    required
+                    minLength="8"
+                  />
+                  <button
+                    type="button"
+                    className={`login-password-toggle ${showConfirmPassword ? 'active' : ''}`}
+                    onClick={toggleConfirmPasswordVisibility}
+                  >
+                    <img
+                      src={getIconPath('Eye.svg')}
+                      alt={showConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    />
+                  </button>
+                </div>
+                {formErrors.confirmPassword && <span className="error-message">{formErrors.confirmPassword}</span>}
+              </div>
+            </div>
+
+            <p className="register-password-hint">
+              Tu contraseña debe tener mínimo 8 caracteres y al menos una letra y un número
+            </p>
+
+            <div className="register-button-container">
+              <CustomButton
+                variant="filled"
+                size='medium'
+                type="submit"
+                disabled={isSubmitting || loading}
+                iconRight={<img src={getIconPath('White Chevron Right.svg')} alt="crear cuenta" style={{ width: 16, height: 16 }} />}>
+                <span className="register-submit-button">
+                  {isSubmitting ? 'Creando cuenta...' : 'Crear cuenta'}
+                </span>
+              </CustomButton>
+              <p className="register-terms-text">
+                Al registrarte aceptas términos y condiciones
+              </p>
+            </div>
+          </form>
+          {/* ) }  : (
                   <form onSubmit={handleStep2Submit} className="register-form">
 
                     <div className="register-form-group">
@@ -681,9 +851,6 @@ const RegisterPage = () => {
                     </div>
                   </form>
                 {/* )} */}
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </>
