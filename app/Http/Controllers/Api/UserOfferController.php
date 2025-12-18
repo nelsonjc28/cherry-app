@@ -10,6 +10,62 @@ use Illuminate\Http\JsonResponse;
 class UserOfferController extends Controller
 {
     /**
+     * Obtener todas las ofertas activas públicas (sin autenticación requerida)
+     */
+    public function getActiveOffers(): JsonResponse
+    {
+        try {
+            // Obtener todas las ofertas (sin filtrar por is_active, solo por fechas)
+            $activeOffers = CatalogOffer::with('catalog')
+                ->where('start_date', '<=', now())
+                ->where('end_date', '>=', now())
+                ->orderBy('display_order')
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            // Formatear ofertas para el frontend
+            $formattedOffers = $activeOffers->map(function ($offer) {
+                return [
+                    'id' => $offer->id,
+                    'title' => $offer->title,
+                    'description' => $offer->description,
+                    'discount_percentage' => $offer->discount_percentage,
+                    'discount_type' => $offer->discount_type,
+                    'discount_category' => $offer->discount_category,
+                    'start_date' => $offer->start_date->format('Y-m-d H:i:s'),
+                    'end_date' => $offer->end_date->format('Y-m-d H:i:s'),
+                    'banner_image' => $offer->banner_image,
+                    'offer_code' => $offer->offer_code,
+                    'min_purchase_amount' => $offer->min_purchase_amount,
+                    'max_discount_amount' => $offer->max_discount_amount,
+                    'buy_quantity' => $offer->buy_quantity,
+                    'get_quantity' => $offer->get_quantity,
+                    'catalog_id' => $offer->catalog_id,
+                    'catalog' => $offer->catalog ? [
+                        'id' => $offer->catalog->id,
+                        'name' => $offer->catalog->name
+                    ] : null
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'offers' => $formattedOffers
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error en getActiveOffers: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Error interno del servidor'
+            ], 500);
+        }
+    }
+
+    /**
      * Obtener ofertas específicas para el usuario logueado
      */
     public function getUserOffers(Request $request): JsonResponse

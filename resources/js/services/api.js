@@ -266,6 +266,16 @@ export const catalogOfferService = {
     }
   },
 
+  // Obtener todas las ofertas activas (público, sin autenticación)
+  getActiveOffers: async () => {
+    try {
+      const response = await api.get('/active-offers');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   // Obtener ofertas por catálogo
   getByCatalog: async (catalogId) => {
     try {

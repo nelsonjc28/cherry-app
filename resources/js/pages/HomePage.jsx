@@ -15,15 +15,23 @@ import useUserStore from '../store/userStore';
 import { getTopSellingProducts } from '../api/cherryApi';
 import { applyUserOffersToProducts } from '../api/userOffers';
 import useProductCachePreload from '../hooks/useProductCachePreload';
+import OffersModal from '../components/OffersModal/OffersModal';
+import api from '../config/axios';
 
 const HomePage = () => {
   const { user, initialized } = useUserStore();
   const [topSellingProducts, setTopSellingProducts] = useState([]);
   const [loadingTopSelling, setLoadingTopSelling] = useState(true);
+  const [showOffersModal, setShowOffersModal] = useState(false);
 
   // 🚀 PRECARGA: Inicia descarga de todos los productos en background
   // Primera vez: tarda unos segundos, pero las siguientes páginas serán instantáneas
   useProductCachePreload();
+
+  // Modal de ofertas desactivado - no se muestra automáticamente
+  // useEffect(() => {
+  //   // Lógica desactivada
+  // }, []);
 
   // Cargar productos más vendidos (6 productos)
   useEffect(() => {
@@ -277,6 +285,12 @@ const HomePage = () => {
           />
         </section>
       </main>
+
+      {/* Modal de Ofertas - Se abre automáticamente */}
+      <OffersModal 
+        isOpen={showOffersModal} 
+        onClose={() => setShowOffersModal(false)} 
+      />
     </>
   );
 };
