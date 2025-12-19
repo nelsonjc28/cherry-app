@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -23,15 +23,14 @@
 }
 
 .offers-modal-content {
-  background: white;
-  border-radius: 12px;
-  max-width: 600px;
+  background: #fff;
+  border-radius: 16px;
+  max-width: 700px;
   width: 100%;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   animation: slideUp 0.3s ease;
+  overflow: hidden;
 }
 
 @keyframes slideUp {
@@ -45,25 +44,13 @@
   }
 }
 
-.offers-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  border-bottom: 2px solid #f0f0f0;
-}
-
-.offers-modal-title {
-  margin: 0;
-  font-size: 24px;
-  font-weight: bold;
-  color: #dc2626;
-}
-
 .offers-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
   background: none;
   border: none;
-  font-size: 32px;
+  font-size: 28px;
   color: #666;
   cursor: pointer;
   padding: 0;
@@ -73,16 +60,61 @@
   align-items: center;
   justify-content: center;
   transition: color 0.2s;
+  z-index: 10;
+  line-height: 1;
 }
 
 .offers-modal-close:hover {
-  color: #dc2626;
+  color: #000;
+}
+
+.offers-modal-header {
+  text-align: center;
+  padding: 40px 24px 24px;
+  position: relative;
+}
+
+.offers-modal-ribbon {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.offers-modal-star {
+  font-size: 20px;
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+.offers-modal-star:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.offers-modal-star:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+.offers-modal-title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #333;
+  letter-spacing: -0.5px;
 }
 
 .offers-modal-body {
-  padding: 24px;
-  overflow-y: auto;
-  flex: 1;
+  padding: 0 24px 32px;
 }
 
 .offers-modal-loading,
@@ -108,125 +140,107 @@
   100% { transform: rotate(360deg); }
 }
 
-.offers-list {
-  display: flex;
-  flex-direction: column;
+/* Grid estilo Shein */
+.offers-grid-shein {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
+  margin-bottom: 24px;
 }
 
-.offer-card {
+.offer-card-shein {
+  background: #fff;
   border: 2px solid #e5e5e5;
-  border-radius: 8px;
-  overflow: hidden;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  gap: 16px;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.offer-card:hover {
+.offer-card-shein:hover {
   border-color: #dc2626;
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.1);
 }
 
-.offer-banner {
-  width: 100%;
-  height: 200px;
-  overflow: hidden;
-  background: #f9f9f9;
-}
-
-.offer-banner img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.offer-content {
-  padding: 16px;
-}
-
-.offer-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
-  gap: 12px;
-}
-
-.offer-title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: bold;
-  color: #333;
+.offer-card-left {
   flex: 1;
-}
-
-.offer-badge {
-  background: #dc2626;
-  color: white;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: bold;
-  white-space: nowrap;
-}
-
-.offer-description {
-  margin: 12px 0;
-  color: #666;
-  line-height: 1.6;
-}
-
-.offer-code {
-  margin: 12px 0;
-  padding: 8px 12px;
-  background: #f9f9f9;
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-.offer-code code {
-  background: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-family: 'Courier New', monospace;
-  font-weight: bold;
-  color: #dc2626;
-}
-
-.offer-condition {
-  margin: 8px 0;
-  color: #666;
-  font-size: 14px;
-}
-
-.offer-dates {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #e5e5e5;
-  color: #999;
-  font-size: 12px;
-}
-
-.offers-modal-footer {
-  padding: 16px 24px;
-  border-top: 2px solid #f0f0f0;
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  justify-content: center;
 }
 
-.offers-modal-close-btn {
-  background: #dc2626;
-  color: white;
-  border: none;
-  padding: 10px 24px;
-  border-radius: 6px;
+.offer-discount-large {
+  font-size: 24px;
+  font-weight: 700;
+  color: #dc2626;
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+
+.offer-condition-large {
   font-size: 16px;
   font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
+  color: #333;
 }
 
-.offers-modal-close-btn:hover {
-  background: #b91c1c;
+.offer-card-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  padding-left: 16px;
+  border-left: 1px solid #e5e5e5;
+}
+
+.offer-detail-item {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.offer-time-limited {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.offer-dropdown-arrow {
+  font-size: 10px;
+  color: #999;
+  margin-left: 8px;
+}
+
+.offers-get-all-btn {
+  width: 100%;
+  background: #000;
+  color: #fff;
+  border: none;
+  padding: 16px 24px;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  margin-bottom: 12px;
+}
+
+.offers-get-all-btn:hover {
+  background: #333;
+  transform: translateY(-1px);
+}
+
+.offers-get-all-btn:active {
+  transform: translateY(0);
+}
+
+.offers-confirmation-text {
+  text-align: center;
+  font-size: 12px;
+  color: #999;
+  margin: 0;
 }
 
 /* Products Grid */
@@ -325,46 +339,49 @@
 @media (max-width: 768px) {
   .offers-modal-content {
     max-width: 100%;
-    max-height: 95vh;
     margin: 10px;
   }
 
   .offers-modal-header {
-    padding: 16px;
+    padding: 32px 16px 16px;
   }
 
   .offers-modal-title {
-    font-size: 20px;
+    font-size: 22px;
   }
 
   .offers-modal-body {
-    padding: 16px;
+    padding: 0 16px 24px;
   }
 
-  .offer-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .offer-badge {
-    align-self: flex-start;
-  }
-
-  .offers-products-grid {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  .offers-grid-shein {
+    grid-template-columns: 1fr;
     gap: 12px;
   }
 
-  .offers-product-info {
-    padding: 8px;
+  .offer-card-shein {
+    flex-direction: column;
+    padding: 16px;
   }
 
-  .offers-product-title {
-    font-size: 12px;
+  .offer-card-right {
+    padding-left: 0;
+    padding-top: 12px;
+    border-left: none;
+    border-top: 1px solid #e5e5e5;
   }
 
-  .offers-product-price {
+  .offer-discount-large {
+    font-size: 20px;
+  }
+
+  .offer-condition-large {
     font-size: 14px;
+  }
+
+  .offers-get-all-btn {
+    font-size: 16px;
+    padding: 14px 20px;
   }
 }
 
