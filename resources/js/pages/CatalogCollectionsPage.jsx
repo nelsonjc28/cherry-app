@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './CatalogCollectionsPage.css';
-import CustomButton from '../components/CustomButton';
 import { getIconPath } from '../utils/assetPaths';
 import { publicCatalogService } from '../services/api';
 
@@ -46,12 +45,6 @@ const CatalogCollectionsPage = () => {
         {/* Header */}
         <header className="catalog-collections-page__header">
           <h1 className="catalog-collections-page__title">Catálogos</h1>
-          <CustomButton
-            variant="filled"
-            size={isMobile ? 'small' : 'medium'}
-            iconLeft={<img src={getIconPath('Whatsapp.svg')} alt="Compartir clientes" style={{ width: 16, height: 16 }} />}>
-            <span className="catalog-collections-page__whatsapp-text">Compartir a clientes</span>
-          </CustomButton>
         </header>
 
         {/* Grid de catálogos */}

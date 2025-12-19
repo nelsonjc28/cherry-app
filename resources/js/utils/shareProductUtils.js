@@ -7,16 +7,31 @@ import { generateS3ImageUrls } from '../api/cherryApi';
 /**
  * Descargar una imagen (GET) y devolverla como File
  * Nota: usamos GET directo (no HEAD) para evitar problemas de CORS con S3.
+ * Con timeout para evitar esperas infinitas
  */
-const fetchImageAsFile = async (imageUrl, filename) => {
+const fetchImageAsFile = async (imageUrl, filename, timeout = 5000) => {
   try {
-    const response = await fetch(imageUrl, { mode: 'cors', credentials: 'omit' });
+    // Crear un AbortController para timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    
+    const response = await fetch(imageUrl, { 
+      mode: 'cors', 
+      credentials: 'omit',
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
     if (!response.ok) return null;
     const blob = await response.blob();
     // Asegurar tipo de imagen
     const type = blob.type && blob.type.startsWith('image/') ? blob.type : 'image/jpeg';
     return new File([blob], filename, { type });
   } catch (error) {
+    if (error.name === 'AbortError') {
+      console.warn(`Timeout al descargar imagen: ${filename}`);
+    }
     return null;
   }
 };
@@ -46,6 +61,7 @@ const downloadFileToDevice = async (file) => {
  * Usa el endpoint del servidor que cachea las imágenes localmente
  * - Recorre {id}_{n}.jpg hasta maxImages
  * - Se detiene tras 2 fallos consecutivos una vez encontrada al menos 1
+ * - Descarga imágenes en paralelo para mayor velocidad
  */
 const collectProductImageFiles = async (productId, maxImages = 12) => {
   const files = [];
@@ -54,23 +70,46 @@ const collectProductImageFiles = async (productId, maxImages = 12) => {
   // Usar endpoint del servidor que cachea las imágenes
   const baseUrl = `${window.location.origin}/api/product-images`;
 
-  for (let i = 1; i <= maxImages; i++) {
-    // Usar endpoint del servidor en lugar de S3 directamente
+  // Intentar descargar las primeras 2 imágenes en paralelo (más rápido y menos carga)
+  const parallelPromises = [];
+  for (let i = 1; i <= Math.min(2, maxImages); i++) {
     const url = `${baseUrl}/${productId}/${i}`;
-    const file = await fetchImageAsFile(url, `${productId}_${i}.jpg`);
+    parallelPromises.push(
+      fetchImageAsFile(url, `${productId}_${i}.jpg`, 3000) // Timeout de 3s por imagen
+        .then(file => ({ index: i, file }))
+        .catch(() => ({ index: i, file: null }))
+    );
+  }
+
+  // Esperar las primeras imágenes en paralelo
+  const parallelResults = await Promise.all(parallelPromises);
+  for (const { file } of parallelResults) {
     if (file) {
       files.push(file);
       consecutiveMisses = 0;
     } else {
       consecutiveMisses++;
-      if (files.length > 0 && consecutiveMisses >= 2) break;
     }
   }
 
-  // Fallback: intentar al menos la primera imagen desde S3 directamente
-  if (files.length === 0) {
+  // Si encontramos al menos una imagen, continuar secuencialmente (más rápido que paralelo para muchas imágenes)
+  if (files.length > 0) {
+    for (let i = 3; i <= maxImages; i++) {
+      if (consecutiveMisses >= 2) break;
+      
+      const url = `${baseUrl}/${productId}/${i}`;
+      const file = await fetchImageAsFile(url, `${productId}_${i}.jpg`, 3000);
+      if (file) {
+        files.push(file);
+        consecutiveMisses = 0;
+      } else {
+        consecutiveMisses++;
+      }
+    }
+  } else {
+    // Fallback: intentar al menos la primera imagen desde S3 directamente
     const fallback = generateS3ImageUrls(productId, 1);
-    const file = await fetchImageAsFile(fallback[0], `${productId}_1.jpg`);
+    const file = await fetchImageAsFile(fallback[0], `${productId}_1.jpg`, 5000);
     if (file) files.push(file);
   }
 
@@ -110,10 +149,19 @@ const generateShareText = (productData) => {
   return text;
 };
 
+// Variable global para prevenir múltiples ejecuciones simultáneas
+let isSharing = false;
+
 /**
  * Compartir producto con todas sus imágenes usando Web Share API
  */
 export const shareProductWithImages = async (product) => {
+  // Prevenir múltiples ejecuciones simultáneas
+  if (isSharing) {
+    console.log('Ya se está compartiendo un producto, espera...');
+    return;
+  }
+
   const id = product.id;
   const title = product.title || 'Producto Cherry';
   const price = product.price || 0;
@@ -123,13 +171,20 @@ export const shareProductWithImages = async (product) => {
   
   const productUrl = `${window.location.origin}/producto/${id}`;
 
+  isSharing = true;
+
   try {
     if (window.showToast) {
       window.showToast('Cargando imágenes del producto...', 'info');
     }
 
-    // Cargar imágenes como Files en memoria
-    const imageFiles = await collectProductImageFiles(id, 12);
+    // Cargar imágenes como Files en memoria (con timeout para evitar esperas infinitas)
+    const imageFilesPromise = collectProductImageFiles(id, 6); // Reducir a 6 imágenes para mayor velocidad
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout al cargar imágenes')), 10000) // Reducir timeout a 10s
+    );
+    
+    const imageFiles = await Promise.race([imageFilesPromise, timeoutPromise]);
 
     // Generar texto de compartir con formato específico
     const shareText = generateShareText({

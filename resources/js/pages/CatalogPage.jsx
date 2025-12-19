@@ -780,17 +780,6 @@ const CatalogPage = ({ catalogId }) => {
                   <option value="nombre-z-a">Nombre: Z-A</option>
                 </select>
               </div>
-              {catalogId && currentCatalog?.is_active && hasCatalogPdf && !checkingImageGroups && (
-                <div className="catalog-page__share-button-wrapper">
-                  <CustomButton
-                    variant="filled"
-                    size="medium"
-                    onClick={handleShareCatalog}
-                  >
-                    <span className="catalog-page__whatsapp-text">Compartir a clientes</span>
-                  </CustomButton>
-                </div>
-              )}
             </div>
           </div>
 
@@ -834,17 +823,6 @@ const CatalogPage = ({ catalogId }) => {
                   <option value="nombre-z-a">Nombre: Z-A</option>
                 </select>
               </div>
-              {catalogId && currentCatalog?.is_active && hasCatalogPdf && !checkingImageGroups && (
-                <div className="catalog-page__share-button-wrapper">
-                  <CustomButton
-                    variant="filled"
-                    size="medium"
-                    onClick={handleShareCatalog}
-                  >
-                    <span className="catalog-page__whatsapp-text">Compartir a clientes</span>
-                  </CustomButton>
-                </div>
-              )}
             </div>
           </div>
 
