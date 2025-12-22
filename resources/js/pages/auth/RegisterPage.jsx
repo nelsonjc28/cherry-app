@@ -6,6 +6,7 @@ import { getIconPath, getImagePath, getHeroIconPath } from '../../utils/assetPat
 import { Link } from 'react-router-dom';
 import CustomButton from '../../components/CustomButton';
 import useUserStore from '../../store/userStore';
+import TestimonialsSlider from '../../components/TestimonialsSlider/TestimonialsSlider';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -500,6 +501,9 @@ const RegisterPage = () => {
           </div>
         </div>
       </section>
+
+      {/* Sección de Testimonios */}
+      <TestimonialsSlider />
 
       {/* Banner de Afiliación 2 */}
       <section className="register-banner-second" aria-labelledby="register-banner-bottom-heading">
