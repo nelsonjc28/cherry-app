@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getProductsWithRatings } from '../../api/cherryApi';
+import api from '../../config/axios';
 
 const ProductMultiSelect = ({ 
   selectedProducts = [], 
@@ -61,9 +61,20 @@ const ProductMultiSelect = ({
       setLoading(true);
       setError('');
       
-      // Obtener TODOS los productos sin límite
-      const result = await getProductsWithRatings('Cherry 2025 - 2026', { limit: null });
-      const allProducts = result.products || [];
+      // Obtener TODOS los productos de la base de datos local
+      const response = await api.get('/products/search', {
+        params: {
+          q: '' // Query vacío para obtener todos los productos
+        }
+      });
+      
+      if (!response.data.success || !response.data.data?.products) {
+        setProducts([]);
+        setFilteredProducts([]);
+        return;
+      }
+      
+      const allProducts = response.data.data.products || [];
       
       if (!allProducts || allProducts.length === 0) {
         setProducts([]);
@@ -71,18 +82,36 @@ const ProductMultiSelect = ({
         return;
       }
       
-      const filteredProducts = allProducts.filter(product => {
+      // Mapear productos de la BD al formato esperado
+      const mappedProducts = allProducts.map(product => ({
+        id_articulo: product.id?.toString() || product.id_articulo?.toString() || '',
+        id: product.id?.toString() || product.id_articulo?.toString() || '',
+        codigo: product.id?.toString() || product.id_articulo?.toString() || '',
+        descripcion: product.descripcion || product.title || product.name || '',
+        title: product.descripcion || product.title || product.name || '',
+        name: product.descripcion || product.title || product.name || '',
+        precio1: parseFloat(product.precio1 || product.price || 0),
+        price: parseFloat(product.precio1 || product.price || 0),
+        imagen: product.imagen || product.image || '',
+        image: product.imagen || product.image || '',
+        marca: product.marca || '',
+        linea: product.linea || null,
+        sector: product.sector || null,
+        genero: product.genero || null
+      }));
+      
+      // Filtrar productos que tengan campos básicos
+      const filteredProducts = mappedProducts.filter(product => {
         const hasId = product.id_articulo || product.id || product.codigo;
         const hasDescription = product.descripcion || product.title || product.name;
-        const hasBasicFields = hasId && hasDescription;
-        
-        return hasBasicFields;
+        return hasId && hasDescription;
       });
       
       setProducts(filteredProducts);
       setFilteredProducts(filteredProducts);
     } catch (err) {
-      setError('Error al cargar productos: ' + err.message);
+      console.error('Error al cargar productos desde BD:', err);
+      setError('Error al cargar productos: ' + (err.response?.data?.error || err.message));
     } finally {
       setLoading(false);
     }
@@ -331,7 +360,7 @@ const ProductMultiSelect = ({
                 margin: '0 auto 10px',
                 animation: 'spin 1s linear infinite'
               }}></div>
-              <span>Cargando productos desde Cherry API...</span>
+              <span>Cargando productos desde la base de datos...</span>
             </div>
           )}
 

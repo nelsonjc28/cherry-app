@@ -28,10 +28,50 @@ const HomePage = () => {
   // Primera vez: tarda unos segundos, pero las siguientes páginas serán instantáneas
   useProductCachePreload();
 
-  // Modal de ofertas desactivado - no se muestra automáticamente
-  // useEffect(() => {
-  //   // Lógica desactivada
-  // }, []);
+  // Verificar si hay ofertas personalizadas y mostrar la modal automáticamente
+  useEffect(() => {
+    if (!initialized) return; // Esperar a que el store de usuario esté inicializado
+    
+    // Solo mostrar la modal si hay usuario logueado (las ofertas personalizadas requieren usuario)
+    if (!user) return;
+    
+    const checkAndShowOffers = async () => {
+      try {
+        // Obtener ofertas personalizadas del usuario
+        const response = await api.get('/user-offers');
+        
+        if (response.data.success) {
+          const offers = response.data.offers || [];
+          
+          // Filtrar ofertas que estén dentro del rango de fechas
+          // start_date <= now <= end_date
+          const now = new Date();
+          const activeOffers = offers.filter(offer => {
+            const startDate = new Date(offer.start_date);
+            const endDate = new Date(offer.end_date);
+            // Verificar que la fecha actual sea >= fecha inicio Y <= fecha fin
+            return now >= startDate && now <= endDate;
+          });
+          
+          // Solo mostrar la modal si hay ofertas personalizadas activas dentro del rango de fechas
+          if (activeOffers.length > 0) {
+            setTimeout(() => {
+              setShowOffersModal(true);
+            }, 1000);
+          }
+        }
+      } catch (error) {
+        console.error('Error al verificar ofertas personalizadas:', error);
+      }
+    };
+    
+    // Pequeño delay para asegurar que el componente esté montado
+    const timer = setTimeout(() => {
+      checkAndShowOffers();
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [user, initialized]);
 
   // Cargar productos más vendidos (6 productos)
   useEffect(() => {

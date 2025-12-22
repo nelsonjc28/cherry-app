@@ -69,6 +69,7 @@ Route::middleware(['auth:api,web'])->get('/user-offer-products', [App\Http\Contr
 Route::get('/active-offers', [App\Http\Controllers\Api\UserOfferController::class, 'getActiveOffers']); // Público
 Route::middleware(['auth:api,web'])->get('/user-offers', [App\Http\Controllers\Api\UserOfferController::class, 'getUserOffers']);
 Route::middleware(['auth:api,web'])->post('/user-offers/products', [App\Http\Controllers\Api\UserOfferController::class, 'getProductsWithUserOffers']);
+Route::middleware(['auth:api,web'])->get('/user-offers/products', [App\Http\Controllers\Api\UserOfferController::class, 'getUserOfferProducts']);
 Route::get('/me', [AuthController::class, 'me'])->middleware('auth:api');
 Route::get('/debug', [AuthController::class, 'debug'])->middleware('auth:api');
 

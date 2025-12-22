@@ -190,6 +190,8 @@ class AdminCatalogOfferController extends Controller
                     'is_active' => $offer->is_active,
                     'display_order' => $offer->display_order,
                     'banner_image' => $offer->banner_image,
+                    'modal_image' => $offer->modal_image,
+                    'modal_text' => $offer->modal_text,
                     'offer_code' => $offer->offer_code,
                     'max_uses' => $offer->max_uses,
                     'current_uses' => $offer->current_uses,
@@ -245,10 +247,14 @@ class AdminCatalogOfferController extends Controller
                 'get_quantity' => 'required_if:discount_category,buy_x_get_y|integer|min:1',
                 'target_products' => 'nullable|string', // JSON string
                 'target_users' => 'nullable|string', // JSON string
-                'banner_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp'
+                'banner_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
+                'modal_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
+                'modal_text' => 'nullable|string'
             ], [
                 'banner_image.mimes' => 'La imagen no cumple con los formatos permitidos. Formatos permitidos: JPEG, JPG, PNG, GIF, WebP',
                 'banner_image.image' => 'El archivo debe ser una imagen válida',
+                'modal_image.mimes' => 'La imagen del modal no cumple con los formatos permitidos. Formatos permitidos: JPEG, JPG, PNG, GIF, WebP',
+                'modal_image.image' => 'El archivo del modal debe ser una imagen válida',
                 'buy_quantity.required_if' => 'La cantidad a comprar es requerida para promociones Buy X Get Y',
                 'get_quantity.required_if' => 'La cantidad gratis es requerida para promociones Buy X Get Y',
                 'discount_percentage.required_if' => 'El descuento es requerido para este tipo de oferta',
@@ -298,10 +304,10 @@ class AdminCatalogOfferController extends Controller
                 unset($data['buy_quantity'], $data['get_quantity']);
             }
             
-            // Manejar imagen
+            // Manejar imagen banner
             if ($request->hasFile('banner_image')) {
                 $image = $request->file('banner_image');
-                $imageName = time() . '_' . $image->getClientOriginalName();
+                $imageName = time() . '_banner_' . $image->getClientOriginalName();
                 $imagePath = 'catalog-offers/' . $imageName;
                 
                 if (!Storage::disk('public')->exists('catalog-offers')) {
@@ -310,6 +316,20 @@ class AdminCatalogOfferController extends Controller
                 
                 Storage::disk('public')->put($imagePath, file_get_contents($image));
                 $data['banner_image'] = $imagePath;
+            }
+            
+            // Manejar imagen modal
+            if ($request->hasFile('modal_image')) {
+                $image = $request->file('modal_image');
+                $imageName = time() . '_modal_' . $image->getClientOriginalName();
+                $imagePath = 'catalog-offers/' . $imageName;
+                
+                if (!Storage::disk('public')->exists('catalog-offers')) {
+                    Storage::disk('public')->makeDirectory('catalog-offers');
+                }
+                
+                Storage::disk('public')->put($imagePath, file_get_contents($image));
+                $data['modal_image'] = $imagePath;
             }
 
             // 🚀 Transacción para crear oferta y relaciones
@@ -438,7 +458,9 @@ class AdminCatalogOfferController extends Controller
                 'get_quantity' => 'required_if:discount_category,buy_x_get_y|integer|min:1',
                 'target_products' => 'nullable|string',
                 'target_users' => 'nullable|string',
-                'banner_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp'
+                'banner_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
+                'modal_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
+                'modal_text' => 'nullable|string'
             ]);
 
             if ($validator->fails()) {
@@ -481,7 +503,7 @@ class AdminCatalogOfferController extends Controller
                 unset($data['buy_quantity'], $data['get_quantity']);
             }
             
-            // Manejar imagen
+            // Manejar imagen banner
             if ($request->hasFile('banner_image')) {
                 // Eliminar imagen anterior
                 if ($offer->banner_image && Storage::disk('public')->exists($offer->banner_image)) {
@@ -489,7 +511,7 @@ class AdminCatalogOfferController extends Controller
                 }
                 
                 $image = $request->file('banner_image');
-                $imageName = time() . '_' . $image->getClientOriginalName();
+                $imageName = time() . '_banner_' . $image->getClientOriginalName();
                 $imagePath = 'catalog-offers/' . $imageName;
                 
                 if (!Storage::disk('public')->exists('catalog-offers')) {
@@ -498,6 +520,30 @@ class AdminCatalogOfferController extends Controller
                 
                 Storage::disk('public')->put($imagePath, file_get_contents($image));
                 $data['banner_image'] = $imagePath;
+            }
+            
+            // Manejar imagen modal
+            if ($request->hasFile('modal_image')) {
+                // Eliminar imagen anterior
+                if ($offer->modal_image && Storage::disk('public')->exists($offer->modal_image)) {
+                    Storage::disk('public')->delete($offer->modal_image);
+                }
+                
+                $image = $request->file('modal_image');
+                $imageName = time() . '_modal_' . $image->getClientOriginalName();
+                $imagePath = 'catalog-offers/' . $imageName;
+                
+                if (!Storage::disk('public')->exists('catalog-offers')) {
+                    Storage::disk('public')->makeDirectory('catalog-offers');
+                }
+                
+                Storage::disk('public')->put($imagePath, file_get_contents($image));
+                $data['modal_image'] = $imagePath;
+            }
+            
+            // Manejar texto modal (si se envía como string vacío, eliminar)
+            if ($request->has('modal_text')) {
+                $data['modal_text'] = $request->input('modal_text') ?: null;
             }
 
             // 🚀 Transacción para actualizar
@@ -667,10 +713,12 @@ class AdminCatalogOfferController extends Controller
                 'discount_category' => $offer->discount_category,
                 'start_date' => $offer->start_date,
                 'end_date' => $offer->end_date,
-                'is_active' => $offer->is_active,
-                'display_order' => $offer->display_order,
-                'banner_image' => $offer->banner_image,
-                'offer_code' => $offer->offer_code,
+                    'is_active' => $offer->is_active,
+                    'display_order' => $offer->display_order,
+                    'banner_image' => $offer->banner_image,
+                    'modal_image' => $offer->modal_image,
+                    'modal_text' => $offer->modal_text,
+                    'offer_code' => $offer->offer_code,
                 'max_uses' => $offer->max_uses,
                 'current_uses' => $offer->current_uses,
                 'min_purchase_amount' => $offer->min_purchase_amount,

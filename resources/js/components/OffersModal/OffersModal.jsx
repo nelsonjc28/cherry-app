@@ -5,8 +5,10 @@ import './OffersModal.css';
 import { getIconPath } from '../../utils/assetPaths';
 import { formatPrice } from '../../utils/formatters';
 import { getProductImageUrl } from '../../utils/productImageUtils';
+import useUserStore from '../../store/userStore';
 
 const OffersModal = ({ isOpen, onClose }) => {
+  const { user } = useUserStore();
   const [offers, setOffers] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,21 +18,44 @@ const OffersModal = ({ isOpen, onClose }) => {
     if (isOpen) {
       fetchOffers();
     }
-  }, [isOpen]);
+  }, [isOpen, user]);
 
   const fetchOffers = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // Primero intentar obtener ofertas de catálogo
-      const offersResponse = await api.get('/active-offers');
-      console.log('🔍 [MODAL] Ofertas de catálogo:', offersResponse.data);
+      // Si hay usuario logueado, usar endpoint de ofertas de usuario
+      // Si no hay usuario, usar endpoint público
+      const endpoint = user ? '/user-offers' : '/active-offers';
+      const offersResponse = await api.get(endpoint);
+      console.log('🔍 [MODAL] Ofertas:', offersResponse.data);
       
       if (offersResponse.data.success && offersResponse.data.offers && offersResponse.data.offers.length > 0) {
-        // Si hay ofertas de catálogo, mostrarlas
-        setOffers(offersResponse.data.offers);
-        setProducts([]);
+        // Filtrar ofertas que estén dentro del rango de fechas
+        const now = new Date();
+        const activeOffers = offersResponse.data.offers.filter(offer => {
+          const startDate = new Date(offer.start_date);
+          const endDate = new Date(offer.end_date);
+          return now >= startDate && now <= endDate;
+        });
+        
+        // Si hay ofertas de catálogo activas, mostrarlas
+        if (activeOffers.length > 0) {
+          setOffers(activeOffers);
+          setProducts([]);
+        } else {
+          // Si no hay ofertas activas, buscar productos con ofertas
+          const productsResponse = await api.get('/products/with-offers');
+          if (productsResponse.data.success && productsResponse.data.data?.products && productsResponse.data.data.products.length > 0) {
+            const limitedProducts = productsResponse.data.data.products.slice(0, 12);
+            setProducts(limitedProducts);
+            setOffers([]);
+          } else {
+            setProducts([]);
+            setOffers([]);
+          }
+        }
       } else {
         // Si no hay ofertas de catálogo, obtener productos con ofertas
         console.log('🔍 [MODAL] No hay ofertas de catálogo, obteniendo productos con ofertas...');
@@ -96,12 +121,7 @@ const OffersModal = ({ isOpen, onClose }) => {
         </button>
         
         <div className="offers-modal-header">
-          <div className="offers-modal-ribbon">
-            <span className="offers-modal-star">✨</span>
-            <span className="offers-modal-star">✨</span>
-            <span className="offers-modal-star">✨</span>
-          </div>
-          <h2 className="offers-modal-title">Ofertas especiales solo para ti</h2>
+          {/* Sin título predeterminado - solo se muestra imagen y texto personalizados */}
         </div>
 
         <div className="offers-modal-body">
@@ -126,44 +146,46 @@ const OffersModal = ({ isOpen, onClose }) => {
                   const minPurchase = offer.min_purchase_amount ? parseFloat(offer.min_purchase_amount) : null;
                   const maxDiscount = offer.max_discount_amount ? parseFloat(offer.max_discount_amount) : null;
                   
+                  // Verificar que la oferta esté dentro del rango de fechas
+                  const now = new Date();
+                  const startDate = new Date(offer.start_date);
+                  const endDate = new Date(offer.end_date);
+                  const isWithinDateRange = now >= startDate && now <= endDate;
+                  
+                  // Solo mostrar si está dentro del rango de fechas
+                  if (!isWithinDateRange) {
+                    return null;
+                  }
+                  
                   return (
                     <div key={offer.id} className="offer-card-shein">
-                      <div className="offer-card-left">
-                        <div className="offer-discount-large">
-                          {discountPercentage}% DE DESCUENTO
+                      {/* Mostrar imagen personalizada si existe */}
+                      {offer.modal_image && (
+                        <div className="offer-modal-image-container">
+                          <img 
+                            src={`/storage/${offer.modal_image}`} 
+                            alt={offer.title || 'Oferta'}
+                            className="offer-modal-image"
+                          />
                         </div>
-                        {minPurchase && (
-                          <div className="offer-condition-large">
-                            Pedidos de +${minPurchase.toFixed(0)}
-                          </div>
-                        )}
-                      </div>
-                      <div className="offer-card-right">
-                        <div className="offer-detail-item">
-                          Cupón válido en todo el sitio
+                      )}
+                      
+                      {/* Mostrar texto personalizado si existe */}
+                      {offer.modal_text && (
+                        <div className="offer-modal-text">
+                          {offer.modal_text}
                         </div>
-                        {maxDiscount && (
-                          <div className="offer-detail-item">
-                            Límite de ${maxDiscount.toFixed(0)}
-                          </div>
-                        )}
-                        <div className="offer-detail-item offer-time-limited">
-                          Por tiempo limitado
-                          <span className="offer-dropdown-arrow">▼</span>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
               
-              <button className="offers-get-all-btn" onClick={handleClose}>
+              <button className="offers-get-all-btn" onClick={() => {
+                window.location.href = '/ofertas-personalizadas';
+              }}>
                 ¡Consiguelos Todos!
               </button>
-              
-              <p className="offers-confirmation-text">
-                Cupones confirmados después de iniciar sesión
-              </p>
             </>
           ) : (
             <div className="offers-modal-empty">

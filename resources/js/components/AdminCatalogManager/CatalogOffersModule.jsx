@@ -35,8 +35,12 @@ const CatalogOffersModule = ({ onBack }) => {
     get_quantity: '', // Cantidad gratis para Buy X Get Y
     min_purchase_amount: '', // Monto mínimo del pedido para descuentos de pedido
     target_users: [], // Array de IDs de usuarios seleccionados
-    target_products: [] // Array de productos seleccionados para descuento
+    target_products: [], // Array de productos seleccionados para descuento
+    modal_image: null, // Archivo de imagen para el modal
+    modal_text: '' // Texto personalizado para el modal
   });
+  
+  const [modalImagePreview, setModalImagePreview] = useState(null);
 
   useEffect(() => {
     loadAllOffers();
@@ -148,8 +152,17 @@ const CatalogOffersModule = ({ onBack }) => {
         buy_quantity: offer.buy_quantity || '',
         get_quantity: offer.get_quantity || '',
         target_users: offer.target_users || [],
-        target_products: targetProducts
+        target_products: targetProducts,
+        modal_image: null,
+        modal_text: offer.modal_text || ''
       });
+      
+      // Cargar preview de imagen si existe
+      if (offer.modal_image) {
+        setModalImagePreview(`/storage/${offer.modal_image}`);
+      } else {
+        setModalImagePreview(null);
+      }
 
       // Cargar usuarios seleccionados para edición
       // offer.target_users contiene IDs, necesitamos cargar los usuarios completos
@@ -171,6 +184,8 @@ const CatalogOffersModule = ({ onBack }) => {
         discount_category: selectedDiscountType || 'product_discount',
         start_date: '',
         end_date: '',
+        modal_image: null,
+        modal_text: '',
         is_active: true,
         display_order: offers.length,
         buy_quantity: '',
@@ -241,6 +256,11 @@ const CatalogOffersModule = ({ onBack }) => {
             .filter(user => user && user.id) // Filtrar usuarios válidos
             .map(user => user.id);
           submitData.append(key, JSON.stringify(usersArray));
+        } else if (key === 'modal_image') {
+          // Manejar archivo de imagen del modal
+          if (formData[key] instanceof File) {
+            submitData.append(key, formData[key]);
+          }
         } else if (formData[key] !== null && formData[key] !== '') {
           // Para checkboxes, asegurar que se envíe como boolean
           if (key === 'is_active') {
@@ -798,7 +818,64 @@ const CatalogOffersModule = ({ onBack }) => {
                 </div>
               </div>
 
+              {/* Campos para modal personalizado */}
+              <div className="catalog-offers-module__form-row">
+                <div className="catalog-offers-module__form-group catalog-offers-module__form-group--full">
+                  <label>Imagen para el modal (opcional)</label>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        setFormData(prev => ({ ...prev, modal_image: file }));
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setModalImagePreview(reader.result);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                  {modalImagePreview && (
+                    <div style={{ marginTop: '10px' }}>
+                      <img 
+                        src={modalImagePreview} 
+                        alt="Preview" 
+                        style={{ maxWidth: '200px', maxHeight: '200px', borderRadius: '8px' }}
+                      />
+                    </div>
+                  )}
+                  {editingOffer && editingOffer.modal_image && !modalImagePreview && (
+                    <div style={{ marginTop: '10px' }}>
+                      <img 
+                        src={`/storage/${editingOffer.modal_image}`} 
+                        alt="Imagen actual" 
+                        style={{ maxWidth: '200px', maxHeight: '200px', borderRadius: '8px' }}
+                      />
+                    </div>
+                  )}
+                  <small className="catalog-offers-module__form-help">
+                    Esta imagen se mostrará en el modal de ofertas cuando la promoción esté activa (entre las fechas de inicio y fin).
+                  </small>
+                </div>
+              </div>
 
+              <div className="catalog-offers-module__form-row">
+                <div className="catalog-offers-module__form-group catalog-offers-module__form-group--full">
+                  <label>Texto personalizado para el modal (opcional)</label>
+                  <textarea
+                    name="modal_text"
+                    value={formData.modal_text}
+                    onChange={handleInputChange}
+                    placeholder="Ej: ¡Aprovecha esta oferta especial solo por tiempo limitado!"
+                    rows="3"
+                  />
+                  <small className="catalog-offers-module__form-help">
+                    Este texto se mostrará en el modal de ofertas cuando la promoción esté activa (entre las fechas de inicio y fin).
+                  </small>
+                </div>
+              </div>
 
               <div className="catalog-offers-module__form-actions">
                 <button type="submit" className="catalog-offers-module__submit-btn">

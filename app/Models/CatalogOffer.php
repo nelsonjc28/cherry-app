@@ -23,6 +23,8 @@ class CatalogOffer extends Model
         'is_active',
         'display_order',
         'banner_image',
+        'modal_image',
+        'modal_text',
         'offer_code',
         'max_uses',
         'current_uses',

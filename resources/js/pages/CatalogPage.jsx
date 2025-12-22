@@ -69,8 +69,23 @@ const CatalogPage = ({ catalogId }) => {
   const [filters, setFilters] = useState(getSavedFilters);
   const [hasImageGroups, setHasImageGroups] = useState(false);
   const [checkingImageGroups, setCheckingImageGroups] = useState(false);
+  const [imageGroups, setImageGroups] = useState([]);
   const [hasCatalogPdf, setHasCatalogPdf] = useState(false);
   const [catalogPdfInfo, setCatalogPdfInfo] = useState(null);
+
+  // Función para manejar el clic del botón "Ver catálogo PDF"
+  const handleViewCatalogPdf = useCallback(() => {
+    if (!catalogId || imageGroups.length === 0) return;
+    
+    // Si hay solo un grupo, abrirlo directamente
+    if (imageGroups.length === 1) {
+      const groupId = imageGroups[0].id;
+      window.location.href = `/catalogo-pdf?id=${catalogId}&group=${groupId}`;
+    } else {
+      // Si hay más de un grupo, ir a la página de grupos
+      window.location.href = `/catalogo-pdf?id=${catalogId}`;
+    }
+  }, [catalogId, imageGroups]);
 
   // Cargar colores y tallas disponibles desde productos cargados
   useEffect(() => {
@@ -335,8 +350,18 @@ const CatalogPage = ({ catalogId }) => {
               const catalog = catalogResponse.data.data;
               setCurrentCatalog(catalog);
               
+              // Debug: Log para verificar qué datos recibimos
+              console.log('📄 [CatalogPage] Catálogo cargado:', {
+                id: catalog.id,
+                name: catalog.name,
+                is_active: catalog.is_active,
+                pdf_path: catalog.pdf_path,
+                pdf_name: catalog.pdf_name
+              });
+              
               // Verificar si el catálogo tiene PDF directamente
               if (catalog.pdf_path && catalog.pdf_name) {
+                console.log('✅ [CatalogPage] PDF encontrado, activando botón');
                 setHasCatalogPdf(true);
                 setCatalogPdfInfo({
                   pdf_path: catalog.pdf_path,
@@ -346,6 +371,7 @@ const CatalogPage = ({ catalogId }) => {
                     : `${window.location.origin}/${catalog.pdf_path}`
                 });
               } else {
+                console.log('❌ [CatalogPage] No se encontró PDF en el catálogo');
                 setHasCatalogPdf(false);
                 setCatalogPdfInfo(null);
               }
@@ -358,12 +384,15 @@ const CatalogPage = ({ catalogId }) => {
                   const groups = groupsResponse.data.data.image_groups || [];
                   // El endpoint ya filtra solo grupos activos, pero verificamos que haya grupos y que tengan imágenes
                   const groupsWithImages = groups.filter(group => (group.images_count || 0) > 0);
+                  setImageGroups(groupsWithImages);
                   setHasImageGroups(groupsWithImages.length > 0);
                 } else {
+                  setImageGroups([]);
                   setHasImageGroups(false);
                 }
               } catch (error) {
                 console.error('Error al verificar grupos de imágenes:', error);
+                setImageGroups([]);
                 setHasImageGroups(false);
               } finally {
                 setCheckingImageGroups(false);
@@ -755,11 +784,11 @@ const CatalogPage = ({ catalogId }) => {
                 </div>
               </div>
               <div className="catalog-page__pdf-button-wrapper">
-                {catalogId && currentCatalog?.is_active && hasCatalogPdf && !checkingImageGroups && (
+                {catalogId && currentCatalog?.is_active && hasImageGroups && !checkingImageGroups && (
                   <button
                     type="button"
                     className="custom-btn custom-btn--outlined custom-btn--medium filters-btn"
-                    onClick={() => window.location.href = `/catalogo-pdf?id=${catalogId}`}
+                    onClick={handleViewCatalogPdf}
                   >
                     <span className="custom-btn__content">Ver catálogo PDF</span>
                   </button>
@@ -798,11 +827,11 @@ const CatalogPage = ({ catalogId }) => {
                 </div>
               </div>
               <div className="catalog-page__pdf-button-wrapper">
-                {catalogId && currentCatalog?.is_active && hasCatalogPdf && !checkingImageGroups && (
+                {catalogId && currentCatalog?.is_active && hasImageGroups && !checkingImageGroups && (
                   <button
                     type="button"
                     className="custom-btn custom-btn--outlined custom-btn--medium filters-btn"
-                    onClick={() => window.location.href = `/catalogo-pdf?id=${catalogId}`}
+                    onClick={handleViewCatalogPdf}
                   >
                     <span className="custom-btn__content">Ver catálogo PDF</span>
                   </button>

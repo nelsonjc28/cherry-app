@@ -28,6 +28,7 @@ import CookiesPage from '../pages/CookiesPage';
 import NotificacionesPage from '../pages/NotificacionesPage';
 import ExplorarPage from '../pages/ExplorarPage';
 import PromocionesPage from '../pages/PromocionesPage';
+import OfertasPersonalizadasPage from '../pages/OfertasPersonalizadasPage';
 import DestacadosPage from '../pages/DestacadosPage';
 import NuevosPage from '../pages/NuevosPage';
 import ProductosPage from '../pages/ProductosPage';
@@ -114,6 +115,7 @@ const SimpleApp = () => {
                   {/* Product pages */}
                   <Route path="/explorar" element={<ExplorarPage />} />
                   <Route path="/promociones" element={<PromocionesPage />} />
+                  <Route path="/ofertas-personalizadas" element={<OfertasPersonalizadasPage />} />
                   <Route path="/destacados" element={<DestacadosPage />} />
                   <Route path="/nuevos" element={<NuevosPage />} />
                   <Route path="/productos" element={<ProductosPage />} />

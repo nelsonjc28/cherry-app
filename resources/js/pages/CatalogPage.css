@@ -35,19 +35,20 @@
 }
 
 .catalog-page__pdf-button-wrapper .filters-btn {
-  background: #EA2630 !important;
-  color: white !important;
+  background: white !important;
+  color: #EA2630 !important;
   border: 1px solid #EA2630 !important;
   font-size: 0.9rem;
   padding: 8px 16px;
   height: auto;
   min-height: 32px;
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
 .catalog-page__pdf-button-wrapper .filters-btn:hover {
-  background: #c21828 !important;
-  border-color: #c21828 !important;
-  transform: translateY(-1px);
+  background: #fbeaec !important;
+  border-color: #EA2630 !important;
+  color: #EA2630 !important;
 }
 
 .catalog-page__pdf-text {
@@ -433,18 +434,19 @@
 
   .catalog-page__pdf-button-wrapper .filters-btn {
     white-space: nowrap;
-    background: #EA2630 !important;
-    color: white !important;
+    background: white !important;
+    color: #EA2630 !important;
     border: 1px solid #EA2630 !important;
     font-size: 1rem;
     padding: 10px 20px;
     height: auto;
     min-height: 40px;
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
   }
 
   .catalog-page__pdf-button-wrapper .filters-btn:hover {
-    background: #c21828 !important;
-    border-color: #c21828 !important;
-    transform: translateY(-1px);
+    background: #fbeaec !important;
+    border-color: #EA2630 !important;
+    color: #EA2630 !important;
   }
 }
