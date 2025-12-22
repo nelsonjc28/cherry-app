@@ -70,9 +70,17 @@ const ProductPage = () => {
 
   // User discounts hook - debe estar antes de handleShareCatalog
   const { userDiscounts, loading: discountsLoading } = useUserDiscounts(product ? [product.id_articulo] : []);
+  const [isSharing, setIsSharing] = useState(false);
 
   const handleShareCatalog = useCallback(async () => {
+    // Prevenir múltiples clics
+    if (isSharing) {
+      return;
+    }
+
     try {
+      setIsSharing(true);
+      
       // Validar que el producto existe
       if (!product) {
         throw new Error("No hay información del producto disponible");
@@ -130,8 +138,10 @@ const ProductPage = () => {
       if (window.showToast) {
         window.showToast(errorMessage, "error");
       }
+    } finally {
+      setIsSharing(false);
     }
-  }, [product, userDiscounts]);
+  }, [product, userDiscounts, isSharing]);
 
   const handleShareImage = useCallback(async () => {
     try {

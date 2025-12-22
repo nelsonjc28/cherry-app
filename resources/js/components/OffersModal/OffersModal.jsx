@@ -91,11 +91,17 @@ const OffersModal = ({ isOpen, onClose }) => {
   return (
     <div className="offers-modal-overlay" onClick={handleClose}>
       <div className="offers-modal-content" onClick={(e) => e.stopPropagation()}>
+        <button className="offers-modal-close" onClick={handleClose}>
+          ×
+        </button>
+        
         <div className="offers-modal-header">
-          <h2 className="offers-modal-title">🎉 Ofertas Especiales</h2>
-          <button className="offers-modal-close" onClick={handleClose}>
-            ×
-          </button>
+          <div className="offers-modal-ribbon">
+            <span className="offers-modal-star">✨</span>
+            <span className="offers-modal-star">✨</span>
+            <span className="offers-modal-star">✨</span>
+          </div>
+          <h2 className="offers-modal-title">Ofertas especiales solo para ti</h2>
         </div>
 
         <div className="offers-modal-body">
@@ -112,108 +118,58 @@ const OffersModal = ({ isOpen, onClose }) => {
             <div className="offers-modal-empty">
               <p>No hay ofertas disponibles en este momento</p>
             </div>
-          ) : products.length > 0 ? (
-            <div className="offers-products-grid">
-              {products.map((product) => {
-                const productImage = getProductImageUrl(product.id_articulo || product.id);
-                const hasDiscount = product.discount > 0 || product.descPromo > 0;
-                const discountPercentage = product.discount || product.descPromo || 0;
-                const originalPrice = product.originalPrice || product.precio1 || product.price;
-                const finalPrice = product.price || (originalPrice && discountPercentage > 0 
-                  ? originalPrice - (originalPrice * discountPercentage / 100) 
-                  : originalPrice);
-                
-                return (
-                  <Link 
-                    key={product.id_articulo || product.id} 
-                    to={`/producto/${product.id_articulo || product.id}`}
-                    className="offers-product-card"
-                    onClick={handleClose}
-                  >
-                    <div className="offers-product-image-container">
-                      <img 
-                        src={productImage} 
-                        alt={product.descripcion || product.title || 'Producto'}
-                        className="offers-product-image"
-                        onError={(e) => {
-                          e.target.src = getIconPath('placeholder-product.svg');
-                        }}
-                      />
-                      {hasDiscount && (
-                        <span className="offers-product-badge">
-                          {discountPercentage}% OFF
-                        </span>
-                      )}
-                    </div>
-                    <div className="offers-product-info">
-                      <h3 className="offers-product-title">
-                        {product.descripcion || product.title || 'Sin nombre'}
-                      </h3>
-                      <div className="offers-product-price-container">
-                        {hasDiscount && originalPrice && (
-                          <span className="offers-product-original-price">
-                            {formatPrice(originalPrice)}
-                          </span>
+          ) : offers.length > 0 ? (
+            <>
+              <div className="offers-grid-shein">
+                {offers.map((offer) => {
+                  const discountPercentage = offer.discount_percentage || 0;
+                  const minPurchase = offer.min_purchase_amount ? parseFloat(offer.min_purchase_amount) : null;
+                  const maxDiscount = offer.max_discount_amount ? parseFloat(offer.max_discount_amount) : null;
+                  
+                  return (
+                    <div key={offer.id} className="offer-card-shein">
+                      <div className="offer-card-left">
+                        <div className="offer-discount-large">
+                          {discountPercentage}% DE DESCUENTO
+                        </div>
+                        {minPurchase && (
+                          <div className="offer-condition-large">
+                            Pedidos de +${minPurchase.toFixed(0)}
+                          </div>
                         )}
-                        <span className="offers-product-price">
-                          {formatPrice(finalPrice)}
-                        </span>
+                      </div>
+                      <div className="offer-card-right">
+                        <div className="offer-detail-item">
+                          Cupón válido en todo el sitio
+                        </div>
+                        {maxDiscount && (
+                          <div className="offer-detail-item">
+                            Límite de ${maxDiscount.toFixed(0)}
+                          </div>
+                        )}
+                        <div className="offer-detail-item offer-time-limited">
+                          Por tiempo limitado
+                          <span className="offer-dropdown-arrow">▼</span>
+                        </div>
                       </div>
                     </div>
-                  </Link>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+              
+              <button className="offers-get-all-btn" onClick={handleClose}>
+                ¡Consiguelos Todos!
+              </button>
+              
+              <p className="offers-confirmation-text">
+                Cupones confirmados después de iniciar sesión
+              </p>
+            </>
           ) : (
-            <div className="offers-list">
-              {offers.map((offer) => (
-                <div key={offer.id} className="offer-card">
-                  {offer.banner_image && (
-                    <div className="offer-banner">
-                      <img 
-                        src={offer.banner_image} 
-                        alt={offer.title}
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  )}
-                  <div className="offer-content">
-                    <div className="offer-header">
-                      <h3 className="offer-title">{offer.title}</h3>
-                      <span className="offer-badge">{formatDiscount(offer)}</span>
-                    </div>
-                    {offer.description && (
-                      <p className="offer-description">{offer.description}</p>
-                    )}
-                    {offer.offer_code && (
-                      <div className="offer-code">
-                        <strong>Código: </strong>
-                        <code>{offer.offer_code}</code>
-                      </div>
-                    )}
-                    {offer.min_purchase_amount && (
-                      <p className="offer-condition">
-                        Compra mínima: ${parseFloat(offer.min_purchase_amount).toFixed(2)}
-                      </p>
-                    )}
-                    <div className="offer-dates">
-                      <small>
-                        Válido hasta: {formatDate(offer.end_date)}
-                      </small>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="offers-modal-empty">
+              <p>No hay ofertas disponibles en este momento</p>
             </div>
           )}
-        </div>
-
-        <div className="offers-modal-footer">
-          <button className="offers-modal-close-btn" onClick={handleClose}>
-            Cerrar
-          </button>
         </div>
       </div>
     </div>
