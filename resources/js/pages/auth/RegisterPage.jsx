@@ -591,7 +591,12 @@ const RegisterPage = () => {
                   required
                   pattern="[0-9]{10}"
                   maxLength="10"
-                  onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')}
+                  onInput={(e) => {
+                    e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                    if (e.target.value.length > 10) {
+                      e.target.value = e.target.value.slice(0, 10);
+                    }
+                  }}
                 />
                 {formErrors.phone && <span className="error-message">{formErrors.phone}</span>}
               </div>

@@ -24,7 +24,7 @@ export const isValidPassword = (password, minLength = 8) => {
 };
 
 /**
- * Validate a phone number
+ * Validate a phone number (exactly 10 digits)
  * @param {string} phone - Phone number to validate
  * @returns {boolean} - Whether the phone number is valid
  */
@@ -32,8 +32,8 @@ export const isValidPhone = (phone) => {
   // Remove common formatting characters
   const cleaned = phone.replace(/[\s()-]/g, '');
   
-  // Check if it only contains digits and is of reasonable length
-  return /^\d{10,15}$/.test(cleaned);
+  // Check if it only contains digits and is exactly 10 digits
+  return /^\d{10}$/.test(cleaned);
 };
 
 /**

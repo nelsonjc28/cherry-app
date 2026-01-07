@@ -1,7 +1,61 @@
-import React from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import CherryButton from '../CherryButton/CherryButton';
+import api from '../../config/axios';
 import './OrderDetailModal.css';
+
+const RetryRemainderPaymentButton = ({ orderId }) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleRetryPayment = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await api.post(`/payment/retry-remainder/${orderId}`);
+      
+      if (response.data.success) {
+        // Redirigir a la URL de pago de MercadoPago
+        const paymentUrl = response.data.data.payment_url || response.data.data.sandbox_payment_url;
+        if (paymentUrl) {
+          window.location.href = paymentUrl;
+        } else {
+          setError('No se pudo obtener la URL de pago');
+        }
+      } else {
+        setError(response.data.message || 'Error al crear la preferencia de pago');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Error al reintentar el pago');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ width: '100%' }}>
+      {error && (
+        <div style={{ color: '#d32f2f', marginBottom: '8px', fontSize: '14px' }}>
+          {error}
+        </div>
+      )}
+      <CherryButton
+        variant="red"
+        size="medium"
+        onClick={handleRetryPayment}
+        disabled={loading}
+        style={{ width: '100%' }}
+      >
+        {loading ? 'Creando pago...' : 'Reintentar Pago del Saldo Pendiente'}
+      </CherryButton>
+    </div>
+  );
+};
+
+RetryRemainderPaymentButton.propTypes = {
+  orderId: PropTypes.number.isRequired
+};
 
 const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) => {
   if (!isOpen || !order) return null;
@@ -104,6 +158,32 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
                   ${(parseFloat(order.totalAmount) || 0).toFixed(2)}
                 </span>
               </div>
+              {/* Información de crédito si se pagó con crédito */}
+              {order.paid_with_credit && (
+                <>
+                  {order.amount_paid > 0 && (
+                    <div className="info-row" style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e0e0e0' }}>
+                      <span className="label">Monto pagado con dinero:</span>
+                      <span className="value" style={{ color: '#28a745', fontWeight: '600' }}>
+                        ${(parseFloat(order.amount_paid || 0)).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+                  {(order.credit_used > 0 || order.amount_pending > 0) && (
+                    <div className="info-row" style={{ marginTop: order.amount_paid > 0 ? '8px' : '12px', paddingTop: order.amount_paid > 0 ? '0' : '12px', borderTop: order.amount_paid > 0 ? 'none' : '1px solid #e0e0e0' }}>
+                      <span className="label" style={{ fontWeight: '700', fontSize: '14px' }}>Saldo pendiente a cancelar:</span>
+                      <span className="value" style={{ color: '#d32f2f', fontWeight: '700', fontSize: '18px' }}>
+                        ${((parseFloat(order.credit_used || 0)) + (parseFloat(order.amount_pending || 0))).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+                  {order.amount_pending > 0 && order.status === 'pendiente_pago' && (
+                    <div className="info-row" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e0e0e0' }}>
+                      <RetryRemainderPaymentButton orderId={order.id} />
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
 

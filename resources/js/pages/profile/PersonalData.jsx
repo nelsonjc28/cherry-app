@@ -75,6 +75,15 @@ const PersonalData = () => {
       return;
     }
 
+    // Validar teléfono (debe tener exactamente 10 dígitos)
+    if (userData.phone && !/^[0-9]{10}$/.test(userData.phone.replace(/[\s()-]/g, ''))) {
+      if (window.showToast) {
+        window.showToast('El teléfono debe tener exactamente 10 dígitos', 'error');
+      }
+      setMessage('El teléfono debe tener exactamente 10 dígitos');
+      return;
+    }
+
     // Validar que se haya seleccionado una fecha de nacimiento completa
     if (userData.birthDay && userData.birthMonth && userData.birthYear) {
       if (!isUserAdult(userData.birthDay, userData.birthMonth, userData.birthYear)) {
@@ -227,9 +236,23 @@ const PersonalData = () => {
               placeholder="10 dígitos"
               pattern="[0-9]{10}"
               maxLength="10"
-              onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')}
-              onChange={(e) => handleInputChange('phone', e.target.value)}
+              required
+              onInput={(e) => {
+                e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                if (e.target.value.length > 10) {
+                  e.target.value = e.target.value.slice(0, 10);
+                }
+              }}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 10);
+                handleInputChange('phone', value);
+              }}
             />
+            {userData.phone && userData.phone.length !== 10 && (
+              <span className="error-message" style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                El teléfono debe tener exactamente 10 dígitos
+              </span>
+            )}
           </div>
         </div>
 
@@ -289,13 +312,6 @@ const PersonalData = () => {
 
       <div className="personal-data__actions">
         <CherryButton
-          variant="outline"
-          onClick={() => setShowAccountStatementModal(true)}
-          className="cherry-button--account-statement"
-        >
-          Ver Estados de Cuenta
-        </CherryButton>
-        <CherryButton
           variant="red"
           onClick={handleSave}
           disabled={isSubmitting}
@@ -308,12 +324,6 @@ const PersonalData = () => {
           {isSubmitting ? 'Guardando...' : 'Guardar cambios'}
         </CherryButton>
       </div>
-
-      {/* Modal de Estados de Cuenta */}
-      <AccountStatementModal
-        isOpen={showAccountStatementModal}
-        onClose={() => setShowAccountStatementModal(false)}
-      />
     </div>
   );
 };

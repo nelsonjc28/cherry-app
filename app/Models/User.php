@@ -38,6 +38,9 @@ class User extends Authenticatable implements JWTSubject
         'birth_day',
         'birth_month',
         'birth_year',
+        'seller_category',
+        'credit_balance',
+        'credit_limit',
     ];
 
     /**
@@ -66,6 +69,8 @@ class User extends Authenticatable implements JWTSubject
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'credit_balance' => 'decimal:2',
+            'credit_limit' => 'decimal:2',
         ];
     }
 
@@ -212,5 +217,37 @@ class User extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims(): array
     {
         return [];
+    }
+
+    /**
+     * Check if the user has seller category 'oro'
+     */
+    public function isOroSeller()
+    {
+        return $this->seller_category === 'oro';
+    }
+
+    /**
+     * Check if the user has seller category 'bronce'
+     */
+    public function isBronceSeller()
+    {
+        return $this->seller_category === 'bronce';
+    }
+
+    /**
+     * Check if the user can make advance orders (encargos)
+     */
+    public function canMakeAdvanceOrders()
+    {
+        return $this->isOroSeller();
+    }
+
+    /**
+     * Check if the user has available credit
+     */
+    public function hasCredit()
+    {
+        return $this->isOroSeller() && $this->credit_balance > 0;
     }
 }

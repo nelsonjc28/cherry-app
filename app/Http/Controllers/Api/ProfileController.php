@@ -132,18 +132,38 @@ class ProfileController extends Controller
         }
 
         try {
-            // Obtener todas las órdenes del usuario pagadas
+            // Obtener todas las órdenes del usuario pagadas o con crédito usado
             $orders = Order::where('user_id', $user->id)
-                ->whereIn('status', ['pagado', 'en_espera_envio', 'enviado'])
+                ->where(function ($query) {
+                    $query->whereIn('status', ['pagado', 'en_espera_envio', 'enviado'])
+                          ->orWhere(function ($q) {
+                              $q->where('paid_with_credit', true)
+                                ->where('credit_used', '>', 0);
+                          });
+                })
                 ->orderBy('created_at', 'desc')
                 ->get();
 
             // Formatear órdenes como estados de cuenta
             $statements = $orders->map(function ($order) {
+                // Si usó crédito, el pendiente es el crédito usado (que debe ser pagado)
+                // Si hay amount_pending adicional, se suma
+                $creditUsed = (float) ($order->credit_used ?? 0);
+                $amountPending = (float) ($order->amount_pending ?? 0);
+                $pendingAmount = $creditUsed + $amountPending;
+                
+                // El monto pagado es lo que realmente pagó con dinero (no crédito)
+                $amountPaid = (float) ($order->amount_paid ?? 0);
+                
                 return [
                     'fecha' => $order->created_at->toISOString(),
                     'cargo' => (float) $order->total_amount,
-                    'referencia' => 'Orden #' . str_pad($order->id, 8, '0', STR_PAD_LEFT)
+                    'referencia' => 'Orden #' . str_pad($order->id, 8, '0', STR_PAD_LEFT),
+                    'pagado' => $amountPaid,
+                    'pendiente' => $pendingAmount,
+                    'credit_used' => $creditUsed,
+                    'amount_pending' => $amountPending,
+                    'paid_with_credit' => (bool) ($order->paid_with_credit ?? false)
                 ];
             });
 

@@ -55,6 +55,17 @@ const ClientManager = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    // Limitar teléfono a 10 dígitos numéricos
+    if (name === 'phone') {
+      const numericValue = value.replace(/[^0-9]/g, '').slice(0, 10);
+      setFormData(prev => ({
+        ...prev,
+        [name]: numericValue
+      }));
+      return;
+    }
+    
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -160,6 +171,103 @@ const ClientManager = () => {
   const handleViewAccountStatement = (clientId) => {
     setSelectedClientId(clientId);
     setShowAccountStatementModal(true);
+  };
+
+  const handleUpdateCategory = async (clientId, newCategory) => {
+    try {
+      const response = await fetch(`/api/admin/clients/${clientId}/seller-category`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ seller_category: newCategory })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        window.showToast(data.message || 'Error al actualizar categoría', 'error');
+        return;
+      }
+
+      await fetchClients();
+      window.showToast(`Categoría actualizada a ${newCategory === 'oro' ? 'Oro' : 'Bronce'}`, 'success');
+    } catch (err) {
+      window.showToast('Error: ' + err.message, 'error');
+    }
+  };
+
+  const handleUpdateCredit = async (clientId) => {
+    const client = clients.find(c => c.id === clientId);
+    if (!client || client.seller_category !== 'oro') {
+      window.showToast('Solo los clientes con categoría Oro pueden tener crédito', 'warning');
+      return;
+    }
+
+    // Calcular crédito usado
+    const creditLimit = parseFloat(client.credit_limit || 0);
+    const creditBalance = parseFloat(client.credit_balance || 0);
+    const creditUsed = creditLimit - creditBalance;
+    
+    const { value: creditAmount } = await Swal.fire({
+      title: 'Asignar Crédito',
+      text: `Cliente: ${client.first_name} ${client.last_name}`,
+      html: `
+        <div style="text-align: left;">
+          <p><strong>Crédito total asignado:</strong> $${creditLimit.toFixed(2)}</p>
+          <p><strong>Crédito disponible:</strong> $${creditBalance.toFixed(2)}</p>
+          ${creditUsed > 0 ? `<p><strong>Crédito usado:</strong> $${creditUsed.toFixed(2)}</p>` : ''}
+          <p style="color: #666; font-size: 12px; margin-top: 10px;">Ingresa el nuevo crédito total asignado. El crédito disponible se calculará automáticamente restando lo usado.</p>
+        </div>
+      `,
+      input: 'number',
+      inputLabel: 'Crédito total asignado',
+      inputValue: creditLimit, // Mostrar el límite total, no el disponible
+      inputAttributes: {
+        min: 0,
+        step: 0.01
+      },
+      showCancelButton: true,
+      confirmButtonText: 'Asignar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d32f2f',
+      cancelButtonColor: '#6c757d',
+      inputValidator: (value) => {
+        const numValue = parseFloat(value);
+        if (isNaN(numValue) || numValue < 0) {
+          return 'El monto debe ser mayor o igual a 0';
+        }
+      }
+    });
+
+    if (creditAmount === undefined) return;
+
+    try {
+      // Actualizar el crédito disponible (el backend también actualizará el límite al mismo valor)
+      const creditValue = parseFloat(creditAmount);
+      
+      const response = await fetch(`/api/admin/clients/${clientId}/credit-balance`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ credit_balance: creditValue })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        window.showToast(data.message || 'Error al actualizar crédito', 'error');
+        return;
+      }
+
+      await fetchClients();
+      window.showToast(`Crédito asignado: $${creditValue.toFixed(2)}`, 'success');
+    } catch (err) {
+      window.showToast('Error: ' + err.message, 'error');
+    }
   };
 
   const handleDelete = async (clientId) => {
@@ -293,11 +401,16 @@ const ClientManager = () => {
                     id="phone"
                     name="phone"
                     value={formData.phone}
-                    onChange={handleInputChange}
                     required
                     pattern="[0-9]{10}"
                     maxLength="10"
-                    onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')}
+                    onInput={(e) => {
+                      e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                      if (e.target.value.length > 10) {
+                        e.target.value = e.target.value.slice(0, 10);
+                      }
+                      handleInputChange({ target: { name: 'phone', value: e.target.value } });
+                    }}
                   />
                 </div>
               </div>
@@ -385,6 +498,36 @@ const ClientManager = () => {
                   <div className="client-manager__client-role">
                     Cliente
                   </div>
+                  <div className="client-manager__client-category" style={{
+                    marginTop: '8px',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    display: 'inline-block',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    backgroundColor: client.seller_category === 'oro' ? '#FFD700' : '#CD7F32',
+                    color: '#fff'
+                  }}>
+                    {client.seller_category === 'oro' ? '🥇 Oro' : '🥉 Bronce'}
+                  </div>
+                  {client.seller_category === 'oro' && (
+                    <div style={{ marginTop: '4px' }}>
+                      <div className="client-manager__client-credit" style={{
+                        fontSize: '12px',
+                        color: '#28a745',
+                        fontWeight: '600'
+                      }}>
+                        Crédito: ${parseFloat(client.credit_balance || 0).toFixed(2)}
+                      </div>
+                      <div className="client-manager__client-credit-limit" style={{
+                        fontSize: '11px',
+                        color: '#666',
+                        marginTop: '2px'
+                      }}>
+                        Límite: ${parseFloat(client.credit_limit || 0).toFixed(2)}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="client-manager__client-actions">
                   <CherryButton 
@@ -394,6 +537,34 @@ const ClientManager = () => {
                   >
                     Estados de Cuenta
                   </CherryButton>
+                  {client.seller_category === 'bronce' ? (
+                    <CherryButton 
+                      onClick={() => handleUpdateCategory(client.id, 'oro')}
+                      variant="outline"
+                      size="small"
+                      style={{ backgroundColor: '#FFD700', color: '#fff', borderColor: '#FFD700' }}
+                    >
+                      Cambiar a Oro
+                    </CherryButton>
+                  ) : (
+                    <CherryButton 
+                      onClick={() => handleUpdateCategory(client.id, 'bronce')}
+                      variant="outline"
+                      size="small"
+                      style={{ backgroundColor: '#CD7F32', color: '#fff', borderColor: '#CD7F32' }}
+                    >
+                      Cambiar a Bronce
+                    </CherryButton>
+                  )}
+                  {client.seller_category === 'oro' && (
+                    <CherryButton 
+                      onClick={() => handleUpdateCredit(client.id)}
+                      variant="red"
+                      size="small"
+                    >
+                      Asignar Crédito
+                    </CherryButton>
+                  )}
                   <CherryButton 
                     onClick={() => handleEdit(client)}
                     variant="outline"

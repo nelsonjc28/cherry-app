@@ -51,6 +51,8 @@ class AuthController extends Controller
             'email'         => $request->email,
             'password'      => Hash::make($request->password),
             'role_id'       => 2, // Default to cliente role
+            'seller_category' => 'bronce', // All new users start with 'bronce'
+            'credit_balance' => 0, // Start with no credit
         ]);
 
         // NOTA: Ya no se crea el registro de dayFortyFive al registrarse

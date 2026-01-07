@@ -74,6 +74,17 @@ const AdminUserManager = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    // Limitar teléfono a 10 dígitos numéricos
+    if (name === 'phone') {
+      const numericValue = value.replace(/[^0-9]/g, '').slice(0, 10);
+      setFormData(prev => ({
+        ...prev,
+        [name]: numericValue
+      }));
+      return;
+    }
+    
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -289,7 +300,13 @@ const AdminUserManager = () => {
                     required
                     pattern="[0-9]{10}"
                     maxLength="10"
-                    onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')}
+                    onInput={(e) => {
+                      e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                      if (e.target.value.length > 10) {
+                        e.target.value = e.target.value.slice(0, 10);
+                      }
+                    }}
+                    onChange={handleInputChange}
                   />
                 </div>
               </div>

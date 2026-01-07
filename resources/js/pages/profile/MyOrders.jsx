@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import CherryButton from '../../components/CherryButton/CherryButton';
 import OrderDetailModal from '../../components/OrderDetailModal/OrderDetailModal';
 import { orderService } from '../../services/api';
+import api from '../../config/axios';
 import './MyOrders.css';
 
 const MyOrders = () => {
@@ -105,6 +106,36 @@ const MyOrders = () => {
   const handleCloseOrderDetailModal = () => {
     setShowOrderDetailModal(false);
     setSelectedOrderForDetail(null);
+  };
+
+  const handlePayRemainder = async (orderId) => {
+    try {
+      if (window.showToast) {
+        window.showToast('Creando preferencia de pago...', 'info');
+      }
+      
+      const response = await api.post(`/payment/retry-remainder/${orderId}`);
+      
+      if (response.data.success) {
+        // Redirigir a la URL de pago de MercadoPago
+        const paymentUrl = response.data.data.payment_url || response.data.data.sandbox_payment_url;
+        if (paymentUrl) {
+          window.location.href = paymentUrl;
+        } else {
+          if (window.showToast) {
+            window.showToast('No se pudo obtener la URL de pago', 'error');
+          }
+        }
+      } else {
+        if (window.showToast) {
+          window.showToast(response.data.message || 'Error al crear la preferencia de pago', 'error');
+        }
+      }
+    } catch (err) {
+      if (window.showToast) {
+        window.showToast(err.response?.data?.message || 'Error al procesar el pago', 'error');
+      }
+    }
   };
 
   if (loading) {
@@ -238,13 +269,68 @@ const MyOrders = () => {
                       </div>
                     </td>
                     <td className="order-actions-cell">
-                      <CherryButton
-                        variant="outline"
-                        size="small"
-                        onClick={() => handleViewOrderDetails(order)}
-                      >
-                        Ver Detalle
-                      </CherryButton>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {order.paid_with_credit && 
+                         parseFloat(order.amount_pending || 0) > 0 && 
+                         (order.statusRaw === 'pendiente_pago' || order.status === 'pendiente_pago' || order.statusDisplay === 'Pendiente de Pago') && (
+                          <button
+                            className="order-action-btn order-action-btn--pay"
+                            onClick={() => handlePayRemainder(order.id)}
+                            data-tooltip={`Pagar ${formatCurrency(order.amount_pending)}`}
+                            onMouseEnter={(e) => {
+                              const button = e.currentTarget;
+                              const tooltipText = button.getAttribute('data-tooltip');
+                              let tooltip = document.querySelector('.order-tooltip');
+                              if (!tooltip) {
+                                tooltip = document.createElement('div');
+                                tooltip.className = 'order-tooltip';
+                                document.body.appendChild(tooltip);
+                              }
+                              tooltip.textContent = tooltipText;
+                              tooltip.style.display = 'block';
+                              
+                              const rect = button.getBoundingClientRect();
+                              const tooltipRect = tooltip.getBoundingClientRect();
+                              tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
+                              tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
+                            }}
+                            onMouseLeave={() => {
+                              const tooltip = document.querySelector('.order-tooltip');
+                              if (tooltip) tooltip.style.display = 'none';
+                            }}
+                          >
+                            💳
+                          </button>
+                        )}
+                        <button
+                          className="order-action-btn order-action-btn--detail"
+                          onClick={() => handleViewOrderDetails(order)}
+                          data-tooltip="Ver Detalle"
+                          onMouseEnter={(e) => {
+                            const button = e.currentTarget;
+                            const tooltipText = button.getAttribute('data-tooltip');
+                            let tooltip = document.querySelector('.order-tooltip');
+                            if (!tooltip) {
+                              tooltip = document.createElement('div');
+                              tooltip.className = 'order-tooltip';
+                              document.body.appendChild(tooltip);
+                            }
+                            tooltip.textContent = tooltipText;
+                            tooltip.style.display = 'block';
+                            
+                            const rect = button.getBoundingClientRect();
+                            const tooltipRect = tooltip.getBoundingClientRect();
+                            tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
+                            tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
+                          }}
+                          onMouseLeave={() => {
+                            const tooltip = document.querySelector('.order-tooltip');
+                            if (tooltip) tooltip.style.display = 'none';
+                          }}
+                        >
+                          👁️
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

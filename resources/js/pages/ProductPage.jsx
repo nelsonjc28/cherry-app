@@ -647,6 +647,27 @@ const ProductPage = () => {
       return;
     }
 
+    // Verificar si el producto está "próximamente" (coming-soon)
+    const inventoryStatus = getInventoryStatus();
+    const isComingSoon = inventoryStatus.status === 'coming-soon';
+    
+    // Si el producto está "próximamente", verificar que el usuario tenga categoría "oro"
+    if (isComingSoon) {
+      if (!user) {
+        if (window.showToast) {
+          window.showToast('Debes iniciar sesión para hacer encargos de productos próximamente.', 'error');
+        }
+        return;
+      }
+      
+      if (!user.seller_category || user.seller_category !== 'oro') {
+        if (window.showToast) {
+          window.showToast('Solo los vendedores con categoría Oro pueden hacer encargos de productos próximamente. Contacta al administrador para actualizar tu categoría.', 'error');
+        }
+        return;
+      }
+    }
+
     if (!selectedColor) {
       if (window.showToast) {
         window.showToast('Por favor selecciona un color', 'error');
@@ -664,15 +685,17 @@ const ProductPage = () => {
       return;
     }
 
-    // Verificar que todas las cantidades no excedan el stock disponible
-    for (const { talla, cantidad } of tallasConCantidades) {
-      const stockDisponible = getStockBySizeAndColor(talla, selectedColor);
+    // Verificar que todas las cantidades no excedan el stock disponible (solo si no es "próximamente")
+    if (!isComingSoon) {
+      for (const { talla, cantidad } of tallasConCantidades) {
+        const stockDisponible = getStockBySizeAndColor(talla, selectedColor);
 
-      if (cantidad > stockDisponible) {
-        if (window.showToast) {
-          window.showToast(`Solo hay ${stockDisponible} unidades disponibles para la talla ${talla}`, 'error');
+        if (cantidad > stockDisponible) {
+          if (window.showToast) {
+            window.showToast(`Solo hay ${stockDisponible} unidades disponibles para la talla ${talla}`, 'error');
+          }
+          return;
         }
-        return;
       }
     }
 
@@ -714,6 +737,11 @@ const ProductPage = () => {
       if (window.showToast) {
         const totalUnidades = getTotalUnits();
         let message = `${totalUnidades} unidad${totalUnidades > 1 ? 'es' : ''} agregada${totalUnidades > 1 ? 's' : ''} al carrito`;
+        
+        // Si es un producto "próximamente", indicar que es un encargo
+        if (isComingSoon) {
+          message += ' 📦 (Encargo - Próximamente)';
+        }
 
         if (hasOffer) {
           if (hasUserOffer && userOffer && userOffer.discount_category === 'buy_x_get_y') {

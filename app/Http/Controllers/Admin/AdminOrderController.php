@@ -62,7 +62,11 @@ class AdminOrderController extends Controller
                         'country' => $order->address->country,
                         'additional_info' => $order->address->additional_info,
                         'name' => $order->address->name
-                    ] : null
+                    ] : null,
+                    'credit_used' => (float) ($order->credit_used ?? 0),
+                    'amount_paid' => (float) ($order->amount_paid ?? $order->total_amount),
+                    'amount_pending' => (float) ($order->amount_pending ?? 0),
+                    'paid_with_credit' => (bool) ($order->paid_with_credit ?? false)
                 ];
             });
 
@@ -186,9 +190,13 @@ class AdminOrderController extends Controller
                     'postal_code' => $order->address->postal_code,
                     'country' => $order->address->country,
                     'additional_info' => $order->address->additional_info,
-                    'name' => $order->address->name
-                ] : null
-            ];
+                        'name' => $order->address->name
+                    ] : null,
+                    'credit_used' => (float) ($order->credit_used ?? 0),
+                    'amount_paid' => (float) ($order->amount_paid ?? $order->total_amount),
+                    'amount_pending' => (float) ($order->amount_pending ?? 0),
+                    'paid_with_credit' => (bool) ($order->paid_with_credit ?? false)
+                ];
 
             return response()->json([
                 'success' => true,

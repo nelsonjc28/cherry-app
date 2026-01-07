@@ -95,6 +95,14 @@ class PaymentController extends Controller
             $addressId = $request->address_id;
         }
 
+        // Verificar si el pago es con crédito
+        $useCredit = $request->input('use_credit', false);
+        
+        // Si es pago con crédito, procesar de manera diferente
+        if ($useCredit) {
+            return $this->processCreditPayment($request, $user, $addressId, $deliveryType);
+        }
+
         DB::beginTransaction();
 
         // Crear el pedido en la base de datos
@@ -111,14 +119,14 @@ class PaymentController extends Controller
         foreach ($request->items as $item) {
             OrderItem::create([
                 'order_id' => $order->id,
-                'product_id' => $item['product_id'],
+                'product_id' => (int) $item['product_id'],
                 'name' => $item['name'],
                 'size' => $item['size'] ?? null,
                 'color' => $item['color'] ?? null,
                 'barcode' => $item['barcode'] ?? null,
-                'quantity' => $item['quantity'],
-                'price' => $item['price'],
-                'subtotal' => $item['quantity'] * $item['price']
+                'quantity' => (int) $item['quantity'],
+                'price' => (float) $item['price'],
+                'subtotal' => (float) ($item['quantity'] * $item['price'])
             ]);
         }
 
@@ -278,10 +286,21 @@ class PaymentController extends Controller
             $result = $this->mercadoPagoService->processWebhook($data);
 
             if ($result && isset($result['external_reference'])) {
-                // Buscar el pedido por external_reference
-                $order = Order::where('external_reference', $result['external_reference'])
-                    ->with(['items', 'user', 'address'])
-                    ->first();
+                $externalReference = $result['external_reference'];
+                $isRemainderPayment = str_ends_with($externalReference, '_remainder');
+                
+                // Si es un pago de saldo pendiente, buscar la orden original
+                if ($isRemainderPayment) {
+                    $originalReference = str_replace('_remainder', '', $externalReference);
+                    $order = Order::where('external_reference', $originalReference)
+                        ->with(['items', 'user', 'address'])
+                        ->first();
+                } else {
+                    // Buscar el pedido por external_reference normal
+                    $order = Order::where('external_reference', $externalReference)
+                        ->with(['items', 'user', 'address'])
+                        ->first();
+                }
 
                 if ($order) {
                     $previousStatus = $order->status;
@@ -320,13 +339,46 @@ class PaymentController extends Controller
                     
                     $paymentMethod = $this->mapPaymentMethodId($paymentMethodId);
                     
-                    // Actualizar estado del pedido
-                    $order->update([
+                    // Preparar datos de actualización
+                    $updateData = [
                         'status' => $newStatus,
                         'mercadopago_payment_id' => $result['payment_id'],
                         'payment_method' => $paymentMethod,
                         'payment_data' => json_encode($newPaymentData)
-                    ]);
+                    ];
+                    
+                    // Si la orden fue pagada parcialmente con crédito y ahora se aprueba el pago de MercadoPago
+                    // (que completa el saldo pendiente), actualizar amount_paid y amount_pending
+                    // Y descontar el crédito que se había reservado pero no descontado
+                    if ($isRemainderPayment && $order->paid_with_credit && $order->amount_pending > 0 && $result['status'] === 'approved') {
+                        $updateData['amount_paid'] = $order->total_amount; // Total pagado ahora es el total completo
+                        $updateData['amount_pending'] = 0; // Ya no hay pendiente
+                        
+                        // Descontar el crédito ahora que el pago está completo
+                        $user = $order->user;
+                        if ($user && $order->credit_used > 0) {
+                            // Verificar si el crédito ya fue descontado comparando el balance actual
+                            $currentBalance = (float) ($user->credit_balance ?? 0);
+                            $creditUsed = (float) ($order->credit_used ?? 0);
+                            
+                            // Si el balance actual es mayor o igual al crédito usado, significa que aún no se descontó
+                            // Descontarlo ahora
+                            if ($currentBalance >= $creditUsed) {
+                                $user->credit_balance = max(0, $currentBalance - $creditUsed);
+                                $user->save();
+                                
+                                Log::info('Crédito descontado después de completar pago de MercadoPago', [
+                                    'order_id' => $order->id,
+                                    'credit_used' => $creditUsed,
+                                    'credit_balance_before' => $currentBalance,
+                                    'credit_balance_after' => $user->credit_balance
+                                ]);
+                            }
+                        }
+                    }
+                    
+                    // Actualizar estado del pedido
+                    $order->update($updateData);
 
                     // === PAGO APROBADO ===
                     // Solo procesar si cambió de estado (evitar duplicados)
@@ -1127,6 +1179,10 @@ class PaymentController extends Controller
                         ];
                     }),
                     'totalAmount' => (float) $order->total_amount,
+                    'credit_used' => (float) ($order->credit_used ?? 0),
+                    'amount_paid' => (float) ($order->amount_paid ?? $order->total_amount),
+                    'amount_pending' => (float) ($order->amount_pending ?? 0),
+                    'paid_with_credit' => (bool) ($order->paid_with_credit ?? false),
                     'address' => $order->address ? [
                         'street' => $order->address->street_address,
                         'city' => $order->address->city,
@@ -1992,6 +2048,313 @@ class PaymentController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al sincronizar el estado del pago: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Process payment with credit (only for oro category users)
+     */
+    private function processCreditPayment(Request $request, User $user, $addressId, $deliveryType)
+    {
+        // Verificar que el usuario tenga categoría oro
+        if ($user->seller_category !== 'oro') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo los usuarios con categoría Oro pueden pagar con crédito'
+            ], 403);
+        }
+
+        $totalAmount = (float) $request->total_amount;
+        $availableCredit = (float) ($user->credit_balance ?? 0);
+        
+        // Calcular cuánto crédito usar y cuánto queda pendiente
+        $creditToUse = min($totalAmount, $availableCredit);
+        $amountPaid = 0; // No se pagó con dinero real, solo con crédito
+        $amountPending = max(0, $totalAmount - $creditToUse); // Saldo adicional si no cubrió todo con crédito
+        
+        // Si no hay crédito suficiente y hay monto pendiente, verificar si quiere pagar el resto con MercadoPago
+        $payRemainderWithMercadoPago = $request->input('pay_remainder_with_mercadopago', false);
+        
+        DB::beginTransaction();
+        
+        try {
+            // Crear la orden
+            $order = Order::create([
+                'user_id' => $user->id,
+                'address_id' => $addressId,
+                'total_amount' => $totalAmount,
+                'credit_used' => $creditToUse,
+                'amount_paid' => $amountPaid,
+                'amount_pending' => $amountPending,
+                'paid_with_credit' => true,
+                'status' => $amountPending > 0 ? 'pendiente_pago' : 'pagado',
+                'payment_method' => $amountPending > 0 ? 'credito_mercadopago' : 'credito',
+                'external_reference' => uniqid('order_' . $user->id . '_')
+            ]);
+
+            // Crear los items del pedido
+            foreach ($request->items as $item) {
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'product_id' => $item['product_id'],
+                    'name' => $item['name'],
+                    'size' => $item['size'] ?? null,
+                    'color' => $item['color'] ?? null,
+                    'barcode' => $item['barcode'] ?? null,
+                    'quantity' => $item['quantity'],
+                    'price' => $item['price'],
+                    'subtotal' => $item['quantity'] * $item['price']
+                ]);
+            }
+
+            // NO descontar crédito todavía si hay saldo pendiente que se pagará con MercadoPago
+            // El crédito se descontará cuando se complete el pago de MercadoPago (vía webhook)
+            // Solo descontar si se pagó completamente con crédito
+            if ($creditToUse > 0 && $amountPending === 0) {
+                // Pago completo con crédito, descontar inmediatamente
+                $user->credit_balance = max(0, $user->credit_balance - $creditToUse);
+                $user->save();
+            } elseif ($creditToUse > 0 && $amountPending > 0 && !$payRemainderWithMercadoPago) {
+                // Hay saldo pendiente pero NO quiere pagar con MercadoPago
+                // En este caso, descontar el crédito porque la orden está completa (solo crédito parcial)
+                $user->credit_balance = max(0, $user->credit_balance - $creditToUse);
+                $user->save();
+            }
+            // Si hay saldo pendiente Y quiere pagar con MercadoPago, NO descontar todavía
+            // Se descontará cuando se apruebe el pago de MercadoPago (vía webhook)
+
+            DB::commit();
+
+            // Si hay monto pendiente y quiere pagar con MercadoPago, crear preferencia
+            if ($amountPending > 0 && $payRemainderWithMercadoPago) {
+                // Crear preferencia de MercadoPago solo para el monto pendiente
+                $address = $addressId ? $user->addresses()->find($addressId) : null;
+                
+                $orderData = [
+                    'order_id' => $order->external_reference . '_remainder',
+                    'user' => [
+                        'first_name' => $user->first_name,
+                        'last_name' => $user->last_name,
+                        'email' => $user->email,
+                        'phone' => $user->phone
+                    ],
+                    'address' => $address ? [
+                        'street_address' => $address->street_address,
+                        'city' => $address->city,
+                        'state' => $address->state,
+                        'postal_code' => $address->postal_code,
+                        'country' => $address->country
+                    ] : [
+                        'street_address' => '',
+                        'city' => '',
+                        'state' => '',
+                        'postal_code' => '',
+                        'country' => 'México'
+                    ],
+                    'items' => [[
+                        'product_id' => 0,
+                        'name' => 'Saldo pendiente de orden #' . str_pad($order->id, 8, '0', STR_PAD_LEFT),
+                        'quantity' => 1,
+                        'price' => $amountPending,
+                        'size' => null,
+                        'color' => null,
+                        'barcode' => null
+                    ]],
+                    'delivery_type' => $deliveryType
+                ];
+
+                $preference = $this->mercadoPagoService->createPreference($orderData);
+                
+                $order->update([
+                    'mercadopago_preference_id' => $preference->id
+                ]);
+
+                // Enviar email de confirmación
+                try {
+                    Mail::to($user->email)->send(new OrderConfirmationMail($order));
+                    Log::info('Email de confirmación enviado al cliente (crédito parcial)', ['order_id' => $order->id]);
+                } catch (\Exception $e) {
+                    Log::error('Error al enviar email de confirmación (crédito parcial)', [
+                        'order_id' => $order->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Orden creada con crédito. Debe pagar el saldo pendiente con MercadoPago.',
+                    'data' => [
+                        'order_id' => $order->id,
+                        'credit_used' => $creditToUse,
+                        'amount_pending' => $amountPending,
+                        'preference_id' => $preference->id,
+                        'payment_url' => $preference->init_point ?? $this->mercadoPagoService->getPaymentUrl($preference->id),
+                        'sandbox_payment_url' => $preference->sandbox_init_point ?? $this->mercadoPagoService->getSandboxPaymentUrl($preference->id)
+                    ]
+                ]);
+            }
+
+            // Si se pagó completamente con crédito
+            if ($amountPending === 0) {
+                // Enviar email de confirmación
+                try {
+                    Mail::to($user->email)->send(new OrderConfirmationMail($order));
+                    Log::info('Email de confirmación enviado al cliente (crédito completo)', ['order_id' => $order->id]);
+                } catch (\Exception $e) {
+                    Log::error('Error al enviar email de confirmación (crédito completo)', [
+                        'order_id' => $order->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+
+                // Enviar a API externa
+                try {
+                    $this->externalSalesService->sendSaleToExternalApi($order);
+                } catch (\Exception $e) {
+                    Log::error('Error al enviar venta a API externa (crédito)', [
+                        'order_id' => $order->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Orden pagada completamente con crédito',
+                    'data' => [
+                        'order_id' => $order->id,
+                        'credit_used' => $creditToUse,
+                        'amount_pending' => 0
+                    ]
+                ]);
+            }
+
+            // Si hay monto pendiente pero no quiere pagar con MercadoPago
+            return response()->json([
+                'success' => true,
+                'message' => 'Orden creada con crédito parcial. Tiene un saldo pendiente.',
+                'data' => [
+                    'order_id' => $order->id,
+                    'credit_used' => $creditToUse,
+                    'amount_pending' => $amountPending
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error procesando pago con crédito', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al procesar pago con crédito: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Reintentar pago del saldo pendiente de una orden pagada con crédito
+     */
+    public function retryRemainderPayment(Request $request, $orderId)
+    {
+        try {
+            $user = Auth::user();
+            
+            // Buscar la orden
+            $order = Order::where('id', $orderId)
+                ->where('user_id', $user->id)
+                ->with(['user', 'address'])
+                ->first();
+
+            if (!$order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Orden no encontrada'
+                ], 404);
+            }
+
+            // Verificar que la orden tenga saldo pendiente
+            if (!$order->paid_with_credit || $order->amount_pending <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Esta orden no tiene saldo pendiente'
+                ], 400);
+            }
+
+            // Verificar que la orden esté en estado pendiente_pago
+            if ($order->status !== 'pendiente_pago') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Esta orden no está pendiente de pago'
+                ], 400);
+            }
+
+            // Crear preferencia de MercadoPago solo para el monto pendiente
+            $address = $order->address;
+            
+            $orderData = [
+                'order_id' => $order->external_reference . '_remainder',
+                'user' => [
+                    'first_name' => $order->user->first_name,
+                    'last_name' => $order->user->last_name,
+                    'email' => $order->user->email,
+                    'phone' => $order->user->phone
+                ],
+                'address' => $address ? [
+                    'street_address' => $address->street_address,
+                    'city' => $address->city,
+                    'state' => $address->state,
+                    'postal_code' => $address->postal_code,
+                    'country' => $address->country
+                ] : [
+                    'street_address' => '',
+                    'city' => '',
+                    'state' => '',
+                    'postal_code' => '',
+                    'country' => 'México'
+                ],
+                'items' => [[
+                    'product_id' => 0,
+                    'name' => 'Saldo pendiente de orden #' . str_pad($order->id, 8, '0', STR_PAD_LEFT),
+                    'quantity' => 1,
+                    'price' => $order->amount_pending,
+                    'size' => null,
+                    'color' => null,
+                    'barcode' => null
+                ]],
+                'delivery_type' => $order->address_id ? 'envio' : 'retiro'
+            ];
+
+            $preference = $this->mercadoPagoService->createPreference($orderData);
+            
+            $order->update([
+                'mercadopago_preference_id' => $preference->id
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Preferencia de pago creada para el saldo pendiente',
+                'data' => [
+                    'order_id' => $order->id,
+                    'amount_pending' => $order->amount_pending,
+                    'preference_id' => $preference->id,
+                    'payment_url' => $preference->init_point ?? $this->mercadoPagoService->getPaymentUrl($preference->id),
+                    'sandbox_payment_url' => $preference->sandbox_init_point ?? $this->mercadoPagoService->getSandboxPaymentUrl($preference->id)
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error al reintentar pago del saldo pendiente', [
+                'order_id' => $orderId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear la preferencia de pago: ' . $e->getMessage()
             ], 500);
         }
     }

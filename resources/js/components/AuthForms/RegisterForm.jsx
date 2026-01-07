@@ -14,7 +14,16 @@ const RegisterForm = ({ onSuccess }) => {
   const { register, loading, error, clearError } = useUserStore();
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    
+    // Limitar teléfono a 10 dígitos numéricos
+    if (name === 'phone') {
+      const numericValue = value.replace(/[^0-9]/g, '').slice(0, 10);
+      setForm({ ...form, [name]: numericValue });
+    } else {
+      setForm({ ...form, [name]: value });
+    }
+    
     if (error) clearError();
   };
 
@@ -61,7 +70,17 @@ const RegisterForm = ({ onSuccess }) => {
         pattern="[0-9]{10}"
         maxLength="10"
         placeholder="10 dígitos"
-        onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')}
+        onInput={(e) => {
+          e.target.value = e.target.value.replace(/[^0-9]/g, '');
+          if (e.target.value.length > 10) {
+            e.target.value = e.target.value.slice(0, 10);
+          }
+        }}
+        onChange={(e) => {
+          const numericValue = e.target.value.replace(/[^0-9]/g, '').slice(0, 10);
+          e.target.value = numericValue;
+          handleChange(e);
+        }}
       />
       
       <label htmlFor="email" className="register-label">Correo Electrónico</label>

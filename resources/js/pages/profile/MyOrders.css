@@ -106,6 +106,8 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   overflow-x: auto;
   margin-bottom: 30px;
+  position: relative;
+  z-index: 1;
 }
 
 .my-orders__table {
@@ -214,6 +216,78 @@
 
 .order-actions-cell {
   white-space: nowrap;
+  position: relative;
+  z-index: 10;
+}
+
+/* Botones de acción pequeños con iconos */
+.order-action-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  position: relative;
+  padding: 0;
+  z-index: 11;
+}
+
+.order-action-btn--pay {
+  background: #d32f2f;
+  color: white;
+}
+
+.order-action-btn--pay:hover {
+  background: #b71c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(211, 47, 47, 0.3);
+}
+
+.order-action-btn--detail {
+  background: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.order-action-btn--detail:hover {
+  background: #e0e0e0;
+  border-color: #bbb;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.order-action-btn:active {
+  transform: translateY(0);
+}
+
+/* Tooltip para los botones */
+.order-tooltip {
+  position: fixed;
+  padding: 6px 10px;
+  background: #333;
+  color: white;
+  font-size: 12px;
+  white-space: nowrap;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 99999;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  display: none;
+}
+
+.order-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #333;
 }
 
 .status-badge {

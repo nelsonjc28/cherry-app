@@ -15,6 +15,10 @@ class Order extends Model
         'user_id',
         'address_id',
         'total_amount',
+        'credit_used',
+        'amount_paid',
+        'amount_pending',
+        'paid_with_credit',
         'status',
         'payment_method',
         'external_reference',
@@ -26,6 +30,10 @@ class Order extends Model
 
     protected $casts = [
         'total_amount' => 'decimal:2',
+        'credit_used' => 'decimal:2',
+        'amount_paid' => 'decimal:2',
+        'amount_pending' => 'decimal:2',
+        'paid_with_credit' => 'boolean',
         'payment_data' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -63,9 +71,12 @@ class Order extends Model
     {
         return match($this->status) {
             'pending' => 'Pendiente',
+            'pendiente_pago' => 'Pendiente de Pago',
             'pagado' => 'Pagado',
             'en_espera_envio' => 'En Espera de Envío',
             'enviado' => 'Enviado',
+            'pago_rechazado' => 'Pago Rechazado',
+            'cancelado' => 'Cancelado',
             // Estados legacy
             'processing' => 'Procesando',
             'completed' => 'Completado',

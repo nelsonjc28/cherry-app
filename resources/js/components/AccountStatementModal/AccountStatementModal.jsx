@@ -122,23 +122,39 @@ const AccountStatementModal = ({ isOpen, onClose, userId = null }) => {
                   <tr>
                     <th>Fecha</th>
                     <th>Cargo</th>
+                    <th>Pagado</th>
+                    <th>Pendiente</th>
                     <th>Referencia</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {statements.map((statement, index) => (
-                    <tr key={index}>
-                      <td className="account-statement-modal__date-cell">
-                        {formatDate(statement.fecha)}
-                      </td>
-                      <td className="account-statement-modal__charge-cell">
-                        {formatCurrency(statement.cargo || 0)}
-                      </td>
-                      <td className="account-statement-modal__reference-cell">
-                        {statement.referencia || '-'}
-                      </td>
-                    </tr>
-                  ))}
+                  {statements.map((statement, index) => {
+                    const pendiente = parseFloat(statement.pendiente || 0);
+                    const pagado = parseFloat(statement.pagado || statement.cargo || 0);
+                    
+                    return (
+                      <tr key={index}>
+                        <td className="account-statement-modal__date-cell">
+                          {formatDate(statement.fecha)}
+                        </td>
+                        <td className="account-statement-modal__charge-cell">
+                          {formatCurrency(statement.cargo || 0)}
+                        </td>
+                        <td className="account-statement-modal__paid-cell">
+                          {formatCurrency(pagado)}
+                        </td>
+                        <td className="account-statement-modal__pending-cell" style={{
+                          color: pendiente > 0 ? '#d32f2f' : '#28a745',
+                          fontWeight: pendiente > 0 ? '600' : '400'
+                        }}>
+                          {formatCurrency(pendiente)}
+                        </td>
+                        <td className="account-statement-modal__reference-cell">
+                          {statement.referencia || '-'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

@@ -27,10 +27,24 @@ const CartOrderSummary = ({
   onPaymentCardChange,
   onIntegratedPaymentSuccess,
   onIntegratedPaymentError,
-  deliveryType = 'envio' // 'envio' or 'retiro'
+  deliveryType = 'envio', // 'envio' or 'retiro'
+  user = null, // Usuario para verificar categoría oro
+  paymentMethod = 'mercadopago', // Método de pago seleccionado
+  onPaymentMethodChange = null // Callback para cambiar método de pago
 }) => {
   // Estado para método de pago seleccionado
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('mercadopago'); // Solo Mercado Pago
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(paymentMethod || 'mercadopago');
+  
+  // Sincronizar con prop externa
+  useEffect(() => {
+    if (paymentMethod) {
+      setSelectedPaymentMethod(paymentMethod);
+    }
+  }, [paymentMethod]);
+  
+  // Verificar si el usuario puede usar crédito
+  const canUseCredit = user && user.seller_category === 'oro';
+  const availableCredit = canUseCredit ? (parseFloat(user.credit_balance || 0)) : 0;
   
   const [paymentCards, setPaymentCards] = useState([]);
   const [isLoadingCards, setIsLoadingCards] = useState(true);
@@ -721,6 +735,12 @@ const CartOrderSummary = ({
 
   // Función para procesar el pago - Siempre usa Mercado Pago
   const handleProcessPayment = () => {
+    // Si es pago con crédito, usar onGenerateOrder del padre
+    if (selectedPaymentMethod === 'credit' && onGenerateOrder) {
+      onGenerateOrder();
+      return;
+    }
+    // Si es MercadoPago, usar el método integrado
     processMercadoPagoPayment();
   };
 
@@ -831,11 +851,11 @@ const CartOrderSummary = ({
                     </svg>
                     Ver en Google Maps
                   </a>
-                </div>
-              )}
             </div>
+              )}
           </div>
-          <div className="cart-order-summary__divider" />
+          </div>
+      <div className="cart-order-summary__divider" />
         </>
       )}
       {/* Método de pago - Solo Mercado Pago */}
@@ -852,6 +872,53 @@ const CartOrderSummary = ({
           />
           <span>Método de Pago</span>
           </div>
+          
+          {/* Opción de crédito para usuarios Oro */}
+          {canUseCredit && (
+            <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', marginBottom: '8px' }}>
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="credit"
+                  checked={selectedPaymentMethod === 'credit'}
+                  onChange={(e) => {
+                    setSelectedPaymentMethod(e.target.value);
+                    if (onPaymentMethodChange) {
+                      onPaymentMethodChange(e.target.value);
+                    }
+                  }}
+                  style={{ marginRight: '8px', width: '18px', height: '18px', cursor: 'pointer' }}
+                />
+                <span style={{ fontWeight: '600', fontSize: '14px' }}>Pagar con Crédito</span>
+              </label>
+              <div style={{ marginLeft: '26px', fontSize: '12px', color: '#666' }}>
+                <div>Crédito disponible: <strong style={{ color: '#28a745' }}>${availableCredit.toFixed(2)}</strong></div>
+                {availableCredit < parseFloat(total) && (
+                  <div style={{ marginTop: '4px', color: '#ff9800' }}>
+                    Saldo pendiente: <strong>${(parseFloat(total) - availableCredit).toFixed(2)}</strong> (se pagará con MercadoPago)
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', marginTop: canUseCredit ? '12px' : '0' }}>
+            <input
+              type="radio"
+              name="paymentMethod"
+              value="mercadopago"
+              checked={selectedPaymentMethod === 'mercadopago'}
+              onChange={(e) => {
+                setSelectedPaymentMethod(e.target.value);
+                if (onPaymentMethodChange) {
+                  onPaymentMethodChange(e.target.value);
+                }
+              }}
+              style={{ marginRight: '8px', width: '18px', height: '18px', cursor: 'pointer' }}
+            />
+            <span style={{ fontWeight: '600', fontSize: '14px' }}>Pagar con MercadoPago</span>
+          </label>
             </div>
 
       {/* Modal para agregar nueva tarjeta - ELIMINADO */}
@@ -968,7 +1035,9 @@ const CartOrderSummary = ({
         >
           {isProcessingPayment 
             ? 'Procesando pago...' 
-            : 'Pagar con Mercado Pago'}
+            : selectedPaymentMethod === 'credit' 
+              ? `Pagar con Crédito ($${Math.min(availableCredit, parseFloat(total)).toFixed(2)})`
+              : 'Pagar con Mercado Pago'}
         </CustomButton>
         <CustomButton
           variant="outlined"

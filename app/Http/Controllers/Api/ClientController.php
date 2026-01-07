@@ -102,7 +102,9 @@ class ClientController extends Controller
                 'email' => $request->email,
                 'phone' => $request->phone,
                 'password' => Hash::make($request->password),
-                'role_id' => 2 // Always create as client
+                'role_id' => 2, // Always create as client
+                'seller_category' => 'bronce', // All new clients start with 'bronce'
+                'credit_balance' => 0, // Start with no credit
             ]);
 
             return response()->json([
@@ -258,18 +260,38 @@ class ClientController extends Controller
                 ], 404);
             }
 
-            // Obtener todas las órdenes del cliente pagadas
+            // Obtener todas las órdenes del cliente pagadas o con crédito usado
             $orders = Order::where('user_id', $client->id)
-                ->whereIn('status', ['pagado', 'en_espera_envio', 'enviado'])
+                ->where(function ($query) {
+                    $query->whereIn('status', ['pagado', 'en_espera_envio', 'enviado'])
+                          ->orWhere(function ($q) {
+                              $q->where('paid_with_credit', true)
+                                ->where('credit_used', '>', 0);
+                          });
+                })
                 ->orderBy('created_at', 'desc')
                 ->get();
 
             // Formatear órdenes como estados de cuenta
             $statements = $orders->map(function ($order) {
+                // Si usó crédito, el pendiente es el crédito usado (que debe ser pagado)
+                // Si hay amount_pending adicional, se suma
+                $creditUsed = (float) ($order->credit_used ?? 0);
+                $amountPending = (float) ($order->amount_pending ?? 0);
+                $pendingAmount = $creditUsed + $amountPending;
+                
+                // El monto pagado es lo que realmente pagó con dinero (no crédito)
+                $amountPaid = (float) ($order->amount_paid ?? 0);
+                
                 return [
                     'fecha' => $order->created_at->toISOString(),
                     'cargo' => (float) $order->total_amount,
-                    'referencia' => 'Orden #' . str_pad($order->id, 8, '0', STR_PAD_LEFT)
+                    'referencia' => 'Orden #' . str_pad($order->id, 8, '0', STR_PAD_LEFT),
+                    'pagado' => $amountPaid,
+                    'pendiente' => $pendingAmount,
+                    'credit_used' => $creditUsed,
+                    'amount_pending' => $amountPending,
+                    'paid_with_credit' => (bool) ($order->paid_with_credit ?? false)
                 ];
             });
 
@@ -287,6 +309,188 @@ class ClientController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener los estados de cuenta: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update seller category for a client
+     */
+    public function updateSellerCategory(Request $request, $id)
+    {
+        try {
+            $user = User::where('role_id', 2)->find($id);
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cliente no encontrado'
+                ], 404);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'seller_category' => 'required|in:bronce,oro'
+            ], [
+                'seller_category.required' => 'La categoría es requerida',
+                'seller_category.in' => 'La categoría debe ser "bronce" o "oro"'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $user->update([
+                'seller_category' => $request->seller_category
+            ]);
+
+            // Si se cambia a bronce, resetear crédito y límite a 0
+            if ($request->seller_category === 'bronce') {
+                $user->update([
+                    'credit_balance' => 0,
+                    'credit_limit' => 0
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Categoría actualizada exitosamente',
+                'user' => $user->load('role')
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar categoría: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update credit balance for a client (only for oro category)
+     */
+    public function updateCreditBalance(Request $request, $id)
+    {
+        try {
+            $user = User::where('role_id', 2)->find($id);
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cliente no encontrado'
+                ], 404);
+            }
+
+            // Solo permitir crédito para categoría oro
+            if ($user->seller_category !== 'oro') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Solo los clientes con categoría "oro" pueden tener crédito'
+                ], 400);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'credit_balance' => 'required|numeric|min:0'
+            ], [
+                'credit_balance.required' => 'El monto de crédito es requerido',
+                'credit_balance.numeric' => 'El crédito debe ser un número',
+                'credit_balance.min' => 'El crédito no puede ser negativo'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Actualizar el límite de crédito (crédito total asignado)
+            // El crédito disponible (credit_balance) se calcula restando lo usado del límite
+            $newCreditLimit = $request->credit_balance; // El parámetro sigue siendo credit_balance pero representa el límite total
+            
+            // Calcular cuánto crédito se ha usado (diferencia entre límite y disponible)
+            $creditUsed = ($user->credit_limit ?? 0) - ($user->credit_balance ?? 0);
+            
+            // El nuevo crédito disponible es el nuevo límite menos lo usado
+            $newCreditBalance = max(0, $newCreditLimit - $creditUsed);
+            
+            $user->update([
+                'credit_limit' => $newCreditLimit, // Límite total asignado
+                'credit_balance' => $newCreditBalance // Crédito disponible (límite - usado)
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Crédito actualizado exitosamente',
+                'user' => $user->load('role')
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar crédito: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update credit limit for a client (only for oro category)
+     */
+    public function updateCreditLimit(Request $request, $id)
+    {
+        try {
+            $user = User::where('role_id', 2)->find($id);
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cliente no encontrado'
+                ], 404);
+            }
+
+            // Solo permitir límite de crédito para categoría oro
+            if ($user->seller_category !== 'oro') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Solo los clientes con categoría "oro" pueden tener límite de crédito'
+                ], 400);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'credit_limit' => 'required|numeric|min:0'
+            ], [
+                'credit_limit.required' => 'El límite de crédito es requerido',
+                'credit_limit.numeric' => 'El límite debe ser un número',
+                'credit_limit.min' => 'El límite no puede ser negativo'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Actualizar tanto el límite como el crédito disponible al mismo valor
+            $newLimit = $request->credit_limit;
+            
+            $user->update([
+                'credit_limit' => $newLimit,
+                'credit_balance' => $newLimit // El crédito disponible siempre es igual al límite
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Límite de crédito actualizado exitosamente',
+                'user' => $user->load('role')
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar límite de crédito: ' . $e->getMessage()
             ], 500);
         }
     }

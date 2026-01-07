@@ -114,6 +114,9 @@ Route::middleware(['auth:api'])->group(function () {
     // Verificar y sincronizar estado de pago manualmente
     Route::post('/payment/sync-status/{orderId}', [PaymentController::class, 'syncPaymentStatus']);
     
+    // Reintentar pago del saldo pendiente
+    Route::post('/payment/retry-remainder/{orderId}', [PaymentController::class, 'retryRemainderPayment']);
+    
     // Order management routes
     Route::get('/orders', [PaymentController::class, 'getUserOrders']); // Obtener órdenes del usuario
     Route::get('/orders/pending-reviews', [PaymentController::class, 'getPendingReviews']); // Obtener órdenes pendientes de calificación
@@ -175,6 +178,9 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('/admin/clients', [ClientController::class, 'createClient']);
     Route::post('/admin/clients/{id}', [ClientController::class, 'updateClient']);
     Route::delete('/admin/clients/{id}', [ClientController::class, 'deleteClient']);
+    Route::patch('/admin/clients/{id}/seller-category', [ClientController::class, 'updateSellerCategory']);
+    Route::patch('/admin/clients/{id}/credit-balance', [ClientController::class, 'updateCreditBalance']);
+    Route::patch('/admin/clients/{id}/credit-limit', [ClientController::class, 'updateCreditLimit']);
     
     // Category routes - require authentication and admin role
     Route::middleware(['auth:api', 'admin'])->group(function () {

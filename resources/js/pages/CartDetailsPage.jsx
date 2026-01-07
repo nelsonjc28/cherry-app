@@ -45,6 +45,9 @@ const CartDetailsPage = () => {
   // State for delivery type (envio or retiro)
   const [deliveryType, setDeliveryType] = useState('envio'); // 'envio' or 'retiro'
   
+  // State for payment method (credit or mercadopago)
+  const [paymentMethod, setPaymentMethod] = useState('mercadopago'); // 'mercadopago' or 'credit'
+  
   // State for store address (from contact_info) - valores por defecto para asegurar que siempre haya datos
   // Estos valores deben coincidir exactamente con los de ContactPage.jsx
   const defaultStoreAddress = {
@@ -336,7 +339,7 @@ const CartDetailsPage = () => {
     }
   }, [deliveryType, storeAddress, selectedAddress]);
 
-  // Handle generate order with MercadoPago
+  // Handle generate order with MercadoPago or Credit
   const handleGenerateOrder = async () => {
     // Si es envío, validar que haya dirección seleccionada
     if (deliveryType === 'envio' && !selectedAddress) {
@@ -353,56 +356,127 @@ const CartDetailsPage = () => {
       return;
     }
 
-    try {
-      // Mostrar loading
-      if (window.showToast) {
-        window.showToast('Creando preferencia de pago...', 'info');
+    // Si es pago con crédito, validar que el usuario tenga categoría oro
+    if (paymentMethod === 'credit') {
+      if (!user || user.seller_category !== 'oro') {
+        if (window.showToast) {
+          window.showToast('Solo los usuarios con categoría Oro pueden pagar con crédito', 'error');
+        }
+        return;
       }
+    }
 
-      // Preparar datos para MercadoPago
+    try {
+      // Preparar datos para el pago
       const paymentData = {
         items: cartItems.map(item => {
           const mappedItem = {
-            product_id: item.id_articulo || item.product_id || item.id,
+            product_id: parseInt(item.id_articulo || item.product_id || item.id, 10),
             name: item.title || item.name,
-            quantity: item.quantity,
-            price: item.precio || item.price,
+            quantity: parseInt(item.quantity, 10),
+            price: parseFloat(item.precio || item.price),
             size: item.selectedSize || null,
             color: item.selectedColor || null,
             barcode: item.barcode || null
           };
 
-          // Debug: verificar que todos los campos requeridos estén presentes
-          if (!mappedItem.product_id) {
-          }
-
           return mappedItem;
         }),
         address_id: deliveryType === 'envio' ? selectedAddress.id : null,
         delivery_type: deliveryType, // 'envio' or 'retiro'
-        total_amount: totalPrice
-      };;
+        total_amount: totalPrice,
+        use_credit: paymentMethod === 'credit',
+        pay_remainder_with_mercadopago: paymentMethod === 'credit' // Si paga con crédito y hay pendiente, pagar resto con MP
+      };
 
-      const response = await api.post('/payment/create-preference', paymentData);
+      let response;
+      
+      if (paymentMethod === 'credit') {
+        // Mostrar loading
+        if (window.showToast) {
+          window.showToast('Procesando pago con crédito...', 'info');
+        }
+        
+        // Llamar al mismo endpoint pero con use_credit=true
+        response = await api.post('/payment/create-preference', paymentData);
+      } else {
+        // Mostrar loading
+        if (window.showToast) {
+          window.showToast('Creando preferencia de pago...', 'info');
+        }
+        
+        response = await api.post('/payment/create-preference', paymentData);
+      }
 
       if (response.data.success) {
         const { data } = response.data;
 
-        if (window.showToast) {
-          window.showToast('¡Redirigiendo a MercadoPago!', 'success');
+        // Si es pago con crédito
+        if (paymentMethod === 'credit') {
+          // Limpiar carrito
+          clearCart();
+          
+          if (data.amount_pending > 0) {
+            // Hay saldo pendiente - mostrar opción de pagar con MercadoPago
+            if (window.showToast) {
+              window.showToast(`Orden creada. Crédito usado: $${data.credit_used.toFixed(2)}. Saldo pendiente: $${data.amount_pending.toFixed(2)}`, 'info');
+            }
+            
+            // Si hay URL de pago pendiente, redirigir
+            if (data.payment_url || data.init_point || data.sandbox_init_point) {
+              setTimeout(() => {
+                window.location.href = data.init_point || data.sandbox_init_point || data.payment_url;
+              }, 2000);
+            } else {
+              // Redirigir a página de éxito o mis órdenes
+              setTimeout(() => {
+                navigate('/compra-exitosa', {
+                  state: {
+                    orderInfo: {
+                      orderId: data.order_id,
+                      creditUsed: data.credit_used,
+                      amountPending: data.amount_pending
+                    }
+                  }
+                });
+              }, 2000);
+            }
+          } else {
+            // Pago completo con crédito
+            if (window.showToast) {
+              window.showToast(`¡Orden pagada completamente con crédito! Crédito usado: $${data.credit_used.toFixed(2)}`, 'success');
+            }
+            
+            setTimeout(() => {
+              navigate('/compra-exitosa', {
+                state: {
+                  orderInfo: {
+                    orderId: data.order_id,
+                    creditUsed: data.credit_used,
+                    amountPending: 0
+                  }
+                }
+              });
+            }, 1500);
+          }
+        } else {
+          // Pago con MercadoPago (flujo normal)
+          if (window.showToast) {
+            window.showToast('¡Redirigiendo a MercadoPago!', 'success');
+          }
+
+          // Guardar información del pedido en localStorage para cuando regrese
+          localStorage.setItem('pending_order', JSON.stringify({
+            orderId: data.order_id,
+            externalReference: data.external_reference,
+            totalAmount: totalPrice
+          }));
+
+          // Redirigir a MercadoPago
+          setTimeout(() => {
+            window.location.href = data.init_point || data.sandbox_init_point || data.payment_url;
+          }, 1500);
         }
-
-        // Guardar información del pedido en localStorage para cuando regrese
-        localStorage.setItem('pending_order', JSON.stringify({
-          orderId: data.order_id,
-          externalReference: data.external_reference,
-          totalAmount: totalPrice
-        }));
-
-        // Redirigir a MercadoPago
-        setTimeout(() => {
-          window.location.href = data.init_point || data.sandbox_init_point || data.payment_url;
-        }, 1500);
 
       } else {
         throw new Error(response.data.message || 'Error al crear la preferencia de pago');
@@ -775,6 +849,9 @@ const CartDetailsPage = () => {
               onPaymentCardChange={setSelectedPaymentCard}
               onIntegratedPaymentSuccess={handleIntegratedPaymentSuccess}
               onIntegratedPaymentError={handleIntegratedPaymentError}
+              user={user}
+              paymentMethod={paymentMethod}
+              onPaymentMethodChange={setPaymentMethod}
             />
           </div>
         </div>
