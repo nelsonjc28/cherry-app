@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import CherryButton from '../../components/CherryButton/CherryButton';
+import AccountStatementModal from '../../components/AccountStatementModal/AccountStatementModal';
 import useUserStore from '../../store/userStore';
 import { getIconPath } from '../../utils/assetPaths';
 import './PersonalData.css';
@@ -17,6 +18,7 @@ const PersonalData = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
+  const [showAccountStatementModal, setShowAccountStatementModal] = useState(false);
 
   // Cargar datos del usuario cuando el componente se monta
   useEffect(() => {
@@ -310,6 +312,47 @@ const PersonalData = () => {
         </div>
       )}
 
+      {/* Información de categoría y crédito */}
+      {user && (
+        <div className="personal-data__info-section">
+          <div className="personal-data__info-row">
+            <div className="personal-data__info-item">
+              <span className="personal-data__info-label">Categoría:</span>
+              <span className={`personal-data__info-value personal-data__info-value--category personal-data__info-value--${user.seller_category || 'bronce'}`}>
+                {user.seller_category === 'oro' ? '🥇 Oro' : '🥉 Bronce'}
+              </span>
+            </div>
+            <div className="personal-data__info-item">
+              <span className="personal-data__info-label">Límite de crédito:</span>
+              <span className="personal-data__info-value">
+                ${user.credit_limit ? parseFloat(user.credit_limit).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+              </span>
+            </div>
+            <div className="personal-data__info-item">
+              <span className="personal-data__info-label">Crédito disponible:</span>
+              <span className="personal-data__info-value">
+                ${user.credit_balance ? parseFloat(user.credit_balance).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sección de Estados de Cuenta */}
+      <div className="personal-data__account-section">
+        <h2 className="personal-data__section-title">Estados de Cuenta</h2>
+        <p className="personal-data__section-description">
+          Consulta el historial de tus pagos y saldos pendientes
+        </p>
+        <CherryButton
+          variant="outline"
+          onClick={() => setShowAccountStatementModal(true)}
+          className="personal-data__account-button"
+        >
+          Ver Estados de Cuenta
+        </CherryButton>
+      </div>
+
       <div className="personal-data__actions">
         <CherryButton
           variant="red"
@@ -324,6 +367,15 @@ const PersonalData = () => {
           {isSubmitting ? 'Guardando...' : 'Guardar cambios'}
         </CherryButton>
       </div>
+
+      {/* Modal de Estados de Cuenta */}
+      {showAccountStatementModal && (
+        <AccountStatementModal
+          isOpen={showAccountStatementModal}
+          onClose={() => setShowAccountStatementModal(false)}
+          userId={null}
+        />
+      )}
     </div>
   );
 };

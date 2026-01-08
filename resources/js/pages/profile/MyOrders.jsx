@@ -242,11 +242,7 @@ const MyOrders = () => {
             <thead>
               <tr>
                 <th>No. de pedido</th>
-                <th>Fecha</th>
-                <th>Hora</th>
-                <th>Cant. de piezas</th>
                 <th>Total</th>
-                <th>Estatus</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -272,17 +268,7 @@ const MyOrders = () => {
                       className={`${highlightedOrderId === order.id ? 'highlighted' : ''} ${isExpanded ? 'expanded' : ''}`}
                     >
                       <td className="order-number-cell">#{order.orderNumber}</td>
-                      <td className="order-date-cell mobile-hide">{dateStr}</td>
-                      <td className="order-time-cell mobile-hide">{timeStr}</td>
-                      <td className="order-pieces-cell mobile-hide">{totalPieces}</td>
-                      <td className="order-total-cell">${formatCurrency(order.totalAmount)}</td>
-                      <td className="order-status-cell">
-                        <div className="status-cell-content">
-                          <span className={`status-badge status-badge--${getStatusColor(order.status)}`}>
-                            {order.statusDisplay || order.status}
-                          </span>
-                        </div>
-                      </td>
+                      <td className="order-total-cell">{formatCurrency(order.totalAmount)}</td>
                       <td className="order-actions-cell">
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end' }}>
                           <button
@@ -379,7 +365,7 @@ const MyOrders = () => {
                     </tr>
                     {isExpanded && (
                       <tr className="order-details-row mobile-only">
-                        <td colSpan="7" className="order-details-cell">
+                        <td colSpan="3" className="order-details-cell">
                           <div className="order-details-content">
                             <div className="order-detail-item">
                               <span className="order-detail-label">Fecha:</span>
@@ -392,6 +378,12 @@ const MyOrders = () => {
                             <div className="order-detail-item">
                               <span className="order-detail-label">Cant. de piezas:</span>
                               <span className="order-detail-value">{totalPieces}</span>
+                            </div>
+                            <div className="order-detail-item">
+                              <span className="order-detail-label">Estatus:</span>
+                              <span className={`status-badge status-badge--${getStatusColor(order.status)}`}>
+                                {order.statusDisplay || order.status}
+                              </span>
                             </div>
                           </div>
                         </td>

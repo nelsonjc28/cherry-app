@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import ProductCard from '../components/ProductCard/ProductCard';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import CherryButton from '../components/CherryButton/CherryButton';
-import CustomButton from '../components/CustomButton';
 import InfiniteScrollLoader from '../components/InfiniteScrollLoader/InfiniteScrollLoader';
 import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
@@ -441,17 +440,6 @@ const DestacadosPage = () => {
                   <option value="más vendidos">Más vendidos</option>
                 </select>
               </div>
-              <CustomButton
-                variant="filled"
-                size="medium"
-                iconLeft={<img src={getIconPath('Whatsapp.svg')} alt="Compartir más vendidos" style={{ width: 16, height: 16 }} />}
-                onClick={() => {
-                  const text = `¡Mira los productos más vendidos de Cherry Central! ${window.location.href}`;
-                  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-                }}
-              >
-                <span className="destacados-page__whatsapp-text">Compartir a clientes</span>
-              </CustomButton>
             </div>
           </div>
 

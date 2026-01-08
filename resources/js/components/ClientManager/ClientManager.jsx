@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import CherryButton from '../CherryButton/CherryButton';
 import AccountStatementModal from '../AccountStatementModal/AccountStatementModal';
+import { getIconPath } from '../../utils/assetPaths';
 import './ClientManager.css';
 
 const ClientManager = () => {
@@ -500,13 +501,15 @@ const ClientManager = () => {
                   </div>
                   <div className="client-manager__client-category" style={{
                     marginTop: '8px',
-                    padding: '4px 8px',
+                    padding: '3px 4px',
                     borderRadius: '4px',
                     display: 'inline-block',
                     fontSize: '12px',
                     fontWeight: '600',
                     backgroundColor: client.seller_category === 'oro' ? '#FFD700' : '#CD7F32',
-                    color: '#fff'
+                    color: '#fff',
+                    whiteSpace: 'nowrap',
+                    lineHeight: '1.2'
                   }}>
                     {client.seller_category === 'oro' ? '🥇 Oro' : '🥉 Bronce'}
                   </div>
@@ -530,55 +533,185 @@ const ClientManager = () => {
                   )}
                 </div>
                 <div className="client-manager__client-actions">
-                  <CherryButton 
+                  <button
+                    className="client-manager__action-btn client-manager__action-btn--outline"
                     onClick={() => handleViewAccountStatement(client.id)}
-                    variant="outline"
-                    size="small"
+                    data-tooltip="Estados de Cuenta"
+                    onMouseEnter={(e) => {
+                      const button = e.currentTarget;
+                      const tooltipText = button.getAttribute('data-tooltip');
+                      let tooltip = document.querySelector('.client-tooltip');
+                      if (!tooltip) {
+                        tooltip = document.createElement('div');
+                        tooltip.className = 'client-tooltip';
+                        document.body.appendChild(tooltip);
+                      }
+                      tooltip.textContent = tooltipText;
+                      tooltip.style.display = 'block';
+                      
+                      const rect = button.getBoundingClientRect();
+                      const tooltipRect = tooltip.getBoundingClientRect();
+                      tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
+                      tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
+                    }}
+                    onMouseLeave={() => {
+                      const tooltip = document.querySelector('.client-tooltip');
+                      if (tooltip) tooltip.style.display = 'none';
+                    }}
                   >
-                    Estados de Cuenta
-                  </CherryButton>
+                    <span className="client-manager__btn-icon">📊</span>
+                    <span className="client-manager__btn-text">Estados de Cuenta</span>
+                  </button>
                   {client.seller_category === 'bronce' ? (
-                    <CherryButton 
+                    <button
+                      className="client-manager__action-btn client-manager__action-btn--gold"
                       onClick={() => handleUpdateCategory(client.id, 'oro')}
-                      variant="outline"
-                      size="small"
-                      style={{ backgroundColor: '#FFD700', color: '#fff', borderColor: '#FFD700' }}
+                      data-tooltip="Cambiar a Oro"
+                      onMouseEnter={(e) => {
+                        const button = e.currentTarget;
+                        const tooltipText = button.getAttribute('data-tooltip');
+                        let tooltip = document.querySelector('.client-tooltip');
+                        if (!tooltip) {
+                          tooltip = document.createElement('div');
+                          tooltip.className = 'client-tooltip';
+                          document.body.appendChild(tooltip);
+                        }
+                        tooltip.textContent = tooltipText;
+                        tooltip.style.display = 'block';
+                        
+                        const rect = button.getBoundingClientRect();
+                        const tooltipRect = tooltip.getBoundingClientRect();
+                        tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
+                        tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
+                      }}
+                      onMouseLeave={() => {
+                        const tooltip = document.querySelector('.client-tooltip');
+                        if (tooltip) tooltip.style.display = 'none';
+                      }}
                     >
-                      Cambiar a Oro
-                    </CherryButton>
+                      <span className="client-manager__btn-icon">🥇</span>
+                      <span className="client-manager__btn-text">Cambiar a Oro</span>
+                    </button>
                   ) : (
-                    <CherryButton 
+                    <button
+                      className="client-manager__action-btn client-manager__action-btn--bronze"
                       onClick={() => handleUpdateCategory(client.id, 'bronce')}
-                      variant="outline"
-                      size="small"
-                      style={{ backgroundColor: '#CD7F32', color: '#fff', borderColor: '#CD7F32' }}
+                      data-tooltip="Cambiar a Bronce"
+                      onMouseEnter={(e) => {
+                        const button = e.currentTarget;
+                        const tooltipText = button.getAttribute('data-tooltip');
+                        let tooltip = document.querySelector('.client-tooltip');
+                        if (!tooltip) {
+                          tooltip = document.createElement('div');
+                          tooltip.className = 'client-tooltip';
+                          document.body.appendChild(tooltip);
+                        }
+                        tooltip.textContent = tooltipText;
+                        tooltip.style.display = 'block';
+                        
+                        const rect = button.getBoundingClientRect();
+                        const tooltipRect = tooltip.getBoundingClientRect();
+                        tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
+                        tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
+                      }}
+                      onMouseLeave={() => {
+                        const tooltip = document.querySelector('.client-tooltip');
+                        if (tooltip) tooltip.style.display = 'none';
+                      }}
                     >
-                      Cambiar a Bronce
-                    </CherryButton>
+                      <span className="client-manager__btn-icon">🥉</span>
+                      <span className="client-manager__btn-text">Cambiar a Bronce</span>
+                    </button>
                   )}
                   {client.seller_category === 'oro' && (
-                    <CherryButton 
+                    <button
+                      className="client-manager__action-btn client-manager__action-btn--red"
                       onClick={() => handleUpdateCredit(client.id)}
-                      variant="red"
-                      size="small"
+                      data-tooltip="Asignar Crédito"
+                      onMouseEnter={(e) => {
+                        const button = e.currentTarget;
+                        const tooltipText = button.getAttribute('data-tooltip');
+                        let tooltip = document.querySelector('.client-tooltip');
+                        if (!tooltip) {
+                          tooltip = document.createElement('div');
+                          tooltip.className = 'client-tooltip';
+                          document.body.appendChild(tooltip);
+                        }
+                        tooltip.textContent = tooltipText;
+                        tooltip.style.display = 'block';
+                        
+                        const rect = button.getBoundingClientRect();
+                        const tooltipRect = tooltip.getBoundingClientRect();
+                        tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
+                        tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
+                      }}
+                      onMouseLeave={() => {
+                        const tooltip = document.querySelector('.client-tooltip');
+                        if (tooltip) tooltip.style.display = 'none';
+                      }}
                     >
-                      Asignar Crédito
-                    </CherryButton>
+                      <span className="client-manager__btn-icon">💰</span>
+                      <span className="client-manager__btn-text">Asignar Crédito</span>
+                    </button>
                   )}
-                  <CherryButton 
+                  <button
+                    className="client-manager__action-btn client-manager__action-btn--outline"
                     onClick={() => handleEdit(client)}
-                    variant="outline"
-                    size="small"
+                    data-tooltip="Editar"
+                    onMouseEnter={(e) => {
+                      const button = e.currentTarget;
+                      const tooltipText = button.getAttribute('data-tooltip');
+                      let tooltip = document.querySelector('.client-tooltip');
+                      if (!tooltip) {
+                        tooltip = document.createElement('div');
+                        tooltip.className = 'client-tooltip';
+                        document.body.appendChild(tooltip);
+                      }
+                      tooltip.textContent = tooltipText;
+                      tooltip.style.display = 'block';
+                      
+                      const rect = button.getBoundingClientRect();
+                      const tooltipRect = tooltip.getBoundingClientRect();
+                      tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
+                      tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
+                    }}
+                    onMouseLeave={() => {
+                      const tooltip = document.querySelector('.client-tooltip');
+                      if (tooltip) tooltip.style.display = 'none';
+                    }}
                   >
-                    Editar
-                  </CherryButton>
-                  <CherryButton 
+                    <span className="client-manager__btn-icon">✏️</span>
+                    <span className="client-manager__btn-text">Editar</span>
+                  </button>
+                  <button
+                    className="client-manager__action-btn client-manager__action-btn--red"
                     onClick={() => handleDelete(client.id)}
-                    variant="red"
-                    size="small"
+                    data-tooltip="Eliminar"
+                    onMouseEnter={(e) => {
+                      const button = e.currentTarget;
+                      const tooltipText = button.getAttribute('data-tooltip');
+                      let tooltip = document.querySelector('.client-tooltip');
+                      if (!tooltip) {
+                        tooltip = document.createElement('div');
+                        tooltip.className = 'client-tooltip';
+                        document.body.appendChild(tooltip);
+                      }
+                      tooltip.textContent = tooltipText;
+                      tooltip.style.display = 'block';
+                      
+                      const rect = button.getBoundingClientRect();
+                      const tooltipRect = tooltip.getBoundingClientRect();
+                      tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
+                      tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
+                    }}
+                    onMouseLeave={() => {
+                      const tooltip = document.querySelector('.client-tooltip');
+                      if (tooltip) tooltip.style.display = 'none';
+                    }}
                   >
-                    Eliminar
-                  </CherryButton>
+                    <span className="client-manager__btn-icon">🗑️</span>
+                    <span className="client-manager__btn-text">Eliminar</span>
+                  </button>
                 </div>
               </div>
             ))}

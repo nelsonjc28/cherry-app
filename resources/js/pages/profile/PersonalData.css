@@ -238,6 +238,89 @@
   flex-direction: column;
 }
 
+/* Información de categoría y crédito */
+.personal-data__info-section {
+  margin-bottom: 32px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.personal-data__info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.personal-data__info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.personal-data__info-item:last-child {
+  border-bottom: none;
+}
+
+.personal-data__info-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+}
+
+.personal-data__info-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.personal-data__info-value--category {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.personal-data__info-value--category.personal-data__info-value--oro {
+  background-color: #FFD700;
+  color: #fff;
+}
+
+.personal-data__info-value--category.personal-data__info-value--bronce {
+  background-color: #CD7F32;
+  color: #fff;
+}
+
+/* Sección de Estados de Cuenta */
+.personal-data__account-section {
+  margin-bottom: 32px;
+  padding: 24px;
+  background-color: #fff;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.personal-data__section-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px 0;
+}
+
+.personal-data__section-description {
+  font-size: 14px;
+  color: #666;
+  margin: 0 0 16px 0;
+}
+
+.personal-data__account-button {
+  width: 100%;
+}
+
 /* Desktop Styles */
 @media (min-width: 768px) {
   .personal-data__row {
@@ -270,5 +353,23 @@
 
   .personal-data__row-flex {
     flex-direction: row;
+  }
+
+  .personal-data__info-row {
+    flex-direction: row;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .personal-data__info-item {
+    flex: 1;
+    min-width: 200px;
+    border-bottom: none;
+    padding: 0;
+  }
+
+  .personal-data__account-button {
+    width: auto;
+    min-width: 200px;
   }
 }

@@ -316,12 +316,7 @@ const AdminOrders = () => {
             <thead>
               <tr>
                 <th>No. de pedido</th>
-                <th>Fecha</th>
-                <th>Hora</th>
-                <th>Cliente</th>
-                <th>Cant. de piezas</th>
                 <th>Total</th>
-                <th>Estatus</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -347,20 +342,7 @@ const AdminOrders = () => {
                       className={`${highlightedOrderId === order.id ? 'highlighted' : ''} ${isExpanded ? 'expanded' : ''}`}
                     >
                       <td className="order-number-cell">#{order.orderNumber}</td>
-                      <td className="order-date-cell mobile-hide">{dateStr}</td>
-                      <td className="order-time-cell mobile-hide">{timeStr}</td>
-                      <td className="order-customer-cell mobile-hide">
-                        {order.customerName}
-                      </td>
-                      <td className="order-pieces-cell mobile-hide">{totalPieces}</td>
                       <td className="order-total-cell">{formatCurrency(order.totalAmount)}</td>
-                      <td className="order-status-cell">
-                        <div className="status-cell-content">
-                          <span className={`status-badge status-badge--${getStatusColor(order.status)}`}>
-                            {order.statusDisplay || order.status}
-                          </span>
-                        </div>
-                      </td>
                       <td className="order-actions-cell">
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end' }}>
                           <button
@@ -392,19 +374,40 @@ const AdminOrders = () => {
                           >
                             {isExpanded ? '▼' : '▶'}
                           </button>
-                          <CherryButton
-                            variant="outline"
-                            size="small"
+                          <button
+                            className="order-action-btn order-action-btn--detail"
                             onClick={() => handleViewOrderDetails(order)}
+                            data-tooltip="Ver Detalle"
+                            onMouseEnter={(e) => {
+                              const button = e.currentTarget;
+                              const tooltipText = button.getAttribute('data-tooltip');
+                              let tooltip = document.querySelector('.order-tooltip');
+                              if (!tooltip) {
+                                tooltip = document.createElement('div');
+                                tooltip.className = 'order-tooltip';
+                                document.body.appendChild(tooltip);
+                              }
+                              tooltip.textContent = tooltipText;
+                              tooltip.style.display = 'block';
+                              
+                              const rect = button.getBoundingClientRect();
+                              const tooltipRect = tooltip.getBoundingClientRect();
+                              tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
+                              tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
+                            }}
+                            onMouseLeave={() => {
+                              const tooltip = document.querySelector('.order-tooltip');
+                              if (tooltip) tooltip.style.display = 'none';
+                            }}
                           >
-                            Ver Detalle
-                          </CherryButton>
+                            👁️
+                          </button>
                         </div>
                       </td>
                     </tr>
                     {isExpanded && (
                       <tr className="order-details-row mobile-only">
-                        <td colSpan="8" className="order-details-cell">
+                        <td colSpan="3" className="order-details-cell">
                           <div className="order-details-content">
                             <div className="order-detail-item">
                               <span className="order-detail-label">Fecha:</span>
@@ -421,6 +424,12 @@ const AdminOrders = () => {
                             <div className="order-detail-item">
                               <span className="order-detail-label">Cant. de piezas:</span>
                               <span className="order-detail-value">{totalPieces}</span>
+                            </div>
+                            <div className="order-detail-item">
+                              <span className="order-detail-label">Estatus:</span>
+                              <span className={`status-badge status-badge--${getStatusColor(order.status)}`}>
+                                {order.statusDisplay || order.status}
+                              </span>
                             </div>
                           </div>
                         </td>

@@ -179,6 +179,11 @@
   text-overflow: ellipsis;
 }
 
+.my-orders__table td.order-details-cell {
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
 .order-number-cell {
   font-weight: 700;
   color: var(--color-primary);
@@ -298,7 +303,7 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
-}
+} 
 
 .status-badge--green {
   background: #d4edda;
@@ -451,9 +456,18 @@
   border-top: none;
 }
 
+.order-details-row td {
+  display: block !important;
+  width: 100% !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
 .order-details-cell {
   padding: 0 !important;
   border-top: none;
+  width: 100%;
+  display: block !important;
 }
 
 .order-details-content {
@@ -526,93 +540,100 @@
 
   .my-orders__table-container {
     overflow-x: visible;
+    overflow-y: visible;
     -webkit-overflow-scrolling: touch;
   }
 
   .my-orders__table {
-    font-size: 12px;
-    display: block;
+    font-size: 11px;
+    display: table;
+    width: 100%;
+    table-layout: auto;
   }
 
   .my-orders__table thead {
-    display: none;
+    display: table-header-group;
+  }
+
+  .my-orders__table thead th {
+    font-size: 9px;
+    padding: 8px 4px;
+    text-align: left;
+    font-weight: 600;
+    color: #666;
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    white-space: nowrap;
+  }
+
+  .my-orders__table thead th:nth-child(1) {
+    width: 33.33%;
+  }
+
+  .my-orders__table thead th:nth-child(2) {
+    width: 33.33%;
+  }
+
+  .my-orders__table thead th:nth-child(3) {
+    width: 33.33%;
   }
 
   .my-orders__table tbody {
-    display: block;
+    display: table-row-group;
   }
 
   .my-orders__table tbody tr {
-    display: block;
-    margin-bottom: 12px;
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
+    display: table-row;
+    border-bottom: 1px solid #e9ecef;
     background: white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .my-orders__table tbody tr:hover {
+    background-color: #f8f9fa;
   }
 
   .my-orders__table tbody tr.expanded {
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-  }
-
-  .my-orders__table tbody td {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 12px;
-    border-bottom: 1px solid #f0f0f0;
-    text-align: right;
-  }
-
-  .my-orders__table tbody td:last-child {
     border-bottom: none;
   }
 
-  .my-orders__table tbody td::before {
-    content: attr(data-label);
-    font-weight: 600;
-    color: #666;
+  .my-orders__table tbody td {
+    display: table-cell;
+    padding: 10px 6px;
+    vertical-align: middle;
     text-align: left;
-    margin-right: auto;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    border-bottom: 1px solid #f0f0f0;
+    overflow: visible;
   }
 
-  .order-number-cell::before {
-    content: 'No. de pedido:';
+  .my-orders__table tbody td.order-details-cell {
+    overflow: visible !important;
   }
 
-  .order-total-cell::before {
-    content: 'Total:';
+  .my-orders__table tbody td::before {
+    display: none;
   }
 
-  .order-status-cell::before {
-    content: 'Estatus:';
+  /* Ajustar anchos de columnas en móvil */
+  .order-number-cell {
+    width: 33.33%;
+    font-size: 10px;
   }
 
-  .order-status-cell {
-    display: flex;
-    justify-content: space-between;
-  }
-
-  .order-status-cell::before {
-    margin-right: auto;
-  }
-
-  .order-actions-cell::before {
-    content: 'Acciones:';
+  .order-total-cell {
+    width: 33.33%;
+    font-size: 10px;
+  font-weight: 600;
   }
 
   .order-actions-cell {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
+    width: 33.33%;
+  text-align: center;
+}
 
-  .order-actions-cell::before {
-    margin-right: auto;
+  .order-details-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
   }
 
   .pagination-controls {

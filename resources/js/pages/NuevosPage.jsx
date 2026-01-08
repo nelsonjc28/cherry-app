@@ -5,7 +5,6 @@ import CatalogProductCard from '../components/CatalogProductCard/CatalogProductC
 import InfiniteScrollLoader from '../components/InfiniteScrollLoader/InfiniteScrollLoader';
 import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
-import CustomButton from '../components/CustomButton';
 import './NuevosPage.css';
 import { applyUserOffersToProducts } from '../api/userOffers';
 import { publicCatalogService } from '../services/api';
@@ -532,17 +531,6 @@ const NuevosPage = () => {
                   <option value="nombre-z-a">Nombre: Z-A</option>
                 </select>
               </div>
-              <CustomButton
-                variant="filled"
-                size="medium"
-                iconLeft={<img src={getIconPath('Whatsapp.svg')} alt="Compartir productos nuevos" style={{ width: 16, height: 16 }} />}
-                onClick={() => {
-                  const text = `¡Mira los productos más nuevos de Cherry Central! ${window.location.href}`;
-                  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-                }}
-              >
-                <span className="nuevos-page__whatsapp-text">Compartir a clientes</span>
-              </CustomButton>
             </div>
           </div>
 

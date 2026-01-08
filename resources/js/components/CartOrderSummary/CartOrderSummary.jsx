@@ -939,7 +939,7 @@ const CartOrderSummary = ({
             📦 Productos Adelantados
           </div>
           <div style={{ fontSize: '12px', color: '#856404' }}>
-            Los productos marcados como "Próximamente" se crearán como pedido adelantado y quedarán pendientes de pago. El administrador los marcará como pagados cuando el cliente haya cancelado el total con el administrador.
+            Los productos marcados como "Próximamente" se crearán como pedido adelantado y quedarán pendientes de pago. El administrador los marcará como pagados cuando el cliente haya pagado el total con el administrador.
           </div>
         </div>
       )}

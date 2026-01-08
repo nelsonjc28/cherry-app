@@ -74,6 +74,12 @@
   margin-bottom: 2rem;
 }
 
+/* Dirección de envío ocupa todo el ancho en desktop también */
+.order-detail-section.order-detail-section--full-width {
+  width: 100%;
+  max-width: 100%;
+}
+
 .order-detail-section h3 {
   font-size: 1.2rem;
   font-weight: 600;
@@ -431,12 +437,11 @@
     grid-template-columns: none;
   }
 
-  /* Dividir la información de dirección en dos columnas */
+  /* Información de dirección en una sola columna */
   .address-info {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 0.5rem;
-    column-gap: 0.75rem;
   }
 
   /* Secciones que ocupan ambas columnas (productos y resumen) */
