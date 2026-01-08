@@ -42,10 +42,23 @@ const AdminOrders = () => {
   const [highlightedOrderId, setHighlightedOrderId] = useState(null);
   const [selectedOrderForDetail, setSelectedOrderForDetail] = useState(null);
   const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
+  const [expandedRows, setExpandedRows] = useState(new Set());
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   const itemsPerPage = 10;
+
+  const toggleRowExpansion = (orderId) => {
+    setExpandedRows(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId);
+      } else {
+        newSet.add(orderId);
+      }
+      return newSet;
+    });
+  };
 
   // Cargar órdenes y notificaciones
   useEffect(() => {
@@ -326,36 +339,94 @@ const AdminOrders = () => {
                 });
                 const totalPieces = order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
                 
+                const isExpanded = expandedRows.has(order.id);
+                
                 return (
-                  <tr 
-              key={order.id} 
-                    className={highlightedOrderId === order.id ? 'highlighted' : ''}
-            >
-                    <td className="order-number-cell">#{order.orderNumber}</td>
-                    <td className="order-date-cell">{dateStr}</td>
-                    <td className="order-time-cell">{timeStr}</td>
-                    <td className="order-customer-cell">
-                      {order.customerName}
-                    </td>
-                    <td className="order-pieces-cell">{totalPieces}</td>
-                    <td className="order-total-cell">{formatCurrency(order.totalAmount)}</td>
-                    <td className="order-status-cell">
-                      <div className="status-cell-content">
-                  <span className={`status-badge status-badge--${getStatusColor(order.status)}`}>
-                    {order.statusDisplay || order.status}
-                  </span>
-                </div>
-                    </td>
-                    <td className="order-actions-cell">
-                      <CherryButton
-                        variant="outline"
-                        size="small"
-                        onClick={() => handleViewOrderDetails(order)}
-                      >
-                        Ver Detalle
-                      </CherryButton>
-                    </td>
-                  </tr>
+                  <React.Fragment key={order.id}>
+                    <tr 
+                      className={`${highlightedOrderId === order.id ? 'highlighted' : ''} ${isExpanded ? 'expanded' : ''}`}
+                    >
+                      <td className="order-number-cell">#{order.orderNumber}</td>
+                      <td className="order-date-cell mobile-hide">{dateStr}</td>
+                      <td className="order-time-cell mobile-hide">{timeStr}</td>
+                      <td className="order-customer-cell mobile-hide">
+                        {order.customerName}
+                      </td>
+                      <td className="order-pieces-cell mobile-hide">{totalPieces}</td>
+                      <td className="order-total-cell">{formatCurrency(order.totalAmount)}</td>
+                      <td className="order-status-cell">
+                        <div className="status-cell-content">
+                          <span className={`status-badge status-badge--${getStatusColor(order.status)}`}>
+                            {order.statusDisplay || order.status}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="order-actions-cell">
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end' }}>
+                          <button
+                            className="order-expand-btn mobile-only"
+                            onClick={() => toggleRowExpansion(order.id)}
+                            aria-label={isExpanded ? 'Ocultar detalles' : 'Ver más detalles'}
+                            data-tooltip={isExpanded ? 'Ocultar detalles' : 'Ver más detalles'}
+                            onMouseEnter={(e) => {
+                              const button = e.currentTarget;
+                              const tooltipText = button.getAttribute('data-tooltip');
+                              let tooltip = document.querySelector('.order-tooltip');
+                              if (!tooltip) {
+                                tooltip = document.createElement('div');
+                                tooltip.className = 'order-tooltip';
+                                document.body.appendChild(tooltip);
+                              }
+                              tooltip.textContent = tooltipText;
+                              tooltip.style.display = 'block';
+                              
+                              const rect = button.getBoundingClientRect();
+                              const tooltipRect = tooltip.getBoundingClientRect();
+                              tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
+                              tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
+                            }}
+                            onMouseLeave={() => {
+                              const tooltip = document.querySelector('.order-tooltip');
+                              if (tooltip) tooltip.style.display = 'none';
+                            }}
+                          >
+                            {isExpanded ? '▼' : '▶'}
+                          </button>
+                          <CherryButton
+                            variant="outline"
+                            size="small"
+                            onClick={() => handleViewOrderDetails(order)}
+                          >
+                            Ver Detalle
+                          </CherryButton>
+                        </div>
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr className="order-details-row mobile-only">
+                        <td colSpan="8" className="order-details-cell">
+                          <div className="order-details-content">
+                            <div className="order-detail-item">
+                              <span className="order-detail-label">Fecha:</span>
+                              <span className="order-detail-value">{dateStr}</span>
+                            </div>
+                            <div className="order-detail-item">
+                              <span className="order-detail-label">Hora:</span>
+                              <span className="order-detail-value">{timeStr}</span>
+                            </div>
+                            <div className="order-detail-item">
+                              <span className="order-detail-label">Cliente:</span>
+                              <span className="order-detail-value">{order.customerName}</span>
+                            </div>
+                            <div className="order-detail-item">
+                              <span className="order-detail-label">Cant. de piezas:</span>
+                              <span className="order-detail-value">{totalPieces}</span>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 );
               })}
             </tbody>

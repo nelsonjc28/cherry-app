@@ -92,6 +92,15 @@
   gap: 0.75rem;
 }
 
+@media (max-width: 768px) {
+  .order-detail-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    column-gap: 0.75rem;
+  }
+}
+
 .info-row {
   display: flex;
   justify-content: space-between;
@@ -179,6 +188,14 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .order-detail-products {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
 }
 
 .product-item {
@@ -354,9 +371,92 @@
     padding: 1rem;
   }
 
+  /* Dividir el contenido en dos columnas en móvil */
+  .order-detail-modal__content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .order-detail-section {
+    margin-bottom: 1rem;
+    width: 100%;
+  }
+
+  /* Crear un wrapper para las secciones que van en dos columnas */
+  .order-detail-modal__two-column-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    column-gap: 0.75rem;
+    align-items: start;
+  }
+
+  /* Información General - Ocupa todo el ancho */
+  .order-detail-modal__two-column-wrapper > .order-detail-section:first-of-type {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  /* Dirección de Envío - Ocupa todo el ancho, debajo de Información General */
+  .order-detail-modal__two-column-wrapper > .order-detail-section.order-detail-section--full-width,
+  .order-detail-modal__two-column-wrapper > .order-detail-section:nth-of-type(3) {
+    grid-column: 1 / -1 !important;
+    grid-row: 2;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Información del Cliente - Ocupa todo el ancho, debajo de Dirección de Envío */
+  .order-detail-modal__two-column-wrapper > .order-detail-section:nth-of-type(2) {
+    grid-column: 1 / -1 !important;
+    grid-row: 3;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Información de Pago - Ocupa todo el ancho, debajo de Información del Cliente */
+  .order-detail-modal__two-column-wrapper > .order-detail-section:nth-of-type(4) {
+    grid-column: 1 / -1 !important;
+    grid-row: 4;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Información del Cliente e Información de Pago: contenido interno en una sola columna */
+  .order-detail-modal__two-column-wrapper > .order-detail-section:nth-of-type(2) .order-detail-info,
+  .order-detail-modal__two-column-wrapper > .order-detail-section:nth-of-type(4) .order-detail-info {
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: none;
+  }
+
+  /* Dividir la información de dirección en dos columnas */
+  .address-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    column-gap: 0.75rem;
+  }
+
+  /* Secciones que ocupan ambas columnas (productos y resumen) */
+  .order-detail-section.products-section,
+  .order-detail-section.summary-section {
+    grid-column: 1 / -1;
+  }
+  
+  /* Productos en una sola columna (cada producto ocupa el ancho completo) */
+  .order-detail-products {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
   .product-item {
     flex-direction: column;
     gap: 0.75rem;
+    padding: 0.75rem;
+    width: 100%;
   }
 
   .product-item__image {
@@ -364,19 +464,130 @@
     align-self: center;
   }
 
-  .info-row {
+  /* Dividir la información del producto en dos columnas */
+  .product-item__details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    column-gap: 0.75rem;
+  }
+
+  /* El título ocupa ambas columnas */
+  .product-item__title {
+    grid-column: 1 / -1;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+
+  .product-item__details .info-row {
+    margin-bottom: 0;
+    padding: 0.25rem 0;
+    display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 0.25rem;
   }
 
+  /* El desglose de tallas y códigos de barras ocupa ambas columnas */
+  .product-item__breakdown {
+    grid-column: 1 / -1;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+  }
+
+  /* La información de descuento se comporta como un elemento normal del grid (una columna) */
+  .product-item__discount-info {
+    grid-column: auto;
+  }
+
+  /* Elementos que deben ocupar ambas columnas */
+  .info-row--full-width {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  /* Asegurar que los elementos dentro de order-detail-info también respeten el grid */
+  .order-detail-info .info-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .order-detail-info .info-row--full-width {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .info-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    font-size: 0.85rem;
+  }
+
+  .info-row .label {
+    font-size: 0.8rem;
+  }
+
   .info-row .value {
     text-align: left;
+    font-size: 0.85rem;
+  }
+
+  /* Destacar información de descuento en móvil */
+  .product-item__discount-info {
+    background: #fff3cd;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    margin: 0.5rem 0;
+    border-left: 4px solid #d32f2f;
+  }
+
+  .product-item__discount-info .label {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.85rem;
+  }
+
+  .product-item__discount-info .value {
+    align-items: flex-start !important;
+    gap: 6px;
+  }
+
+  .product-item__discount-info .value span:first-child {
+    font-size: 0.85em;
+  }
+
+  .product-item__discount-info .value span:last-child {
+    font-size: 0.95em;
+  }
+
+  .order-detail-section h3 {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
   }
 
   .order-detail-modal__footer {
     flex-direction: column;
   }
+}
+
+/* Estilos de descuento para desktop también */
+.product-item__discount-info {
+  background: #fff3cd;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  margin: 0.5rem 0;
+  border-left: 4px solid #d32f2f;
+}
+
+.product-item__discount-info .label {
+  font-weight: 600;
+  color: #333;
 }
 
 

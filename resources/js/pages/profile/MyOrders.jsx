@@ -16,10 +16,23 @@ const MyOrders = () => {
   const [selectedOrderForDetail, setSelectedOrderForDetail] = useState(null);
   const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
   const [highlightedOrderId, setHighlightedOrderId] = useState(null);
+  const [expandedRows, setExpandedRows] = useState(new Set());
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   const itemsPerPage = 10;
+
+  const toggleRowExpansion = (orderId) => {
+    setExpandedRows(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId);
+      } else {
+        newSet.add(orderId);
+      }
+      return newSet;
+    });
+  };
 
   // Cargar órdenes del usuario
   useEffect(() => {
@@ -251,32 +264,32 @@ const MyOrders = () => {
                 });
                 const totalPieces = order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
                 
+                const isExpanded = expandedRows.has(order.id);
+                
                 return (
-                  <tr 
-                    key={order.id} 
-                    className={highlightedOrderId === order.id ? 'highlighted' : ''}
-                  >
-                    <td className="order-number-cell">#{order.orderNumber}</td>
-                    <td className="order-date-cell">{dateStr}</td>
-                    <td className="order-time-cell">{timeStr}</td>
-                    <td className="order-pieces-cell">{totalPieces}</td>
-                    <td className="order-total-cell">{formatCurrency(order.totalAmount)}</td>
-                    <td className="order-status-cell">
-                      <div className="status-cell-content">
-                        <span className={`status-badge status-badge--${getStatusColor(order.status)}`}>
-                          {order.statusDisplay || order.status}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="order-actions-cell">
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        {order.paid_with_credit && 
-                         parseFloat(order.amount_pending || 0) > 0 && 
-                         (order.statusRaw === 'pendiente_pago' || order.status === 'pendiente_pago' || order.statusDisplay === 'Pendiente de Pago') && (
+                  <React.Fragment key={order.id}>
+                    <tr 
+                      className={`${highlightedOrderId === order.id ? 'highlighted' : ''} ${isExpanded ? 'expanded' : ''}`}
+                    >
+                      <td className="order-number-cell">#{order.orderNumber}</td>
+                      <td className="order-date-cell mobile-hide">{dateStr}</td>
+                      <td className="order-time-cell mobile-hide">{timeStr}</td>
+                      <td className="order-pieces-cell mobile-hide">{totalPieces}</td>
+                      <td className="order-total-cell">${formatCurrency(order.totalAmount)}</td>
+                      <td className="order-status-cell">
+                        <div className="status-cell-content">
+                          <span className={`status-badge status-badge--${getStatusColor(order.status)}`}>
+                            {order.statusDisplay || order.status}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="order-actions-cell">
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end' }}>
                           <button
-                            className="order-action-btn order-action-btn--pay"
-                            onClick={() => handlePayRemainder(order.id)}
-                            data-tooltip={`Pagar ${formatCurrency(order.amount_pending)}`}
+                            className="order-expand-btn mobile-only"
+                            onClick={() => toggleRowExpansion(order.id)}
+                            aria-label={isExpanded ? 'Ocultar detalles' : 'Ver más detalles'}
+                            data-tooltip={isExpanded ? 'Ocultar detalles' : 'Ver más detalles'}
                             onMouseEnter={(e) => {
                               const button = e.currentTarget;
                               const tooltipText = button.getAttribute('data-tooltip');
@@ -299,40 +312,92 @@ const MyOrders = () => {
                               if (tooltip) tooltip.style.display = 'none';
                             }}
                           >
-                            💳
+                            {isExpanded ? '▼' : '▶'}
                           </button>
-                        )}
-                        <button
-                          className="order-action-btn order-action-btn--detail"
-                          onClick={() => handleViewOrderDetails(order)}
-                          data-tooltip="Ver Detalle"
-                          onMouseEnter={(e) => {
-                            const button = e.currentTarget;
-                            const tooltipText = button.getAttribute('data-tooltip');
-                            let tooltip = document.querySelector('.order-tooltip');
-                            if (!tooltip) {
-                              tooltip = document.createElement('div');
-                              tooltip.className = 'order-tooltip';
-                              document.body.appendChild(tooltip);
-                            }
-                            tooltip.textContent = tooltipText;
-                            tooltip.style.display = 'block';
-                            
-                            const rect = button.getBoundingClientRect();
-                            const tooltipRect = tooltip.getBoundingClientRect();
-                            tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
-                            tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
-                          }}
-                          onMouseLeave={() => {
-                            const tooltip = document.querySelector('.order-tooltip');
-                            if (tooltip) tooltip.style.display = 'none';
-                          }}
-                        >
-                          👁️
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                          {order.paid_with_credit && 
+                           parseFloat(order.amount_pending || 0) > 0 && 
+                           (order.statusRaw === 'pendiente_pago' || order.status === 'pendiente_pago' || order.statusDisplay === 'Pendiente de Pago') && (
+                            <button
+                              className="order-action-btn order-action-btn--pay"
+                              onClick={() => handlePayRemainder(order.id)}
+                              data-tooltip={`Pagar ${formatCurrency(order.amount_pending)}`}
+                              onMouseEnter={(e) => {
+                                const button = e.currentTarget;
+                                const tooltipText = button.getAttribute('data-tooltip');
+                                let tooltip = document.querySelector('.order-tooltip');
+                                if (!tooltip) {
+                                  tooltip = document.createElement('div');
+                                  tooltip.className = 'order-tooltip';
+                                  document.body.appendChild(tooltip);
+                                }
+                                tooltip.textContent = tooltipText;
+                                tooltip.style.display = 'block';
+                                
+                                const rect = button.getBoundingClientRect();
+                                const tooltipRect = tooltip.getBoundingClientRect();
+                                tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
+                                tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
+                              }}
+                              onMouseLeave={() => {
+                                const tooltip = document.querySelector('.order-tooltip');
+                                if (tooltip) tooltip.style.display = 'none';
+                              }}
+                            >
+                              💳
+                            </button>
+                          )}
+                          <button
+                            className="order-action-btn order-action-btn--detail"
+                            onClick={() => handleViewOrderDetails(order)}
+                            data-tooltip="Ver Detalle"
+                            onMouseEnter={(e) => {
+                              const button = e.currentTarget;
+                              const tooltipText = button.getAttribute('data-tooltip');
+                              let tooltip = document.querySelector('.order-tooltip');
+                              if (!tooltip) {
+                                tooltip = document.createElement('div');
+                                tooltip.className = 'order-tooltip';
+                                document.body.appendChild(tooltip);
+                              }
+                              tooltip.textContent = tooltipText;
+                              tooltip.style.display = 'block';
+                              
+                              const rect = button.getBoundingClientRect();
+                              const tooltipRect = tooltip.getBoundingClientRect();
+                              tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
+                              tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
+                            }}
+                            onMouseLeave={() => {
+                              const tooltip = document.querySelector('.order-tooltip');
+                              if (tooltip) tooltip.style.display = 'none';
+                            }}
+                          >
+                            👁️
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr className="order-details-row mobile-only">
+                        <td colSpan="7" className="order-details-cell">
+                          <div className="order-details-content">
+                            <div className="order-detail-item">
+                              <span className="order-detail-label">Fecha:</span>
+                              <span className="order-detail-value">{dateStr}</span>
+                            </div>
+                            <div className="order-detail-item">
+                              <span className="order-detail-label">Hora:</span>
+                              <span className="order-detail-value">{timeStr}</span>
+                            </div>
+                            <div className="order-detail-item">
+                              <span className="order-detail-label">Cant. de piezas:</span>
+                              <span className="order-detail-value">{totalPieces}</span>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 );
               })}
             </tbody>

@@ -40,12 +40,81 @@ class AdminOrderController extends Controller
                     'customerMiddleName' => $order->user ? $order->user->middle_name : null,
                     'created_at' => $order->created_at->toISOString(),
                     'items' => $order->items->map(function ($item) {
+                        // Obtener información del producto para calcular descuento
+                        // El product_id en order_items es el ID de Shopify, necesitamos buscar en detalles por idShopify
+                        $product = null;
+                        $originalPrice = null;
+                        $detalle = null;
+                        
+                        // Estrategia 1: Buscar el detalle por idShopify (más común)
+                        // Intentar con diferentes formatos del ID
+                        $shopifyId = (string) $item->product_id;
+                        $detalle = \App\Models\Detalle::where('idShopify', $shopifyId)->first();
+                        
+                        // Si no se encuentra, intentar sin conversión de tipo
+                        if (!$detalle) {
+                            $detalle = \App\Models\Detalle::whereRaw('CAST(idShopify AS CHAR) = ?', [$shopifyId])->first();
+                        }
+                        
+                        // Si aún no se encuentra, buscar cualquier detalle que contenga este ID
+                        if (!$detalle) {
+                            $detalle = \App\Models\Detalle::where('idShopify', 'LIKE', "%{$shopifyId}%")->first();
+                        }
+                        
+                        if ($detalle && $detalle->producto_id) {
+                            // Buscar el producto usando el producto_id del detalle
+                            $product = \App\Models\Producto::find($detalle->producto_id);
+                        }
+                        
+                        // Estrategia 2: Si no se encontró por idShopify, intentar buscar directamente
+                        // El ID del producto puede tener un cero al inicio (ej: 07422442106)
+                        if (!$product) {
+                            // Intentar con el ID tal cual
+                            $product = \App\Models\Producto::find((string) $item->product_id);
+                            
+                            // Si no se encuentra, intentar con un cero al inicio
+                            if (!$product) {
+                                $productIdWithZero = '0' . (string) $item->product_id;
+                                $product = \App\Models\Producto::find($productIdWithZero);
+                            }
+                            
+                            // Si aún no se encuentra, intentar con padding a 6 dígitos (para IDs cortos)
+                            if (!$product) {
+                                $productIdNormalized = str_pad((string) $item->product_id, 6, '0', STR_PAD_LEFT);
+                                $product = \App\Models\Producto::find($productIdNormalized);
+                            }
+                            
+                            // Si aún no se encuentra, buscar con LIKE (para IDs que contengan el product_id)
+                            if (!$product) {
+                                $product = \App\Models\Producto::where('id', 'LIKE', '%' . $item->product_id . '%')->first();
+                            }
+                        }
+                        
+                        // Obtener precio original del producto
+                        $originalPrice = $product ? (float) ($product->precio1 ?? 0) : null;
+                        
+                        // Calcular descuento: comparar precio original con precio pagado
+                        // Siempre mostrar precio original si existe, incluso si no hay descuento
+                        $hasDiscount = false;
+                        $discountPercentage = 0;
+                        
+                        if ($originalPrice && $originalPrice > 0) {
+                            // Hay descuento si el precio pagado es menor al precio original
+                            if ($originalPrice > $item->price) {
+                                $hasDiscount = true;
+                                $discountPercentage = round((($originalPrice - $item->price) / $originalPrice) * 100);
+                            }
+                        }
+
                         return [
                             'id' => $item->id,
                             'product_id' => $item->product_id,
                             'title' => $item->name ?? 'Producto',
                             'quantity' => (int) $item->quantity,
                             'price' => (float) $item->price,
+                            'original_price' => $originalPrice, // Siempre incluir precio original si existe
+                            'has_discount' => $hasDiscount,
+                            'discount_percentage' => $hasDiscount ? $discountPercentage : 0,
                             'subtotal' => (float) $item->subtotal,
                             'image' => $this->getProductImageUrl($item->product_id),
                             'size' => $item->size,

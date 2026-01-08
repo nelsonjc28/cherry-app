@@ -48,6 +48,21 @@ const CartDetailsPage = () => {
   // State for payment method (credit or mercadopago)
   const [paymentMethod, setPaymentMethod] = useState('mercadopago'); // 'mercadopago' or 'credit'
   
+  // Separar productos adelantados de productos con stock
+  const advanceOrderItems = cartItems.filter(item => item.isComingSoon === true);
+  const regularItems = cartItems.filter(item => !item.isComingSoon || item.isComingSoon !== true);
+  const hasAdvanceOrders = advanceOrderItems.length > 0;
+  const hasRegularItems = regularItems.length > 0;
+  
+  // Calcular totales separados
+  const advanceOrderTotal = advanceOrderItems.reduce((sum, item) => {
+    return sum + (parseFloat(item.precio || item.price || 0) * parseInt(item.quantity || 0));
+  }, 0);
+  
+  const regularItemsTotal = regularItems.reduce((sum, item) => {
+    return sum + (parseFloat(item.precio || item.price || 0) * parseInt(item.quantity || 0));
+  }, 0);
+  
   // State for store address (from contact_info) - valores por defecto para asegurar que siempre haya datos
   // Estos valores deben coincidir exactamente con los de ContactPage.jsx
   const defaultStoreAddress = {
@@ -273,6 +288,17 @@ const CartDetailsPage = () => {
 
     if (!itemToUpdate) return;
 
+    // Si el producto es "Próximamente" y el usuario es "oro", saltar validación de stock
+    const isComingSoon = itemToUpdate.isComingSoon === true;
+    const { user } = useUserStore.getState();
+    const isOroUser = user && user.seller_category === 'oro';
+    
+    if (isComingSoon && isOroUser) {
+      // Permitir actualizar cantidad sin validar stock para productos "Próximamente" de usuarios "oro"
+      updateQuantity(itemToUpdate.id_articulo, newQty, itemToUpdate.selectedColor, itemToUpdate.selectedSize);
+      return;
+    }
+
     // Validar stock disponible
     try {
       const stockValidation = await validateStock(
@@ -341,17 +367,78 @@ const CartDetailsPage = () => {
 
   // Handle generate order with MercadoPago or Credit
   const handleGenerateOrder = async () => {
-    // Si es envío, validar que haya dirección seleccionada
-    if (deliveryType === 'envio' && !selectedAddress) {
+    if (cartItems.length === 0) {
       if (window.showToast) {
-        window.showToast('Por favor selecciona una dirección de entrega', 'warning');
+        window.showToast('No hay productos en el carrito', 'warning');
       }
       return;
     }
 
-    if (cartItems.length === 0) {
+    // Si hay productos adelantados, crear pedido adelantado primero
+    if (hasAdvanceOrders) {
+      try {
+        if (window.showToast) {
+          window.showToast('Creando pedido adelantado...', 'info');
+        }
+
+        const advanceOrderData = {
+          items: advanceOrderItems.map(item => ({
+            product_id: parseInt(item.id_articulo || item.product_id || item.id, 10),
+            name: item.title || item.name,
+            quantity: parseInt(item.quantity, 10),
+            price: parseFloat(item.precio || item.price),
+            size: item.selectedSize || null,
+            color: item.selectedColor || null,
+            barcode: item.barcode || null
+          })),
+          total_amount: advanceOrderTotal,
+          is_advance_order: true
+        };
+
+        const advanceResponse = await api.post('/payment/create-advance-order', advanceOrderData);
+
+        if (advanceResponse.data.success) {
+          if (window.showToast) {
+            window.showToast(`Pedido adelantado creado exitosamente. Total: $${advanceOrderTotal.toFixed(2)}`, 'success');
+          }
+
+          // Remover productos adelantados del carrito
+          advanceOrderItems.forEach(item => {
+            removeItem(item.id_articulo || item.product_id || item.id, item.selectedColor, item.selectedSize);
+          });
+
+          // Si solo había productos adelantados, redirigir a mis órdenes
+          if (!hasRegularItems) {
+            setTimeout(() => {
+              navigate('/mis-pedidos');
+            }, 1500);
+            return;
+          }
+
+          // Si hay productos regulares, continuar con el flujo normal de pago
+          // (el código continuará después de este bloque)
+        } else {
+          throw new Error(advanceResponse.data.message || 'Error al crear el pedido adelantado');
+        }
+      } catch (error) {
+        const errorMessage = error.response?.data?.message || error.message || 'Error al crear el pedido adelantado';
+        if (window.showToast) {
+          window.showToast(errorMessage, 'error');
+        }
+        return;
+      }
+    }
+
+    // Si solo había productos adelantados, ya terminamos
+    if (!hasRegularItems) {
+      return;
+    }
+
+    // Validaciones para productos regulares (con stock)
+    // Si es envío, validar que haya dirección seleccionada
+    if (deliveryType === 'envio' && !selectedAddress) {
       if (window.showToast) {
-        window.showToast('No hay productos en el carrito', 'warning');
+        window.showToast('Por favor selecciona una dirección de entrega', 'warning');
       }
       return;
     }
@@ -367,9 +454,9 @@ const CartDetailsPage = () => {
     }
 
     try {
-      // Preparar datos para el pago
+      // Preparar datos para el pago (solo productos regulares)
       const paymentData = {
-        items: cartItems.map(item => {
+        items: regularItems.map(item => {
           const mappedItem = {
             product_id: parseInt(item.id_articulo || item.product_id || item.id, 10),
             name: item.title || item.name,
@@ -384,7 +471,7 @@ const CartDetailsPage = () => {
         }),
         address_id: deliveryType === 'envio' ? selectedAddress.id : null,
         delivery_type: deliveryType, // 'envio' or 'retiro'
-        total_amount: totalPrice,
+        total_amount: regularItemsTotal,
         use_credit: paymentMethod === 'credit',
         pay_remainder_with_mercadopago: paymentMethod === 'credit' // Si paga con crédito y hay pendiente, pagar resto con MP
       };
@@ -852,6 +939,8 @@ const CartDetailsPage = () => {
               user={user}
               paymentMethod={paymentMethod}
               onPaymentMethodChange={setPaymentMethod}
+              hasAdvanceOrders={hasAdvanceOrders}
+              hasRegularItems={hasRegularItems}
             />
           </div>
         </div>

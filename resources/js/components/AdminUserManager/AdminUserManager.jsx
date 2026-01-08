@@ -296,7 +296,6 @@ const AdminUserManager = () => {
                     id="phone"
                     name="phone"
                     value={formData.phone}
-                    onChange={handleInputChange}
                     required
                     pattern="[0-9]{10}"
                     maxLength="10"
@@ -305,8 +304,8 @@ const AdminUserManager = () => {
                       if (e.target.value.length > 10) {
                         e.target.value = e.target.value.slice(0, 10);
                       }
+                      handleInputChange(e);
                     }}
-                    onChange={handleInputChange}
                   />
                 </div>
               </div>

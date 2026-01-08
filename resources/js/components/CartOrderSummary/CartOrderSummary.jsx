@@ -30,7 +30,9 @@ const CartOrderSummary = ({
   deliveryType = 'envio', // 'envio' or 'retiro'
   user = null, // Usuario para verificar categoría oro
   paymentMethod = 'mercadopago', // Método de pago seleccionado
-  onPaymentMethodChange = null // Callback para cambiar método de pago
+  onPaymentMethodChange = null, // Callback para cambiar método de pago
+  hasAdvanceOrders = false, // Si hay productos adelantados
+  hasRegularItems = true // Si hay productos regulares (con stock)
 }) => {
   // Estado para método de pago seleccionado
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(paymentMethod || 'mercadopago');
@@ -758,8 +760,15 @@ const CartOrderSummary = ({
       const size = item.selectedSize;
       const color = item.selectedColor;
       const requestedQuantity = item.quantity;
-
-
+      
+      // Si el producto es "Próximamente" y el usuario es "oro", saltar validación de stock
+      const isComingSoon = item.isComingSoon === true;
+      const isOroUser = user && user.seller_category === 'oro';
+      
+      if (isComingSoon && isOroUser) {
+        // Permitir productos "Próximamente" para usuarios "oro" sin validar stock
+        continue;
+      }
 
       try {
         const stockValidation = await validateStock(
@@ -858,22 +867,23 @@ const CartOrderSummary = ({
       <div className="cart-order-summary__divider" />
         </>
       )}
-      {/* Método de pago - Solo Mercado Pago */}
-      <div className="cart-order-summary__section payment-method-section">
-        <div className="cart-order-summary__section-title section-title-flex">
-          <img 
-            src="/images/mercadopago-logo.png" 
-            alt="Mercado Pago" 
-            style={{ width: '40px', height: '40px', marginRight: '8px', display: 'block', objectFit: 'contain' }}
-            onError={(e) => {
-              // Fallback al icono SVG si la imagen no carga
-              e.target.src = getIconPath('Handshake.svg');
-            }}
-          />
-          <span>Método de Pago</span>
+      {/* Método de pago - Solo si hay productos regulares */}
+      {hasRegularItems && (
+        <div className="cart-order-summary__section payment-method-section">
+          <div className="cart-order-summary__section-title section-title-flex">
+            <img 
+              src="/images/mercadopago-logo.png" 
+              alt="Mercado Pago" 
+              style={{ width: '40px', height: '40px', marginRight: '8px', display: 'block', objectFit: 'contain' }}
+              onError={(e) => {
+                // Fallback al icono SVG si la imagen no carga
+                e.target.src = getIconPath('Handshake.svg');
+              }}
+            />
+            <span>Método de Pago</span>
           </div>
           
-          {/* Opción de crédito para usuarios Oro */}
+          {/* Opción de crédito para usuarios Oro - Solo si hay productos regulares */}
           {canUseCredit && (
             <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
               <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', marginBottom: '8px' }}>
@@ -919,7 +929,20 @@ const CartOrderSummary = ({
             />
             <span style={{ fontWeight: '600', fontSize: '14px' }}>Pagar con MercadoPago</span>
           </label>
-            </div>
+        </div>
+      )}
+      
+      {/* Mensaje informativo si hay productos adelantados */}
+      {hasAdvanceOrders && (
+        <div className="cart-order-summary__section" style={{ backgroundColor: '#fff3cd', padding: '16px', borderRadius: '8px', marginTop: '16px' }}>
+          <div style={{ fontSize: '14px', color: '#856404', fontWeight: '600', marginBottom: '8px' }}>
+            📦 Productos Adelantados
+          </div>
+          <div style={{ fontSize: '12px', color: '#856404' }}>
+            Los productos marcados como "Próximamente" se crearán como pedido adelantado y quedarán pendientes de pago. El administrador los marcará como pagados cuando el cliente haya cancelado el total con el administrador.
+          </div>
+        </div>
+      )}
 
       {/* Modal para agregar nueva tarjeta - ELIMINADO */}
       {false && (
@@ -1025,20 +1048,36 @@ const CartOrderSummary = ({
       )}
 
       <div className="cart-order-summary__actions">
-        <CustomButton
-          variant="outlined"
-          size="small"
-          onClick={handleProcessPayment}
-          disabled={isProcessingPayment}
-          iconLeft={<img className="cart-order-summary__generate-icon" src={getIconPath('Handshake.svg')} alt="Handshake" />}
-          className="cart-order-summary__summary-btn"
-        >
-          {isProcessingPayment 
-            ? 'Procesando pago...' 
-            : selectedPaymentMethod === 'credit' 
-              ? `Pagar con Crédito ($${Math.min(availableCredit, parseFloat(total)).toFixed(2)})`
-              : 'Pagar con Mercado Pago'}
-        </CustomButton>
+        {hasAdvanceOrders && !hasRegularItems ? (
+          // Solo productos adelantados - Botón "Generar pedido"
+          <CustomButton
+            variant="filled"
+            size="small"
+            onClick={onGenerateOrder}
+            disabled={isProcessingPayment}
+            iconLeft={<img className="cart-order-summary__generate-icon" src={getIconPath('Handshake.svg')} alt="Handshake" />}
+            className="cart-order-summary__summary-btn"
+            style={{ backgroundColor: '#d32f2f', color: 'white' }}
+          >
+            {isProcessingPayment ? 'Generando pedido...' : 'Generar Pedido Adelantado'}
+          </CustomButton>
+        ) : (
+          // Productos regulares o mixtos - Botón de pago normal
+          <CustomButton
+            variant="outlined"
+            size="small"
+            onClick={handleProcessPayment}
+            disabled={isProcessingPayment}
+            iconLeft={<img className="cart-order-summary__generate-icon" src={getIconPath('Handshake.svg')} alt="Handshake" />}
+            className="cart-order-summary__summary-btn"
+          >
+            {isProcessingPayment 
+              ? 'Procesando pago...' 
+              : selectedPaymentMethod === 'credit' 
+                ? `Pagar con Crédito ($${Math.min(availableCredit, parseFloat(total)).toFixed(2)})`
+                : 'Pagar con Mercado Pago'}
+          </CustomButton>
+        )}
         <CustomButton
           variant="outlined"
           size="small"

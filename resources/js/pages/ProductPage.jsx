@@ -589,9 +589,14 @@ const ProductPage = () => {
   // Efecto para resetear la cantidad cuando cambie la talla o color
   useEffect(() => {
     if (selectedColor && selectedSize) {
+      // Verificar si el producto está "próximamente" y el usuario es "oro"
+      const inventoryStatus = getInventoryStatus();
+      const isComingSoon = inventoryStatus.status === 'coming-soon';
+      const isOroUser = user && user.seller_category === 'oro';
+      
       const stockDisponible = getStockBySizeAndColor(selectedSize, selectedColor);
-      // Si la cantidad actual excede el stock disponible, ajustarla
-      if (quantity > stockDisponible) {
+      // Si la cantidad actual excede el stock disponible, ajustarla (excepto para usuarios "oro" con productos "Próximamente")
+      if (quantity > stockDisponible && !(isComingSoon && isOroUser)) {
         setQuantity(Math.max(1, stockDisponible));
       }
     }
@@ -600,9 +605,14 @@ const ProductPage = () => {
   // Efecto para ajustar la cantidad cuando se seleccione una talla diferente
   useEffect(() => {
     if (selectedColor && selectedSize) {
+      // Verificar si el producto está "próximamente" y el usuario es "oro"
+      const inventoryStatus = getInventoryStatus();
+      const isComingSoon = inventoryStatus.status === 'coming-soon';
+      const isOroUser = user && user.seller_category === 'oro';
+      
       const stockDisponible = getStockBySizeAndColor(selectedSize, selectedColor);
-      // Ajustar la cantidad al stock disponible de la nueva talla
-      if (quantity > stockDisponible) {
+      // Ajustar la cantidad al stock disponible de la nueva talla (excepto para usuarios "oro" con productos "Próximamente")
+      if (quantity > stockDisponible && !(isComingSoon && isOroUser)) {
         setQuantity(Math.max(1, stockDisponible));
       }
     }
@@ -611,9 +621,14 @@ const ProductPage = () => {
   // Efecto para resetear la talla seleccionada cuando cambie el color
   useEffect(() => {
     if (selectedColor && selectedSize) {
+      // Verificar si el producto está "próximamente" y el usuario es "oro"
+      const inventoryStatus = getInventoryStatus();
+      const isComingSoon = inventoryStatus.status === 'coming-soon';
+      const isOroUser = user && user.seller_category === 'oro';
+      
       const stockDisponible = getStockBySizeAndColor(selectedSize, selectedColor);
-      // Si la talla seleccionada no tiene stock para el nuevo color, resetearla
-      if (stockDisponible <= 0) {
+      // Si la talla seleccionada no tiene stock para el nuevo color, resetearla (excepto para usuarios "oro" con productos "Próximamente")
+      if (stockDisponible <= 0 && !(isComingSoon && isOroUser)) {
         setSelectedSize('');
         setQuantity(1);
         setQuantitiesBySize({});
@@ -717,6 +732,7 @@ const ProductPage = () => {
           quantity: cantidad,
           colors: [selectedColor],
           barcode: getBarcodeBySizeAndColor(talla, selectedColor) || product.ean || product.sku || product.codigo_barras || product.id_articulo, // Código de barras específico por talla/color
+          isComingSoon: isComingSoon, // Marcar si es producto "Próximamente"
           // Información de ofertas especiales
           userOffer: hasUserOffer ? {
             discount_category: userOffer.discount_category, // IMPORTANTE: incluir discount_category
@@ -811,9 +827,17 @@ const ProductPage = () => {
 
   // Handle quantity change for specific size
   const handleQuantityChangeForSize = (talla, newQuantity) => {
+    // Verificar si el producto está "próximamente" y el usuario es "oro"
+    const inventoryStatus = getInventoryStatus();
+    const isComingSoon = inventoryStatus.status === 'coming-soon';
+    const isOroUser = user && user.seller_category === 'oro';
+    
     const stockMaximo = getStockForSize(talla);
+    
+    // Para productos "Próximamente" de usuarios "oro", permitir cualquier cantidad positiva
+    const maxAllowed = (isComingSoon && isOroUser) ? 9999 : stockMaximo;
 
-    if (newQuantity >= 0 && newQuantity <= stockMaximo) {
+    if (newQuantity >= 0 && newQuantity <= maxAllowed) {
       // Actualizar la cantidad para la talla específica
       setQuantitiesBySize(prev => ({
         ...prev,
@@ -835,11 +859,17 @@ const ProductPage = () => {
 
   // Función para seleccionar talla e inicializar cantidad
   const handleSizeSelection = (talla) => {
+    // Verificar si el producto está "próximamente" y el usuario es "oro"
+    const inventoryStatus = getInventoryStatus();
+    const isComingSoon = inventoryStatus.status === 'coming-soon';
+    const isOroUser = user && user.seller_category === 'oro';
+    
     // Verificar si la talla tiene stock
     const stockDisponible = selectedColor ? getStockBySizeAndColor(talla, selectedColor) : getStockForSize(talla);
 
-    // No permitir selección si no hay stock
-    if (stockDisponible <= 0) {
+    // No permitir selección si no hay stock (excepto para usuarios "oro" con productos "Próximamente")
+    // No mostrar mensaje si es usuario "oro" con producto "Próximamente"
+    if (stockDisponible <= 0 && !(isComingSoon && isOroUser)) {
       if (window.showToast) {
         window.showToast('Esta talla no tiene stock disponible', 'info');
       }
@@ -852,7 +882,8 @@ const ProductPage = () => {
     // Si la talla no tiene cantidad o tiene 0, inicializar con 1
     const cantidadActual = quantitiesBySize[talla] || 0;
     if (cantidadActual <= 0) {
-      if (stockDisponible > 0) {
+      // Para productos "Próximamente" de usuarios "oro", permitir seleccionar incluso sin stock
+      if (stockDisponible > 0 || (isComingSoon && isOroUser)) {
         setQuantitiesBySize(prev => ({
           ...prev,
           [talla]: 1
@@ -1203,19 +1234,31 @@ const ProductPage = () => {
   const getInventoryStatus = () => {
     const totalInventory = getTotalInventory();
 
-    // Si el producto es nuevo (nunca ha tenido inventario registrado)
-    // Consideramos nuevo si fecha_alta es reciente (menos de 30 días) y no tiene inventario
+    // Determinar si el producto es nuevo
+    // Consideramos nuevo si:
+    // 1. opc_nuevo === 'S' (marcado como nuevo en la BD), O
+    // 2. fecha_alta es reciente (menos de 45 días) - igual que en las listas
     const isNewProduct = () => {
+      if (!product) return false;
+      
+      // Primero verificar si está marcado como nuevo en la BD
+      if (product.opc_nuevo === 'S' || product.opcNuevo === 'S' || product.opc_nuevo === true || product.opcNuevo === true) {
+        return true;
+      }
+
+      // Si no está marcado como nuevo, verificar por fecha (45 días, igual que en las listas)
       if (!fecha_alta) return false;
 
       const fechaAlta = new Date(fecha_alta);
       const now = new Date();
       const diffDays = Math.floor((now - fechaAlta) / (1000 * 60 * 60 * 24));
 
-      return diffDays <= 30 && totalInventory === 0;
+      return diffDays <= 45;
     };
 
-    if (isNewProduct()) {
+    // Si el producto es nuevo y no tiene inventario, mostrar "Próximamente"
+    // Esto coincide con la lógica de las tarjetas: isNew && stock <= 0
+    if (isNewProduct() && totalInventory === 0) {
       return {
         status: 'coming-soon',
         text: 'Próximamente',
@@ -1618,56 +1661,71 @@ const ProductPage = () => {
                   <div className="product-page__option-label">Talla</div>
 
                   <div className="product-page__size-options">
-                    {tallasAMostrar.map((talla, index) => (
-                      <div key={talla} className={`product-page__size-item ${selectedSize === talla ? 'product-page__size-item--selected' : ''}`}>
-                        <button
-                          className={`product-page__size-button ${selectedColor && getStockBySizeAndColor(talla, selectedColor) <= 0 ? 'product-page__size-button--out-of-stock' : ''}`}
-                          onClick={() => handleSizeSelection(talla)}
-                          disabled={selectedColor && getStockBySizeAndColor(talla, selectedColor) <= 0}
-                          title={selectedColor && getStockBySizeAndColor(talla, selectedColor) <= 0 ?
-                            'Sin stock disponible para este color' :
-                            'Seleccionar talla'
-                          }
-                        >
-                          <span className="product-page__size-number">{talla}</span>
-                          <span className="product-page__size-availability">
-                            {selectedColor ?
-                              `${getStockBySizeAndColor(talla, selectedColor)} disponibles` :
-                              'Disponibles'
+                    {tallasAMostrar.map((talla, index) => {
+                      // Verificar si el producto está "próximamente" y el usuario es "oro"
+                      const inventoryStatus = getInventoryStatus();
+                      const isComingSoon = inventoryStatus.status === 'coming-soon';
+                      const isOroUser = user && user.seller_category === 'oro';
+                      const stockDisponible = selectedColor ? getStockBySizeAndColor(talla, selectedColor) : getStockForSize(talla);
+                      const isDisabled = selectedColor && stockDisponible <= 0 && !(isComingSoon && isOroUser);
+                      const maxStock = getStockForSize(talla);
+                      const maxAllowed = (isComingSoon && isOroUser) ? 9999 : maxStock;
+                      const canIncrease = (quantitiesBySize[talla] || 0) < maxAllowed;
+                      
+                      return (
+                        <div key={talla} className={`product-page__size-item ${selectedSize === talla ? 'product-page__size-item--selected' : ''}`}>
+                          <button
+                            className={`product-page__size-button ${isDisabled ? 'product-page__size-button--out-of-stock' : ''}`}
+                            onClick={() => handleSizeSelection(talla)}
+                            disabled={isDisabled}
+                            title={isDisabled ?
+                              'Sin stock disponible para este color' :
+                              (isComingSoon && isOroUser ? 'Seleccionar talla (Encargo - Próximamente)' : 'Seleccionar talla')
                             }
-                          </span>
-                        </button>
+                          >
+                            <span className="product-page__size-number">{talla}</span>
+                            <span className="product-page__size-availability">
+                              {isComingSoon && isOroUser ? 
+                                'Disponible para encargo' :
+                                (selectedColor ?
+                                  `${stockDisponible} disponibles` :
+                                  'Disponibles'
+                                )
+                              }
+                            </span>
+                          </button>
 
-                        <div className="product-page__size-quantity">
-                          <button
-                            className={`product-page__quantity-btn ${(quantitiesBySize[talla] || 0) <= 0 ? 'product-page__quantity-btn--disabled' : ''}`}
-                            onClick={() => handleQuantityChangeForSize(talla, (quantitiesBySize[talla] || 0) - 1)}
-                            disabled={(quantitiesBySize[talla] || 0) <= 0}
-                          >
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                              <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                          </button>
-                          <span className="product-page__quantity-display">
-                            {quantitiesBySize[talla] || 0}
-                          </span>
-                          <button
-                            className={`product-page__quantity-btn ${(quantitiesBySize[talla] || 0) >= getStockForSize(talla) ? 'product-page__quantity-btn--disabled' : ''}`}
-                            onClick={() => handleQuantityChangeForSize(talla, (quantitiesBySize[talla] || 0) + 1)}
-                            disabled={(quantitiesBySize[talla] || 0) >= getStockForSize(talla)}
-                            title={(quantitiesBySize[talla] || 0) >= getStockForSize(talla) ?
-                              `Máximo ${getStockForSize(talla)} unidades disponibles` :
-                              'Aumentar cantidad'
-                            }
-                          >
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                              <line x1="12" y1="5" x2="12" y2="19"></line>
-                              <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                          </button>
+                          <div className="product-page__size-quantity">
+                            <button
+                              className={`product-page__quantity-btn ${(quantitiesBySize[talla] || 0) <= 0 ? 'product-page__quantity-btn--disabled' : ''}`}
+                              onClick={() => handleQuantityChangeForSize(talla, (quantitiesBySize[talla] || 0) - 1)}
+                              disabled={(quantitiesBySize[talla] || 0) <= 0}
+                            >
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                              </svg>
+                            </button>
+                            <span className="product-page__quantity-display">
+                              {quantitiesBySize[talla] || 0}
+                            </span>
+                            <button
+                              className={`product-page__quantity-btn ${!canIncrease ? 'product-page__quantity-btn--disabled' : ''}`}
+                              onClick={() => handleQuantityChangeForSize(talla, (quantitiesBySize[talla] || 0) + 1)}
+                              disabled={!canIncrease}
+                              title={!canIncrease ?
+                                (isComingSoon && isOroUser ? '' : `Máximo ${maxStock} unidades disponibles`) :
+                                'Aumentar cantidad'
+                              }
+                            >
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                              </svg>
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

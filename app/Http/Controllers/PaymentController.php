@@ -1164,12 +1164,97 @@ class PaymentController extends Controller
                             ->where('product_id', $item->product_id)
                             ->exists();
 
+                        // Obtener información del producto para calcular descuento
+                        // El product_id en order_items es el ID de Shopify, necesitamos buscar en detalles por idShopify
+                        $product = null;
+                        $originalPrice = null;
+                        $detalle = null;
+                        
+                        // Estrategia 1: Buscar el detalle por idShopify (más común)
+                        // Intentar con diferentes formatos del ID
+                        $shopifyId = (string) $item->product_id;
+                        $detalle = \App\Models\Detalle::where('idShopify', $shopifyId)->first();
+                        
+                        // Si no se encuentra, intentar sin conversión de tipo
+                        if (!$detalle) {
+                            $detalle = \App\Models\Detalle::whereRaw('CAST(idShopify AS CHAR) = ?', [$shopifyId])->first();
+                        }
+                        
+                        // Si aún no se encuentra, buscar cualquier detalle que contenga este ID
+                        if (!$detalle) {
+                            $detalle = \App\Models\Detalle::where('idShopify', 'LIKE', "%{$shopifyId}%")->first();
+                        }
+                        
+                        if ($detalle && $detalle->producto_id) {
+                            // Buscar el producto usando el producto_id del detalle
+                            $product = \App\Models\Producto::find($detalle->producto_id);
+                        }
+                        
+                        // Estrategia 2: Si no se encontró por idShopify, intentar buscar directamente
+                        // El ID del producto puede tener un cero al inicio (ej: 07422442106)
+                        if (!$product) {
+                            // Intentar con el ID tal cual
+                            $product = \App\Models\Producto::find((string) $item->product_id);
+                            
+                            // Si no se encuentra, intentar con un cero al inicio
+                            if (!$product) {
+                                $productIdWithZero = '0' . (string) $item->product_id;
+                                $product = \App\Models\Producto::find($productIdWithZero);
+                            }
+                            
+                            // Si aún no se encuentra, intentar con padding a 6 dígitos (para IDs cortos)
+                            if (!$product) {
+                                $productIdNormalized = str_pad((string) $item->product_id, 6, '0', STR_PAD_LEFT);
+                                $product = \App\Models\Producto::find($productIdNormalized);
+                            }
+                            
+                            // Si aún no se encuentra, buscar con LIKE (para IDs que contengan el product_id)
+                            if (!$product) {
+                                $product = \App\Models\Producto::where('id', 'LIKE', '%' . $item->product_id . '%')->first();
+                            }
+                        }
+                        
+                        // Obtener precio original del producto
+                        $originalPrice = $product ? (float) ($product->precio1 ?? 0) : null;
+                        
+                        // Calcular descuento: comparar precio original con precio pagado
+                        // Siempre mostrar precio original si existe, incluso si no hay descuento
+                        $hasDiscount = false;
+                        $discountPercentage = 0;
+                        
+                        if ($originalPrice && $originalPrice > 0) {
+                            // Hay descuento si el precio pagado es menor al precio original
+                            if ($originalPrice > $item->price) {
+                                $hasDiscount = true;
+                                $discountPercentage = round((($originalPrice - $item->price) / $originalPrice) * 100);
+                            }
+                        }
+                        
+                        // Log para debugging
+                        \Log::info('Calculando descuento para item', [
+                            'product_id' => $item->product_id,
+                            'shopify_id_string' => $shopifyId,
+                            'item_price' => $item->price,
+                            'original_price' => $originalPrice,
+                            'has_discount' => $hasDiscount,
+                            'discount_percentage' => $discountPercentage,
+                            'product_found' => $product ? true : false,
+                            'product_id_found' => $product ? $product->id : null,
+                            'detalle_found' => $detalle ? true : false,
+                            'detalle_id' => $detalle ? $detalle->id : null,
+                            'detalle_producto_id' => $detalle ? $detalle->producto_id : null,
+                            'detalle_idshopify' => $detalle ? $detalle->idShopify : null
+                        ]);
+
                         return [
                             'id' => $item->id,
                             'product_id' => $item->product_id,
                             'title' => $item->name ?? 'Producto',
                             'quantity' => (int) $item->quantity,
                             'price' => (float) $item->price,
+                            'original_price' => $originalPrice, // Siempre incluir precio original si existe
+                            'has_discount' => $hasDiscount,
+                            'discount_percentage' => $hasDiscount ? $discountPercentage : 0,
                             'subtotal' => (float) $item->subtotal,
                             'image' => $this->getProductImageUrlSimple($item->product_id),
                             'size' => $item->size,
@@ -2250,6 +2335,110 @@ class PaymentController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al procesar pago con crédito: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Crear pedido adelantado (sin pago)
+     */
+    public function createAdvanceOrder(Request $request)
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuario no autenticado'
+            ], 401);
+        }
+
+        // Validar datos
+        $validator = Validator::make($request->all(), [
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required|integer',
+            'items.*.name' => 'required|string',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.price' => 'required|numeric|min:0',
+            'items.*.size' => 'nullable|string',
+            'items.*.color' => 'nullable|string',
+            'items.*.barcode' => 'nullable|string',
+            'total_amount' => 'required|numeric|min:0'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Datos de validación incorrectos',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Crear el pedido adelantado
+            $order = Order::create([
+                'user_id' => $user->id,
+                'address_id' => null, // Los pedidos adelantados no tienen dirección hasta que se paguen
+                'total_amount' => $request->total_amount,
+                'status' => 'pendiente_pago', // Pendiente hasta que el admin lo marque como pagado
+                'payment_method' => 'pedido_adelantado',
+                'is_advance_order' => true,
+                'external_reference' => uniqid('advance_' . $user->id . '_')
+            ]);
+
+            // Crear los items del pedido
+            foreach ($request->items as $item) {
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'product_id' => (int) $item['product_id'],
+                    'name' => $item['name'],
+                    'size' => $item['size'] ?? null,
+                    'color' => $item['color'] ?? null,
+                    'barcode' => $item['barcode'] ?? null,
+                    'quantity' => (int) $item['quantity'],
+                    'price' => (float) $item['price'],
+                    'subtotal' => (float) ($item['quantity'] * $item['price'])
+                ]);
+            }
+
+            DB::commit();
+
+            // Recargar el pedido con relaciones
+            $order->load(['user', 'items']);
+
+            // Crear notificación para el admin
+            Notification::create([
+                'user_id' => $user->id,
+                'type' => 'order_created',
+                'title' => 'Nuevo pedido adelantado',
+                'message' => "El usuario {$user->name} ha creado un pedido adelantado por $" . number_format($order->total_amount, 2),
+                'data' => json_encode(['order_id' => $order->id])
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pedido adelantado creado exitosamente',
+                'data' => [
+                    'order_id' => $order->id,
+                    'total_amount' => $order->total_amount,
+                    'status' => $order->status
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al crear pedido adelantado', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear el pedido adelantado: ' . $e->getMessage()
             ], 500);
         }
     }

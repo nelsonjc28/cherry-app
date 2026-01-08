@@ -64,10 +64,24 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
   const groupedProducts = React.useMemo(() => {
     if (!order.items || order.items.length === 0) return [];
     
+    // Debug: Log de los items recibidos
+    console.log('🔍 OrderDetailModal - Items recibidos:', order.items);
+    
     const grouped = {};
     
     order.items.forEach((item) => {
       const productId = item.product_id;
+      
+      // Debug: Log de cada item
+      console.log('🔍 Item procesado:', {
+        product_id: productId,
+        title: item.title,
+        price: item.price,
+        has_discount: item.has_discount,
+        original_price: item.original_price,
+        discount_percentage: item.discount_percentage,
+        full_item: item // Log completo del item para debugging
+      });
       
       if (!grouped[productId]) {
         // Solo usar imagen si existe y no es el placeholder
@@ -84,8 +98,14 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
           totalSubtotal: 0,
           sizes: [],
           colors: [],
-          barcodes: []
+          barcodes: [],
+          hasDiscount: item.has_discount || false,
+          originalPrice: item.original_price || null,
+          discountPercentage: item.discount_percentage || 0,
+          price: item.price || 0
         };
+        
+        console.log('🔍 Grupo inicializado:', grouped[productId]);
       }
       
       // Si el grupo no tiene imagen y este item tiene una válida, actualizarla
@@ -96,6 +116,55 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
       grouped[productId].items.push(item);
       grouped[productId].totalQuantity += item.quantity || 0;
       grouped[productId].totalSubtotal += parseFloat(item.subtotal) || 0;
+      
+      // Actualizar información de precio original y descuento
+      // Siempre actualizar el precio original si el item lo tiene
+      if (item.original_price && item.original_price > 0) {
+        // Actualizar precio original si no existe o si este es mayor
+        if (!grouped[productId].originalPrice || item.original_price > grouped[productId].originalPrice) {
+          grouped[productId].originalPrice = item.original_price;
+        }
+      }
+      
+      // Actualizar información de descuento si el item tiene descuento
+      if (item.has_discount && item.original_price && item.original_price > item.price) {
+        console.log('🔍 Item tiene descuento:', {
+          product_id: productId,
+          original_price: item.original_price,
+          price: item.price,
+          discount_percentage: item.discount_percentage
+        });
+        grouped[productId].hasDiscount = true;
+        // Usar el precio original más alto si hay múltiples items con diferentes precios originales
+        if (!grouped[productId].originalPrice || item.original_price > grouped[productId].originalPrice) {
+          grouped[productId].originalPrice = item.original_price;
+        }
+        // Usar el porcentaje de descuento más alto
+        if (item.discount_percentage > (grouped[productId].discountPercentage || 0)) {
+          grouped[productId].discountPercentage = item.discount_percentage;
+        }
+        // Usar el precio con descuento (el más bajo)
+        if (!grouped[productId].price || item.price < grouped[productId].price) {
+          grouped[productId].price = item.price;
+        }
+        console.log('🔍 Grupo actualizado con descuento:', grouped[productId]);
+      } else if (!grouped[productId].price && item.price) {
+        // Si no hay descuento pero aún no tenemos precio, establecerlo
+        grouped[productId].price = item.price;
+      }
+      
+      // Asegurar que si algún item tiene descuento, el grupo lo refleje
+      if (item.has_discount && item.original_price && item.original_price > item.price) {
+        if (!grouped[productId].hasDiscount) {
+          grouped[productId].hasDiscount = true;
+        }
+        if (!grouped[productId].originalPrice || item.original_price > grouped[productId].originalPrice) {
+          grouped[productId].originalPrice = item.original_price;
+        }
+        if (item.discount_percentage > (grouped[productId].discountPercentage || 0)) {
+          grouped[productId].discountPercentage = item.discount_percentage;
+        }
+      }
       
       if (item.size && !grouped[productId].sizes.includes(item.size)) {
         grouped[productId].sizes.push(item.size);
@@ -110,7 +179,23 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
       }
     });
     
-    return Object.values(grouped);
+    const result = Object.values(grouped);
+    console.log('🔍 Grupos finales:', result);
+    console.log('🔍 Grupos con descuento:', result.filter(g => g.hasDiscount && g.originalPrice));
+    result.forEach(group => {
+      console.log('🔍 Grupo completo:', {
+        title: group.title,
+        product_id: group.product_id,
+        hasDiscount: group.hasDiscount,
+        originalPrice: group.originalPrice,
+        price: group.price,
+        discountPercentage: group.discountPercentage,
+        items_count: group.items.length,
+        first_item_original_price: group.items[0]?.original_price
+      });
+    });
+    
+    return result;
   }, [order.items]);
 
   const handleBackdropClick = (e) => {
@@ -134,10 +219,11 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
         </div>
 
         <div className="order-detail-modal__content">
-          {/* Información general de la orden */}
-          <div className="order-detail-section">
-            <h3>Información General</h3>
-            <div className="order-detail-info">
+          <div className="order-detail-modal__two-column-wrapper">
+            {/* Información general de la orden */}
+            <div className="order-detail-section">
+              <h3>Información General</h3>
+              <div className="order-detail-info">
               <div className="info-row">
                 <span className="label">Número de pedido:</span>
                 <span className="value">{order.orderNumber}</span>
@@ -170,7 +256,7 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
                     </div>
                   )}
                   {(order.credit_used > 0 || order.amount_pending > 0) && (
-                    <div className="info-row" style={{ marginTop: order.amount_paid > 0 ? '8px' : '12px', paddingTop: order.amount_paid > 0 ? '0' : '12px', borderTop: order.amount_paid > 0 ? 'none' : '1px solid #e0e0e0' }}>
+                    <div className="info-row info-row--full-width" style={{ marginTop: order.amount_paid > 0 ? '8px' : '12px', paddingTop: order.amount_paid > 0 ? '0' : '12px', borderTop: order.amount_paid > 0 ? 'none' : '1px solid #e0e0e0' }}>
                       <span className="label" style={{ fontWeight: '700', fontSize: '14px' }}>Saldo pendiente a cancelar:</span>
                       <span className="value" style={{ color: '#d32f2f', fontWeight: '700', fontSize: '18px' }}>
                         ${((parseFloat(order.credit_used || 0)) + (parseFloat(order.amount_pending || 0))).toFixed(2)}
@@ -221,7 +307,7 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
 
           {/* Dirección de envío */}
           {order.address && (
-            <div className="order-detail-section">
+            <div className="order-detail-section order-detail-section--full-width">
               <h3>Dirección de Envío</h3>
               <div className="order-detail-address">
                 <div className="address-info">
@@ -292,9 +378,10 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
               </div>
             </div>
           )}
+          </div>
 
           {/* Productos */}
-          <div className="order-detail-section">
+          <div className="order-detail-section products-section">
             <h3>Productos ({groupedProducts.length})</h3>
             <div className="order-detail-products">
               {groupedProducts.map((group, index) => (
@@ -320,6 +407,36 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
                       <span className="label">Cantidad total:</span>
                       <span className="value">{group.totalQuantity} unidades</span>
                     </div>
+                    {/* Mostrar información de precio */}
+                    {group.originalPrice && group.originalPrice > 0 ? (
+                      // Si hay precio original, mostrarlo siempre
+                      group.hasDiscount && group.originalPrice > group.price ? (
+                        // Si hay descuento, mostrar precio original tachado y precio con descuento
+                        <div className="info-row product-item__discount-info">
+                          <span className="label">Precio unitario:</span>
+                          <span className="value" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                            <span style={{ textDecoration: 'line-through', color: '#999', fontSize: '0.9em' }}>
+                              ${group.originalPrice.toFixed(2)}
+                            </span>
+                            <span style={{ color: '#d32f2f', fontWeight: '600' }}>
+                              ${group.price.toFixed(2)} <span style={{ fontSize: '0.85em', marginLeft: '4px' }}>(-{group.discountPercentage}%)</span>
+                            </span>
+                          </span>
+                        </div>
+                      ) : (
+                        // Si no hay descuento, mostrar solo precio original sin tachar
+                        <div className="info-row">
+                          <span className="label">Precio unitario:</span>
+                          <span className="value">${group.originalPrice.toFixed(2)}</span>
+                        </div>
+                      )
+                    ) : (
+                      // Si no hay precio original, mostrar precio pagado
+                      <div className="info-row">
+                        <span className="label">Precio unitario:</span>
+                        <span className="value">${(group.price || (group.items && group.items[0]?.price) || 0).toFixed(2)}</span>
+                      </div>
+                    )}
                     <div className="info-row">
                       <span className="label">Subtotal:</span>
                       <span className="value subtotal">
@@ -368,7 +485,7 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
           </div>
 
           {/* Resumen de precios */}
-          <div className="order-detail-section">
+          <div className="order-detail-section summary-section">
             <h3>Resumen</h3>
             <div className="order-detail-summary">
               <div className="summary-row">
