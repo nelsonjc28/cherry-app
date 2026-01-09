@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import ProductCard from '../components/ProductCard/ProductCard';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import CherryButton from '../components/CherryButton/CherryButton';
@@ -618,11 +618,16 @@ const BuscarPage = () => {
     );
   };
 
+  const location = useLocation();
+  // Para búsqueda, usar solo el pathname sin query params para evitar duplicados
+  const canonicalUrl = `https://cherrydistribuidores.com.mx${location.pathname}`;
+
   return (
     <>
       <Helmet>
         <title>Búsqueda - Cherry Central</title>
         <meta name="description" content={`Resultados de búsqueda para "${getSearchDescription()}" en Cherry Central. Encuentra los mejores productos de moda femenina.`} />
+        <link rel="canonical" href={canonicalUrl} />
       </Helmet>
 
       <main className="buscar-page">

@@ -84,8 +84,10 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
       });
       
       if (!grouped[productId]) {
-        // Usar la imagen del item, siempre mostrar una imagen (usar placeholder si no existe)
-        const validImage = item.image || '/images/catalogProductImages/Rectangle 4922.png';
+        // Usar la imagen del item solo si existe y no es placeholder
+        const validImage = item.image && item.image !== '/images/catalogProductImages/Rectangle 4922.png' 
+          ? item.image 
+          : null;
         
         grouped[productId] = {
           product_id: productId,
@@ -106,8 +108,8 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
         console.log('🔍 Grupo inicializado:', grouped[productId]);
       }
       
-      // Si el grupo tiene placeholder y este item tiene una imagen válida, actualizarla
-      if (grouped[productId].image === '/images/catalogProductImages/Rectangle 4922.png' && item.image && item.image !== '/images/catalogProductImages/Rectangle 4922.png') {
+      // Si el grupo no tiene imagen y este item tiene una válida, actualizarla
+      if (!grouped[productId].image && item.image && item.image !== '/images/catalogProductImages/Rectangle 4922.png') {
         grouped[productId].image = item.image;
       }
       
@@ -384,16 +386,18 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
             <div className="order-detail-products">
               {groupedProducts.map((group, index) => (
                 <div key={group.product_id || index} className="product-item">
-                  <div className="product-item__image">
-                    <img 
-                      src={group.image || '/images/catalogProductImages/Rectangle 4922.png'} 
-                      alt={group.title}
-                      onError={(e) => {
-                        // Si la imagen falla, usar placeholder
-                        e.target.src = '/images/catalogProductImages/Rectangle 4922.png';
-                      }}
-                    />
-                  </div>
+                  {group.image && group.image !== '/images/catalogProductImages/Rectangle 4922.png' && (
+                    <div className="product-item__image">
+                      <img 
+                        src={group.image} 
+                        alt={group.title}
+                        onError={(e) => {
+                          // Si la imagen falla, ocultar el contenedor
+                          e.target.parentElement.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
                   <div className="product-item__details">
                     <h4 className="product-item__title">{group.title}</h4>
                     <div className="info-row">
@@ -493,7 +497,7 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
               </div>
               <div className="summary-row">
                 <span className="label">Envío:</span>
-                <span className="value">$0.00</span>
+                <span className="value">${(parseFloat(order.shipping_cost || 0)).toFixed(2)}</span>
               </div>
               <div className="summary-row total-row">
                 <span className="label">Total:</span>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import CatalogProductCard from '../components/CatalogProductCard/CatalogProductCard';
 import CherryButton from '../components/CherryButton/CherryButton';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
@@ -618,11 +618,15 @@ const PromocionesPage = () => {
 
   const totalResults = filteredProducts.length;
 
+  const location = useLocation();
+  const canonicalUrl = `https://cherrydistribuidores.com.mx${location.pathname}`;
+
   return (
     <>
       <Helmet>
         <title>Rebajas - Cherry Central</title>
         <meta name="description" content="Descubre las mejores rebajas y ofertas en Cherry Central. Descuentos especiales en moda femenina." />
+        <link rel="canonical" href={canonicalUrl} />
       </Helmet>
 
       <div className="promociones-page">

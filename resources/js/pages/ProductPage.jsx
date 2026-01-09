@@ -321,44 +321,9 @@ const ProductPage = () => {
       // Construir el texto de compartir según el formato solicitado
       const buildShareText = () => {
         const productName = product?.descripcion || 'Producto';
-        const basePrice = product?.precio1 || 0;
-        
-        // Calcular descuento y precio final
-        let discount = 0;
-        let finalPrice = basePrice;
-        
-        // Calcular descuento (misma lógica que en el componente)
-        if (product?.userOffer?.discount_percentage > 0) {
-          discount = Math.round(product.userOffer.discount_percentage);
-        } else if (product?.desc_promo && product.desc_promo > 0) {
-          // Restar 10% al descuento de la API externa (solo si NO es oferta de usuario)
-          const reducedDiscount = Math.max(0, product.desc_promo - 10);
-          discount = Math.round(reducedDiscount);
-        } else if (product?.discount && product.discount > 0) {
-          discount = Math.round(product.discount);
-        }
-        
-        // Calcular precio final
-        if (discount > 0 && basePrice > 0) {
-          finalPrice = basePrice - (basePrice * (discount / 100));
-        } else if (product?.price && product.price !== basePrice) {
-          finalPrice = product.price;
-        }
-        
-        const hasDiscount = discount > 0;
 
         let text = `Checa este nuevo producto que tenemos para ti!!\n\n`;
         text += `${productName}\n\n`;
-
-        if (hasDiscount) {
-          // Precio tachado (original) y precio con descuento
-          text += `~~$${basePrice.toFixed(2)}~~\n`;
-          text += `$${finalPrice.toFixed(2)} -${discount}%\n\n`;
-        } else {
-          // Solo precio sin descuento
-          text += `$${basePrice.toFixed(2)}\n\n`;
-        }
-
         text += `Pregunta por colores y tallas disponibles`;
 
         return text;
@@ -1389,11 +1354,15 @@ const ProductPage = () => {
     };
   }
 
+  const location = useLocation();
+  const canonicalUrl = `https://cherrydistribuidores.com.mx${location.pathname}`;
+
   return (
     <>
       <Helmet>
         <title>{descripcion} - Cherry</title>
         <meta name="description" content={descripcion} />
+        <link rel="canonical" href={canonicalUrl} />
         {/* Schema.org structured data for Product - Required by Google */}
         <script type="application/ld+json">
           {JSON.stringify(productSchema)}

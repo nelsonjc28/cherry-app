@@ -129,21 +129,8 @@ const formatPriceForShare = (price) => {
  */
 const generateShareText = (productData) => {
   const title = productData.title || 'Producto';
-  const price = productData.price || 0;
-  const finalPrice = productData.finalPrice || price || 0;
-  const discountPercentage = productData.discountPercentage || 0;
-  const hasDiscount = productData.hasDiscount || false;
   
   let text = `Checa este producto que tenemos para ti *${title}*`;
-  
-  if (hasDiscount && discountPercentage > 0) {
-    // Precio original tachado, precio con descuento y porcentaje
-    text += ` ~$${formatPriceForShare(price)}~ $${formatPriceForShare(finalPrice)} ${discountPercentage}%`;
-  } else {
-    // Solo precio original sin tachar
-    text += ` $${formatPriceForShare(price)}`;
-  }
-  
   text += ` pregunta por colores y tallas disponibles`;
   
   return text;

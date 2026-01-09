@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import ProductCard from '../components/ProductCard/ProductCard';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import CherryButton from '../components/CherryButton/CherryButton';
@@ -365,11 +365,15 @@ const DestacadosPage = () => {
     );
   }
 
+  const location = useLocation();
+  const canonicalUrl = `https://cherrydistribuidores.com.mx${location.pathname}`;
+
   return (
     <>
       <Helmet>
         <title>Productos Más Vendidos - Cherry Central</title>
         <meta name="description" content="Descubre los productos más vendidos del mes en Cherry Central. Los favoritos de nuestros clientes." />
+        <link rel="canonical" href={canonicalUrl} />
       </Helmet>
 
       <main className="destacados-page">

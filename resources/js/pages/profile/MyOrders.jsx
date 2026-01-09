@@ -58,23 +58,23 @@ const MyOrders = () => {
     }
   }, [searchParams, navigate]);
 
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await orderService.getUserOrders();
-      
-      if (response.data.success) {
-        setOrders(response.data.orders || []);
-      } else {
-        setError(response.data.message || 'Error al cargar las órdenes');
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await orderService.getUserOrders();
+
+        if (response.data.success) {
+          setOrders(response.data.orders || []);
+        } else {
+          setError(response.data.message || 'Error al cargar las órdenes');
+        }
+      } catch (err) {
+        setError('Error de conexión al cargar las órdenes');
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      setError('Error de conexión al cargar las órdenes');
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
   // Filtrar y ordenar órdenes
   const filteredOrders = orders.filter(order => {
@@ -152,26 +152,26 @@ const MyOrders = () => {
   };
 
   if (loading) {
-    return (
+  return (
       <div className="my-orders">
         <div className="my-orders__loading">
           <div className="loading-spinner"></div>
           <p>Cargando órdenes...</p>
         </div>
-      </div>
+            </div>
     );
   }
 
   if (error) {
     return (
       <div className="my-orders">
-        <div className="my-orders__error">
-          <p>Error: {error}</p>
+            <div className="my-orders__error">
+              <p>Error: {error}</p>
           <CherryButton onClick={fetchOrders} variant="red" size="medium">
-            Reintentar
-          </CherryButton>
-        </div>
-      </div>
+                Reintentar
+              </CherryButton>
+            </div>
+            </div>
     );
   }
 
@@ -180,26 +180,26 @@ const MyOrders = () => {
       <div className="my-orders__header">
         <div className="my-orders__title-section">
           <h1 className="my-orders__title">Mis Pedidos</h1>
-        </div>
+                </div>
         <div className="my-orders__stats">
           <div className="stat-card">
             <span className="stat-number">{orders.length}</span>
             <span className="stat-label">Total Órdenes</span>
-          </div>
+                    </div>
           <div className="stat-card">
             <span className="stat-number">
               {orders.filter(o => o.status === 'pagado').length}
-            </span>
+                        </span>
             <span className="stat-label">Pagadas</span>
-          </div>
+                      </div>
           <div className="stat-card">
             <span className="stat-number">
               {orders.filter(o => o.status === 'enviado').length}
             </span>
             <span className="stat-label">Enviadas</span>
-          </div>
-        </div>
-      </div>
+                      </div>
+                    </div>
+                  </div>
 
       <div className="my-orders__filters">
         <div className="filter-group">
@@ -385,7 +385,7 @@ const MyOrders = () => {
                                 {order.statusDisplay || order.status}
                               </span>
                             </div>
-                          </div>
+                      </div>
                         </td>
                       </tr>
                     )}
@@ -394,36 +394,36 @@ const MyOrders = () => {
               })}
             </tbody>
           </table>
-        )}
-      </div>
-
-      {totalPages > 1 && (
-        <div className="my-orders__pagination">
-          <div className="pagination-controls">
-            <button
-              onClick={() => setCurrentPage(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="pagination-button"
-            >
-              Anterior
-            </button>
-            <span className="pagination-info">
-              Página {currentPage} de {totalPages}
-            </span>
-            <button
-              onClick={() => setCurrentPage(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="pagination-button"
-            >
-              Siguiente
-            </button>
-          </div>
+          )}
         </div>
-      )}
+
+        {totalPages > 1 && (
+          <div className="my-orders__pagination">
+            <div className="pagination-controls">
+              <button
+              onClick={() => setCurrentPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="pagination-button"
+              >
+                Anterior
+              </button>
+              <span className="pagination-info">
+                Página {currentPage} de {totalPages}
+              </span>
+              <button
+              onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="pagination-button"
+              >
+                Siguiente
+              </button>
+            </div>
+          </div>
+        )}
 
       {/* Modal de detalles de orden */}
       {selectedOrderForDetail && (
-        <OrderDetailModal
+      <OrderDetailModal
           order={{
             ...selectedOrderForDetail,
             statusColor: getStatusColor(selectedOrderForDetail.status),

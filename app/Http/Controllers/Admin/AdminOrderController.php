@@ -23,6 +23,30 @@ class AdminOrderController extends Controller
                 ->get();
 
             $formattedOrders = $orders->map(function ($order) {
+                // Calcular costo de envío
+                $paymentData = is_array($order->payment_data) ? $order->payment_data : (is_string($order->payment_data) ? json_decode($order->payment_data, true) : []);
+                $deliveryType = $paymentData['delivery_type'] ?? 'envio';
+                
+                // Calcular subtotal de productos
+                $subtotalProducts = $order->items->sum('subtotal');
+                
+                // Calcular costo de envío
+                $shippingCost = 0;
+                if (isset($paymentData['shipping_amount'])) {
+                    $shippingCost = (float) $paymentData['shipping_amount'];
+                } else {
+                    // Calcular como diferencia entre total_amount y subtotal de productos
+                    $totalAmount = (float) $order->total_amount;
+                    if ($totalAmount > $subtotalProducts) {
+                        $shippingCost = $totalAmount - $subtotalProducts;
+                    }
+                }
+                
+                // Si es retiro en tienda, el costo de envío es 0
+                if ($deliveryType === 'retiro') {
+                    $shippingCost = 0;
+                }
+                
                 return [
                     'id' => $order->id,
                     'orderNumber' => str_pad($order->id, 8, '0', STR_PAD_LEFT),
@@ -30,6 +54,7 @@ class AdminOrderController extends Controller
                     'status' => $order->status,
                     'statusDisplay' => $this->mapOrderStatus($order->status),
                     'totalAmount' => (float) $order->total_amount,
+                    'shipping_cost' => (float) $shippingCost,
                     'paymentMethod' => ucfirst($order->payment_method),
                     'paymentId' => $order->mercadopago_payment_id,
                     'customerName' => $order->user ? $order->user->first_name . ' ' . $order->user->last_name : 'Usuario eliminado',
@@ -221,6 +246,30 @@ class AdminOrderController extends Controller
         try {
             $order = Order::with(['user', 'items.product', 'address'])->findOrFail($orderId);
 
+            // Calcular costo de envío
+            $paymentData = is_array($order->payment_data) ? $order->payment_data : (is_string($order->payment_data) ? json_decode($order->payment_data, true) : []);
+            $deliveryType = $paymentData['delivery_type'] ?? 'envio';
+            
+            // Calcular subtotal de productos
+            $subtotalProducts = $order->items->sum('subtotal');
+            
+            // Calcular costo de envío
+            $shippingCost = 0;
+            if (isset($paymentData['shipping_amount'])) {
+                $shippingCost = (float) $paymentData['shipping_amount'];
+            } else {
+                // Calcular como diferencia entre total_amount y subtotal de productos
+                $totalAmount = (float) $order->total_amount;
+                if ($totalAmount > $subtotalProducts) {
+                    $shippingCost = $totalAmount - $subtotalProducts;
+                }
+            }
+            
+            // Si es retiro en tienda, el costo de envío es 0
+            if ($deliveryType === 'retiro') {
+                $shippingCost = 0;
+            }
+
             $formattedOrder = [
                 'id' => $order->id,
                 'orderNumber' => str_pad($order->id, 8, '0', STR_PAD_LEFT),
@@ -228,6 +277,7 @@ class AdminOrderController extends Controller
                 'status' => $order->status,
                 'statusDisplay' => $this->mapOrderStatus($order->status),
                 'totalAmount' => (float) $order->total_amount,
+                'shipping_cost' => (float) $shippingCost,
                 'paymentMethod' => ucfirst($order->payment_method),
                 'paymentId' => $order->mercadopago_payment_id,
                 'customerName' => $order->user ? $order->user->first_name . ' ' . $order->user->last_name : 'Usuario eliminado',

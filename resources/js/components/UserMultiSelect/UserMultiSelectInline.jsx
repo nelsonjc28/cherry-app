@@ -129,7 +129,45 @@ const UserMultiSelect = ({
     onUsersChange(formatted);
   };
 
+  const handleSelectByCategory = (category) => {
+    const usersByCategory = allUsers
+      .filter((u) => u?.id && u.seller_category === category)
+      .map((u) => ({
+        ...u,
+        name: formatUserName(u),
+      }));
+
+    // Si ya están todos seleccionados, deseleccionarlos
+    // Si no están todos seleccionados, agregarlos (sin duplicados)
+    const currentCategoryUserIds = selectedUsers
+      .filter(u => u.seller_category === category)
+      .map(u => u.id);
+    
+    const allCategorySelected = usersByCategory.length > 0 && 
+      usersByCategory.every(u => currentCategoryUserIds.includes(u.id));
+
+    if (allCategorySelected) {
+      // Deseleccionar usuarios de esta categoría
+      onUsersChange(selectedUsers.filter(u => u.seller_category !== category));
+    } else {
+      // Agregar usuarios de esta categoría (sin duplicados)
+      const existingIds = selectedUsers.map(u => u.id);
+      const newUsers = usersByCategory.filter(u => !existingIds.includes(u.id));
+      onUsersChange([...selectedUsers, ...newUsers]);
+    }
+  };
+
   const allSelected = selectedUsers.length === allUsers.length && allUsers.length > 0;
+  
+  // Verificar si todas las categorías están seleccionadas
+  const oroUsers = allUsers.filter(u => u.seller_category === 'oro');
+  const bronceUsers = allUsers.filter(u => u.seller_category === 'bronce');
+  
+  const selectedOroUsers = selectedUsers.filter(u => u.seller_category === 'oro');
+  const selectedBronceUsers = selectedUsers.filter(u => u.seller_category === 'bronce');
+  
+  const allOroSelected = oroUsers.length > 0 && selectedOroUsers.length === oroUsers.length;
+  const allBronceSelected = bronceUsers.length > 0 && selectedBronceUsers.length === bronceUsers.length;
 
   return (
     <div style={{ position: "relative", width: "100%" }} ref={dropdownRef}>
@@ -248,6 +286,68 @@ const UserMultiSelect = ({
             />
             <span>Seleccionar todos</span>
           </div>
+
+          {/* Select by Category - Oro */}
+          {oroUsers.length > 0 && (
+            <div
+              onClick={() => handleSelectByCategory('oro')}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                padding: "8px 12px",
+                cursor: "pointer",
+                backgroundColor: allOroSelected ? "#fff3cd" : "transparent",
+                borderBottom: "1px solid #f1f3f4",
+                fontWeight: 600,
+                color: allOroSelected ? "#856404" : "#FFD700",
+              }}
+            >
+              <input
+                type="checkbox"
+                readOnly
+                checked={allOroSelected}
+                style={{
+                  width: "14px",
+                  height: "14px",
+                  cursor: "pointer",
+                  accentColor: "#FFD700",
+                }}
+              />
+              <span>🥇 Seleccionar Oro ({oroUsers.length})</span>
+            </div>
+          )}
+
+          {/* Select by Category - Bronce */}
+          {bronceUsers.length > 0 && (
+            <div
+              onClick={() => handleSelectByCategory('bronce')}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                padding: "8px 12px",
+                cursor: "pointer",
+                backgroundColor: allBronceSelected ? "#fff3cd" : "transparent",
+                borderBottom: "1px solid #f1f3f4",
+                fontWeight: 600,
+                color: allBronceSelected ? "#856404" : "#CD7F32",
+              }}
+            >
+              <input
+                type="checkbox"
+                readOnly
+                checked={allBronceSelected}
+                style={{
+                  width: "14px",
+                  height: "14px",
+                  cursor: "pointer",
+                  accentColor: "#CD7F32",
+                }}
+              />
+              <span>🥉 Seleccionar Bronce ({bronceUsers.length})</span>
+            </div>
+          )}
 
           {/* Users list */}
           {filteredUsers.map((user) => {

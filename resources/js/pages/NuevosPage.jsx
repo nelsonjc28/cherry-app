@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { useLocation } from 'react-router-dom';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import CatalogProductCard from '../components/CatalogProductCard/CatalogProductCard';
 import InfiniteScrollLoader from '../components/InfiniteScrollLoader/InfiniteScrollLoader';
@@ -450,11 +451,15 @@ const NuevosPage = () => {
 
   const totalResults = filteredProducts.length;
 
+  const location = useLocation();
+  const canonicalUrl = `https://cherrydistribuidores.com.mx${location.pathname}`;
+
   return (
     <>
       <Helmet>
         <title>Productos Nuevos - Cherry Central</title>
         <meta name="description" content="Descubre los productos más nuevos de Cherry Central" />
+        <link rel="canonical" href={canonicalUrl} />
       </Helmet>
 
       <div className="nuevos-page">

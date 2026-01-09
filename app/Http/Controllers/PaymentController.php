@@ -457,7 +457,7 @@ class PaymentController extends Controller
         
         // 1. Enviar información a la API externa (ella se encarga del inventario)
         // Lanzará excepción si hay error (sin try-catch para ver el error completo)
-        $this->externalSalesService->sendSaleToExternalApi($order);
+                            $this->externalSalesService->sendSaleToExternalApi($order);
         Log::info('Venta enviada a API externa exitosamente', ['order_id' => $order->id]);
         
         // 2. Enviar email de confirmación al cliente
@@ -471,13 +471,13 @@ class PaymentController extends Controller
             $order->update(['payment_data' => json_encode($paymentData)]);
             
             Log::info('Email de confirmación enviado al cliente (webhook - approved)', ['order_id' => $order->id]);
-        } catch (\Exception $e) {
+                        } catch (\Exception $e) {
             Log::error('Error al enviar email de confirmación (webhook - approved)', [
-                'order_id' => $order->id,
+                                'order_id' => $order->id,
                 'user_email' => $order->user->email ?? 'N/A',
-                'error' => $e->getMessage()
-            ]);
-        }
+                                'error' => $e->getMessage()
+                            ]);
+                        }
         
         // 3. Crear notificación para el usuario
         try {
@@ -803,7 +803,7 @@ class PaymentController extends Controller
                 // Obtener payment_method_id del pago y mapearlo
                 $paymentMethodId = $payment->payment_method_id ?? $requestData['payment_method_id'] ?? null;
                 $paymentMethod = $this->mapPaymentMethodId($paymentMethodId);
-                
+
                 // Crear el pedido en la base de datos
                 $order = Order::create([
                     'user_id' => $user->id,
@@ -851,7 +851,7 @@ class PaymentController extends Controller
                     // El email se enviará desde el webhook cuando Mercado Pago confirme el pago
                     // Para evitar duplicados, no enviamos aquí
                     // Enviar información a la API externa (lanzará excepción si hay error)
-                    $this->externalSalesService->sendSaleToExternalApi($order);
+                        $this->externalSalesService->sendSaleToExternalApi($order);
                 }
 
                 // Notificar al admin del pago realizado (solo si está aprobado o pendiente)
@@ -1147,6 +1147,30 @@ class PaymentController extends Controller
 
             // Mapear órdenes al formato esperado por el frontend (igual que AdminOrderController)
             $formattedOrders = $orders->map(function ($order) use ($user) {
+                // Calcular costo de envío
+                $paymentData = is_array($order->payment_data) ? $order->payment_data : (is_string($order->payment_data) ? json_decode($order->payment_data, true) : []);
+                $deliveryType = $paymentData['delivery_type'] ?? 'envio';
+                
+                // Calcular subtotal de productos
+                $subtotalProducts = $order->items->sum('subtotal');
+                
+                // Calcular costo de envío
+                $shippingCost = 0;
+                if (isset($paymentData['shipping_amount'])) {
+                    $shippingCost = (float) $paymentData['shipping_amount'];
+                } else {
+                    // Calcular como diferencia entre total_amount y subtotal de productos
+                    $totalAmount = (float) $order->total_amount;
+                    if ($totalAmount > $subtotalProducts) {
+                        $shippingCost = $totalAmount - $subtotalProducts;
+                    }
+                }
+                
+                // Si es retiro en tienda, el costo de envío es 0
+                if ($deliveryType === 'retiro') {
+                    $shippingCost = 0;
+                }
+                
                 return [
                     'id' => $order->id,
                     'date' => $order->created_at->format('d \d\e F Y'),
@@ -1156,6 +1180,7 @@ class PaymentController extends Controller
                     'statusDisplay' => $order->statusDisplay ?? $this->mapOrderStatus($order->status),
                     'statusRaw' => $order->status,
                     'statusColor' => $this->getStatusColor($order->status),
+                    'shipping_cost' => (float) $shippingCost,
                     'items' => $order->items->map(function ($item) use ($user, $order) {
                         // Usar exactamente la misma lógica que AdminOrderController
                         // Verificar si ya existe una reseña para este producto en esta orden

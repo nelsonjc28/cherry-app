@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { useLocation } from 'react-router-dom';
 import ProductCard from '../components/ProductCard/ProductCard';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import CherryButton from '../components/CherryButton/CherryButton';
@@ -475,11 +476,15 @@ const ProductosPage = () => {
     );
   }
 
+  const location = useLocation();
+  const canonicalUrl = `https://cherrydistribuidores.com.mx${location.pathname}`;
+
   return (
     <>
       <Helmet>
         <title>Productos - Cherry Central</title>
         <meta name="description" content="Explora nuestra amplia colección de productos de moda femenina en Cherry Central." />
+        <link rel="canonical" href={canonicalUrl} />
       </Helmet>
 
       <main className="productos-page">

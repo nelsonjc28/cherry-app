@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import CatalogProductCard from '../components/CatalogProductCard/CatalogProductCard';
 import InfiniteScrollLoader from '../components/InfiniteScrollLoader/InfiniteScrollLoader';
@@ -674,11 +674,15 @@ const CategoryPage = ({ categorySlug }) => {
     infiniteScroll.reset();
   }, [filteredProducts.length]);
 
+  const location = useLocation();
+  const canonicalUrl = `https://cherrydistribuidores.com.mx${location.pathname}`;
+
   return (
     <>
       <Helmet>
         <title>{currentCategory ? `${currentCategory.name} - Cherry` : 'Categoría de productos - Cherry'}</title>
         <meta name="description" content={currentCategory ? `Explora nuestra categoría ${currentCategory.name}. Encuentra las últimas tendencias en moda y accesorios.` : 'Explora nuestro catálogo completo de productos Cherry. Encuentra las últimas tendencias en moda y accesorios.'} />
+        <link rel="canonical" href={canonicalUrl} />
       </Helmet>
 
       <div className="catalog-page">

@@ -116,6 +116,7 @@ const CatalogOffersModule = ({ onBack }) => {
     }));
   };
 
+  // Función para obtener usuarios por categoría
   const handleDiscountTypeSelect = (discountType) => {
     setSelectedDiscountType(discountType);
     setCurrentView('detail');
@@ -637,7 +638,7 @@ const CatalogOffersModule = ({ onBack }) => {
                     maxHeight="300px"
                   />
                   <small className="catalog-offers-module__form-help">
-                    Selecciona los usuarios específicos que tendrán acceso a este descuento. Los usuarios se cargan desde la base de datos.
+                    Selecciona los usuarios específicos que tendrán acceso a este descuento. Puedes seleccionar todos, por categoría (Oro/Bronce) o usuarios individuales. Los usuarios se cargan desde la base de datos.
                   </small>
                 </div>
               </div>
