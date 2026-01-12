@@ -426,7 +426,6 @@ const AdminOrders = () => {
                               <span className="order-detail-value">{totalPieces}</span>
                             </div>
                             <div className="order-detail-item">
-                              <span className="order-detail-label">Estatus:</span>
                               <span className={`status-badge status-badge--${getStatusColor(order.status)}`}>
                                 {order.statusDisplay || order.status}
                               </span>
