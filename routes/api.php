@@ -130,6 +130,7 @@ Route::middleware(['auth:api', 'admin'])->prefix('admin')->group(function () {
     Route::get('/orders', [App\Http\Controllers\Admin\AdminOrderController::class, 'index']);
     Route::get('/orders/{orderId}', [App\Http\Controllers\Admin\AdminOrderController::class, 'show']);
     Route::put('/orders/{orderId}/status', [App\Http\Controllers\Admin\AdminOrderController::class, 'updateStatus']);
+    Route::post('/orders/{orderId}/mark-credit-paid', [App\Http\Controllers\Admin\AdminOrderController::class, 'markCreditOrderAsPaid']);
     Route::get('/notifications', [App\Http\Controllers\NotificationController::class, 'getAdminNotifications']);
     
     // Admin Reviews routes

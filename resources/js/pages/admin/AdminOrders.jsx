@@ -43,6 +43,9 @@ const AdminOrders = () => {
   const [selectedOrderForDetail, setSelectedOrderForDetail] = useState(null);
   const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
   const [expandedRows, setExpandedRows] = useState(new Set());
+  const [markingAsPaid, setMarkingAsPaid] = useState(false);
+  const [orderToMarkAsPaid, setOrderToMarkAsPaid] = useState(null);
+  const [showMarkAsPaidModal, setShowMarkAsPaidModal] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -213,6 +216,68 @@ const AdminOrders = () => {
   const handleCloseOrderDetailModal = () => {
     setShowOrderDetailModal(false);
     setSelectedOrderForDetail(null);
+  };
+
+  const handleMarkCreditAsPaid = (order) => {
+    setOrderToMarkAsPaid(order);
+    setShowMarkAsPaidModal(true);
+  };
+
+  const confirmMarkCreditAsPaid = async () => {
+    if (!orderToMarkAsPaid) return;
+
+    try {
+      setMarkingAsPaid(true);
+      const response = await adminOrderService.markCreditOrderAsPaid(orderToMarkAsPaid.id);
+      
+      if (response.data.success) {
+        // Actualizar la orden en el estado local
+        setOrders(orders.map(order => 
+          order.id === orderToMarkAsPaid.id 
+            ? { 
+                ...order, 
+                status: 'pagado',
+                statusDisplay: 'Pagado',
+                amount_pending: 0,
+                amount_paid: order.total_amount,
+                credit_used: 0 // Establecer crédito usado en 0 cuando se marca como pagada
+              }
+            : order
+        ));
+        
+        // Si el modal de detalles está abierto para esta orden, actualizarlo también
+        if (selectedOrderForDetail && selectedOrderForDetail.id === orderToMarkAsPaid.id) {
+          setSelectedOrderForDetail({
+            ...selectedOrderForDetail,
+            amount_pending: 0,
+            amount_paid: orderToMarkAsPaid.total_amount,
+            status: 'pagado',
+            statusDisplay: 'Pagado',
+            credit_used: 0 // Establecer crédito usado en 0 cuando se marca como pagada
+          });
+        }
+        
+        if (window.showToast) {
+          window.showToast(
+            `Orden marcada como pagada. Crédito restaurado: ${formatCurrency(response.data.data?.credit_restored || 0)}`,
+            'success'
+          );
+        }
+      } else {
+        if (window.showToast) {
+          window.showToast(response.data.message || 'Error al marcar la orden como pagada', 'error');
+        }
+      }
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || 'Error de conexión al marcar la orden como pagada';
+      if (window.showToast) {
+        window.showToast(errorMessage, 'error');
+      }
+    } finally {
+      setMarkingAsPaid(false);
+      setShowMarkAsPaidModal(false);
+      setOrderToMarkAsPaid(null);
+    }
   };
 
   if (loading) {
@@ -402,6 +467,36 @@ const AdminOrders = () => {
                           >
                             👁️
                           </button>
+                          {order.paid_with_credit && order.credit_used > 0 && (
+                            <button
+                              className="order-action-btn order-action-btn--mark-paid"
+                              onClick={() => handleMarkCreditAsPaid(order)}
+                              data-tooltip="Marcar como Pagada"
+                              onMouseEnter={(e) => {
+                                const button = e.currentTarget;
+                                const tooltipText = button.getAttribute('data-tooltip');
+                                let tooltip = document.querySelector('.order-tooltip');
+                                if (!tooltip) {
+                                  tooltip = document.createElement('div');
+                                  tooltip.className = 'order-tooltip';
+                                  document.body.appendChild(tooltip);
+                                }
+                                tooltip.textContent = tooltipText;
+                                tooltip.style.display = 'block';
+                                
+                                const rect = button.getBoundingClientRect();
+                                const tooltipRect = tooltip.getBoundingClientRect();
+                                tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
+                                tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
+                              }}
+                              onMouseLeave={() => {
+                                const tooltip = document.querySelector('.order-tooltip');
+                                if (tooltip) tooltip.style.display = 'none';
+                              }}
+                            >
+                              💰
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -513,6 +608,49 @@ const AdminOrders = () => {
         }}
       />
 
+      {/* Modal de confirmación para marcar orden a crédito como pagada */}
+      {showMarkAsPaidModal && orderToMarkAsPaid && (
+        <div className="modal-overlay" onClick={() => setShowMarkAsPaidModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Marcar Orden como Pagada</h3>
+              <button 
+                className="modal-close"
+                onClick={() => setShowMarkAsPaidModal(false)}
+                disabled={markingAsPaid}
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>¿Estás seguro de que deseas marcar la orden <strong>#{orderToMarkAsPaid.orderNumber}</strong> como pagada?</p>
+              <p>Esta acción:</p>
+              <ul style={{ textAlign: 'left', marginTop: '10px' }}>
+                <li>Marcará la orden como <strong>pagada</strong></li>
+                <li>Restaurará <strong>{formatCurrency(orderToMarkAsPaid.credit_used || 0)}</strong> al crédito disponible del cliente</li>
+                <li>Enviará una notificación al cliente</li>
+              </ul>
+            </div>
+            <div className="modal-footer">
+              <CherryButton
+                variant="outline"
+                onClick={() => setShowMarkAsPaidModal(false)}
+                disabled={markingAsPaid}
+              >
+                Cancelar
+              </CherryButton>
+              <CherryButton
+                variant="red"
+                onClick={confirmMarkCreditAsPaid}
+                disabled={markingAsPaid}
+              >
+                {markingAsPaid ? 'Procesando...' : 'Confirmar Pago'}
+              </CherryButton>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal de detalles de orden */}
       {selectedOrderForDetail && (
         <OrderDetailModal
@@ -523,6 +661,7 @@ const AdminOrders = () => {
           }}
           isOpen={showOrderDetailModal}
           onClose={handleCloseOrderDetailModal}
+          isAdmin={true}
         />
       )}
     </div>

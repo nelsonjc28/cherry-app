@@ -454,6 +454,23 @@ const CartDetailsPage = () => {
     }
 
     try {
+      // Calcular shipping amount para productos regulares (misma lógica que arriba)
+      let regularShippingAmount = 0;
+      if (deliveryType === 'retiro') {
+        regularShippingAmount = 0;
+      } else {
+        // Calcular total después de descuentos pero antes de envío
+        // regularItemsTotal ya incluye descuentos de productos individuales
+        // Necesitamos calcular el total después de descuentos del 30% o 30%+10%
+        // Por ahora, usamos regularItemsTotal como base
+        const freeShippingMin = user?.free_shipping_min_amount || 0;
+        if (user?.free_shipping && freeShippingMin > 0) {
+          regularShippingAmount = regularItemsTotal < freeShippingMin ? 150 : 0;
+        } else {
+          regularShippingAmount = regularItemsTotal < 3000 ? 150 : 0;
+        }
+      }
+
       // Preparar datos para el pago (solo productos regulares)
       const paymentData = {
         items: regularItems.map(item => {
@@ -471,6 +488,7 @@ const CartDetailsPage = () => {
         }),
         address_id: deliveryType === 'envio' ? selectedAddress.id : null,
         delivery_type: deliveryType, // 'envio' or 'retiro'
+        shipping_amount: parseFloat(regularShippingAmount || 0), // Monto del envío
         total_amount: regularItemsTotal,
         use_credit: paymentMethod === 'credit',
         pay_remainder_with_mercadopago: paymentMethod === 'credit' // Si paga con crédito y hay pendiente, pagar resto con MP
@@ -678,6 +696,7 @@ const CartDetailsPage = () => {
     daysFortyFive: user?.day_forty_five,
     freeShipping: user?.free_shipping,
     freeShippingMinAmount: user?.free_shipping_min_amount || 0,
+    shippingAmount: shippingAmount, // Monto del envío calculado
     selectedAddress: selectedAddress,
     onGenerateOrder: handleGenerateOrder,
     onClearCart: handleClearCart

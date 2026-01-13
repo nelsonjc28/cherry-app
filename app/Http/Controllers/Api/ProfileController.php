@@ -163,7 +163,8 @@ class ProfileController extends Controller
                     'pendiente' => $pendingAmount,
                     'credit_used' => $creditUsed,
                     'amount_pending' => $amountPending,
-                    'paid_with_credit' => (bool) ($order->paid_with_credit ?? false)
+                    'paid_with_credit' => (bool) ($order->paid_with_credit ?? false),
+                    'order_id' => $order->id
                 ];
             });
 

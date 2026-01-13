@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { adminOrderService } from '../../services/api';
 import './AccountStatementModal.css';
 
 const AccountStatementModal = ({ isOpen, onClose, userId = null }) => {
   const [statements, setStatements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [markingAsPaid, setMarkingAsPaid] = useState(false);
+  const [orderToMarkAsPaid, setOrderToMarkAsPaid] = useState(null);
+  const [showMarkAsPaidModal, setShowMarkAsPaidModal] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -72,6 +76,45 @@ const AccountStatementModal = ({ isOpen, onClose, userId = null }) => {
     }).format(amount);
   };
 
+  const handleMarkCreditAsPaid = (statement) => {
+    setOrderToMarkAsPaid(statement);
+    setShowMarkAsPaidModal(true);
+  };
+
+  const confirmMarkCreditAsPaid = async () => {
+    if (!orderToMarkAsPaid || !orderToMarkAsPaid.order_id) return;
+
+    try {
+      setMarkingAsPaid(true);
+      const response = await adminOrderService.markCreditOrderAsPaid(orderToMarkAsPaid.order_id);
+      
+      if (response.data.success) {
+        // Recargar los estados de cuenta
+        await fetchAccountStatements();
+        
+        if (window.showToast) {
+          window.showToast(
+            `Orden marcada como pagada. Crédito restaurado: ${formatCurrency(response.data.data?.credit_restored || 0)}`,
+            'success'
+          );
+        }
+      } else {
+        if (window.showToast) {
+          window.showToast(response.data.message || 'Error al marcar la orden como pagada', 'error');
+        }
+      }
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || 'Error de conexión al marcar la orden como pagada';
+      if (window.showToast) {
+        window.showToast(errorMessage, 'error');
+      }
+    } finally {
+      setMarkingAsPaid(false);
+      setShowMarkAsPaidModal(false);
+      setOrderToMarkAsPaid(null);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -125,6 +168,7 @@ const AccountStatementModal = ({ isOpen, onClose, userId = null }) => {
                     <th>Pagado</th>
                     <th>Pendiente</th>
                     <th>Referencia</th>
+                    {userId && <th>Acciones</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -152,6 +196,19 @@ const AccountStatementModal = ({ isOpen, onClose, userId = null }) => {
                         <td className="account-statement-modal__reference-cell">
                           {statement.referencia || '-'}
                         </td>
+                        {userId && (
+                          <td className="account-statement-modal__actions-cell">
+                            {statement.paid_with_credit && statement.credit_used > 0 && (
+                              <button
+                                className="account-statement-modal__mark-paid-btn"
+                                onClick={() => handleMarkCreditAsPaid(statement)}
+                                title="Marcar como Pagada"
+                              >
+                                💰
+                              </button>
+                            )}
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
@@ -160,6 +217,49 @@ const AccountStatementModal = ({ isOpen, onClose, userId = null }) => {
             </div>
           )}
         </div>
+
+        {/* Modal de confirmación para marcar orden a crédito como pagada */}
+        {showMarkAsPaidModal && orderToMarkAsPaid && (
+          <div className="account-statement-modal__mark-paid-overlay" onClick={() => setShowMarkAsPaidModal(false)}>
+            <div className="account-statement-modal__mark-paid-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="account-statement-modal__mark-paid-header">
+                <h3>Marcar Orden como Pagada</h3>
+                <button 
+                  className="account-statement-modal__mark-paid-close"
+                  onClick={() => setShowMarkAsPaidModal(false)}
+                  disabled={markingAsPaid}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="account-statement-modal__mark-paid-body">
+                <p>¿Estás seguro de que deseas marcar la orden <strong>{orderToMarkAsPaid.referencia}</strong> como pagada?</p>
+                <p>Esta acción:</p>
+                <ul style={{ textAlign: 'left', marginTop: '10px' }}>
+                  <li>Marcará la orden como <strong>pagada</strong></li>
+                  <li>Restaurará <strong>{formatCurrency(orderToMarkAsPaid.credit_used || 0)}</strong> al crédito disponible del cliente</li>
+                  <li>Enviará una notificación al cliente</li>
+                </ul>
+              </div>
+              <div className="account-statement-modal__mark-paid-footer">
+                <button
+                  className="account-statement-modal__mark-paid-cancel"
+                  onClick={() => setShowMarkAsPaidModal(false)}
+                  disabled={markingAsPaid}
+                >
+                  Cancelar
+                </button>
+                <button
+                  className="account-statement-modal__mark-paid-confirm"
+                  onClick={confirmMarkCreditAsPaid}
+                  disabled={markingAsPaid}
+                >
+                  {markingAsPaid ? 'Procesando...' : 'Confirmar Pago'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

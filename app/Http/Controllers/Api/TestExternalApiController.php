@@ -87,6 +87,7 @@ class TestExternalApiController extends Controller
                 'address_id' => $address ? $address->id : null,
                 'status' => 'pagado',
                 'total_amount' => $cart->total_price ?? 0,
+                'shipping_amount' => 0,
                 'payment_method' => 'test',
                 'payment_data' => [
                     'delivery_type' => $request->input('delivery_type', $address ? 'envio' : 'retiro'),

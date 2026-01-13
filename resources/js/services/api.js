@@ -1405,6 +1405,16 @@ export const adminOrderService = {
     } catch (error) {
       throw error;
     }
+  },
+
+  // Marcar orden a crédito como pagada (admin)
+  markCreditOrderAsPaid: async (orderId) => {
+    try {
+      const response = await api.post(`/admin/orders/${orderId}/mark-credit-paid`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
   }
 };
 

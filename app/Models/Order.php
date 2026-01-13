@@ -15,6 +15,7 @@ class Order extends Model
         'user_id',
         'address_id',
         'total_amount',
+        'shipping_amount',
         'credit_used',
         'amount_paid',
         'amount_pending',
@@ -31,6 +32,7 @@ class Order extends Model
 
     protected $casts = [
         'total_amount' => 'decimal:2',
+        'shipping_amount' => 'decimal:2',
         'credit_used' => 'decimal:2',
         'amount_paid' => 'decimal:2',
         'amount_pending' => 'decimal:2',

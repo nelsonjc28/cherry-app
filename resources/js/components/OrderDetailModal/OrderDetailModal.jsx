@@ -57,7 +57,7 @@ RetryRemainderPaymentButton.propTypes = {
   orderId: PropTypes.number.isRequired
 };
 
-const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) => {
+const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, isAdmin = false }) => {
   if (!isOpen || !order) return null;
 
   // Agrupar productos por product_id
@@ -174,7 +174,8 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
         grouped[productId].colors.push(item.color);
       }
       
-      if (item.barcode && !grouped[productId].barcodes.includes(item.barcode)) {
+      // Solo agregar códigos de barras si es admin
+      if (isAdmin && item.barcode && !grouped[productId].barcodes.includes(item.barcode)) {
         grouped[productId].barcodes.push(item.barcode);
       }
     });
@@ -257,7 +258,7 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
                   )}
                   {(order.credit_used > 0 || order.amount_pending > 0) && (
                     <div className="info-row info-row--full-width" style={{ marginTop: order.amount_paid > 0 ? '8px' : '12px', paddingTop: order.amount_paid > 0 ? '0' : '12px', borderTop: order.amount_paid > 0 ? 'none' : '1px solid #e0e0e0' }}>
-                      <span className="label" style={{ fontWeight: '700', fontSize: '14px' }}>Saldo pendiente a cancelar:</span>
+                      <span className="label" style={{ fontWeight: '700', fontSize: '14px' }}>Crédito pendiente:</span>
                       <span className="value" style={{ color: '#d32f2f', fontWeight: '700', fontSize: '18px' }}>
                         ${((parseFloat(order.credit_used || 0)) + (parseFloat(order.amount_pending || 0))).toFixed(2)}
                       </span>
@@ -445,10 +446,12 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
                       </span>
                     </div>
                     
-                    {/* Tabla de desglose por talla y código de barras */}
+                    {/* Tabla de desglose por talla y código de barras (solo admin) */}
                     {group.items && group.items.length > 0 && (
                       <div className="product-item__breakdown">
-                        <h5 className="product-item__breakdown-title">Desglose por Talla y Código de Barras</h5>
+                        <h5 className="product-item__breakdown-title">
+                          {isAdmin ? 'Desglose por Talla y Código de Barras' : 'Desglose por Talla'}
+                        </h5>
                         <div className="product-item__breakdown-table-wrapper">
                           <table className="product-item__breakdown-table">
                             <thead>
@@ -456,7 +459,7 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
                                 <th>Color</th>
                                 <th>Talla</th>
                                 <th>Cantidad</th>
-                                <th>Código de Barras</th>
+                                {isAdmin && <th>Código de Barras</th>}
                               </tr>
                             </thead>
                             <tbody>
@@ -465,13 +468,15 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false }) 
                                   <td>{item.color || '-'}</td>
                                   <td>{item.size || '-'}</td>
                                   <td className="product-item__breakdown-quantity">{item.quantity || 0}</td>
-                                  <td className="product-item__breakdown-barcode">
-                                    {item.barcode ? (
-                                      <span className="product-item__barcode">{item.barcode}</span>
-                                    ) : (
-                                      <span className="product-item__barcode-empty">-</span>
-                                    )}
-                                  </td>
+                                  {isAdmin && (
+                                    <td className="product-item__breakdown-barcode">
+                                      {item.barcode ? (
+                                        <span className="product-item__barcode">{item.barcode}</span>
+                                      ) : (
+                                        <span className="product-item__barcode-empty">-</span>
+                                      )}
+                                    </td>
+                                  )}
                                 </tr>
                               ))}
                             </tbody>

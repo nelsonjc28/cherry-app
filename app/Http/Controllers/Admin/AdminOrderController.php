@@ -30,12 +30,14 @@ class AdminOrderController extends Controller
                 // Calcular subtotal de productos
                 $subtotalProducts = $order->items->sum('subtotal');
                 
-                // Calcular costo de envío
+                // Obtener costo de envío desde el campo dedicado o desde payment_data (fallback para órdenes antiguas)
                 $shippingCost = 0;
-                if (isset($paymentData['shipping_amount'])) {
+                if ($order->shipping_amount !== null) {
+                    $shippingCost = (float) $order->shipping_amount;
+                } elseif (isset($paymentData['shipping_amount'])) {
                     $shippingCost = (float) $paymentData['shipping_amount'];
                 } else {
-                    // Calcular como diferencia entre total_amount y subtotal de productos
+                    // Calcular como diferencia entre total_amount y subtotal de productos (solo si no hay campo)
                     $totalAmount = (float) $order->total_amount;
                     if ($totalAmount > $subtotalProducts) {
                         $shippingCost = $totalAmount - $subtotalProducts;
@@ -47,13 +49,16 @@ class AdminOrderController extends Controller
                     $shippingCost = 0;
                 }
                 
+                // Calcular totalAmount como subtotal de productos + envío
+                $totalAmount = $subtotalProducts + $shippingCost;
+                
                 return [
                     'id' => $order->id,
                     'orderNumber' => str_pad($order->id, 8, '0', STR_PAD_LEFT),
                     'date' => $order->created_at->format('d \d\e F Y'),
                     'status' => $order->status,
                     'statusDisplay' => $this->mapOrderStatus($order->status),
-                    'totalAmount' => (float) $order->total_amount,
+                    'totalAmount' => (float) $totalAmount,
                     'shipping_cost' => (float) $shippingCost,
                     'paymentMethod' => ucfirst($order->payment_method),
                     'paymentId' => $order->mercadopago_payment_id,
@@ -214,9 +219,53 @@ class AdminOrderController extends Controller
             $this->notifyCustomerStatusChange($order, $oldStatus, $newStatus);
 
 
-            // Si el estado es 'pagado', notificar al admin (esto se manejará con notificaciones)
+            // Si el estado es 'pagado', notificar al admin
             if ($newStatus === 'pagado') {
                 $this->notifyAdminPaymentReceived($order);
+                
+                // Los pedidos anticipados ya se envían inmediatamente al crearse
+                // Solo verificar si es otro tipo de pedido que necesita enviarse cuando se marca como pagado
+                if ($oldStatus !== 'pagado' && !$order->is_advance_order) {
+                    try {
+                        // Verificar si ya se envió antes de enviar
+                        $paymentData = $order->payment_data ?? [];
+                        if (is_string($paymentData)) {
+                            $paymentData = json_decode($paymentData, true) ?? [];
+                        }
+                        
+                        $alreadySent = isset($paymentData['external_api_sent']) && $paymentData['external_api_sent'] === true;
+                        
+                        if (!$alreadySent) {
+                            $externalSalesService = app(\App\Services\ExternalSalesService::class);
+                            $externalSalesService->sendSaleToExternalApi($order);
+                            
+                            // Marcar que ya se envió
+                            $paymentData['external_api_sent'] = true;
+                            $paymentData['external_api_sent_at'] = now()->toIso8601String();
+                            $order->update(['payment_data' => json_encode($paymentData)]);
+                            
+                            \Illuminate\Support\Facades\Log::info('Pedido enviado a API externa desde AdminOrderController', [
+                                'order_id' => $order->id,
+                                'is_advance_order' => $order->is_advance_order
+                            ]);
+                        } else {
+                            \Illuminate\Support\Facades\Log::info('Pedido ya fue enviado a API externa anteriormente, omitiendo duplicado', [
+                                'order_id' => $order->id
+                            ]);
+                        }
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::error('Error al enviar pedido a API externa', [
+                            'order_id' => $order->id,
+                            'error' => $e->getMessage(),
+                            'trace' => $e->getTraceAsString()
+                        ]);
+                        // No lanzar excepción para no bloquear la actualización del estado
+                    }
+                } elseif ($order->is_advance_order) {
+                    \Illuminate\Support\Facades\Log::info('Pedido anticipado marcado como pagado - ya fue enviado al crearse', [
+                        'order_id' => $order->id
+                    ]);
+                }
             }
 
             return response()->json([
@@ -253,12 +302,14 @@ class AdminOrderController extends Controller
             // Calcular subtotal de productos
             $subtotalProducts = $order->items->sum('subtotal');
             
-            // Calcular costo de envío
+            // Obtener costo de envío desde el campo dedicado o desde payment_data (fallback para órdenes antiguas)
             $shippingCost = 0;
-            if (isset($paymentData['shipping_amount'])) {
+            if ($order->shipping_amount !== null) {
+                $shippingCost = (float) $order->shipping_amount;
+            } elseif (isset($paymentData['shipping_amount'])) {
                 $shippingCost = (float) $paymentData['shipping_amount'];
             } else {
-                // Calcular como diferencia entre total_amount y subtotal de productos
+                // Calcular como diferencia entre total_amount y subtotal de productos (solo si no hay campo)
                 $totalAmount = (float) $order->total_amount;
                 if ($totalAmount > $subtotalProducts) {
                     $shippingCost = $totalAmount - $subtotalProducts;
@@ -276,7 +327,7 @@ class AdminOrderController extends Controller
                 'date' => $order->created_at->format('d \d\e F Y'),
                 'status' => $order->status,
                 'statusDisplay' => $this->mapOrderStatus($order->status),
-                'totalAmount' => (float) $order->total_amount,
+                'totalAmount' => (float) $totalAmount,
                 'shipping_cost' => (float) $shippingCost,
                 'paymentMethod' => ucfirst($order->payment_method),
                 'paymentId' => $order->mercadopago_payment_id,
@@ -419,6 +470,157 @@ class AdminOrderController extends Controller
             ]);
         } catch (\Exception $e) {
             // Error silencioso
+        }
+    }
+
+    /**
+     * Mark credit order as paid and restore credit balance
+     */
+    public function markCreditOrderAsPaid(Request $request, $orderId)
+    {
+        try {
+            $order = Order::with('user')->findOrFail($orderId);
+            
+            // Verificar que la orden sea pagada con crédito
+            if (!$order->paid_with_credit) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Esta orden no fue pagada con crédito'
+                ], 400);
+            }
+            
+            // Verificar que tenga crédito usado
+            $creditUsed = (float) ($order->credit_used ?? 0);
+            if ($creditUsed <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Esta orden no tiene crédito usado'
+                ], 400);
+            }
+            
+            // Verificar que el usuario existe y tiene categoría oro
+            $user = $order->user;
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no encontrado'
+                ], 404);
+            }
+            
+            if ($user->seller_category !== 'oro') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El usuario no tiene categoría oro'
+                ], 400);
+            }
+            
+            // Permitir restaurar crédito incluso si la orden ya está marcada como pagada
+            // Esto es útil si el crédito no se restauró correctamente antes
+            // Solo verificar que realmente haya crédito usado
+            if ($creditUsed <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Esta orden no tiene crédito usado para restaurar'
+                ], 400);
+            }
+            
+            \Illuminate\Support\Facades\DB::beginTransaction();
+            
+            try {
+                // Restaurar el crédito usado al crédito disponible del usuario
+                $currentCreditBalance = (float) ($user->credit_balance ?? 0);
+                $newCreditBalance = $currentCreditBalance + $creditUsed;
+                
+                // No permitir que el crédito disponible exceda el límite
+                $creditLimit = (float) ($user->credit_limit ?? 0);
+                $newCreditBalance = min($newCreditBalance, $creditLimit);
+                
+                $user->credit_balance = $newCreditBalance;
+                $user->save();
+                
+                // Actualizar la orden: marcar como pagada completamente solo si no lo está ya
+                if ($order->status !== 'pagado') {
+                    $order->status = 'pagado';
+                }
+                $order->amount_paid = $order->total_amount;
+                $order->amount_pending = 0;
+                $order->credit_used = 0; // Establecer crédito usado en 0 cuando se marca como pagada
+                $order->save();
+                
+                \Illuminate\Support\Facades\DB::commit();
+                
+                // Log de la operación
+                \Illuminate\Support\Facades\Log::info('Orden a crédito marcada como pagada y crédito restaurado', [
+                    'order_id' => $order->id,
+                    'user_id' => $user->id,
+                    'credit_used' => $creditUsed,
+                    'credit_balance_before' => $currentCreditBalance,
+                    'credit_balance_after' => $newCreditBalance,
+                    'credit_limit' => $creditLimit
+                ]);
+                
+                // Notificar al cliente sobre el cambio de estado
+                $oldStatus = $order->getOriginal('status') ?? $order->status;
+                $this->notifyCustomerStatusChange($order, $oldStatus, 'pagado');
+                
+                // Intentar enviar a API externa si no se ha enviado antes
+                try {
+                    $paymentData = $order->payment_data ?? [];
+                    if (is_string($paymentData)) {
+                        $paymentData = json_decode($paymentData, true) ?? [];
+                    }
+                    
+                    $alreadySent = isset($paymentData['external_api_sent']) && $paymentData['external_api_sent'] === true;
+                    
+                    if (!$alreadySent) {
+                        $externalSalesService = app(\App\Services\ExternalSalesService::class);
+                        $externalSalesService->sendSaleToExternalApi($order);
+                        
+                        // Marcar que ya se envió
+                        $paymentData['external_api_sent'] = true;
+                        $paymentData['external_api_sent_at'] = now()->toIso8601String();
+                        $order->update(['payment_data' => json_encode($paymentData)]);
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Error al enviar pedido a crédito pagado a API externa', [
+                        'order_id' => $order->id,
+                        'error' => $e->getMessage()
+                    ]);
+                    // No bloquear la operación si falla el envío a API externa
+                }
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Orden marcada como pagada y crédito restaurado exitosamente',
+                    'data' => [
+                        'order_id' => $order->id,
+                        'credit_restored' => $creditUsed,
+                        'user_credit_balance' => $newCreditBalance,
+                        'order_status' => $order->status
+                    ]
+                ]);
+                
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\DB::rollBack();
+                throw $e;
+            }
+            
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Orden no encontrada'
+            ], 404);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error al marcar orden a crédito como pagada', [
+                'order_id' => $orderId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al marcar la orden como pagada: ' . $e->getMessage()
+            ], 500);
         }
     }
 

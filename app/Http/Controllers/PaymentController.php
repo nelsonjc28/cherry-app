@@ -50,6 +50,7 @@ class PaymentController extends Controller
             'items.*.color' => 'nullable|string',
             'items.*.barcode' => 'nullable|string',
             'delivery_type' => 'nullable|string|in:envio,retiro',
+            'shipping_amount' => 'nullable|numeric|min:0',
             'total_amount' => 'required|numeric|min:0.01'
         ];
         
@@ -110,6 +111,7 @@ class PaymentController extends Controller
             'user_id' => $user->id,
             'address_id' => $addressId,
             'total_amount' => $request->total_amount,
+            'shipping_amount' => (float) $request->input('shipping_amount', 0),
             'status' => 'pending',
             'payment_method' => 'mercadopago',
             'external_reference' => uniqid('order_' . $user->id . '_')
@@ -212,7 +214,8 @@ class PaymentController extends Controller
                     'country' => 'México'
                 ],
                 'items' => $itemsForMercadoPago,
-                'delivery_type' => $deliveryType
+                'delivery_type' => $deliveryType,
+                'shipping_amount' => $request->input('shipping_amount', 0)
             ];
 
             Log::info('Creando preferencia de MercadoPago', [
@@ -229,9 +232,18 @@ class PaymentController extends Controller
                 'order_id' => $order->id
             ]);
             
-        // Actualizar el pedido con el ID de preferencia
+        // Preparar payment_data inicial con delivery_type y shipping_amount
+        $shippingAmount = (float) $request->input('shipping_amount', 0);
+        $initialPaymentData = [
+            'delivery_type' => $deliveryType,
+            'shipping_amount' => $shippingAmount
+        ];
+        
+        // Actualizar el pedido con el ID de preferencia, shipping_amount y payment_data inicial
         $order->update([
-            'mercadopago_preference_id' => $preference->id
+            'shipping_amount' => $shippingAmount,
+            'mercadopago_preference_id' => $preference->id,
+            'payment_data' => json_encode($initialPaymentData)
         ]);
 
         DB::commit();
@@ -327,6 +339,12 @@ class PaymentController extends Controller
                     }
                     if (isset($previousPaymentData['delivery_type'])) {
                         $newPaymentData['delivery_type'] = $previousPaymentData['delivery_type'];
+                    }
+                    // Preservar shipping_amount desde el campo dedicado o desde payment_data anterior
+                    if ($order->shipping_amount !== null) {
+                        $newPaymentData['shipping_amount'] = (float) $order->shipping_amount;
+                    } elseif (isset($previousPaymentData['shipping_amount'])) {
+                        $newPaymentData['shipping_amount'] = $previousPaymentData['shipping_amount'];
                     }
                     
                     // Obtener payment_method_id del pago y mapearlo
@@ -435,49 +453,78 @@ class PaymentController extends Controller
             return;
         }
         
-        // Verificar si ya se envió el correo revisando payment_data
+        // Verificar si ya se envió a la API externa revisando payment_data
         $paymentData = $order->payment_data ?? [];
         if (is_string($paymentData)) {
             $paymentData = json_decode($paymentData, true) ?? [];
         }
         
-        // Si ya se marcó como email enviado, no enviar de nuevo
-        if (isset($paymentData['confirmation_email_sent']) && $paymentData['confirmation_email_sent'] === true) {
-            Log::info('Email de confirmación ya fue enviado anteriormente, omitiendo envío duplicado', [
-                'order_id' => $order->id
-            ]);
-            return;
-        }
+        // Verificar si ya se envió a la API externa
+        $alreadySentToExternalApi = isset($paymentData['external_api_sent']) && $paymentData['external_api_sent'] === true;
+        
+        // Verificar si ya se envió el correo
+        $emailAlreadySent = isset($paymentData['confirmation_email_sent']) && $paymentData['confirmation_email_sent'] === true;
         
         Log::info('Procesando pago aprobado', [
             'order_id' => $order->id,
             'previous_status' => $previousStatus,
-            'current_status' => $order->status
+            'current_status' => $order->status,
+            'already_sent_to_external_api' => $alreadySentToExternalApi,
+            'email_already_sent' => $emailAlreadySent
         ]);
         
         // 1. Enviar información a la API externa (ella se encarga del inventario)
-        // Lanzará excepción si hay error (sin try-catch para ver el error completo)
-                            $this->externalSalesService->sendSaleToExternalApi($order);
-        Log::info('Venta enviada a API externa exitosamente', ['order_id' => $order->id]);
+        // Solo si aún no se ha enviado
+        if (!$alreadySentToExternalApi) {
+            try {
+                $this->externalSalesService->sendSaleToExternalApi($order);
+                
+                // Marcar que ya se envió a la API externa
+                $paymentData['external_api_sent'] = true;
+                $paymentData['external_api_sent_at'] = now()->toIso8601String();
+                $order->update(['payment_data' => json_encode($paymentData)]);
+                
+                Log::info('Venta enviada a API externa exitosamente', ['order_id' => $order->id]);
+            } catch (\Exception $e) {
+                Log::error('Error al enviar venta a API externa', [
+                    'order_id' => $order->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                // No retornar aquí, continuar con el email aunque falle el envío a API externa
+            }
+        } else {
+            Log::info('Venta ya fue enviada a API externa anteriormente, omitiendo envío duplicado', [
+                'order_id' => $order->id
+            ]);
+        }
         
         // 2. Enviar email de confirmación al cliente
-        // Recargar el pedido con relaciones para el email
-        $order->load(['user', 'address', 'items']);
-        try {
-            Mail::to($order->user->email)->send(new OrderConfirmationMail($order));
-            
-            // Marcar en payment_data que el correo fue enviado para evitar duplicados
-            $paymentData['confirmation_email_sent'] = true;
-            $order->update(['payment_data' => json_encode($paymentData)]);
-            
-            Log::info('Email de confirmación enviado al cliente (webhook - approved)', ['order_id' => $order->id]);
-                        } catch (\Exception $e) {
-            Log::error('Error al enviar email de confirmación (webhook - approved)', [
-                                'order_id' => $order->id,
-                'user_email' => $order->user->email ?? 'N/A',
-                                'error' => $e->getMessage()
-                            ]);
-                        }
+        // Solo si aún no se ha enviado
+        if (!$emailAlreadySent) {
+            // Recargar el pedido con relaciones para el email
+            $order->load(['user', 'address', 'items']);
+            try {
+                Mail::to($order->user->email)->send(new OrderConfirmationMail($order));
+                
+                // Marcar en payment_data que el correo fue enviado para evitar duplicados
+                $paymentData['confirmation_email_sent'] = true;
+                $paymentData['confirmation_email_sent_at'] = now()->toIso8601String();
+                $order->update(['payment_data' => json_encode($paymentData)]);
+                
+                Log::info('Email de confirmación enviado al cliente (webhook - approved)', ['order_id' => $order->id]);
+            } catch (\Exception $e) {
+                Log::error('Error al enviar email de confirmación (webhook - approved)', [
+                    'order_id' => $order->id,
+                    'user_email' => $order->user->email ?? 'N/A',
+                    'error' => $e->getMessage()
+                ]);
+            }
+        } else {
+            Log::info('Email de confirmación ya fue enviado anteriormente, omitiendo envío duplicado', [
+                'order_id' => $order->id
+            ]);
+        }
         
         // 3. Crear notificación para el usuario
         try {
@@ -723,7 +770,8 @@ class PaymentController extends Controller
             'items.*.size' => 'nullable|string',
             'items.*.color' => 'nullable|string',
             'items.*.barcode' => 'nullable|string',
-            'delivery_type' => 'nullable|string|in:envio,retiro'
+            'delivery_type' => 'nullable|string|in:envio,retiro',
+            'shipping_amount' => 'nullable|numeric|min:0'
         ];
         
         // address_id es requerido solo si es envío
@@ -796,9 +844,12 @@ class PaymentController extends Controller
             if (!in_array($payment->status, ['rejected', 'cancelled'])) {
                 DB::beginTransaction();
 
-                // Preparar payment_data con delivery_type incluido
+                // Preparar payment_data con delivery_type y shipping_amount incluidos
                 $paymentDataToStore = is_array($payment) ? $payment : (array) $payment;
                 $paymentDataToStore['delivery_type'] = $deliveryType;
+                // Obtener shipping_amount del request
+                $shippingAmount = isset($requestData['shipping_amount']) ? (float) $requestData['shipping_amount'] : 0;
+                $paymentDataToStore['shipping_amount'] = $shippingAmount;
 
                 // Obtener payment_method_id del pago y mapearlo
                 $paymentMethodId = $payment->payment_method_id ?? $requestData['payment_method_id'] ?? null;
@@ -809,6 +860,7 @@ class PaymentController extends Controller
                     'user_id' => $user->id,
                     'address_id' => $addressId,
                     'total_amount' => $requestData['transaction_amount'],
+                    'shipping_amount' => $shippingAmount,
                     'status' => $orderStatus, // Estado según el estado del pago
                     'payment_method' => $paymentMethod,
                     'external_reference' => $externalReference,
@@ -847,11 +899,36 @@ class PaymentController extends Controller
                 // Para pagos pending/in_process, el webhook también los manejará cuando cambien de estado
 
                 // Solo enviar a API externa si el pago fue aprobado
+                // NOTA: El webhook también intentará enviar, pero tiene verificación de duplicados
                 if ($payment->status === 'approved') {
-                    // El email se enviará desde el webhook cuando Mercado Pago confirme el pago
-                    // Para evitar duplicados, no enviamos aquí
-                    // Enviar información a la API externa (lanzará excepción si hay error)
-                        $this->externalSalesService->sendSaleToExternalApi($order);
+                    try {
+                        // Verificar si ya se envió antes de enviar
+                        $paymentData = $order->payment_data ?? [];
+                        if (is_string($paymentData)) {
+                            $paymentData = json_decode($paymentData, true) ?? [];
+                        }
+                        
+                        $alreadySent = isset($paymentData['external_api_sent']) && $paymentData['external_api_sent'] === true;
+                        
+                        if (!$alreadySent) {
+                            $this->externalSalesService->sendSaleToExternalApi($order);
+                            
+                            // Marcar que ya se envió
+                            $paymentData['external_api_sent'] = true;
+                            $paymentData['external_api_sent_at'] = now()->toIso8601String();
+                            $order->update(['payment_data' => json_encode($paymentData)]);
+                            
+                            Log::info('Venta enviada a API externa desde processIntegratedPayment', ['order_id' => $order->id]);
+                        } else {
+                            Log::info('Venta ya fue enviada a API externa anteriormente, omitiendo duplicado', ['order_id' => $order->id]);
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('Error al enviar venta a API externa desde processIntegratedPayment', [
+                            'order_id' => $order->id,
+                            'error' => $e->getMessage()
+                        ]);
+                        // No lanzar excepción, el webhook lo intentará de nuevo
+                    }
                 }
 
                 // Notificar al admin del pago realizado (solo si está aprobado o pendiente)
@@ -1154,12 +1231,14 @@ class PaymentController extends Controller
                 // Calcular subtotal de productos
                 $subtotalProducts = $order->items->sum('subtotal');
                 
-                // Calcular costo de envío
+                // Obtener costo de envío desde el campo dedicado o desde payment_data (fallback para órdenes antiguas)
                 $shippingCost = 0;
-                if (isset($paymentData['shipping_amount'])) {
+                if ($order->shipping_amount !== null) {
+                    $shippingCost = (float) $order->shipping_amount;
+                } elseif (isset($paymentData['shipping_amount'])) {
                     $shippingCost = (float) $paymentData['shipping_amount'];
                 } else {
-                    // Calcular como diferencia entre total_amount y subtotal de productos
+                    // Calcular como diferencia entre total_amount y subtotal de productos (solo si no hay campo)
                     $totalAmount = (float) $order->total_amount;
                     if ($totalAmount > $subtotalProducts) {
                         $shippingCost = $totalAmount - $subtotalProducts;
@@ -1170,6 +1249,9 @@ class PaymentController extends Controller
                 if ($deliveryType === 'retiro') {
                     $shippingCost = 0;
                 }
+                
+                // Calcular totalAmount como subtotal de productos + envío
+                $totalAmount = $subtotalProducts + $shippingCost;
                 
                 return [
                     'id' => $order->id,
@@ -1288,16 +1370,20 @@ class PaymentController extends Controller
                             'hasReview' => $hasReview
                         ];
                     }),
-                    'totalAmount' => (float) $order->total_amount,
+                    'totalAmount' => (float) $totalAmount,
                     'credit_used' => (float) ($order->credit_used ?? 0),
                     'amount_paid' => (float) ($order->amount_paid ?? $order->total_amount),
                     'amount_pending' => (float) ($order->amount_pending ?? 0),
                     'paid_with_credit' => (bool) ($order->paid_with_credit ?? false),
                     'address' => $order->address ? [
-                        'street' => $order->address->street_address,
+                        'street_address' => $order->address->street_address,
                         'city' => $order->address->city,
+                        'municipality' => $order->address->municipality,
                         'state' => $order->address->state,
-                        'postal_code' => $order->address->postal_code
+                        'postal_code' => $order->address->postal_code,
+                        'country' => $order->address->country,
+                        'additional_info' => $order->address->additional_info,
+                        'name' => $order->address->name
                     ] : null
                 ];
             });
@@ -1767,6 +1853,12 @@ class PaymentController extends Controller
                 if (isset($previousPaymentData['delivery_type'])) {
                     $paymentDataArray['delivery_type'] = $previousPaymentData['delivery_type'];
                 }
+                // Preservar shipping_amount desde el campo dedicado o desde payment_data anterior
+                if ($order->shipping_amount !== null) {
+                    $paymentDataArray['shipping_amount'] = (float) $order->shipping_amount;
+                } elseif (isset($previousPaymentData['shipping_amount'])) {
+                    $paymentDataArray['shipping_amount'] = $previousPaymentData['shipping_amount'];
+                }
                 $updateData['payment_data'] = json_encode($paymentDataArray);
             }
             
@@ -1844,6 +1936,7 @@ class PaymentController extends Controller
             'items.*.color' => 'nullable|string',
             'items.*.barcode' => 'nullable|string',
             'delivery_type' => 'nullable|string|in:envio,retiro',
+            'shipping_amount' => 'nullable|numeric|min:0',
             'total_amount' => 'required|numeric|min:0.01',
             'payment_method' => 'nullable|string|in:oxxo,paycash'
         ];
@@ -1899,6 +1992,7 @@ class PaymentController extends Controller
                 'user_id' => $user->id,
                 'address_id' => $addressId,
                 'total_amount' => $request->total_amount,
+                'shipping_amount' => (float) $request->input('shipping_amount', 0),
                 'status' => 'pendiente_pago',
                 'payment_method' => 'oxxo',
                 'external_reference' => $externalReference
@@ -1935,9 +2029,12 @@ class PaymentController extends Controller
             // Crear pago en efectivo con MercadoPago
             $payment = $this->mercadoPagoService->createCashPayment($paymentData);
 
-            // Preparar payment_data con delivery_type incluido
+            // Preparar payment_data con delivery_type y shipping_amount incluidos
             $paymentDataToStore = is_array($payment) ? $payment : (array) $payment;
             $paymentDataToStore['delivery_type'] = $deliveryType;
+            // Obtener shipping_amount del request (ya está guardado en la orden, pero lo preservamos en payment_data)
+            $shippingAmount = (float) $request->input('shipping_amount', 0);
+            $paymentDataToStore['shipping_amount'] = $shippingAmount;
 
             // Obtener payment_method_id del pago y mapearlo
             $paymentMethodId = null;
@@ -2080,7 +2177,7 @@ class PaymentController extends Controller
                 'payment_status' => $realStatus
             ]);
 
-            // Preservar delivery_type si existe en payment_data anterior
+            // Preservar delivery_type y shipping_amount si existen en payment_data anterior
             $previousPaymentData = $order->payment_data ?? [];
             if (is_string($previousPaymentData)) {
                 $previousPaymentData = json_decode($previousPaymentData, true) ?? [];
@@ -2088,6 +2185,12 @@ class PaymentController extends Controller
             $paymentArray = is_array($payment) ? $payment : (array) $payment;
             if (isset($previousPaymentData['delivery_type'])) {
                 $paymentArray['delivery_type'] = $previousPaymentData['delivery_type'];
+            }
+            // Preservar shipping_amount desde el campo dedicado o desde payment_data anterior
+            if ($order->shipping_amount !== null) {
+                $paymentArray['shipping_amount'] = (float) $order->shipping_amount;
+            } elseif (isset($previousPaymentData['shipping_amount'])) {
+                $paymentArray['shipping_amount'] = $previousPaymentData['shipping_amount'];
             }
             
             // Obtener payment_method_id del pago y mapearlo
@@ -2189,18 +2292,27 @@ class PaymentController extends Controller
         DB::beginTransaction();
         
         try {
+            // Preparar payment_data inicial con delivery_type y shipping_amount
+            $shippingAmount = (float) $request->input('shipping_amount', 0);
+            $initialPaymentData = [
+                'delivery_type' => $deliveryType,
+                'shipping_amount' => $shippingAmount
+            ];
+            
             // Crear la orden
             $order = Order::create([
                 'user_id' => $user->id,
                 'address_id' => $addressId,
                 'total_amount' => $totalAmount,
+                'shipping_amount' => $shippingAmount,
                 'credit_used' => $creditToUse,
                 'amount_paid' => $amountPaid,
                 'amount_pending' => $amountPending,
                 'paid_with_credit' => true,
                 'status' => $amountPending > 0 ? 'pendiente_pago' : 'pagado',
                 'payment_method' => $amountPending > 0 ? 'credito_mercadopago' : 'credito',
-                'external_reference' => uniqid('order_' . $user->id . '_')
+                'external_reference' => uniqid('order_' . $user->id . '_'),
+                'payment_data' => json_encode($initialPaymentData)
             ]);
 
             // Crear los items del pedido
@@ -2235,6 +2347,9 @@ class PaymentController extends Controller
             // Se descontará cuando se apruebe el pago de MercadoPago (vía webhook)
 
             DB::commit();
+
+            // Recargar el pedido con relaciones necesarias
+            $order->load(['user', 'items', 'address']);
 
             // Si hay monto pendiente y quiere pagar con MercadoPago, crear preferencia
             if ($amountPending > 0 && $payRemainderWithMercadoPago) {
@@ -2305,7 +2420,7 @@ class PaymentController extends Controller
                 ]);
             }
 
-            // Si se pagó completamente con crédito
+            // Si se pagó completamente con crédito, enviar inmediatamente a API externa
             if ($amountPending === 0) {
                 // Enviar email de confirmación
                 try {
@@ -2318,14 +2433,40 @@ class PaymentController extends Controller
                     ]);
                 }
 
-                // Enviar a API externa
+                // Enviar inmediatamente a la API externa solo si está pagado completamente
                 try {
-                    $this->externalSalesService->sendSaleToExternalApi($order);
+                    $paymentData = $order->payment_data ?? [];
+                    if (is_string($paymentData)) {
+                        $paymentData = json_decode($paymentData, true) ?? [];
+                    }
+                    
+                    $alreadySent = isset($paymentData['external_api_sent']) && $paymentData['external_api_sent'] === true;
+                    
+                    if (!$alreadySent) {
+                        $this->externalSalesService->sendSaleToExternalApi($order);
+                        
+                        // Marcar que ya se envió
+                        $paymentData['external_api_sent'] = true;
+                        $paymentData['external_api_sent_at'] = now()->toIso8601String();
+                        $order->update(['payment_data' => json_encode($paymentData)]);
+                        
+                        Log::info('Pedido con crédito completo enviado a API externa inmediatamente', [
+                            'order_id' => $order->id,
+                            'paid_with_credit' => true,
+                            'amount_pending' => 0
+                        ]);
+                    } else {
+                        Log::info('Pedido con crédito ya fue enviado a API externa anteriormente, omitiendo duplicado', [
+                            'order_id' => $order->id
+                        ]);
+                    }
                 } catch (\Exception $e) {
-                    Log::error('Error al enviar venta a API externa (crédito)', [
+                    Log::error('Error al enviar pedido con crédito completo a API externa', [
                         'order_id' => $order->id,
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
                     ]);
+                    // No bloquear el proceso si falla el envío a API externa
                 }
 
                 return response()->json([
@@ -2408,6 +2549,7 @@ class PaymentController extends Controller
                 'user_id' => $user->id,
                 'address_id' => null, // Los pedidos adelantados no tienen dirección hasta que se paguen
                 'total_amount' => $request->total_amount,
+                'shipping_amount' => (float) $request->input('shipping_amount', 0),
                 'status' => 'pendiente_pago', // Pendiente hasta que el admin lo marque como pagado
                 'payment_method' => 'pedido_adelantado',
                 'is_advance_order' => true,
@@ -2431,8 +2573,42 @@ class PaymentController extends Controller
 
             DB::commit();
 
-            // Recargar el pedido con relaciones
-            $order->load(['user', 'items']);
+            // Recargar el pedido con relaciones necesarias para enviar a API externa
+            $order->load(['user', 'items', 'address']);
+
+            // Preparar payment_data inicial con delivery_type y shipping_amount
+            $deliveryType = $request->input('delivery_type', 'envio'); // Por defecto envío, pero los pedidos anticipados pueden no tener dirección aún
+            $shippingAmount = (float) $request->input('shipping_amount', 0);
+            $initialPaymentData = [
+                'delivery_type' => $deliveryType,
+                'shipping_amount' => $shippingAmount
+            ];
+            
+            // Actualizar payment_data
+            $order->update(['payment_data' => json_encode($initialPaymentData)]);
+
+            // Enviar inmediatamente a la API externa
+            try {
+                $this->externalSalesService->sendSaleToExternalApi($order);
+                
+                // Marcar que ya se envió
+                $initialPaymentData['external_api_sent'] = true;
+                $initialPaymentData['external_api_sent_at'] = now()->toIso8601String();
+                $order->update(['payment_data' => json_encode($initialPaymentData)]);
+                
+                Log::info('Pedido anticipado enviado a API externa inmediatamente al crearse', [
+                    'order_id' => $order->id,
+                    'is_advance_order' => true
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Error al enviar pedido anticipado a API externa al crearse', [
+                    'order_id' => $order->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                // No bloquear la creación del pedido si falla el envío a API externa
+                // El admin podrá reenviarlo manualmente si es necesario
+            }
 
             // Crear notificación para el admin
             Notification::create([

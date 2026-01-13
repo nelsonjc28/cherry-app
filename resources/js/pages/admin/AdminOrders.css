@@ -832,6 +832,18 @@
   color: var(--color-primary);
 }
 
+.order-action-btn--mark-paid {
+  background-color: #4caf50 !important;
+  color: white !important;
+  border: 1px solid #45a049;
+}
+
+.order-action-btn--mark-paid:hover {
+  background-color: #45a049 !important;
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
 /* Ocultar columnas en móvil */
 @media (max-width: 768px) {
   .mobile-hide {

@@ -58,8 +58,9 @@ class ExternalSalesService
         
         // Obtener número de pedido (usar el ID del pedido)
         $numeroPedido = $order->id;
-        // Usar formato "CD" para el nombre del pedido
-        $nombrePedido = 'CD' . str_pad($numeroPedido, 4, '0', STR_PAD_LEFT);
+        // Usar formato "CD" para pedidos normales, "PD" para pedidos anticipados
+        $prefijo = ($order->is_advance_order ?? false) ? 'PD' : 'CD';
+        $nombrePedido = $prefijo . str_pad($numeroPedido, 4, '0', STR_PAD_LEFT);
         
         // Preparar items con idArtd e idArticulo
         // IMPORTANTE: Por cada talla/color comprada se envía un item separado
@@ -72,20 +73,62 @@ class ExternalSalesService
             // Ejemplo: 10000 -> "010000", "010000" -> "010000"
             $productIdNormalized = $this->normalizeProductId($orderItem->product_id);
             
-            // Obtener el producto primero
+            // Intentar múltiples formas de buscar el producto (similar a AdminOrderController)
+            // 1. Intentar con ID normalizado (6 dígitos con ceros)
             $producto = Producto::find($productIdNormalized);
+            
+            // 2. Intentar con el ID original tal cual
             if (!$producto) {
-                Log::warning('No se encontró producto para OrderItem', [
+                $producto = Producto::find((string) $orderItem->product_id);
+            }
+            
+            // 3. Intentar con un cero al inicio (caso común: 232012306 -> 0232012306)
+            if (!$producto) {
+                $productIdWithZero = '0' . (string) $orderItem->product_id;
+                $producto = Producto::find($productIdWithZero);
+            }
+            
+            // 4. Intentar con padding a 6 dígitos (para IDs cortos)
+            if (!$producto && strlen((string) $orderItem->product_id) < 6) {
+                $productIdPadded = str_pad((string) $orderItem->product_id, 6, '0', STR_PAD_LEFT);
+                $producto = Producto::find($productIdPadded);
+            }
+            
+            // 5. Intentar con padding a 10 dígitos (para IDs largos como 232012306 -> 0232012306)
+            if (!$producto && strlen((string) $orderItem->product_id) >= 6) {
+                $productIdPadded10 = str_pad((string) $orderItem->product_id, 10, '0', STR_PAD_LEFT);
+                $producto = Producto::find($productIdPadded10);
+            }
+            
+            // 6. Buscar con LIKE (para IDs que contengan el product_id al final)
+            if (!$producto) {
+                $producto = Producto::where('id', 'LIKE', '%' . $orderItem->product_id)->first();
+            }
+            
+            // 7. Buscar con LIKE inverso (para IDs que contengan el product_id al inicio)
+            if (!$producto) {
+                $producto = Producto::where('id', 'LIKE', $orderItem->product_id . '%')->first();
+            }
+            
+            if (!$producto) {
+                Log::error('No se encontró producto para OrderItem después de múltiples intentos', [
                     'order_item_id' => $orderItem->id,
                     'product_id_original' => $orderItem->product_id,
-                    'product_id_normalized' => $productIdNormalized
+                    'product_id_normalized' => $productIdNormalized,
+                    'order_id' => $order->id
                 ]);
-                continue;
+                // En lugar de hacer continue, lanzar excepción para que se sepa qué producto falta
+                throw new \Exception(
+                    "No se encontró el producto con ID '{$orderItem->product_id}' en la base de datos. " .
+                    "OrderItem ID: {$orderItem->id}, Orden ID: {$order->id}. " .
+                    "Verifica que el producto exista en la tabla productos."
+                );
             }
             
             // Buscar el detalle que coincida con el producto, tamaño y color
             // idArtd es el identificador del artículo por color y talla en el sistema
-            $detalle = $this->findDetalleForOrderItem($orderItem);
+            // Usar el ID del producto encontrado (no el original del orderItem)
+            $detalle = $this->findDetalleForOrderItem($orderItem, $producto->id);
             
             if (!$detalle) {
                 Log::error('No se encontró detalle para OrderItem - CRÍTICO', [
@@ -107,18 +150,30 @@ class ExternalSalesService
             
             // Calcular descuento: comparar precio pagado con precio original del producto
             $precioOriginal = (float) ($producto->precio1 ?? 0);
-            $descuentoUnitario = 0;
-            $descuentoItem = 0;
             
-            // Si hay precio original y es mayor al precio pagado, hay descuento
-            if ($precioOriginal > 0 && $precioOriginal > $precioUnitario) {
-                $descuentoUnitario = $precioOriginal - $precioUnitario;
-                $descuentoItem = $descuentoUnitario * $cantidad;
+            // Si no hay precio original, usar el precio pagado como precio original
+            if ($precioOriginal <= 0) {
+                $precioOriginal = $precioUnitario;
             }
             
-            // Calcular subtotal y acumular
-            $subtotal = $precioUnitario * $cantidad;
-            $importeNeto += $subtotal;
+            $descuentoUnitario = 0;
+            $descuentoItem = 0;
+            $porcentajeDescuento = 0;
+            
+            // Si hay precio original y es mayor al precio pagado, hay descuento
+            if ($precioOriginal > $precioUnitario && $precioOriginal > 0) {
+                $descuentoUnitario = $precioOriginal - $precioUnitario;
+                $descuentoItem = $descuentoUnitario * $cantidad;
+                // Calcular porcentaje de descuento: ((precio_original - precio_pagado) / precio_original) * 100
+                $porcentajeDescuento = (($descuentoUnitario / $precioOriginal) * 100);
+            }
+            
+            // Calcular subtotales
+            // ImporteNeto: suma de (precio original * cantidad) - esto es el total sin descuentos
+            $subtotalOriginal = $precioOriginal * $cantidad;
+            $importeNeto += $subtotalOriginal;
+            
+            // Descuentos: suma de descuentos aplicados (en monto absoluto para el total)
             $descuentos += $descuentoItem;
             
             // idArticulo: Identificador del artículo en el sistema (ejemplo: "PL09406", "CH09809")
@@ -132,16 +187,35 @@ class ExternalSalesService
                 'idArticulo' => $idArticulo, // Identificador del artículo
                 'cantidad' => (float) $cantidad, // Cantidad de esta talla específica
                 'precio' => (float) $precioUnitario, // Precio que pagó el cliente por unidad
-                'descuento' => (float) $descuentoItem, // Descuento total aplicado (unitario * cantidad)
-                'opcDecto' => $descuentoItem > 0 ? 'S' : 'N' // Indica si hay descuento
+                'descuento' => (float) $porcentajeDescuento, // Porcentaje de descuento (la API espera porcentaje, no monto)
+                'opcDecto' => $porcentajeDescuento > 0 ? 'S' : 'N' // Indica si hay descuento
             ];
         }
         
         // Validar que haya items procesados
         if (empty($items)) {
+            $itemsInfo = [];
+            foreach ($order->items as $item) {
+                $itemsInfo[] = [
+                    'order_item_id' => $item->id,
+                    'product_id' => $item->product_id,
+                    'name' => $item->name,
+                    'size' => $item->size,
+                    'color' => $item->color
+                ];
+            }
+            
+            Log::error('No se pudieron procesar items de la orden', [
+                'order_id' => $order->id,
+                'items_info' => $itemsInfo,
+                'total_items' => $order->items->count()
+            ]);
+            
             throw new \Exception(
                 "No se pudieron procesar los items de la orden #{$order->id}. " .
-                "El array de items está vacío. Verifica que los productos tengan detalles (idArtd) asociados."
+                "El array de items está vacío después de procesar " . $order->items->count() . " item(s). " .
+                "Verifica que los productos existan en la base de datos y tengan detalles (idArtd) asociados. " .
+                "Items de la orden: " . json_encode($itemsInfo)
             );
         }
         
@@ -154,14 +228,14 @@ class ExternalSalesService
         // Calcular importes
         $importeTotal = $importeNeto - $descuentos;
         
-        // Obtener costo de envío desde payment_data o calcularlo
-        // El costo de envío puede venir en payment_data['shipping_amount'] o calcularse
-        // como la diferencia entre total_amount y importeTotal
+        // Obtener costo de envío desde el campo dedicado o desde payment_data (fallback para órdenes antiguas)
         $costoEnvio = 0;
-        if (isset($paymentData['shipping_amount'])) {
+        if ($order->shipping_amount !== null) {
+            $costoEnvio = (float) $order->shipping_amount;
+        } elseif (isset($paymentData['shipping_amount'])) {
             $costoEnvio = (float) $paymentData['shipping_amount'];
         } else {
-            // Calcular como diferencia entre total_amount y importeTotal
+            // Calcular como diferencia entre total_amount y importeTotal (solo si no hay campo)
             // Si total_amount > importeTotal, la diferencia es el costo de envío
             $totalAmount = (float) $order->total_amount;
             if ($totalAmount > $importeTotal) {
@@ -331,28 +405,30 @@ class ExternalSalesService
     
     /**
      * Buscar el detalle que coincida con el OrderItem
+     * @param OrderItem $orderItem El item de la orden
+     * @param string|null $productIdFound El ID del producto encontrado (si se pasó, usar este en lugar de normalizar)
      */
-    private function findDetalleForOrderItem(OrderItem $orderItem): ?Detalle
+    private function findDetalleForOrderItem(OrderItem $orderItem, ?string $productIdFound = null): ?Detalle
     {
-        // Normalizar product_id antes de buscar
-        $productIdNormalized = $this->normalizeProductId($orderItem->product_id);
+        // Usar el ID del producto encontrado si se proporciona, de lo contrario normalizar
+        $productIdToSearch = $productIdFound ?? $this->normalizeProductId($orderItem->product_id);
         
         // Buscar detalle por producto_id, tamaño y color
-        $detalle = Detalle::where('producto_id', $productIdNormalized)
+        $detalle = Detalle::where('producto_id', $productIdToSearch)
             ->where('detalle', $orderItem->size)
             ->where('nombreColor', $orderItem->color)
             ->first();
         
         // Si no se encuentra con color exacto, buscar solo por producto y tamaño
         if (!$detalle) {
-            $detalle = Detalle::where('producto_id', $productIdNormalized)
+            $detalle = Detalle::where('producto_id', $productIdToSearch)
                 ->where('detalle', $orderItem->size)
                 ->first();
         }
         
         // Si aún no se encuentra, buscar solo por producto (cualquier detalle)
         if (!$detalle) {
-            $detalle = Detalle::where('producto_id', $productIdNormalized)
+            $detalle = Detalle::where('producto_id', $productIdToSearch)
                 ->first();
         }
         

@@ -21,6 +21,7 @@ const CartOrderSummary = ({
   daysFortyFive,
   freeShipping,
   freeShippingMinAmount = 0,
+  shippingAmount = 0, // Monto del envío calculado
   // Nuevas props para el formulario integrado
   cartItems = [],
   selectedPaymentCard = null,
@@ -525,6 +526,7 @@ const CartOrderSummary = ({
         }),
       address_id: deliveryType === 'envio' && selectedAddress ? parseInt(selectedAddress.id, 10) : null,
       delivery_type: deliveryType, // 'envio' or 'retiro'
+      shipping_amount: parseFloat(shippingAmount || 0), // Monto del envío
         // Información para crear/actualizar registro dayFortyFive
         day_forty_five_applied: dayFortyFiveApplied,
         day_forty_five_discount_percentage: dayFortyFiveDiscountPercentage,
@@ -699,6 +701,7 @@ const CartOrderSummary = ({
         })),
         address_id: deliveryType === 'envio' && selectedAddress ? parseInt(selectedAddress.id, 10) : null,
         delivery_type: deliveryType, // 'envio' or 'retiro'
+        shipping_amount: parseFloat(shippingAmount || 0), // Monto del envío
         total_amount: totalAmountToSend // Total FINAL con descuentos y envío incluidos
       };
 
