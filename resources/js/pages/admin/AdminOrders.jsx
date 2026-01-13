@@ -42,23 +42,10 @@ const AdminOrders = () => {
   const [highlightedOrderId, setHighlightedOrderId] = useState(null);
   const [selectedOrderForDetail, setSelectedOrderForDetail] = useState(null);
   const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
-  const [expandedRows, setExpandedRows] = useState(new Set());
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   const itemsPerPage = 10;
-
-  const toggleRowExpansion = (orderId) => {
-    setExpandedRows(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(orderId)) {
-        newSet.delete(orderId);
-      } else {
-        newSet.add(orderId);
-      }
-      return newSet;
-    });
-  };
 
   // Cargar órdenes y notificaciones
   useEffect(() => {
@@ -312,68 +299,52 @@ const AdminOrders = () => {
             <p>No se encontraron órdenes con los filtros seleccionados.</p>
           </div>
         ) : (
-          <table className="admin-orders__table">
-            <thead>
-              <tr>
-                <th>No. de pedido</th>
-                <th>Total</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedOrders.map((order) => {
-                const orderDate = new Date(order.created_at);
-                const dateStr = orderDate.toLocaleDateString('es-MX', { 
-                  year: 'numeric', 
-                  month: '2-digit', 
-                  day: '2-digit' 
-                });
-                const timeStr = orderDate.toLocaleTimeString('es-MX', { 
-                  hour: '2-digit', 
-                  minute: '2-digit' 
-                });
-                const totalPieces = order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
-                
-                const isExpanded = expandedRows.has(order.id);
-                
-                return (
-                  <React.Fragment key={order.id}>
+          <div className="table-scroll-wrapper">
+            <table className="admin-orders__table">
+              <thead>
+                <tr>
+                  <th>No. de pedido</th>
+                  <th>Fecha</th>
+                  <th>Hora</th>
+                  <th>Cliente</th>
+                  <th>Cant. piezas</th>
+                  <th>Total</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedOrders.map((order) => {
+                  const orderDate = new Date(order.created_at);
+                  const dateStr = orderDate.toLocaleDateString('es-MX', { 
+                    year: 'numeric', 
+                    month: '2-digit', 
+                    day: '2-digit' 
+                  });
+                  const timeStr = orderDate.toLocaleTimeString('es-MX', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  });
+                  const totalPieces = order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+                  
+                  return (
                     <tr 
-                      className={`${highlightedOrderId === order.id ? 'highlighted' : ''} ${isExpanded ? 'expanded' : ''}`}
+                      key={order.id}
+                      className={`${highlightedOrderId === order.id ? 'highlighted' : ''}`}
                     >
                       <td className="order-number-cell">#{order.orderNumber}</td>
+                      <td className="order-date-cell">{dateStr}</td>
+                      <td className="order-time-cell">{timeStr}</td>
+                      <td className="order-customer-cell">{order.customerName || 'N/A'}</td>
+                      <td className="order-pieces-cell">{totalPieces}</td>
                       <td className="order-total-cell">{formatCurrency(order.totalAmount)}</td>
+                      <td className="order-status-cell">
+                        <span className={`status-badge status-badge--${getStatusColor(order.status)}`}>
+                          {order.statusDisplay || order.status}
+                        </span>
+                      </td>
                       <td className="order-actions-cell">
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end' }}>
-                          <button
-                            className="order-expand-btn mobile-only"
-                            onClick={() => toggleRowExpansion(order.id)}
-                            aria-label={isExpanded ? 'Ocultar detalles' : 'Ver más detalles'}
-                            data-tooltip={isExpanded ? 'Ocultar detalles' : 'Ver más detalles'}
-                            onMouseEnter={(e) => {
-                              const button = e.currentTarget;
-                              const tooltipText = button.getAttribute('data-tooltip');
-                              let tooltip = document.querySelector('.order-tooltip');
-                              if (!tooltip) {
-                                tooltip = document.createElement('div');
-                                tooltip.className = 'order-tooltip';
-                                document.body.appendChild(tooltip);
-                              }
-                              tooltip.textContent = tooltipText;
-                              tooltip.style.display = 'block';
-                              
-                              const rect = button.getBoundingClientRect();
-                              const tooltipRect = tooltip.getBoundingClientRect();
-                              tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
-                              tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
-                            }}
-                            onMouseLeave={() => {
-                              const tooltip = document.querySelector('.order-tooltip');
-                              if (tooltip) tooltip.style.display = 'none';
-                            }}
-                          >
-                            {isExpanded ? '▼' : '▶'}
-                          </button>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
                           <button
                             className="order-action-btn order-action-btn--detail"
                             onClick={() => handleViewOrderDetails(order)}
@@ -405,40 +376,11 @@ const AdminOrders = () => {
                         </div>
                       </td>
                     </tr>
-                    {isExpanded && (
-                      <tr className="order-details-row mobile-only">
-                        <td colSpan="3" className="order-details-cell">
-                          <div className="order-details-content">
-                            <div className="order-detail-item">
-                              <span className="order-detail-label">Fecha:</span>
-                              <span className="order-detail-value">{dateStr}</span>
-                            </div>
-                            <div className="order-detail-item">
-                              <span className="order-detail-label">Hora:</span>
-                              <span className="order-detail-value">{timeStr}</span>
-                            </div>
-                            <div className="order-detail-item">
-                              <span className="order-detail-label">Cliente:</span>
-                              <span className="order-detail-value">{order.customerName}</span>
-                            </div>
-                            <div className="order-detail-item">
-                              <span className="order-detail-label">Cant. de piezas:</span>
-                              <span className="order-detail-value">{totalPieces}</span>
-                            </div>
-                            <div className="order-detail-item">
-                              <span className={`status-badge status-badge--${getStatusColor(order.status)}`}>
-                                {order.statusDisplay || order.status}
-                              </span>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </tbody>
-          </table>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
