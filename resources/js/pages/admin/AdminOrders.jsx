@@ -42,13 +42,10 @@ const AdminOrders = () => {
   const [highlightedOrderId, setHighlightedOrderId] = useState(null);
   const [selectedOrderForDetail, setSelectedOrderForDetail] = useState(null);
   const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
-<<<<<<< ours
   const [expandedRows, setExpandedRows] = useState(new Set());
   const [markingAsPaid, setMarkingAsPaid] = useState(false);
   const [orderToMarkAsPaid, setOrderToMarkAsPaid] = useState(null);
   const [showMarkAsPaidModal, setShowMarkAsPaidModal] = useState(false);
-=======
->>>>>>> theirs
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 

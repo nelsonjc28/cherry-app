@@ -104,16 +104,86 @@
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  overflow-x: auto;
   margin-bottom: 30px;
   position: relative;
-  z-index: 1;
+}
+
+.table-scroll-wrapper {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thick;
+  scrollbar-color: #EA2630 #2c3e50;
+  padding-bottom: 8px;
+}
+
+/* Estilos para el scrollbar en navegadores WebKit (Chrome, Safari, Edge) */
+.table-scroll-wrapper::-webkit-scrollbar {
+  height: 20px;
+  background: transparent;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-track {
+  background: linear-gradient(180deg, #34495e 0%, #2c3e50 100%);
+  border-radius: 10px;
+  margin: 0 12px;
+  box-shadow:
+    inset 0 3px 8px rgba(0, 0, 0, 0.4),
+    0 1px 3px rgba(0, 0, 0, 0.3);
+  border: 2px solid #1a252f;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #FF1744 0%, #EA2630 50%, #D50000 100%);
+  border-radius: 10px;
+  border: 3px solid #fff;
+  box-shadow:
+    0 4px 12px rgba(255, 23, 68, 0.8),
+    inset 0 2px 4px rgba(255, 255, 255, 0.5),
+    0 0 0 2px rgba(255, 23, 68, 0.5);
+  transition: all 0.3s ease;
+  animation: scrollbarGlow 2s ease-in-out infinite;
+}
+
+@keyframes scrollbarGlow {
+  0%,
+  100% {
+    box-shadow:
+      0 4px 12px rgba(255, 23, 68, 0.8),
+      inset 0 2px 4px rgba(255, 255, 255, 0.5),
+      0 0 0 2px rgba(255, 23, 68, 0.5);
+  }
+
+  50% {
+    box-shadow:
+      0 6px 20px rgba(255, 23, 68, 1),
+      inset 0 2px 4px rgba(255, 255, 255, 0.6),
+      0 0 0 3px rgba(255, 23, 68, 0.8),
+      0 0 20px rgba(255, 23, 68, 0.5);
+  }
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #FF1744 0%, #FF4569 100%);
+  box-shadow:
+    0 6px 16px rgba(255, 23, 68, 1),
+    inset 0 2px 4px rgba(255, 255, 255, 0.6),
+    0 0 0 3px rgba(255, 23, 68, 0.8);
+  transform: scaleY(1.15);
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(135deg, #D50000 0%, #B71C1C 100%);
+  box-shadow:
+    0 2px 8px rgba(213, 0, 0, 0.8),
+    inset 0 1px 3px rgba(0, 0, 0, 0.3);
+  animation: none;
 }
 
 .my-orders__table {
-  width: 100%;
+  width: auto;
   border-collapse: collapse;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .my-orders__table thead {
@@ -122,7 +192,7 @@
 }
 
 .my-orders__table th {
-  padding: 12px 8px;
+  padding: 14px 16px;
   text-align: left;
   font-size: 12px;
   font-weight: 600;
@@ -130,17 +200,12 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  position: sticky;
+  top: 0;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  z-index: 10;
+  width: auto;
 }
-
-.my-orders__table th:nth-child(1) { width: 15%; } /* No. de pedido */
-.my-orders__table th:nth-child(2) { width: 12%; }  /* Fecha */
-.my-orders__table th:nth-child(3) { width: 10%; }  /* Hora */
-.my-orders__table th:nth-child(4) { width: 12%; }  /* Cant. piezas */
-.my-orders__table th:nth-child(5) { width: 15%; } /* Total */
-.my-orders__table th:nth-child(6) { width: 18%; } /* Estatus */
-.my-orders__table th:nth-child(7) { width: 18%; } /* Acciones */
 
 .my-orders__table tbody tr {
   border-bottom: 1px solid #e9ecef;
@@ -171,17 +236,16 @@
 }
 
 .my-orders__table td {
-  padding: 12px 8px;
+  padding: 14px 16px;
   font-size: 13px;
   color: #333;
   vertical-align: middle;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.my-orders__table td.order-details-cell {
-  overflow: visible !important;
-  text-overflow: clip !important;
+.my-orders__table tbody td {
+  padding: 10px 32px;
+  font-size: 12px;
 }
 
 .order-number-cell {
@@ -198,8 +262,9 @@
 
 .order-pieces-cell {
   text-align: center;
-  font-weight: 500;
-  color: #333;
+  font-weight: 600;
+  color: var(--color-primary);
+  font-size: 14px;
 }
 
 .order-total-cell {
@@ -221,53 +286,48 @@
 
 .order-actions-cell {
   white-space: nowrap;
-  position: relative;
-  z-index: 10;
+  text-align: center;
 }
 
-/* Botones de acción pequeños con iconos */
+/* Botones de acción */
 .order-action-btn {
-  width: 32px;
-  height: 32px;
+  background: transparent;
   border: none;
-  border-radius: 6px;
   cursor: pointer;
+  font-size: 18px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
-  transition: all 0.2s ease;
-  position: relative;
-  padding: 0;
-  z-index: 11;
+  width: 32px;
+  height: 32px;
 }
 
-.order-action-btn--pay {
-  background: #d32f2f;
-  color: white;
-}
-
-.order-action-btn--pay:hover {
-  background: #b71c1c;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(211, 47, 47, 0.3);
+.order-action-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  transform: scale(1.1);
 }
 
 .order-action-btn--detail {
-  background: #f5f5f5;
-  color: #333;
-  border: 1px solid #ddd;
+  color: #666;
 }
 
 .order-action-btn--detail:hover {
-  background: #e0e0e0;
-  border-color: #bbb;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  color: var(--color-primary);
 }
 
-.order-action-btn:active {
-  transform: translateY(0);
+.order-action-btn--pay {
+  background-color: #d32f2f !important;
+  color: white !important;
+  border: 1px solid #b71c1c;
+}
+
+.order-action-btn--pay:hover {
+  background-color: #b71c1c !important;
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(211, 47, 47, 0.3);
 }
 
 /* Tooltip para los botones */
@@ -424,93 +484,8 @@
   padding: 0 10px;
 }
 
-/* Botón expandir/colapsar */
-.order-expand-btn {
-  background: var(--color-primary);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  width: 28px;
-  height: 28px;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.order-expand-btn:hover {
-  background: #c21828;
-  transform: scale(1.1);
-}
-
-.order-expand-btn:active {
-  transform: scale(0.95);
-}
-
-/* Fila de detalles expandida */
-.order-details-row {
-  background-color: #f8f9fa;
-  border-top: none;
-}
-
-.order-details-row td {
-  display: block !important;
-  width: 100% !important;
-  padding: 0 !important;
-  overflow: visible !important;
-}
-
-.order-details-cell {
-  padding: 0 !important;
-  border-top: none;
-  width: 100%;
-  display: block !important;
-}
-
-.order-details-content {
-  padding: 12px 16px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-}
-
-.order-detail-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.order-detail-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.order-detail-value {
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
-}
-
-/* Ocultar columnas en móvil */
+/* Responsive - mantener scroll horizontal en móvil */
 @media (max-width: 768px) {
-  .mobile-hide {
-    display: none !important;
-  }
-
-  .mobile-only {
-    display: block !important;
-  }
-
-  .order-expand-btn {
-    display: flex !important;
-  }
-
   .my-orders {
     padding: 15px;
   }
@@ -538,102 +513,14 @@
     min-width: auto;
   }
 
-  .my-orders__table-container {
-    overflow-x: visible;
-    overflow-y: visible;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .my-orders__table {
-    font-size: 11px;
-    display: table;
-    width: 100%;
-    table-layout: auto;
-  }
-
-  .my-orders__table thead {
-    display: table-header-group;
-  }
-
-  .my-orders__table thead th {
-    font-size: 9px;
-    padding: 8px 4px;
-    text-align: left;
-    font-weight: 600;
-    color: #666;
-    background-color: #f8f9fa;
-    border-bottom: 2px solid #dee2e6;
-    white-space: nowrap;
-  }
-
-  .my-orders__table thead th:nth-child(1) {
-    width: 33.33%;
-  }
-
-  .my-orders__table thead th:nth-child(2) {
-    width: 33.33%;
-  }
-
-  .my-orders__table thead th:nth-child(3) {
-    width: 33.33%;
-  }
-
-  .my-orders__table tbody {
-    display: table-row-group;
-  }
-
-  .my-orders__table tbody tr {
-    display: table-row;
-    border-bottom: 1px solid #e9ecef;
-    background: white;
-  }
-
-  .my-orders__table tbody tr:hover {
-    background-color: #f8f9fa;
-  }
-
-  .my-orders__table tbody tr.expanded {
-    border-bottom: none;
+  .my-orders__table th {
+    font-size: 10px;
+    padding: 10px 8px;
   }
 
   .my-orders__table tbody td {
-    display: table-cell;
-    padding: 10px 6px;
-    vertical-align: middle;
-    text-align: left;
-    border-bottom: 1px solid #f0f0f0;
-    overflow: visible;
-  }
-
-  .my-orders__table tbody td.order-details-cell {
-    overflow: visible !important;
-  }
-
-  .my-orders__table tbody td::before {
-    display: none;
-  }
-
-  /* Ajustar anchos de columnas en móvil */
-  .order-number-cell {
-    width: 33.33%;
-    font-size: 10px;
-  }
-
-  .order-total-cell {
-    width: 33.33%;
-    font-size: 10px;
-  font-weight: 600;
-  }
-
-  .order-actions-cell {
-    width: 33.33%;
-  text-align: center;
-}
-
-  .order-details-content {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 12px;
+    font-size: 11px;
+    padding: 8px;
   }
 
   .pagination-controls {
