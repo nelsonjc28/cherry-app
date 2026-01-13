@@ -13,7 +13,15 @@ const Footer = () => {
   useEffect(() => {
     const fetchContactInfo = async () => {
       try {
-        const response = await fetch('/api/contact-info');
+        // Agregar timestamp para evitar caché del navegador
+        const timestamp = new Date().getTime();
+        const response = await fetch(`/api/contact-info?t=${timestamp}`, {
+          method: 'GET',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.data) {
@@ -25,10 +33,24 @@ const Footer = () => {
         }
       } catch (error) {
         // Error fetching contact info, use defaults
+        console.error('Error al cargar información de contacto:', error);
       }
     };
 
     fetchContactInfo();
+    
+    // Recargar cuando la página vuelve a estar visible (por si se actualizó en otra pestaña)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchContactInfo();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   // Construir URL de Google Maps con la dirección

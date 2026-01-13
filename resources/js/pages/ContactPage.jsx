@@ -17,23 +17,86 @@ const ContactPage = () => {
   useEffect(() => {
     const fetchContactInfo = async () => {
       try {
-        const response = await fetch('/api/contact-info');
+        // Agregar timestamp para evitar caché del navegador
+        const timestamp = new Date().getTime();
+        const response = await fetch(`/api/contact-info?t=${timestamp}`, {
+          method: 'GET',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.data) {
+            // Valores por defecto para horarios
+            const defaultStoreHours = {
+              monday: { open: '9:30 am', close: '7:00 pm', closed: false },
+              tuesday: { open: '9:30 am', close: '7:00 pm', closed: false },
+              wednesday: { open: '9:30 am', close: '7:00 pm', closed: false },
+              thursday: { open: '9:30 am', close: '7:00 pm', closed: false },
+              friday: { open: '9:30 am', close: '5:00 pm', closed: false },
+              saturday: { open: '', close: '', closed: true },
+              sunday: { open: '', close: '', closed: true }
+            };
+            
+            const defaultOnlineHours = {
+              monday: { open: '9:30 am', close: '7:00 pm', closed: false },
+              tuesday: { open: '9:30 am', close: '7:00 pm', closed: false },
+              wednesday: { open: '9:30 am', close: '7:00 pm', closed: false },
+              thursday: { open: '9:30 am', close: '7:00 pm', closed: false },
+              friday: { open: '9:30 am', close: '5:00 pm', closed: false },
+              saturday: { open: '', close: '', closed: true },
+              sunday: { open: '', close: '', closed: true }
+            };
+            
+            // Función para fusionar horarios
+            const mergeHours = (defaultHours, apiHours) => {
+              if (!apiHours || typeof apiHours !== 'object') return defaultHours;
+              
+              const merged = { ...defaultHours };
+              Object.keys(apiHours).forEach(day => {
+                if (apiHours[day] && typeof apiHours[day] === 'object') {
+                  merged[day] = {
+                    open: apiHours[day].open || defaultHours[day]?.open || '',
+                    close: apiHours[day].close || defaultHours[day]?.close || '',
+                    closed: apiHours[day].closed !== undefined ? apiHours[day].closed : (defaultHours[day]?.closed || false)
+                  };
+                }
+              });
+              return merged;
+            };
+            
             setContactInfo(prev => ({
               ...prev,
               ...data.data,
               // Asegurar que map_url tenga un valor por defecto si viene vacío
-              map_url: data.data.map_url || prev.map_url
+              map_url: data.data.map_url || prev.map_url,
+              // Fusionar horarios con valores por defecto
+              store_hours: mergeHours(defaultStoreHours, data.data.store_hours),
+              online_hours: mergeHours(defaultOnlineHours, data.data.online_hours)
             }));
           }
         }
       } catch (error) {
+        console.error('Error al cargar información de contacto:', error);
       }
     };
 
     fetchContactInfo();
+    
+    // Recargar cuando la página vuelve a estar visible (por si se actualizó en otra pestaña)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchContactInfo();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   return (
@@ -117,13 +180,36 @@ const ContactPage = () => {
                   <span>Horario de atención en tienda</span> 
                 </div>
                 <ul className="contact-hours-list">
-                  <li><span>Lunes</span><span>9:30 am – 7:00 pm</span></li>
-                  <li><span>Martes</span><span>9:30 am – 7:00 pm</span></li>
-                  <li><span>Miércoles</span><span>9:30 am – 7:00 pm</span></li>
-                  <li><span>Jueves</span><span>9:30 am – 7:00 pm</span></li>
-                  <li><span>Viernes</span><span>9:30 am – 5:00 pm</span></li>
-                  <li className="closed-text"><span>Sábado</span><span className="closed">Cerrado</span></li>
-                  <li className="closed-text"><span>Domingo</span><span className="closed">Cerrado</span></li>
+                  {(() => {
+                    const daysOfWeek = [
+                      { key: 'monday', label: 'Lunes' },
+                      { key: 'tuesday', label: 'Martes' },
+                      { key: 'wednesday', label: 'Miércoles' },
+                      { key: 'thursday', label: 'Jueves' },
+                      { key: 'friday', label: 'Viernes' },
+                      { key: 'saturday', label: 'Sábado' },
+                      { key: 'sunday', label: 'Domingo' }
+                    ];
+                    
+                    return daysOfWeek.map((day) => {
+                      const dayHours = contactInfo.store_hours?.[day.key];
+                      const isClosed = dayHours?.closed || !dayHours?.open || !dayHours?.close;
+                      
+                      return (
+                        <li 
+                          key={day.key} 
+                          className={isClosed ? 'closed-text' : ''}
+                        >
+                          <span>{day.label}</span>
+                          {isClosed ? (
+                            <span className="closed">Cerrado</span>
+                          ) : (
+                            <span>{dayHours.open} – {dayHours.close}</span>
+                          )}
+                        </li>
+                      );
+                    });
+                  })()}
                 </ul>
               </div>
               <div className="contact-hours-card">
@@ -132,13 +218,36 @@ const ContactPage = () => {
                   <span>Horario de atención en línea</span>
                 </div>
                 <ul className="contact-hours-list">
-                  <li><span>Lunes</span><span>9:30 am – 7:00 pm</span></li>
-                  <li><span>Martes</span><span>9:30 am – 7:00 pm</span></li>
-                  <li><span>Miércoles</span><span>9:30 am – 7:00 pm</span></li>
-                  <li><span>Jueves</span><span>9:30 am – 7:00 pm</span></li>
-                  <li><span>Viernes</span><span>9:30 am – 5:00 pm</span></li>
-                  <li><span>Sábado</span><span className="closed">Cerrado</span></li>
-                  <li><span>Domingo</span><span className="closed">Cerrado</span></li>
+                  {(() => {
+                    const daysOfWeek = [
+                      { key: 'monday', label: 'Lunes' },
+                      { key: 'tuesday', label: 'Martes' },
+                      { key: 'wednesday', label: 'Miércoles' },
+                      { key: 'thursday', label: 'Jueves' },
+                      { key: 'friday', label: 'Viernes' },
+                      { key: 'saturday', label: 'Sábado' },
+                      { key: 'sunday', label: 'Domingo' }
+                    ];
+                    
+                    return daysOfWeek.map((day) => {
+                      const dayHours = contactInfo.online_hours?.[day.key];
+                      const isClosed = dayHours?.closed || !dayHours?.open || !dayHours?.close;
+                      
+                      return (
+                        <li 
+                          key={day.key} 
+                          className={isClosed ? 'closed-text' : ''}
+                        >
+                          <span>{day.label}</span>
+                          {isClosed ? (
+                            <span className="closed">Cerrado</span>
+                          ) : (
+                            <span>{dayHours.open} – {dayHours.close}</span>
+                          )}
+                        </li>
+                      );
+                    });
+                  })()}
                 </ul>
               </div>
             </div>

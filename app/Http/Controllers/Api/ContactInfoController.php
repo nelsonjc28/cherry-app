@@ -28,7 +28,9 @@ class ContactInfoController extends Controller
                 'store_hours' => $contactInfo->store_hours ?? [],
                 'online_hours' => $contactInfo->online_hours ?? [],
             ]
-        ]);
+        ])->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+          ->header('Pragma', 'no-cache')
+          ->header('Expires', '0');
     }
 
     /**
@@ -73,10 +75,24 @@ class ContactInfoController extends Controller
 
         $contactInfo = ContactInfo::updateContactInfo($data);
 
+        // Invalidar cualquier caché que pueda existir
+        \Cache::forget('contact_info');
+        
         return response()->json([
             'success' => true,
             'message' => 'Información de contacto actualizada correctamente',
-            'data' => $contactInfo
-        ]);
+            'data' => [
+                'address_street' => $contactInfo->address_street,
+                'address_city' => $contactInfo->address_city,
+                'phone' => $contactInfo->phone,
+                'whatsapp' => $contactInfo->whatsapp,
+                'email' => $contactInfo->email,
+                'map_url' => $contactInfo->map_url,
+                'store_hours' => $contactInfo->store_hours ?? [],
+                'online_hours' => $contactInfo->online_hours ?? [],
+            ]
+        ])->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+          ->header('Pragma', 'no-cache')
+          ->header('Expires', '0');
     }
 }

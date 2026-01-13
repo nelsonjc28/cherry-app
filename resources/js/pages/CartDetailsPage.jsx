@@ -90,7 +90,14 @@ const CartDetailsPage = () => {
   useEffect(() => {
     const fetchStoreAddress = async () => {
       try {
-        const response = await api.get('/contact-info');
+        // Agregar timestamp para evitar caché del navegador
+        const timestamp = new Date().getTime();
+        const response = await api.get(`/contact-info?t=${timestamp}`, {
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
         if (response.data.success && response.data.data) {
           const contactInfo = response.data.data;
           // Create a store address object similar to Address model
@@ -118,12 +125,26 @@ const CartDetailsPage = () => {
         }
       } catch (error) {
         // Error fetching store address - usar valores por defecto (deben coincidir con ContactPage.jsx)
+        console.error('Error al cargar información de contacto:', error);
         setStoreAddress(defaultStoreAddress);
         setStoreMapUrl(defaultMapUrl);
       }
     };
     
     fetchStoreAddress();
+    
+    // Recargar cuando la página vuelve a estar visible (por si se actualizó en otra pestaña)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchStoreAddress();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   // Scroll to top when component mounts
