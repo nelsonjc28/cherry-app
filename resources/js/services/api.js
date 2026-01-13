@@ -130,6 +130,7 @@ api.interceptors.response.use(
       switch (error.response.status) {
         case 401:
           // Token expirado o inválido - solo redirigir si NO es una ruta pública
+          // NO mostrar mensaje de error para evitar múltiples toasts cuando la sesión expira
           if (!isPublicRoute) {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
@@ -145,7 +146,8 @@ api.interceptors.response.use(
               return api.request(error.config);
             }
           }
-          break;
+          // Retornar sin rechazar para evitar que otros interceptores manejen este error
+          return Promise.reject(error);
         case 403:
           // Acceso denegado
           if (window.showToast) {
@@ -171,9 +173,14 @@ api.interceptors.response.use(
           }
           break;
         default:
+          // No mostrar mensaje de error para códigos 401 que ya fueron manejados
+          if (error.response?.status === 401) {
+            return Promise.reject(error);
+          }
           if (window.showToast) {
             window.showToast('Error del servidor', 'error');
           }
+          break;
       }
     } else if (error.request) {
       // La petición fue hecha pero no se recibió respuesta

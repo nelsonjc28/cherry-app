@@ -40,16 +40,24 @@ api.interceptors.response.use(
   (error) => {
     // Manejar errores de autenticación
     if (error.response?.status === 401) {
-      // Token expirado o inválido
-      if (window.showToast) {
-        window.showToast('Sesión expirada. Por favor, inicia sesión nuevamente.', 'error');
-      }
+      // Token expirado o inválido - NO mostrar mensaje para evitar múltiples toasts
+      // El interceptor en api.js ya maneja la redirección
       
       // Limpiar token del localStorage
       localStorage.removeItem('token');
       
-      // Redirigir a login si no estamos ya ahí
-      if (window.location.pathname !== '/login') {
+      // Redirigir a login si no estamos ya ahí (solo si no es una ruta pública)
+      const isPublicRoute = error.config?.url?.includes('/public/') ||
+                           (error.config?.url?.includes('/catalogs') && !error.config?.url?.includes('/admin/')) ||
+                           error.config?.url?.includes('/categories') ||
+                           error.config?.url?.includes('/welcome-sections') ||
+                           error.config?.url?.includes('/contact-info') ||
+                           error.config?.url?.includes('/privacy-policy') ||
+                           error.config?.url?.includes('/home-catalogs') ||
+                           error.config?.url?.includes('/home-categories') ||
+                           error.config?.url?.includes('/terms-conditions');
+      
+      if (!isPublicRoute && window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
     }

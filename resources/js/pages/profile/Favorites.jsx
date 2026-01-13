@@ -79,7 +79,8 @@ const Favorites = () => {
         setCurrentPage(page);
       }
     } catch (err) {
-      setError('Error al cargar favoritos');
+      // No mostrar mensaje de error, solo limpiar estado
+      setError(null);
       setFavoriteProducts([]);
       setTotalFavorites(0);
     } finally {
@@ -201,9 +202,7 @@ const Favorites = () => {
         // Scroll hacia arriba después de remover múltiples
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } catch (err) {
-        if (window.showToast) {
-          window.showToast('Error al remover productos seleccionados', 'error');
-        }
+        // No mostrar mensaje de error para favoritos
       }
     }
   };

@@ -117,9 +117,7 @@ const FavoritosPage = () => {
       // Scroll hacia arriba después de remover
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
-      if (window.showToast) {
-        window.showToast('Error al remover de favoritos', 'error');
-      }
+      // No mostrar mensaje de error para favoritos
     }
   };
 

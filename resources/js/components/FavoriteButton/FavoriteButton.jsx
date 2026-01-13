@@ -108,15 +108,11 @@ const FavoriteButton = ({
         onToggle(result);
       }
     } catch (error) {
-      if (error.name === 'AbortError') {
-        if (window.showToast) {
-          window.showToast('La operación tardó demasiado. Inténtalo de nuevo.', 'warning');
-        }
-      } else if (error.response?.status === 401) {
+      // No mostrar mensajes de error para favoritos
+      if (error.response?.status === 401) {
         window.location.href = '/login';
-      } else {
-
       }
+      // Silenciosamente revertir el estado en caso de error
     } finally {
       setLoading(false);
     }

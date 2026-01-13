@@ -318,15 +318,21 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
                       <span className="value">{order.address.street_address}</span>
                     </div>
                   )}
+                  {order.address.colonia && (
+                  <div className="info-row">
+                      <span className="label">Colonia:</span>
+                      <span className="value">{order.address.colonia}</span>
+                  </div>
+                  )}
                   {order.address.municipality && (
                   <div className="info-row">
-                      <span className="label">Colonia/Asentamiento:</span>
+                      <span className="label">Municipio:</span>
                       <span className="value">{order.address.municipality}</span>
                   </div>
                   )}
                   {order.address.city && (
                   <div className="info-row">
-                      <span className="label">Municipio:</span>
+                      <span className="label">Colonia:</span>
                     <span className="value">{order.address.city}</span>
                   </div>
                   )}
