@@ -120,4 +120,23 @@ class Notification extends Model
             'related_order_id' => $order->id
         ]);
     }
+
+    /**
+     * Create notification for user when a product they're interested in becomes available
+     */
+    public static function createProductAvailableNotification($userId, $productId, $productTitle)
+    {
+        return self::create([
+            'type' => 'product_available',
+            'title' => '¡Producto Disponible!',
+            'message' => "El producto '{$productTitle}' ya está disponible. ¡Agrégalo a tu carrito!",
+            'data' => [
+                'product_id' => $productId,
+                'product_title' => $productTitle
+            ],
+            'target_user_role' => 'user',
+            'target_user_id' => $userId,
+            'related_order_id' => null
+        ]);
+    }
 }

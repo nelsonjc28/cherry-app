@@ -7,6 +7,8 @@ use App\Models\Genero;
 use App\Models\Sector;
 use App\Models\Producto;
 use App\Models\Detalle;
+use App\Models\Favorite;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Http;
@@ -248,6 +250,13 @@ class ProductSyncController extends Controller
                     }
 
                     // 4. Crear o actualizar producto
+                    // Guardar inventario anterior para detectar cambios
+                    $oldInventario = 0;
+                    $productoExistente = Producto::find($productData['id']);
+                    if ($productoExistente) {
+                        $oldInventario = (float) ($productoExistente->inventario ?? 0);
+                    }
+                    
                     $producto = Producto::updateOrCreate(
                         ['id' => $productData['id']],
                         $productData
@@ -257,6 +266,13 @@ class ProductSyncController extends Controller
                         $stats['productos_creados']++;
                     } else {
                         $stats['productos_actualizados']++;
+                    }
+                    
+                    // 4.5. Detectar si el producto pasó de sin stock a con stock
+                    $newInventario = (float) ($productData['inventario'] ?? 0);
+                    if ($oldInventario === 0 && $newInventario > 0) {
+                        // El producto ahora tiene stock, notificar a usuarios que lo tienen en favoritos
+                        $this->notifyUsersProductAvailable($producto->id, $producto->descripcion ?? 'Producto');
                     }
 
                     // 5. Sincronizar detalles

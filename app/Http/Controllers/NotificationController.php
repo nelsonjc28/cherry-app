@@ -203,21 +203,35 @@ class NotificationController extends Controller
         try {
             $user = Auth::user();
             
+            // Manejar notificaciones temporales de review_request (no están en BD)
+            if (strpos($notificationId, 'review_notification_') === 0) {
+                // Para notificaciones temporales, simplemente retornar éxito
+                // ya que no se pueden marcar como leídas en la BD
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Notificación marcada como leída'
+                ]);
+            }
+            
             $notification = Notification::findOrFail($notificationId);
             
             // Verificar que el usuario tenga permiso para marcar esta notificación
-            if ($notification->target_user_role === 'admin' && !$user->is_admin) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No tienes permisos para marcar esta notificación'
-                ], 403);
-            }
-            
-            if ($notification->target_user_role === 'user' && $notification->target_user_id !== $user->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No tienes permisos para marcar esta notificación'
-                ], 403);
+            if ($notification->target_user_role === 'admin') {
+                // Solo los admins pueden marcar notificaciones de admin
+                if (!$user->hasRole('admin')) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No tienes permisos para marcar esta notificación'
+                    ], 403);
+                }
+            } else if ($notification->target_user_role === 'user') {
+                // Solo el usuario específico puede marcar sus propias notificaciones
+                if ($notification->target_user_id !== $user->id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No tienes permisos para marcar esta notificación'
+                    ], 403);
+                }
             }
 
             $notification->markAsRead();
@@ -227,6 +241,11 @@ class NotificationController extends Controller
                 'message' => 'Notificación marcada como leída'
             ]);
 
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Notificación no encontrada'
+            ], 404);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -243,7 +262,7 @@ class NotificationController extends Controller
         try {
             $user = Auth::user();
             
-            if ($user->is_admin) {
+            if ($user->hasRole('admin')) {
                 Notification::forAdmin()->unread()->update(['is_read' => true]);
             } else {
                 Notification::forUser($user->id)->unread()->update(['is_read' => true]);
@@ -270,8 +289,8 @@ class NotificationController extends Controller
         try {
             $user = Auth::user();
             
-            // Verificar si es admin por el campo is_admin
-            if ($user->is_admin) {
+            // Verificar si es admin por el rol
+            if ($user->hasRole('admin')) {
                 $count = Notification::forAdmin()->unread()->count();
             } else {
                 $count = Notification::forUser($user->id)->unread()->count();

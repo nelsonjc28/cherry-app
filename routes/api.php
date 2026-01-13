@@ -80,6 +80,7 @@ Route::get('/public/catalogs-with-images', [AdminCatalogController::class, 'getC
 Route::middleware(['auth:api'])->group(function () {
     Route::post('/profile/update', [ProfileController::class, 'update']);
     Route::get('/account-statements', [ProfileController::class, 'getAccountStatements']);
+    Route::post('/notify-product-interest', [App\Http\Controllers\Admin\AdminNotificationController::class, 'notifyProductInterest']);
     
     // Address routes
     Route::get('/addresses', [AddressController::class, 'index']);
@@ -131,6 +132,7 @@ Route::middleware(['auth:api', 'admin'])->prefix('admin')->group(function () {
     Route::get('/orders/{orderId}', [App\Http\Controllers\Admin\AdminOrderController::class, 'show']);
     Route::put('/orders/{orderId}/status', [App\Http\Controllers\Admin\AdminOrderController::class, 'updateStatus']);
     Route::post('/orders/{orderId}/mark-credit-paid', [App\Http\Controllers\Admin\AdminOrderController::class, 'markCreditOrderAsPaid']);
+    Route::post('/notify-product-interest', [App\Http\Controllers\Admin\AdminNotificationController::class, 'notifyProductInterest']);
     Route::get('/notifications', [App\Http\Controllers\NotificationController::class, 'getAdminNotifications']);
     
     // Admin Reviews routes

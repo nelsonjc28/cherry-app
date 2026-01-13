@@ -27,6 +27,7 @@ import { applyUserOffersToProducts } from '../api/userOffers';
 import useCartStore from '../store/cartStore';
 import useUserStore from '../store/userStore';
 import api from '../services/api';
+import { favoriteService } from '../services/api';
 
 // Utils
 import { formatPrice } from '../utils/formatters';
@@ -617,6 +618,47 @@ const ProductPage = () => {
 
 
   // Handle add to cart
+  const handleNotifyProductInterest = async () => {
+    if (!user) {
+      if (window.showToast) {
+        window.showToast('Debes iniciar sesión para registrarte.', 'error');
+      }
+      return;
+    }
+
+    if (!product || !product.id_articulo) {
+      if (window.showToast) {
+        window.showToast('Error: Información del producto no disponible.', 'error');
+      }
+      return;
+    }
+
+    try {
+      // Notificar al admin
+      const response = await api.post('/notify-product-interest', {
+        product_id: product.id_articulo,
+        product_title: product.descripcion || 'Producto sin nombre',
+        user_id: user.id,
+        user_name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email,
+        user_email: user.email
+      });
+      
+      if (response.data && response.data.success) {
+        if (window.showToast) {
+          window.showToast('✅ Te avisaremos cuando este producto esté disponible.', 'success');
+        }
+      } else {
+        throw new Error(response.data?.message || 'Error desconocido');
+      }
+    } catch (error) {
+      console.error('Error al registrar interés:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Error al registrar tu interés. Por favor intenta nuevamente.';
+      if (window.showToast) {
+        window.showToast(errorMessage, 'error');
+      }
+    }
+  };
+
   const handleAddToCart = async () => {
     // Validar que el producto tenga precio mayor a 0
     const basePrice = precio1 || 0;
@@ -631,7 +673,7 @@ const ProductPage = () => {
     const inventoryStatus = getInventoryStatus();
     const isComingSoon = inventoryStatus.status === 'coming-soon';
     
-    // Si el producto está "próximamente", verificar que el usuario tenga categoría "oro"
+    // Si el producto está "próximamente", manejar según categoría del usuario
     if (isComingSoon) {
       if (!user) {
         if (window.showToast) {
@@ -640,12 +682,30 @@ const ProductPage = () => {
         return;
       }
       
+      // Si el usuario NO es "oro", solo notificar al admin (no agregar a wishlist automáticamente)
       if (!user.seller_category || user.seller_category !== 'oro') {
-        if (window.showToast) {
-          window.showToast('Solo los vendedores con categoría Oro pueden hacer encargos de productos próximamente. Contacta al administrador para actualizar tu categoría.', 'error');
+        try {
+          // Notificar al admin
+          await api.post('/api/notify-product-interest', {
+            product_id: product.id_articulo,
+            product_title: product.descripcion,
+            user_id: user.id,
+            user_name: `${user.first_name} ${user.last_name}`,
+            user_email: user.email
+          });
+          
+          if (window.showToast) {
+            window.showToast('✅ Te avisaremos cuando este producto esté disponible.', 'success');
+          }
+        } catch (error) {
+          console.error('Error al registrar interés:', error);
+          if (window.showToast) {
+            window.showToast('Error al registrar tu interés. Por favor intenta nuevamente.', 'error');
+          }
         }
         return;
       }
+      // Si es usuario "oro", continuar con el flujo normal de agregar al carrito
     }
 
     if (!selectedColor) {
@@ -996,7 +1056,8 @@ const ProductPage = () => {
     return alerts;
   };
   
-  const productPageAlerts = getProductPageAlerts();
+  // Calcular alertas base
+  const baseAlerts = getProductPageAlerts();
 
   if (isLoading) {
     return (
@@ -1260,6 +1321,23 @@ const ProductPage = () => {
   };
 
   const inventoryStatusData = getInventoryStatus();
+  
+  // Agregar alerta de "próximamente" si aplica (después de que getInventoryStatus esté definida)
+  const inventoryStatus = getInventoryStatus();
+  const isComingSoon = inventoryStatus.status === 'coming-soon';
+  const isOroUser = user && user.seller_category === 'oro';
+  const showNotifyAlert = isComingSoon && (!user || !isOroUser);
+  
+  const productPageAlerts = [...baseAlerts];
+  if (showNotifyAlert) {
+    productPageAlerts.push({
+      type: 'warning',
+      icon: 'ℹ️',
+      message: 'Si te interesa este producto da click aquí para avisarte cuando llegue',
+      color: '#ff9800',
+      isComingSoonAlert: true // Flag para identificar esta alerta especial
+    });
+  }
 
   // Función para truncar la descripción
   const truncateDescription = (text, maxLength = 150) => {
@@ -1567,7 +1645,21 @@ const ProductPage = () => {
                     }}
                   >
                     <span className="product-page__alert-icon">{alert.icon}</span>
-                    <span className="product-page__alert-message">{alert.message}</span>
+                    {alert.isComingSoonAlert ? (
+                      <span className="product-page__alert-message">
+                        Si te interesa este producto da click{' '}
+                        <button
+                          type="button"
+                          className="product-page__alert-link"
+                          onClick={handleNotifyProductInterest}
+                        >
+                          aquí
+                        </button>
+                        {' '}para avisarte cuando llegue
+                      </span>
+                    ) : (
+                      <span className="product-page__alert-message">{alert.message}</span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1713,21 +1805,36 @@ const ProductPage = () => {
                   </span>
                 </div>
 
-                <CherryButton
-                  variant="red"
-                  size="large"
-                  fullWidth
-                  onClick={handleAddToCart}
-                  disabled={!selectedColor || getTotalUnits() === 0 || isAddingToCart}
-                  icon={
-                    <svg width="15" height="14" viewBox="0 0 15 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M14.349 2.00028H3.75L3.51562 0.854451C3.46354 0.567993 3.20312 0.333618 2.91667 0.333618H0.3125C0.130208 0.333618 0 0.489868 0 0.646118V1.27112C0 1.45341 0.130208 1.58362 0.3125 1.58362H2.39583L4.19271 10.8545C3.90625 11.167 3.75 11.5576 3.75 12.0003C3.75 12.9378 4.47917 13.667 5.41667 13.667C6.32812 13.667 7.08333 12.9378 7.08333 12.0003C7.08333 11.7138 6.97917 11.4274 6.84896 11.167H10.625C10.4948 11.4274 10.4167 11.7138 10.4167 12.0003C10.4167 12.9378 11.1458 13.667 12.0833 13.667C12.9948 12.9378 13.75 12.9378 13.75 12.0003C13.75 11.5315 13.5417 11.1149 13.2292 10.8024L13.2552 10.6982C13.3333 10.3076 13.0469 9.91695 12.6302 9.91695H5.28646L5.05208 8.66695H13.1771C13.4896 8.66695 13.724 8.48466 13.8021 8.1982L14.974 2.78153C15.0521 2.39091 14.7656 2.00028 14.349 2.00028ZM5.41667 12.6253C5.05208 12.6253 4.79167 12.3649 4.79167 12.0003C4.79167 11.6617 5.05208 11.3753 5.41667 11.3753C5.75521 11.3753 6.04167 11.6617 6.04167 12.0003C6.04167 12.3649 5.75521 12.6253 5.41667 12.6253ZM12.0833 12.6253C11.7188 12.6253 11.4583 12.3649 11.4583 12.0003C11.4583 11.6617 11.7188 11.3753 12.0833 11.3753C12.4219 11.3753 12.7083 11.6617 12.7083 12.0003C12.7083 12.3649 12.4219 12.6253 12.0833 12.6253ZM12.6823 7.41695H4.79167L3.98438 3.25028H13.5938L12.6823 7.41695Z" fill="white" />
-                    </svg>
+                {(() => {
+                  const inventoryStatus = getInventoryStatus();
+                  const isComingSoon = inventoryStatus.status === 'coming-soon';
+                  const isOroUser = user && user.seller_category === 'oro';
+                  const showNotifyAlert = isComingSoon && (!user || !isOroUser);
+                  
+                  // Si es "próximamente" y no es usuario oro, no mostrar botón de agregar al carrito
+                  // (la alerta ya se muestra arriba)
+                  if (showNotifyAlert) {
+                    return null;
                   }
-                  iconPosition="left"
-                >
-                  {isAddingToCart ? 'Agregando...' : `Agregar al carrito (${getTotalUnits()} unidad${getTotalUnits() > 1 ? 'es' : ''})`}
-                </CherryButton>
+                  
+                  return (
+                    <CherryButton
+                      variant="red"
+                      size="large"
+                      fullWidth
+                      onClick={handleAddToCart}
+                      disabled={!selectedColor || getTotalUnits() === 0 || isAddingToCart}
+                      icon={
+                        <svg width="15" height="14" viewBox="0 0 15 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M14.349 2.00028H3.75L3.51562 0.854451C3.46354 0.567993 3.20312 0.333618 2.91667 0.333618H0.3125C0.130208 0.333618 0 0.489868 0 0.646118V1.27112C0 1.45341 0.130208 1.58362 0.3125 1.58362H2.39583L4.19271 10.8545C3.90625 11.167 3.75 11.5576 3.75 12.0003C3.75 12.9378 4.47917 13.667 5.41667 13.667C6.32812 13.667 7.08333 12.9378 7.08333 12.0003C7.08333 11.7138 6.97917 11.4274 6.84896 11.167H10.625C10.4948 11.4274 10.4167 11.7138 10.4167 12.0003C10.4167 12.9378 11.1458 13.667 12.0833 13.667C12.9948 12.9378 13.75 12.9378 13.75 12.0003C13.75 11.5315 13.5417 11.1149 13.2292 10.8024L13.2552 10.6982C13.3333 10.3076 13.0469 9.91695 12.6302 9.91695H5.28646L5.05208 8.66695H13.1771C13.4896 8.66695 13.724 8.48466 13.8021 8.1982L14.974 2.78153C15.0521 2.39091 14.7656 2.00028 14.349 2.00028ZM5.41667 12.6253C5.05208 12.6253 4.79167 12.3649 4.79167 12.0003C4.79167 11.6617 5.05208 11.3753 5.41667 11.3753C5.75521 11.3753 6.04167 11.6617 6.04167 12.0003C6.04167 12.3649 5.75521 12.6253 5.41667 12.6253ZM12.0833 12.6253C11.7188 12.6253 11.4583 12.3649 11.4583 12.0003C11.4583 11.6617 11.7188 11.3753 12.0833 11.3753C12.4219 11.3753 12.7083 11.6617 12.7083 12.0003C12.7083 12.3649 12.4219 12.6253 12.0833 12.6253ZM12.6823 7.41695H4.79167L3.98438 3.25028H13.5938L12.6823 7.41695Z" fill="white" />
+                        </svg>
+                      }
+                      iconPosition="left"
+                    >
+                      {isAddingToCart ? 'Agregando...' : `Agregar al carrito (${getTotalUnits()} unidad${getTotalUnits() > 1 ? 'es' : ''})`}
+                    </CherryButton>
+                  );
+                })()}
 
                 {selectedColor && (
                   <div className="product-page__stock-summary">
