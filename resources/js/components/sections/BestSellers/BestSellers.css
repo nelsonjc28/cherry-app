@@ -69,20 +69,8 @@
 /* Responsive Design */
 @media (max-width: 1200px) {
   .best-sellers-grid {
-    grid-template-columns: repeat(3, 1fr);
     gap: 2.5rem;
     margin: 0 auto;
-  }
-
-  .best-seller-card:not(:nth-child(3n)) {
-    border-right: 0.1px solid #f973892c;
-    padding-right: 1.5rem; 
-    margin-right: -1.5rem; 
-  }
-
-  .best-seller-card:nth-child(3n) {
-    padding-right: 0;
-    margin-right: 0;
   }
 
   .best-sellers-title {
@@ -96,20 +84,8 @@
   }
 
   .best-sellers-grid {
-    grid-template-columns: repeat(2, 1fr);
     gap: 2rem;
     max-width: 100%;
-  }
-
-  .best-seller-card:not(:nth-child(2n)) {
-    border-right: 0.1px solid #f973892c;
-    padding-right: 1.5rem; 
-    margin-right: -1.5rem; 
-  }
-
-  .best-seller-card:nth-child(2n) {
-    padding-right: 0;
-    margin-right: 0;
   }
 
   .best-sellers-title {

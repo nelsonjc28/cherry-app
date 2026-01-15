@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import BestSellerCard from './BestSellerCard';
+import ProductCard from '../../ProductCard/ProductCard';
 import ProductSlider from '../../ProductSlider/ProductSlider';
 import { getHeroIconPath } from '../../../utils/assetPaths';
 import { getRandomProducts } from '../../../api/cherryApi';
@@ -37,7 +37,8 @@ const BestSellers = ({
     if (useApi) {
       loadRandomProducts();
     } else {
-      setApiProducts(products.slice(0, 20));
+      // Limitar a solo 4 productos más vendidos
+      setApiProducts(products.slice(0, 4));
       setLocalLoading(false);
     }
   }, []); // SOLO se ejecuta una vez al montar el componente
@@ -73,22 +74,15 @@ const BestSellers = ({
 
         {/* Desktop Grid View */}
         <div className="best-sellers-grid desktop-view">
-          {displayProducts.slice(0, 20).map((product) => (
-            <BestSellerCard
-              key={product.id}
-              id={product.id}
-              title={product.title}
-              image={product.image}
-              price={product.price}
-              originalPrice={product.originalPrice}
-              discount={product.discount}
-              userOffer={product.userOffer}
-              hasUserOffer={product.hasUserOffer}
-              rating={product.rating}
-              totalRatings={product.totalRatings}
-              description={product.description}
-              onFavoriteToggle={handleFavoriteToggle}
-            />
+          {displayProducts.slice(0, 4).map((product) => (
+            <div key={product.id} className="product-grid-item">
+              <ProductCard
+                product={product}
+                showFavoriteButton={false}
+                variant="bestseller"
+                onFavoriteToggle={handleFavoriteToggle}
+              />
+            </div>
           ))}
         </div>
 
@@ -102,21 +96,14 @@ const BestSellers = ({
             slidesPerView={{ desktop: 4, tablet: 2, mobile: 1.2 }}
             showFavoriteButton={false}
             renderCard={(product) => (
-              <BestSellerCard
-                key={product.id}
-                id={product.id}
-                title={product.title}
-                image={product.image}
-                price={product.price}
-                originalPrice={product.originalPrice}
-                discount={product.discount}
-                userOffer={product.userOffer}
-                hasUserOffer={product.hasUserOffer}
-                rating={product.rating}
-                totalRatings={product.totalRatings}
-                description={product.description}
-                onFavoriteToggle={handleFavoriteToggle}
-              />
+              <div key={product.id} className="product-grid-item">
+                <ProductCard
+                  product={product}
+                  showFavoriteButton={false}
+                  variant="bestseller"
+                  onFavoriteToggle={handleFavoriteToggle}
+                />
+              </div>
             )}
           />
         </div>
