@@ -1375,6 +1375,7 @@ class PaymentController extends Controller
                     'amount_paid' => (float) ($order->amount_paid ?? $order->total_amount),
                     'amount_pending' => (float) ($order->amount_pending ?? 0),
                     'paid_with_credit' => (bool) ($order->paid_with_credit ?? false),
+                    'is_advance_order' => (bool) ($order->is_advance_order ?? false),
                     'address' => $order->address ? [
                         'street_address' => $order->address->street_address,
                         'city' => $order->address->city,
