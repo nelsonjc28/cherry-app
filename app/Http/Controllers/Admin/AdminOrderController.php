@@ -166,7 +166,8 @@ class AdminOrderController extends Controller
                     'credit_used' => (float) ($order->credit_used ?? 0),
                     'amount_paid' => (float) ($order->amount_paid ?? $order->total_amount),
                     'amount_pending' => (float) ($order->amount_pending ?? 0),
-                    'paid_with_credit' => (bool) ($order->paid_with_credit ?? false)
+                    'paid_with_credit' => (bool) ($order->paid_with_credit ?? false),
+                    'is_advance_order' => (bool) ($order->is_advance_order ?? false)
                 ];
             });
 
@@ -367,7 +368,8 @@ class AdminOrderController extends Controller
                     'credit_used' => (float) ($order->credit_used ?? 0),
                     'amount_paid' => (float) ($order->amount_paid ?? $order->total_amount),
                     'amount_pending' => (float) ($order->amount_pending ?? 0),
-                    'paid_with_credit' => (bool) ($order->paid_with_credit ?? false)
+                    'paid_with_credit' => (bool) ($order->paid_with_credit ?? false),
+                    'is_advance_order' => (bool) ($order->is_advance_order ?? false)
                 ];
 
             return response()->json([
@@ -483,17 +485,20 @@ class AdminOrderController extends Controller
         try {
             $order = Order::with('user')->findOrFail($orderId);
             
-            // Verificar que la orden sea pagada con crédito
-            if (!$order->paid_with_credit) {
+            // Verificar que la orden sea pagada con crédito O sea un pedido anticipado
+            $isAdvanceOrder = (bool) ($order->is_advance_order ?? false);
+            $isCreditOrder = (bool) ($order->paid_with_credit ?? false);
+            
+            if (!$isCreditOrder && !$isAdvanceOrder) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Esta orden no fue pagada con crédito'
+                    'message' => 'Esta orden no es un pedido con crédito ni un pedido anticipado'
                 ], 400);
             }
             
-            // Verificar que tenga crédito usado
+            // Verificar que tenga crédito usado (solo para pedidos con crédito)
             $creditUsed = (float) ($order->credit_used ?? 0);
-            if ($creditUsed <= 0) {
+            if ($isCreditOrder && $creditUsed <= 0) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Esta orden no tiene crédito usado'
@@ -514,6 +519,11 @@ class AdminOrderController extends Controller
                     'success' => false,
                     'message' => 'El usuario no tiene categoría oro'
                 ], 400);
+            }
+            
+            // Para pedidos anticipados, usar el total_amount como crédito usado si no hay credit_used
+            if ($isAdvanceOrder && $creditUsed <= 0) {
+                $creditUsed = (float) $order->total_amount;
             }
             
             // Permitir restaurar crédito incluso si la orden ya está marcada como pagada

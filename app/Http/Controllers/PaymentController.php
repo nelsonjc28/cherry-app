@@ -1257,7 +1257,7 @@ class PaymentController extends Controller
                     'id' => $order->id,
                     'date' => $order->created_at->format('d \d\e F Y'),
                     'created_at' => $order->created_at->toISOString(),
-                    'orderNumber' => str_pad($order->id, 8, '0', STR_PAD_LEFT),
+                    'orderNumber' => ($order->is_advance_order ?? false ? 'PD' : 'CD') . str_pad($order->id, 4, '0', STR_PAD_LEFT),
                     'status' => $this->mapOrderStatus($order->status),
                     'statusDisplay' => $order->statusDisplay ?? $this->mapOrderStatus($order->status),
                     'statusRaw' => $order->status,
@@ -1488,7 +1488,7 @@ class PaymentController extends Controller
             $formattedOrders = $pendingOrders->map(function ($order) {
                 return [
                     'id' => $order->id,
-                    'orderNumber' => str_pad($order->id, 8, '0', STR_PAD_LEFT),
+                    'orderNumber' => ($order->is_advance_order ?? false ? 'PD' : 'CD') . str_pad($order->id, 4, '0', STR_PAD_LEFT),
                     'date' => $order->created_at->format('d/m/Y'),
                     'totalAmount' => (float) $order->total_amount,
                     'items' => $order->items->map(function ($item) {

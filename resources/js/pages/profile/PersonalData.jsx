@@ -312,16 +312,10 @@ const PersonalData = () => {
         </div>
       )}
 
-      {/* Información de categoría y crédito */}
+      {/* Información de crédito */}
       {user && (
         <div className="personal-data__info-section">
           <div className="personal-data__info-row">
-            <div className="personal-data__info-item">
-              <span className="personal-data__info-label">Categoría:</span>
-              <span className={`personal-data__info-value personal-data__info-value--category personal-data__info-value--${user.seller_category || 'bronce'}`}>
-                {user.seller_category === 'oro' ? '🥇 Oro' : '🥉 Bronce'}
-              </span>
-            </div>
             <div className="personal-data__info-item">
               <span className="personal-data__info-label">Límite de crédito:</span>
               <span className="personal-data__info-value">

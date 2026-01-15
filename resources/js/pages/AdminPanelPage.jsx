@@ -36,6 +36,30 @@ function AdminPanelPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Establecer título de la página según la sección activa
+  useEffect(() => {
+    const titleMap = {
+      'home': 'Dashboard - Admin - Cherry Central',
+      'users': 'Gestionar Administradores - Admin - Cherry Central',
+      'clients': 'Gestionar Clientes - Admin - Cherry Central',
+      'category-products': 'Gestionar Categorías - Admin - Cherry Central',
+      'category-order': 'Ordenar Categorías - Admin - Cherry Central',
+      'menu-category-order': 'Ordenar Categorías del Menú - Admin - Cherry Central',
+      'welcome-sections': 'Secciones de Bienvenida - Admin - Cherry Central',
+      'home-catalogs': 'Catálogos Home - Admin - Cherry Central',
+      'catalogs': 'Gestionar Catálogos - Admin - Cherry Central',
+      'catalog-order': 'Ordenar Catálogos - Admin - Cherry Central',
+      'orders': 'Gestión de Órdenes - Admin - Cherry Central',
+      'reviews': 'Gestionar Reseñas - Admin - Cherry Central',
+      'contact-info': 'Información de Contacto - Admin - Cherry Central',
+      'privacy-policy': 'Política de Privacidad - Admin - Cherry Central',
+      'discounts': 'Descuentos - Admin - Cherry Central'
+    };
+    
+    const title = titleMap[selectedMenu] || 'Admin Panel - Cherry Central';
+    document.title = title;
+  }, [selectedMenu]);
+
   // Mapeo de URLs a secciones del menú
   const urlToMenuMap = {
     '/admin': 'home',

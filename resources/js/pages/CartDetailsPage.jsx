@@ -510,7 +510,7 @@ const CartDetailsPage = () => {
         address_id: deliveryType === 'envio' ? selectedAddress.id : null,
         delivery_type: deliveryType, // 'envio' or 'retiro'
         shipping_amount: parseFloat(regularShippingAmount || 0), // Monto del envío
-        total_amount: regularItemsTotal,
+        total_amount: regularItemsTotal + parseFloat(regularShippingAmount || 0), // Total incluyendo envío
         use_credit: paymentMethod === 'credit',
         pay_remainder_with_mercadopago: paymentMethod === 'credit' // Si paga con crédito y hay pendiente, pagar resto con MP
       };

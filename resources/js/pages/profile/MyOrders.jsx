@@ -6,6 +6,13 @@ import { orderService } from '../../services/api';
 import api from '../../config/axios';
 import './MyOrders.css';
 
+// Función helper para formatear el número de orden igual que en API externa
+const formatOrderNumber = (order) => {
+  const prefix = (order.is_advance_order ?? false) ? 'PD' : 'CD';
+  const orderId = order.id || parseInt(order.orderNumber) || 0;
+  return prefix + String(orderId).padStart(4, '0');
+};
+
 const MyOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -257,7 +264,7 @@ const MyOrders = () => {
                       key={order.id}
                       className={`${highlightedOrderId === order.id ? 'highlighted' : ''}`}
                     >
-                      <td className="order-number-cell">#{order.orderNumber}</td>
+                      <td className="order-number-cell">#{formatOrderNumber(order)}</td>
                       <td className="order-date-cell">{dateStr}</td>
                       <td className="order-time-cell">{timeStr}</td>
                       <td className="order-pieces-cell">{totalPieces}</td>

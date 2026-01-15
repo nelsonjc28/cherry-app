@@ -57,6 +57,13 @@ RetryRemainderPaymentButton.propTypes = {
   orderId: PropTypes.number.isRequired
 };
 
+// Función helper para formatear el número de orden igual que en API externa
+const formatOrderNumber = (order) => {
+  const prefix = (order.is_advance_order ?? false) ? 'PD' : 'CD';
+  const orderId = order.id || parseInt(order.orderNumber) || 0;
+  return prefix + String(orderId).padStart(4, '0');
+};
+
 const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, isAdmin = false }) => {
   if (!isOpen || !order) return null;
 
@@ -227,7 +234,7 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
               <div className="order-detail-info">
               <div className="info-row">
                 <span className="label">Número de pedido:</span>
-                <span className="value">{order.orderNumber}</span>
+                <span className="value">{formatOrderNumber(order)}</span>
               </div>
               <div className="info-row">
                 <span className="label">Fecha:</span>

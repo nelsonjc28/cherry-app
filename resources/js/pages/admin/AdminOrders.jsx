@@ -26,6 +26,13 @@ const getContrastColor = (hexColor) => {
   return luminance > 0.5 ? '#000' : '#fff';
 };
 
+// Función helper para formatear el número de orden igual que en API externa
+const formatOrderNumber = (order) => {
+  const prefix = (order.is_advance_order ?? false) ? 'PD' : 'CD';
+  const orderId = order.id || parseInt(order.orderNumber) || 0;
+  return prefix + String(orderId).padStart(4, '0');
+};
+
 const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,6 +60,9 @@ const AdminOrders = () => {
 
   // Cargar órdenes y notificaciones
   useEffect(() => {
+    // Establecer título de la página
+    document.title = 'Gestión de Órdenes - Admin - Cherry Central';
+    
     fetchOrders();
     fetchUnreadCount();
     
@@ -398,7 +408,7 @@ const AdminOrders = () => {
                       key={order.id}
                       className={`${highlightedOrderId === order.id ? 'highlighted' : ''}`}
                     >
-                      <td className="order-number-cell">#{order.orderNumber}</td>
+                      <td className="order-number-cell">#{formatOrderNumber(order)}</td>
                       <td className="order-date-cell">{dateStr}</td>
                       <td className="order-time-cell">{timeStr}</td>
                       <td className="order-customer-cell">{order.customerName || 'N/A'}</td>
@@ -439,7 +449,7 @@ const AdminOrders = () => {
                           >
                             👁️
                           </button>
-                          {order.paid_with_credit && order.credit_used > 0 && (
+                          {((order.paid_with_credit && order.credit_used > 0) || (order.is_advance_order && order.status !== 'pagado')) && (
                             <button
                               className="order-action-btn order-action-btn--mark-paid"
                               onClick={() => handleMarkCreditAsPaid(order)}
@@ -565,7 +575,7 @@ const AdminOrders = () => {
               </button>
             </div>
             <div className="modal-body">
-              <p>¿Estás seguro de que deseas marcar la orden <strong>#{orderToMarkAsPaid.orderNumber}</strong> como pagada?</p>
+              <p>¿Estás seguro de que deseas marcar la orden <strong>#{formatOrderNumber(orderToMarkAsPaid)}</strong> como pagada?</p>
               <p>Esta acción:</p>
               <ul style={{ textAlign: 'left', marginTop: '10px' }}>
                 <li>Marcará la orden como <strong>pagada</strong></li>

@@ -7,6 +7,10 @@ import api from '../../config/axios';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
+  // Establecer título de la página
+  useEffect(() => {
+    document.title = 'Dashboard - Admin - Cherry Central';
+  }, []);
   const navigate = useNavigate();
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');

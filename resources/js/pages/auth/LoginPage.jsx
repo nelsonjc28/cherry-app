@@ -73,6 +73,11 @@ const LoginPage = () => {
     setShowPassword(!showPassword);
   };
 
+  // Establecer título de la página
+  useEffect(() => {
+    document.title = 'Iniciar Sesión - Cherry Central';
+  }, []);
+
   // Redirigir si el usuario ya está logueado
   useEffect(() => {
     if (initialized && user) {
