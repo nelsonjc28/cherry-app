@@ -587,20 +587,18 @@ const Addresses = () => {
             </div>
             <div className="modal-body">
               <form onSubmit={(e) => { e.preventDefault(); handleSaveAddress(); }}>
-                <div className="form-grid-2">
+                <div className="form-group form-group--full">
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    placeholder="Dirección (Casa, trabajo)"
+                    required
+                  />
+                </div>
+                <div className="form-row">
                   <div className="form-group">
-                    <label>Nombre de la dirección *</label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      placeholder="Ej: Casa, Trabajo"
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Código Postal *</label>
                     <input
                       type="text"
                       name="postal_code"
@@ -614,7 +612,6 @@ const Addresses = () => {
                     {loadingPostalCode && <small style={{ color: '#666' }}>Consultando...</small>}
                   </div>
                   <div className="form-group">
-                    <label>Dirección (Calle y Número) *</label>
                     <input
                       type="text"
                       name="street_address"
@@ -624,8 +621,12 @@ const Addresses = () => {
                       required
                     />
                   </div>
+                </div>
+                <div className="form-info-label">
+                  Autocompletado con código postal
+                </div>
+                <div className="form-row">
                   <div className="form-group">
-                    <label>Colonia/Asentamiento *</label>
                     {settlements.length > 0 ? (
                       <select
                         name="city"
@@ -646,56 +647,55 @@ const Addresses = () => {
                         name="city"
                         value={formData.city}
                         onChange={handleInputChange}
-                        placeholder="Ingresa código postal primero"
+                        placeholder="Colonia/Asentamiento"
                         disabled
                         required
                       />
                     )}
                   </div>
                   <div className="form-group">
-                    <label>Municipio</label>
                     <input
                       type="text"
                       name="municipality"
                       value={formData.municipality}
                       readOnly
-                      placeholder="Se llenará automáticamente"
+                      placeholder="Municipio"
                       className="readonly-input"
                     />
                   </div>
+                </div>
+                <div className="form-row">
                   <div className="form-group">
-                    <label>Estado</label>
                     <input
                       type="text"
                       name="state"
                       value={formData.state}
                       readOnly
-                      placeholder="Se llenará automáticamente"
+                      placeholder="Estado"
                       className="readonly-input"
                     />
                   </div>
                   <div className="form-group">
-                    <label>País</label>
                     <input
                       type="text"
                       name="country"
                       value={formData.country}
                       readOnly
+                      placeholder="País"
                       className="readonly-input"
                     />
                   </div>
                 </div>
-                <div className="form-group">
-                  <label>Información adicional</label>
+                <div className="form-group form-group--full">
                   <textarea
                     name="additional_info"
                     value={formData.additional_info}
                     onChange={handleInputChange}
-                    placeholder="Referencias, entre calles, etc."
+                    placeholder="Información adicional (Referencias, entre calles, etc.)"
                     rows="3"
                   />
                 </div>
-                <div className="form-group">
+                <div className="form-group form-group--full">
                   <label className="checkbox-label">
                     <input
                       type="checkbox"
@@ -739,20 +739,18 @@ const Addresses = () => {
             </div>
             <div className="modal-body">
               <form onSubmit={(e) => { e.preventDefault(); handleSaveAddress(); }}>
-                <div className="form-grid-2">
+                <div className="form-group form-group--full">
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    placeholder="Dirección (Casa, trabajo)"
+                    required
+                  />
+                </div>
+                <div className="form-row">
                   <div className="form-group">
-                    <label>Nombre de la dirección *</label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      placeholder="Ej: Casa, Trabajo"
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Código Postal *</label>
                     <input
                       type="text"
                       name="postal_code"
@@ -766,7 +764,6 @@ const Addresses = () => {
                     {loadingPostalCode && <small style={{ color: '#666' }}>Consultando...</small>}
                   </div>
                   <div className="form-group">
-                    <label>Dirección (Calle y Número) *</label>
                     <input
                       type="text"
                       name="street_address"
@@ -776,8 +773,12 @@ const Addresses = () => {
                       required
                     />
                   </div>
+                </div>
+                <div className="form-info-label">
+                  Autocompletado con código postal
+                </div>
+                <div className="form-row">
                   <div className="form-group">
-                    <label>Colonia/Asentamiento *</label>
                     {settlements.length > 0 ? (
                       <select
                         name="city"
@@ -798,56 +799,55 @@ const Addresses = () => {
                         name="city"
                         value={formData.city}
                         onChange={handleInputChange}
-                        placeholder="Ingresa código postal primero"
+                        placeholder="Colonia/Asentamiento"
                         disabled
                         required
                       />
                     )}
                   </div>
                   <div className="form-group">
-                    <label>Municipio</label>
                     <input
                       type="text"
                       name="municipality"
                       value={formData.municipality}
                       readOnly
-                      placeholder="Se llenará automáticamente"
+                      placeholder="Municipio"
                       className="readonly-input"
                     />
                   </div>
+                </div>
+                <div className="form-row">
                   <div className="form-group">
-                    <label>Estado</label>
                     <input
                       type="text"
                       name="state"
                       value={formData.state}
                       readOnly
-                      placeholder="Se llenará automáticamente"
+                      placeholder="Estado"
                       className="readonly-input"
                     />
                   </div>
                   <div className="form-group">
-                    <label>País</label>
                     <input
                       type="text"
                       name="country"
                       value={formData.country}
                       readOnly
+                      placeholder="País"
                       className="readonly-input"
                     />
                   </div>
                 </div>
-                <div className="form-group">
-                  <label>Información adicional</label>
+                <div className="form-group form-group--full">
                   <textarea
                     name="additional_info"
                     value={formData.additional_info}
                     onChange={handleInputChange}
-                    placeholder="Referencias, entre calles, etc."
+                    placeholder="Información adicional (Referencias, entre calles, etc.)"
                     rows="3"
                   />
                 </div>
-                <div className="form-group">
+                <div className="form-group form-group--full">
                   <label className="checkbox-label">
                     <input
                       type="checkbox"
