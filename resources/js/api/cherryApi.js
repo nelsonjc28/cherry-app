@@ -1,4 +1,5 @@
 import axios from 'axios';
+import api from '../config/axios';
 import productCache from '../utils/productCacheInMemory';
 
 const CHERRY_API_URL = 'https://cherryapi.estrategiadmgs.com.mx/cherryApi/';
@@ -1198,75 +1199,70 @@ export const testWithPublicApi = async () => {
 };
 
 /**
- * Obtener los productos más vendidos del mes actual
+ * Obtener los productos más vendidos
+ * Usa el endpoint /api/products/top-selling que retorna productos completos desde la BD local
  */
 export const getTopSellingProducts = async (limit = 20) => {
   try {
+    // Obtener productos más vendidos directamente del backend local
+    const response = await api.get('/products/top-selling', {
+      params: { limit }
+    });
     
-    // Obtener IDs de productos más vendidos del backend
-    const response = await fetch('/api/featured/top-selling-products?limit=' + limit);
-    
-    if (!response.ok) {
+    if (!response.data.success || !response.data.data || !response.data.data.products) {
       return [];
     }
     
-    const data = await response.json();
+    const products = response.data.data.products;
     
-    if (!data.success || !data.data.product_ids || data.data.product_ids.length === 0) {
+    if (products.length === 0) {
       return [];
     }
     
-    const productIds = data.data.product_ids;
-    
-    // Obtener datos completos de la API externa
-    const apiResponse = await axios.get(CHERRY_API_URL);
-    const apiData = apiResponse.data;
-    
-    let allApiProducts = [];
-    if (Array.isArray(apiData)) {
-      allApiProducts = apiData;
-    } else if (apiData && apiData.productos && Array.isArray(apiData.productos)) {
-      allApiProducts = apiData.productos;
-    }
-    
-    // Filtrar y ordenar productos según el ranking de ventas
-    const topSellingProducts = [];
-    
-    for (const productId of productIds) {
-      const product = allApiProducts.find(p => 
-        (p.id_articulo && p.id_articulo.toString() === productId.toString()) ||
-        (p.id && p.id.toString() === productId.toString()) ||
-        (p.codigo && p.codigo.toString() === productId.toString())
-      );
-      
-      if (product) {
-        topSellingProducts.push(product);
+    // Los productos ya vienen con el formato correcto desde TopSellingController
+    // Solo necesitamos mapearlos al formato esperado por el frontend
+    const mappedProducts = products.map(product => {
+      // Calcular stock total desde detalles si está disponible
+      let stock = product.inventario || 0;
+      if (product.detalles && Array.isArray(product.detalles)) {
+        stock = product.detalles.reduce((total, detalle) => {
+          return total + (detalle.inventario_d || 0);
+        }, 0);
       }
-    }
+      
+      return {
+        id: product.id || product.id_articulo,
+        id_articulo: product.id_articulo || product.id,
+        title: product.title || product.descripcion,
+        description: product.descripcion || product.title,
+        price: product.price || product.precio1 || 0,
+        originalPrice: product.originalPrice || null,
+        discount: product.discount || 0,
+        image: product.image,
+        brand: product.marca || 'Sin marca',
+        stock: stock,
+        inventario: stock,
+        colors: product.colors || product.colores || [],
+        colores: product.colores || product.colors || [],
+        sizes: product.sizes || [],
+        tallas: product.sizes || [],
+        isNew: product.isNew || false,
+        rating: product.rating || 0,
+        ratingCount: product.ratingCount || product.totalRatings || 0,
+        totalRatings: product.totalRatings || product.ratingCount || 0,
+        opc_nuevo: product.opc_nuevo,
+        opc_promo: product.opc_promo,
+        desc_promo: product.desc_promo,
+        fecha_alta: product.fecha_alta,
+        detalles: product.detalles || [],
+        ranking: product.ranking || null
+      };
+    });
     
-    
-    if (topSellingProducts.length === 0) {
-      return [];
-    }
-    
-    // Obtener IDs para ratings
-    const productIdsForRatings = topSellingProducts.map(product => 
-      product.id_articulo || product.id || product.codigo
-    ).filter(Boolean);
-    
-    // Obtener ratings en bulk
-    const ratingsCache = await getBulkRatings(productIdsForRatings);
-    
-    // Mapear productos manteniendo el orden de ventas
-    const mappedProducts = await Promise.all(
-      topSellingProducts.map(product => mapApiProductToAppProduct(product, ratingsCache))
-    );
-    
-    const validProducts = mappedProducts.filter(p => p !== null);
-    
-    return validProducts;
+    return mappedProducts;
     
   } catch (error) {
+    console.error('Error al obtener productos más vendidos:', error);
     return [];
   }
 };

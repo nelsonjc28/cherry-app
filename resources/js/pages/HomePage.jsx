@@ -73,15 +73,15 @@ const HomePage = () => {
     return () => clearTimeout(timer);
   }, [user, initialized]);
 
-  // Cargar productos más vendidos (6 productos)
+  // Cargar productos más vendidos (20 productos)
   useEffect(() => {
     const loadTopSellingProducts = async () => {
       setLoadingTopSelling(true);
       
       try {
         
-        // Obtener productos más vendidos del mes actual (limitado a 6)
-        const products = await getTopSellingProducts(6);
+        // Obtener productos más vendidos (limitado a 20)
+        const products = await getTopSellingProducts(20);
         
         if (products.length === 0) {
           setTopSellingProducts([]);

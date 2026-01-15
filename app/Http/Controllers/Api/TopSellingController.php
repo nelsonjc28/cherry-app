@@ -102,25 +102,35 @@ class TopSellingController extends Controller
                 ])
                 ->get();
             
-            // Filtrar productos que coincidan con los IDs del ranking (comparación de strings)
-            $productos = $allProductos->filter(function($producto) use ($topProductIds) {
-                $normalizedId = trim((string) $producto->id);
-                return in_array($normalizedId, $topProductIds);
+            // Normalizar IDs eliminando ceros a la izquierda para comparación
+            $normalizeId = function($id) {
+                return ltrim(trim((string) $id), '0') ?: '0'; // Si queda vacío, retornar '0'
+            };
+            
+            // Crear mapa de IDs normalizados del ranking
+            $topProductIdsNormalized = [];
+            foreach ($topProductIds as $productId) {
+                $normalized = $normalizeId($productId);
+                $topProductIdsNormalized[$normalized] = $productId; // Guardar el ID original
+            }
+            
+            // Filtrar productos que coincidan con los IDs del ranking (comparación normalizada)
+            $productos = $allProductos->filter(function($producto) use ($topProductIdsNormalized, $normalizeId) {
+                $normalizedId = $normalizeId($producto->id);
+                return isset($topProductIdsNormalized[$normalizedId]);
             });
 
             // Crear mapa de productos por ID normalizado
             $productosMap = [];
             foreach ($productos as $producto) {
-                $normalizedId = trim((string) $producto->id);
+                $normalizedId = $normalizeId($producto->id);
                 $productosMap[$normalizedId] = $producto;
             }
 
             // Mantener el orden del ranking de ventas
             $productosOrdenados = [];
             $ranking = 1;
-            foreach ($topProductIds as $productId) {
-                $normalizedId = trim((string) $productId);
-                
+            foreach ($topProductIdsNormalized as $normalizedId => $originalProductId) {
                 if (isset($productosMap[$normalizedId])) {
                     $producto = $productosMap[$normalizedId];
                     $producto->ranking = $ranking;

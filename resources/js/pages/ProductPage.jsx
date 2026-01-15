@@ -1273,13 +1273,13 @@ const ProductPage = () => {
       }
 
       // Si no está marcado como nuevo, verificar por fecha (45 días, igual que en las listas)
+      // Usar la misma lógica que en las listas: fecha_alta > (ahora - 45 días)
       if (!fecha_alta) return false;
 
       const fechaAlta = new Date(fecha_alta);
-      const now = new Date();
-      const diffDays = Math.floor((now - fechaAlta) / (1000 * 60 * 60 * 24));
+      const fortyFiveDaysAgo = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);
 
-      return diffDays <= 45;
+      return fechaAlta > fortyFiveDaysAgo;
     };
 
     // Si el producto es nuevo y no tiene inventario, mostrar "Próximamente"
@@ -1534,7 +1534,7 @@ const ProductPage = () => {
             </div>
 
             <div className="product-page__info-price">
-              {hasOffer && (
+              {hasOffer && !isComingSoon && (
                 <div className={`product-page__offer-badge ${hasUserOffer ? 'user-offer' : ''} ${hasUserOffer && userOffer && userOffer.discount_category === 'buy_x_get_y' ? 'buy-x-get-y' :
                   hasUserOffer && userOffer && userOffer.discount_category === 'order_discount' ? 'order-discount' :
                     hasUserOffer && userOffer && userOffer.discount_category === 'free_shipping' ? 'free-shipping' : ''

@@ -37,7 +37,7 @@ const BestSellers = ({
     if (useApi) {
       loadRandomProducts();
     } else {
-      setApiProducts(products.slice(0, 6));
+      setApiProducts(products.slice(0, 20));
       setLocalLoading(false);
     }
   }, []); // SOLO se ejecuta una vez al montar el componente
@@ -73,7 +73,7 @@ const BestSellers = ({
 
         {/* Desktop Grid View */}
         <div className="best-sellers-grid desktop-view">
-          {displayProducts.slice(0, 6).map((product) => (
+          {displayProducts.slice(0, 20).map((product) => (
             <BestSellerCard
               key={product.id}
               id={product.id}
