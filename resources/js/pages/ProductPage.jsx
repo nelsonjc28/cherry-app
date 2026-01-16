@@ -1259,43 +1259,19 @@ const ProductPage = () => {
   // Función para determinar el estado del inventario
   const getInventoryStatus = () => {
     const totalInventory = getTotalInventory();
-
-    // Determinar si el producto es nuevo
-    // Consideramos nuevo si:
-    // 1. opc_nuevo === 'S' (marcado como nuevo en la BD), O
-    // 2. fecha_alta es reciente (menos de 45 días) - igual que en las listas
-    const isNewProduct = () => {
-      if (!product) return false;
-      
-      // Primero verificar si está marcado como nuevo en la BD
-      if (product.opc_nuevo === 'S' || product.opcNuevo === 'S' || product.opc_nuevo === true || product.opcNuevo === true) {
-        return true;
-      }
-
-      // Si no está marcado como nuevo, verificar por fecha (45 días, igual que en las listas)
-      // Usar la misma lógica que en las listas: fecha_alta > (ahora - 45 días)
+    
+    // Obtener stock_received_count del producto (contador de veces que recibió stock)
+    const stockReceivedCount = product?.stock_received_count ?? product?.stockReceivedCount ?? 0;
+    
+    // Verificar si el producto es menor a 100 días desde fecha_alta
+    const isLessThan100Days = () => {
       if (!fecha_alta) return false;
-
       const fechaAlta = new Date(fecha_alta);
-      const fortyFiveDaysAgo = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);
-
-      return fechaAlta > fortyFiveDaysAgo;
+      const hundredDaysAgo = new Date(Date.now() - 100 * 24 * 60 * 60 * 1000);
+      return fechaAlta > hundredDaysAgo;
     };
 
-    // Si el producto es nuevo y no tiene inventario, mostrar "Próximamente"
-    // Esto coincide con la lógica de las tarjetas: isNew && stock <= 0
-    if (isNewProduct() && totalInventory === 0) {
-      return {
-        status: 'coming-soon',
-        text: 'Próximamente',
-        icon: (
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M8 0.25C3.71875 0.25 0.25 3.75 0.25 8C0.25 12.2812 3.71875 15.75 8 15.75C12.25 15.75 15.75 12.2812 15.75 8C15.75 3.75 12.25 0.25 8 0.25ZM8 1.75C11.4375 1.75 14.25 4.5625 14.25 8C14.25 11.4688 11.4375 14.25 8 14.25C4.53125 14.25 1.75 11.4688 1.75 8C1.75 4.5625 4.53125 1.75 8 1.75ZM7.25 4V8.5L10.5 10.5L11 9.75L8.25 8V4H7.25Z" fill="#FF9800" />
-          </svg>
-        )
-      };
-    }
-
+    // Si el producto tiene stock disponible, mostrar "En Stock"
     if (totalInventory > 0) {
       return {
         status: 'in-stock',
@@ -1308,7 +1284,25 @@ const ProductPage = () => {
       };
     }
 
-    // Sin inventario disponible
+    // Lógica para "Próximamente" vs "Agotado":
+    // "Próximamente": stock_received_count === 0 AND todas las tallas en 0 o negativo AND producto no mayor a 100 días
+    // "Agotado": cualquier otro caso (stock_received_count > 0 OR producto mayor a 100 días)
+    // Considerar inventario <= 0 (incluyendo negativos) como "sin stock disponible" para productos que nunca han recibido stock
+    const shouldShowComingSoon = stockReceivedCount === 0 && totalInventory <= 0 && isLessThan100Days();
+
+    if (shouldShowComingSoon) {
+      return {
+        status: 'coming-soon',
+        text: 'Próximamente',
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 0.25C3.71875 0.25 0.25 3.75 0.25 8C0.25 12.2812 3.71875 15.75 8 15.75C12.25 15.75 15.75 12.2812 15.75 8C15.75 3.75 12.25 0.25 8 0.25ZM8 1.75C11.4375 1.75 14.25 4.5625 14.25 8C14.25 11.4688 11.4375 14.25 8 14.25C4.53125 14.25 1.75 11.4688 1.75 8C1.75 4.5625 4.53125 1.75 8 1.75ZM7.25 4V8.5L10.5 10.5L11 9.75L8.25 8V4H7.25Z" fill="#FF9800" />
+          </svg>
+        )
+      };
+    }
+
+    // Sin inventario disponible - mostrar "Agotado"
     return {
       status: 'out-of-stock',
       text: 'Agotado',

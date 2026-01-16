@@ -34,15 +34,7 @@ class ProductSearchController extends Controller
                 return $this->getAllProducts($request);
             }
 
-            // Cache key para esta búsqueda (sin paginación)
-            $cacheKey = 'product_search_' . md5(strtolower($query));
-            
-            // Intentar obtener del cache (5 minutos)
-            $cached = Cache::get($cacheKey);
-            if ($cached !== null) {
-                return response()->json($cached);
-            }
-
+            // Sin caché - siempre buscar en BD fresca
             $queryLower = strtolower($query);
             $queryParam = '%' . $queryLower . '%';
             
@@ -251,6 +243,7 @@ class ProductSearchController extends Controller
                     'fecha_alta' => $producto->fecha_alta ? date('Y-m-d', strtotime($producto->fecha_alta)) : null,
                     'marca' => $producto->marca,
                     'inventario' => (float) $producto->inventario,
+                    'stock_received_count' => (int) ($producto->stock_received_count ?? 0),
                     'detalles' => $detalles, // Detalles completos para el frontend
                     'rating' => $ratingData['rating'],
                     'ratingCount' => $ratingData['count'],
@@ -269,9 +262,7 @@ class ProductSearchController extends Controller
                 ]
             ];
             
-            // Guardar en cache por 5 minutos
-            Cache::put($cacheKey, $response, 300);
-            
+            // Sin caché - siempre retornar datos frescos de la BD
             return response()->json($response);
 
         } catch (\Exception $e) {
@@ -294,15 +285,7 @@ class ProductSearchController extends Controller
             // Sin límite - obtener TODOS los productos
             $perPage = PHP_INT_MAX;
 
-            // Cache key para todos los productos
-            $cacheKey = 'all_products_complete';
-            
-            // Intentar obtener del cache (10 minutos)
-            $cached = Cache::get($cacheKey);
-            if ($cached !== null) {
-                return response()->json($cached);
-            }
-
+            // Sin caché - siempre obtener datos frescos de la BD
             // Obtener TODOS los productos SIN límite
             $productos = DB::table('productos')
                 ->select([
@@ -446,6 +429,7 @@ class ProductSearchController extends Controller
                     'fecha_alta' => $producto->fecha_alta ? date('Y-m-d', strtotime($producto->fecha_alta)) : null,
                     'marca' => $producto->marca,
                     'inventario' => (float) $producto->inventario,
+                    'stock_received_count' => (int) ($producto->stock_received_count ?? 0),
                     'detalles' => $detalles,
                     'rating' => $ratingData['rating'],
                     'ratingCount' => $ratingData['count'],
@@ -464,9 +448,7 @@ class ProductSearchController extends Controller
                 ]
             ];
 
-            // Guardar en cache (10 minutos)
-            Cache::put($cacheKey, $result, 600);
-
+            // Sin caché - siempre retornar datos frescos de la BD
             return response()->json($result);
         } catch (\Exception $e) {
             return response()->json([

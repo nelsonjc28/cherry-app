@@ -316,6 +316,9 @@ const NuevosPage = () => {
               category_id: product.id_linea || product.linea,
               catalogoId: product.catalogoId,
               fechaAlta: product.fecha_alta,
+              fecha_alta: product.fecha_alta,
+              stock_received_count: product.stock_received_count || 0,
+              stockReceivedCount: product.stock_received_count || 0,
               detalles: product.detalles,
               codigo: product.codigo || product.id_articulo || product.id
             };

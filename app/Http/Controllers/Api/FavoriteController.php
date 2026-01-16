@@ -145,13 +145,10 @@ class FavoriteController extends Controller
                 'product_id' => 'required|string'
             ]);
 
-            // Usar caché para mejorar velocidad
-            $cacheKey = "favorite_check_{$user->id}_{$request->product_id}";
-            $isFavorited = cache()->remember($cacheKey, 60, function () use ($user, $request) {
-                return Favorite::where('user_id', $user->id)
-                               ->where('product_id', $request->product_id)
-                               ->exists();
-            });
+            // Sin caché - siempre consultar BD fresca
+            $isFavorited = Favorite::where('user_id', $user->id)
+                                   ->where('product_id', $request->product_id)
+                                   ->exists();
 
             return response()->json([
                 'success' => true,
@@ -254,9 +251,7 @@ class FavoriteController extends Controller
                 $isFavorited = true;
             }
 
-            // Limpiar caché relacionado
-            $cacheKey = "favorite_check_{$user->id}_{$request->product_id}";
-            cache()->forget($cacheKey);
+            // Sin caché - no es necesario limpiar
 
             return response()->json([
                 'success' => true,

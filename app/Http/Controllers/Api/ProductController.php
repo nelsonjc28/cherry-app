@@ -19,16 +19,7 @@ class ProductController extends Controller
     public function show(Request $request, $id): JsonResponse
     {
         try {
-            // Cache key para este producto
-            $cacheKey = 'product_' . $id;
-            
-            // Intentar obtener del cache (10 minutos)
-            $cached = Cache::get($cacheKey);
-            if ($cached !== null) {
-                return response()->json($cached);
-            }
-
-            // Buscar producto con sus detalles
+            // Buscar producto con sus detalles (sin caché para datos de BD)
             $producto = DB::table('productos')
                 ->where('id', $id)
                 ->first();
@@ -169,6 +160,7 @@ class ProductController extends Controller
                     'imagen' => $producto->imagen,
                     'piezas' => $producto->piezas ?? 0,
                     'inventario' => (float) ($producto->inventario ?? 0),
+                    'stock_received_count' => (int) ($producto->stock_received_count ?? 0),
                     'especificaciones' => $producto->especificaciones ?? null,
                     'linea' => $producto->id_linea ?? null,
                     'sector' => $producto->sector_id ?? null,
@@ -225,9 +217,7 @@ class ProductController extends Controller
                 ]
             ];
 
-            // Guardar en cache por 10 minutos
-            Cache::put($cacheKey, $response, 600);
-            
+            // Sin caché - siempre retornar datos frescos de la BD
             return response()->json($response);
 
         } catch (\Exception $e) {
@@ -361,7 +351,8 @@ class ProductController extends Controller
                         'fecha_alta' => $producto->fecha_alta ? date('Y-m-d', strtotime($producto->fecha_alta)) : null,
                         'opc_nuevo' => $producto->opc_nuevo ?? 'N',
                         'opc_promo' => $producto->opc_promo ?? 'N',
-                        'desc_promo' => $descPromoValue
+                        'desc_promo' => $descPromoValue,
+                        'stock_received_count' => (int) ($producto->stock_received_count ?? 0)
                     ];
                 })
                 ->values()

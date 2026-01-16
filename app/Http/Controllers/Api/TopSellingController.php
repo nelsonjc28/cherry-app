@@ -21,15 +21,7 @@ class TopSellingController extends Controller
         try {
             $limit = (int) $request->input('limit', 20);
             
-            // Cache key para productos más vendidos
-            $cacheKey = 'top_selling_products_' . $limit;
-            
-            // Intentar obtener del cache (10 minutos)
-            $cached = Cache::get($cacheKey);
-            if ($cached !== null) {
-                return response()->json($cached);
-            }
-
+            // Sin caché - siempre consultar datos frescos de la BD
             // 1. Consultar órdenes y obtener ranking de productos más vendidos
             // Buscar en todos los tiempos, no solo el mes actual
             $topProducts = DB::table('order_items')
@@ -270,6 +262,7 @@ class TopSellingController extends Controller
                     'fecha_alta' => $producto->fecha_alta ? date('Y-m-d', strtotime($producto->fecha_alta)) : null,
                     'marca' => $producto->marca,
                     'inventario' => (float) $producto->inventario,
+                    'stock_received_count' => (int) ($producto->stock_received_count ?? 0),
                     'detalles' => $detalles, // Detalles completos para el frontend
                     'rating' => $ratingData['rating'],
                     'ratingCount' => $ratingData['count'],
@@ -290,9 +283,7 @@ class TopSellingController extends Controller
                 ]
             ];
             
-            // Guardar en cache (10 minutos)
-            Cache::put($cacheKey, $response, 600);
-            
+            // Sin caché - siempre retornar datos frescos de la BD
             return response()->json($response);
 
         } catch (\Exception $e) {

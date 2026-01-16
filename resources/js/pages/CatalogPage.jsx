@@ -461,6 +461,9 @@ const CatalogPage = ({ catalogId }) => {
                     id_linea: product.id_linea || product.linea, // Para filtro de categoría
                     catalogoId: product.catalogoId, // Para filtro de catálogo
                     fechaAlta: product.fecha_alta,
+                    fecha_alta: product.fecha_alta,
+                    stock_received_count: product.stock_received_count || 0,
+                    stockReceivedCount: product.stock_received_count || 0,
                     temporada: product.temporada,
                     opcNuevo: product.opc_nuevo,
                     opcPromo: product.opc_promo,
@@ -548,6 +551,9 @@ const CatalogPage = ({ catalogId }) => {
                   id_linea: product.id_linea || product.linea,
                   catalogoId: product.catalogoId,
                   fechaAlta: product.fecha_alta,
+                  fecha_alta: product.fecha_alta,
+                  stock_received_count: product.stock_received_count || 0,
+                  stockReceivedCount: product.stock_received_count || 0,
                   temporada: product.temporada,
                   opcNuevo: product.opc_nuevo,
                   opcPromo: product.opc_promo,

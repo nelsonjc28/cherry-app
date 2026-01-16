@@ -37,6 +37,11 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
     brand,
     category,
     stock = 0,
+    inventario = 0,
+    stock_received_count = 0,
+    stockReceivedCount = 0,
+    fecha_alta = null,
+    fechaAlta = null,
     userOffer, // Información del descuento del usuario (puede venir como prop)
     hasUserOffer = false // Flag que indica si tiene descuento del usuario (puede venir como prop)
   } = product;
@@ -78,6 +83,34 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
       onFavoriteToggle(id);
     }
   };
+
+  // Función para determinar si debe mostrar "Próximamente" o "Agotado"
+  const getStockStatus = () => {
+    const totalStock = stock || inventario || 0;
+    const stockReceivedCountValue = stock_received_count || stockReceivedCount || 0;
+    const fechaAltaValue = fecha_alta || fechaAlta;
+    
+    // Si tiene stock, no mostrar badge de stock
+    if (totalStock > 0) {
+      return null;
+    }
+    
+    // Verificar si el producto es menor a 100 días desde fecha_alta
+    const isLessThan100Days = () => {
+      if (!fechaAltaValue) return false;
+      const fechaAlta = new Date(fechaAltaValue);
+      const hundredDaysAgo = new Date(Date.now() - 100 * 24 * 60 * 60 * 1000);
+      return fechaAlta > hundredDaysAgo;
+    };
+    
+    // "Próximamente": stock_received_count === 0 AND todas las tallas en 0 o negativo AND producto no mayor a 100 días
+    // Considerar inventario <= 0 (incluyendo negativos) como "sin stock disponible" para productos que nunca han recibido stock
+    const shouldShowComingSoon = stockReceivedCountValue === 0 && totalStock <= 0 && isLessThan100Days();
+    
+    return shouldShowComingSoon ? 'coming-soon' : 'out-of-stock';
+  };
+
+  const stockStatus = getStockStatus();
 
   // Calculate discount percentage - Priorizar oferta personalizada
   const calculateDiscountPercentage = () => {
@@ -192,22 +225,27 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
             loading="lazy"
           />
 
-          {/* New badge - highest priority if product is new */}
-          {isNew && (
-            <span className="new-badge">Nuevo</span>
-          )}
+        {/* New badge - highest priority if product is new */}
+        {isNew && (
+          <span className="new-badge">Nuevo</span>
+        )}
 
-          {/* Out of stock badge - only if NOT new */}
-          {!isNew && stock <= 0 && (
-            <span className="out-of-stock-badge">Agotado</span>
-          )}
+        {/* Próximamente badge - si cumple condiciones */}
+        {stockStatus === 'coming-soon' && (
+          <span className="out-of-stock-badge" style={{ backgroundColor: '#FF9800', color: '#fff' }}>Próximamente</span>
+        )}
 
-          {/* Offer badge if product has discount (and is not new) */}
-          {!isNew && stock > 0 && hasOffer && (
-            <span className="offer-badge">
-              {getDiscountLabel()}
-            </span>
-          )}
+        {/* Out of stock badge - solo si no es nuevo y no es "Próximamente" */}
+        {stockStatus === 'out-of-stock' && (
+          <span className="out-of-stock-badge">Agotado</span>
+        )}
+
+        {/* Offer badge if product has discount (and is not new) */}
+        {!isNew && stock > 0 && hasOffer && (
+          <span className="offer-badge">
+            {getDiscountLabel()}
+          </span>
+        )}
         </div>
 
         {/* Product Info */}
@@ -274,8 +312,13 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
           <span className="new-badge">Nuevo</span>
         )}
 
-        {/* Out of stock badge - only if NOT new */}
-        {!isNew && stock <= 0 && (
+        {/* Próximamente badge - si cumple condiciones */}
+        {stockStatus === 'coming-soon' && (
+          <span className="out-of-stock-badge" style={{ backgroundColor: '#FF9800', color: '#fff' }}>Próximamente</span>
+        )}
+
+        {/* Out of stock badge - solo si no es nuevo y no es "Próximamente" */}
+        {stockStatus === 'out-of-stock' && (
           <span className="out-of-stock-badge">Agotado</span>
         )}
 

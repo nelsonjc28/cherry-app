@@ -154,14 +154,7 @@ class CategoryController extends Controller
             }
 
             // Cache key para esta categoría
-            $cacheKey = 'category_products_' . $category->id . '_' . $category->code;
-            
-            // Intentar obtener del cache (10 minutos)
-            $cached = Cache::get($cacheKey);
-            if ($cached !== null) {
-                return response()->json($cached);
-            }
-
+            // Sin caché - siempre obtener datos frescos de la BD
             // Usar Query Builder para mejor rendimiento - solo campos necesarios para ProductCard
             $productos = DB::table('productos')
                 ->select([
@@ -315,6 +308,7 @@ class CategoryController extends Controller
                     'fecha_alta' => $producto->fecha_alta ? date('Y-m-d', strtotime($producto->fecha_alta)) : null,
                     'marca' => $producto->marca,
                     'inventario' => (float) $producto->inventario,
+                    'stock_received_count' => (int) ($producto->stock_received_count ?? 0),
                     'detalles' => $detalles, // Detalles completos para el frontend
                     'rating' => $ratingData['rating'],
                     'ratingCount' => $ratingData['count'],
@@ -330,9 +324,7 @@ class CategoryController extends Controller
                 ]
             ];
             
-            // Guardar en cache por 10 minutos
-            Cache::put($cacheKey, $response, 600);
-            
+            // Sin caché - siempre retornar datos frescos de la BD
             return response()->json($response);
 
         } catch (\Exception $e) {
@@ -351,13 +343,7 @@ class CategoryController extends Controller
     {
         try {
             $userId = auth('api')->id() ?? auth('web')->id() ?? auth()->id();
-            $cacheKey = 'available_categories_local_' . ($userId ? $userId : 'guest');
-
-            $cached = Cache::get($cacheKey);
-            if ($cached !== null) {
-                return response()->json($cached);
-            }
-
+            // Sin caché - siempre obtener datos frescos de la BD
             // 1. Obtener productos con desc_promo > 0
             $productsWithGeneralDiscount = DB::table('productos')
                 ->select('id', 'id_linea')
@@ -453,8 +439,7 @@ class CategoryController extends Controller
                 'categories' => $categories
             ];
 
-            Cache::put($cacheKey, $response, 600); // Cache por 10 minutos
-
+            // Sin caché - siempre retornar datos frescos de la BD
             return response()->json($response);
 
         } catch (\Exception $e) {

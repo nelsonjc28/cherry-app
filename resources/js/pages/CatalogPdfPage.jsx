@@ -112,8 +112,33 @@ const CatalogPdfPage = () => {
   };
 
   const handleShareCatalog = useCallback(async () => {
-    // Verificar si hay PDF cargado directamente en el catálogo
-    if (!selectedCatalog || !selectedCatalog.pdf_path) {
+    // Buscar PDF en el catálogo o en el grupo de imágenes seleccionado
+    let pdfPath = null;
+    let pdfName = null;
+    let catalogName = selectedCatalog?.name || 'Catálogo Cherry';
+
+    // Prioridad 1: PDF del grupo de imágenes seleccionado
+    if (selectedImageGroup?.pdf_path) {
+      pdfPath = selectedImageGroup.pdf_path;
+      pdfName = selectedImageGroup.pdf_name || selectedImageGroup.name || 'catalogo.pdf';
+      catalogName = selectedImageGroup.name || catalogName;
+    }
+    // Prioridad 2: PDF del catálogo directamente
+    else if (selectedCatalog?.pdf_path) {
+      pdfPath = selectedCatalog.pdf_path;
+      pdfName = selectedCatalog.pdf_name || 'catalogo.pdf';
+    }
+    // Prioridad 3: Buscar PDF en cualquier grupo de imágenes del catálogo
+    else if (imageGroups && imageGroups.length > 0) {
+      const groupWithPdf = imageGroups.find(group => group.pdf_path);
+      if (groupWithPdf) {
+        pdfPath = groupWithPdf.pdf_path;
+        pdfName = groupWithPdf.pdf_name || groupWithPdf.name || 'catalogo.pdf';
+        catalogName = groupWithPdf.name || catalogName;
+      }
+    }
+
+    if (!pdfPath) {
       if (window.showToast) {
         window.showToast('No hay PDF disponible para compartir', 'error');
       }
@@ -121,14 +146,14 @@ const CatalogPdfPage = () => {
     }
 
     try {
-      const pdfUrl = selectedCatalog.pdf_path.startsWith('http') 
-        ? selectedCatalog.pdf_path 
-        : `${window.location.origin}/${selectedCatalog.pdf_path}`;
+      const pdfUrl = pdfPath.startsWith('http') 
+        ? pdfPath 
+        : `${window.location.origin}/${pdfPath}`;
 
       await shareCatalogPdf({
         pdf_url: pdfUrl,
-        pdf_name: selectedCatalog.pdf_name,
-        catalogName: selectedCatalog.name || 'Catálogo Cherry'
+        pdf_name: pdfName,
+        catalogName: catalogName
       });
     } catch (error) {
       if (error.name !== 'AbortError') {
@@ -138,7 +163,7 @@ const CatalogPdfPage = () => {
         }
       }
     }
-  }, [selectedCatalog]);
+  }, [selectedCatalog, selectedImageGroup, imageGroups]);
 
 
   const fetchImageGroups = async (catalogId) => {
@@ -675,7 +700,7 @@ const CatalogPdfPage = () => {
             <h1 className="catalog-pdf__title">{selectedCatalog?.name || 'Catálogo PDF'}</h1>
           </div>
           <div className="catalog-pdf__controls">
-            {selectedCatalog?.pdf_path && (
+            {(selectedCatalog?.pdf_path || selectedImageGroup?.pdf_path || (imageGroups && imageGroups.some(group => group.pdf_path))) && (
               <CustomButton
                 variant="filled"
                 size="medium"
