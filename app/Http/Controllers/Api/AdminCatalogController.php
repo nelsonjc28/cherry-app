@@ -301,12 +301,12 @@ class AdminCatalogController extends Controller
             }
 
             $validator = Validator::make($request->all(), [
-                'images.*' => 'required|file|mimes:jpeg,png,jpg,gif,webp|max:10240', // 10MB máximo por imagen
+                'images.*' => 'required|file|mimes:jpeg,png,jpg,gif,webp|max:102400', // 100MB máximo por imagen
                 'catalog_name' => 'nullable|string|max:255',
                 'image_group_id' => 'nullable|exists:catalog_image_groups,id'
             ], [
                 'images.*.mimes' => 'Las imágenes deben ser archivos válidos (JPEG, PNG, JPG, GIF, WebP)',
-                'images.*.max' => 'Cada imagen no debe superar 10MB',
+                'images.*.max' => 'Cada imagen no debe superar 100MB',
                 'image_group_id.exists' => 'El grupo de imágenes especificado no existe'
             ]);
 

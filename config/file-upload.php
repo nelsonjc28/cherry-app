@@ -14,11 +14,11 @@ return [
 
     'limits' => [
         // Límites generales de archivos
-        'max_file_size' => env('MAX_FILE_SIZE', 10240), // 10MB en kilobytes
+        'max_file_size' => env('MAX_FILE_SIZE', 102400), // 100MB en kilobytes
         
         // Límites específicos por tipo de archivo
         'images' => [
-            'max_size' => env('MAX_IMAGE_SIZE', 10240), // 10MB
+            'max_size' => env('MAX_IMAGE_SIZE', 102400), // 100MB
             'allowed_mimes' => ['jpeg', 'jpg', 'png', 'gif', 'webp'],
             'max_dimensions' => [
                 'width' => env('MAX_IMAGE_WIDTH', 4096), // 4K
@@ -27,12 +27,12 @@ return [
         ],
         
         'pdfs' => [
-            'max_size' => env('MAX_PDF_SIZE', 10240), // 10MB
+            'max_size' => env('MAX_PDF_SIZE', 102400), // 100MB
             'allowed_mimes' => ['pdf']
         ],
         
         'documents' => [
-            'max_size' => env('MAX_DOCUMENT_SIZE', 10240), // 10MB
+            'max_size' => env('MAX_DOCUMENT_SIZE', 102400), // 100MB
             'allowed_mimes' => ['pdf', 'doc', 'docx', 'txt']
         ],
         
@@ -75,10 +75,10 @@ return [
     */
 
     'validation_rules' => [
-        'image' => 'image|mimes:jpeg,jpg,png,gif,webp|max:10240',
-        'pdf' => 'file|mimes:pdf|max:10240',
-        'document' => 'file|mimes:pdf,doc,docx,txt|max:10240',
-        'video' => 'file|mimes:mp4,avi,mov,wmv|max:51200'
+        'image' => 'image|mimes:jpeg,jpg,png,gif,webp|max:102400',
+        'pdf' => 'file|mimes:pdf|max:102400',
+        'document' => 'file|mimes:pdf,doc,docx,txt|max:102400',
+        'video' => 'file|mimes:mp4,avi,mov,wmv|max:102400'
     ],
 
     /*

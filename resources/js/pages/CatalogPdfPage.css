@@ -137,7 +137,7 @@
 }
 
 .catalog-pdf__whatsapp-text {
-  display: none;
+  display: inline;
 }
 
 .catalog-pdf__thumbnails {

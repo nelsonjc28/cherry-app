@@ -97,7 +97,16 @@ const CatalogPdfPage = () => {
       // Primero obtener el catálogo específico
       const catalogResponse = await publicCatalogService.getById(catalogId);
       if (catalogResponse.data.success) {
-        setSelectedCatalog(catalogResponse.data.data);
+        const catalogData = catalogResponse.data.data;
+        setSelectedCatalog(catalogData);
+        
+        // Debug: Log para verificar datos del catálogo
+        console.log('📋 [CatalogPdfPage] Catálogo cargado:', {
+          id: catalogData.id,
+          name: catalogData.name,
+          pdf_path: catalogData.pdf_path,
+          pdf_name: catalogData.pdf_name
+        });
 
         // Luego cargar los grupos de imágenes del catálogo
         await fetchImageGroups(catalogId);
@@ -174,6 +183,19 @@ const CatalogPdfPage = () => {
       if (response.data.success) {
         const groups = response.data.data.image_groups || [];
         setImageGroups(groups);
+        
+        // Debug: Log para verificar grupos con PDF
+        const groupsWithPdf = groups.filter(g => g.pdf_path);
+        if (groupsWithPdf.length > 0) {
+          console.log('✅ [CatalogPdfPage] Grupos con PDF encontrados:', groupsWithPdf.map(g => ({
+            id: g.id,
+            name: g.name,
+            pdf_path: g.pdf_path,
+            pdf_name: g.pdf_name
+          })));
+        } else {
+          console.log('⚠️ [CatalogPdfPage] No se encontraron grupos con PDF');
+        }
         
         // Siempre mostrar la vista de grupos inicialmente
         // El useEffect se encargará de abrir automáticamente si hay solo uno
@@ -623,6 +645,40 @@ const CatalogPdfPage = () => {
     }
   }, [isNavigating, images]);
 
+  // Calcular si debe mostrarse el botón de compartir PDF (ANTES de cualquier return condicional)
+  const shouldShowShareButton = useMemo(() => {
+    // Verificar si hay PDF disponible en cualquier lugar
+    const hasCatalogPdf = Boolean(selectedCatalog?.pdf_path);
+    const hasGroupPdf = Boolean(selectedImageGroup?.pdf_path);
+    const hasAnyGroupPdf = imageGroups && imageGroups.length > 0 && imageGroups.some(group => Boolean(group.pdf_path));
+    
+    const shouldShow = hasCatalogPdf || hasGroupPdf || hasAnyGroupPdf;
+    
+    // Debug: Log para verificar qué está disponible
+    if (selectedCatalog) {
+      if (shouldShow) {
+        console.log('✅ [CatalogPdfPage] Botón de compartir PDF visible:', {
+          catalogId: selectedCatalog.id,
+          catalogPdf: hasCatalogPdf ? selectedCatalog.pdf_path : null,
+          selectedGroupPdf: hasGroupPdf ? selectedImageGroup?.pdf_path : null,
+          anyGroupPdf: hasAnyGroupPdf,
+          imageGroupsCount: imageGroups?.length || 0,
+          groupsWithPdf: imageGroups?.filter(g => g.pdf_path).map(g => ({ id: g.id, name: g.name, pdf_path: g.pdf_path }))
+        });
+      } else {
+        console.log('❌ [CatalogPdfPage] Botón de compartir PDF NO visible:', {
+          catalogId: selectedCatalog.id,
+          catalogPdf: selectedCatalog.pdf_path,
+          selectedGroupPdf: selectedImageGroup?.pdf_path,
+          imageGroupsCount: imageGroups?.length || 0,
+          imageGroups: imageGroups?.map(g => ({ id: g.id, name: g.name, pdf_path: g.pdf_path }))
+        });
+      }
+    }
+    
+    return shouldShow;
+  }, [selectedCatalog, selectedImageGroup, imageGroups]);
+
   // Cuando una imagen se carga, detecta su orientación y la guarda
   const handleImageLoad = (e, index) => {
     const { naturalWidth, naturalHeight } = e.target;
@@ -700,14 +756,15 @@ const CatalogPdfPage = () => {
             <h1 className="catalog-pdf__title">{selectedCatalog?.name || 'Catálogo PDF'}</h1>
           </div>
           <div className="catalog-pdf__controls">
-            {(selectedCatalog?.pdf_path || selectedImageGroup?.pdf_path || (imageGroups && imageGroups.some(group => group.pdf_path))) && (
+            {shouldShowShareButton && (
               <CustomButton
                 variant="filled"
-                size="medium"
+                size="small"
                 className="catalog-pdf__controls-btn"
                 onClick={handleShareCatalog}
+                iconLeft={<i className="fas fa-share-alt"></i>}
               >
-                <span className="catalog-pdf__whatsapp-text">Compartir a clientes</span>
+                <span style={{ display: 'none' }}></span>
               </CustomButton>
             )}
           </div>

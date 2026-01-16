@@ -25,12 +25,12 @@ class ValidateFileSize
                         if ($singleFile && $singleFile->isValid()) {
                             $sizeInMB = $singleFile->getSize() / (1024 * 1024);
                             
-                            if ($sizeInMB > 10) { // 10MB límite
+                            if ($sizeInMB > 100) { // 100MB límite
                                 return response()->json([
                                     'success' => false,
-                                    'message' => 'El archivo excede el tamaño máximo permitido (10MB)',
+                                    'message' => 'El archivo excede el tamaño máximo permitido (100MB)',
                                     'file_size' => round($sizeInMB, 2) . 'MB',
-                                    'max_size' => '10MB'
+                                    'max_size' => '100MB'
                                 ], 422);
                             }
                         }
@@ -39,12 +39,12 @@ class ValidateFileSize
                     if ($file && $file->isValid()) {
                         $sizeInMB = $file->getSize() / (1024 * 1024);
                         
-                        if ($sizeInMB > 10) { // 10MB límite
+                        if ($sizeInMB > 100) { // 100MB límite
                             return response()->json([
                                 'success' => false,
-                                'message' => 'El archivo excede el tamaño máximo permitido (10MB)',
+                                'message' => 'El archivo excede el tamaño máximo permitido (100MB)',
                                 'file_size' => round($sizeInMB, 2) . 'MB',
-                                'max_size' => '10MB'
+                                'max_size' => '100MB'
                             ], 422);
                         }
                     }
