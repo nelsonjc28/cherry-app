@@ -748,7 +748,8 @@ const ProductPage = () => {
           desc_promo: product.desc_promo,
           price: finalPrice, // Usar precio con descuento aplicado
           precio: finalPrice, // Usar precio con descuento aplicado
-          originalPrice: hasOffer ? precio1 : null, // Precio original solo si hay descuento
+          precio1: precio1, // Precio original (precio1) - siempre guardarlo para cálculos de descuentos
+          originalPrice: hasOffer ? precio1 : null, // Precio original solo si hay descuento (para display)
           discount: hasOffer ? discountPercentage : null, // Porcentaje de descuento
           savings: hasOffer ? (precio1 - finalPrice) : null, // Cantidad ahorrada
           image: generateS3ImageUrl(product.id_articulo),
