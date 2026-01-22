@@ -490,6 +490,14 @@ const ClientManager = () => {
             {clients.map(client => (
               <div key={client.id} className="client-manager__client-card">
                 <div className="client-manager__client-info">
+                  <div className="client-manager__client-id" style={{
+                    fontSize: '12px',
+                    color: '#666',
+                    marginBottom: '4px',
+                    fontWeight: '500'
+                  }}>
+                    ID: {client.id}
+                  </div>
                   <div className="client-manager__client-name">
                     {client.first_name} {client.last_name}
                   </div>

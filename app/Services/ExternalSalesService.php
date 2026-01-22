@@ -225,8 +225,17 @@ class ExternalSalesService
         // Preparar datos del cliente
         $clienteData = $this->prepareClienteData($user, $address, $deliveryType);
         
-        // Calcular importes
-        $importeTotal = $importeNeto - $descuentos;
+        // Leer descuentos de la orden (almacenados cuando se creó la orden)
+        // Estos valores se calculan en el frontend y se guardan en la BD
+        $descuento1 = (float) ($order->descuento1 ?? 0); // 20% cuando total elegible >= 7000
+        $descuento2 = (float) ($order->descuento2 ?? 0); // 10% adicional cuando total elegible >= 15000
+        
+        // Log para verificar descuentos leídos de la BD
+        Log::info('Descuentos leídos de la orden', [
+            'order_id' => $order->id,
+            'descuento1' => $descuento1,
+            'descuento2' => $descuento2
+        ]);
         
         // Obtener costo de envío desde el campo dedicado o desde payment_data (fallback para órdenes antiguas)
         $costoEnvio = 0;
@@ -234,13 +243,6 @@ class ExternalSalesService
             $costoEnvio = (float) $order->shipping_amount;
         } elseif (isset($paymentData['shipping_amount'])) {
             $costoEnvio = (float) $paymentData['shipping_amount'];
-        } else {
-            // Calcular como diferencia entre total_amount y importeTotal (solo si no hay campo)
-            // Si total_amount > importeTotal, la diferencia es el costo de envío
-            $totalAmount = (float) $order->total_amount;
-            if ($totalAmount > $importeTotal) {
-                $costoEnvio = $totalAmount - $importeTotal;
-            }
         }
         
         // Si es retiro en tienda, el costo de envío siempre es 0
@@ -248,7 +250,14 @@ class ExternalSalesService
             $costoEnvio = 0;
         }
         
-        $importeFinal = $importeTotal + $costoEnvio;
+        // Usar valores de la BD para importeNeto e importeFinal
+        // importeNeto: precio total sin descuento (subtotal de la orden)
+        // importeFinal: precio con descuento aplicado (discounted_total + envío, o total_amount)
+        $importeNeto = (float) ($order->subtotal ?? $importeNeto); // Usar subtotal de la BD, fallback al cálculo anterior
+        $importeFinal = (float) ($order->total_amount ?? ($order->discounted_total + $costoEnvio)); // Usar total_amount de la BD, fallback a discounted_total + envío
+        
+        // Calcular importeTotal para referencia (importeNeto - descuentos individuales de productos)
+        $importeTotal = $importeNeto - $descuentos;
         
         // Validar que importeFinal sea válido
         if ($importeFinal <= 0) {
@@ -286,6 +295,8 @@ class ExternalSalesService
             'impoDecto2' => 0.0,
             'decto3' => 0.0,
             'impoDecto3' => 0.0,
+            'descuento1' => (float) $descuento1, // 20% cuando total elegible >= 7000
+            'descuento2' => (float) $descuento2, // 10% adicional cuando total elegible >= 15000
             'importeNeto' => (float) $importeNeto,
             'descuentos' => (float) $descuentos,
             'importeTotal' => (float) $importeTotal,
@@ -298,11 +309,14 @@ class ExternalSalesService
         Log::info('Payload para API externa', [
             'order_id' => $order->id,
             'items_count' => count($items),
-            'importeNeto' => $importeNeto,
+            'subtotal_from_db' => $order->subtotal,
+            'discounted_total_from_db' => $order->discounted_total,
+            'total_amount_from_db' => $order->total_amount,
+            'importeNeto' => $importeNeto, // Precio total sin descuento (subtotal)
             'descuentos' => $descuentos,
             'importeTotal' => $importeTotal,
             'costoEnvio' => $costoEnvio,
-            'importeFinal' => $importeFinal,
+            'importeFinal' => $importeFinal, // Precio con descuento aplicado (total_amount)
             'payload' => $payload
         ]);
         

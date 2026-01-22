@@ -501,7 +501,14 @@ const CartOrderSummary = ({
       }
 
     // Formatear transaction_amount con 2 decimales
-    const formattedTransactionAmount = parseFloat(Number(finalTotal).toFixed(2));
+    // IMPORTANTE: Usar el total que viene del prop 'total' que ya incluye descuentos aplicados
+    // Este total viene de CartDetailsPage y ya tiene el descuento del 20% y 10% adicional aplicado
+    const totalConDescuento = Number(total); // Este total ya viene con descuentos aplicados desde CartDetailsPage
+    const formattedTransactionAmount = parseFloat(totalConDescuento.toFixed(2));
+
+      // Calcular subtotal (monto sin descuentos) y discounted_total (monto con descuentos pero sin envío)
+      const subtotalSinDescuento = Number(subtotal) || 0; // Subtotal sin descuentos aplicados
+      const totalConDescuentoSinEnvio = totalConDescuento - parseFloat(shippingAmount || 0); // Total con descuentos pero sin envío
 
       const paymentData = {
         token: cardToken.id,
@@ -527,10 +534,15 @@ const CartOrderSummary = ({
       address_id: deliveryType === 'envio' && selectedAddress ? parseInt(selectedAddress.id, 10) : null,
       delivery_type: deliveryType, // 'envio' or 'retiro'
       shipping_amount: parseFloat(shippingAmount || 0), // Monto del envío
+        subtotal: subtotalSinDescuento, // Monto total sin descuentos aplicados
+        discounted_total: totalConDescuentoSinEnvio, // Monto total con descuentos aplicados (sin envío)
         // Información para crear/actualizar registro dayFortyFive
         day_forty_five_applied: dayFortyFiveApplied,
         day_forty_five_discount_percentage: dayFortyFiveDiscountPercentage,
-        eligible_total: eligibleTotal
+        eligible_total: eligibleTotal,
+        // Descuentos del 20% y 10% adicional
+        descuento1: discount1 || 0, // 20% cuando total elegible >= 7000
+        descuento2: discount2 || 0  // 10% adicional cuando total elegible >= 15000
       };
 
       // ⚠️ SIN TRY-CATCH - Esto permitirá ver errores exactos del backend
@@ -619,9 +631,10 @@ const CartOrderSummary = ({
   // ===== USAR EL TOTAL FINAL QUE YA VIENE CON DESCUENTOS Y ENVÍO =====
   // El total que se pasa desde CartDetailsPage ya incluye:
   // - Descuentos de productos individuales (desc_promo)
-  // - Descuentos del 30% o 30% + 10% adicional (aplicados sobre productos elegibles)
+  // - Descuentos del 20% o 20% + 10% adicional (aplicados sobre productos elegibles)
   // - Envío (si no hay envío gratis)
   // Por lo tanto, usamos directamente este total sin recalcular
+  // IMPORTANTE: Este total ya tiene el descuento aplicado desde CartDetailsPage
   const finalTotal = Number(total);
   
   // Calcular información de descuentos solo para logging
@@ -680,15 +693,21 @@ const CartOrderSummary = ({
       // - Envío (agregado si no hay envío gratis)
       
       // IMPORTANTE: Usar el total FINAL que viene del prop 'total'
-      // Este total ya incluye descuentos y envío calculados en CartDetailsPage
+      // Este total ya incluye:
+      // - Descuentos de productos individuales (desc_promo)
+      // - Descuentos del 20% o 20% + 10% adicional (aplicados sobre productos elegibles)
+      // - Envío (si no hay envío gratis)
       // NO usar subtotal ni recalcular
-      const totalFinal = Number(total);
+      const totalFinal = Number(total); // Este total ya viene con descuentos aplicados desde CartDetailsPage
       const formattedTotalAmount = parseFloat(totalFinal.toFixed(2));
       
-      // Asegurar que usamos el total FINAL, no el subtotal
-      // El prop 'total' debe venir con descuentos y envío ya incluidos desde CartDetailsPage
+      // Asegurar que usamos el total FINAL con descuentos aplicados
       const totalAmountToSend = formattedTotalAmount;
       
+      // Calcular subtotal (monto sin descuentos) y discounted_total (monto con descuentos pero sin envío)
+      const subtotalSinDescuento = Number(subtotal) || 0; // Subtotal sin descuentos aplicados
+      const totalConDescuentoSinEnvio = totalAmountToSend - parseFloat(shippingAmount || 0); // Total con descuentos pero sin envío
+
       const paymentData = {
         items: cartItems.map(item => ({
           product_id: parseInt(item.id_articulo || item.product_id || item.id, 10),
@@ -702,7 +721,12 @@ const CartOrderSummary = ({
         address_id: deliveryType === 'envio' && selectedAddress ? parseInt(selectedAddress.id, 10) : null,
         delivery_type: deliveryType, // 'envio' or 'retiro'
         shipping_amount: parseFloat(shippingAmount || 0), // Monto del envío
-        total_amount: totalAmountToSend // Total FINAL con descuentos y envío incluidos
+        total_amount: totalAmountToSend, // Total FINAL con descuentos y envío incluidos
+        subtotal: subtotalSinDescuento, // Monto total sin descuentos aplicados
+        discounted_total: totalConDescuentoSinEnvio, // Monto total con descuentos aplicados (sin envío)
+        // Descuentos del 20% y 10% adicional
+        descuento1: discount1 || 0, // 20% cuando total elegible >= 7000
+        descuento2: discount2 || 0  // 10% adicional cuando total elegible >= 15000
       };
 
       const response = await api.post('/payment/create-preference', paymentData);

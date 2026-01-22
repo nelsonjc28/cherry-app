@@ -304,6 +304,9 @@ class AdminOrderController extends Controller
             // Calcular subtotal de productos
             $subtotalProducts = $order->items->sum('subtotal');
             
+            // Obtener el total_amount de la orden (ya incluye descuentos aplicados desde el frontend)
+            $totalAmount = (float) $order->total_amount;
+            
             // Obtener costo de envío desde el campo dedicado o desde payment_data (fallback para órdenes antiguas)
             $shippingCost = 0;
             if ($order->shipping_amount !== null) {
@@ -312,7 +315,6 @@ class AdminOrderController extends Controller
                 $shippingCost = (float) $paymentData['shipping_amount'];
             } else {
                 // Calcular como diferencia entre total_amount y subtotal de productos (solo si no hay campo)
-                $totalAmount = (float) $order->total_amount;
                 if ($totalAmount > $subtotalProducts) {
                     $shippingCost = $totalAmount - $subtotalProducts;
                 }
@@ -329,7 +331,7 @@ class AdminOrderController extends Controller
                 'date' => $order->created_at->format('d \d\e F Y'),
                 'status' => $order->status,
                 'statusDisplay' => $this->mapOrderStatus($order->status),
-                'totalAmount' => (float) $totalAmount,
+                'totalAmount' => $totalAmount,
                 'shipping_cost' => (float) $shippingCost,
                 'paymentMethod' => ucfirst($order->payment_method),
                 'paymentId' => $order->mercadopago_payment_id,

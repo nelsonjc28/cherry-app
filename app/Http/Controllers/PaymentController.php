@@ -106,12 +106,24 @@ class PaymentController extends Controller
 
         DB::beginTransaction();
 
+        // Obtener descuentos del request (20% y 10% adicional)
+        $descuento1 = $request->input('descuento1', 0);
+        $descuento2 = $request->input('descuento2', 0);
+        
+        // Obtener subtotal y discounted_total del request
+        $subtotal = $request->input('subtotal', 0);
+        $discountedTotal = $request->input('discounted_total', 0);
+
         // Crear el pedido en la base de datos
         $order = Order::create([
             'user_id' => $user->id,
             'address_id' => $addressId,
             'total_amount' => $request->total_amount,
+            'subtotal' => (float) $subtotal, // Monto total sin descuentos aplicados
+            'discounted_total' => (float) $discountedTotal, // Monto total con descuentos aplicados (sin envío)
             'shipping_amount' => (float) $request->input('shipping_amount', 0),
+            'descuento1' => (float) $descuento1, // 20% cuando total elegible >= 7000
+            'descuento2' => (float) $descuento2, // 10% adicional cuando total elegible >= 15000
             'status' => 'pending',
             'payment_method' => 'mercadopago',
             'external_reference' => uniqid('order_' . $user->id . '_')
@@ -855,12 +867,24 @@ class PaymentController extends Controller
                 $paymentMethodId = $payment->payment_method_id ?? $requestData['payment_method_id'] ?? null;
                 $paymentMethod = $this->mapPaymentMethodId($paymentMethodId);
 
+                // Obtener descuentos del request (20% y 10% adicional)
+                $descuento1 = isset($requestData['descuento1']) ? (float) $requestData['descuento1'] : 0;
+                $descuento2 = isset($requestData['descuento2']) ? (float) $requestData['descuento2'] : 0;
+                
+                // Obtener subtotal y discounted_total del request
+                $subtotal = isset($requestData['subtotal']) ? (float) $requestData['subtotal'] : 0;
+                $discountedTotal = isset($requestData['discounted_total']) ? (float) $requestData['discounted_total'] : 0;
+
                 // Crear el pedido en la base de datos
                 $order = Order::create([
                     'user_id' => $user->id,
                     'address_id' => $addressId,
                     'total_amount' => $requestData['transaction_amount'],
+                    'subtotal' => $subtotal, // Monto total sin descuentos aplicados
+                    'discounted_total' => $discountedTotal, // Monto total con descuentos aplicados (sin envío)
                     'shipping_amount' => $shippingAmount,
+                    'descuento1' => $descuento1, // 20% cuando total elegible >= 7000
+                    'descuento2' => $descuento2, // 10% adicional cuando total elegible >= 15000
                     'status' => $orderStatus, // Estado según el estado del pago
                     'payment_method' => $paymentMethod,
                     'external_reference' => $externalReference,
@@ -1988,12 +2012,24 @@ class PaymentController extends Controller
             // Generar referencia externa
             $externalReference = uniqid('oxxo_' . $user->id . '_');
 
+            // Obtener descuentos del request (20% y 10% adicional)
+            $descuento1 = $request->input('descuento1', 0);
+            $descuento2 = $request->input('descuento2', 0);
+            
+            // Obtener subtotal y discounted_total del request
+            $subtotal = $request->input('subtotal', 0);
+            $discountedTotal = $request->input('discounted_total', 0);
+
             // Crear el pedido en la base de datos con estado pendiente de pago
             $order = Order::create([
                 'user_id' => $user->id,
                 'address_id' => $addressId,
                 'total_amount' => $request->total_amount,
+                'subtotal' => (float) $subtotal, // Monto total sin descuentos aplicados
+                'discounted_total' => (float) $discountedTotal, // Monto total con descuentos aplicados (sin envío)
                 'shipping_amount' => (float) $request->input('shipping_amount', 0),
+                'descuento1' => (float) $descuento1, // 20% cuando total elegible >= 7000
+                'descuento2' => (float) $descuento2, // 10% adicional cuando total elegible >= 15000
                 'status' => 'pendiente_pago',
                 'payment_method' => 'oxxo',
                 'external_reference' => $externalReference
@@ -2300,12 +2336,24 @@ class PaymentController extends Controller
                 'shipping_amount' => $shippingAmount
             ];
             
+            // Obtener descuentos del request (20% y 10% adicional)
+            $descuento1 = $request->input('descuento1', 0);
+            $descuento2 = $request->input('descuento2', 0);
+            
+            // Obtener subtotal y discounted_total del request
+            $subtotal = $request->input('subtotal', 0);
+            $discountedTotal = $request->input('discounted_total', 0);
+
             // Crear la orden
             $order = Order::create([
                 'user_id' => $user->id,
                 'address_id' => $addressId,
                 'total_amount' => $totalAmount,
+                'subtotal' => (float) $subtotal, // Monto total sin descuentos aplicados
+                'discounted_total' => (float) $discountedTotal, // Monto total con descuentos aplicados (sin envío)
                 'shipping_amount' => $shippingAmount,
+                'descuento1' => (float) $descuento1, // 20% cuando total elegible >= 7000
+                'descuento2' => (float) $descuento2, // 10% adicional cuando total elegible >= 15000
                 'credit_used' => $creditToUse,
                 'amount_paid' => $amountPaid,
                 'amount_pending' => $amountPending,
@@ -2545,12 +2593,24 @@ class PaymentController extends Controller
         try {
             DB::beginTransaction();
 
+            // Obtener descuentos del request (20% y 10% adicional)
+            $descuento1 = $request->input('descuento1', 0);
+            $descuento2 = $request->input('descuento2', 0);
+            
+            // Obtener subtotal y discounted_total del request
+            $subtotal = $request->input('subtotal', 0);
+            $discountedTotal = $request->input('discounted_total', 0);
+
             // Crear el pedido adelantado
             $order = Order::create([
                 'user_id' => $user->id,
                 'address_id' => null, // Los pedidos adelantados no tienen dirección hasta que se paguen
                 'total_amount' => $request->total_amount,
+                'subtotal' => (float) $subtotal, // Monto total sin descuentos aplicados
+                'discounted_total' => (float) $discountedTotal, // Monto total con descuentos aplicados (sin envío)
                 'shipping_amount' => (float) $request->input('shipping_amount', 0),
+                'descuento1' => (float) $descuento1, // 20% cuando total elegible >= 7000
+                'descuento2' => (float) $descuento2, // 10% adicional cuando total elegible >= 15000
                 'status' => 'pendiente_pago', // Pendiente hasta que el admin lo marque como pagado
                 'payment_method' => 'pedido_adelantado',
                 'is_advance_order' => true,

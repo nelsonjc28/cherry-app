@@ -413,7 +413,10 @@ const CartDetailsPage = () => {
             barcode: item.barcode || null
           })),
           total_amount: advanceOrderTotal,
-          is_advance_order: true
+          is_advance_order: true,
+          // Descuentos del 20% y 10% adicional (0 para pedidos adelantados ya que no aplican)
+          descuento1: 0,
+          descuento2: 0
         };
 
         const advanceResponse = await api.post('/payment/create-advance-order', advanceOrderData);
@@ -475,22 +478,61 @@ const CartDetailsPage = () => {
     }
 
     try {
-      // Calcular shipping amount para productos regulares (misma lógica que arriba)
+      // Calcular total elegible para productos regulares (solo productos con desc_promo = 0 y sin userOffer)
+      const eligibleRegularItems = regularItems.filter(item => {
+        const hasNoPromo = item.desc_promo === 0 || item.desc_promo === null || item.desc_promo === undefined;
+        const hasNoUserOffer = !item.userOffer || item.userOffer.discount_category === null;
+        return hasNoPromo && hasNoUserOffer;
+      });
+
+      // Calcular total elegible (suma de precios de productos elegibles)
+      const eligibleRegularTotal = eligibleRegularItems.reduce((sum, item) => {
+        const itemPrice = item.precio || item.price || 0;
+        const itemQuantity = item.quantity || 0;
+        return sum + (itemPrice * itemQuantity);
+      }, 0);
+
+      // Calcular descuentos del 20% y 10% adicional para productos regulares
+      let regularDiscountTwentyAmount = 0;
+      let regularDiscountAdditionalTenAmount = 0;
+      let regularDayFortyFiveDiscountAmount = 0;
+      
+      if (eligibleRegularTotal >= 7000) {
+        // A partir de 7000: aplicar descuento del 20%
+        regularDiscountTwentyAmount = eligibleRegularTotal * 0.20;
+        regularDayFortyFiveDiscountAmount = regularDiscountTwentyAmount;
+        
+        if (eligibleRegularTotal >= 15000) {
+          // A partir de 15000: aplicar 10% adicional además del 20%
+          const totalAfterTwenty = eligibleRegularTotal - regularDiscountTwentyAmount;
+          regularDiscountAdditionalTenAmount = totalAfterTwenty * 0.10;
+          regularDayFortyFiveDiscountAmount = regularDiscountTwentyAmount + regularDiscountAdditionalTenAmount;
+        }
+      }
+
+      // Calcular total después de descuentos (regularItemsTotal ya incluye descuentos individuales de productos)
+      const regularTotalAfterDiscount = Math.max(0, regularItemsTotal - regularDayFortyFiveDiscountAmount);
+
+      // Calcular shipping amount para productos regulares
       let regularShippingAmount = 0;
       if (deliveryType === 'retiro') {
         regularShippingAmount = 0;
       } else {
-        // Calcular total después de descuentos pero antes de envío
-        // regularItemsTotal ya incluye descuentos de productos individuales
-        // Necesitamos calcular el total después de descuentos del 30% o 30%+10%
-        // Por ahora, usamos regularItemsTotal como base
+        // Calcular envío basado en el total después de descuentos
         const freeShippingMin = user?.free_shipping_min_amount || 0;
         if (user?.free_shipping && freeShippingMin > 0) {
-          regularShippingAmount = regularItemsTotal < freeShippingMin ? 150 : 0;
+          regularShippingAmount = regularTotalAfterDiscount < freeShippingMin ? 150 : 0;
         } else {
-          regularShippingAmount = regularItemsTotal < 3000 ? 150 : 0;
+          regularShippingAmount = regularTotalAfterDiscount < 3000 ? 150 : 0;
         }
       }
+
+      // Calcular total final con descuentos y envío
+      const regularFinalTotal = parseFloat((regularTotalAfterDiscount + regularShippingAmount).toFixed(2));
+      
+      // Calcular subtotal (monto total sin descuentos) y discounted_total (monto con descuentos pero sin envío)
+      const regularSubtotal = regularItemsTotal; // Subtotal sin descuentos aplicados
+      const regularDiscountedTotal = regularTotalAfterDiscount; // Total con descuentos aplicados (sin envío)
 
       // Preparar datos para el pago (solo productos regulares)
       const paymentData = {
@@ -510,9 +552,14 @@ const CartDetailsPage = () => {
         address_id: deliveryType === 'envio' ? selectedAddress.id : null,
         delivery_type: deliveryType, // 'envio' or 'retiro'
         shipping_amount: parseFloat(regularShippingAmount || 0), // Monto del envío
-        total_amount: regularItemsTotal + parseFloat(regularShippingAmount || 0), // Total incluyendo envío
+        total_amount: regularFinalTotal, // Total FINAL con descuentos y envío incluidos
+        subtotal: regularSubtotal, // Monto total sin descuentos aplicados
+        discounted_total: regularDiscountedTotal, // Monto total con descuentos aplicados (sin envío)
         use_credit: paymentMethod === 'credit',
-        pay_remainder_with_mercadopago: paymentMethod === 'credit' // Si paga con crédito y hay pendiente, pagar resto con MP
+        pay_remainder_with_mercadopago: paymentMethod === 'credit', // Si paga con crédito y hay pendiente, pagar resto con MP
+        // Descuentos del 20% y 10% adicional
+        descuento1: descuento1 || 0, // 20% cuando total elegible >= 7000
+        descuento2: descuento2 || 0  // 10% adicional cuando total elegible >= 15000
       };
 
       let response;
@@ -664,21 +711,25 @@ const CartDetailsPage = () => {
   }, 0);
 
   // Calcular monto del descuento dayFortyFive
+  // Lógica: A partir de 7000 se aplica 20%, a partir de 15000 se aplica 20% + 10% adicional
   let dayFortyFiveDiscountAmount = 0;
-  let discountThirtyAmount = 0;
-  let discountAdditionalTenAmount = 0;
+  let discountTwentyAmount = 0; // 20% cuando >= 7000
+  let discountAdditionalTenAmount = 0; // 10% adicional cuando >= 15000
+  let descuento1 = 0; // Porcentaje 20 para enviar al backend
+  let descuento2 = 0; // Porcentaje 10 para enviar al backend
+  
   if (eligibleTotal >= 7000) {
+    // A partir de 7000: aplicar descuento del 20%
+    discountTwentyAmount = eligibleTotal * 0.20;
+    descuento1 = 20;
+    dayFortyFiveDiscountAmount = discountTwentyAmount;
+    
     if (eligibleTotal >= 15000) {
-      // 30% descuento sobre el total elegible
-      discountThirtyAmount = eligibleTotal * 0.30;
-      // 10% adicional sobre el total después del 30%
-      const totalAfterThirty = eligibleTotal - discountThirtyAmount;
-      discountAdditionalTenAmount = totalAfterThirty * 0.10;
-      dayFortyFiveDiscountAmount = discountThirtyAmount + discountAdditionalTenAmount;
-    } else if (eligibleTotal >= 7000) {
-      // 30% descuento sobre el total elegible
-      discountThirtyAmount = eligibleTotal * 0.30;
-      dayFortyFiveDiscountAmount = discountThirtyAmount;
+      // A partir de 15000: aplicar 10% adicional además del 20%
+      const totalAfterTwenty = eligibleTotal - discountTwentyAmount;
+      discountAdditionalTenAmount = totalAfterTwenty * 0.10;
+      descuento2 = 10;
+      dayFortyFiveDiscountAmount = discountTwentyAmount + discountAdditionalTenAmount;
     }
   }
 
@@ -708,8 +759,8 @@ const CartDetailsPage = () => {
   // Order summary data
   const orderSummary = {
     creditDays: '',
-    discount1: 0,
-    discount2: 0,
+    discount1: descuento1, // 20% cuando total elegible >= 7000
+    discount2: descuento2, // 10% adicional cuando total elegible >= 15000
     pieces: totalItems,
     subtotal: baseTotal.toFixed(2),
     discountTotal: dayFortyFiveDiscountAmount > 0 ? dayFortyFiveDiscountAmount.toFixed(2) : '0.00',
@@ -920,7 +971,7 @@ const CartDetailsPage = () => {
               pieces={totalItems}
               subtotal={baseTotal}
               discount={dayFortyFiveDiscountAmount}
-              discountThirtyAmount={discountThirtyAmount}
+              discountThirtyAmount={discountTwentyAmount}
               discountAdditionalTenAmount={discountAdditionalTenAmount}
               shipping={shippingAmount}
               isFreeShipping={isFreeShippingApplied}
