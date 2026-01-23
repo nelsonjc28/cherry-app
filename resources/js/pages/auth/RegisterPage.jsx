@@ -357,11 +357,8 @@ const RegisterPage = () => {
           <div className="register-banner__logo">
             <img src={`${window.location.origin}/images/logo.svg`} alt="Cherry" width={150} />
           </div>
-          <p className="register-banner__steps">
-            en <span>3 pasos</span>
-          </p>
           <h2 id="register-banner-heading" className="register-banner__title">
-            ¡Afíliate ahora mismo y comienza tu propio negocio!
+            ¡Únete hoy mismo y comienza tu propio negocio!
           </h2>
           <button
             type="button"
@@ -389,29 +386,27 @@ const RegisterPage = () => {
                 <span>1</span>
               </div>
               <h3 className="how-it-works__step-title">Te registras</h3>
-              <p className="how-it-works__step-description">
-                Únete a nuestra comunidad y descubre todo lo que Cherry tiene para ofrecerte. con un solo clic, podrás acceder.
-              </p>
             </div>
 
             <div className="how-it-works__step">
               <div className="how-it-works__number">
                 <span>2</span>
               </div>
-              <h3 className="how-it-works__step-title">Comparte tu enlace personalizado</h3>
-              <p className="how-it-works__step-description">
-                Ahora puedes invitar a tus amigos a unirse a Cherry de una manera fácil y divertida.
-              </p>
+              <h3 className="how-it-works__step-title">Comparte tus catálogos</h3>
             </div>
 
             <div className="how-it-works__step">
               <div className="how-it-works__number">
                 <span>3</span>
               </div>
-              <h3 className="how-it-works__step-title">Recibe tus ganancias cada quincena</h3>
-              <p className="how-it-works__step-description">
-                En Cherry, valoramos tu esfuerzo y dedicación.
-              </p>
+              <h3 className="how-it-works__step-title">Haz tu pedido</h3>
+            </div>
+
+            <div className="how-it-works__step">
+              <div className="how-it-works__number">
+                <span>4</span>
+              </div>
+              <h3 className="how-it-works__step-title">Recibe tu pedido y vende</h3>
             </div>
           </div>
         </div>
@@ -439,7 +434,7 @@ const RegisterPage = () => {
                     <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
                   </svg>
                 </div>
-                <span>Link único para compra</span>
+                <span>Precios exclusivos</span>
               </div>
 
               <div className="register-includes__item">
@@ -448,7 +443,7 @@ const RegisterPage = () => {
                     <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
                   </svg>
                 </div>
-                <span>Categorías digital descargable</span>
+                <span>Catálogos digitales</span>
               </div>
 
               <div className="register-includes__item">
@@ -457,7 +452,7 @@ const RegisterPage = () => {
                     <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
                   </svg>
                 </div>
-                <span>Material promocional</span>
+                <span>En tus compras se incluye el catálogo físico de temporada</span>
               </div>
             </div>
 
@@ -468,7 +463,7 @@ const RegisterPage = () => {
                     <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
                   </svg>
                 </div>
-                <span>Publicaciones sin límites</span>
+                <span>Cambio de mercancía (Aplican restricciones.)</span>
               </div>
 
               <div className="register-includes__item">
@@ -477,7 +472,7 @@ const RegisterPage = () => {
                     <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
                   </svg>
                 </div>
-                <span>Comenzar a interactuas</span>
+                <span>Productos exclusivos</span>
               </div>
 
               <div className="register-includes__item">
@@ -486,7 +481,7 @@ const RegisterPage = () => {
                     <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
                   </svg>
                 </div>
-                <span>Rapidez para compartir</span>
+                <span>Entrega a domicilio</span>
               </div>
 
               <div className="register-includes__item">
