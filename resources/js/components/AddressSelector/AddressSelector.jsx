@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../config/axios';
 import useUserStore from '../../store/userStore';
+import AddressMapSelector from '../AddressMapSelector/AddressMapSelector';
 import './AddressSelector.css';
 
 const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' }) => {
@@ -148,7 +149,9 @@ const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' })
     postal_code: '',
     country: 'México',
     additional_info: '',
-    is_default: false
+    is_default: false,
+    latitude: null,
+    longitude: null
   });
 
   // State for modal
@@ -222,7 +225,9 @@ const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' })
       postal_code: '',
       country: 'México',
       additional_info: '',
-      is_default: false
+      is_default: false,
+      latitude: null,
+      longitude: null
     });
     setSettlements([]);
     setShowAddModal(true);
@@ -409,6 +414,24 @@ const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' })
                     />
                   </div>
                 </div>
+                {/* Mapa de Google Maps para seleccionar ubicación exacta */}
+                {formData.city && formData.municipality && formData.state && (
+                  <AddressMapSelector
+                    settlement={formData.city}
+                    municipality={formData.municipality}
+                    state={formData.state}
+                    postalCode={formData.postal_code}
+                    initialLat={formData.latitude}
+                    initialLng={formData.longitude}
+                    onLocationSelect={(location) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        latitude: location.lat,
+                        longitude: location.lng
+                      }));
+                    }}
+                  />
+                )}
                 <div className="form-row">
                   <div className="form-group">
                     <input

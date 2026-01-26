@@ -13,6 +13,9 @@ Route::get('/', function () {
 Route::get('/products/sync', [ProductSyncController::class, 'sync']);
 Route::get('/products/replace-all', [ProductSyncController::class, 'replaceAll']);
 
+// Ruta para imprimir orden (acepta token como parámetro para evitar redirección a login)
+Route::get('/api/orders/{orderId}/print', [\App\Http\Controllers\PaymentController::class, 'printOrder']);
+
 // Ruta para todas las demás páginas (SPA)
 // Excluir /products/sync y /products/replace-all de la ruta catch-all
 Route::get('/{any}', function () {

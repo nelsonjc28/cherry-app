@@ -533,6 +533,21 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
           >
             Cerrar
           </CherryButton>
+          {(order.status === 'pagado' || order.status === 'Pagado') && (
+            <CherryButton 
+              variant="red" 
+              size="medium"
+              onClick={() => {
+                // Obtener el token de autenticación
+                const token = localStorage.getItem('token');
+                // Abrir la vista de impresión en una nueva ventana con el token como parámetro
+                const url = `/api/orders/${order.id}/print${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+                window.open(url, '_blank');
+              }}
+            >
+              🖨️ Imprimir Orden
+            </CherryButton>
+          )}
           {showReviewButton && (order.status === 'Enviado' || order.status === 'enviado') && order.items?.[0] && !order.items[0].hasReview && (
             <CherryButton 
               variant="red" 

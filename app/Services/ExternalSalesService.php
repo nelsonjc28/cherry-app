@@ -176,9 +176,10 @@ class ExternalSalesService
             // Descuentos: suma de descuentos aplicados (en monto absoluto para el total)
             $descuentos += $descuentoItem;
             
-            // idArticulo: Identificador del artículo en el sistema (ejemplo: "PL09406", "CH09809")
-            // Usar el ID normalizado del producto encontrado
-            $idArticulo = (string) ($producto->id ?? $productIdNormalized);
+            // idArticulo: Identificador del artículo en el sistema (ejemplo: "PL09406", "CH09809", "01000")
+            // Usar el ID del producto tal cual está en la base de datos (sin normalización)
+            // Esto preserva los ceros a la izquierda (ej: "01000" se envía como "01000", no como "010000")
+            $idArticulo = (string) $producto->id;
             
             // Crear item para esta talla/color específica
             // Cada OrderItem representa una combinación única de producto/talla/color
@@ -462,8 +463,8 @@ class ExternalSalesService
         $nombre = trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? ''));
         
         // Estructura simplificada según la especificación de la API externa
-        // Formato del id: "CD" + 4 ceros + id del cliente (ej: CD00002, CD00123)
-        $idFormatted = 'CD' . str_pad((string) $user->id, 4, '0', STR_PAD_LEFT);
+        // Formato del id: "CD" + 5 dígitos con ceros a la izquierda (ej: CD00002, CD00123)
+        $idFormatted = 'CD' . str_pad((string) $user->id, 5, '0', STR_PAD_LEFT);
         
         return [
             'id' => $idFormatted,

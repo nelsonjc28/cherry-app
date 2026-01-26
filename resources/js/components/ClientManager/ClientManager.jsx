@@ -5,6 +5,12 @@ import AccountStatementModal from '../AccountStatementModal/AccountStatementModa
 import { getIconPath } from '../../utils/assetPaths';
 import './ClientManager.css';
 
+// Función helper para formatear ID de cliente: CD + 5 dígitos (con ceros a la izquierda)
+const formatClientId = (clientId) => {
+  if (!clientId) return '';
+  return 'CD' + String(clientId).padStart(5, '0');
+};
+
 const ClientManager = () => {
   const [clients, setClients] = useState([]);
   const [allClients, setAllClients] = useState([]);
@@ -496,7 +502,7 @@ const ClientManager = () => {
                     marginBottom: '4px',
                     fontWeight: '500'
                   }}>
-                    ID: {client.id}
+                    ID: {formatClientId(client.id)}
                   </div>
                   <div className="client-manager__client-name">
                     {client.first_name} {client.last_name}

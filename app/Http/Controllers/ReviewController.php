@@ -20,7 +20,7 @@ class ReviewController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'order_id' => 'required|integer|exists:orders,id',
-            'product_id' => 'required|integer',
+            'product_id' => 'required|string',
             'rating' => 'required|integer|between:1,5',
             'comment' => 'nullable|string|max:1000',
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'

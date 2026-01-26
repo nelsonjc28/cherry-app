@@ -32,9 +32,22 @@ function AdminPanelPage() {
   const [homeData, setHomeData] = useState(dummyHomeData);
   const [selectedMenu, setSelectedMenu] = useState('home');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState({
+    usuarios: false,
+    categorias: false,
+    catalogos: false
+  });
   const { user, isAdmin } = useUserStore();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Función para toggle de submenús
+  const toggleSubmenu = (menuKey) => {
+    setExpandedMenus(prev => ({
+      ...prev,
+      [menuKey]: !prev[menuKey]
+    }));
+  };
 
   // Establecer título de la página según la sección activa
   useEffect(() => {
@@ -113,11 +126,20 @@ function AdminPanelPage() {
     setHomeData(homeData.filter(item => item.id !== id));
   };
 
-  // Sincronizar URL con menú seleccionado
+  // Sincronizar URL con menú seleccionado y expandir submenús según el menú activo
   useEffect(() => {
     const currentMenu = urlToMenuMap[location.pathname] || 'home';
     setSelectedMenu(currentMenu);
-  }, [location.pathname, urlToMenuMap]);
+    
+    // Expandir automáticamente el submenú correspondiente
+    if (currentMenu === 'users' || currentMenu === 'clients') {
+      setExpandedMenus(prev => ({ ...prev, usuarios: true }));
+    } else if (currentMenu === 'category-products' || currentMenu === 'category-order' || currentMenu === 'menu-category-order') {
+      setExpandedMenus(prev => ({ ...prev, categorias: true }));
+    } else if (currentMenu === 'catalogs' || currentMenu === 'catalog-order' || currentMenu === 'home-catalogs') {
+      setExpandedMenus(prev => ({ ...prev, catalogos: true }));
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     if (sidebarOpen) {
@@ -162,16 +184,101 @@ function AdminPanelPage() {
             <span className="admin-panel__user-role">{user?.role?.name === 'admin' ? 'Administrador' : 'Cliente'}</span>
           </div>
           <button className={`admin-panel__sidebar-link${selectedMenu==='home'?' active':''}`} onClick={()=>handleMenuChange('home')}>Dashboard</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='users'?' active':''}`} onClick={()=>handleMenuChange('users')}>Gestionar Administradores</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='clients'?' active':''}`} onClick={()=>handleMenuChange('clients')}>Gestionar Clientes</button>
+          
+          {/* Menú Usuarios */}
+          <div className="admin-panel__menu-group">
+            <button 
+              className={`admin-panel__menu-group-header${expandedMenus.usuarios ? ' expanded' : ''}`}
+              onClick={() => toggleSubmenu('usuarios')}
+            >
+              <span>Usuarios</span>
+              <span className="admin-panel__menu-arrow">{expandedMenus.usuarios ? '▼' : '▶'}</span>
+            </button>
+            {expandedMenus.usuarios && (
+              <div className="admin-panel__submenu">
+                <button 
+                  className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='users'?' active':''}`} 
+                  onClick={()=>handleMenuChange('users')}
+                >
+                  Gestionar Administradores
+                </button>
+                <button 
+                  className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='clients'?' active':''}`} 
+                  onClick={()=>handleMenuChange('clients')}
+                >
+                  Gestionar Clientes
+                </button>
+              </div>
+            )}
+          </div>
 
-          <button className={`admin-panel__sidebar-link${selectedMenu==='category-products'?' active':''}`} onClick={()=>handleMenuChange('category-products')}>Gestionar Categorías</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='category-order'?' active':''}`} onClick={()=>handleMenuChange('category-order')}>Ordenar Categorías</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='menu-category-order'?' active':''}`} onClick={()=>handleMenuChange('menu-category-order')}>Ordenar Categorías del Menú</button>
+          {/* Menú Categorías */}
+          <div className="admin-panel__menu-group">
+            <button 
+              className={`admin-panel__menu-group-header${expandedMenus.categorias ? ' expanded' : ''}`}
+              onClick={() => toggleSubmenu('categorias')}
+            >
+              <span>Categorías</span>
+              <span className="admin-panel__menu-arrow">{expandedMenus.categorias ? '▼' : '▶'}</span>
+            </button>
+            {expandedMenus.categorias && (
+              <div className="admin-panel__submenu">
+                <button 
+                  className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='category-products'?' active':''}`} 
+                  onClick={()=>handleMenuChange('category-products')}
+                >
+                  Gestionar Categorías
+                </button>
+                <button 
+                  className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='category-order'?' active':''}`} 
+                  onClick={()=>handleMenuChange('category-order')}
+                >
+                  Ordenar Categorías
+                </button>
+                <button 
+                  className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='menu-category-order'?' active':''}`} 
+                  onClick={()=>handleMenuChange('menu-category-order')}
+                >
+                  Ordenar Categorías del Menú
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Menú Catálogos */}
+          <div className="admin-panel__menu-group">
+            <button 
+              className={`admin-panel__menu-group-header${expandedMenus.catalogos ? ' expanded' : ''}`}
+              onClick={() => toggleSubmenu('catalogos')}
+            >
+              <span>Catálogos</span>
+              <span className="admin-panel__menu-arrow">{expandedMenus.catalogos ? '▼' : '▶'}</span>
+            </button>
+            {expandedMenus.catalogos && (
+              <div className="admin-panel__submenu">
+                <button 
+                  className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='catalogs'?' active':''}`} 
+                  onClick={()=>handleMenuChange('catalogs')}
+                >
+                  Gestionar Catálogos
+                </button>
+                <button 
+                  className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='catalog-order'?' active':''}`} 
+                  onClick={()=>handleMenuChange('catalog-order')}
+                >
+                  Ordenar Catálogos
+                </button>
+                <button 
+                  className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='home-catalogs'?' active':''}`} 
+                  onClick={()=>handleMenuChange('home-catalogs')}
+                >
+                  Ordenar Catálogos del Menú
+                </button>
+              </div>
+            )}
+          </div>
+
           <button className={`admin-panel__sidebar-link${selectedMenu==='welcome-sections'?' active':''}`} onClick={()=>handleMenuChange('welcome-sections')}>Secciones de Bienvenida</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='home-catalogs'?' active':''}`} onClick={()=>handleMenuChange('home-catalogs')}>Catálogos del Home</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='catalogs'?' active':''}`} onClick={()=>handleMenuChange('catalogs')}>Catálogos</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='catalog-order'?' active':''}`} onClick={()=>handleMenuChange('catalog-order')}>Ordenar Catálogos</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='orders'?' active':''}`} onClick={()=>handleMenuChange('orders')}>Gestión de Órdenes</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='reviews'?' active':''}`} onClick={()=>handleMenuChange('reviews')}>Gestión de Reseñas</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='contact-info'?' active':''}`} onClick={()=>handleMenuChange('contact-info')}>Información de Contacto</button>

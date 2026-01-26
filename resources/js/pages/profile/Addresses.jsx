@@ -5,6 +5,7 @@ import './Addresses.css';
 import CherryButton from '../../components/CherryButton/CherryButton';
 import { getIconPath } from '../../utils/assetPaths';
 import useUserStore from '../../store/userStore';
+import AddressMapSelector from '../../components/AddressMapSelector/AddressMapSelector';
 
 const Addresses = () => {
   // Obtener token y usuario del store
@@ -31,7 +32,9 @@ const Addresses = () => {
     postal_code: '',
     country: 'México',
     additional_info: '',
-    is_default: false
+    is_default: false,
+    latitude: null,
+    longitude: null
   });
 
   // State for SEPOMEX data
@@ -162,7 +165,9 @@ const Addresses = () => {
       postal_code: '',
       country: 'México',
       additional_info: '',
-      is_default: false
+      is_default: false,
+      latitude: null,
+      longitude: null
     });
     setSettlements([]);
     setShowAddModal(true);
@@ -187,7 +192,9 @@ const Addresses = () => {
       postal_code: address.postal_code || '',
       country: address.country || 'México',
       additional_info: address.additional_info || '',
-      is_default: address.is_default || false
+      is_default: address.is_default || false,
+      latitude: address.latitude || null,
+      longitude: address.longitude || null
     });
     // Si hay código postal, cargar los asentamientos
     if (address.postal_code && address.postal_code.length === 5) {
@@ -664,6 +671,24 @@ const Addresses = () => {
                     />
                   </div>
                 </div>
+                {/* Mapa de Google Maps para seleccionar ubicación exacta */}
+                {formData.city && formData.municipality && formData.state && (
+                  <AddressMapSelector
+                    settlement={formData.city}
+                    municipality={formData.municipality}
+                    state={formData.state}
+                    postalCode={formData.postal_code}
+                    initialLat={formData.latitude}
+                    initialLng={formData.longitude}
+                    onLocationSelect={(location) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        latitude: location.lat,
+                        longitude: location.lng
+                      }));
+                    }}
+                  />
+                )}
                 <div className="form-row">
                   <div className="form-group">
                     <input
@@ -816,6 +841,24 @@ const Addresses = () => {
                     />
                   </div>
                 </div>
+                {/* Mapa de Google Maps para seleccionar ubicación exacta */}
+                {formData.city && formData.municipality && formData.state && (
+                  <AddressMapSelector
+                    settlement={formData.city}
+                    municipality={formData.municipality}
+                    state={formData.state}
+                    postalCode={formData.postal_code}
+                    initialLat={formData.latitude}
+                    initialLng={formData.longitude}
+                    onLocationSelect={(location) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        latitude: location.lat,
+                        longitude: location.lng
+                      }));
+                    }}
+                  />
+                )}
                 <div className="form-row">
                   <div className="form-group">
                     <input

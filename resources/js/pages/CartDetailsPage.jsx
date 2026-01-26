@@ -404,7 +404,7 @@ const CartDetailsPage = () => {
 
         const advanceOrderData = {
           items: advanceOrderItems.map(item => ({
-            product_id: parseInt(item.id_articulo || item.product_id || item.id, 10),
+            product_id: String(item.id_articulo || item.product_id || item.id), // Enviar como string para soportar IDs con ceros a la izquierda
             name: item.title || item.name,
             quantity: parseInt(item.quantity, 10),
             price: parseFloat(item.precio || item.price),
@@ -538,7 +538,7 @@ const CartDetailsPage = () => {
       const paymentData = {
         items: regularItems.map(item => {
           const mappedItem = {
-            product_id: parseInt(item.id_articulo || item.product_id || item.id, 10),
+            product_id: String(item.id_articulo || item.product_id || item.id), // Enviar como string para soportar IDs con ceros a la izquierda
             name: item.title || item.name,
             quantity: parseInt(item.quantity, 10),
             price: parseFloat(item.precio || item.price),

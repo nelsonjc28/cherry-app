@@ -115,7 +115,7 @@ class CheckoutController extends Controller
             'payment_card_id' => 'required|exists:payment_cards,id',
             'total_amount' => 'required|numeric|min:0.01',
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|integer',
+            'items.*.product_id' => 'required|string',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.price' => 'required|numeric|min:0',
             'items.*.name' => 'required|string'

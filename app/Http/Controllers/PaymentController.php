@@ -42,7 +42,7 @@ class PaymentController extends Controller
         
         $rules = [
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|integer',
+            'items.*.product_id' => 'required|string',
             'items.*.name' => 'required|string',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.price' => 'required|numeric|min:0',
@@ -133,7 +133,7 @@ class PaymentController extends Controller
         foreach ($request->items as $item) {
             OrderItem::create([
                 'order_id' => $order->id,
-                'product_id' => (int) $item['product_id'],
+                'product_id' => (string) $item['product_id'],
                 'name' => $item['name'],
                 'size' => $item['size'] ?? null,
                 'color' => $item['color'] ?? null,
@@ -753,7 +753,7 @@ class PaymentController extends Controller
         if (isset($requestData['items'])) {
             foreach ($requestData['items'] as $index => $item) {
                 if (isset($item['product_id'])) {
-                    $requestData['items'][$index]['product_id'] = (int) $item['product_id'];
+                    $requestData['items'][$index]['product_id'] = (string) $item['product_id'];
                 }
                 if (isset($item['quantity'])) {
                     $requestData['items'][$index]['quantity'] = (int) $item['quantity'];
@@ -775,7 +775,7 @@ class PaymentController extends Controller
             'transaction_amount' => 'required|numeric|min:0.01',
             'installments' => 'integer|min:1',
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|integer',
+            'items.*.product_id' => 'required|string',
             'items.*.name' => 'required|string',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.price' => 'required|numeric|min:0',
@@ -1953,7 +1953,7 @@ class PaymentController extends Controller
         
         $rules = [
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required',
+            'items.*.product_id' => 'required|string',
             'items.*.name' => 'required|string',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.price' => 'required|numeric|min:0',
@@ -2572,7 +2572,7 @@ class PaymentController extends Controller
         // Validar datos
         $validator = Validator::make($request->all(), [
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|integer',
+            'items.*.product_id' => 'required|string',
             'items.*.name' => 'required|string',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.price' => 'required|numeric|min:0',
@@ -2621,7 +2621,7 @@ class PaymentController extends Controller
             foreach ($request->items as $item) {
                 OrderItem::create([
                     'order_id' => $order->id,
-                    'product_id' => (int) $item['product_id'],
+                    'product_id' => (string) $item['product_id'],
                     'name' => $item['name'],
                     'size' => $item['size'] ?? null,
                     'color' => $item['color'] ?? null,
@@ -2806,6 +2806,137 @@ class PaymentController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al crear la preferencia de pago: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Print order as PDF/printable view
+     */
+    public function printOrder(Request $request, $orderId)
+    {
+        try {
+            /** @var User $user */
+            $user = Auth::user();
+
+            // Si no hay usuario autenticado, intentar autenticar con token de query string
+            if (!$user) {
+                $token = $request->query('token') ?? $request->header('Authorization');
+                
+                if ($token) {
+                    // Remover "Bearer " si está presente
+                    if (strpos($token, 'Bearer ') === 0) {
+                        $token = substr($token, 7);
+                    }
+                    
+                    try {
+                        // Intentar autenticar con el token
+                        $user = \Tymon\JWTAuth\Facades\JWTAuth::setToken($token)->authenticate();
+                        
+                        // Si la autenticación fue exitosa, establecer el usuario en Auth
+                        if ($user) {
+                            Auth::setUser($user);
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('Error al autenticar con token en printOrder', [
+                            'error' => $e->getMessage(),
+                            'order_id' => $orderId
+                        ]);
+                    }
+                }
+            }
+
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no autenticado'
+                ], 401);
+            }
+
+            // Cargar el rol del usuario si no está cargado
+            if (!$user->relationLoaded('role')) {
+                $user->load('role');
+            }
+
+            $order = Order::with(['user', 'items', 'address'])->findOrFail($orderId);
+
+            // Log para debugging
+            Log::info('Verificando permisos para imprimir orden', [
+                'user_id' => $user->id,
+                'user_is_admin' => $user->isAdmin(),
+                'order_user_id' => $order->user_id,
+                'order_id' => $orderId
+            ]);
+
+            // Verificar que el usuario tenga acceso a esta orden (solo el dueño o admin)
+            // Usar comparación flexible (==) para manejar tipos diferentes (int vs string)
+            if ((int)$order->user_id != (int)$user->id && !$user->isAdmin()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes permiso para ver esta orden',
+                    'debug' => [
+                        'user_id' => $user->id,
+                        'order_user_id' => $order->user_id,
+                        'is_admin' => $user->isAdmin()
+                    ]
+                ], 403);
+            }
+
+            // Verificar que la orden esté pagada
+            if ($order->status !== 'pagado') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Solo se pueden imprimir órdenes pagadas'
+                ], 400);
+            }
+
+            // Formatear número de orden
+            $orderNumber = ($order->is_advance_order ?? false ? 'PD' : 'CD') . str_pad($order->id, 4, '0', STR_PAD_LEFT);
+
+            // Calcular totales
+            $subtotal = $order->items->sum('subtotal');
+            $shippingAmount = (float) ($order->shipping_amount ?? 0);
+            $totalAmount = (float) $order->total_amount;
+            $totalPieces = $order->items->sum('quantity');
+
+            // Agrupar items por producto para mostrar en el PDF
+            $groupedItems = [];
+            foreach ($order->items as $item) {
+                $productId = (string) $item->product_id;
+                if (!isset($groupedItems[$productId])) {
+                    $groupedItems[$productId] = [
+                        'product_id' => $productId,
+                        'name' => $item->name,
+                        'image' => $this->getProductImageUrlSimple($item->product_id),
+                        'quantity' => 0,
+                        'subtotal' => 0,
+                        'price' => $item->price
+                    ];
+                }
+                $groupedItems[$productId]['quantity'] += $item->quantity;
+                $groupedItems[$productId]['subtotal'] += $item->subtotal;
+            }
+
+            return view('orders.print', [
+                'order' => $order,
+                'orderNumber' => $orderNumber,
+                'groupedItems' => $groupedItems,
+                'subtotal' => $subtotal,
+                'shippingAmount' => $shippingAmount,
+                'totalAmount' => $totalAmount,
+                'totalPieces' => $totalPieces,
+                'user' => $order->user
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error al imprimir orden', [
+                'order_id' => $orderId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al generar la vista de impresión: ' . $e->getMessage()
             ], 500);
         }
     }

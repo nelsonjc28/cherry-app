@@ -127,6 +127,19 @@ api.interceptors.response.use(
     
     // Manejar casos específicos de error
     if (error.response) {
+      // Verificar si es una respuesta offline (del Service Worker)
+      const isOfflineResponse = error.response.data?.offline === true && 
+                                error.response.data?.success === false;
+      
+      // Verificar si es una petición de notificaciones para no mostrar toasts de error
+      const isNotificationRequest = error.config?.url?.includes('/notifications') || 
+                                     error.config?.url?.includes('/admin/notifications');
+      
+      // Si es una respuesta offline, no mostrar ningún toast de error
+      if (isOfflineResponse) {
+        return Promise.reject(error);
+      }
+      
       switch (error.response.status) {
         case 401:
           // Token expirado o inválido - solo redirigir si NO es una ruta pública
@@ -150,25 +163,25 @@ api.interceptors.response.use(
           return Promise.reject(error);
         case 403:
           // Acceso denegado
-          if (window.showToast) {
+          if (window.showToast && !isNotificationRequest) {
             window.showToast('Acceso denegado: No tienes permisos para realizar esta acción', 'error');
           }
           break;
         case 404:
           // Recurso no encontrado
-          if (window.showToast) {
+          if (window.showToast && !isNotificationRequest) {
             window.showToast('Recurso no encontrado', 'error');
           }
           break;
         case 422:
           // Error de validación
-          if (window.showToast && error.response.data?.message) {
+          if (window.showToast && error.response.data?.message && !isNotificationRequest) {
             window.showToast(error.response.data.message, 'error');
           }
           break;
         case 500:
-          // Error interno del servidor
-          if (window.showToast) {
+          // Error interno del servidor - no mostrar para notificaciones
+          if (window.showToast && !isNotificationRequest) {
             window.showToast('Error interno del servidor', 'error');
           }
           break;
@@ -177,20 +190,28 @@ api.interceptors.response.use(
           if (error.response?.status === 401) {
             return Promise.reject(error);
           }
-          if (window.showToast) {
+          if (window.showToast && !isNotificationRequest) {
             window.showToast('Error del servidor', 'error');
           }
           break;
       }
     } else if (error.request) {
       // La petición fue hecha pero no se recibió respuesta
+      // Verificar si es una petición de notificaciones para no mostrar toasts
+      const isNotificationRequest = error.config?.url?.includes('/notifications') || 
+                                     error.config?.url?.includes('/admin/notifications');
+      
       // Solo mostrar este mensaje en casos específicos o no mostrarlo
-      // if (window.showToast) {
+      // if (window.showToast && !isNotificationRequest) {
       //   window.showToast('No se recibió respuesta del servidor', 'error');
       // }
     } else {
       // Algo sucedió al configurar la petición
-      if (window.showToast) {
+      // Verificar si es una petición de notificaciones para no mostrar toasts
+      const isNotificationRequest = error.config?.url?.includes('/notifications') || 
+                                     error.config?.url?.includes('/admin/notifications');
+      
+      if (window.showToast && !isNotificationRequest) {
         window.showToast('Error al configurar la petición', 'error');
       }
     }

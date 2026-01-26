@@ -88,6 +88,8 @@ class AddressController extends Controller
                 'country' => $request->country ?? 'México',
                 'additional_info' => $request->additional_info,
                 'is_default' => $request->is_default ?? false,
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
             ]);
 
             return response()->json([
@@ -177,6 +179,8 @@ class AddressController extends Controller
                 'country' => $request->country ?? 'México',
                 'additional_info' => $request->additional_info,
                 'is_default' => $request->is_default ?? false,
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
             ]);
 
             return response()->json([

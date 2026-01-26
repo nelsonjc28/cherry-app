@@ -156,7 +156,7 @@ const CheckoutForm = ({ cartItems = [], totalAmount = 0, onPaymentSuccess, onPay
         address_id: parseInt(selectedAddressId),
         total_amount: totalAmount,
         items: cartItems.map(item => ({
-          product_id: item.id_articulo || item.product_id || item.id,
+          product_id: String(item.id_articulo || item.product_id || item.id), // Enviar como string para soportar IDs con ceros a la izquierda
           quantity: item.quantity,
           price: item.precio || item.price,
           name: item.title || item.name,
