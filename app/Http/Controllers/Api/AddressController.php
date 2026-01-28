@@ -57,7 +57,11 @@ class AddressController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'street_address' => 'required|string|max:500',
+            'street_number_ext' => 'nullable|string|max:20',
+            'street_number_int' => 'nullable|string|max:20',
             'city' => 'required|string|max:255',
+            'municipality' => 'nullable|string|max:255',
+            'colonia' => 'nullable|string|max:255',
             'state' => 'nullable|string|max:255',
             'postal_code' => 'nullable|string|max:20',
             'country' => 'nullable|string|max:255',
@@ -82,14 +86,16 @@ class AddressController extends Controller
             $address = $user->addresses()->create([
                 'name' => $request->name,
                 'street_address' => $request->street_address,
+                'street_number_ext' => $request->street_number_ext,
+                'street_number_int' => $request->street_number_int,
                 'city' => $request->city,
+                'municipality' => $request->municipality,
+                'colonia' => $request->colonia,
                 'state' => $request->state,
                 'postal_code' => $request->postal_code,
                 'country' => $request->country ?? 'México',
                 'additional_info' => $request->additional_info,
                 'is_default' => $request->is_default ?? false,
-                'latitude' => $request->latitude,
-                'longitude' => $request->longitude,
             ]);
 
             return response()->json([
@@ -148,7 +154,11 @@ class AddressController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'street_address' => 'required|string|max:500',
+            'street_number_ext' => 'nullable|string|max:20',
+            'street_number_int' => 'nullable|string|max:20',
             'city' => 'required|string|max:255',
+            'municipality' => 'nullable|string|max:255',
+            'colonia' => 'nullable|string|max:255',
             'state' => 'nullable|string|max:255',
             'postal_code' => 'nullable|string|max:20',
             'country' => 'nullable|string|max:255',
@@ -173,14 +183,16 @@ class AddressController extends Controller
             $address->update([
                 'name' => $request->name,
                 'street_address' => $request->street_address,
+                'street_number_ext' => $request->street_number_ext,
+                'street_number_int' => $request->street_number_int,
                 'city' => $request->city,
+                'municipality' => $request->municipality,
+                'colonia' => $request->colonia,
                 'state' => $request->state,
                 'postal_code' => $request->postal_code,
                 'country' => $request->country ?? 'México',
                 'additional_info' => $request->additional_info,
                 'is_default' => $request->is_default ?? false,
-                'latitude' => $request->latitude,
-                'longitude' => $request->longitude,
             ]);
 
             return response()->json([

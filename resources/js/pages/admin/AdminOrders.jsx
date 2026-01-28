@@ -471,6 +471,7 @@ const AdminOrders = () => {
               <thead>
                 <tr>
                   <th>No. de pedido</th>
+                  <th>Productos</th>
                   <th>Fecha</th>
                   <th>Hora</th>
                   <th>Cliente</th>
@@ -494,12 +495,45 @@ const AdminOrders = () => {
                   });
                   const totalPieces = order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
                   
+                  // Obtener las primeras 3 imágenes de productos para mostrar como miniaturas
+                  const productImages = order.items?.slice(0, 3).map(item => item.image).filter(Boolean) || [];
+                  
                   return (
                     <tr 
                       key={order.id}
                       className={`${highlightedOrderId === order.id ? 'highlighted' : ''}`}
                     >
                       <td className="order-number-cell">#{formatOrderNumber(order)}</td>
+                      <td className="order-products-cell">
+                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center', justifyContent: 'flex-start' }}>
+                          {productImages.length > 0 ? (
+                            productImages.map((img, idx) => (
+                              <img 
+                                key={idx}
+                                src={img} 
+                                alt={`Producto ${idx + 1}`}
+                                style={{ 
+                                  width: '30px', 
+                                  height: '30px', 
+                                  objectFit: 'cover', 
+                                  borderRadius: '3px',
+                                  border: '1px solid #ddd'
+                                }}
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                }}
+                              />
+                            ))
+                          ) : (
+                            <span style={{ fontSize: '12px', color: '#999' }}>-</span>
+                          )}
+                          {order.items && order.items.length > 3 && (
+                            <span style={{ fontSize: '11px', color: '#666', marginLeft: '4px' }}>
+                              +{order.items.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="order-date-cell">{dateStr}</td>
                       <td className="order-time-cell">{timeStr}</td>
                       <td className="order-customer-cell">{order.customerName || 'N/A'}</td>

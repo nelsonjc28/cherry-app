@@ -167,7 +167,9 @@ class AdminOrderController extends Controller
                     'amount_paid' => (float) ($order->amount_paid ?? $order->total_amount),
                     'amount_pending' => (float) ($order->amount_pending ?? 0),
                     'paid_with_credit' => (bool) ($order->paid_with_credit ?? false),
-                    'is_advance_order' => (bool) ($order->is_advance_order ?? false)
+                    'is_advance_order' => (bool) ($order->is_advance_order ?? false),
+                    'is_prepared' => (bool) ($order->is_prepared ?? false),
+                    'tracking_number' => $order->tracking_number ?? null
                 ];
             });
 
@@ -371,7 +373,9 @@ class AdminOrderController extends Controller
                     'amount_paid' => (float) ($order->amount_paid ?? $order->total_amount),
                     'amount_pending' => (float) ($order->amount_pending ?? 0),
                     'paid_with_credit' => (bool) ($order->paid_with_credit ?? false),
-                    'is_advance_order' => (bool) ($order->is_advance_order ?? false)
+                    'is_advance_order' => (bool) ($order->is_advance_order ?? false),
+                    'is_prepared' => (bool) ($order->is_prepared ?? false),
+                    'tracking_number' => $order->tracking_number ?? null
                 ];
 
             return response()->json([
@@ -643,6 +647,86 @@ class AdminOrderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al marcar la orden como pagada: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update order prepared status
+     */
+    public function updatePrepared(Request $request, $orderId)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'is_prepared' => 'required|boolean'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error de validación',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $order = Order::findOrFail($orderId);
+            $order->is_prepared = $request->is_prepared;
+            $order->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Estado de preparado actualizado correctamente',
+                'order' => $order
+            ], 200);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error al actualizar estado de preparado', [
+                'order_id' => $orderId,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar estado de preparado: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update order tracking number
+     */
+    public function updateTracking(Request $request, $orderId)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'tracking_number' => 'nullable|string|max:255'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error de validación',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $order = Order::findOrFail($orderId);
+            $order->tracking_number = $request->tracking_number ?: null;
+            $order->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Número de guía actualizado correctamente',
+                'order' => $order
+            ], 200);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error al actualizar número de guía', [
+                'order_id' => $orderId,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar número de guía: ' . $e->getMessage()
             ], 500);
         }
     }

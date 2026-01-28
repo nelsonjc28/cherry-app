@@ -3065,13 +3065,7 @@ class PaymentController extends Controller
                 ], 403);
             }
 
-            // Verificar que la orden esté pagada
-            if ($order->status !== 'pagado') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Solo se pueden imprimir órdenes pagadas'
-                ], 400);
-            }
+            // Permitir imprimir todas las órdenes (no solo las pagadas)
 
             // Formatear número de orden
             $orderNumber = ($order->is_advance_order ?? false ? 'PD' : 'CD') . str_pad($order->id, 4, '0', STR_PAD_LEFT);

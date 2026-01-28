@@ -5,7 +5,7 @@ import './Addresses.css';
 import CherryButton from '../../components/CherryButton/CherryButton';
 import { getIconPath } from '../../utils/assetPaths';
 import useUserStore from '../../store/userStore';
-import AddressMapSelector from '../../components/AddressMapSelector/AddressMapSelector';
+// Removed AddressMapSelector import - mapa no funciona
 
 const Addresses = () => {
   // Obtener token y usuario del store
@@ -26,15 +26,16 @@ const Addresses = () => {
   const [formData, setFormData] = useState({
     name: '',
     street_address: '',
+    street_number_ext: '',
+    street_number_int: '',
     city: '',
     municipality: '',
+    colonia: '',
     state: '',
     postal_code: '',
     country: 'México',
     additional_info: '',
-    is_default: false,
-    latitude: null,
-    longitude: null
+    is_default: false
   });
 
   // State for SEPOMEX data
@@ -108,6 +109,7 @@ const Addresses = () => {
           state: data.estados && data.estados.length > 0 ? data.estados[0] : '',
           municipality: data.municipios && data.municipios.length > 0 ? data.municipios[0] : '',
           city: data.asentamientos[0], // Seleccionar el primer asentamiento por defecto
+          colonia: data.asentamientos[0] || '', // También guardar en colonia
         }));
       } else {
         setSettlements([]);
@@ -143,6 +145,7 @@ const Addresses = () => {
         state: '',
         municipality: '',
         city: '',
+        colonia: '',
       }));
     }
   };
@@ -159,15 +162,16 @@ const Addresses = () => {
     setFormData({
       name: '',
       street_address: '',
+      street_number_ext: '',
+      street_number_int: '',
       city: '',
       municipality: '',
+      colonia: '',
       state: '',
       postal_code: '',
       country: 'México',
       additional_info: '',
-      is_default: false,
-      latitude: null,
-      longitude: null
+      is_default: false
     });
     setSettlements([]);
     setShowAddModal(true);
@@ -186,15 +190,16 @@ const Addresses = () => {
     setFormData({
       name: address.name || '',
       street_address: address.street_address || '',
+      street_number_ext: address.street_number_ext || '',
+      street_number_int: address.street_number_int || '',
       city: address.city || '',
       municipality: address.municipality || '',
+      colonia: address.colonia || '',
       state: address.state || '',
       postal_code: address.postal_code || '',
       country: address.country || 'México',
       additional_info: address.additional_info || '',
-      is_default: address.is_default || false,
-      latitude: address.latitude || null,
-      longitude: address.longitude || null
+      is_default: address.is_default || false
     });
     // Si hay código postal, cargar los asentamientos
     if (address.postal_code && address.postal_code.length === 5) {
@@ -595,72 +600,100 @@ const Addresses = () => {
             <div className="modal-body">
               <form onSubmit={(e) => { e.preventDefault(); handleSaveAddress(); }}>
                 <div className="form-group form-group--full">
+                  <label>Nombre de la dirección:</label>
                   <input
                     type="text"
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    placeholder="Dirección (Casa, trabajo)"
+                    placeholder="Ej: Casa, Trabajo"
+                    required
+                  />
+                </div>
+                <div className="form-group form-group--full">
+                  <label>Dirección (Calle):</label>
+                  <input
+                    type="text"
+                    name="street_address"
+                    value={formData.street_address}
+                    onChange={handleInputChange}
+                    placeholder="Calle"
                     required
                   />
                 </div>
                 <div className="form-row">
                   <div className="form-group">
+                    <label>No. Ext.:</label>
                     <input
                       type="text"
-                      name="postal_code"
-                      value={formData.postal_code}
-                      onChange={handleInputChange}
-                      placeholder="Código Postal (5 dígitos)"
-                      maxLength="5"
-                      pattern="[0-9]{5}"
-                      required
+                      name="street_number_ext"
+                      value={formData.street_number_ext}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9]/g, '');
+                        handleInputChange({ target: { name: 'street_number_ext', value } });
+                      }}
+                      placeholder="Número exterior"
                     />
-                    {loadingPostalCode && <small style={{ color: '#666' }}>Consultando...</small>}
                   </div>
                   <div className="form-group">
+                    <label>No. Int.:</label>
                     <input
                       type="text"
-                      name="street_address"
-                      value={formData.street_address}
-                      onChange={handleInputChange}
-                      placeholder="Calle y número"
-                      required
+                      name="street_number_int"
+                      value={formData.street_number_int}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9]/g, '');
+                        handleInputChange({ target: { name: 'street_number_int', value } });
+                      }}
+                      placeholder="Número interior"
                     />
                   </div>
                 </div>
-                <div className="form-info-label">
-                  Autocompletado con código postal
+                <div className="form-group form-group--full">
+                  <label>Código Postal:</label>
+                  <input
+                    type="text"
+                    name="postal_code"
+                    value={formData.postal_code}
+                    onChange={handleInputChange}
+                    placeholder="CP (5 dígitos)"
+                    maxLength="5"
+                    pattern="[0-9]{5}"
+                    required
+                  />
+                  {loadingPostalCode && <small style={{ color: '#666' }}>Consultando SEPOMEX...</small>}
+                </div>
+                <div className="form-group form-group--full">
+                  <label>Colonia:</label>
+                  {settlements.length > 0 ? (
+                    <select
+                      name="city"
+                      value={formData.city}
+                      onChange={handleInputChange}
+                      required
+                    >
+                      <option value="">Selecciona una colonia</option>
+                      {settlements.map((settlement, index) => (
+                        <option key={index} value={settlement}>
+                          {settlement}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      name="city"
+                      value={formData.city}
+                      onChange={handleInputChange}
+                      placeholder="Colonia"
+                      disabled={!formData.postal_code || formData.postal_code.length !== 5}
+                      required
+                    />
+                  )}
                 </div>
                 <div className="form-row">
                   <div className="form-group">
-                    {settlements.length > 0 ? (
-                      <select
-                        name="city"
-                        value={formData.city}
-                        onChange={handleInputChange}
-                        required
-                      >
-                        <option value="">Selecciona una colonia</option>
-                        {settlements.map((settlement, index) => (
-                          <option key={index} value={settlement}>
-                            {settlement}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        type="text"
-                        name="city"
-                        value={formData.city}
-                        onChange={handleInputChange}
-                        placeholder="Colonia/Asentamiento"
-                        disabled
-                        required
-                      />
-                    )}
-                  </div>
-                  <div className="form-group">
+                    <label>Municipio:</label>
                     <input
                       type="text"
                       name="municipality"
@@ -670,27 +703,8 @@ const Addresses = () => {
                       className="readonly-input"
                     />
                   </div>
-                </div>
-                {/* Mapa de Google Maps para seleccionar ubicación exacta */}
-                {formData.city && formData.municipality && formData.state && (
-                  <AddressMapSelector
-                    settlement={formData.city}
-                    municipality={formData.municipality}
-                    state={formData.state}
-                    postalCode={formData.postal_code}
-                    initialLat={formData.latitude}
-                    initialLng={formData.longitude}
-                    onLocationSelect={(location) => {
-                      setFormData(prev => ({
-                        ...prev,
-                        latitude: location.lat,
-                        longitude: location.lng
-                      }));
-                    }}
-                  />
-                )}
-                <div className="form-row">
                   <div className="form-group">
+                    <label>Estado:</label>
                     <input
                       type="text"
                       name="state"
@@ -700,23 +714,25 @@ const Addresses = () => {
                       className="readonly-input"
                     />
                   </div>
-                  <div className="form-group">
-                    <input
-                      type="text"
-                      name="country"
-                      value={formData.country}
-                      readOnly
-                      placeholder="País"
-                      className="readonly-input"
-                    />
-                  </div>
                 </div>
                 <div className="form-group form-group--full">
+                  <label>País:</label>
+                  <input
+                    type="text"
+                    name="country"
+                    value={formData.country}
+                    readOnly
+                    placeholder="País"
+                    className="readonly-input"
+                  />
+                </div>
+                <div className="form-group form-group--full">
+                  <label>Información adicional:</label>
                   <textarea
                     name="additional_info"
                     value={formData.additional_info}
                     onChange={handleInputChange}
-                    placeholder="Información adicional (Referencias, entre calles, etc.)"
+                    placeholder="Referencias, entre calles, etc."
                     rows="3"
                   />
                 </div>
@@ -765,72 +781,100 @@ const Addresses = () => {
             <div className="modal-body">
               <form onSubmit={(e) => { e.preventDefault(); handleSaveAddress(); }}>
                 <div className="form-group form-group--full">
+                  <label>Nombre de la dirección:</label>
                   <input
                     type="text"
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    placeholder="Dirección (Casa, trabajo)"
+                    placeholder="Ej: Casa, Trabajo"
+                    required
+                  />
+                </div>
+                <div className="form-group form-group--full">
+                  <label>Dirección (Calle):</label>
+                  <input
+                    type="text"
+                    name="street_address"
+                    value={formData.street_address}
+                    onChange={handleInputChange}
+                    placeholder="Calle"
                     required
                   />
                 </div>
                 <div className="form-row">
                   <div className="form-group">
+                    <label>No. Ext.:</label>
                     <input
                       type="text"
-                      name="postal_code"
-                      value={formData.postal_code}
-                      onChange={handleInputChange}
-                      placeholder="Código Postal (5 dígitos)"
-                      maxLength="5"
-                      pattern="[0-9]{5}"
-                      required
+                      name="street_number_ext"
+                      value={formData.street_number_ext}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9]/g, '');
+                        handleInputChange({ target: { name: 'street_number_ext', value } });
+                      }}
+                      placeholder="Número exterior"
                     />
-                    {loadingPostalCode && <small style={{ color: '#666' }}>Consultando...</small>}
                   </div>
                   <div className="form-group">
+                    <label>No. Int.:</label>
                     <input
                       type="text"
-                      name="street_address"
-                      value={formData.street_address}
-                      onChange={handleInputChange}
-                      placeholder="Calle y número"
-                      required
+                      name="street_number_int"
+                      value={formData.street_number_int}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9]/g, '');
+                        handleInputChange({ target: { name: 'street_number_int', value } });
+                      }}
+                      placeholder="Número interior"
                     />
                   </div>
                 </div>
-                <div className="form-info-label">
-                  Autocompletado con código postal
+                <div className="form-group form-group--full">
+                  <label>Código Postal:</label>
+                  <input
+                    type="text"
+                    name="postal_code"
+                    value={formData.postal_code}
+                    onChange={handleInputChange}
+                    placeholder="CP (5 dígitos)"
+                    maxLength="5"
+                    pattern="[0-9]{5}"
+                    required
+                  />
+                  {loadingPostalCode && <small style={{ color: '#666' }}>Consultando SEPOMEX...</small>}
+                </div>
+                <div className="form-group form-group--full">
+                  <label>Colonia:</label>
+                  {settlements.length > 0 ? (
+                    <select
+                      name="city"
+                      value={formData.city}
+                      onChange={handleInputChange}
+                      required
+                    >
+                      <option value="">Selecciona una colonia</option>
+                      {settlements.map((settlement, index) => (
+                        <option key={index} value={settlement}>
+                          {settlement}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      name="city"
+                      value={formData.city}
+                      onChange={handleInputChange}
+                      placeholder="Colonia"
+                      disabled={!formData.postal_code || formData.postal_code.length !== 5}
+                      required
+                    />
+                  )}
                 </div>
                 <div className="form-row">
                   <div className="form-group">
-                    {settlements.length > 0 ? (
-                      <select
-                        name="city"
-                        value={formData.city}
-                        onChange={handleInputChange}
-                        required
-                      >
-                        <option value="">Selecciona una colonia</option>
-                        {settlements.map((settlement, index) => (
-                          <option key={index} value={settlement}>
-                            {settlement}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        type="text"
-                        name="city"
-                        value={formData.city}
-                        onChange={handleInputChange}
-                        placeholder="Colonia/Asentamiento"
-                        disabled
-                        required
-                      />
-                    )}
-                  </div>
-                  <div className="form-group">
+                    <label>Municipio:</label>
                     <input
                       type="text"
                       name="municipality"
@@ -840,27 +884,8 @@ const Addresses = () => {
                       className="readonly-input"
                     />
                   </div>
-                </div>
-                {/* Mapa de Google Maps para seleccionar ubicación exacta */}
-                {formData.city && formData.municipality && formData.state && (
-                  <AddressMapSelector
-                    settlement={formData.city}
-                    municipality={formData.municipality}
-                    state={formData.state}
-                    postalCode={formData.postal_code}
-                    initialLat={formData.latitude}
-                    initialLng={formData.longitude}
-                    onLocationSelect={(location) => {
-                      setFormData(prev => ({
-                        ...prev,
-                        latitude: location.lat,
-                        longitude: location.lng
-                      }));
-                    }}
-                  />
-                )}
-                <div className="form-row">
                   <div className="form-group">
+                    <label>Estado:</label>
                     <input
                       type="text"
                       name="state"
@@ -870,23 +895,25 @@ const Addresses = () => {
                       className="readonly-input"
                     />
                   </div>
-                  <div className="form-group">
-                    <input
-                      type="text"
-                      name="country"
-                      value={formData.country}
-                      readOnly
-                      placeholder="País"
-                      className="readonly-input"
-                    />
-                  </div>
                 </div>
                 <div className="form-group form-group--full">
+                  <label>País:</label>
+                  <input
+                    type="text"
+                    name="country"
+                    value={formData.country}
+                    readOnly
+                    placeholder="País"
+                    className="readonly-input"
+                  />
+                </div>
+                <div className="form-group form-group--full">
+                  <label>Información adicional:</label>
                   <textarea
                     name="additional_info"
                     value={formData.additional_info}
                     onChange={handleInputChange}
-                    placeholder="Información adicional (Referencias, entre calles, etc.)"
+                    placeholder="Referencias, entre calles, etc."
                     rows="3"
                   />
                 </div>

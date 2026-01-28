@@ -136,6 +136,8 @@ Route::middleware(['auth:api', 'admin'])->prefix('admin')->group(function () {
     Route::get('/orders/{orderId}', [App\Http\Controllers\Admin\AdminOrderController::class, 'show']);
     Route::put('/orders/{orderId}/status', [App\Http\Controllers\Admin\AdminOrderController::class, 'updateStatus']);
     Route::post('/orders/{orderId}/mark-credit-paid', [App\Http\Controllers\Admin\AdminOrderController::class, 'markCreditOrderAsPaid']);
+    Route::post('/orders/{orderId}/update-prepared', [App\Http\Controllers\Admin\AdminOrderController::class, 'updatePrepared']);
+    Route::post('/orders/{orderId}/update-tracking', [App\Http\Controllers\Admin\AdminOrderController::class, 'updateTracking']);
     Route::post('/notify-product-interest', [App\Http\Controllers\Admin\AdminNotificationController::class, 'notifyProductInterest']);
     Route::get('/notifications', [App\Http\Controllers\NotificationController::class, 'getAdminNotifications']);
     

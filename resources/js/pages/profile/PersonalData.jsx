@@ -77,12 +77,12 @@ const PersonalData = () => {
       return;
     }
 
-    // Validar teléfono (debe tener exactamente 10 dígitos)
-    if (userData.phone && !/^[0-9]{10}$/.test(userData.phone.replace(/[\s()-]/g, ''))) {
+    // Validar teléfono (obligatorio y debe tener exactamente 10 dígitos)
+    if (!userData.phone || !/^[0-9]{10}$/.test(userData.phone.replace(/[\s()-]/g, ''))) {
       if (window.showToast) {
-        window.showToast('El teléfono debe tener exactamente 10 dígitos', 'error');
+        window.showToast('El teléfono es obligatorio y debe tener exactamente 10 dígitos', 'error');
       }
-      setMessage('El teléfono debe tener exactamente 10 dígitos');
+      setMessage('El teléfono es obligatorio y debe tener exactamente 10 dígitos');
       return;
     }
 

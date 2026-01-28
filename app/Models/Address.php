@@ -18,6 +18,8 @@ class Address extends Model
         'user_id',
         'name',
         'street_address',
+        'street_number_ext',
+        'street_number_int',
         'city',
         'municipality',
         'colonia',

@@ -392,6 +392,98 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
               </div>
             </div>
           )}
+
+          {/* Información de surtido (solo admin) */}
+          {isAdmin && (
+            <div className="order-detail-section">
+              <h3>Información de Surtido</h3>
+              <div className="order-detail-info">
+                <div className="info-row">
+                  <span className="label">Preparado:</span>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={order.is_prepared || false}
+                      onChange={async (e) => {
+                        try {
+                          const token = localStorage.getItem('token');
+                          const response = await fetch(`/api/admin/orders/${order.id}/update-prepared`, {
+                            method: 'POST',
+                            headers: {
+                              'Authorization': `Bearer ${token}`,
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ is_prepared: e.target.checked })
+                          });
+                          if (response.ok) {
+                            const data = await response.json();
+                            if (data.success) {
+                              // Actualizar el estado local
+                              order.is_prepared = e.target.checked;
+                              if (window.showToast) {
+                                window.showToast('Estado de preparado actualizado', 'success');
+                              }
+                            }
+                          }
+                        } catch (error) {
+                          console.error('Error al actualizar estado de preparado:', error);
+                          if (window.showToast) {
+                            window.showToast('Error al actualizar estado de preparado', 'error');
+                          }
+                        }
+                      }}
+                    />
+                    <span>{order.is_prepared ? 'Sí' : 'No'}</span>
+                  </label>
+                </div>
+                <div className="info-row">
+                  <span className="label">Número de guía:</span>
+                  <input
+                    type="text"
+                    value={order.tracking_number || ''}
+                    placeholder="Ingrese el número de guía"
+                    style={{ 
+                      padding: '6px 10px', 
+                      border: '1px solid #ddd', 
+                      borderRadius: '4px',
+                      width: '100%',
+                      maxWidth: '300px'
+                    }}
+                    onBlur={async (e) => {
+                      const newTrackingNumber = e.target.value.trim();
+                      if (newTrackingNumber !== (order.tracking_number || '')) {
+                        try {
+                          const token = localStorage.getItem('token');
+                          const response = await fetch(`/api/admin/orders/${order.id}/update-tracking`, {
+                            method: 'POST',
+                            headers: {
+                              'Authorization': `Bearer ${token}`,
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ tracking_number: newTrackingNumber || null })
+                          });
+                          if (response.ok) {
+                            const data = await response.json();
+                            if (data.success) {
+                              order.tracking_number = newTrackingNumber || null;
+                              if (window.showToast) {
+                                window.showToast('Número de guía actualizado', 'success');
+                              }
+                            }
+                          }
+                        } catch (error) {
+                          console.error('Error al actualizar número de guía:', error);
+                          if (window.showToast) {
+                            window.showToast('Error al actualizar número de guía', 'error');
+                          }
+                        }
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
           </div>
 
           {/* Productos */}
@@ -537,21 +629,19 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
           >
             Cerrar
           </CherryButton>
-          {(order.status === 'pagado' || order.status === 'Pagado') && (
-            <CherryButton 
-              variant="red" 
-              size="medium"
-              onClick={() => {
-                // Obtener el token de autenticación
-                const token = localStorage.getItem('token');
-                // Abrir la vista de impresión en una nueva ventana con el token como parámetro
-                const url = `/api/orders/${order.id}/print${token ? `?token=${encodeURIComponent(token)}` : ''}`;
-                window.open(url, '_blank');
-              }}
-            >
-              🖨️ Imprimir Orden
-            </CherryButton>
-          )}
+          <CherryButton 
+            variant="red" 
+            size="medium"
+            onClick={() => {
+              // Obtener el token de autenticación
+              const token = localStorage.getItem('token');
+              // Abrir la vista de impresión en una nueva ventana con el token como parámetro
+              const url = `/api/orders/${order.id}/print${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+              window.open(url, '_blank');
+            }}
+          >
+            🖨️ Imprimir Orden
+          </CherryButton>
           {showReviewButton && (order.status === 'Enviado' || order.status === 'enviado') && order.items?.[0] && !order.items[0].hasReview && (
             <CherryButton 
               variant="red" 
