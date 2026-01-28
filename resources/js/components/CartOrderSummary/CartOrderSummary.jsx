@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import Swal from 'sweetalert2';
+import { useNavigate } from 'react-router-dom';
 import './CartOrderSummary.css';
 import { getIconPath } from '../../utils/assetPaths';
 import CustomButton from '../CustomButton';
@@ -35,6 +37,7 @@ const CartOrderSummary = ({
   hasAdvanceOrders = false, // Si hay productos adelantados
   hasRegularItems = true // Si hay productos regulares (con stock)
 }) => {
+  const navigate = useNavigate();
   // Estado para método de pago seleccionado
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(paymentMethod || 'mercadopago');
   
@@ -545,53 +548,121 @@ const CartOrderSummary = ({
         descuento2: discount2 || 0  // 10% adicional cuando total elegible >= 15000
       };
 
-      // ⚠️ SIN TRY-CATCH - Esto permitirá ver errores exactos del backend
-      const response = await api.post('/payment/process-integrated', paymentData);
+      try {
+        const response = await api.post('/payment/process-integrated', paymentData);
 
-      if (response.data.success) {
-        const { data } = response.data;
-        const paymentStatus = data.payment_status;
-        
-        // Manejar diferentes estados del pago
-        if (paymentStatus === 'approved') {
-          if (window.showToast) {
-            window.showToast('¡Pago procesado exitosamente!', 'success');
-          }
+        if (response.data.success) {
+          const { data } = response.data;
+          const paymentStatus = data.payment_status;
           
-          if (onIntegratedPaymentSuccess) {
-            onIntegratedPaymentSuccess(response.data);
+          // Manejar diferentes estados del pago
+          if (paymentStatus === 'approved') {
+            if (window.showToast) {
+              window.showToast('¡Pago procesado exitosamente!', 'success');
+            }
+            
+            if (onIntegratedPaymentSuccess) {
+              onIntegratedPaymentSuccess(response.data);
+            }
+          } else if (paymentStatus === 'pending' || paymentStatus === 'in_process') {
+            // Pago pendiente - redirigir a página de verificación
+            if (window.showToast) {
+              window.showToast(data.message || 'Tu pago está pendiente de confirmación', 'info');
+            }
+            
+            // Redirigir a página de pago pendiente con información de la orden
+            setTimeout(() => {
+              window.location.href = `/pago-pendiente?orderId=${data.order_id}&paymentId=${data.payment_id}`;
+            }, 2000);
+          } else {
+            // Otro estado (rejected, etc.)
+            if (window.showToast) {
+              window.showToast(data.message || 'El pago no fue aprobado', 'error');
+            }
+            
+            if (onIntegratedPaymentError) {
+              onIntegratedPaymentError(response.data);
+            }
           }
-        } else if (paymentStatus === 'pending' || paymentStatus === 'in_process') {
-          // Pago pendiente - redirigir a página de verificación
-          if (window.showToast) {
-            window.showToast(data.message || 'Tu pago está pendiente de confirmación', 'info');
-          }
-          
-          // Redirigir a página de pago pendiente con información de la orden
-          setTimeout(() => {
-            window.location.href = `/pago-pendiente?orderId=${data.order_id}&paymentId=${data.payment_id}`;
-          }, 2000);
         } else {
-          // Otro estado (rejected, etc.)
-          if (window.showToast) {
-            window.showToast(data.message || 'El pago no fue aprobado', 'error');
+          // Verificar si hay una orden pendiente
+          if (response.data.has_pending_order && response.data.pending_order) {
+            const pendingOrder = response.data.pending_order;
+            const orderNumber = pendingOrder.number || `#${pendingOrder.id}`;
+            
+            Swal.fire({
+              title: 'Orden Pendiente',
+              html: `
+                <p>${response.data.message}</p>
+                <p style="margin-top: 15px; font-size: 14px;">
+                  <strong>Orden:</strong> ${orderNumber}<br>
+                  <strong>Total:</strong> $${parseFloat(pendingOrder.total_amount || 0).toFixed(2)}
+                </p>
+              `,
+              icon: 'warning',
+              showCancelButton: true,
+              confirmButtonText: 'Ver Mis Órdenes',
+              cancelButtonText: 'Cancelar',
+              confirmButtonColor: '#EA2630',
+              cancelButtonColor: '#6c757d',
+              reverseButtons: true
+            }).then((result) => {
+              if (result.isConfirmed) {
+                // Redirigir a la página de mis pedidos
+                window.location.href = '/perfil/mis-pedidos';
+              }
+            });
+          } else {
+            if (window.showToast) {
+              window.showToast(response.data.message || 'Error al procesar el pago', 'error');
+            }
+
+            if (onIntegratedPaymentError) {
+              onIntegratedPaymentError(response.data);
+            }
           }
+        }
+      } catch (error) {
+        // Verificar si el error es por orden pendiente
+        if (error.response?.data?.has_pending_order && error.response?.data?.pending_order) {
+          const pendingOrder = error.response.data.pending_order;
+          const orderNumber = pendingOrder.number || `#${pendingOrder.id}`;
           
+          Swal.fire({
+            title: 'Orden Pendiente',
+            html: `
+              <p>${error.response.data.message}</p>
+              <p style="margin-top: 15px; font-size: 14px;">
+                <strong>Orden:</strong> ${orderNumber}<br>
+                <strong>Total:</strong> $${parseFloat(pendingOrder.total_amount || 0).toFixed(2)}
+              </p>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Ver Mis Órdenes',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#EA2630',
+            cancelButtonColor: '#6c757d',
+            reverseButtons: true
+            }).then((result) => {
+            if (result.isConfirmed) {
+              // Redirigir a la página de mis pedidos
+              window.location.href = '/perfil/mis-pedidos';
+            }
+          });
+        } else {
+          const errorMessage = error.response?.data?.message || error.message || 'Error al procesar el pago';
+          if (window.showToast) {
+            window.showToast(errorMessage, 'error');
+          }
+
           if (onIntegratedPaymentError) {
-            onIntegratedPaymentError(response.data);
+            onIntegratedPaymentError(error.response?.data || { message: errorMessage });
           }
         }
-      } else {
-        if (window.showToast) {
-          window.showToast(response.data.message || 'Error al procesar el pago', 'error');
-        }
-
-        if (onIntegratedPaymentError) {
-          onIntegratedPaymentError(response.data);
-        }
+      } finally {
+        setIsProcessingPayment(false);
       }
-
-      setIsProcessingPayment(false);
   };
 
   const formatCardNumber = (value) => {
@@ -749,14 +820,72 @@ const CartOrderSummary = ({
         setTimeout(() => {
           window.location.href = data.init_point || data.sandbox_init_point || data.payment_url;
         }, 1500);
-  } else {
-        throw new Error(response.data.message || 'Error al crear la preferencia de pago');
-    }
+      } else {
+        // Verificar si hay una orden pendiente
+        if (response.data.has_pending_order && response.data.pending_order) {
+          const pendingOrder = response.data.pending_order;
+          const orderNumber = pendingOrder.number || `#${pendingOrder.id}`;
+          
+          Swal.fire({
+            title: 'Orden Pendiente',
+            html: `
+              <p>${response.data.message}</p>
+              <p style="margin-top: 15px; font-size: 14px;">
+                <strong>Orden:</strong> ${orderNumber}<br>
+                <strong>Total:</strong> $${parseFloat(pendingOrder.total_amount || 0).toFixed(2)}
+              </p>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Ver Mis Órdenes',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#EA2630',
+            cancelButtonColor: '#6c757d',
+            reverseButtons: true
+          }).then((result) => {
+            if (result.isConfirmed) {
+              // Redirigir a la página de mis pedidos
+              window.location.href = '/perfil/mis-pedidos';
+            }
+          });
+        } else {
+          throw new Error(response.data.message || 'Error al crear la preferencia de pago');
+        }
+      }
     } catch (error) {
-      const errorMessage = error.response?.data?.message || error.message || 'Error al procesar el pago';
-      if (window.showToast) {
-        window.showToast(errorMessage, 'error');
-  }
+      // Verificar si el error es por orden pendiente
+      if (error.response?.data?.has_pending_order && error.response?.data?.pending_order) {
+        const pendingOrder = error.response.data.pending_order;
+        const orderNumber = pendingOrder.number || `#${pendingOrder.id}`;
+        
+        Swal.fire({
+          title: 'Orden Pendiente',
+          html: `
+            <p>${error.response.data.message}</p>
+            <p style="margin-top: 15px; font-size: 14px;">
+              <strong>Orden:</strong> ${orderNumber}<br>
+              <strong>Total:</strong> $${parseFloat(pendingOrder.total_amount || 0).toFixed(2)}
+            </p>
+          `,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Ver Mis Órdenes',
+          cancelButtonText: 'Cancelar',
+          confirmButtonColor: '#EA2630',
+          cancelButtonColor: '#6c757d',
+          reverseButtons: true
+        }).then((result) => {
+          if (result.isConfirmed) {
+            // Redirigir a la página de mis pedidos
+            window.location.href = '/perfil/mis-pedidos';
+          }
+        });
+      } else {
+        const errorMessage = error.response?.data?.message || error.message || 'Error al procesar el pago';
+        if (window.showToast) {
+          window.showToast(errorMessage, 'error');
+        }
+      }
     } finally {
       setIsProcessingPayment(false);
     }

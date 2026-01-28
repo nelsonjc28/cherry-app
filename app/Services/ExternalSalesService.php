@@ -144,27 +144,36 @@ class ExternalSalesService
                 );
             }
             
-            // Precio que pagó el cliente (precio unitario después de descuentos)
-            $precioUnitario = (float) $orderItem->price;
-            $cantidad = (int) $orderItem->quantity;
-            
-            // Calcular descuento: comparar precio pagado con precio original del producto
+            // Precio original del producto (precio1) - SIN ningún descuento aplicado
             $precioOriginal = (float) ($producto->precio1 ?? 0);
             
-            // Si no hay precio original, usar el precio pagado como precio original
+            // Si no hay precio original, intentar con precio2, precio3, etc.
             if ($precioOriginal <= 0) {
-                $precioOriginal = $precioUnitario;
+                $precioOriginal = (float) ($producto->precio2 ?? $producto->precio3 ?? $producto->precio4 ?? 0);
             }
             
+            // Precio que pagó el cliente (precio unitario después de TODOS los descuentos aplicados)
+            // Este precio ya incluye:
+            // - Descuentos individuales del producto (ej: 50% de desc_promo)
+            // - Descuentos adicionales del 20% y 10% (si aplican)
+            $precioConDescuento = (float) $orderItem->price;
+            $cantidad = (int) $orderItem->quantity;
+            
+            // Si no hay precio original, usar el precio pagado como precio original (sin descuento)
+            if ($precioOriginal <= 0) {
+                $precioOriginal = $precioConDescuento;
+            }
+            
+            // Calcular descuento total: diferencia entre precio original y precio con descuento
             $descuentoUnitario = 0;
             $descuentoItem = 0;
             $porcentajeDescuento = 0;
             
-            // Si hay precio original y es mayor al precio pagado, hay descuento
-            if ($precioOriginal > $precioUnitario && $precioOriginal > 0) {
-                $descuentoUnitario = $precioOriginal - $precioUnitario;
+            // Si hay precio original y es mayor al precio con descuento, hay descuento
+            if ($precioOriginal > $precioConDescuento && $precioOriginal > 0) {
+                $descuentoUnitario = $precioOriginal - $precioConDescuento;
                 $descuentoItem = $descuentoUnitario * $cantidad;
-                // Calcular porcentaje de descuento: ((precio_original - precio_pagado) / precio_original) * 100
+                // Calcular porcentaje de descuento total: ((precio_original - precio_con_descuento) / precio_original) * 100
                 $porcentajeDescuento = (($descuentoUnitario / $precioOriginal) * 100);
             }
             
@@ -183,12 +192,14 @@ class ExternalSalesService
             
             // Crear item para esta talla/color específica
             // Cada OrderItem representa una combinación única de producto/talla/color
+            // IMPORTANTE: Enviar precio ORIGINAL (precio1) en el campo 'precio', NO el precio con descuento
+            // El descuento se envía en el campo 'descuento' como porcentaje
             $items[] = [
                 'idArtd' => (int) $detalle->id, // Identificador del artículo por color y talla
                 'idArticulo' => $idArticulo, // Identificador del artículo
                 'cantidad' => (float) $cantidad, // Cantidad de esta talla específica
-                'precio' => (float) $precioUnitario, // Precio que pagó el cliente por unidad
-                'descuento' => (float) $porcentajeDescuento, // Porcentaje de descuento (la API espera porcentaje, no monto)
+                'precio' => (float) $precioOriginal, // Precio ORIGINAL sin descuentos (precio1)
+                'descuento' => (float) $porcentajeDescuento, // Porcentaje de descuento TOTAL aplicado (la API espera porcentaje, no monto)
                 'opcDecto' => $porcentajeDescuento > 0 ? 'S' : 'N' // Indica si hay descuento
             ];
         }
@@ -463,8 +474,8 @@ class ExternalSalesService
         $nombre = trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? ''));
         
         // Estructura simplificada según la especificación de la API externa
-        // Formato del id: "CD" + 5 dígitos con ceros a la izquierda (ej: CD00002, CD00123)
-        $idFormatted = 'CD' . str_pad((string) $user->id, 5, '0', STR_PAD_LEFT);
+        // Formato del id: "DM" + 5 dígitos con ceros a la izquierda (ej: DM00002, DM00123)
+        $idFormatted = 'DM' . str_pad((string) $user->id, 5, '0', STR_PAD_LEFT);
         
         return [
             'id' => $idFormatted,

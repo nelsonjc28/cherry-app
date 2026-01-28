@@ -515,7 +515,11 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
               </div>
               <div className="summary-row">
                 <span className="label">Envío:</span>
-                <span className="value">${(parseFloat(order.shipping_cost || 0)).toFixed(2)}</span>
+                {parseFloat(order.shipping_cost || 0) === 0 ? (
+                  <span className="value" style={{ color: '#28a745', fontWeight: 'bold' }}>Gratis</span>
+                ) : (
+                  <span className="value">${(parseFloat(order.shipping_cost || 0)).toFixed(2)}</span>
+                )}
               </div>
               <div className="summary-row total-row">
                 <span className="label">Total:</span>

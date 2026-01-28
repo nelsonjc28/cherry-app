@@ -212,7 +212,7 @@
             <h3>Información del Cliente</h3>
             <div class="info-row">
                 <span class="info-label">ID Cliente:</span>
-                <span>CD{{ str_pad($user->id, 5, '0', STR_PAD_LEFT) }}</span>
+                <span>DM{{ str_pad($user->id, 5, '0', STR_PAD_LEFT) }}</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Nombre:</span>

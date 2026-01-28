@@ -5,10 +5,10 @@ import AccountStatementModal from '../AccountStatementModal/AccountStatementModa
 import { getIconPath } from '../../utils/assetPaths';
 import './ClientManager.css';
 
-// Función helper para formatear ID de cliente: CD + 5 dígitos (con ceros a la izquierda)
+// Función helper para formatear ID de cliente: DM + 5 dígitos (con ceros a la izquierda)
 const formatClientId = (clientId) => {
   if (!clientId) return '';
-  return 'CD' + String(clientId).padStart(5, '0');
+  return 'DM' + String(clientId).padStart(5, '0');
 };
 
 const ClientManager = () => {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 import useCartStore from '../store/cartStore';
 import api from '../config/axios';
 import './CartDetailsPage.css';
@@ -445,9 +446,38 @@ const CartDetailsPage = () => {
           throw new Error(advanceResponse.data.message || 'Error al crear el pedido adelantado');
         }
       } catch (error) {
-        const errorMessage = error.response?.data?.message || error.message || 'Error al crear el pedido adelantado';
-        if (window.showToast) {
-          window.showToast(errorMessage, 'error');
+        // Verificar si el error es por orden pendiente
+        if (error.response?.data?.has_pending_order && error.response?.data?.pending_order) {
+          const pendingOrder = error.response.data.pending_order;
+          const orderNumber = pendingOrder.number || `#${pendingOrder.id}`;
+          
+          Swal.fire({
+            title: 'Orden Pendiente',
+            html: `
+              <p>${error.response.data.message}</p>
+              <p style="margin-top: 15px; font-size: 14px;">
+                <strong>Orden:</strong> ${orderNumber}<br>
+                <strong>Total:</strong> $${parseFloat(pendingOrder.total_amount || 0).toFixed(2)}
+              </p>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Ver Mis Órdenes',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#EA2630',
+            cancelButtonColor: '#6c757d',
+            reverseButtons: true
+          }).then((result) => {
+            if (result.isConfirmed) {
+              // Redirigir a la página de mis pedidos
+              window.location.href = '/perfil/mis-pedidos';
+            }
+          });
+        } else {
+          const errorMessage = error.response?.data?.message || error.message || 'Error al crear el pedido adelantado';
+          if (window.showToast) {
+            window.showToast(errorMessage, 'error');
+          }
         }
         return;
       }

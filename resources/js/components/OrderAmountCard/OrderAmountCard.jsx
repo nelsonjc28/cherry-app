@@ -72,8 +72,8 @@ const OrderAmountCard = ({
         {deliveryType === 'envio' && (
           <div className="cart-order-summary__row">
             <span>Envío:</span>
-            {(isFreeShipping && Number(shipping) === 0) ? (
-              <span className="cart-order-summary__free-shipping">Envío gratis</span>
+            {Number(shipping) === 0 ? (
+              <span className="cart-order-summary__free-shipping" style={{ color: '#28a745', fontWeight: 'bold' }}>Gratis</span>
             ) : (
               <span>${formatMoney(shipping)}</span>
             )}

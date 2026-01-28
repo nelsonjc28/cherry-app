@@ -81,6 +81,17 @@ class PaymentController extends Controller
             ], 401);
         }
 
+        // Verificar si hay órdenes pendientes con productos similares
+        $pendingOrderCheck = $this->checkPendingOrdersWithSimilarProducts($user->id, $request->items);
+        if ($pendingOrderCheck['has_pending']) {
+            return response()->json([
+                'success' => false,
+                'message' => $pendingOrderCheck['message'],
+                'pending_order' => $pendingOrderCheck['order'],
+                'has_pending_order' => true
+            ], 422);
+        }
+
         /*  try { */
         // Verificar que la dirección pertenece al usuario solo si es envío
         $addressId = null;
@@ -811,6 +822,17 @@ class PaymentController extends Controller
                 'success' => false,
                 'message' => 'Usuario no autenticado'
             ], 401);
+        }
+
+        // Verificar si hay órdenes pendientes con productos similares
+        $pendingOrderCheck = $this->checkPendingOrdersWithSimilarProducts($user->id, $requestData['items']);
+        if ($pendingOrderCheck['has_pending']) {
+            return response()->json([
+                'success' => false,
+                'message' => $pendingOrderCheck['message'],
+                'pending_order' => $pendingOrderCheck['order'],
+                'has_pending_order' => true
+            ], 422);
         }
 
         try {
@@ -2315,6 +2337,17 @@ class PaymentController extends Controller
             ], 403);
         }
 
+        // Verificar si hay órdenes pendientes con productos similares
+        $pendingOrderCheck = $this->checkPendingOrdersWithSimilarProducts($user->id, $request->items);
+        if ($pendingOrderCheck['has_pending']) {
+            return response()->json([
+                'success' => false,
+                'message' => $pendingOrderCheck['message'],
+                'pending_order' => $pendingOrderCheck['order'],
+                'has_pending_order' => true
+            ], 422);
+        }
+
         $totalAmount = (float) $request->total_amount;
         $availableCredit = (float) ($user->credit_balance ?? 0);
         
@@ -2590,6 +2623,17 @@ class PaymentController extends Controller
             ], 422);
         }
 
+        // Verificar si hay órdenes pendientes con productos similares
+        $pendingOrderCheck = $this->checkPendingOrdersWithSimilarProducts($user->id, $request->items);
+        if ($pendingOrderCheck['has_pending']) {
+            return response()->json([
+                'success' => false,
+                'message' => $pendingOrderCheck['message'],
+                'pending_order' => $pendingOrderCheck['order'],
+                'has_pending_order' => true
+            ], 422);
+        }
+
         try {
             DB::beginTransaction();
 
@@ -2811,6 +2855,145 @@ class PaymentController extends Controller
     }
 
     /**
+     * Crear preferencia de pago para una orden pendiente
+     */
+    public function payPendingOrder(Request $request, $orderId)
+    {
+        try {
+            $user = Auth::user();
+            
+            // Buscar la orden
+            $order = Order::where('id', $orderId)
+                ->where('user_id', $user->id)
+                ->with(['user', 'address', 'items'])
+                ->first();
+
+            if (!$order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Orden no encontrada'
+                ], 404);
+            }
+
+            // Verificar que la orden esté en estado pendiente
+            if (!in_array($order->status, ['pending', 'pendiente_pago'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Esta orden no está pendiente de pago'
+                ], 400);
+            }
+
+            // Verificar que la orden no haya sido pagada completamente
+            if ($order->status === 'pagado') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Esta orden ya ha sido pagada'
+                ], 400);
+            }
+
+            // Preparar items de la orden para MercadoPago
+            $items = [];
+            foreach ($order->items as $orderItem) {
+                $items[] = [
+                    'product_id' => (string) $orderItem->product_id,
+                    'name' => $orderItem->name,
+                    'quantity' => (int) $orderItem->quantity,
+                    'price' => (float) $orderItem->price,
+                    'size' => $orderItem->size,
+                    'color' => $orderItem->color,
+                    'barcode' => $orderItem->barcode
+                ];
+            }
+
+            // Si hay diferencia entre el total de items y el total_amount, agregar envío o ajuste
+            $itemsTotal = $order->items->sum(function($item) {
+                return $item->price * $item->quantity;
+            });
+            $difference = (float) $order->total_amount - $itemsTotal;
+
+            if (abs($difference) > 0.01) {
+                if ($difference > 0) {
+                    // Diferencia positiva (envío agregado)
+                    $items[] = [
+                        'product_id' => '0',
+                        'name' => 'Envío',
+                        'quantity' => 1,
+                        'price' => $difference,
+                        'size' => null,
+                        'color' => null,
+                        'barcode' => null
+                    ];
+                } else {
+                    // Diferencia negativa (descuento adicional) - ajustar precios proporcionalmente
+                    $adjustmentFactor = (float) $order->total_amount / $itemsTotal;
+                    foreach ($items as &$item) {
+                        $item['price'] = round($item['price'] * $adjustmentFactor, 2);
+                    }
+                    unset($item);
+                }
+            }
+
+            // Crear preferencia de MercadoPago
+            $address = $order->address;
+            
+            $orderData = [
+                'order_id' => $order->external_reference,
+                'user' => [
+                    'first_name' => $order->user->first_name,
+                    'last_name' => $order->user->last_name,
+                    'email' => $order->user->email,
+                    'phone' => $order->user->phone
+                ],
+                'address' => $address ? [
+                    'street_address' => $address->street_address,
+                    'city' => $address->city,
+                    'state' => $address->state,
+                    'postal_code' => $address->postal_code,
+                    'country' => $address->country
+                ] : [
+                    'street_address' => '',
+                    'city' => '',
+                    'state' => '',
+                    'postal_code' => '',
+                    'country' => 'México'
+                ],
+                'items' => $items,
+                'delivery_type' => $order->address_id ? 'envio' : 'retiro'
+            ];
+
+            $preference = $this->mercadoPagoService->createPreference($orderData);
+            
+            // Actualizar la orden con el ID de preferencia
+            $order->update([
+                'mercadopago_preference_id' => $preference->id
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Preferencia de pago creada correctamente',
+                'data' => [
+                    'order_id' => $order->id,
+                    'preference_id' => $preference->id,
+                    'payment_url' => $preference->init_point ?? $this->mercadoPagoService->getPaymentUrl($preference->id),
+                    'sandbox_payment_url' => $preference->sandbox_init_point ?? $this->mercadoPagoService->getSandboxPaymentUrl($preference->id)
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error al crear preferencia de pago para orden pendiente', [
+                'order_id' => $orderId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear la preferencia de pago: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Print order as PDF/printable view
      */
     public function printOrder(Request $request, $orderId)
@@ -2939,5 +3122,88 @@ class PaymentController extends Controller
                 'message' => 'Error al generar la vista de impresión: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Verificar si el usuario tiene órdenes pendientes con productos similares del mismo día
+     */
+    private function checkPendingOrdersWithSimilarProducts($userId, $newItems)
+    {
+        // Normalizar los items de la nueva orden: crear un array con product_id => cantidad total
+        $newItemsNormalized = [];
+        foreach ($newItems as $item) {
+            $productId = (string) $item['product_id'];
+            $quantity = (int) ($item['quantity'] ?? 1);
+            
+            if (!isset($newItemsNormalized[$productId])) {
+                $newItemsNormalized[$productId] = 0;
+            }
+            $newItemsNormalized[$productId] += $quantity;
+        }
+
+        // Ordenar por product_id para comparación consistente
+        ksort($newItemsNormalized);
+
+        // Obtener la fecha de hoy (solo fecha, sin hora)
+        $today = Carbon::today();
+
+        // Buscar órdenes pendientes del usuario creadas hoy
+        $pendingOrders = Order::where('user_id', $userId)
+            ->whereIn('status', ['pending', 'pendiente_pago'])
+            ->whereDate('created_at', $today) // Solo órdenes del mismo día
+            ->with('items')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        foreach ($pendingOrders as $order) {
+            // Normalizar los items de la orden pendiente: crear un array con product_id => cantidad total
+            $orderItemsNormalized = [];
+            foreach ($order->items as $orderItem) {
+                $productId = (string) $orderItem->product_id;
+                $quantity = (int) $orderItem->quantity;
+                
+                if (!isset($orderItemsNormalized[$productId])) {
+                    $orderItemsNormalized[$productId] = 0;
+                }
+                $orderItemsNormalized[$productId] += $quantity;
+            }
+
+            // Ordenar por product_id para comparación consistente
+            ksort($orderItemsNormalized);
+
+            // Comparar si son exactamente iguales (mismos productos y mismas cantidades)
+            if ($newItemsNormalized === $orderItemsNormalized) {
+                // Las órdenes son exactamente iguales
+                $orderNumber = ($order->is_advance_order ?? false ? 'PD' : 'CD') . str_pad($order->id, 4, '0', STR_PAD_LEFT);
+                
+                // Obtener nombres de productos para el mensaje
+                $productNames = $order->items->pluck('name')
+                    ->unique()
+                    ->take(3)
+                    ->implode(', ');
+                
+                $totalProducts = count($newItemsNormalized);
+                $message = "Ya tienes una orden pendiente del día de hoy con la misma mercancía (Orden #{$orderNumber}). " .
+                          "Por favor, completa esa orden antes de crear una nueva.";
+
+                return [
+                    'has_pending' => true,
+                    'message' => $message,
+                    'order' => [
+                        'id' => $order->id,
+                        'number' => $orderNumber,
+                        'status' => $order->status,
+                        'total_amount' => $order->total_amount,
+                        'created_at' => $order->created_at
+                    ]
+                ];
+            }
+        }
+
+        return [
+            'has_pending' => false,
+            'message' => null,
+            'order' => null
+        ];
     }
 }

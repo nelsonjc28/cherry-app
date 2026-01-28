@@ -118,6 +118,9 @@ Route::middleware(['auth:api'])->group(function () {
     // Reintentar pago del saldo pendiente
     Route::post('/payment/retry-remainder/{orderId}', [PaymentController::class, 'retryRemainderPayment']);
     
+    // Pagar orden pendiente
+    Route::post('/payment/pay-pending-order/{orderId}', [PaymentController::class, 'payPendingOrder']);
+    
     // Crear pedido adelantado
     Route::post('/payment/create-advance-order', [PaymentController::class, 'createAdvanceOrder']);
     
