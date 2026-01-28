@@ -485,6 +485,15 @@ class AdminOrderController extends Controller
     public function markCreditOrderAsPaid(Request $request, $orderId)
     {
         try {
+            // Verificar que el usuario autenticado no sea operador
+            $authUser = auth()->user();
+            if ($authUser && $authUser->isOperator()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Los operadores no tienen permiso para aprobar pagos'
+                ], 403);
+            }
+
             $order = Order::with('user')->findOrFail($orderId);
             
             // Verificar que la orden sea pagada con crédito O sea un pedido anticipado

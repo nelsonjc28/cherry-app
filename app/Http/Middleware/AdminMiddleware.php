@@ -26,12 +26,17 @@ class AdminMiddleware
         }
 
         $user = Auth::user();
+        
+        // Cargar la relación role si no está cargada
+        if (!$user->relationLoaded('role')) {
+            $user->load('role');
+        }
 
-        // Verificar que el usuario tenga rol de admin
-        if (!$user->hasRole('admin')) {
+        // Verificar que el usuario tenga rol de admin o operador
+        if (!$user->hasRole('admin') && !$user->hasRole('operador')) {
             return response()->json([
                 'success' => false,
-                'message' => 'Acceso denegado. Se requieren permisos de administrador.'
+                'message' => 'Acceso denegado. Se requieren permisos de administrador o operador.'
             ], 403);
         }
 

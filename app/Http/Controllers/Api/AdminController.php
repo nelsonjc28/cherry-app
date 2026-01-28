@@ -64,6 +64,15 @@ class AdminController extends Controller
     public function createUser(Request $request)
     {
         try {
+            // Verificar que el usuario autenticado no sea operador
+            $authUser = auth()->user();
+            if ($authUser && $authUser->isOperator()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Los operadores no tienen permiso para gestionar administradores'
+                ], 403);
+            }
+
             $validator = Validator::make($request->all(), [
                 'first_name' => 'required|string|max:255',
                 'last_name' => 'required|string|max:255',
@@ -124,6 +133,15 @@ class AdminController extends Controller
     public function updateUser(Request $request, $id)
     {
         try {
+            // Verificar que el usuario autenticado no sea operador
+            $authUser = auth()->user();
+            if ($authUser && $authUser->isOperator()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Los operadores no tienen permiso para gestionar administradores'
+                ], 403);
+            }
+
             $user = User::find($id);
             
             if (!$user) {
@@ -210,6 +228,15 @@ class AdminController extends Controller
     public function deleteUser($id)
     {
         try {
+            // Verificar que el usuario autenticado no sea operador
+            $authUser = auth()->user();
+            if ($authUser && $authUser->isOperator()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Los operadores no tienen permiso para gestionar administradores'
+                ], 403);
+            }
+
             $user = User::find($id);
             
             if (!$user) {

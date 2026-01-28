@@ -99,6 +99,14 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /**
+     * Check if the user is an operator
+     */
+    public function isOperator()
+    {
+        return $this->role && $this->role->name === 'operador';
+    }
+
+    /**
      * Check if the user has a specific role
      */
     public function hasRole($roleName)

@@ -622,7 +622,8 @@ const Header = () => {
                       </div>
                     </div>
                     <div className="user-dropdown-divider"></div>
-                    {isAdmin() && (
+                    {/* Mostrar Dashboard para administradores y operadores */}
+                    {(user?.role?.name === 'admin' || user?.role?.name === 'operador') && (
                       <>
                         <Link 
                           to="/admin" 
@@ -969,9 +970,10 @@ const Header = () => {
                     />
                   </button>
                   <div className="mobile-user-dropdown">
-                    {isAdmin() && (
+                    {/* Mostrar Dashboard para administradores y operadores */}
+                    {(user?.role?.name === 'admin' || user?.role?.name === 'operador') && (
                       <>
-                        <Link to="/admin" className="user-dropdown-item">
+                        <Link to="/admin" className="user-dropdown-item" onClick={() => { setMobileMenuOpen(false); setUserMenuOpen(false); }}>
                           <img src={getIconPath('File Alt.svg')} alt="Dashboard" />
                           Dashboard
                         </Link>

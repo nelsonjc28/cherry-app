@@ -3,6 +3,7 @@ import Swal from 'sweetalert2';
 import CherryButton from '../CherryButton/CherryButton';
 import AccountStatementModal from '../AccountStatementModal/AccountStatementModal';
 import { getIconPath } from '../../utils/assetPaths';
+import useUserStore from '../../store/userStore';
 import './ClientManager.css';
 
 // Función helper para formatear ID de cliente: DM + 5 dígitos (con ceros a la izquierda)
@@ -12,6 +13,8 @@ const formatClientId = (clientId) => {
 };
 
 const ClientManager = () => {
+  const { user } = useUserStore();
+  const isOperator = user?.role?.name === 'operador';
   const [clients, setClients] = useState([]);
   const [allClients, setAllClients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -576,7 +579,7 @@ const ClientManager = () => {
                     <span className="client-manager__btn-icon">📊</span>
                     <span className="client-manager__btn-text">Estados de Cuenta</span>
                   </button>
-                  {client.seller_category === 'bronce' ? (
+                  {!isOperator && client.seller_category === 'bronce' && (
                     <button
                       className="client-manager__action-btn client-manager__action-btn--gold"
                       onClick={() => handleUpdateCategory(client.id, 'oro')}
@@ -606,7 +609,8 @@ const ClientManager = () => {
                       <span className="client-manager__btn-icon">🥇</span>
                       <span className="client-manager__btn-text">Cambiar a Oro</span>
                     </button>
-                  ) : (
+                  )}
+                  {!isOperator && client.seller_category === 'oro' && (
                     <button
                       className="client-manager__action-btn client-manager__action-btn--bronze"
                       onClick={() => handleUpdateCategory(client.id, 'bronce')}
@@ -637,7 +641,7 @@ const ClientManager = () => {
                       <span className="client-manager__btn-text">Cambiar a Bronce</span>
                     </button>
                   )}
-                  {client.seller_category === 'oro' && (
+                  {!isOperator && client.seller_category === 'oro' && (
                     <button
                       className="client-manager__action-btn client-manager__action-btn--red"
                       onClick={() => handleUpdateCredit(client.id)}

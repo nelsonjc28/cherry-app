@@ -5,6 +5,7 @@ import AdminNotifications from '../../components/AdminNotifications/AdminNotific
 import OrderDetailModal from '../../components/OrderDetailModal/OrderDetailModal';
 import { adminOrderService, adminNotificationService } from '../../services/api';
 import { getIconPath } from '../../utils/assetPaths';
+import useUserStore from '../../store/userStore';
 import './AdminOrders.css';
 
 // Función para determinar el color del texto según el color de fondo
@@ -34,12 +35,35 @@ const formatOrderNumber = (order) => {
 };
 
 const AdminOrders = () => {
+  const { user } = useUserStore();
+  const isOperator = user?.role?.name === 'operador';
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Cargar filtros desde localStorage o URL params
+  const getInitialStatusFilter = () => {
+    return searchParams.get('status') || localStorage.getItem('adminOrders_statusFilter') || 'all';
+  };
+  
+  const getInitialSearchTerm = () => {
+    return searchParams.get('search') || localStorage.getItem('adminOrders_searchTerm') || '';
+  };
+  
+  const getInitialItemsPerPage = () => {
+    return parseInt(searchParams.get('itemsPerPage') || localStorage.getItem('adminOrders_itemsPerPage') || '10', 10);
+  };
+  
+  const getInitialCurrentPage = () => {
+    return parseInt(searchParams.get('page') || localStorage.getItem('adminOrders_currentPage') || '1', 10);
+  };
+
+  const [currentPage, setCurrentPage] = useState(getInitialCurrentPage());
+  const [statusFilter, setStatusFilter] = useState(getInitialStatusFilter());
+  const [searchTerm, setSearchTerm] = useState(getInitialSearchTerm());
+  const [itemsPerPage, setItemsPerPage] = useState(getInitialItemsPerPage());
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [newStatus, setNewStatus] = useState('');
@@ -53,10 +77,60 @@ const AdminOrders = () => {
   const [markingAsPaid, setMarkingAsPaid] = useState(false);
   const [orderToMarkAsPaid, setOrderToMarkAsPaid] = useState(null);
   const [showMarkAsPaidModal, setShowMarkAsPaidModal] = useState(false);
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
 
-  const itemsPerPage = 10;
+  // Función para actualizar filtros y guardarlos
+  const updateStatusFilter = (value) => {
+    setStatusFilter(value);
+    localStorage.setItem('adminOrders_statusFilter', value);
+    const newParams = new URLSearchParams(searchParams);
+    if (value === 'all') {
+      newParams.delete('status');
+    } else {
+      newParams.set('status', value);
+    }
+    newParams.set('page', '1'); // Reset a página 1 cuando cambia el filtro
+    setSearchParams(newParams, { replace: true });
+    setCurrentPage(1);
+    localStorage.setItem('adminOrders_currentPage', '1');
+  };
+
+  const updateSearchTerm = (value) => {
+    setSearchTerm(value);
+    localStorage.setItem('adminOrders_searchTerm', value);
+    const newParams = new URLSearchParams(searchParams);
+    if (value === '') {
+      newParams.delete('search');
+    } else {
+      newParams.set('search', value);
+    }
+    newParams.set('page', '1'); // Reset a página 1 cuando cambia la búsqueda
+    setSearchParams(newParams, { replace: true });
+    setCurrentPage(1);
+    localStorage.setItem('adminOrders_currentPage', '1');
+  };
+
+  const updateItemsPerPage = (value) => {
+    setItemsPerPage(value);
+    localStorage.setItem('adminOrders_itemsPerPage', value.toString());
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('itemsPerPage', value.toString());
+    newParams.set('page', '1'); // Reset a página 1 cuando cambia items por página
+    setSearchParams(newParams, { replace: true });
+    setCurrentPage(1);
+    localStorage.setItem('adminOrders_currentPage', '1');
+  };
+
+  const updateCurrentPage = (value) => {
+    setCurrentPage(value);
+    localStorage.setItem('adminOrders_currentPage', value.toString());
+    const newParams = new URLSearchParams(searchParams);
+    if (value === 1) {
+      newParams.delete('page');
+    } else {
+      newParams.set('page', value.toString());
+    }
+    setSearchParams(newParams, { replace: true });
+  };
 
   // Cargar órdenes y notificaciones
   useEffect(() => {
@@ -344,7 +418,7 @@ const AdminOrders = () => {
           <select
             id="status-filter"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => updateStatusFilter(e.target.value)}
             className="filter-select"
           >
             <option value="all">Todos</option>
@@ -362,10 +436,27 @@ const AdminOrders = () => {
             id="search-input"
             type="text"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => updateSearchTerm(e.target.value)}
             placeholder="Número de orden, email o nombre..."
             className="filter-input"
           />
+        </div>
+
+        <div className="filter-group">
+          <label htmlFor="items-per-page">Mostrar:</label>
+          <select
+            id="items-per-page"
+            value={itemsPerPage}
+            onChange={(e) => {
+              updateItemsPerPage(Number(e.target.value));
+            }}
+            className="filter-select"
+          >
+            <option value={10}>10</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+          </select>
         </div>
       </div>
 
@@ -449,7 +540,7 @@ const AdminOrders = () => {
                           >
                             👁️
                           </button>
-                          {((order.paid_with_credit && order.credit_used > 0) || (order.is_advance_order && order.status !== 'pagado')) && (
+                          {!isOperator && ((order.paid_with_credit && order.credit_used > 0) || (order.is_advance_order && order.status !== 'pagado')) && (
                             <button
                               className="order-action-btn order-action-btn--mark-paid"
                               onClick={() => handleMarkCreditAsPaid(order)}
@@ -494,7 +585,7 @@ const AdminOrders = () => {
         <div className="admin-orders__pagination">
           <div className="pagination-controls">
             <button
-              onClick={() => setCurrentPage(currentPage - 1)}
+              onClick={() => updateCurrentPage(currentPage - 1)}
               disabled={currentPage === 1}
               className="pagination-button"
             >
@@ -504,7 +595,7 @@ const AdminOrders = () => {
               Página {currentPage} de {totalPages}
             </span>
             <button
-              onClick={() => setCurrentPage(currentPage + 1)}
+              onClick={() => updateCurrentPage(currentPage + 1)}
               disabled={currentPage === totalPages}
               className="pagination-button"
             >

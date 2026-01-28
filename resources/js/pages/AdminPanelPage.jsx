@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import CherryButton from '../components/CherryButton/CherryButton';
 import AdminUserManager from '../components/AdminUserManager/AdminUserManager';
+import OperatorManager from '../components/OperatorManager/OperatorManager';
 import ClientManager from '../components/ClientManager/ClientManager';
 import AdminReviews from '../components/AdminReviews/AdminReviews';
 
@@ -38,8 +39,44 @@ function AdminPanelPage() {
     catalogos: false
   });
   const { user, isAdmin } = useUserStore();
+  
+  // Helper para verificar si el usuario es admin o operador
+  const isAdminOrOperator = () => {
+    if (!user) return false;
+    const userRole = user?.role?.name;
+    return userRole === 'admin' || userRole === 'operador';
+  };
+  
+  // Helper para verificar si el usuario es solo admin (no operador)
+  const isOnlyAdmin = () => {
+    if (!user) return false;
+    return user?.role?.name === 'admin';
+  };
+  
+  // Variable para verificar si es admin o operador (para uso directo)
+  const userRole = user?.role?.name;
+  const isAdminOrOperatorRole = userRole === 'admin' || userRole === 'operador';
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Validar que solo administradores y operadores puedan acceder (bloquear clientes)
+  useEffect(() => {
+    if (user) {
+      const userRole = user?.role?.name;
+      if (userRole !== 'admin' && userRole !== 'operador') {
+        // Si el usuario no es admin ni operador, redirigir al home
+        navigate('/', { replace: true });
+      }
+    }
+  }, [user, navigate]);
+
+  // Si no es admin ni operador, no renderizar nada (mientras se redirige)
+  if (user) {
+    const userRole = user?.role?.name;
+    if (userRole !== 'admin' && userRole !== 'operador') {
+      return null;
+    }
+  }
 
   // Función para toggle de submenús
   const toggleSubmenu = (menuKey) => {
@@ -54,6 +91,7 @@ function AdminPanelPage() {
     const titleMap = {
       'home': 'Dashboard - Admin - Cherry Central',
       'users': 'Gestionar Administradores - Admin - Cherry Central',
+      'operators': 'Gestionar Operadores - Admin - Cherry Central',
       'clients': 'Gestionar Clientes - Admin - Cherry Central',
       'category-products': 'Gestionar Categorías - Admin - Cherry Central',
       'category-order': 'Ordenar Categorías - Admin - Cherry Central',
@@ -79,6 +117,7 @@ function AdminPanelPage() {
     '/admin/': 'home',
     '/admin/dashboard': 'home',
     '/admin/usuarios': 'users',
+    '/admin/operadores': 'operators',
     '/admin/clientes': 'clients',
     '/admin/categorias': 'category-products',
     '/admin/ordenar-categorias': 'category-order',
@@ -98,6 +137,7 @@ function AdminPanelPage() {
   const menuToUrlMap = {
     'home': '/admin',
     'users': '/admin/usuarios',
+    'operators': '/admin/operadores',
     'clients': '/admin/clientes',
     'category-products': '/admin/categorias',
     'category-order': '/admin/ordenar-categorias',
@@ -132,7 +172,7 @@ function AdminPanelPage() {
     setSelectedMenu(currentMenu);
     
     // Expandir automáticamente el submenú correspondiente
-    if (currentMenu === 'users' || currentMenu === 'clients') {
+    if (currentMenu === 'users' || currentMenu === 'operators' || currentMenu === 'clients') {
       setExpandedMenus(prev => ({ ...prev, usuarios: true }));
     } else if (currentMenu === 'category-products' || currentMenu === 'category-order' || currentMenu === 'menu-category-order') {
       setExpandedMenus(prev => ({ ...prev, categorias: true }));
@@ -181,7 +221,11 @@ function AdminPanelPage() {
         <nav className="admin-panel__sidebar-nav">
           <div className="admin-panel__user-info">
             <span className="admin-panel__user-name">{user?.first_name} {user?.last_name}</span>
-            <span className="admin-panel__user-role">{user?.role?.name === 'admin' ? 'Administrador' : 'Cliente'}</span>
+            <span className="admin-panel__user-role">
+              {user?.role?.name === 'admin' ? 'Administrador' : 
+               user?.role?.name === 'operador' ? 'Operador' : 
+               'Cliente'}
+            </span>
           </div>
           <button className={`admin-panel__sidebar-link${selectedMenu==='home'?' active':''}`} onClick={()=>handleMenuChange('home')}>Dashboard</button>
           
@@ -196,12 +240,23 @@ function AdminPanelPage() {
             </button>
             {expandedMenus.usuarios && (
               <div className="admin-panel__submenu">
-                <button 
-                  className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='users'?' active':''}`} 
-                  onClick={()=>handleMenuChange('users')}
-                >
-                  Gestionar Administradores
-                </button>
+                {/* Solo mostrar estos links si el usuario es admin (no operador) */}
+                {isOnlyAdmin() && (
+                  <>
+                    <button 
+                      className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='users'?' active':''}`} 
+                      onClick={()=>handleMenuChange('users')}
+                    >
+                      Gestionar Administradores
+                    </button>
+                    <button 
+                      className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='operators'?' active':''}`} 
+                      onClick={()=>handleMenuChange('operators')}
+                    >
+                      Gestionar Operadores
+                    </button>
+                  </>
+                )}
                 <button 
                   className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='clients'?' active':''}`} 
                   onClick={()=>handleMenuChange('clients')}
@@ -299,7 +354,9 @@ function AdminPanelPage() {
                 <h2 className="section-title mb-3">Dashboard de Usuario</h2>
                 <div className="admin-panel__welcome mb-4">
                   <h3>Bienvenido, {user?.first_name}!</h3>
-                  <p>Rol: {user?.role?.name === 'admin' ? 'Administrador' : 'Cliente'}</p>
+                  <p>Rol: {user?.role?.name === 'admin' ? 'Administrador' : 
+                           user?.role?.name === 'operador' ? 'Operador' : 
+                           'Cliente'}</p>
                   <p>Email: {user?.email}</p>
                 </div>
                 <div className="admin-panel__client-content">
@@ -331,85 +388,93 @@ function AdminPanelPage() {
           </section>
         )}
         
-        {selectedMenu === 'users' && isAdmin() && (
+        {/* Módulos solo para administradores */}
+        {selectedMenu === 'users' && isOnlyAdmin() && (
           <section>
             <AdminUserManager />
           </section>
         )}
         
-        {selectedMenu === 'clients' && isAdmin() && (
+        {selectedMenu === 'operators' && isOnlyAdmin() && (
+          <section>
+            <OperatorManager />
+          </section>
+        )}
+        
+        {/* Módulos para administradores y operadores */}
+        {selectedMenu === 'clients' && isAdminOrOperatorRole && (
           <section>
             <ClientManager />
           </section>
         )}
 
-        {selectedMenu === 'category-products' && isAdmin() && (
+        {selectedMenu === 'category-products' && isAdminOrOperatorRole && (
           <section>
             <AdminCategoryManager />
           </section>
         )}
         
-        {selectedMenu === 'category-order' && isAdmin() && (
+        {selectedMenu === 'category-order' && isAdminOrOperatorRole && (
           <section>
             <CategoryOrderManager />
           </section>
         )}
         
-        {selectedMenu === 'menu-category-order' && isAdmin() && (
+        {selectedMenu === 'menu-category-order' && isAdminOrOperatorRole && (
           <section>
             <AdminMenuCategoryOrderManager />
           </section>
         )}
         
-        {selectedMenu === 'welcome-sections' && isAdmin() && (
+        {selectedMenu === 'welcome-sections' && isAdminOrOperatorRole && (
           <section>
             <AdminWelcomeSectionManager />
           </section>
         )}
 
-        {selectedMenu === 'home-catalogs' && isAdmin() && (
+        {selectedMenu === 'home-catalogs' && isAdminOrOperatorRole && (
           <section>
             <AdminHomeCatalogManager />
           </section>
         )}
 
-        {selectedMenu === 'catalogs' && isAdmin() && (
+        {selectedMenu === 'catalogs' && isAdminOrOperatorRole && (
           <section>
             <AdminCatalogManager />
           </section>
         )}
 
-        {selectedMenu === 'catalog-order' && isAdmin() && (
+        {selectedMenu === 'catalog-order' && isAdminOrOperatorRole && (
           <section>
             <AdminCatalogOrderManager />
           </section>
         )}
 
-        {selectedMenu === 'orders' && isAdmin() && (
+        {selectedMenu === 'orders' && isAdminOrOperatorRole && (
           <section>
             <AdminOrders />
           </section>
         )}
 
-        {selectedMenu === 'reviews' && isAdmin() && (
+        {selectedMenu === 'reviews' && isAdminOrOperatorRole && (
           <section>
             <AdminReviews />
           </section>
         )}
 
-        {selectedMenu === 'contact-info' && isAdmin() && (
+        {selectedMenu === 'contact-info' && isAdminOrOperatorRole && (
           <section>
             <AdminContactManager />
           </section>
         )}
 
-        {selectedMenu === 'privacy-policy' && isAdmin() && (
+        {selectedMenu === 'privacy-policy' && isAdminOrOperatorRole && (
           <section>
             <AdminPrivacyPolicyManager />
           </section>
         )}
 
-        {selectedMenu === 'discounts' && isAdmin() && (
+        {selectedMenu === 'discounts' && isAdminOrOperatorRole && (
           <section>
             <CatalogOffersModule onBack={() => setSelectedMenu('home')} />
           </section>

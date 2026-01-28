@@ -26,8 +26,12 @@ const AdminRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  // Si el usuario no es admin, redirigir al home
-  if (!isAdmin()) {
+  // Verificar explícitamente el rol del usuario
+  const userRole = user?.role?.name;
+  
+  // Permitir acceso a administradores y operadores (bloquear solo clientes)
+  if (userRole !== 'admin' && userRole !== 'operador') {
+    // Si no es admin ni operador, redirigir al home
     return <Navigate to="/" replace />;
   }
 

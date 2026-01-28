@@ -320,6 +320,15 @@ class ClientController extends Controller
     public function updateSellerCategory(Request $request, $id)
     {
         try {
+            // Verificar que el usuario autenticado no sea operador
+            $authUser = auth()->user();
+            if ($authUser && $authUser->isOperator()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Los operadores no tienen permiso para modificar la categoría de vendedor'
+                ], 403);
+            }
+
             $user = User::where('role_id', 2)->find($id);
             
             if (!$user) {
@@ -375,6 +384,15 @@ class ClientController extends Controller
     public function updateCreditBalance(Request $request, $id)
     {
         try {
+            // Verificar que el usuario autenticado no sea operador
+            $authUser = auth()->user();
+            if ($authUser && $authUser->isOperator()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Los operadores no tienen permiso para asignar crédito'
+                ], 403);
+            }
+
             $user = User::where('role_id', 2)->find($id);
             
             if (!$user) {

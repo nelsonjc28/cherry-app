@@ -181,6 +181,13 @@ Route::middleware(['auth:api'])->group(function () {
     Route::delete('/admin/users/{id}', [AdminController::class, 'deleteUser']);
     Route::get('/admin/roles', [AdminController::class, 'getRoles']);
     
+    // Operator routes - require authentication and admin role
+    Route::get('/admin/operators', [\App\Http\Controllers\Api\OperatorController::class, 'getUsers']);
+    Route::get('/admin/operators/{id}', [\App\Http\Controllers\Api\OperatorController::class, 'getUser']);
+    Route::post('/admin/operators', [\App\Http\Controllers\Api\OperatorController::class, 'createUser']);
+    Route::post('/admin/operators/{id}', [\App\Http\Controllers\Api\OperatorController::class, 'updateUser']);
+    Route::delete('/admin/operators/{id}', [\App\Http\Controllers\Api\OperatorController::class, 'deleteUser']);
+    
     // Client routes - require authentication and admin role
     Route::get('/admin/clients', [ClientController::class, 'getClients']);
     Route::get('/admin/clients/{id}', [ClientController::class, 'getClient']);

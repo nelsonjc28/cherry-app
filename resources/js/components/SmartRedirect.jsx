@@ -23,16 +23,20 @@ const SmartRedirect = ({ children }) => {
       return;
     }
 
-    // Si estamos en /admin pero no hay usuario, ir a login
-    if (currentPath === '/admin' && !user) {
+    // Si estamos en cualquier ruta /admin pero no hay usuario, ir a login
+    if (currentPath.startsWith('/admin') && !user) {
       navigate('/login', { replace: true });
       return;
     }
 
-    // Si estamos en /admin pero el usuario no es admin, ir a home
-    if (currentPath === '/admin' && user && !isAdmin()) {
-      navigate('/', { replace: true });
-      return;
+    // Si estamos en cualquier ruta /admin pero el usuario no es admin ni operador, ir a home
+    // Esto bloquea solo a clientes, permite a administradores y operadores
+    if (currentPath.startsWith('/admin') && user) {
+      const userRole = user?.role?.name;
+      if (userRole !== 'admin' && userRole !== 'operador') {
+        navigate('/', { replace: true });
+        return;
+      }
     }
 
     // Si estamos en /login pero ya hay usuario autenticado
