@@ -798,5 +798,75 @@ class ProductSyncController extends Controller
                 'message' => 'Error al reemplazar productos: ' . $e->getMessage()
             ], 500);
         }
-}
+    }
+
+    /**
+     * Notificar a usuarios cuando un producto que estaban esperando está disponible
+     */
+    private function notifyUsersProductAvailable($productId, $productTitle)
+    {
+        try {
+            // Buscar usuarios que mostraron interés en este producto cuando estaba sin stock
+            // Las notificaciones de tipo 'product_interest' tienen el user_id en data->user_id
+            $interestedNotifications = Notification::where('type', 'product_interest')
+                ->whereJsonContains('data->product_id', (string)$productId)
+                ->get();
+
+            if ($interestedNotifications->isEmpty()) {
+                Log::info('No hay usuarios interesados en el producto', [
+                    'product_id' => $productId
+                ]);
+                return;
+            }
+
+            // Obtener IDs únicos de usuarios desde el campo data
+            $userIds = $interestedNotifications->pluck('data')
+                ->map(function ($data) {
+                    return is_array($data) && isset($data['user_id']) ? $data['user_id'] : null;
+                })
+                ->filter()
+                ->unique();
+
+            if ($userIds->isEmpty()) {
+                Log::info('No se encontraron IDs de usuarios válidos para el producto', [
+                    'product_id' => $productId
+                ]);
+                return;
+            }
+
+            // Crear notificaciones para cada usuario interesado
+            $notificationsCreated = 0;
+            foreach ($userIds as $userId) {
+                try {
+                    Notification::createProductAvailableNotification(
+                        $userId,
+                        $productId,
+                        $productTitle
+                    );
+                    $notificationsCreated++;
+                } catch (\Exception $e) {
+                    Log::error('Error al crear notificación de producto disponible', [
+                        'user_id' => $userId,
+                        'product_id' => $productId,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+
+            Log::info('Notificaciones de producto disponible creadas', [
+                'product_id' => $productId,
+                'product_title' => $productTitle,
+                'users_notified' => $notificationsCreated,
+                'total_interested' => $userIds->count()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error al notificar usuarios sobre producto disponible', [
+                'product_id' => $productId,
+                'product_title' => $productTitle,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+    }
 }
