@@ -247,18 +247,64 @@ const NuevosPage = () => {
         if (searchResponse.data.success && searchResponse.data.data.products) {
           const localProducts = searchResponse.data.data.products;
           
-          // Calcular fecha límite (45 días atrás)
-          const fortyFiveDaysAgo = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);
+          // Calcular fecha límite (45 días atrás) - usar solo fecha, sin hora
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const fortyFiveDaysAgo = new Date(today);
+          fortyFiveDaysAgo.setDate(today.getDate() - 45);
+          fortyFiveDaysAgo.setHours(0, 0, 0, 0);
+          
+          console.log('🔍 NuevosPage - Filtro de productos nuevos:', {
+            fechaLimite: fortyFiveDaysAgo.toISOString(),
+            totalProductos: localProducts.length
+          });
           
           // Filtrar solo productos nuevos
           const newProductsRaw = localProducts.filter(product => {
-            // Es nuevo si opc_nuevo === 'S' o fecha_alta es reciente
-            if (product.opc_nuevo === 'S') return true;
-            if (product.fecha_alta) {
-              const fechaAlta = new Date(product.fecha_alta);
-              return fechaAlta > fortyFiveDaysAgo;
+            // Es nuevo si opc_nuevo === 'S'
+            if (product.opc_nuevo === 'S') {
+              console.log('✅ Producto marcado como nuevo (opc_nuevo):', product.id_articulo || product.id);
+              return true;
             }
+            
+            // Verificar fecha_alta
+            if (product.fecha_alta) {
+              try {
+                // Parsear fecha (puede venir como 'YYYY-MM-DD' o Date object)
+                let fechaAlta;
+                if (typeof product.fecha_alta === 'string') {
+                  // Si viene como string 'YYYY-MM-DD', crear Date sin problemas de zona horaria
+                  const [year, month, day] = product.fecha_alta.split('-').map(Number);
+                  fechaAlta = new Date(year, month - 1, day);
+                  fechaAlta.setHours(0, 0, 0, 0);
+                } else {
+                  fechaAlta = new Date(product.fecha_alta);
+                  fechaAlta.setHours(0, 0, 0, 0);
+                }
+                
+                // Verificar que la fecha sea válida
+                if (isNaN(fechaAlta.getTime())) {
+                  console.warn('⚠️ Fecha inválida para producto:', product.id_articulo || product.id, product.fecha_alta);
+                  return false;
+                }
+                
+                const isNew = fechaAlta >= fortyFiveDaysAgo;
+                if (isNew) {
+                  console.log('✅ Producto nuevo por fecha:', product.id_articulo || product.id, 'fecha:', product.fecha_alta);
+                }
+                return isNew;
+              } catch (error) {
+                console.error('❌ Error parseando fecha_alta:', product.id_articulo || product.id, error);
+                return false;
+              }
+            }
+            
             return false;
+          });
+          
+          console.log('📊 NuevosPage - Resultados del filtro:', {
+            productosNuevos: newProductsRaw.length,
+            totalProductos: localProducts.length
           });
           
           // Mapear productos al formato esperado
