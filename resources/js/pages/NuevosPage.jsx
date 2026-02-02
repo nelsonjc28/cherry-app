@@ -267,7 +267,44 @@ const NuevosPage = () => {
               return true;
             }
             
-            // Verificar fecha_alta
+            // Verificar fechaMovimiento de los detalles (más preciso que fecha_alta)
+            if (product.detalles && Array.isArray(product.detalles) && product.detalles.length > 0) {
+              try {
+                // Buscar si algún detalle tiene fechaMovimiento reciente
+                const hasRecentMovement = product.detalles.some(detalle => {
+                  if (!detalle.fechaMovimiento) return false;
+                  
+                  // Parsear fecha (puede venir como 'YYYY-MM-DD' o Date object)
+                  let fechaMovimiento;
+                  if (typeof detalle.fechaMovimiento === 'string') {
+                    // Si viene como string 'YYYY-MM-DD', crear Date sin problemas de zona horaria
+                    const [year, month, day] = detalle.fechaMovimiento.split('-').map(Number);
+                    fechaMovimiento = new Date(year, month - 1, day);
+                    fechaMovimiento.setHours(0, 0, 0, 0);
+                  } else {
+                    fechaMovimiento = new Date(detalle.fechaMovimiento);
+                    fechaMovimiento.setHours(0, 0, 0, 0);
+                  }
+                  
+                  // Verificar que la fecha sea válida
+                  if (isNaN(fechaMovimiento.getTime())) {
+                    return false;
+                  }
+                  
+                  return fechaMovimiento >= fortyFiveDaysAgo;
+                });
+                
+                if (hasRecentMovement) {
+                  console.log('✅ Producto nuevo por fechaMovimiento:', product.id_articulo || product.id);
+                }
+                return hasRecentMovement;
+              } catch (error) {
+                console.error('❌ Error parseando fechaMovimiento:', product.id_articulo || product.id, error);
+                // Si hay error, fallback a fecha_alta
+              }
+            }
+            
+            // Fallback: Verificar fecha_alta si no hay detalles con fechaMovimiento
             if (product.fecha_alta) {
               try {
                 // Parsear fecha (puede venir como 'YYYY-MM-DD' o Date object)
@@ -290,7 +327,7 @@ const NuevosPage = () => {
                 
                 const isNew = fechaAlta >= fortyFiveDaysAgo;
                 if (isNew) {
-                  console.log('✅ Producto nuevo por fecha:', product.id_articulo || product.id, 'fecha:', product.fecha_alta);
+                  console.log('✅ Producto nuevo por fecha_alta (fallback):', product.id_articulo || product.id, 'fecha:', product.fecha_alta);
                 }
                 return isNew;
               } catch (error) {

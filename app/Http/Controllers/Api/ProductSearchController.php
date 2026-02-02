@@ -117,7 +117,7 @@ class ProductSearchController extends Controller
             $coloresPorProducto = [];
             if (!empty($productIds)) {
                 $detalles = DB::table('detalles')
-                    ->select('producto_id', 'nombreColor', 'detalle')
+                    ->select('producto_id', 'nombreColor', 'detalle', 'fechaMovimiento')
                     ->whereIn('producto_id', $productIds)
                     ->whereNotNull('nombreColor')
                     ->where('nombreColor', '!=', '')
@@ -132,7 +132,8 @@ class ProductSearchController extends Controller
                     // Agregar detalle completo
                     $detallesPorProducto[$detalle->producto_id][] = [
                         'nombreColor' => $detalle->nombreColor,
-                        'detalle' => $detalle->detalle
+                        'detalle' => $detalle->detalle,
+                        'fechaMovimiento' => $detalle->fechaMovimiento ? date('Y-m-d', strtotime($detalle->fechaMovimiento)) : null
                     ];
                     
                     // Agregar color único
@@ -314,7 +315,7 @@ class ProductSearchController extends Controller
             $coloresPorProducto = [];
             if (!empty($productIds)) {
                 $detalles = DB::table('detalles')
-                    ->select('producto_id', 'nombreColor', 'detalle')
+                    ->select('producto_id', 'nombreColor', 'detalle', 'fechaMovimiento')
                     ->whereIn('producto_id', $productIds)
                     ->whereNotNull('nombreColor')
                     ->where('nombreColor', '!=', '')
@@ -328,7 +329,8 @@ class ProductSearchController extends Controller
                     
                     $detallesPorProducto[$detalle->producto_id][] = [
                         'nombreColor' => $detalle->nombreColor,
-                        'detalle' => $detalle->detalle
+                        'detalle' => $detalle->detalle,
+                        'fechaMovimiento' => $detalle->fechaMovimiento ? date('Y-m-d', strtotime($detalle->fechaMovimiento)) : null
                     ];
                     
                     if (!in_array($detalle->nombreColor, $coloresPorProducto[$detalle->producto_id])) {
@@ -665,7 +667,7 @@ class ProductSearchController extends Controller
             $coloresPorProducto = [];
             if (!empty($productIds)) {
                 $detalles = DB::table('detalles')
-                    ->select('producto_id', 'nombreColor', 'detalle')
+                    ->select('producto_id', 'nombreColor', 'detalle', 'fechaMovimiento')
                     ->whereIn('producto_id', $productIds)
                     ->whereNotNull('nombreColor')
                     ->where('nombreColor', '!=', '')
@@ -679,7 +681,8 @@ class ProductSearchController extends Controller
                     
                     $detallesPorProducto[$detalle->producto_id][] = [
                         'nombreColor' => $detalle->nombreColor,
-                        'detalle' => $detalle->detalle
+                        'detalle' => $detalle->detalle,
+                        'fechaMovimiento' => $detalle->fechaMovimiento ? date('Y-m-d', strtotime($detalle->fechaMovimiento)) : null
                     ];
                     
                     if (!in_array($detalle->nombreColor, $coloresPorProducto[$detalle->producto_id])) {
