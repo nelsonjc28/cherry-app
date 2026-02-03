@@ -1263,14 +1263,6 @@ const ProductPage = () => {
     
     // Obtener stock_received_count del producto (contador de veces que recibió stock)
     const stockReceivedCount = product?.stock_received_count ?? product?.stockReceivedCount ?? 0;
-    
-    // Verificar si el producto es menor a 100 días desde fecha_alta
-    const isLessThan100Days = () => {
-      if (!fecha_alta) return false;
-      const fechaAlta = new Date(fecha_alta);
-      const hundredDaysAgo = new Date(Date.now() - 100 * 24 * 60 * 60 * 1000);
-      return fechaAlta > hundredDaysAgo;
-    };
 
     // Si el producto tiene stock disponible, mostrar "En Stock"
     if (totalInventory > 0) {
@@ -1286,10 +1278,9 @@ const ProductPage = () => {
     }
 
     // Lógica para "Próximamente" vs "Agotado":
-    // "Próximamente": stock_received_count === 0 AND todas las tallas en 0 o negativo AND producto no mayor a 100 días
-    // "Agotado": cualquier otro caso (stock_received_count > 0 OR producto mayor a 100 días)
-    // Considerar inventario <= 0 (incluyendo negativos) como "sin stock disponible" para productos que nunca han recibido stock
-    const shouldShowComingSoon = stockReceivedCount === 0 && totalInventory <= 0 && isLessThan100Days();
+    // "Próximamente": stock_received_count === 0 (nunca ha recibido stock, sin importar fecha)
+    // "Agotado": stock_received_count > 0 (ya recibió stock antes pero ahora está sin stock)
+    const shouldShowComingSoon = stockReceivedCount === 0 && totalInventory <= 0;
 
     if (shouldShowComingSoon) {
       return {

@@ -245,8 +245,13 @@ const CatalogosPage = () => {
     
     if (selectedCategories.length > 0) {
       filtered = filtered.filter(product => {
-        const productLineaId = String(product.category_id || '');
-        return selectedCategories.some(categoryCode => String(categoryCode) === productLineaId);
+        // Normalizar category_id y categoryCode a números para comparación (ignorar ceros a la izquierda)
+        const productLineaId = product.category_id || product.id_linea;
+        const normalizedProductLineaId = productLineaId ? parseInt(String(productLineaId), 10) : null;
+        return selectedCategories.some(categoryCode => {
+          const normalizedCategoryCode = parseInt(String(categoryCode), 10);
+          return normalizedProductLineaId !== null && normalizedCategoryCode === normalizedProductLineaId;
+        });
       });
     }
     if (currentFilters.priceRange.min > 0 || currentFilters.priceRange.max > 0) {

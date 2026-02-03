@@ -212,11 +212,18 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
     }
   };
 
+  // Calcular total de piezas
+  const totalPieces = groupedProducts.reduce((sum, group) => sum + group.totalQuantity, 0);
+
   return (
     <div className="order-detail-modal-overlay" onClick={handleBackdropClick}>
       <div className="order-detail-modal">
         <div className="order-detail-modal__header">
-          <h2>Detalle del Pedido</h2>
+          <div className="print-header">
+            <h1>Cherry</h1>
+            <div className="order-number">Orden: {formatOrderNumber(order)}</div>
+            <div className="order-date">Fecha: {order.date}</div>
+          </div>
           <button 
             className="order-detail-modal__close-btn" 
             onClick={onClose}
@@ -227,368 +234,281 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
         </div>
 
         <div className="order-detail-modal__content">
-          <div className="order-detail-modal__two-column-wrapper">
-            {/* Información general de la orden */}
-            <div className="order-detail-section">
-              <h3>Información General</h3>
-              <div className="order-detail-info">
-              <div className="info-row">
-                <span className="label">Número de pedido:</span>
-                <span className="value">{formatOrderNumber(order)}</span>
-              </div>
-              <div className="info-row">
-                <span className="label">Fecha:</span>
-                <span className="value">{order.date}</span>
-              </div>
-              <div className="info-row">
-                <span className="label">Estado:</span>
-                <span className={`status-badge status-badge--${order.statusColor}`}>
-                  {order.status}
-                </span>
-              </div>
-              <div className="info-row">
-                <span className="label">Total:</span>
-                <span className="value total-amount">
-                  ${(parseFloat(order.totalAmount) || 0).toFixed(2)}
-                </span>
-              </div>
-              {/* Información de crédito si se pagó con crédito */}
-              {order.paid_with_credit && (
-                <>
-                  {order.amount_paid > 0 && (
-                    <div className="info-row" style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e0e0e0' }}>
-                      <span className="label">Monto pagado con dinero:</span>
-                      <span className="value" style={{ color: '#28a745', fontWeight: '600' }}>
-                        ${(parseFloat(order.amount_paid || 0)).toFixed(2)}
+          <div className="order-info-grid">
+            {/* Información del Cliente */}
+            {(order.customerName || order.customerEmail || order.customerPhone) && (
+              <div className="info-section">
+                <h3>Información del Cliente</h3>
+                <div className="order-detail-info">
+                  {order.customerName && (
+                    <div className="info-row">
+                      <span className="info-label">Nombre:</span>
+                      <span>
+                        {order.customerFirstName || ''} 
+                        {order.customerMiddleName ? ' ' + order.customerMiddleName : ''} 
+                        {order.customerLastName ? ' ' + order.customerLastName : ''}
+                        {!order.customerFirstName && !order.customerLastName && order.customerName}
                       </span>
                     </div>
                   )}
-                  {(order.credit_used > 0 || order.amount_pending > 0) && (
-                    <div className="info-row info-row--full-width" style={{ marginTop: order.amount_paid > 0 ? '8px' : '12px', paddingTop: order.amount_paid > 0 ? '0' : '12px', borderTop: order.amount_paid > 0 ? 'none' : '1px solid #e0e0e0' }}>
-                      <span className="label" style={{ fontWeight: '700', fontSize: '14px' }}>Crédito pendiente:</span>
-                      <span className="value" style={{ color: '#d32f2f', fontWeight: '700', fontSize: '18px' }}>
-                        ${((parseFloat(order.credit_used || 0)) + (parseFloat(order.amount_pending || 0))).toFixed(2)}
-                      </span>
-                    </div>
-                  )}
-                  {order.amount_pending > 0 && order.status === 'pendiente_pago' && (
-                    <div className="info-row" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e0e0e0' }}>
-                      <RetryRemainderPaymentButton orderId={order.id} />
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Información del Cliente */}
-          {(order.customerName || order.customerEmail || order.customerPhone) && (
-          <div className="order-detail-section">
-              <h3>Información del Cliente</h3>
-              <div className="order-detail-info">
-                {order.customerName && (
-                        <div className="info-row">
-                    <span className="label">Nombre completo:</span>
-                    <span className="value">
-                      {order.customerFirstName || ''} 
-                      {order.customerMiddleName ? ' ' + order.customerMiddleName : ''} 
-                      {order.customerLastName ? ' ' + order.customerLastName : ''}
-                      {!order.customerFirstName && !order.customerLastName && order.customerName}
-                          </span>
-                        </div>
-                )}
-                {order.customerEmail && (
-                  <div className="info-row">
-                    <span className="label">Email:</span>
-                    <span className="value">{order.customerEmail}</span>
-                      </div>
-                )}
-                {order.customerPhone && (
-                  <div className="info-row">
-                    <span className="label">Teléfono:</span>
-                    <span className="value">{order.customerPhone}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Dirección de envío */}
-          {order.address && (
-            <div className="order-detail-section order-detail-section--full-width">
-              <h3>Dirección de Envío</h3>
-              <div className="order-detail-address">
-                <div className="address-info">
-                  {order.address.street_address && (
+                  {order.customerEmail && (
                     <div className="info-row">
-                      <span className="label">Dirección (Calle y Número):</span>
-                      <span className="value">{order.address.street_address}</span>
+                      <span className="info-label">Email:</span>
+                      <span>{order.customerEmail}</span>
                     </div>
                   )}
-                  {order.address.colonia && (
-                  <div className="info-row">
-                      <span className="label">Colonia:</span>
-                      <span className="value">{order.address.colonia}</span>
-                  </div>
-                  )}
-                  {order.address.municipality && (
-                  <div className="info-row">
-                      <span className="label">Municipio:</span>
-                      <span className="value">{order.address.municipality}</span>
-                  </div>
-                  )}
-                  {order.address.city && (
-                  <div className="info-row">
-                      <span className="label">Colonia:</span>
-                    <span className="value">{order.address.city}</span>
-                  </div>
-                  )}
-                  {order.address.state && (
-                  <div className="info-row">
-                    <span className="label">Estado:</span>
-                    <span className="value">{order.address.state}</span>
-                  </div>
-                  )}
-                  {order.address.country && (
+                  {order.customerPhone && (
                     <div className="info-row">
-                      <span className="label">País:</span>
-                      <span className="value">{order.address.country}</span>
+                      <span className="info-label">Teléfono:</span>
+                      <span>{order.customerPhone}</span>
                     </div>
-                  )}
-                  {order.address.additional_info && (
-                    <div className="info-row">
-                      <span className="label">Información adicional:</span>
-                      <span className="value">{order.address.additional_info}</span>
-                    </div>
-                  )}
-                  {order.address.postal_code && (
-                  <div className="info-row">
-                    <span className="label">Código postal:</span>
-                    <span className="value">{order.address.postal_code}</span>
-                  </div>
                   )}
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Información de pago */}
-          {(order.paymentMethod || order.paymentId) && (
-            <div className="order-detail-section">
-              <h3>Información de Pago</h3>
+            {/* Dirección de envío */}
+            {order.address && (
+              <div className="info-section">
+                <h3>Dirección de Envío</h3>
+                <div className="order-detail-info">
+                  {order.address.street_address && (
+                    <div className="info-row">
+                      <span className="info-label">Dirección:</span>
+                      <span>{order.address.street_address}</span>
+                    </div>
+                  )}
+                  {order.address.colonia && (
+                    <div className="info-row">
+                      <span className="info-label">Colonia:</span>
+                      <span>{order.address.colonia}</span>
+                    </div>
+                  )}
+                  {order.address.municipality && (
+                    <div className="info-row">
+                      <span className="info-label">Municipio:</span>
+                      <span>{order.address.municipality}</span>
+                    </div>
+                  )}
+                  {order.address.city && (
+                    <div className="info-row">
+                      <span className="info-label">Ciudad:</span>
+                      <span>{order.address.city}</span>
+                    </div>
+                  )}
+                  {order.address.state && (
+                    <div className="info-row">
+                      <span className="info-label">Estado:</span>
+                      <span>{order.address.state}</span>
+                    </div>
+                  )}
+                  {order.address.postal_code && (
+                    <div className="info-row">
+                      <span className="info-label">Código Postal:</span>
+                      <span>{order.address.postal_code}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Total de piezas */}
+          <div className="total-pieces">
+            Total de Piezas: {totalPieces}
+          </div>
+
+
+          {/* Información adicional (Estado, Pago, Surtido) */}
+          <div className="order-info-grid">
+            {/* Estado y Total */}
+            <div className="info-section">
+              <h3>Información General</h3>
               <div className="order-detail-info">
-                {order.paymentMethod && (
-                  <div className="info-row">
-                    <span className="label">Método de pago:</span>
-                    <span className="value">{order.paymentMethod}</span>
-                  </div>
-                )}
-                {order.paymentId && (
-                  <div className="info-row">
-                    <span className="label">ID de pago:</span>
-                    <span className="value">{order.paymentId}</span>
-                  </div>
+                <div className="info-row">
+                  <span className="info-label">Estado:</span>
+                  <span className={`status-badge status-badge--${order.statusColor}`}>
+                    {order.status}
+                  </span>
+                </div>
+                <div className="info-row">
+                  <span className="info-label">Total:</span>
+                  <span className="value total-amount">
+                    ${(parseFloat(order.totalAmount) || 0).toFixed(2)}
+                  </span>
+                </div>
+                {/* Información de crédito si se pagó con crédito */}
+                {order.paid_with_credit && (
+                  <>
+                    {order.amount_paid > 0 && (
+                      <div className="info-row" style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e0e0e0' }}>
+                        <span className="info-label">Monto pagado con dinero:</span>
+                        <span className="value" style={{ color: '#28a745', fontWeight: '600' }}>
+                          ${(parseFloat(order.amount_paid || 0)).toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+                    {(order.credit_used > 0 || order.amount_pending > 0) && (
+                      <div className="info-row info-row--full-width" style={{ marginTop: order.amount_paid > 0 ? '8px' : '12px', paddingTop: order.amount_paid > 0 ? '0' : '12px', borderTop: order.amount_paid > 0 ? 'none' : '1px solid #e0e0e0' }}>
+                        <span className="info-label" style={{ fontWeight: '700', fontSize: '14px' }}>Crédito pendiente:</span>
+                        <span className="value" style={{ color: '#d32f2f', fontWeight: '700', fontSize: '18px' }}>
+                          ${((parseFloat(order.credit_used || 0)) + (parseFloat(order.amount_pending || 0))).toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+                    {order.amount_pending > 0 && order.status === 'pendiente_pago' && (
+                      <div className="info-row" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e0e0e0' }}>
+                        <RetryRemainderPaymentButton orderId={order.id} />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
-          )}
 
-          {/* Información de surtido (solo admin) */}
-          {isAdmin && (
-            <div className="order-detail-section">
-              <h3>Información de Surtido</h3>
-              <div className="order-detail-info">
-                <div className="info-row">
-                  <span className="label">Preparado:</span>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={order.is_prepared || false}
-                      onChange={async (e) => {
-                        try {
-                          const token = localStorage.getItem('token');
-                          const response = await fetch(`/api/admin/orders/${order.id}/update-prepared`, {
-                            method: 'POST',
-                            headers: {
-                              'Authorization': `Bearer ${token}`,
-                              'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({ is_prepared: e.target.checked })
-                          });
-                          if (response.ok) {
-                            const data = await response.json();
-                            if (data.success) {
-                              // Actualizar el estado local
-                              order.is_prepared = e.target.checked;
-                              if (window.showToast) {
-                                window.showToast('Estado de preparado actualizado', 'success');
+            {/* Información de pago */}
+            {(order.paymentMethod || order.paymentId) && (
+              <div className="info-section">
+                <h3>Información de Pago</h3>
+                <div className="order-detail-info">
+                  {order.paymentMethod && (
+                    <div className="info-row">
+                      <span className="info-label">Método de pago:</span>
+                      <span>{order.paymentMethod}</span>
+                    </div>
+                  )}
+                  {order.paymentId && (
+                    <div className="info-row">
+                      <span className="info-label">ID de pago:</span>
+                      <span>{order.paymentId}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Información de surtido (solo admin) */}
+            {isAdmin && (
+              <div className="info-section">
+                <h3>Información de Surtido</h3>
+                <div className="order-detail-info">
+                  <div className="info-row">
+                    <span className="info-label">Preparado:</span>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={order.is_prepared || false}
+                        onChange={async (e) => {
+                          try {
+                            const token = localStorage.getItem('token');
+                            const response = await fetch(`/api/admin/orders/${order.id}/update-prepared`, {
+                              method: 'POST',
+                              headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({ is_prepared: e.target.checked })
+                            });
+                            if (response.ok) {
+                              const data = await response.json();
+                              if (data.success) {
+                                order.is_prepared = e.target.checked;
+                                if (window.showToast) {
+                                  window.showToast('Estado de preparado actualizado', 'success');
+                                }
                               }
                             }
+                          } catch (error) {
+                            console.error('Error al actualizar estado de preparado:', error);
+                            if (window.showToast) {
+                              window.showToast('Error al actualizar estado de preparado', 'error');
+                            }
                           }
-                        } catch (error) {
-                          console.error('Error al actualizar estado de preparado:', error);
-                          if (window.showToast) {
-                            window.showToast('Error al actualizar estado de preparado', 'error');
+                        }}
+                      />
+                      <span>{order.is_prepared ? 'Sí' : 'No'}</span>
+                    </label>
+                  </div>
+                  <div className="info-row">
+                    <span className="info-label">Número de guía:</span>
+                    <input
+                      type="text"
+                      value={order.tracking_number || ''}
+                      placeholder="Ingrese el número de guía"
+                      style={{ 
+                        padding: '6px 10px', 
+                        border: '1px solid #ddd', 
+                        borderRadius: '4px',
+                        width: '100%',
+                        maxWidth: '300px'
+                      }}
+                      onBlur={async (e) => {
+                        const newTrackingNumber = e.target.value.trim();
+                        if (newTrackingNumber !== (order.tracking_number || '')) {
+                          try {
+                            const token = localStorage.getItem('token');
+                            const response = await fetch(`/api/admin/orders/${order.id}/update-tracking`, {
+                              method: 'POST',
+                              headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({ tracking_number: newTrackingNumber || null })
+                            });
+                            if (response.ok) {
+                              const data = await response.json();
+                              if (data.success) {
+                                order.tracking_number = newTrackingNumber || null;
+                                if (window.showToast) {
+                                  window.showToast('Número de guía actualizado', 'success');
+                                }
+                              }
+                            }
+                          } catch (error) {
+                            console.error('Error al actualizar número de guía:', error);
+                            if (window.showToast) {
+                              window.showToast('Error al actualizar número de guía', 'error');
+                            }
                           }
                         }
                       }}
                     />
-                    <span>{order.is_prepared ? 'Sí' : 'No'}</span>
-                  </label>
-                </div>
-                <div className="info-row">
-                  <span className="label">Número de guía:</span>
-                  <input
-                    type="text"
-                    value={order.tracking_number || ''}
-                    placeholder="Ingrese el número de guía"
-                    style={{ 
-                      padding: '6px 10px', 
-                      border: '1px solid #ddd', 
-                      borderRadius: '4px',
-                      width: '100%',
-                      maxWidth: '300px'
-                    }}
-                    onBlur={async (e) => {
-                      const newTrackingNumber = e.target.value.trim();
-                      if (newTrackingNumber !== (order.tracking_number || '')) {
-                        try {
-                          const token = localStorage.getItem('token');
-                          const response = await fetch(`/api/admin/orders/${order.id}/update-tracking`, {
-                            method: 'POST',
-                            headers: {
-                              'Authorization': `Bearer ${token}`,
-                              'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({ tracking_number: newTrackingNumber || null })
-                          });
-                          if (response.ok) {
-                            const data = await response.json();
-                            if (data.success) {
-                              order.tracking_number = newTrackingNumber || null;
-                              if (window.showToast) {
-                                window.showToast('Número de guía actualizado', 'success');
-                              }
-                            }
-                          }
-                        } catch (error) {
-                          console.error('Error al actualizar número de guía:', error);
-                          if (window.showToast) {
-                            window.showToast('Error al actualizar número de guía', 'error');
-                          }
-                        }
-                      }
-                    }}
-                  />
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
           </div>
 
           {/* Productos */}
-          <div className="order-detail-section products-section">
-            <h3>Productos ({groupedProducts.length})</h3>
+          <div className="products-section">
+            <h2>Productos</h2>
             <div className="order-detail-products">
               {groupedProducts.map((group, index) => (
                 <div key={group.product_id || index} className="product-item">
                   {group.image && group.image !== '/images/catalogProductImages/Rectangle 4922.png' && (
-                    <div className="product-item__image">
-                      <img 
-                        src={group.image} 
-                        alt={group.title}
-                        onError={(e) => {
-                          // Si la imagen falla, ocultar el contenedor
-                          e.target.parentElement.style.display = 'none';
-                        }}
-                      />
-                    </div>
+                    <img 
+                      src={group.image} 
+                      alt={group.title}
+                      className="product-image"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
                   )}
-                  <div className="product-item__details">
-                    <h4 className="product-item__title">{group.title}</h4>
-                    <div className="info-row">
-                      <span className="label">ID Producto:</span>
-                      <span className="value">{group.product_id}</span>
+                  <div className="product-details">
+                    <div>
+                      <div className="product-name">{group.title}</div>
+                      <div className="product-id">ID: {group.product_id}</div>
                     </div>
-                    <div className="info-row">
-                      <span className="label">Cantidad total:</span>
-                      <span className="value">{group.totalQuantity} unidades</span>
+                    <div className="product-quantity">
+                      Cantidad: {group.totalQuantity}
                     </div>
-                    {/* Mostrar información de precio */}
-                    {group.originalPrice && group.originalPrice > 0 ? (
-                      // Si hay precio original, mostrarlo siempre
-                      group.hasDiscount && group.originalPrice > group.price ? (
-                        // Si hay descuento, mostrar precio original tachado y precio con descuento
-                        <div className="info-row product-item__discount-info">
-                          <span className="label">Precio unitario:</span>
-                          <span className="value" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                            <span style={{ textDecoration: 'line-through', color: '#999', fontSize: '0.9em' }}>
-                              ${group.originalPrice.toFixed(2)}
-                            </span>
-                            <span style={{ color: '#d32f2f', fontWeight: '600' }}>
-                              ${group.price.toFixed(2)} <span style={{ fontSize: '0.85em', marginLeft: '4px' }}>(-{group.discountPercentage}%)</span>
-                            </span>
-                          </span>
-                        </div>
-                      ) : (
-                        // Si no hay descuento, mostrar solo precio original sin tachar
-                        <div className="info-row">
-                          <span className="label">Precio unitario:</span>
-                          <span className="value">${group.originalPrice.toFixed(2)}</span>
-                        </div>
-                      )
-                    ) : (
-                      // Si no hay precio original, mostrar precio pagado
-                      <div className="info-row">
-                        <span className="label">Precio unitario:</span>
-                        <span className="value">${(group.price || (group.items && group.items[0]?.price) || 0).toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div className="info-row">
-                      <span className="label">Subtotal:</span>
-                      <span className="value subtotal">
-                        ${group.totalSubtotal.toFixed(2)}
-                      </span>
+                    <div className="product-price">
+                      Precio: ${(group.price || (group.items && group.items[0]?.price) || 0).toFixed(2)}
                     </div>
-                    
-                    {/* Tabla de desglose por talla y código de barras (solo admin) */}
-                    {group.items && group.items.length > 0 && (
-                      <div className="product-item__breakdown">
-                        <h5 className="product-item__breakdown-title">
-                          {isAdmin ? 'Desglose por Talla y Código de Barras' : 'Desglose por Talla'}
-                        </h5>
-                        <div className="product-item__breakdown-table-wrapper">
-                          <table className="product-item__breakdown-table">
-                            <thead>
-                              <tr>
-                                <th>Color</th>
-                                <th>Talla</th>
-                                <th>Cantidad</th>
-                                {isAdmin && <th>Código de Barras</th>}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {group.items.map((item, itemIdx) => (
-                                <tr key={itemIdx}>
-                                  <td>{item.color || '-'}</td>
-                                  <td>{item.size || '-'}</td>
-                                  <td className="product-item__breakdown-quantity">{item.quantity || 0}</td>
-                                  {isAdmin && (
-                                    <td className="product-item__breakdown-barcode">
-                                      {item.barcode ? (
-                                        <span className="product-item__barcode">{item.barcode}</span>
-                                      ) : (
-                                        <span className="product-item__barcode-empty">-</span>
-                                      )}
-                                    </td>
-                                  )}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
+                    <div className="product-subtotal">
+                      ${group.totalSubtotal.toFixed(2)}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -596,27 +516,22 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
           </div>
 
           {/* Resumen de precios */}
-          <div className="order-detail-section summary-section">
-            <h3>Resumen</h3>
-            <div className="order-detail-summary">
-              <div className="summary-row">
-                <span className="label">Subtotal productos:</span>
-                <span className="value">
-                  ${groupedProducts.reduce((sum, group) => sum + group.totalSubtotal, 0).toFixed(2)}
-                </span>
-              </div>
-              <div className="summary-row">
-                <span className="label">Envío:</span>
-                {parseFloat(order.shipping_cost || 0) === 0 ? (
-                  <span className="value" style={{ color: '#28a745', fontWeight: 'bold' }}>Gratis</span>
-                ) : (
-                  <span className="value">${(parseFloat(order.shipping_cost || 0)).toFixed(2)}</span>
-                )}
-              </div>
-              <div className="summary-row total-row">
-                <span className="label">Total:</span>
-                <span className="value">${(parseFloat(order.totalAmount) || 0).toFixed(2)}</span>
-              </div>
+          <div className="summary-section">
+            <div className="summary-row">
+              <span className="summary-label">Subtotal:</span>
+              <span>${groupedProducts.reduce((sum, group) => sum + group.totalSubtotal, 0).toFixed(2)}</span>
+            </div>
+            <div className="summary-row">
+              <span className="summary-label">Envío:</span>
+              {parseFloat(order.shipping_cost || 0) === 0 ? (
+                <span style={{ color: '#28a745', fontWeight: 'bold' }}>Gratis</span>
+              ) : (
+                <span>${(parseFloat(order.shipping_cost || 0)).toFixed(2)}</span>
+              )}
+            </div>
+            <div className="summary-row summary-total">
+              <span>Total:</span>
+              <span>${(parseFloat(order.totalAmount) || 0).toFixed(2)}</span>
             </div>
           </div>
         </div>

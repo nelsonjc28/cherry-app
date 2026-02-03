@@ -977,24 +977,38 @@ const CartOrderSummary = ({
           <div className="cart-order-summary__section">
             <div className="cart-order-summary__section-title">Dirección de entrega</div>
             <div className="cart-order-summary__section-content">
-              <div className="cart-order-summary__address-name">
-                <strong>{selectedAddress.name}</strong>
-                {selectedAddress.is_default && selectedAddress.id !== 'store' && (
-                  <span className="cart-order-summary__default-badge">Predeterminada</span>
-                )}
-                {selectedAddress.id === 'store' && (
-                  <span className="cart-order-summary__default-badge" style={{ backgroundColor: '#10b981' }}>Tienda</span>
-                )}
-              </div>
-              <div className="cart-order-summary__address-street">
-                {selectedAddress.street_address}
-              </div>
-              <div className="cart-order-summary__address-location">
-                {selectedAddress.city}
-                {selectedAddress.state && `, ${selectedAddress.state}`}
-                {selectedAddress.postal_code && ` CP: ${selectedAddress.postal_code}`}
-                {selectedAddress.country && `, ${selectedAddress.country}`}
-              </div>
+              {selectedAddress.id === 'store' ? (
+                <>
+                  <div className="cart-order-summary__address-name">
+                    <strong>Retiro en Tienda</strong>
+                    <span className="cart-order-summary__default-badge" style={{ backgroundColor: '#10b981' }}>Tienda</span>
+                  </div>
+                  <div className="cart-order-summary__address-street">
+                    {selectedAddress.street_address}
+                  </div>
+                  <div className="cart-order-summary__address-location">
+                    {selectedAddress.city}
+                    {selectedAddress.state && `, ${selectedAddress.state}`}
+                    {selectedAddress.postal_code && ` CP: ${selectedAddress.postal_code}`}
+                    {selectedAddress.country && `, ${selectedAddress.country}`}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="cart-order-summary__address-street">
+                    {selectedAddress.street_address}
+                  </div>
+                  <div className="cart-order-summary__address-location">
+                    {selectedAddress.city}
+                    {selectedAddress.state && `, ${selectedAddress.state}`}
+                    {selectedAddress.postal_code && ` CP: ${selectedAddress.postal_code}`}
+                    {selectedAddress.country && `, ${selectedAddress.country}`}
+                  </div>
+                  {selectedAddress.is_default && (
+                    <span className="cart-order-summary__default-badge">Predeterminada</span>
+                  )}
+                </>
+              )}
               {selectedAddress.additional_info && (
                 <div className="cart-order-summary__address-additional">
                   <small>{selectedAddress.additional_info}</small>
@@ -1069,22 +1083,25 @@ const CartOrderSummary = ({
             </div>
           )}
           
-          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', marginTop: canUseCredit ? '12px' : '0' }}>
-            <input
-              type="radio"
-              name="paymentMethod"
-              value="mercadopago"
-              checked={selectedPaymentMethod === 'mercadopago'}
-              onChange={(e) => {
-                setSelectedPaymentMethod(e.target.value);
-                if (onPaymentMethodChange) {
-                  onPaymentMethodChange(e.target.value);
-                }
-              }}
-              style={{ marginRight: '8px', width: '18px', height: '18px', cursor: 'pointer' }}
-            />
-            <span style={{ fontWeight: '600', fontSize: '14px' }}>Pagar con MercadoPago</span>
-          </label>
+          {/* Solo mostrar opción de MercadoPago si hay crédito disponible */}
+          {canUseCredit && (
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', marginTop: '12px' }}>
+              <input
+                type="radio"
+                name="paymentMethod"
+                value="mercadopago"
+                checked={selectedPaymentMethod === 'mercadopago'}
+                onChange={(e) => {
+                  setSelectedPaymentMethod(e.target.value);
+                  if (onPaymentMethodChange) {
+                    onPaymentMethodChange(e.target.value);
+                  }
+                }}
+                style={{ marginRight: '8px', width: '18px', height: '18px', cursor: 'pointer' }}
+              />
+              <span style={{ fontWeight: '600', fontSize: '14px' }}>Pagar con MercadoPago</span>
+            </label>
+          )}
         </div>
       )}
       

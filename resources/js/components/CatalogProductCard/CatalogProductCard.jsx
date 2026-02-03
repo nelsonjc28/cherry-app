@@ -81,24 +81,15 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
   const getStockStatus = () => {
     const totalStock = stock || inventario || 0;
     const stockReceivedCountValue = stock_received_count || stockReceivedCount || 0;
-    const fechaAltaValue = fecha_alta || fechaAlta;
     
     // Si tiene stock, no mostrar badge de stock
     if (totalStock > 0) {
       return null;
     }
     
-    // Verificar si el producto es menor a 100 días desde fecha_alta
-    const isLessThan100Days = () => {
-      if (!fechaAltaValue) return false;
-      const fechaAlta = new Date(fechaAltaValue);
-      const hundredDaysAgo = new Date(Date.now() - 100 * 24 * 60 * 60 * 1000);
-      return fechaAlta > hundredDaysAgo;
-    };
-    
-    // "Próximamente": stock_received_count === 0 AND todas las tallas en 0 o negativo AND producto no mayor a 100 días
-    // Considerar inventario <= 0 (incluyendo negativos) como "sin stock disponible" para productos que nunca han recibido stock
-    const shouldShowComingSoon = stockReceivedCountValue === 0 && totalStock <= 0 && isLessThan100Days();
+    // "Próximamente": stock_received_count === 0 (nunca ha recibido stock, sin importar fecha)
+    // "Agotado": stock_received_count > 0 (ya recibió stock antes pero ahora está sin stock)
+    const shouldShowComingSoon = stockReceivedCountValue === 0 && totalStock <= 0;
     
     return shouldShowComingSoon ? 'coming-soon' : 'out-of-stock';
   };

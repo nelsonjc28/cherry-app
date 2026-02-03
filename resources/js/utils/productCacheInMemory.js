@@ -115,7 +115,13 @@ class ProductCacheManager {
    */
   filterByCategory(products, categoryCode) {
     if (!categoryCode) return products;
-    return products.filter(p => p.linea?.id_linea == categoryCode);
+    // Normalizar id_linea y categoryCode a números para comparación (ignorar ceros a la izquierda)
+    const normalizedCategoryCode = parseInt(String(categoryCode), 10);
+    return products.filter(p => {
+      const productLineaId = p.linea?.id_linea;
+      const normalizedProductLineaId = productLineaId ? parseInt(String(productLineaId), 10) : null;
+      return normalizedProductLineaId !== null && normalizedCategoryCode === normalizedProductLineaId;
+    });
   }
 
   /**

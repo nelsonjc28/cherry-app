@@ -18,6 +18,7 @@ import AdminHomeCatalogManager from '../components/AdminHomeCatalogManager/Admin
 import AdminCatalogOrderManager from '../components/AdminCatalogOrderManager/AdminCatalogOrderManager';
 import AdminOrders from './admin/AdminOrders';
 import AdminDashboard from './admin/AdminDashboard';
+import AdminHistorial from './admin/AdminHistorial';
 
 import useUserStore from '../store/userStore';
 import '../index.css';
@@ -104,7 +105,8 @@ function AdminPanelPage() {
       'reviews': 'Gestionar Reseñas - Admin - Cherry Central',
       'contact-info': 'Información de Contacto - Admin - Cherry Central',
       'privacy-policy': 'Política de Privacidad - Admin - Cherry Central',
-      'discounts': 'Descuentos - Admin - Cherry Central'
+      'discounts': 'Descuentos - Admin - Cherry Central',
+      'historial': 'Historial - Admin - Cherry Central'
     };
     
     const title = titleMap[selectedMenu] || 'Admin Panel - Cherry Central';
@@ -130,7 +132,8 @@ function AdminPanelPage() {
     '/admin/resenas': 'reviews',
     '/admin/contacto': 'contact-info',
     '/admin/privacidad': 'privacy-policy',
-    '/admin/descuentos': 'discounts'
+    '/admin/descuentos': 'discounts',
+    '/admin/historial': 'historial'
   };
 
   // Mapeo de secciones a URLs
@@ -150,7 +153,8 @@ function AdminPanelPage() {
     'reviews': '/admin/resenas',
     'contact-info': '/admin/contacto',
     'privacy-policy': '/admin/privacidad',
-    'discounts': '/admin/descuentos'
+    'discounts': '/admin/descuentos',
+    'historial': '/admin/historial'
   };
 
   // Función para cambiar de sección y actualizar URL
@@ -339,6 +343,9 @@ function AdminPanelPage() {
           <button className={`admin-panel__sidebar-link${selectedMenu==='contact-info'?' active':''}`} onClick={()=>handleMenuChange('contact-info')}>Información de Contacto</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='privacy-policy'?' active':''}`} onClick={()=>handleMenuChange('privacy-policy')}>Terminos y condiciones</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='discounts'?' active':''}`} onClick={()=>handleMenuChange('discounts')}>Descuentos</button>
+          {isOnlyAdmin() && (
+            <button className={`admin-panel__sidebar-link${selectedMenu==='historial'?' active':''}`} onClick={()=>handleMenuChange('historial')}>Historial</button>
+          )}
           <button className="admin-panel__sidebar-link" onClick={handleLogout}>Volver al sitio</button>
         </nav>
       </aside>
@@ -477,6 +484,12 @@ function AdminPanelPage() {
         {selectedMenu === 'discounts' && isAdminOrOperatorRole && (
           <section>
             <CatalogOffersModule onBack={() => setSelectedMenu('home')} />
+          </section>
+        )}
+
+        {selectedMenu === 'historial' && isOnlyAdmin() && (
+          <section>
+            <AdminHistorial />
           </section>
         )}
       </main>

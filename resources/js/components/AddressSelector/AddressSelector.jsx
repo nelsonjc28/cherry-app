@@ -127,6 +127,16 @@ const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' })
     }
   };
 
+  const formatAddressForSelect = (address) => {
+    const parts = [];
+    if (address.street_address) parts.push(address.street_address);
+    if (address.city) parts.push(address.city);
+    if (address.state) parts.push(address.state);
+    if (address.postal_code) parts.push(`CP: ${address.postal_code}`);
+    const addressString = parts.join(', ');
+    return addressString + (address.is_default ? ' (Predeterminada)' : '');
+  };
+
   const handleAddressChange = (event) => {
     const addressId = parseInt(event.target.value);
     const selectedAddress = addresses.find(addr => addr.id === addressId);
@@ -141,7 +151,6 @@ const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' })
   };
 
   const [formData, setFormData] = useState({
-    name: '',
     street_address: '',
     city: '',
     municipality: '',
@@ -161,7 +170,7 @@ const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' })
   const handleSaveAddress = async () => {
     try {
       // Validate required fields
-      if (!formData.name || !formData.street_address || !formData.city) {
+      if (!formData.street_address || !formData.city) {
         if (window.showToast) {
           window.showToast('Por favor completa los campos requeridos', 'warning');
         }
@@ -217,7 +226,6 @@ const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' })
     }
 
     setFormData({
-      name: '',
       street_address: '',
       city: '',
       municipality: '',
@@ -307,7 +315,7 @@ const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' })
                 <option value="">Selecciona una dirección</option>
                 {addresses.map((address) => (
                   <option key={address.id} value={address.id}>
-                    {address.name} {address.is_default && '(Predeterminada)'}
+                    {formatAddressForSelect(address)}
                   </option>
                 ))}
               </select>
@@ -337,16 +345,6 @@ const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' })
             </div>
             <div className="modal-body">
               <form onSubmit={(e) => { e.preventDefault(); handleSaveAddress(); }}>
-                <div className="form-group form-group--full">
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    placeholder="Dirección (Casa, trabajo)"
-                    required
-                  />
-                </div>
                 <div className="form-row">
                   <div className="form-group">
                     <input

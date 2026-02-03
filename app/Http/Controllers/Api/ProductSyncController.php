@@ -9,6 +9,7 @@ use App\Models\Producto;
 use App\Models\Detalle;
 use App\Models\Favorite;
 use App\Models\Notification;
+use App\Models\Historial;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Http;
@@ -372,6 +373,13 @@ class ProductSyncController extends Controller
 
             DB::commit();
 
+            // Registrar en historial
+            Historial::create([
+                'ejecutado_at' => now(),
+                'estado' => 'exitoso',
+                'mensaje' => 'Sincronización completada exitosamente'
+            ]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Sincronización completada exitosamente',
@@ -382,6 +390,13 @@ class ProductSyncController extends Controller
             DB::rollBack();
             Log::error('Error en sincronización de productos: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
+            ]);
+
+            // Registrar error en historial
+            Historial::create([
+                'ejecutado_at' => now(),
+                'estado' => 'error',
+                'mensaje' => 'Error al sincronizar productos: ' . $e->getMessage()
             ]);
 
             return response()->json([

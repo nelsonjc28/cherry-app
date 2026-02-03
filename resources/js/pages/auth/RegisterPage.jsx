@@ -609,7 +609,7 @@ const RegisterPage = () => {
                     </div>
                   </div>
 
-            <div className="register-section-title" style={{ marginTop: '20px' }}>Contraseña</div>
+            <div className="register-section-title register-section-title-hide-mobile" style={{ marginTop: '20px' }}>Contraseña</div>
                   <div className="white-divider"></div>
 
                   <div className="register-form-row">

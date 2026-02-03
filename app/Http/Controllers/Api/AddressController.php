@@ -55,7 +55,6 @@ class AddressController extends Controller
 
         // Validar los datos de entrada
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
             'street_address' => 'required|string|max:500',
             'street_number_ext' => 'nullable|string|max:20',
             'street_number_int' => 'nullable|string|max:20',
@@ -84,7 +83,6 @@ class AddressController extends Controller
 
             // Crear la nueva dirección
             $address = $user->addresses()->create([
-                'name' => $request->name,
                 'street_address' => $request->street_address,
                 'street_number_ext' => $request->street_number_ext,
                 'street_number_int' => $request->street_number_int,
@@ -152,7 +150,6 @@ class AddressController extends Controller
 
         // Validar los datos de entrada
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
             'street_address' => 'required|string|max:500',
             'street_number_ext' => 'nullable|string|max:20',
             'street_number_int' => 'nullable|string|max:20',
@@ -181,7 +178,6 @@ class AddressController extends Controller
 
             // Actualizar la dirección
             $address->update([
-                'name' => $request->name,
                 'street_address' => $request->street_address,
                 'street_number_ext' => $request->street_number_ext,
                 'street_number_int' => $request->street_number_int,

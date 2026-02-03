@@ -24,7 +24,6 @@ const Addresses = () => {
 
   // State for form
   const [formData, setFormData] = useState({
-    name: '',
     street_address: '',
     street_number_ext: '',
     street_number_int: '',
@@ -160,7 +159,6 @@ const Addresses = () => {
     }
 
     setFormData({
-      name: '',
       street_address: '',
       street_number_ext: '',
       street_number_int: '',
@@ -188,7 +186,6 @@ const Addresses = () => {
 
     setEditingAddress(address);
     setFormData({
-      name: address.name || '',
       street_address: address.street_address || '',
       street_number_ext: address.street_number_ext || '',
       street_number_int: address.street_number_int || '',
@@ -214,7 +211,7 @@ const Addresses = () => {
   const handleSaveAddress = async () => {
     try {
       // Validate required fields
-      if (!formData.name || !formData.street_address || !formData.city) {
+      if (!formData.street_address || !formData.city) {
         if (window.showToast) {
           window.showToast('Por favor completa los campos requeridos', 'warning');
         }
@@ -275,14 +272,14 @@ const Addresses = () => {
 
     // Buscar la dirección para mostrar información en la confirmación
     const addressToDelete = addresses.find(addr => addr.id === addressId);
-    const addressName = addressToDelete?.name || 'esta dirección';
+    const addressDescription = addressToDelete?.street_address || 'esta dirección';
 
     // Mostrar confirmación con SweetAlert2
     const result = await Swal.fire({
       title: '¿Eliminar dirección?',
       html: `
         <div class="text-center">
-          <p>¿Estás seguro de que quieres eliminar <strong>${addressName}</strong>?</p>
+          <p>¿Estás seguro de que quieres eliminar <strong>${addressDescription}</strong>?</p>
           <p class="text-muted small">Esta acción no se puede deshacer.</p>
         </div>
       `,
@@ -503,8 +500,6 @@ const Addresses = () => {
                 {/* Address Content */}
                 <div className="address-card__content">
                   <div className="address-card__street">
-                    {address.name && <strong>{address.name}</strong>}
-                    {address.name && <br />}
                     {address.street_address}
                   </div>
                   <div className="address-card__city">
@@ -599,17 +594,6 @@ const Addresses = () => {
             </div>
             <div className="modal-body">
               <form onSubmit={(e) => { e.preventDefault(); handleSaveAddress(); }}>
-                <div className="form-group form-group--full">
-                  <label>Nombre de la dirección:</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    placeholder="Ej: Casa, Trabajo"
-                    required
-                  />
-                </div>
                 <div className="form-group form-group--full">
                   <label>Dirección (Calle):</label>
                   <input
@@ -780,17 +764,6 @@ const Addresses = () => {
             </div>
             <div className="modal-body">
               <form onSubmit={(e) => { e.preventDefault(); handleSaveAddress(); }}>
-                <div className="form-group form-group--full">
-                  <label>Nombre de la dirección:</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    placeholder="Ej: Casa, Trabajo"
-                    required
-                  />
-                </div>
                 <div className="form-group form-group--full">
                   <label>Dirección (Calle):</label>
                   <input

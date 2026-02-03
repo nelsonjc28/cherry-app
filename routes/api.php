@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\ProductSearchController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\TopSellingController;
 use App\Http\Controllers\Api\CartController;
+use App\Http\Controllers\Api\HistorialController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/complete-profile', [AuthController::class, 'completeProfile'])->middleware('auth:api');
@@ -363,6 +364,9 @@ Route::middleware(['auth:api', 'admin'])->group(function () {
     Route::post('/admin/terms-conditions/{id}', [TermsConditionsController::class, 'update']);
     Route::delete('/admin/terms-conditions/{id}', [TermsConditionsController::class, 'destroy']);
     Route::patch('/admin/terms-conditions/{id}/activate', [TermsConditionsController::class, 'activate']);
+    
+    // Admin historial routes
+    Route::get('/admin/historial', [HistorialController::class, 'index']);
 });
 
 // Public home categories route (no authentication required)

@@ -144,8 +144,11 @@ const CategoryPage = ({ categorySlug }) => {
     // Filter by category (if a category code is selected)
     if (currentFilters.category && currentFilters.category !== '') {
       filtered = filtered.filter(product => {
+        // Normalizar id_linea y categoryCode a números para comparación (ignorar ceros a la izquierda)
         const productLineaId = product.linea?.id_linea;
-        return productLineaId == currentFilters.category;
+        const normalizedProductLineaId = productLineaId ? parseInt(String(productLineaId), 10) : null;
+        const normalizedCategoryCode = parseInt(String(currentFilters.category), 10);
+        return normalizedProductLineaId !== null && normalizedCategoryCode === normalizedProductLineaId;
       });
     }
 

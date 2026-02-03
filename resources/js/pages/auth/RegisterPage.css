@@ -557,6 +557,16 @@
   font-weight: 400;
 }
 
+.register-section-title-hide-mobile {
+  display: block;
+}
+
+@media (max-width: 767px) {
+  .register-section-title-hide-mobile {
+    display: none;
+  }
+}
+
 .register-password-hint {
   color: #373737;
   font-size: 14px;

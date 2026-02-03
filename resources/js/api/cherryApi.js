@@ -291,7 +291,13 @@ export const getAvailableCategories = async () => {
 export const getProductsByLine = async (lineId) => {
   try {
     const products = await getAllProducts();
-    return products.filter(product => product.linea?.id_linea === lineId);
+    // Normalizar id_linea y lineId a números para comparación (ignorar ceros a la izquierda)
+    const normalizedLineId = parseInt(String(lineId), 10);
+    return products.filter(product => {
+      const productLineaId = product.linea?.id_linea;
+      const normalizedProductLineaId = productLineaId ? parseInt(String(productLineaId), 10) : null;
+      return normalizedProductLineaId !== null && normalizedLineId === normalizedProductLineaId;
+    });
   } catch (error) {
     return [];
   }
