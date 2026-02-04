@@ -7,6 +7,7 @@ use App\Models\Genero;
 use App\Models\Sector;
 use App\Models\Producto;
 use App\Models\Detalle;
+use App\Models\Historial;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -323,7 +324,15 @@ class SyncProductsCommand extends Command
 
             DB::commit();
 
-            $this->info('Sincronización completada exitosamente!');
+            // Registrar en historial
+            Historial::create([
+                'ejecutado_at' => now(),
+                'estado' => 'exitoso',
+                'mensaje' => 'Sincronización completada exitosamente'
+            ]);
+
+            $this->info('✅ Sincronización completada exitosamente!');
+            $this->newLine();
             $this->table(
                 ['Métrica', 'Cantidad'],
                 [
@@ -336,12 +345,22 @@ class SyncProductsCommand extends Command
                     ['Detalles actualizados', $stats['detalles_actualizados']],
                 ]
             );
+            $this->newLine();
+            $this->info('Registro guardado en el historial de sincronizaciones.');
 
             return Command::SUCCESS;
 
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->error('Error en sincronización: ' . $e->getMessage());
+            
+            // Registrar error en historial
+            Historial::create([
+                'ejecutado_at' => now(),
+                'estado' => 'error',
+                'mensaje' => 'Error al sincronizar productos: ' . $e->getMessage()
+            ]);
+            
+            $this->error('❌ Error en sincronización: ' . $e->getMessage());
             Log::error('Error en sincronización de productos: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
             ]);
