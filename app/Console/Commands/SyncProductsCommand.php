@@ -35,6 +35,7 @@ class SyncProductsCommand extends Command
      */
     public function handle()
     {
+        Log::info('🔄 Comando products:sync iniciado - Iniciando sincronización de productos...');
         $this->info('Iniciando sincronización de productos...');
         
         try {
@@ -347,6 +348,8 @@ class SyncProductsCommand extends Command
             );
             $this->newLine();
             $this->info('Registro guardado en el historial de sincronizaciones.');
+            
+            Log::info('✅ Comando products:sync completado exitosamente');
 
             return Command::SUCCESS;
 
