@@ -80,6 +80,48 @@ const AdminHistorial = () => {
     setSearchParams(newParams, { replace: true });
   };
 
+  // Generar números de página a mostrar
+  const getPageNumbers = () => {
+    const pages = [];
+    const totalPages = pagination.last_page;
+    const current = pagination.current_page;
+    
+    if (totalPages <= 7) {
+      // Si hay 7 o menos páginas, mostrar todas
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Si hay más de 7 páginas, mostrar lógica inteligente
+      if (current <= 4) {
+        // Cerca del inicio
+        for (let i = 1; i <= 5; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (current >= totalPages - 3) {
+        // Cerca del final
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 4; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        // En el medio
+        pages.push(1);
+        pages.push('...');
+        for (let i = current - 1; i <= current + 1; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    
+    return pages;
+  };
+
   // Cargar historial
   useEffect(() => {
     const fetchHistorial = async () => {
@@ -254,17 +296,38 @@ const AdminHistorial = () => {
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="pagination-button"
+              className="pagination-button pagination-button-nav"
             >
               Anterior
             </button>
-            <span className="pagination-info">
-              Página {pagination.current_page} de {pagination.last_page}
-            </span>
+            
+            <div className="pagination-numbers">
+              {getPageNumbers().map((page, index) => {
+                if (page === '...') {
+                  return (
+                    <span key={`ellipsis-${index}`} className="pagination-ellipsis">
+                      ...
+                    </span>
+                  );
+                }
+                return (
+                  <button
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    className={`pagination-page-button ${
+                      page === pagination.current_page ? 'pagination-page-button-active' : ''
+                    }`}
+                  >
+                    {page}
+                  </button>
+                );
+              })}
+            </div>
+            
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === pagination.last_page}
-              className="pagination-button"
+              className="pagination-button pagination-button-nav"
             >
               Siguiente
             </button>
