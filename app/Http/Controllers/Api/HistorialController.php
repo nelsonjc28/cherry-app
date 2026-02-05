@@ -28,10 +28,11 @@ class HistorialController extends Controller
             $query->where('ejecutado_at', '<=', $fechaFin);
         }
 
-        // Ordenar de mayor a menor (más reciente primero)
+        // Ordenar de mayor a menor (más reciente primero) y paginar
+        $perPage = $request->get('per_page', 15);
         $historial = $query->orderBy('ejecutado_at', 'desc')
-            ->get()
-            ->map(function ($item) {
+            ->paginate($perPage)
+            ->through(function ($item) {
                 return [
                     'id' => $item->id,
                     'ejecutado_at' => $item->ejecutado_at->format('Y-m-d H:i:s'),
@@ -43,7 +44,15 @@ class HistorialController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $historial
+            'data' => $historial->items(),
+            'pagination' => [
+                'current_page' => $historial->currentPage(),
+                'last_page' => $historial->lastPage(),
+                'per_page' => $historial->perPage(),
+                'total' => $historial->total(),
+                'from' => $historial->firstItem(),
+                'to' => $historial->lastItem(),
+            ]
         ]);
     }
 }

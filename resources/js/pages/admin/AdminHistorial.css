@@ -166,6 +166,59 @@
   color: #666;
 }
 
+.admin-historial__pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: white;
+  padding: 15px 25px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.pagination-button {
+  background: var(--color-primary, #d32f2f);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination-button:hover:not(:disabled) {
+  background: #c21828;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(234, 38, 48, 0.3);
+}
+
+.pagination-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(234, 38, 48, 0.2);
+}
+
+.pagination-button:disabled {
+  background: #ccc;
+  color: #666;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.pagination-info {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  padding: 0 10px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .admin-historial {
@@ -190,5 +243,20 @@
 
   .admin-historial__message-cell {
     max-width: 200px;
+  }
+
+  .pagination-controls {
+    flex-direction: column;
+    gap: 15px;
+    padding: 15px;
+  }
+
+  .pagination-button {
+    width: 100%;
+    padding: 12px 20px;
+  }
+
+  .pagination-info {
+    text-align: center;
   }
 }
