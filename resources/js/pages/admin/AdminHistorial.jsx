@@ -31,9 +31,14 @@ const AdminHistorial = () => {
     return parseInt(searchParams.get('page') || '1', 10);
   };
 
+  const getInitialItemsPerPage = () => {
+    return parseInt(searchParams.get('per_page') || localStorage.getItem('adminHistorial_itemsPerPage') || '15', 10);
+  };
+
   const [fechaInicio, setFechaInicio] = useState(getInitialFechaInicio());
   const [fechaFin, setFechaFin] = useState(getInitialFechaFin());
   const [currentPage, setCurrentPage] = useState(getInitialPage());
+  const [itemsPerPage, setItemsPerPage] = useState(getInitialItemsPerPage());
 
   // Función para actualizar filtros y guardarlos en URL
   const updateFechaInicio = (value) => {
@@ -60,6 +65,16 @@ const AdminHistorial = () => {
     }
     newParams.delete('page'); // Eliminar página al cambiar filtros
     setSearchParams(newParams, { replace: true });
+  };
+
+  const updateItemsPerPage = (value) => {
+    setItemsPerPage(value);
+    localStorage.setItem('adminHistorial_itemsPerPage', value.toString());
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('per_page', value.toString());
+    newParams.set('page', '1'); // Reset a página 1 cuando cambia items por página
+    setSearchParams(newParams, { replace: true });
+    setCurrentPage(1);
   };
 
   const limpiarFiltros = () => {
@@ -140,7 +155,7 @@ const AdminHistorial = () => {
         if (currentPage > 1) {
           params.append('page', currentPage.toString());
         }
-        params.append('per_page', '15');
+        params.append('per_page', itemsPerPage.toString());
         
         const url = `/admin/historial${params.toString() ? `?${params.toString()}` : ''}`;
         const response = await api.get(url);
@@ -162,7 +177,7 @@ const AdminHistorial = () => {
     };
 
     fetchHistorial();
-  }, [fechaInicio, fechaFin, currentPage]);
+  }, [fechaInicio, fechaFin, currentPage, itemsPerPage]);
 
   const getEstadoBadgeClass = (estado) => {
     return estado === 'exitoso' ? 'historial-badge-success' : 'historial-badge-error';
@@ -214,6 +229,24 @@ const AdminHistorial = () => {
               onChange={(e) => updateFechaFin(e.target.value)}
               className="admin-historial__date-input"
             />
+          </div>
+          
+          <div className="admin-historial__filter-group">
+            <label htmlFor="items-per-page">Mostrar:</label>
+            <select
+              id="items-per-page"
+              value={itemsPerPage}
+              onChange={(e) => {
+                updateItemsPerPage(Number(e.target.value));
+              }}
+              className="admin-historial__date-input"
+            >
+              <option value={10}>10</option>
+              <option value={15}>15</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
           </div>
           
           <div className="admin-historial__filter-actions">
