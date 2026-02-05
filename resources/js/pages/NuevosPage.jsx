@@ -54,22 +54,20 @@ const NuevosPage = () => {
     let filtered = [...products];
 
     // Filter by category (usando código)
-    if (currentFilters.category && currentFilters.category !== '') {
+    // Soporta selección múltiple y normaliza a números para comparación (ignorar ceros a la izquierda)
+    const selectedCategories = Array.isArray(currentFilters.categories) && currentFilters.categories.length > 0
+      ? currentFilters.categories.filter(cat => cat !== 'todos') // Excluir la opción "todos"
+      : (currentFilters.category && currentFilters.category !== '' ? (Array.isArray(currentFilters.category) ? currentFilters.category.filter(cat => cat !== 'todos') : [String(currentFilters.category)]) : []);
+    
+    if (selectedCategories.length > 0) {
       filtered = filtered.filter(product => {
-        const productLineaId = product.id_linea || product.category_id || product.linea?.id_linea;
-        const matches = String(productLineaId) == String(currentFilters.category);
-        
-        // Debug para primeros productos
-        if (filtered.indexOf(product) < 3) {
-          console.log('🔍 DEBUG NuevosPage - Filtro de categoría:', {
-            productId: product.id,
-            productLineaId,
-            filterCategory: currentFilters.category,
-            matches
-          });
-        }
-        
-        return matches;
+        // Normalizar id_linea y categoryCode a números para comparación (ignorar ceros a la izquierda)
+        const productLineaId = product.id_linea || product.linea?.id_linea || product.category_id;
+        const normalizedProductLineaId = productLineaId ? parseInt(String(productLineaId), 10) : null;
+        return selectedCategories.some(categoryCode => {
+          const normalizedCategoryCode = parseInt(String(categoryCode), 10);
+          return normalizedProductLineaId !== null && normalizedCategoryCode === normalizedProductLineaId;
+        });
       });
     }
 
