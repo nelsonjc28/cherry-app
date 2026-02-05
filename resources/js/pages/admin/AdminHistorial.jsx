@@ -164,6 +164,10 @@ const AdminHistorial = () => {
           setHistorial(response.data.data);
           if (response.data.pagination) {
             setPagination(response.data.pagination);
+            // Sincronizar currentPage con la paginación del backend
+            if (response.data.pagination.current_page !== currentPage) {
+              setCurrentPage(response.data.pagination.current_page);
+            }
           }
         } else {
           setError('Error al cargar el historial');
@@ -314,56 +318,66 @@ const AdminHistorial = () => {
       </div>
 
       {/* Información de resultados */}
-      {historial.length > 0 && (
+      {historial.length > 0 && pagination.total > 0 && (
         <div className="admin-historial__info">
           <p>
             Mostrando {pagination.from} - {pagination.to} de {pagination.total} registros
+            {pagination.last_page > 1 && (
+              <span className="admin-historial__info-page">
+                {' '}• Página {pagination.current_page} de {pagination.last_page}
+              </span>
+            )}
           </p>
         </div>
       )}
 
       {/* Paginación */}
-      {pagination.last_page > 1 && (
+      {historial.length > 0 && pagination.total > 0 && (
         <div className="admin-historial__pagination">
           <div className="pagination-controls">
             <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
+              onClick={() => handlePageChange(pagination.current_page - 1)}
+              disabled={pagination.current_page === 1}
               className="pagination-button pagination-button-nav"
             >
               Anterior
             </button>
             
-            <div className="pagination-numbers">
-              {getPageNumbers().map((page, index) => {
-                if (page === '...') {
+            {pagination.last_page > 1 && (
+              <div className="pagination-numbers">
+                {getPageNumbers().map((page, index) => {
+                  if (page === '...') {
+                    return (
+                      <span key={`ellipsis-${index}`} className="pagination-ellipsis">
+                        ...
+                      </span>
+                    );
+                  }
                   return (
-                    <span key={`ellipsis-${index}`} className="pagination-ellipsis">
-                      ...
-                    </span>
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      className={`pagination-page-button ${
+                        page === pagination.current_page ? 'pagination-page-button-active' : ''
+                      }`}
+                    >
+                      {page}
+                    </button>
                   );
-                }
-                return (
-                  <button
-                    key={page}
-                    onClick={() => handlePageChange(page)}
-                    className={`pagination-page-button ${
-                      page === pagination.current_page ? 'pagination-page-button-active' : ''
-                    }`}
-                  >
-                    {page}
-                  </button>
-                );
-              })}
-            </div>
+                })}
+              </div>
+            )}
             
             <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === pagination.last_page}
+              onClick={() => handlePageChange(pagination.current_page + 1)}
+              disabled={pagination.current_page === pagination.last_page}
               className="pagination-button pagination-button-nav"
             >
               Siguiente
             </button>
+          </div>
+          <div className="admin-historial__pagination-info">
+            <span>Página {pagination.current_page} de {pagination.last_page}</span>
           </div>
         </div>
       )}
