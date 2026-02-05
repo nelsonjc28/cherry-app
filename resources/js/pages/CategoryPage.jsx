@@ -152,6 +152,18 @@ const CategoryPage = ({ categorySlug }) => {
       });
     }
 
+    // Filtrar por catálogo (soporta selección múltiple)
+    const selectedCatalogs = Array.isArray(currentFilters.catalogs) && currentFilters.catalogs.length > 0
+      ? currentFilters.catalogs.filter(cat => cat !== 'todos') // Excluir la opción "todos"
+      : (currentFilters.catalog && currentFilters.catalog !== '' && currentFilters.catalog !== 'Seleccione' && currentFilters.catalog !== 'Cherry 2025 - 2026' && currentFilters.catalog !== 'default' ? [String(currentFilters.catalog)] : []);
+    
+    if (selectedCatalogs.length > 0) {
+      filtered = filtered.filter(product => {
+        const productCatalogoId = String(product.catalogoId || product.catalog || '');
+        return selectedCatalogs.some(catalogId => String(catalogId) === productCatalogoId);
+      });
+    }
+
     // Filter by department (if not "Todos los departamentos")
     if (currentFilters.department && currentFilters.department !== 'Todos los departamentos') {
       const departmentLower = currentFilters.department.toLowerCase();

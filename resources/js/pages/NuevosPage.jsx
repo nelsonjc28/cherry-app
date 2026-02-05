@@ -71,11 +71,15 @@ const NuevosPage = () => {
       });
     }
 
-    // Filter by catalog
-    if (currentFilters.catalog && currentFilters.catalog !== '' && currentFilters.catalog != 'Seleccione') {
+    // Filtrar por catálogo (soporta selección múltiple)
+    const selectedCatalogs = Array.isArray(currentFilters.catalogs) && currentFilters.catalogs.length > 0
+      ? currentFilters.catalogs.filter(cat => cat !== 'todos') // Excluir la opción "todos"
+      : (currentFilters.catalog && currentFilters.catalog !== '' && currentFilters.catalog !== 'Seleccione' ? [String(currentFilters.catalog)] : []);
+    
+    if (selectedCatalogs.length > 0) {
       filtered = filtered.filter(product => {
-        const productCatalogoId = product.catalogoId || product.catalog;
-        return String(productCatalogoId) == String(currentFilters.catalog);
+        const productCatalogoId = String(product.catalogoId || product.catalog || '');
+        return selectedCatalogs.some(catalogId => String(catalogId) === productCatalogoId);
       });
     }
 

@@ -1265,7 +1265,10 @@ export const getTopSellingProducts = async (limit = 20) => {
         // Campos de categoría para filtros
         id_linea: product.id_linea || product.linea?.id_linea || product.linea || null,
         linea: product.linea || (product.id_linea ? { id_linea: product.id_linea } : null),
-        category_id: product.id_linea || product.linea?.id_linea || product.linea || product.category_id || null
+        category_id: product.id_linea || product.linea?.id_linea || product.linea || product.category_id || null,
+        // Campo de catálogo para filtros
+        catalogoId: product.catalogoId || product.catalog || null,
+        catalog: product.catalogoId || product.catalog || null
       };
     });
     
