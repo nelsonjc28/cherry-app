@@ -1261,7 +1261,11 @@ export const getTopSellingProducts = async (limit = 20) => {
         desc_promo: product.desc_promo,
         fecha_alta: product.fecha_alta,
         detalles: product.detalles || [],
-        ranking: product.ranking || null
+        ranking: product.ranking || null,
+        // Campos de categoría para filtros
+        id_linea: product.id_linea || product.linea?.id_linea || product.linea || null,
+        linea: product.linea || (product.id_linea ? { id_linea: product.id_linea } : null),
+        category_id: product.id_linea || product.linea?.id_linea || product.linea || product.category_id || null
       };
     });
     
