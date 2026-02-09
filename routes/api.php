@@ -330,6 +330,7 @@ Route::get('/products/with-offers', [ProductSearchController::class, 'getProduct
 Route::get('/products/top-selling', [TopSellingController::class, 'index']);
 
 Route::get('/products/new', [ProductController::class, 'getNewProducts']);
+Route::get('/products/coming-soon', [ProductController::class, 'getComingSoonProducts']);
 Route::get('/products/{id}', [ProductController::class, 'show']);
 
 // Public welcome sections routes (no authentication required)

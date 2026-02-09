@@ -77,9 +77,27 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
     }
   };
 
+  // Función para calcular el stock total del producto
+  const calculateTotalStock = () => {
+    // Si hay detalles en el producto, sumar todo el inventario de los detalles
+    const detalles = product?.detalles || [];
+    if (detalles.length > 0) {
+      const totalFromDetails = detalles.reduce((total, detalle) => {
+        return total + (parseFloat(detalle.inventario_d) || 0);
+      }, 0);
+      // Si la suma de detalles es > 0, usar ese valor
+      if (totalFromDetails > 0) {
+        return totalFromDetails;
+      }
+    }
+    
+    // Si no hay detalles o la suma es 0, usar el inventario general del producto
+    return parseFloat(stock || inventario || 0);
+  };
+
   // Función para determinar si debe mostrar "Próximamente" o "Agotado"
   const getStockStatus = () => {
-    const totalStock = stock || inventario || 0;
+    const totalStock = calculateTotalStock();
     const stockReceivedCountValue = stock_received_count || stockReceivedCount || 0;
     
     // Si tiene stock, no mostrar badge de stock
@@ -87,8 +105,8 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
       return null;
     }
     
-    // "Próximamente": stock_received_count === 0 (nunca ha recibido stock, sin importar fecha)
-    // "Agotado": stock_received_count > 0 (ya recibió stock antes pero ahora está sin stock)
+    // "Próximamente": stock_received_count === 0 Y inventario <= 0 (nunca ha recibido stock)
+    // "Agotado": stock_received_count > 0 Y inventario <= 0 (ya recibió stock antes pero ahora está sin stock)
     const shouldShowComingSoon = stockReceivedCountValue === 0 && totalStock <= 0;
     
     return shouldShowComingSoon ? 'coming-soon' : 'out-of-stock';
@@ -207,18 +225,18 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
           <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
         )}
 
-        {/* Próximamente badge - si cumple condiciones (nuevo o según stock_received_count) */}
-        {(isNew && stock <= 0) || stockStatus === 'coming-soon' ? (
-          <span className="catalog-offer-badge catalog-out-of-stock-badge" style={{ backgroundColor: '#FF9800', color: '#fff' }}>Próximamente</span>
-        ) : null}
+        {/* Próximamente badge - solo si stockStatus === 'coming-soon' */}
+        {stockStatus === 'coming-soon' && (
+          <span className="catalog-offer-badge catalog-out-of-stock-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
+        )}
 
         {/* Out of stock badge - solo si no es nuevo y no es "Próximamente" */}
         {!isNew && stockStatus === 'out-of-stock' && (
           <span className="catalog-offer-badge catalog-out-of-stock-badge">Agotado</span>
         )}
 
-        {/* Offer badge if product has discount (and is not new) */}
-        {!isNew && stock > 0 && hasOffer && (
+        {/* Offer badge if product has discount (and is not new, not coming soon, and has stock) */}
+        {!isNew && stockStatus !== 'coming-soon' && stock > 0 && hasOffer && (
           <div className={`catalog-offer-badge ${hasUserOffer ? 'user-offer' : ''} ${
             hasUserOffer && userOffer && userOffer.discount_category === 'buy_x_get_y' ? 'buy-x-get-y' : 
             hasUserOffer && userOffer && userOffer.discount_category === 'order_discount' ? 'order-discount' : 

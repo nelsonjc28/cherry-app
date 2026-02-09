@@ -1512,10 +1512,16 @@ const ProductPage = () => {
                 />
               </div>
               <div className="product-page__info-stock">
-                {inventoryStatusData.icon}
-                <span className={`product-page__stock-status product-page__stock-status--${inventoryStatusData.status}`}>
-                  {inventoryStatusData.text}
-                </span>
+                {inventoryStatusData.status === 'coming-soon' ? (
+                  <span className="catalog-offer-badge catalog-out-of-stock-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
+                ) : (
+                  <>
+                    {inventoryStatusData.icon}
+                    <span className={`product-page__stock-status product-page__stock-status--${inventoryStatusData.status}`}>
+                      {inventoryStatusData.text}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
 
@@ -1538,14 +1544,21 @@ const ProductPage = () => {
 
 
               <div className="product-page__price-container">
-                {hasOffer && discountPercentage > 0 && (
-                  <div className="product-page__original-price">{formatPrice(precio1)}</div>
-                )}
-                <div className="product-page__final-price">{formatPrice(finalPrice)}</div>
-                {hasOffer && discountPercentage > 0 && (
-                  <span className="product-page__savings">
-                    💰 Ahorras {formatPrice(precio1 - finalPrice)}
-                  </span>
+                {/* Si es "próximamente", solo mostrar el precio original sin descuento */}
+                {isComingSoon ? (
+                  <div className="product-page__final-price">{formatPrice(precio1)}</div>
+                ) : (
+                  <>
+                    {hasOffer && discountPercentage > 0 && (
+                      <div className="product-page__original-price">{formatPrice(precio1)}</div>
+                    )}
+                    <div className="product-page__final-price">{formatPrice(finalPrice)}</div>
+                    {hasOffer && discountPercentage > 0 && (
+                      <span className="product-page__savings">
+                        💰 Ahorras {formatPrice(precio1 - finalPrice)}
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
               {hasUserOffer && userOffer && userOffer.discount_category === 'buy_x_get_y' && (

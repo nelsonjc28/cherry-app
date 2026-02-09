@@ -1,0 +1,44 @@
+/* ComingSoonProducts styles - similar to FeaturedProducts */
+.coming-soon-products {
+  padding: 2rem 0;
+}
+
+.coming-soon-products .container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.coming-soon-products .loading-spinner,
+.coming-soon-products .error-message {
+  text-align: center;
+  padding: 2rem;
+}
+
+.coming-soon-products .loading-spinner p,
+.coming-soon-products .error-message p {
+  margin: 0;
+  color: #666;
+}
+
+/* Desktop view */
+.coming-soon-products .desktop-view {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .coming-soon-products .desktop-view {
+    display: none;
+  }
+}
+
+/* Mobile view */
+.coming-soon-products .mobile-view {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .coming-soon-products .mobile-view {
+    display: block;
+  }
+}

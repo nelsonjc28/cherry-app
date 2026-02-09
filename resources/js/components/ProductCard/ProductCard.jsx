@@ -84,9 +84,26 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
     }
   };
 
+  // Función para calcular el stock total del producto
+  const calculateTotalStock = () => {
+    // Si hay detalles, sumar todo el inventario de los detalles
+    if (product?.detalles && product.detalles.length > 0) {
+      const totalFromDetails = product.detalles.reduce((total, detalle) => {
+        return total + (parseFloat(detalle.inventario_d) || 0);
+      }, 0);
+      // Si la suma de detalles es > 0, usar ese valor
+      if (totalFromDetails > 0) {
+        return totalFromDetails;
+      }
+    }
+    
+    // Si no hay detalles o la suma es 0, usar el inventario general del producto
+    return parseFloat(stock || inventario || 0);
+  };
+
   // Función para determinar si debe mostrar "Próximamente" o "Agotado"
   const getStockStatus = () => {
-    const totalStock = stock || inventario || 0;
+    const totalStock = calculateTotalStock();
     const stockReceivedCountValue = stock_received_count || stockReceivedCount || 0;
     
     // Si tiene stock, no mostrar badge de stock
@@ -94,8 +111,8 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
       return null;
     }
     
-    // "Próximamente": stock_received_count === 0 (nunca ha recibido stock, sin importar fecha)
-    // "Agotado": stock_received_count > 0 (ya recibió stock antes pero ahora está sin stock)
+    // "Próximamente": stock_received_count === 0 Y inventario <= 0 (nunca ha recibido stock)
+    // "Agotado": stock_received_count > 0 Y inventario <= 0 (ya recibió stock antes pero ahora está sin stock)
     const shouldShowComingSoon = stockReceivedCountValue === 0 && totalStock <= 0;
     
     return shouldShowComingSoon ? 'coming-soon' : 'out-of-stock';
@@ -223,7 +240,7 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
 
         {/* Próximamente badge - si cumple condiciones */}
         {stockStatus === 'coming-soon' && (
-          <span className="out-of-stock-badge" style={{ backgroundColor: '#FF9800', color: '#fff' }}>Próximamente</span>
+          <span className="catalog-offer-badge catalog-out-of-stock-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
         )}
 
         {/* Out of stock badge - solo si no es nuevo y no es "Próximamente" */}
@@ -231,8 +248,8 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
           <span className="out-of-stock-badge">Agotado</span>
         )}
 
-        {/* Offer badge if product has discount (and is not new) */}
-        {!isNew && stock > 0 && hasOffer && (
+        {/* Offer badge if product has discount (and is not new, not coming soon, and has stock) */}
+        {!isNew && stockStatus !== 'coming-soon' && stock > 0 && hasOffer && (
           <span className="offer-badge">
             {getDiscountLabel()}
           </span>
@@ -305,7 +322,7 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
 
         {/* Próximamente badge - si cumple condiciones */}
         {stockStatus === 'coming-soon' && (
-          <span className="out-of-stock-badge" style={{ backgroundColor: '#FF9800', color: '#fff' }}>Próximamente</span>
+          <span className="catalog-offer-badge catalog-out-of-stock-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
         )}
 
         {/* Out of stock badge - solo si no es nuevo y no es "Próximamente" */}
@@ -313,8 +330,8 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
           <span className="out-of-stock-badge">Agotado</span>
         )}
 
-        {/* Offer badge if product has discount (and is not new) */}
-        {!isNew && stock > 0 && hasOffer && (
+        {/* Offer badge if product has discount (and is not new, not coming soon, and has stock) */}
+        {!isNew && stockStatus !== 'coming-soon' && stock > 0 && hasOffer && (
           <span className={`offer-badge ${finalHasUserOffer ? 'user-offer' : ''} ${
             finalHasUserOffer && finalUserOffer && finalUserOffer.discount_category === 'buy_x_get_y' ? 'buy-x-get-y' : 
             finalHasUserOffer && finalUserOffer && finalUserOffer.discount_category === 'order_discount' ? 'order-discount' : 
