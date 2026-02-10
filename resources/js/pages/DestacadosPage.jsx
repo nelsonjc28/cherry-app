@@ -74,13 +74,36 @@ const DestacadosPage = () => {
     
     // Filtrar por catálogo (soporta selección múltiple)
     const selectedCatalogs = Array.isArray(currentFilters.catalogs) && currentFilters.catalogs.length > 0
-      ? currentFilters.catalogs.filter(cat => cat !== 'todos') // Excluir la opción "todos"
-      : (currentFilters.catalog && currentFilters.catalog !== '' && currentFilters.catalog !== 'Seleccione' && currentFilters.catalog !== '' ? [String(currentFilters.catalog)] : []);
+      ? currentFilters.catalogs.filter(cat => cat !== 'todos' && cat !== 'Seleccione' && cat !== '') // Excluir la opción "todos", "Seleccione" y vacíos
+      : (currentFilters.catalog && currentFilters.catalog !== '' && currentFilters.catalog !== 'Seleccione' ? [String(currentFilters.catalog)] : []);
     
     if (selectedCatalogs.length > 0) {
       filtered = filtered.filter(product => {
-        const productCatalogoId = String(product.catalogoId || '');
-        return selectedCatalogs.some(catalogId => String(catalogId) === productCatalogoId);
+        const productCatalogoId = product.catalogoId || product.catalog || null;
+        // Si el producto no tiene catalogoId, excluirlo del filtro
+        if (productCatalogoId === null || productCatalogoId === undefined || productCatalogoId === '') {
+          return false;
+        }
+        // Normalizar ambos valores para comparación (convertir a número si es posible, luego a string)
+        const normalizeCatalogId = (id) => {
+          if (id === null || id === undefined || id === '') return null;
+          // Intentar convertir a número primero para normalizar
+          const numId = Number(id);
+          if (!isNaN(numId) && numId !== 0) {
+            return String(numId);
+          }
+          return String(id).trim();
+        };
+        
+        const productCatalogNormalized = normalizeCatalogId(productCatalogoId);
+        if (!productCatalogNormalized) {
+          return false;
+        }
+        
+        return selectedCatalogs.some(catalogId => {
+          const catalogIdNormalized = normalizeCatalogId(catalogId);
+          return catalogIdNormalized && catalogIdNormalized === productCatalogNormalized;
+        });
       });
     }
     // Filter by department

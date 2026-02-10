@@ -102,7 +102,10 @@ const CatalogFilter = ({
   
   // Log adicional para verificar que el useEffect se ejecutó
   useEffect(() => {
-    
+    console.log('🔄 CatalogFilter montado, iniciando carga de categorías...', {
+      apiAvailable: typeof api !== 'undefined',
+      baseURL: api?.defaults?.baseURL || 'no configurado'
+    });
   }, []);
   
   // Usar categorías pasadas como prop si están disponibles, sino usar las del endpoint /api/categories, sino las de la API externa
@@ -111,22 +114,45 @@ const CatalogFilter = ({
   
   if (propAvailableCategories !== null && Array.isArray(propAvailableCategories) && propAvailableCategories.length > 0) {
     availableCategories = propAvailableCategories;
+    console.log('✅ Usando categorías desde prop');
   } else if (categoriesFromAPI.length > 0) {
     availableCategories = categoriesFromAPI;
+    console.log('✅ Usando categorías desde /api/categories:', categoriesFromAPI.length);
   } else if (apiAvailableCategories && Array.isArray(apiAvailableCategories) && apiAvailableCategories.length > 0) {
     availableCategories = apiAvailableCategories;
+    console.log('✅ Usando categorías desde API externa (fallback):', apiAvailableCategories.length);
   } else {
+    console.warn('⚠️ No hay categorías disponibles de ninguna fuente');
     availableCategories = [];
   }
   
   // Si aún no hay categorías y ya terminó de cargar, intentar usar apiAvailableCategories aunque esté vacío inicialmente
   // Esto es para casos donde la carga es asíncrona
   if (availableCategories.length === 0 && !categoriesLoading && !isLoadingApiCategories && apiAvailableCategories && apiAvailableCategories.length > 0) {
+    console.log('🔄 Reintentando con apiAvailableCategories después de carga completa');
     availableCategories = apiAvailableCategories;
   }
   
   // Debug: Log para verificar categorías disponibles (siempre mostrar para debugging)
-  
+  console.log('🔍 Categorías en filtros:', {
+    hideCategorySelector,
+    propAvailableCategories: propAvailableCategories?.length || 0,
+    categoriesFromAPI: categoriesFromAPI.length,
+    categoriesFromAPISample: categoriesFromAPI.slice(0, 3), // Primeras 3 para debug
+    apiAvailableCategories: apiAvailableCategories?.length || 0,
+    apiAvailableCategoriesSample: apiAvailableCategories?.slice(0, 3), // Primeras 3 para debug
+    isLoadingApiCategories,
+    availableCategories: availableCategories.length,
+    categoriesLength: availableCategories.length,
+    categoriesLoading,
+    finalCategories: availableCategories.slice(0, 5), // Mostrar solo las primeras 5 para no saturar
+    source: propAvailableCategories?.length > 0 ? 'prop' : categoriesFromAPI.length > 0 ? 'api/categories' : apiAvailableCategories?.length > 0 ? 'api-externa' : 'ninguna',
+    filtersCatalog: filters.catalog, // Para ver qué catálogo se está usando
+    // Información adicional para debugging
+    hasPropCategories: !!propAvailableCategories,
+    hasCategoriesFromAPI: categoriesFromAPI.length > 0,
+    hasApiCategories: apiAvailableCategories && apiAvailableCategories.length > 0
+  });
 
   // Toggle section expansion
   const toggleSection = (section) => {
@@ -199,7 +225,11 @@ const CatalogFilter = ({
         // Mantener compatibilidad con filtro único (para páginas que aún lo usan)
         newFilters.category = newFilters.categories.length === 1 ? newFilters.categories[0] : (newFilters.categories.length > 0 ? newFilters.categories : '');
         
-        
+        console.log('🔍 Filtro de categoría cambiado:', {
+          categoryValue: categoryValue,
+          categoriesArray: newFilters.categories,
+          availableCategories: availableCategories.find(cat => (cat.code || cat.id) == value)
+        });
         break;
       case 'availability':
         newFilters.availability = value;
@@ -355,9 +385,15 @@ const CatalogFilter = ({
                               newFilters.catalogs = selectedCatalogs.filter(cat => cat !== 'todos');
                             }
                             
-                            newFilters.catalog = newFilters.catalogs.length === 1 && !newFilters.catalogs.includes('todos') 
-                              ? newFilters.catalogs[0] 
-                              : (newFilters.catalogs.length > 0 ? newFilters.catalogs : '');
+                            // Si no hay catálogos seleccionados, limpiar el filtro completamente
+                            if (newFilters.catalogs.length === 0) {
+                              newFilters.catalogs = [];
+                              newFilters.catalog = 'Seleccione';
+                            } else {
+                              newFilters.catalog = newFilters.catalogs.length === 1 && !newFilters.catalogs.includes('todos') 
+                                ? newFilters.catalogs[0] 
+                                : (newFilters.catalogs.length > 0 ? newFilters.catalogs : 'Seleccione');
+                            }
                             
                             onFilterChange(newFilters);
                           }}
@@ -365,11 +401,11 @@ const CatalogFilter = ({
                         <span className="multiselect-label" style={{ fontWeight: 'bold' }}>Seleccione</span>
                       </label>
                       {catalogs.map((catalog) => {
-                        const catalogId = String(catalog.id);
+                        const catalogCode = String(catalog.code || catalog.id); // Usar code, con fallback a id por compatibilidad
                         const selectedCatalogs = Array.isArray(filters.catalogs) 
                           ? filters.catalogs.map(cat => String(cat))
                           : (filters.catalog ? [String(filters.catalog)] : []);
-                        const isChecked = selectedCatalogs.includes(catalogId);
+                        const isChecked = selectedCatalogs.includes(catalogCode);
                         
                         return (
                           <label key={catalog.id} className="multiselect-option">
@@ -383,14 +419,20 @@ const CatalogFilter = ({
                                 const newFilters = { ...filters };
                                 
                                 if (e.target.checked) {
-                                  newFilters.catalogs = [...currentSelected.filter(cat => cat !== 'todos'), catalogId];
+                                  newFilters.catalogs = [...currentSelected.filter(cat => cat !== 'todos'), catalogCode];
                                 } else {
-                                  newFilters.catalogs = currentSelected.filter(cat => cat !== catalogId);
+                                  newFilters.catalogs = currentSelected.filter(cat => cat !== catalogCode);
                                 }
                                 
-                                newFilters.catalog = newFilters.catalogs.length === 1 && !newFilters.catalogs.includes('todos') 
-                                  ? newFilters.catalogs[0] 
-                                  : (newFilters.catalogs.length > 0 ? newFilters.catalogs : '');
+                                // Si no hay catálogos seleccionados, limpiar el filtro completamente
+                                if (newFilters.catalogs.length === 0) {
+                                  newFilters.catalogs = [];
+                                  newFilters.catalog = 'Seleccione';
+                                } else {
+                                  newFilters.catalog = newFilters.catalogs.length === 1 && !newFilters.catalogs.includes('todos') 
+                                    ? newFilters.catalogs[0] 
+                                    : (newFilters.catalogs.length > 0 ? newFilters.catalogs : 'Seleccione');
+                                }
                                 
                                 onFilterChange(newFilters);
                               }}
@@ -401,10 +443,20 @@ const CatalogFilter = ({
                       })}
                     </div>
                     <div className="filter-selected-count">
-                      {Array.isArray(filters.catalogs) && filters.catalogs.length > 0 
-                        ? `${filters.catalogs.length} opción${filters.catalogs.length !== 1 ? 'es' : ''} seleccionada${filters.catalogs.length !== 1 ? 's' : ''}`
-                        : 'Seleccione un catálogo'
-                      }
+                      {(() => {
+                        const selectedCatalogs = Array.isArray(filters.catalogs) 
+                          ? filters.catalogs.filter(cat => cat !== 'todos' && cat !== 'Seleccione')
+                          : (filters.catalog && filters.catalog !== 'Seleccione' && filters.catalog !== '' 
+                            ? (Array.isArray(filters.catalog) 
+                              ? filters.catalog.filter(cat => cat !== 'todos' && cat !== 'Seleccione')
+                              : [String(filters.catalog)])
+                            : []);
+                        const count = selectedCatalogs.length;
+                        
+                        return count > 0
+                          ? `${count} opción${count !== 1 ? 'es' : ''} seleccionada${count !== 1 ? 's' : ''}`
+                          : 'Seleccione un catálogo';
+                      })()}
                     </div>
                   </div>
                 )}
@@ -549,7 +601,7 @@ const CatalogFilter = ({
               </div>
             </div> */}
 
-            <div className="accordion-filter-content">
+            {/* <div className="accordion-filter-content"> */}
               {/* Sort by */}
 
 
@@ -559,7 +611,7 @@ const CatalogFilter = ({
                   className="filter-section-header"
                   onClick={() => toggleSection('sizes')}
                 >
-                  <span>Tallas</span>
+                  <h3 className="filter-title">Talla</h3>
                   <img src={getIconPath('Chevron Down.svg')} alt="Filter" />
                 </button>
                 {expandedSections.sizes && (
@@ -586,7 +638,7 @@ const CatalogFilter = ({
                   className="filter-section-header"
                   onClick={() => toggleSection('colors')}
                 >
-                  <span>Colores</span>
+                  <h3 className="filter-title">Color</h3>
                   <img src={getIconPath('Chevron Down.svg')} alt="Filter" className={`chevron ${expandedSections.clothing ? 'expanded' : ''}`} />
                 </button>
                 {expandedSections.colors && (
@@ -613,7 +665,7 @@ const CatalogFilter = ({
                   </div>
                 )}
               </div>
-            </div>
+            {/* </div> */}
 
 
             {/* Price range */}
