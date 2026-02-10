@@ -6,6 +6,7 @@ import CategorySection from '../components/sections/CategorySection/CategorySect
 
 import RecentCatalogs from '../components/sections/RecentCatalogs/RecentCatalogs';
 import FeaturedProducts from '../components/sections/FeaturedProducts/FeaturedProducts';
+import ComingSoonProducts from '../components/sections/ComingSoonProducts/ComingSoonProducts';
 import FeaturedCategories from '../components/sections/FeaturedCategories/FeaturedCategories';
 import CustomerReviews from '../components/sections/CustomerReviews/CustomerReviews';
 import BestSellers from '../components/sections/BestSellers/BestSellers';
@@ -61,7 +62,6 @@ const HomePage = () => {
           }
         }
       } catch (error) {
-        console.error('Error al verificar ofertas personalizadas:', error);
       }
     };
     
@@ -98,7 +98,6 @@ const HomePage = () => {
         
         
       } catch (error) {
-        console.error('❌ HomePage: Error al cargar productos más vendidos:', error);
         setTopSellingProducts([]);
       } finally {
         setLoadingTopSelling(false);
@@ -292,6 +291,12 @@ const HomePage = () => {
             viewAllText="Ver Más"
             useApi={true}
           />
+        </section>
+
+        {/* Coming Soon Products Section */}
+        <section aria-labelledby="coming-soon-products-heading">
+          <h2 id="coming-soon-products-heading" className="sr-only">Productos Próximamente</h2>
+          <ComingSoonProducts />
         </section>
 
         {/* Featured Categories */}

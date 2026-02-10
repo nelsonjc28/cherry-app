@@ -34,7 +34,6 @@ const PromocionesPage = () => {
         return JSON.parse(saved);
       }
     } catch (e) {
-      console.error('Error recuperando filtros:', e);
     }
     return {
       availability: 'todos',
@@ -64,27 +63,14 @@ const PromocionesPage = () => {
     const loadPromoProducts = async () => {
       setLoading(true);
       try {
-        console.log('🔍 DEBUG - Iniciando carga de productos con ofertas');
-        
         let allProducts = [];
 
         // Buscar productos con ofertas desde la base de datos local
         try {
           const searchResponse = await api.get('/products/with-offers');
-          console.log('🔍 DEBUG - Respuesta del backend:', searchResponse.data);
 
           if (searchResponse.data.success && searchResponse.data.data.products) {
             const localProducts = searchResponse.data.data.products;
-            console.log('🔍 DEBUG - Productos recibidos:', localProducts.length);
-            
-            if (localProducts.length > 0) {
-              console.log('🔍 DEBUG - Primer producto del backend:', {
-                id: localProducts[0].id,
-                id_linea: localProducts[0].id_linea,
-                catalogoId: localProducts[0].catalogoId,
-                descripcion: localProducts[0].descripcion
-              });
-            }
             
             // Mapear productos locales al formato esperado
             allProducts = localProducts.map(product => {
@@ -167,25 +153,13 @@ const PromocionesPage = () => {
             // Debug: Verificar productos específicos después de aplicar ofertas
             const productosEspecificos = ['515422585712', '50552258912', '515422524904', '2855708612', '515422524512'];
             const productosEncontrados = allProducts.filter(p => productosEspecificos.includes(String(p.id)));
-            console.log('🔍 DEBUG - Productos específicos encontrados después de applyUserOffersToProducts:', productosEncontrados.length);
             if (productosEncontrados.length > 0) {
               productosEncontrados.forEach(p => {
-                console.log('🔍 DEBUG - Producto encontrado:', {
-                  id: p.id,
-                  title: p.title,
-                  hasUserOffer: p.hasUserOffer,
-                  userOffer: p.userOffer,
-                  discount: p.discount,
-                  descPromo: p.descPromo
-                });
               });
-            } else {
-              console.warn('⚠️ NINGUNO de los productos específicos está en la lista después de applyUserOffersToProducts');
             }
             
             // Contar productos con ofertas personalizadas
             const productosConOfertasPersonalizadas = allProducts.filter(p => p.hasUserOffer === true);
-            console.log('🔍 DEBUG - Total productos con hasUserOffer=true:', productosConOfertasPersonalizadas.length);
             
             // Asegurar que id_linea se preserve correctamente después de aplicar ofertas
             allProducts = allProducts.map(product => {
@@ -203,27 +177,8 @@ const PromocionesPage = () => {
               };
             });
             
-            // Debug: Verificar que id_linea se preserve
-            if (allProducts.length > 0) {
-              console.log('🔍 DEBUG - Después de aplicar ofertas, primer producto:', {
-                id: allProducts[0].id,
-                id_linea: allProducts[0].id_linea,
-                catalogoId: allProducts[0].catalogoId,
-                hasIdLinea: allProducts[0].hasOwnProperty('id_linea')
-              });
-            }
-            
-            console.log('🔍 DEBUG - Productos mapeados:', allProducts.length);
-            if (allProducts.length > 0) {
-              console.log('🔍 DEBUG - Primer producto mapeado:', {
-                id: allProducts[0].id,
-                id_linea: allProducts[0].id_linea,
-                catalogoId: allProducts[0].catalogoId
-              });
-            }
           }
         } catch (error) {
-          console.error('❌ Error cargando productos:', error);
           allProducts = [];
         }
 
@@ -241,12 +196,9 @@ const PromocionesPage = () => {
               return 1;
             });
             
-            console.log(`✅ Total: ${allProducts.length} productos con promociones`);
             const productosConOfertasPersonalizadas = allProducts.filter(p => p.hasUserOffer === true);
-            console.log(`🔍 Productos con ofertas personalizadas: ${productosConOfertasPersonalizadas.length}`);
             setProductsWithOffers(allProducts);
       } catch (error) {
-        console.error('❌ Error al cargar promociones:', error);
         setProductsWithOffers([]);
       } finally {
         setLoading(false);
@@ -283,7 +235,6 @@ const PromocionesPage = () => {
           setCatalogs([]);
         }
       } catch (error) {
-        console.error('Error loading catalogs:', error);
         setCatalogs([]);
       } finally {
         setCatalogLoading(false);
@@ -337,7 +288,6 @@ const PromocionesPage = () => {
         setAvailableColors(Array.from(colorSet).sort());
         setAvailableSizes(sortedSizes);
       } catch (error) {
-        console.error('Error extrayendo datos de filtros:', error);
         setAvailableColors([]);
         setAvailableSizes([]);
       }
@@ -350,11 +300,6 @@ const PromocionesPage = () => {
 
   // Función para filtrar productos
   const filterProducts = useCallback((products, currentFilters) => {
-    console.log('🔍 DEBUG - filterProducts ejecutado', {
-      productsCount: products.length,
-      filters: currentFilters
-    });
-    
     if (!products || products.length === 0) return [];
     
     let filtered = [...products];
@@ -569,7 +514,6 @@ const PromocionesPage = () => {
     try {
       sessionStorage.setItem('promocionesPageFilters', JSON.stringify(newFilters));
     } catch (e) {
-      console.error('Error guardando filtros:', e);
     }
   }, []);
 
@@ -588,7 +532,6 @@ const PromocionesPage = () => {
     try {
       sessionStorage.removeItem('promocionesPageFilters');
     } catch (e) {
-      console.error('Error limpiando filtros:', e);
     }
   }, []);
 

@@ -41,7 +41,6 @@ const BuscarPage = () => {
         return JSON.parse(saved);
       }
     } catch (e) {
-      console.error('Error recuperando filtros:', e);
     }
     return {
       catalog: 'Seleccione',
@@ -193,24 +192,12 @@ const BuscarPage = () => {
             const localProducts = searchResponse.data.data.products;
             
             // Debug: Verificar que los productos tengan los campos correctos del backend
-            console.log('Products from backend:', localProducts.length);
             if (localProducts.length > 0) {
               // Mostrar el primer producto completo para debug
-              console.log('First product from backend:', localProducts[0]);
               
               // Buscar productos con descuento
               const productsWithDiscount = localProducts.filter(p => p.opc_promo === 'S' && p.desc_promo > 0);
-              console.log('Products with discount:', productsWithDiscount.length);
               if (productsWithDiscount.length > 0) {
-                console.log('Sample product with discount:', {
-                  id: productsWithDiscount[0].id,
-                  precio1: productsWithDiscount[0].precio1,
-                  price: productsWithDiscount[0].price,
-                  originalPrice: productsWithDiscount[0].originalPrice,
-                  discount: productsWithDiscount[0].discount,
-                  desc_promo: productsWithDiscount[0].desc_promo,
-                  opc_promo: productsWithDiscount[0].opc_promo
-                });
               }
             }
             
@@ -243,14 +230,6 @@ const BuscarPage = () => {
                 
                 // Debug para productos con descuento
                 if (product.opc_promo === 'S' && product.desc_promo > 0) {
-                  console.log('Processing product with discount:', {
-                    id: product.id,
-                    precio1: product.precio1,
-                    desc_promo: product.desc_promo,
-                    price_from_backend: product.price,
-                    originalPrice_from_backend: product.originalPrice,
-                    discount_from_backend: product.discount
-                  });
                 }
                 
                 // Si el backend no envió estos valores, calcularlos aquí como fallback
@@ -264,12 +243,6 @@ const BuscarPage = () => {
                     : numericPrice;
                   
                   if (hasDiscount) {
-                    console.log('Calculated fallback values:', {
-                      id: product.id,
-                      finalPrice,
-                      originalPrice,
-                      discountPercentage
-                    });
                   }
                 }
                 
@@ -319,7 +292,6 @@ const BuscarPage = () => {
             allProducts = await applyUserOffersToProducts(allProducts);
           }
         } catch (error) {
-          console.error('Error buscando productos:', error);
           allProducts = [];
         }
 
@@ -350,7 +322,6 @@ const BuscarPage = () => {
         setFilteredProducts(filtered);
         setLoading(false);
       } catch (error) {
-        console.error('Error cargando productos:', error);
         setProducts([]);
         setFilteredProducts([]);
         setLoading(false);
@@ -559,7 +530,6 @@ const BuscarPage = () => {
     try {
       sessionStorage.setItem('buscarPageFilters', JSON.stringify(newFilters));
     } catch (e) {
-      console.error('Error guardando filtros:', e);
     }
   };
 
@@ -582,7 +552,6 @@ const BuscarPage = () => {
     try {
       sessionStorage.removeItem('buscarPageFilters');
     } catch (e) {
-      console.error('Error limpiando filtros:', e);
     }
   };
 

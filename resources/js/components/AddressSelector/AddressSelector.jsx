@@ -40,7 +40,6 @@ const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' })
         }
       }
     } catch (error) {
-      console.error('Error fetching postal code:', error);
       setSettlements([]);
       if (window.showToast) {
         window.showToast('Error al consultar el código postal', 'error');
@@ -202,7 +201,6 @@ const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' })
         fetchAddresses();
       }
     } catch (error) {
-      console.error('Error saving address:', error);
 
       if (error.response?.status === 401) {
         if (window.showToast) {

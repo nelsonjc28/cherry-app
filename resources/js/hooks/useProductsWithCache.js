@@ -28,7 +28,6 @@ const useProductsWithCache = (fetchFunction, dependencies = []) => {
         const cachedProducts = await getCachedProducts();
         
         if (cachedProducts && cachedProducts.length > 0) {
-          console.log('⚡ Cargando productos desde caché (instantáneo)');
           setProducts(cachedProducts);
           setLoadedFromCache(true);
           setLoading(false);
@@ -37,17 +36,14 @@ const useProductsWithCache = (fetchFunction, dependencies = []) => {
           const expired = await isCacheExpired();
           
           if (expired) {
-            console.log('🔄 Caché expirado, actualizando en background...');
             // Actualizar en background sin mostrar loading
             try {
               const freshProducts = await fetchFunction();
               if (freshProducts && freshProducts.length > 0) {
                 await saveProductsToCache(freshProducts);
                 setProducts(freshProducts);
-                console.log('✅ Caché actualizado en background');
               }
             } catch (bgError) {
-              console.warn('⚠️ Error al actualizar caché en background:', bgError);
               // No mostramos error porque ya tenemos datos del caché
             }
           }
@@ -57,7 +53,6 @@ const useProductsWithCache = (fetchFunction, dependencies = []) => {
       }
 
       // 2. Si no hay caché o se forzó refresh, cargar desde API
-      console.log('🌐 Cargando productos desde API...');
       const freshProducts = await fetchFunction();
 
       if (freshProducts && freshProducts.length > 0) {
@@ -66,13 +61,11 @@ const useProductsWithCache = (fetchFunction, dependencies = []) => {
 
         // Guardar en caché para futuras cargas
         await saveProductsToCache(freshProducts);
-        console.log('✅ Productos cargados y guardados en caché');
       } else {
         setProducts([]);
       }
 
     } catch (err) {
-      console.error('❌ Error al cargar productos:', err);
       setError(err.message || 'Error al cargar productos');
       setProducts([]);
     } finally {
@@ -84,7 +77,6 @@ const useProductsWithCache = (fetchFunction, dependencies = []) => {
    * Forzar recarga desde API (bypass caché)
    */
   const forceRefresh = useCallback(() => {
-    console.log('🔄 Forzando recarga desde API...');
     return loadProducts(true);
   }, [loadProducts]);
 

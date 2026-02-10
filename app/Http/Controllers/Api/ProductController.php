@@ -372,6 +372,166 @@ class ProductController extends Controller
     }
 
     /**
+     * Obtener productos próximamente (stock_received_count === 0 y inventario <= 0)
+     * Limitado a 4 productos para la sección "Próximamente"
+     */
+    public function getComingSoonProducts(Request $request): JsonResponse
+    {
+        try {
+            $limit = $request->input('limit', 4);
+
+            // Obtener productos próximamente con sus detalles
+            // Un producto es próximo si nunca ha recibido stock (stock_received_count === 0)
+            // y no tiene stock actual (inventario <= 0)
+            $productos = DB::table('productos')
+                ->leftJoin('detalles', 'productos.id', '=', 'detalles.producto_id')
+                ->select(
+                    'productos.id',
+                    'productos.descripcion',
+                    'productos.marca',
+                    'productos.precio1',
+                    'productos.precio2',
+                    'productos.precio3',
+                    'productos.precio4',
+                    'productos.precio5',
+                    'productos.precio6',
+                    'productos.precio7',
+                    'productos.precio8',
+                    'productos.precio9',
+                    'productos.precio10',
+                    'productos.imagen',
+                    'productos.inventario',
+                    'productos.fecha_alta',
+                    'productos.opc_nuevo',
+                    'productos.opc_promo',
+                    'productos.desc_promo',
+                    'productos.id_linea',
+                    'productos.catalogoId',
+                    'productos.sector_id',
+                    'productos.genero_id',
+                    'productos.stock_received_count',
+                    'detalles.nombreColor',
+                    'detalles.detalle',
+                    'detalles.inventario_d'
+                )
+                ->where(function($query) {
+                    $query->where('productos.stock_received_count', '=', 0)
+                          ->orWhereNull('productos.stock_received_count');
+                })
+                ->where(function($query) {
+                    $query->where('productos.inventario', '<=', 0)
+                          ->orWhereNull('productos.inventario');
+                })
+                ->orderBy('productos.fecha_alta', 'desc')
+                ->orderBy('productos.id', 'desc')
+                ->distinct()
+                ->limit($limit)
+                ->get()
+                ->groupBy('id')
+                ->map(function ($productGroup) {
+                    $producto = $productGroup->first();
+                    
+                    // Convertir precio
+                    $precio1Raw = $producto->precio1;
+                    $precio1 = 0;
+                    if (is_numeric($precio1Raw)) {
+                        $precio1 = (float) $precio1Raw;
+                    } elseif (is_string($precio1Raw)) {
+                        $precio1 = (float) str_replace(',', '', $precio1Raw);
+                    }
+
+                    // Calcular descuento
+                    $descPromoValue = (float) ($producto->desc_promo ?? 0);
+                    $hasDiscount = $descPromoValue > 0;
+                    $discountPercentage = $hasDiscount ? max(0, $descPromoValue - 10) : 0;
+                    $originalPrice = $hasDiscount && $precio1 > 0 ? $precio1 : null;
+                    $finalPrice = $hasDiscount && $discountPercentage > 0 && $precio1 > 0 
+                        ? ($precio1 - ($precio1 * ($discountPercentage / 100))) 
+                        : $precio1;
+
+                    // Obtener colores y tallas únicos
+                    $colors = $productGroup->pluck('nombreColor')
+                        ->filter()
+                        ->unique()
+                        ->values()
+                        ->toArray();
+                    
+                    $sizes = $productGroup->pluck('detalle')
+                        ->filter()
+                        ->unique()
+                        ->values()
+                        ->toArray();
+
+                    // Calcular inventario total
+                    $inventarioTotal = $productGroup->sum('inventario_d') ?: (float) ($producto->inventario ?? 0);
+
+                    // Obtener rating
+                    $reviews = Review::where('product_id', $producto->id)
+                        ->where('is_approved', true)
+                        ->get();
+                    
+                    $rating = 0;
+                    $ratingCount = count($reviews);
+                    if ($ratingCount > 0) {
+                        $rating = round($reviews->sum('rating') / $ratingCount, 2);
+                    }
+
+                    // Mapear detalles
+                    $detalles = $productGroup->map(function ($detalle) {
+                        return [
+                            'id' => $detalle->id ?? null,
+                            'producto_id' => $detalle->producto_id ?? null,
+                            'nombreColor' => $detalle->nombreColor ?? null,
+                            'detalle' => $detalle->detalle ?? null,
+                            'inventario_d' => (float) ($detalle->inventario_d ?? 0)
+                        ];
+                    })->values()->toArray();
+
+                    return [
+                        'id' => $producto->id,
+                        'id_articulo' => $producto->id,
+                        'title' => $producto->descripcion,
+                        'description' => $producto->descripcion,
+                        'price' => $finalPrice,
+                        'originalPrice' => $originalPrice,
+                        'discount' => $discountPercentage,
+                        'image' => $this->getProductImageUrl($producto->id, $producto->imagen),
+                        'brand' => $producto->marca ?? 'Sin marca',
+                        'stock' => $inventarioTotal,
+                        'inventario' => $inventarioTotal,
+                        'colors' => $colors,
+                        'sizes' => $sizes,
+                        'isNew' => false, // Coming soon are not "new" in this context
+                        'rating' => $rating,
+                        'ratingCount' => $ratingCount,
+                        'id_linea' => $producto->id_linea,
+                        'category_id' => $producto->id_linea,
+                        'catalogoId' => $producto->catalogoId,
+                        'fecha_alta' => $producto->fecha_alta ? date('Y-m-d', strtotime($producto->fecha_alta)) : null,
+                        'opc_nuevo' => $producto->opc_nuevo ?? 'N',
+                        'opc_promo' => $producto->opc_promo ?? 'N',
+                        'desc_promo' => $descPromoValue,
+                        'stock_received_count' => (int) ($producto->stock_received_count ?? 0),
+                        'detalles' => $detalles
+                    ];
+                })
+                ->values()
+                ->toArray();
+
+            return response()->json([
+                'success' => true,
+                'data' => $productos
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al obtener productos próximamente: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Generar URL de imagen del producto desde S3
      * @param string|int $productId - ID del producto
      * @param string|null $imagenFromDb - Imagen desde la base de datos (si existe)

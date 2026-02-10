@@ -60,7 +60,6 @@ const saveCartToDatabase = async (cartState) => {
       discount: cartState.discount
     });
   } catch (error) {
-    console.error('Error saving cart to database:', error);
     // No lanzar error, solo loguear para no interrumpir el flujo
   }
 };
@@ -164,7 +163,6 @@ const useCartStore = create(
                   const parsed = JSON.parse(localStorageCart);
                   hasLocalItems = parsed.state?.items && parsed.state.items.length > 0;
                 } catch (error) {
-                  console.error('Error parsing localStorage cart:', error);
                 }
               }
               
@@ -196,7 +194,6 @@ const useCartStore = create(
             });
           }
         } catch (error) {
-          console.error('Error initializing cart:', error);
           set({ isLoading: false, isInitialized: true });
         }
       },
@@ -297,16 +294,11 @@ const useCartStore = create(
           // PASO 3: Enviar al backend y esperar confirmación
           syncedCart = await cartApi.syncCart(syncPayload);
           
-          console.log('🔵 syncCartFromLocalStorage: PASO 4 - Respuesta del backend:', syncedCart);
 
           if (syncedCart) {
             // Hay respuesta del servidor (puede tener items o estar vacío)
             const syncedItems = syncedCart.items || [];
             
-            console.log('🔵 Items sincronizados:', {
-              syncedItemsCount: syncedItems.length,
-              syncedItems: syncedItems
-            });
             
             // Aplicar ofertas Buy X Get Y al carrito combinado
             const itemsWithOffers = syncedItems.length > 0 
@@ -522,19 +514,13 @@ const useCartStore = create(
         } else {
           // Si no hay sesión, guardar inmediatamente en localStorage
           // IMPORTANTE: Guardar ANTES de que el persist middleware pueda interferir
-          console.log('🟢 addToCart: Sin sesión, guardando en localStorage ANTES de set()...');
           saveCartToLocalStorage(updatedItems, totalItems, totalPrice, get().couponCode, get().discount);
           
           // Verificar inmediatamente después
           const verifySaved = localStorage.getItem('cherry-central-cart');
           if (verifySaved) {
             const parsed = JSON.parse(verifySaved);
-            console.log('🟢 addToCart: Verificación inmediata - localStorage guardado:', {
-              itemsCount: parsed.state?.items?.length || 0,
-              items: parsed.state?.items || []
-            });
           } else {
-            console.error('❌ addToCart: ERROR - localStorage NO se guardó correctamente');
           }
         }
       },
@@ -578,19 +564,13 @@ const useCartStore = create(
         } else {
           // Si no hay sesión, guardar inmediatamente en localStorage
           // IMPORTANTE: Guardar ANTES de que el persist middleware pueda interferir
-          console.log('🟢 addToCart: Sin sesión, guardando en localStorage ANTES de set()...');
           saveCartToLocalStorage(updatedItems, totalItems, totalPrice, get().couponCode, get().discount);
           
           // Verificar inmediatamente después
           const verifySaved = localStorage.getItem('cherry-central-cart');
           if (verifySaved) {
             const parsed = JSON.parse(verifySaved);
-            console.log('🟢 addToCart: Verificación inmediata - localStorage guardado:', {
-              itemsCount: parsed.state?.items?.length || 0,
-              items: parsed.state?.items || []
-            });
           } else {
-            console.error('❌ addToCart: ERROR - localStorage NO se guardó correctamente');
           }
         }
       },
@@ -617,19 +597,13 @@ const useCartStore = create(
         } else {
           // Si no hay sesión, guardar inmediatamente en localStorage
           // IMPORTANTE: Guardar ANTES de que el persist middleware pueda interferir
-          console.log('🟢 addToCart: Sin sesión, guardando en localStorage ANTES de set()...');
           saveCartToLocalStorage(updatedItems, totalItems, totalPrice, get().couponCode, get().discount);
           
           // Verificar inmediatamente después
           const verifySaved = localStorage.getItem('cherry-central-cart');
           if (verifySaved) {
             const parsed = JSON.parse(verifySaved);
-            console.log('🟢 addToCart: Verificación inmediata - localStorage guardado:', {
-              itemsCount: parsed.state?.items?.length || 0,
-              items: parsed.state?.items || []
-            });
           } else {
-            console.error('❌ addToCart: ERROR - localStorage NO se guardó correctamente');
           }
         }
       },

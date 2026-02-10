@@ -103,7 +103,6 @@ const InstallPWA = () => {
             setDeferredPrompt(null);
             setShowInstallBanner(false);
         } catch (error) {
-            console.error('Error al mostrar prompt de instalación:', error);
             showManualInstallInstructions();
         }
     };

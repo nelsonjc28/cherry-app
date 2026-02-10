@@ -41,7 +41,6 @@ const CatalogPage = ({ catalogId }) => {
         return JSON.parse(saved);
       }
     } catch (e) {
-      console.error('Error recuperando filtros:', e);
     }
     return {
       catalog: 'Cherry 2025 - 2026',
@@ -357,7 +356,6 @@ const CatalogPage = ({ catalogId }) => {
 
               // Verificar si el catálogo tiene PDF directamente
               if (catalog.pdf_path && catalog.pdf_name) {
-                console.log('✅ [CatalogPage] PDF encontrado, activando botón');
                 setHasCatalogPdf(true);
                 setCatalogPdfInfo({
                   pdf_path: catalog.pdf_path,
@@ -367,7 +365,6 @@ const CatalogPage = ({ catalogId }) => {
                     : `${window.location.origin}/${catalog.pdf_path}`
                 });
               } else {
-                console.log('❌ [CatalogPage] No se encontró PDF en el catálogo');
                 setHasCatalogPdf(false);
                 setCatalogPdfInfo(null);
               }
@@ -387,7 +384,6 @@ const CatalogPage = ({ catalogId }) => {
                   setHasImageGroups(false);
                 }
               } catch (error) {
-                console.error('Error al verificar grupos de imágenes:', error);
                 setImageGroups([]);
                 setHasImageGroups(false);
               } finally {
@@ -483,13 +479,11 @@ const CatalogPage = ({ catalogId }) => {
                 });
               }
             } catch (error) {
-              console.error('Error loading catalog products:', error);
             }
 
             // Usar solo productos locales del backend
             productsData = localProducts;
           } catch (error) {
-            console.error('Error loading catalog:', error);
             productsData = [];
           }
         } else {
@@ -667,7 +661,6 @@ const CatalogPage = ({ catalogId }) => {
       const storageKey = catalogId ? `catalogPageFilters_${catalogId}` : 'catalogPageFilters';
       sessionStorage.setItem(storageKey, JSON.stringify(newFilters));
     } catch (e) {
-      console.error('Error guardando filtros:', e);
     }
   }, [catalogId]);
 
@@ -690,7 +683,6 @@ const CatalogPage = ({ catalogId }) => {
       const storageKey = catalogId ? `catalogPageFilters_${catalogId}` : 'catalogPageFilters';
       sessionStorage.removeItem(storageKey);
     } catch (e) {
-      console.error('Error limpiando filtros:', e);
     }
   }, [catalogs, catalogId]);
 
@@ -716,7 +708,6 @@ const CatalogPage = ({ catalogId }) => {
         catalogName: currentCatalog?.name || 'Catálogo Cherry'
       });
     } catch (error) {
-      console.error('Error al compartir catálogo:', error);
       if (window.showToast) {
         window.showToast('Error al compartir el catálogo', 'error');
       }

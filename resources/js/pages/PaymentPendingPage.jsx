@@ -60,7 +60,6 @@ const PaymentPendingPage = () => {
         }
       }
     } catch (error) {
-      console.error('Error al verificar estado del pago:', error);
     } finally {
       setIsChecking(false);
     }

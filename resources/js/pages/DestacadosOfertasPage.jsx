@@ -95,7 +95,6 @@ const DestacadosOfertasPage = () => {
           setAvailableCategories([]);
         }
       } catch (error) {
-        console.error('Error cargando categorías:', error);
         setAvailableCategories([]);
       }
     };
@@ -177,13 +176,6 @@ const DestacadosOfertasPage = () => {
             
             // Debug: Verificar estructura de productos del backend
             if (localProducts.length > 0) {
-              console.log('🔍 DEBUG - Primer producto del backend:', {
-                id: localProducts[0].id,
-                id_linea: localProducts[0].id_linea,
-                linea: localProducts[0].linea,
-                catalogoId: localProducts[0].catalogoId,
-                descripcion: localProducts[0].descripcion
-              });
             }
             
             // Mapear TODOS los productos locales al formato esperado (sin filtrar todavía)
@@ -279,7 +271,6 @@ const DestacadosOfertasPage = () => {
             }));
           }
         } catch (error) {
-          console.error('Error cargando productos:', error);
           allProducts = [];
         }
 
@@ -287,7 +278,6 @@ const DestacadosOfertasPage = () => {
         setFilteredProducts(allProducts);
         setLoading(false);
       } catch (error) {
-        console.error('Error cargando productos:', error);
         setProducts([]);
         setFilteredProducts([]);
         setLoading(false);
@@ -299,11 +289,6 @@ const DestacadosOfertasPage = () => {
 
   // Filtrar productos basado en filtros y tipo de oferta
   useEffect(() => {
-    console.log('🔍 DEBUG - useEffect de filtros ejecutado', {
-      productsCount: products.length,
-      filters: filters,
-      selectedOffer: selectedOffer
-    });
     
     let filtered = [...products];
 

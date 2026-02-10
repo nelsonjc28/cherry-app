@@ -29,7 +29,6 @@ const OffersModal = ({ isOpen, onClose }) => {
       // Si no hay usuario, usar endpoint público
       const endpoint = user ? '/user-offers' : '/active-offers';
       const offersResponse = await api.get(endpoint);
-      console.log('🔍 [MODAL] Ofertas:', offersResponse.data);
       
       if (offersResponse.data.success && offersResponse.data.offers && offersResponse.data.offers.length > 0) {
         // Filtrar ofertas que estén dentro del rango de fechas
@@ -58,9 +57,7 @@ const OffersModal = ({ isOpen, onClose }) => {
         }
       } else {
         // Si no hay ofertas de catálogo, obtener productos con ofertas
-        console.log('🔍 [MODAL] No hay ofertas de catálogo, obteniendo productos con ofertas...');
         const productsResponse = await api.get('/products/with-offers');
-        console.log('🔍 [MODAL] Productos con ofertas:', productsResponse.data);
         
         if (productsResponse.data.success && productsResponse.data.data?.products && productsResponse.data.data.products.length > 0) {
           // Limitar a los primeros 12 productos para no sobrecargar el modal
@@ -73,7 +70,6 @@ const OffersModal = ({ isOpen, onClose }) => {
         }
       }
     } catch (err) {
-      console.error('Error al cargar ofertas:', err);
       setError('Error al cargar las ofertas');
     } finally {
       setLoading(false);

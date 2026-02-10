@@ -68,7 +68,6 @@ const AdminCategoryManager = () => {
         }
       }
     } catch (error) {
-      console.error('Error al guardar categoría:', error);
       if (error.response?.data?.errors) {
         const errorMessages = Object.values(error.response.data.errors).flat();
         setError(errorMessages.join(', '));

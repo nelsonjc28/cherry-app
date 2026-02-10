@@ -31,7 +31,6 @@ const NuevosPage = () => {
         return JSON.parse(saved);
       }
     } catch (e) {
-      console.error('Error recuperando filtros:', e);
     }
     return {
     catalog: 'Seleccione',
@@ -249,27 +248,27 @@ const NuevosPage = () => {
         if (searchResponse.data.success && searchResponse.data.data.products) {
           const localProducts = searchResponse.data.data.products;
           
-          // Calcular fecha límite (45 días atrás) - usar solo fecha, sin hora
+          // Calcular fecha límite (80 días atrás) - usar solo fecha, sin hora
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           const fortyFiveDaysAgo = new Date(today);
-          fortyFiveDaysAgo.setDate(today.getDate() - 45);
+          fortyFiveDaysAgo.setDate(today.getDate() - 80);
           fortyFiveDaysAgo.setHours(0, 0, 0, 0);
           
-          console.log('🔍 NuevosPage - Filtro de productos nuevos:', {
-            fechaLimite: fortyFiveDaysAgo.toISOString(),
-            totalProductos: localProducts.length
-          });
           
-          // Filtrar solo productos nuevos
+          // Filtrar solo productos nuevos (excluyendo productos próximamente)
+          let productosExcluidosProximamente = 0;
+          let productosNuevosPorOpcNuevo = 0;
+          let productosNuevosPorFecha = 0;
+          
           const newProductsRaw = localProducts.filter(product => {
-            // Es nuevo si opc_nuevo === 'S'
-            if (product.opc_nuevo === 'S') {
-              console.log('✅ Producto marcado como nuevo (opc_nuevo):', product.id_articulo || product.id);
-              return true;
-            }
+            const productId = product.id_articulo || product.id;
+            const isTargetProduct = productId === '07612672903' || productId === 7612672903;
             
-            // Verificar fecha_alta
+            // NO excluir productos próximamente aquí - dejar que pasen el filtro
+            // Los excluiremos después del mapeo antes de mostrarlos
+            
+            // Verificar fecha_alta - debe estar dentro de los últimos 45 días
             if (product.fecha_alta) {
               try {
                 // Parsear fecha (puede venir como 'YYYY-MM-DD' o Date object)
@@ -286,17 +285,21 @@ const NuevosPage = () => {
                 
                 // Verificar que la fecha sea válida
                 if (isNaN(fechaAlta.getTime())) {
-                  console.warn('⚠️ Fecha inválida para producto:', product.id_articulo || product.id, product.fecha_alta);
                   return false;
                 }
                 
-                const isNew = fechaAlta >= fortyFiveDaysAgo;
+                // Comparar si la fecha_alta está dentro de los últimos 80 días
+                // Calcular diferencia en días: (hoy - fecha_alta) <= 80 días
+                const diferenciaDias = Math.floor((today - fechaAlta) / (1000 * 60 * 60 * 24));
+                // Un producto es nuevo si la diferencia es <= 80 días (fecha reciente)
+                // Y >= 0 (no es una fecha futura)
+                const isNew = diferenciaDias <= 80 && diferenciaDias >= 0;
+                
                 if (isNew) {
-                  console.log('✅ Producto nuevo por fecha_alta:', product.id_articulo || product.id, 'fecha:', product.fecha_alta);
+                  productosNuevosPorFecha++;
                 }
                 return isNew;
               } catch (error) {
-                console.error('❌ Error parseando fecha_alta:', product.id_articulo || product.id, error);
                 return false;
               }
             }
@@ -304,10 +307,6 @@ const NuevosPage = () => {
             return false;
           });
           
-          console.log('📊 NuevosPage - Resultados del filtro:', {
-            productosNuevos: newProductsRaw.length,
-            totalProductos: localProducts.length
-          });
           
           // Mapear productos al formato esperado
           const mappedProducts = newProductsRaw.map(product => {
@@ -404,14 +403,48 @@ const NuevosPage = () => {
           });
           setAvailableSizes(sortedSizes);
           
-          setAllProducts(productsWithOffers);
-          setFilteredProducts([...productsWithOffers]);
+          // Excluir productos próximamente antes de mostrarlos en pantalla
+          // Usar la misma lógica que calculateTotalStock() y getStockStatus() en ProductCard/CatalogProductCard
+          let excluidosEnFiltroFinal = 0;
+          const productosSinProximamente = productsWithOffers.filter(product => {
+            // Calcular stock total igual que en ProductCard (suma de inventario_d de detalles)
+            let totalStock = 0;
+            if (product.detalles && product.detalles.length > 0) {
+              const totalFromDetails = product.detalles.reduce((total, detalle) => {
+                return total + (parseFloat(detalle.inventario_d) || 0);
+              }, 0);
+              // Si la suma de detalles es > 0, usar ese valor
+              if (totalFromDetails > 0) {
+                totalStock = totalFromDetails;
+              } else {
+                // Si no hay detalles o la suma es 0, usar el inventario general
+                totalStock = parseFloat(product.stock || product.inventario || 0);
+              }
+            } else {
+              // Si no hay detalles, usar el inventario general
+              totalStock = parseFloat(product.stock || product.inventario || 0);
+            }
+            
+            const stockReceivedCount = product.stock_received_count || product.stockReceivedCount || 0;
+            
+            // Misma lógica que getStockStatus(): "Próximamente" si stock_received_count === 0 Y totalStock <= 0
+            const isComingSoon = stockReceivedCount === 0 && totalStock <= 0;
+            
+            if (isComingSoon) {
+              excluidosEnFiltroFinal++;
+              return false; // Excluir productos próximamente
+            }
+            return true;
+          });
+          
+          
+          setAllProducts(productosSinProximamente);
+          setFilteredProducts([...productosSinProximamente]);
         } else {
           setAllProducts([]);
           setFilteredProducts([]);
         }
       } catch (error) {
-        console.error('Error cargando productos nuevos:', error);
         setAllProducts([]);
         setFilteredProducts([]);
       } finally {
@@ -449,7 +482,6 @@ const NuevosPage = () => {
     try {
       sessionStorage.setItem('nuevosPageFilters', JSON.stringify(newFilters));
     } catch (e) {
-      console.error('Error guardando filtros:', e);
     }
   }, []);
 
@@ -468,7 +500,6 @@ const NuevosPage = () => {
     try {
       sessionStorage.removeItem('nuevosPageFilters');
     } catch (e) {
-      console.error('Error limpiando filtros:', e);
     }
   }, []);
 

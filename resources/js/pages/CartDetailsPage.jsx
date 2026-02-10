@@ -126,7 +126,6 @@ const CartDetailsPage = () => {
         }
       } catch (error) {
         // Error fetching store address - usar valores por defecto (deben coincidir con ContactPage.jsx)
-        console.error('Error al cargar información de contacto:', error);
         setStoreAddress(defaultStoreAddress);
         setStoreMapUrl(defaultMapUrl);
       }

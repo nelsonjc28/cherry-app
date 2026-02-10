@@ -99,7 +99,6 @@ const FeaturedProducts = ({
           setApiProducts(products);
         }
       } catch (err) {
-        console.error('Error cargando productos nuevos:', err);
         setError(err.message || 'Error al cargar productos');
         setApiProducts([]);
       } finally {

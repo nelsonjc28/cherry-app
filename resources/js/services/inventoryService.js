@@ -64,7 +64,6 @@ export const getProductStock = async (productId, size, color) => {
 
     return stock;
   } catch (error) {
-    console.error('Error al obtener stock del producto:', error);
     // En caso de error, retornar 0 para prevenir agregar más al carrito
     return 0;
   }

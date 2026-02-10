@@ -33,7 +33,6 @@ const Footer = () => {
         }
       } catch (error) {
         // Error fetching contact info, use defaults
-        console.error('Error al cargar información de contacto:', error);
       }
     };
 

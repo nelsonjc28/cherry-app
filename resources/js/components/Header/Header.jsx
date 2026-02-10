@@ -471,6 +471,8 @@ const Header = () => {
       setMobileMenuOpen(false);
       if (menuKey === 'nuevos') {
         navigate('/nuevos');
+      } else if (menuKey === 'proximamente') {
+        navigate('/proximamente');
       } else if (menuKey === 'catalogos') {
         navigate('/catalogos');
       } else if (menuKey === 'categorias') {
@@ -743,6 +745,13 @@ const Header = () => {
               </li>
               <li className="nav-item nav-divider"></li>
               <li className="nav-item" onMouseEnter={() => setActiveMenu(null)}>
+                <Link to="/proximamente" className="nav-link" data-discover="true">
+                  <img src={getIconPath('Clock.svg')} alt="Próximamente" />
+                  Próximamente
+                </Link>
+              </li>
+              <li className="nav-item nav-divider"></li>
+              <li className="nav-item" onMouseEnter={() => setActiveMenu(null)}>
                 <Link to="/destacados" className="nav-link">
                   <img src={getIconPath('Award.svg')} alt="Más Vendidos" />
                   Más Vendidos
@@ -893,6 +902,13 @@ const Header = () => {
                 <Link to="/nuevos" className="mobile-menu-link" onClick={() => setMobileMenuOpen(false)}>
                   <img src={getIconPath('Cart Plus.svg')} alt="Nuevos" />
                   <span>Nuevos</span>
+                </Link>
+              </li>
+
+              <li className="mobile-menu-item">
+                <Link to="/proximamente" className="mobile-menu-link" onClick={() => setMobileMenuOpen(false)}>
+                  <img src={getIconPath('Clock.svg')} alt="Próximamente" />
+                  <span>Próximamente</span>
                 </Link>
               </li>
 

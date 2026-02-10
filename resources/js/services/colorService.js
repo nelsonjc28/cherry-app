@@ -39,7 +39,6 @@ class ColorService {
 
       return null;
     } catch (error) {
-      console.warn(`Error identifying color "${colorName}":`, error);
       return null;
     }
   }

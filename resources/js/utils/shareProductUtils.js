@@ -30,7 +30,6 @@ const fetchImageAsFile = async (imageUrl, filename, timeout = 5000) => {
     return new File([blob], filename, { type });
   } catch (error) {
     if (error.name === 'AbortError') {
-      console.warn(`Timeout al descargar imagen: ${filename}`);
     }
     return null;
   }
@@ -145,7 +144,6 @@ let isSharing = false;
 export const shareProductWithImages = async (product) => {
   // Prevenir múltiples ejecuciones simultáneas
   if (isSharing) {
-    console.log('Ya se está compartiendo un producto, espera...');
     return;
   }
 
@@ -215,7 +213,6 @@ export const shareProductWithImages = async (product) => {
             return;
           }
           // Si hay otro error, intentar compartir solo texto
-          console.warn('Error al compartir con archivos, intentando solo texto:', shareError);
         }
       }
       
@@ -261,7 +258,6 @@ export const shareProductWithImages = async (product) => {
     }
   } catch (error) {
     if (error.name === 'AbortError') return;
-    console.error('Error al compartir producto:', error);
     
     // Fallback final: descargar imágenes y copiar URL
     try {
@@ -285,7 +281,6 @@ export const shareProductWithImages = async (product) => {
         window.showToast('Imágenes descargadas. Enlace copiado.', 'info');
       }
     } catch (fallbackError) {
-      console.error('Error en fallback:', fallbackError);
       if (window.showToast) {
         window.showToast('No se pudo compartir. Intenta nuevamente.', 'error');
       }
@@ -339,7 +334,6 @@ export const shareCatalogPdf = async (pdfInfo) => {
             return;
           }
           // Si hay otro error, intentar compartir solo texto
-          console.warn('Error al compartir con archivo, intentando solo texto:', shareError);
         }
       }
       
@@ -393,7 +387,6 @@ export const shareCatalogPdf = async (pdfInfo) => {
     }
   } catch (error) {
     if (error.name === 'AbortError') return;
-    console.error('Error al compartir PDF del catálogo:', error);
     
     // Fallback final: descargar PDF y copiar URL
     try {
@@ -419,7 +412,6 @@ export const shareCatalogPdf = async (pdfInfo) => {
         window.showToast('PDF descargado. Enlace copiado.', 'info');
       }
     } catch (fallbackError) {
-      console.error('Error en fallback:', fallbackError);
       if (window.showToast) {
         window.showToast('No se pudo compartir. Intenta nuevamente.', 'error');
       }

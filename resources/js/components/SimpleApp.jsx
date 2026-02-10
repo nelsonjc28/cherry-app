@@ -31,6 +31,7 @@ import PromocionesPage from '../pages/PromocionesPage';
 import OfertasPersonalizadasPage from '../pages/OfertasPersonalizadasPage';
 import DestacadosPage from '../pages/DestacadosPage';
 import NuevosPage from '../pages/NuevosPage';
+import ProximamentePage from '../pages/ProximamentePage';
 import ProductosPage from '../pages/ProductosPage';
 import DestacadosOfertasPage from '../pages/DestacadosOfertasPage';
 import FavoritosPage from '../pages/FavoritosPage';
@@ -118,6 +119,7 @@ const SimpleApp = () => {
                   <Route path="/ofertas-personalizadas" element={<OfertasPersonalizadasPage />} />
                   <Route path="/destacados" element={<DestacadosPage />} />
                   <Route path="/nuevos" element={<NuevosPage />} />
+                  <Route path="/proximamente" element={<ProximamentePage />} />
                   <Route path="/productos" element={<ProductosPage />} />
                   <Route path="/destacados-ofertas" element={<DestacadosOfertasPage />} />
                   <Route path="/favoritos" element={<FavoritosPage />} />

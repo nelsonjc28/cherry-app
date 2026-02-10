@@ -249,7 +249,7 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
         )}
 
         {/* Offer badge if product has discount (and is not new, not coming soon, and has stock) */}
-        {!isNew && stockStatus !== 'coming-soon' && stock > 0 && hasOffer && (
+        {!isNew && stockStatus !== 'coming-soon' && calculateTotalStock() > 0 && hasOffer && (
           <span className="offer-badge">
             {getDiscountLabel()}
           </span>
@@ -331,7 +331,7 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
         )}
 
         {/* Offer badge if product has discount (and is not new, not coming soon, and has stock) */}
-        {!isNew && stockStatus !== 'coming-soon' && stock > 0 && hasOffer && (
+        {!isNew && stockStatus !== 'coming-soon' && calculateTotalStock() > 0 && hasOffer && (
           <span className={`offer-badge ${finalHasUserOffer ? 'user-offer' : ''} ${
             finalHasUserOffer && finalUserOffer && finalUserOffer.discount_category === 'buy_x_get_y' ? 'buy-x-get-y' : 
             finalHasUserOffer && finalUserOffer && finalUserOffer.discount_category === 'order_discount' ? 'order-discount' : 

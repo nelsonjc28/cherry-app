@@ -70,25 +70,13 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
   // Agrupar productos por product_id
   const groupedProducts = React.useMemo(() => {
     if (!order.items || order.items.length === 0) return [];
-    
-    // Debug: Log de los items recibidos
-    console.log('🔍 OrderDetailModal - Items recibidos:', order.items);
-    
     const grouped = {};
     
     order.items.forEach((item) => {
       const productId = item.product_id;
       
       // Debug: Log de cada item
-      console.log('🔍 Item procesado:', {
-        product_id: productId,
-        title: item.title,
-        price: item.price,
-        has_discount: item.has_discount,
-        original_price: item.original_price,
-        discount_percentage: item.discount_percentage,
-        full_item: item // Log completo del item para debugging
-      });
+      
       
       if (!grouped[productId]) {
         // Usar la imagen del item solo si existe y no es placeholder
@@ -112,7 +100,6 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
           price: item.price || 0
         };
         
-        console.log('🔍 Grupo inicializado:', grouped[productId]);
       }
       
       // Si el grupo no tiene imagen y este item tiene una válida, actualizarla
@@ -135,12 +122,7 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
       
       // Actualizar información de descuento si el item tiene descuento
       if (item.has_discount && item.original_price && item.original_price > item.price) {
-        console.log('🔍 Item tiene descuento:', {
-          product_id: productId,
-          original_price: item.original_price,
-          price: item.price,
-          discount_percentage: item.discount_percentage
-        });
+        
         grouped[productId].hasDiscount = true;
         // Usar el precio original más alto si hay múltiples items con diferentes precios originales
         if (!grouped[productId].originalPrice || item.original_price > grouped[productId].originalPrice) {
@@ -154,7 +136,6 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
         if (!grouped[productId].price || item.price < grouped[productId].price) {
           grouped[productId].price = item.price;
         }
-        console.log('🔍 Grupo actualizado con descuento:', grouped[productId]);
       } else if (!grouped[productId].price && item.price) {
         // Si no hay descuento pero aún no tenemos precio, establecerlo
         grouped[productId].price = item.price;
@@ -188,19 +169,8 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
     });
     
     const result = Object.values(grouped);
-    console.log('🔍 Grupos finales:', result);
-    console.log('🔍 Grupos con descuento:', result.filter(g => g.hasDiscount && g.originalPrice));
     result.forEach(group => {
-      console.log('🔍 Grupo completo:', {
-        title: group.title,
-        product_id: group.product_id,
-        hasDiscount: group.hasDiscount,
-        originalPrice: group.originalPrice,
-        price: group.price,
-        discountPercentage: group.discountPercentage,
-        items_count: group.items.length,
-        first_item_original_price: group.items[0]?.original_price
-      });
+      
     });
     
     return result;
@@ -419,7 +389,6 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
                               }
                             }
                           } catch (error) {
-                            console.error('Error al actualizar estado de preparado:', error);
                             if (window.showToast) {
                               window.showToast('Error al actualizar estado de preparado', 'error');
                             }
@@ -465,7 +434,6 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
                               }
                             }
                           } catch (error) {
-                            console.error('Error al actualizar número de guía:', error);
                             if (window.showToast) {
                               window.showToast('Error al actualizar número de guía', 'error');
                             }

@@ -173,7 +173,6 @@ const AdminHistorial = () => {
           setError('Error al cargar el historial');
         }
       } catch (err) {
-        console.error('Error fetching historial:', err);
         setError('Error al cargar el historial. Por favor, intenta nuevamente.');
       } finally {
         setLoading(false);

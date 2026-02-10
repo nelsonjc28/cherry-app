@@ -45,7 +45,6 @@ export const checkUserDiscounts = async (productIds) => {
   } catch (error) {
     // Solo loggear errores importantes en producción
     if (error.response && error.response.status !== 401) {
-      console.warn('Error verificando descuentos:', error.response.status);
     }
     
     return {

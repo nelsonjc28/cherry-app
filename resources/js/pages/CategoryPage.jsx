@@ -80,7 +80,6 @@ const CategoryPage = ({ categorySlug }) => {
         return JSON.parse(saved);
       }
     } catch (e) {
-      console.error('Error recuperando filtros:', e);
     }
     return {
     catalog: 'Cherry 2025 - 2026',
@@ -437,7 +436,6 @@ const CategoryPage = ({ categorySlug }) => {
                     productsData = [];
                   }
                 } catch (error) {
-                  console.error('Error obteniendo productos locales:', error);
                   productsData = [];
                 }
               } else {
@@ -535,7 +533,6 @@ const CategoryPage = ({ categorySlug }) => {
               productsData = [];
             }
           } catch (error) {
-            console.error('Error cargando productos:', error);
             productsData = [];
           }
         }
@@ -616,7 +613,6 @@ const CategoryPage = ({ categorySlug }) => {
     try {
       sessionStorage.setItem('categoryPageFilters', JSON.stringify(newFilters));
     } catch (e) {
-      console.error('Error guardando filtros:', e);
     }
   };
 
@@ -636,7 +632,6 @@ const CategoryPage = ({ categorySlug }) => {
     try {
       sessionStorage.removeItem('categoryPageFilters');
     } catch (e) {
-      console.error('Error limpiando filtros:', e);
     }
   };
 

@@ -1275,7 +1275,6 @@ export const getTopSellingProducts = async (limit = 20) => {
     return mappedProducts;
     
   } catch (error) {
-    console.error('Error al obtener productos más vendidos:', error);
     return [];
   }
 };

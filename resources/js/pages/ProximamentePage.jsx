@@ -31,7 +31,6 @@ const NuevosPage = () => {
         return JSON.parse(saved);
       }
     } catch (e) {
-      console.error('Error recuperando filtros:', e);
     }
     return {
     catalog: 'Seleccione',
@@ -249,10 +248,6 @@ const NuevosPage = () => {
         if (searchResponse.data.success && searchResponse.data.data.products) {
           const localProducts = searchResponse.data.data.products;
           
-          console.log('🔍 ProximamentePage - Filtro de productos próximamente:', {
-            totalProductos: localProducts.length
-          });
-          
           // Filtrar solo productos próximamente (stock_received_count === 0)
           // Un producto es próximo si nunca ha recibido stock, independientemente de si es nuevo o no
           const comingSoonProductsRaw = localProducts.filter(product => {
@@ -264,15 +259,9 @@ const NuevosPage = () => {
             const isComingSoon = stockReceivedCount === 0 && totalStock <= 0;
             
             if (isComingSoon) {
-              console.log('✅ Producto próximo (stock_received_count === 0, inventario === 0):', product.id_articulo || product.id);
               return true;
             }
             return false;
-          });
-          
-          console.log('📊 ProximamentePage - Resultados del filtro:', {
-            productosProximamente: comingSoonProductsRaw.length,
-            totalProductos: localProducts.length
           });
           
           // Mapear productos al formato esperado
@@ -377,7 +366,6 @@ const NuevosPage = () => {
           setFilteredProducts([]);
         }
       } catch (error) {
-        console.error('Error cargando productos próximamente:', error);
         setAllProducts([]);
         setFilteredProducts([]);
       } finally {
@@ -415,7 +403,6 @@ const NuevosPage = () => {
     try {
       sessionStorage.setItem('nuevosPageFilters', JSON.stringify(newFilters));
     } catch (e) {
-      console.error('Error guardando filtros:', e);
     }
   }, []);
 
@@ -434,7 +421,6 @@ const NuevosPage = () => {
     try {
       sessionStorage.removeItem('nuevosPageFilters');
     } catch (e) {
-      console.error('Error limpiando filtros:', e);
     }
   }, []);
 

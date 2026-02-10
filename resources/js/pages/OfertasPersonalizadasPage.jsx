@@ -46,7 +46,6 @@ const OfertasPersonalizadasPage = () => {
         return JSON.parse(saved);
       }
     } catch (e) {
-      console.error('Error recuperando filtros:', e);
     }
     return {
       availability: 'todos',
@@ -77,14 +76,12 @@ const OfertasPersonalizadasPage = () => {
     const loadPersonalizedOfferProducts = async () => {
       setLoading(true);
       try {
-        console.log('🔍 DEBUG - Iniciando carga de productos con ofertas personalizadas');
         
         // Obtener productos con ofertas personalizadas del usuario
         const response = await api.get('/user-offers/products');
         
         if (response.data.success && response.data.data?.products) {
           const localProducts = response.data.data.products;
-          console.log('🔍 DEBUG - Productos recibidos:', localProducts.length);
           
           // Mapear productos al formato esperado
           const allProducts = localProducts.map(product => {
@@ -143,13 +140,11 @@ const OfertasPersonalizadasPage = () => {
             };
           });
           
-          console.log(`✅ Total: ${allProducts.length} productos con ofertas personalizadas`);
           setProductsWithOffers(allProducts);
         } else {
           setProductsWithOffers([]);
         }
       } catch (error) {
-        console.error('❌ Error al cargar ofertas personalizadas:', error);
         setProductsWithOffers([]);
       } finally {
         setLoading(false);
@@ -182,7 +177,6 @@ const OfertasPersonalizadasPage = () => {
           setCatalogs([]);
         }
       } catch (error) {
-        console.error('Error loading catalogs:', error);
         setCatalogs([]);
       } finally {
         setCatalogLoading(false);
@@ -233,7 +227,6 @@ const OfertasPersonalizadasPage = () => {
         setAvailableColors(Array.from(colorSet).sort());
         setAvailableSizes(sortedSizes);
       } catch (error) {
-        console.error('Error extrayendo datos de filtros:', error);
         setAvailableColors([]);
         setAvailableSizes([]);
       }
@@ -388,7 +381,6 @@ const OfertasPersonalizadasPage = () => {
     try {
       sessionStorage.setItem('ofertasPersonalizadasPageFilters', JSON.stringify(newFilters));
     } catch (e) {
-      console.error('Error guardando filtros:', e);
     }
   }, []);
 
@@ -407,7 +399,6 @@ const OfertasPersonalizadasPage = () => {
     try {
       sessionStorage.removeItem('ofertasPersonalizadasPageFilters');
     } catch (e) {
-      console.error('Error limpiando filtros:', e);
     }
   }, []);
 

@@ -128,7 +128,6 @@ const ProductPage = () => {
         hasDiscount: hasDiscount
       });
     } catch (error) {
-      console.error("Error al compartir:", error);
       
       let errorMessage = "No se pudo compartir el producto.";
       
@@ -216,7 +215,6 @@ const ProductPage = () => {
         };
         
         productImage.onerror = () => {
-          console.error('Error cargando imagen del producto');
           // Si falla, usar altura por defecto
           finalImageHeight = 500;
           resolve();
@@ -416,7 +414,6 @@ const ProductPage = () => {
             return;
           }
           // Continuar con el fallback si falla
-          console.log('Error al compartir:', shareError);
         }
       }
 
@@ -444,7 +441,6 @@ const ProductPage = () => {
       }
 
     } catch (error) {
-      console.error("Error al compartir:", error);
       
       let errorMessage = "No se pudo compartir la imagen.";
       
@@ -538,7 +534,6 @@ const ProductPage = () => {
 
         // Rating data ahora viene del producto directamente
       } catch (err) {
-        console.error('Error al cargar el producto:', err);
         setError(err.message || 'Error al cargar el producto');
         if (window.showToast) {
           window.showToast('Error al cargar el producto', 'error');
@@ -651,7 +646,6 @@ const ProductPage = () => {
         throw new Error(response.data?.message || 'Error desconocido');
       }
     } catch (error) {
-      console.error('Error al registrar interés:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Error al registrar tu interés. Por favor intenta nuevamente.';
       if (window.showToast) {
         window.showToast(errorMessage, 'error');
@@ -698,7 +692,6 @@ const ProductPage = () => {
             window.showToast('✅ Te avisaremos cuando este producto esté disponible.', 'success');
           }
         } catch (error) {
-          console.error('Error al registrar interés:', error);
           if (window.showToast) {
             window.showToast('Error al registrar tu interés. Por favor intenta nuevamente.', 'error');
           }

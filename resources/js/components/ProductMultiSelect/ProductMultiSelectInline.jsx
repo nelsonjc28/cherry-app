@@ -110,7 +110,6 @@ const ProductMultiSelect = ({
       setProducts(filteredProducts);
       setFilteredProducts(filteredProducts);
     } catch (err) {
-      console.error('Error al cargar productos desde BD:', err);
       setError('Error al cargar productos: ' + (err.response?.data?.error || err.message));
     } finally {
       setLoading(false);

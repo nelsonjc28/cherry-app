@@ -90,7 +90,8 @@ class TopSellingController extends Controller
                     'productos.fecha_alta',
                     'productos.marca',
                     'productos.inventario',
-                    'productos.sku'
+                    'productos.sku',
+                    'productos.stock_received_count'
                 ])
                 ->get();
             
@@ -151,7 +152,7 @@ class TopSellingController extends Controller
             $coloresPorProducto = [];
             if (!empty($productIds)) {
                 $detalles = DB::table('detalles')
-                    ->select('producto_id', 'nombreColor', 'detalle')
+                    ->select('producto_id', 'nombreColor', 'detalle', 'inventario_d')
                     ->whereIn('producto_id', $productIds)
                     ->whereNotNull('nombreColor')
                     ->where('nombreColor', '!=', '')
@@ -165,7 +166,8 @@ class TopSellingController extends Controller
                     
                     $detallesPorProducto[$detalle->producto_id][] = [
                         'nombreColor' => $detalle->nombreColor,
-                        'detalle' => $detalle->detalle
+                        'detalle' => $detalle->detalle,
+                        'inventario_d' => (float) ($detalle->inventario_d ?? 0)
                     ];
                     
                     if (!in_array($detalle->nombreColor, $coloresPorProducto[$detalle->producto_id])) {

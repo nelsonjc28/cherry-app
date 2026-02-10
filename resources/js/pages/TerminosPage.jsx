@@ -20,7 +20,6 @@ const TerminosPage = () => {
       setLoading(true);
       const response = await apiClient.get('/api/terms-conditions');
       setTermsContent(response.data.data.content);
-      console.log(response.data.data.content);
       setShowAcceptance(true);
     } catch (error) {
       setError('No se pudieron cargar los términos y condiciones');

@@ -99,7 +99,6 @@ const ComingSoonProducts = ({
           setApiProducts(products);
         }
       } catch (err) {
-        console.error('Error cargando productos próximamente:', err);
         setError(err.message || 'Error al cargar productos');
         setApiProducts([]);
       } finally {

@@ -31,7 +31,6 @@ const ProductosPage = () => {
         return JSON.parse(saved);
       }
     } catch (e) {
-      console.error('Error recuperando filtros:', e);
     }
     return {
     catalog: 'Seleccione',
@@ -76,7 +75,6 @@ const ProductosPage = () => {
           setCatalogs([]);
         }
       } catch (error) {
-        console.error('Error cargando catálogos:', error);
         setCatalogs([]);
       } finally {
         setCatalogLoading(false);
@@ -231,7 +229,6 @@ const ProductosPage = () => {
           setFilteredProducts([]);
         }
       } catch (error) {
-        console.error('Error cargando productos:', error);
         setProducts([]);
         setFilteredProducts([]);
       } finally {
@@ -409,7 +406,6 @@ const ProductosPage = () => {
     try {
       sessionStorage.setItem('productosPageFilters', JSON.stringify(newFilters));
     } catch (e) {
-      console.error('Error guardando filtros:', e);
     }
   };
 
@@ -431,7 +427,6 @@ const ProductosPage = () => {
     try {
       sessionStorage.removeItem('productosPageFilters');
     } catch (e) {
-      console.error('Error limpiando filtros:', e);
     }
   };
 

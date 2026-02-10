@@ -28,7 +28,6 @@ const CatalogosPage = () => {
         return JSON.parse(saved);
       }
     } catch (e) {
-      console.error('Error recuperando filtros:', e);
     }
     return {
       catalog: 'Seleccione',
@@ -209,7 +208,6 @@ const CatalogosPage = () => {
           setTotalResults(0);
         }
       } catch (err) {
-        console.error('Error al cargar productos:', err);
         setError('Error al cargar los productos del catálogo');
         setProducts([]);
         setFilteredProducts([]);
@@ -335,7 +333,6 @@ const CatalogosPage = () => {
     try {
       sessionStorage.setItem('catalogosPageFilters', JSON.stringify(newFilters));
     } catch (e) {
-      console.error('Error guardando filtros:', e);
     }
   };
 
@@ -356,7 +353,6 @@ const CatalogosPage = () => {
     try {
       sessionStorage.removeItem('catalogosPageFilters');
     } catch (e) {
-      console.error('Error limpiando filtros:', e);
     }
   };
 

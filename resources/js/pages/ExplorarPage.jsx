@@ -104,7 +104,6 @@ const ExplorarPage = () => {
           setProducts([]);
         }
       } catch (error) {
-        console.error('Error cargando productos:', error);
         setProducts([]);
       } finally {
         setLoading(false);

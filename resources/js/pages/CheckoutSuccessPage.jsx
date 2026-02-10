@@ -73,7 +73,6 @@ export default function CheckoutSuccessPage() {
           setPaymentStatus('error');
         }
       } catch (err) {
-        console.error('Error verificando pago:', err);
         
         // Si hay external_reference o preference_id válidos pero el error es de conexión,
         // probablemente es porque estamos en localhost y Mercado Pago no puede acceder

@@ -101,12 +101,6 @@ const CatalogPdfPage = () => {
         setSelectedCatalog(catalogData);
         
         // Debug: Log para verificar datos del catálogo
-        console.log('📋 [CatalogPdfPage] Catálogo cargado:', {
-          id: catalogData.id,
-          name: catalogData.name,
-          pdf_path: catalogData.pdf_path,
-          pdf_name: catalogData.pdf_name
-        });
 
         // Luego cargar los grupos de imágenes del catálogo
         await fetchImageGroups(catalogId);
@@ -166,7 +160,6 @@ const CatalogPdfPage = () => {
       });
     } catch (error) {
       if (error.name !== 'AbortError') {
-        console.error('Error al compartir catálogo:', error);
         if (window.showToast) {
           window.showToast('Error al compartir el catálogo', 'error');
         }
@@ -187,14 +180,7 @@ const CatalogPdfPage = () => {
         // Debug: Log para verificar grupos con PDF
         const groupsWithPdf = groups.filter(g => g.pdf_path);
         if (groupsWithPdf.length > 0) {
-          console.log('✅ [CatalogPdfPage] Grupos con PDF encontrados:', groupsWithPdf.map(g => ({
-            id: g.id,
-            name: g.name,
-            pdf_path: g.pdf_path,
-            pdf_name: g.pdf_name
-          })));
         } else {
-          console.log('⚠️ [CatalogPdfPage] No se encontraron grupos con PDF');
         }
         
         // Siempre mostrar la vista de grupos inicialmente
@@ -204,7 +190,6 @@ const CatalogPdfPage = () => {
         setError('Error al cargar los grupos de imágenes');
       }
     } catch (error) {
-      console.error('Error al cargar grupos de imágenes:', error);
       setError('Error al cargar los grupos de imágenes');
     } finally {
       setImageGroupsLoading(false);
@@ -240,11 +225,9 @@ const CatalogPdfPage = () => {
           setPageIndex(0);
         }
       } else {
-        console.error('Error en respuesta de getImageGroupImages:', response.data);
         setError('Error al cargar las imágenes del grupo');
       }
     } catch (error) {
-      console.error('Error al cargar imágenes del grupo:', error);
       setError('Error al cargar las imágenes del grupo: ' + (error.message || 'Error desconocido'));
     } finally {
       setLoading(false);
@@ -347,7 +330,6 @@ const CatalogPdfPage = () => {
     try {
       // Verificar que selectedCatalog esté disponible
       if (!selectedCatalog || !selectedCatalog.id) {
-        console.error('selectedCatalog no está disponible');
         setError('Error: Catálogo no seleccionado');
         return;
       }
@@ -366,7 +348,6 @@ const CatalogPdfPage = () => {
       // Cargar las imágenes del grupo
       await fetchImageGroupImages(selectedCatalog.id, imageGroup.id);
     } catch (error) {
-      console.error('Error al cambiar de grupo de imágenes:', error);
       setError('Error al cambiar de grupo de imágenes: ' + (error.message || 'Error desconocido'));
     }
   };
@@ -653,28 +634,6 @@ const CatalogPdfPage = () => {
     const hasAnyGroupPdf = imageGroups && imageGroups.length > 0 && imageGroups.some(group => Boolean(group.pdf_path));
     
     const shouldShow = hasCatalogPdf || hasGroupPdf || hasAnyGroupPdf;
-    
-    // Debug: Log para verificar qué está disponible
-    if (selectedCatalog) {
-      if (shouldShow) {
-        console.log('✅ [CatalogPdfPage] Botón de compartir PDF visible:', {
-          catalogId: selectedCatalog.id,
-          catalogPdf: hasCatalogPdf ? selectedCatalog.pdf_path : null,
-          selectedGroupPdf: hasGroupPdf ? selectedImageGroup?.pdf_path : null,
-          anyGroupPdf: hasAnyGroupPdf,
-          imageGroupsCount: imageGroups?.length || 0,
-          groupsWithPdf: imageGroups?.filter(g => g.pdf_path).map(g => ({ id: g.id, name: g.name, pdf_path: g.pdf_path }))
-        });
-      } else {
-        console.log('❌ [CatalogPdfPage] Botón de compartir PDF NO visible:', {
-          catalogId: selectedCatalog.id,
-          catalogPdf: selectedCatalog.pdf_path,
-          selectedGroupPdf: selectedImageGroup?.pdf_path,
-          imageGroupsCount: imageGroups?.length || 0,
-          imageGroups: imageGroups?.map(g => ({ id: g.id, name: g.name, pdf_path: g.pdf_path }))
-        });
-      }
-    }
     
     return shouldShow;
   }, [selectedCatalog, selectedImageGroup, imageGroups]);

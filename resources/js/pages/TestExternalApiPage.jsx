@@ -29,7 +29,6 @@ const TestExternalApiPage = () => {
       }
     } catch (err) {
       setError('Error de conexión al cargar información del carrito');
-      console.error('Error:', err);
     } finally {
       setLoading(false);
     }
@@ -67,7 +66,6 @@ const TestExternalApiPage = () => {
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Error al enviar prueba a la API externa');
-      console.error('Error:', err);
     } finally {
       setTesting(false);
     }

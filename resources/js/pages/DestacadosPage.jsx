@@ -34,7 +34,6 @@ const DestacadosPage = () => {
         return JSON.parse(saved);
       }
     } catch (e) {
-      console.error('Error recuperando filtros:', e);
     }
     return {
       catalog: 'Seleccione',
@@ -268,7 +267,6 @@ const DestacadosPage = () => {
           setCurrentMonth(new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }));
         }
       } catch (err) {
-        console.error('Error loading top selling products:', err);
         // Solo mostrar error si es un error real, no si simplemente no hay productos
         if (err.response && err.response.data && err.response.data.error) {
           setError(err.response.data.error);
@@ -314,7 +312,6 @@ const DestacadosPage = () => {
     try {
       sessionStorage.setItem('destacadosPageFilters', JSON.stringify(newFilters));
     } catch (e) {
-      console.error('Error guardando filtros:', e);
     }
   }, []);
 
@@ -333,7 +330,6 @@ const DestacadosPage = () => {
     try {
       sessionStorage.removeItem('destacadosPageFilters');
     } catch (e) {
-      console.error('Error limpiando filtros:', e);
     }
   }, []);
 

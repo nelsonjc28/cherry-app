@@ -35,7 +35,6 @@ export const checkProductsWithUserOffers = async (productIds) => {
     return {};
   } catch (error) {
     if (error.response && error.response.status !== 401) {
-      console.warn('Error verificando productos con ofertas:', error.response.status);
     }
     return {};
   }
@@ -117,7 +116,6 @@ export const applyUserOffersToProducts = async (products) => {
       };
     });
   } catch (error) {
-    console.warn('Error aplicando ofertas de usuario:', error);
     return products;
   }
 };
