@@ -271,15 +271,19 @@ const NuevosPage = () => {
         if (searchResponse.data.success && searchResponse.data.data.products) {
           const localProducts = searchResponse.data.data.products;
           
-          // Filtrar solo productos próximamente (stock_received_count === 0)
-          // Un producto es próximo si nunca ha recibido stock, independientemente de si es nuevo o no
+          // Filtrar solo productos próximamente
+          // Un producto es próximo si:
+          // - stock_received_count === 0 Y inventario <= 0 (nunca ha recibido stock)
+          // - O fecha_alta === null (producto sin fecha de alta)
           const comingSoonProductsRaw = localProducts.filter(product => {
             const stockReceivedCount = product.stock_received_count || 0;
             const totalStock = product.inventario || 0;
+            const fechaAlta = product.fecha_alta;
             
             // Es próximo si nunca ha recibido stock (stock_received_count === 0)
             // y no tiene stock actual (inventario === 0)
-            const isComingSoon = stockReceivedCount === 0 && totalStock <= 0;
+            // O si fecha_alta es null
+            const isComingSoon = (stockReceivedCount === 0 && totalStock <= 0) || fechaAlta === null;
             
             if (isComingSoon) {
               return true;

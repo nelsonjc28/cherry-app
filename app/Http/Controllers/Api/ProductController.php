@@ -229,7 +229,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Obtener productos nuevos (últimos 45 días)
+     * Obtener productos nuevos (últimos 30 días)
      * Limitado a 4 productos para la sección "Checa lo mas nuevo"
      */
     public function getNewProducts(Request $request): JsonResponse
@@ -237,11 +237,11 @@ class ProductController extends Controller
         try {
             $limit = $request->input('limit', 4);
             
-            // Calcular fecha límite (45 días atrás desde hoy)
-            $fortyFiveDaysAgoDate = now()->subDays(45)->format('Y-m-d');
+            // Calcular fecha límite (30 días atrás desde hoy)
+            $thirtyDaysAgoDate = now()->subDays(30)->format('Y-m-d');
 
             // Obtener productos nuevos con sus detalles
-            // Solo productos con fecha_alta dentro de los últimos 45 días
+            // Productos con opc_nuevo === 'S' O fecha_alta dentro de los últimos 30 días
             $productos = DB::table('productos')
                 ->leftJoin('detalles', 'productos.id', '=', 'detalles.producto_id')
                 ->select(
@@ -272,9 +272,15 @@ class ProductController extends Controller
                     'detalles.detalle',
                     'detalles.inventario_d'
                 )
-                ->whereNotNull('productos.fecha_alta')
-                ->where('productos.fecha_alta', '>=', $fortyFiveDaysAgoDate)
-                ->orderBy('productos.fecha_alta', 'desc')
+                ->where(function($query) use ($thirtyDaysAgoDate) {
+                    $query->where('productos.opc_nuevo', '=', 'S')
+                          ->orWhere(function($q) use ($thirtyDaysAgoDate) {
+                              $q->whereNotNull('productos.fecha_alta')
+                                ->where('productos.fecha_alta', '>=', $thirtyDaysAgoDate);
+                          });
+                })
+                ->orderByRaw('CASE WHEN productos.opc_nuevo = "S" THEN 0 ELSE 1 END')
+                ->orderByRaw('CASE WHEN productos.fecha_alta IS NOT NULL THEN productos.fecha_alta ELSE "1970-01-01" END DESC')
                 ->orderBy('productos.id', 'desc')
                 ->distinct()
                 ->limit($limit)
@@ -415,12 +421,18 @@ class ProductController extends Controller
                     'detalles.inventario_d'
                 )
                 ->where(function($query) {
-                    $query->where('productos.stock_received_count', '=', 0)
-                          ->orWhereNull('productos.stock_received_count');
-                })
-                ->where(function($query) {
-                    $query->where('productos.inventario', '<=', 0)
-                          ->orWhereNull('productos.inventario');
+                    // Productos próximamente: (stock_received_count === 0 Y inventario <= 0) O fecha_alta === null
+                    $query->where(function($q) {
+                        $q->where(function($subQ) {
+                            $subQ->where('productos.stock_received_count', '=', 0)
+                                 ->orWhereNull('productos.stock_received_count');
+                        })
+                        ->where(function($subQ) {
+                            $subQ->where('productos.inventario', '<=', 0)
+                                 ->orWhereNull('productos.inventario');
+                        });
+                    })
+                    ->orWhereNull('productos.fecha_alta');
                 })
                 ->orderBy('productos.fecha_alta', 'desc')
                 ->orderBy('productos.id', 'desc')

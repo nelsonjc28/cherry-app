@@ -99,15 +99,18 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
   const getStockStatus = () => {
     const totalStock = calculateTotalStock();
     const stockReceivedCountValue = stock_received_count || stockReceivedCount || 0;
+    const fechaAlta = product?.fecha_alta || product?.fechaAlta;
     
     // Si tiene stock, no mostrar badge de stock
     if (totalStock > 0) {
       return null;
     }
     
-    // "Próximamente": stock_received_count === 0 Y inventario <= 0 (nunca ha recibido stock)
+    // "Próximamente": 
+    // - stock_received_count === 0 Y inventario <= 0 (nunca ha recibido stock)
+    // - O fecha_alta === null (producto sin fecha de alta)
     // "Agotado": stock_received_count > 0 Y inventario <= 0 (ya recibió stock antes pero ahora está sin stock)
-    const shouldShowComingSoon = stockReceivedCountValue === 0 && totalStock <= 0;
+    const shouldShowComingSoon = (stockReceivedCountValue === 0 && totalStock <= 0) || fechaAlta === null;
     
     return shouldShowComingSoon ? 'coming-soon' : 'out-of-stock';
   };

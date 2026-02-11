@@ -1271,9 +1271,12 @@ const ProductPage = () => {
     }
 
     // Lógica para "Próximamente" vs "Agotado":
-    // "Próximamente": stock_received_count === 0 (nunca ha recibido stock, sin importar fecha)
-    // "Agotado": stock_received_count > 0 (ya recibió stock antes pero ahora está sin stock)
-    const shouldShowComingSoon = stockReceivedCount === 0 && totalInventory <= 0;
+    // "Próximamente": 
+    // - stock_received_count === 0 Y inventario <= 0 (nunca ha recibido stock)
+    // - O fecha_alta === null (producto sin fecha de alta)
+    // "Agotado": stock_received_count > 0 Y inventario <= 0 (ya recibió stock antes pero ahora está sin stock)
+    const fechaAlta = product?.fecha_alta || product?.fechaAlta;
+    const shouldShowComingSoon = (stockReceivedCount === 0 && totalInventory <= 0) || fechaAlta === null;
 
     if (shouldShowComingSoon) {
       return {
@@ -1604,22 +1607,21 @@ const ProductPage = () => {
 
             </div>
 
-            {/* Product Specifications - Shown when Ver Detalles is clicked */}
-            {showSpecifications && especificaciones && (
+            {/* Product Notes - Shown when Ver Detalles is clicked */}
+            {showSpecifications && notas && (
               <div className="product-page__specifications">
-                <h4>Especificaciones del Producto:</h4>
+                <h4>Detalles del Producto:</h4>
                 <div className="product-page__specifications-content">
-                  {especificaciones.split(',')
-                    .filter(spec => {
-                      const specName = spec.split(':')[0]?.trim().toLowerCase();
-                      // Filtrar especificaciones que no queremos mostrar
-                      return !['tipo artículo', 'tipo articulo', 'activo', 'catalogo', 'shopify', 'proveedor', 'web mayoristas', 'agotado', 'virtual/local'].includes(specName);
-                    })
-                    .map((spec, index) => (
-                      <div key={index} className="product-page__specification-item">
-                        <strong>{spec.split(':')[0]}:</strong> {spec.split(':')[1] || ''}
-                      </div>
-                    ))}
+                  <div className="product-page__specification-item">
+                    <p style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>{notas}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            {showSpecifications && !notas && (
+              <div className="product-page__specifications">
+                <div className="product-page__specifications-content">
+                  <p>No hay detalles disponibles para este producto.</p>
                 </div>
               </div>
             )}

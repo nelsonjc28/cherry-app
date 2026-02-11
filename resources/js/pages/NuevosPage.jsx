@@ -271,12 +271,12 @@ const NuevosPage = () => {
         if (searchResponse.data.success && searchResponse.data.data.products) {
           const localProducts = searchResponse.data.data.products;
           
-          // Calcular fecha límite (80 días atrás) - usar solo fecha, sin hora
+          // Calcular fecha límite (30 días atrás) - usar solo fecha, sin hora
           const today = new Date();
           today.setHours(0, 0, 0, 0);
-          const fortyFiveDaysAgo = new Date(today);
-          fortyFiveDaysAgo.setDate(today.getDate() - 80);
-          fortyFiveDaysAgo.setHours(0, 0, 0, 0);
+          const thirtyDaysAgo = new Date(today);
+          thirtyDaysAgo.setDate(today.getDate() - 30);
+          thirtyDaysAgo.setHours(0, 0, 0, 0);
           
           
           // Filtrar solo productos nuevos (excluyendo productos próximamente)
@@ -291,7 +291,7 @@ const NuevosPage = () => {
             // NO excluir productos próximamente aquí - dejar que pasen el filtro
             // Los excluiremos después del mapeo antes de mostrarlos
             
-            // Verificar fecha_alta - debe estar dentro de los últimos 45 días
+            // Verificar fecha_alta - debe estar dentro de los últimos 30 días
             if (product.fecha_alta) {
               try {
                 // Parsear fecha (puede venir como 'YYYY-MM-DD' o Date object)
@@ -311,12 +311,12 @@ const NuevosPage = () => {
                   return false;
                 }
                 
-                // Comparar si la fecha_alta está dentro de los últimos 80 días
-                // Calcular diferencia en días: (hoy - fecha_alta) <= 80 días
+                // Comparar si la fecha_alta está dentro de los últimos 30 días
+                // Calcular diferencia en días: (hoy - fecha_alta) <= 30 días
                 const diferenciaDias = Math.floor((today - fechaAlta) / (1000 * 60 * 60 * 24));
-                // Un producto es nuevo si la diferencia es <= 80 días (fecha reciente)
+                // Un producto es nuevo si la diferencia es <= 30 días (fecha reciente)
                 // Y >= 0 (no es una fecha futura)
-                const isNew = diferenciaDias <= 80 && diferenciaDias >= 0;
+                const isNew = diferenciaDias <= 30 && diferenciaDias >= 0;
                 
                 if (isNew) {
                   productosNuevosPorFecha++;
@@ -450,9 +450,11 @@ const NuevosPage = () => {
             }
             
             const stockReceivedCount = product.stock_received_count || product.stockReceivedCount || 0;
+            const fechaAlta = product.fecha_alta || product.fechaAlta;
             
-            // Misma lógica que getStockStatus(): "Próximamente" si stock_received_count === 0 Y totalStock <= 0
-            const isComingSoon = stockReceivedCount === 0 && totalStock <= 0;
+            // Misma lógica que getStockStatus(): "Próximamente" si 
+            // (stock_received_count === 0 Y totalStock <= 0) O fecha_alta === null
+            const isComingSoon = (stockReceivedCount === 0 && totalStock <= 0) || fechaAlta === null;
             
             if (isComingSoon) {
               excluidosEnFiltroFinal++;
