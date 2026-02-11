@@ -1,0 +1,405 @@
+{
+  "proyecto": {
+    "nombre": "Cherry App",
+    "tipo": "E-commerce Platform",
+    "descripcion": "Plataforma de e-commerce para gestión de productos, pedidos, catálogos y pagos con integración MercadoPago",
+    "version": "1.0.0"
+  },
+  "stack_tecnologico": {
+    "backend": {
+      "framework": "Laravel",
+      "version": "12.0",
+      "lenguaje": "PHP",
+      "version_php": "8.2+",
+      "orm": "Eloquent",
+      "autenticacion": "JWT (tymon/jwt-auth)",
+      "base_datos": "MySQL"
+    },
+    "frontend": {
+      "framework": "React",
+      "version": "19.1.0",
+      "router": "React Router DOM 7.6.3",
+      "estado_global": "Zustand 5.0.6",
+      "build_tool": "Vite 6.2.4",
+      "estilos": "Tailwind CSS 4.0.0",
+      "http_client": "Axios 1.10.0"
+    },
+    "servicios_externos": {
+      "almacenamiento": {
+        "tipo": "AWS S3",
+        "bucket": "cherry-fotos",
+        "ruta_base": "shopify/{id}/{id}_{number}.jpg"
+      },
+      "api_externa": {
+        "url": "https://cherryapi.estrategiadmgs.com.mx/cherryApi/789/articulos",
+        "proposito": "Sincronización de productos"
+      },
+      "pagos": {
+        "proveedor": "MercadoPago",
+        "sdk": "mercadopago/dx-php 3.8"
+      }
+    }
+  },
+  "entidades_principales": [
+    {
+      "nombre": "Producto",
+      "tabla": "productos",
+      "pk": "id (string)",
+      "campos_criticos": ["descripcion", "marca", "precio1-precio10", "fecha_alta", "opc_nuevo", "inventario", "stock_received_count", "id_linea", "catalogoId"],
+      "relaciones": ["hasMany Detalle", "belongsTo Linea", "belongsToMany Catalog"]
+    },
+    {
+      "nombre": "Detalle",
+      "tabla": "detalles",
+      "pk": "id (integer)",
+      "campos_criticos": ["producto_id", "nombreColor", "detalle", "inventario_d"],
+      "relaciones": ["belongsTo Producto"]
+    },
+    {
+      "nombre": "User",
+      "tabla": "users",
+      "pk": "id",
+      "campos_criticos": ["email", "password", "first_name", "last_name", "role_id", "seller_category", "credit_balance", "credit_limit"],
+      "relaciones": ["hasMany Order", "hasMany Address", "hasMany Favorite", "hasMany Cart"]
+    },
+    {
+      "nombre": "Order",
+      "tabla": "orders",
+      "pk": "id",
+      "campos_criticos": ["user_id", "address_id", "total_amount", "subtotal", "discounted_total", "status", "payment_method", "mercadopago_preference_id"],
+      "relaciones": ["belongsTo User", "belongsTo Address", "hasMany OrderItem"]
+    },
+    {
+      "nombre": "OrderItem",
+      "tabla": "order_items",
+      "pk": "id",
+      "campos_criticos": ["order_id", "product_id (string)", "color", "size", "quantity", "price"],
+      "relaciones": ["belongsTo Order"]
+    },
+    {
+      "nombre": "Cart",
+      "tabla": "carts",
+      "pk": "id",
+      "campos_criticos": ["user_id"],
+      "relaciones": ["belongsTo User", "hasMany CartItem"]
+    },
+    {
+      "nombre": "CartItem",
+      "tabla": "cart_items",
+      "pk": "id",
+      "campos_criticos": ["cart_id", "product_id", "color", "size", "quantity"],
+      "relaciones": ["belongsTo Cart"]
+    },
+    {
+      "nombre": "Catalog",
+      "tabla": "catalogs",
+      "pk": "id",
+      "campos_criticos": ["name", "code", "image", "pdf_path"],
+      "relaciones": ["belongsToMany Producto", "hasMany CatalogOffer"]
+    },
+    {
+      "nombre": "CatalogOffer",
+      "tabla": "catalog_offers",
+      "pk": "id",
+      "campos_criticos": ["catalog_id", "discount_percentage", "discount_category"],
+      "relaciones": ["belongsTo Catalog"]
+    },
+    {
+      "nombre": "UserOffer",
+      "tabla": "user_offers",
+      "pk": "id",
+      "campos_criticos": ["user_id", "discount_percentage", "discount_category"],
+      "relaciones": ["belongsTo User"]
+    },
+    {
+      "nombre": "Address",
+      "tabla": "addresses",
+      "pk": "id",
+      "campos_criticos": ["user_id", "street_address", "city", "state", "postal_code", "is_default"],
+      "relaciones": ["belongsTo User"]
+    },
+    {
+      "nombre": "Favorite",
+      "tabla": "favorites",
+      "pk": "id",
+      "campos_criticos": ["user_id", "product_id (string)"],
+      "relaciones": ["belongsTo User"]
+    },
+    {
+      "nombre": "Review",
+      "tabla": "reviews",
+      "pk": "id",
+      "campos_criticos": ["user_id", "product_id (string)", "rating", "comment", "is_approved"],
+      "relaciones": ["belongsTo User"]
+    },
+    {
+      "nombre": "Notification",
+      "tabla": "notifications",
+      "pk": "id",
+      "campos_criticos": ["user_id", "message", "type", "read_at"],
+      "relaciones": ["belongsTo User"]
+    },
+    {
+      "nombre": "Historial",
+      "tabla": "historials",
+      "pk": "id",
+      "campos_criticos": ["ejecutado_at", "estado", "mensaje"],
+      "relaciones": []
+    },
+    {
+      "nombre": "Category",
+      "tabla": "categories",
+      "pk": "id",
+      "campos_criticos": ["name", "description"],
+      "relaciones": []
+    },
+    {
+      "nombre": "Linea",
+      "tabla": "lineas",
+      "pk": "id",
+      "campos_criticos": ["name"],
+      "relaciones": []
+    },
+    {
+      "nombre": "Genero",
+      "tabla": "generos",
+      "pk": "id",
+      "campos_criticos": ["name"],
+      "relaciones": []
+    },
+    {
+      "nombre": "Sector",
+      "tabla": "sectores",
+      "pk": "id",
+      "campos_criticos": ["name"],
+      "relaciones": []
+    }
+  ],
+  "rutas_principales": {
+    "autenticacion": [
+      "POST /api/register",
+      "POST /api/login",
+      "POST /api/logout",
+      "GET /api/me"
+    ],
+    "productos": [
+      "GET /api/products/search?q=",
+      "GET /api/products/new",
+      "GET /api/products/coming-soon",
+      "GET /api/products/{id}",
+      "GET /api/top-selling"
+    ],
+    "carrito": [
+      "GET /api/cart",
+      "PUT /api/cart",
+      "DELETE /api/cart",
+      "POST /api/cart/sync"
+    ],
+    "pedidos": [
+      "GET /api/orders",
+      "POST /api/orders",
+      "GET /api/orders/{id}"
+    ],
+    "direcciones": [
+      "GET /api/addresses",
+      "POST /api/addresses",
+      "PUT /api/addresses/{id}",
+      "DELETE /api/addresses/{id}"
+    ],
+    "favoritos": [
+      "GET /api/favorites",
+      "POST /api/favorites/toggle"
+    ],
+    "catalogos": [
+      "GET /api/admin/catalogs",
+      "GET /api/public/catalogs-with-images"
+    ],
+    "ofertas": [
+      "GET /api/user-offers",
+      "GET /api/user-offers/products"
+    ],
+    "historial": [
+      "GET /api/admin/historial"
+    ]
+  },
+  "archivos_criticos": {
+    "backend": [
+      "app/Http/Controllers/Api/AuthController.php",
+      "app/Http/Controllers/Api/ProductController.php",
+      "app/Http/Controllers/Api/ProductSearchController.php",
+      "app/Http/Controllers/Api/ProductSyncController.php",
+      "app/Http/Controllers/Api/OrderController.php",
+      "app/Http/Controllers/Api/CartController.php",
+      "app/Http/Controllers/Api/MercadoPagoController.php",
+      "app/Models/Producto.php",
+      "app/Models/Order.php",
+      "app/Models/User.php",
+      "app/Console/Commands/SyncProductsCommand.php",
+      "routes/api.php"
+    ],
+    "frontend": [
+      "resources/js/components/SimpleApp.jsx",
+      "resources/js/store/cartStore.js",
+      "resources/js/store/userStore.js",
+      "resources/js/api/cherryApi.js",
+      "resources/js/services/api.js",
+      "resources/js/utils/productImageUtils.js",
+      "resources/js/pages/ProductPage.jsx",
+      "resources/js/pages/CartPage.jsx",
+      "resources/js/pages/CheckoutPage.jsx",
+      "resources/js/pages/NuevosPage.jsx",
+      "resources/js/pages/ProximamentePage.jsx"
+    ]
+  },
+  "modulos": [
+    {
+      "nombre": "Autenticación",
+      "descripcion": "Sistema de autenticación JWT con roles (admin, operator, client)",
+      "archivos": ["app/Http/Controllers/Api/AuthController.php", "app/Models/User.php"]
+    },
+    {
+      "nombre": "Productos",
+      "descripcion": "Gestión de productos con sincronización desde API externa",
+      "archivos": ["app/Http/Controllers/Api/ProductController.php", "app/Http/Controllers/Api/ProductSyncController.php", "app/Models/Producto.php", "app/Models/Detalle.php"]
+    },
+    {
+      "nombre": "Carrito y Pedidos",
+      "descripcion": "Sistema de carrito persistente y gestión de pedidos",
+      "archivos": ["app/Http/Controllers/Api/CartController.php", "app/Http/Controllers/Api/OrderController.php", "app/Models/Cart.php", "app/Models/Order.php"]
+    },
+    {
+      "nombre": "Pagos",
+      "descripcion": "Integración con MercadoPago para procesamiento de pagos",
+      "archivos": ["app/Http/Controllers/Api/MercadoPagoController.php"]
+    },
+    {
+      "nombre": "Catálogos",
+      "descripcion": "Gestión de catálogos digitales con imágenes y PDFs",
+      "archivos": ["app/Http/Controllers/Api/AdminCatalogController.php", "app/Models/Catalog.php", "app/Models/CatalogProduct.php"]
+    },
+    {
+      "nombre": "Ofertas",
+      "descripcion": "Sistema de ofertas por catálogo y por usuario",
+      "archivos": ["app/Http/Controllers/Api/UserOfferController.php", "app/Models/CatalogOffer.php", "app/Models/UserOffer.php"]
+    },
+    {
+      "nombre": "Direcciones",
+      "descripcion": "Gestión de direcciones de envío",
+      "archivos": ["app/Http/Controllers/Api/AddressController.php", "app/Models/Address.php"]
+    },
+    {
+      "nombre": "Favoritos",
+      "descripcion": "Sistema de productos favoritos",
+      "archivos": ["app/Http/Controllers/Api/FavoriteController.php", "app/Models/Favorite.php"]
+    },
+    {
+      "nombre": "Historial",
+      "descripcion": "Registro de ejecuciones del cronjob de sincronización",
+      "archivos": ["app/Http/Controllers/Api/HistorialController.php", "app/Models/Historial.php"]
+    }
+  ],
+  "flujos_criticos": [
+    {
+      "nombre": "Autenticación",
+      "descripcion": "Login/registro con JWT, almacenamiento de token en localStorage",
+      "archivos": ["app/Http/Controllers/Api/AuthController.php", "resources/js/store/userStore.js"]
+    },
+    {
+      "nombre": "Sincronización de Productos",
+      "descripcion": "Cronjob que sincroniza productos desde API externa y registra en Historial",
+      "archivos": ["app/Console/Commands/SyncProductsCommand.php", "app/Http/Controllers/Api/ProductSyncController.php", "app/Models/Historial.php"]
+    },
+    {
+      "nombre": "Compra",
+      "descripcion": "Agregar al carrito → Seleccionar dirección/pago → Crear preferencia MercadoPago → Procesar pago → Crear pedido",
+      "archivos": ["app/Http/Controllers/Api/CartController.php", "app/Http/Controllers/Api/MercadoPagoController.php", "app/Http/Controllers/Api/OrderController.php"]
+    },
+    {
+      "nombre": "Ofertas y Descuentos",
+      "descripcion": "Cargar ofertas de catálogo y usuario → Calcular precio final aplicando descuentos",
+      "archivos": ["app/Http/Controllers/Api/UserOfferController.php", "resources/js/api/userOffers.js"]
+    },
+    {
+      "nombre": "Imágenes de Productos",
+      "descripcion": "Generar URLs S3 dinámicamente basadas en ID de producto",
+      "archivos": ["resources/js/utils/productImageUtils.js"]
+    }
+  ],
+  "dependencias_importantes": {
+    "backend": [
+      "laravel/framework: ^12.0",
+      "tymon/jwt-auth: ^2.2",
+      "mercadopago/dx-php: ^3.8"
+    ],
+    "frontend": [
+      "react: ^19.1.0",
+      "react-router-dom: ^7.6.3",
+      "zustand: ^5.0.6",
+      "axios: ^1.10.0"
+    ]
+  },
+  "riesgos_detectados": [
+    {
+      "tipo": "Dependencia Externa",
+      "descripcion": "API externa crítica para sincronización de productos",
+      "mitigacion": "Implementar retry logic y logging de errores"
+    },
+    {
+      "tipo": "Seguridad",
+      "descripcion": "Tokens JWT almacenados en localStorage (vulnerable a XSS)",
+      "mitigacion": "Considerar httpOnly cookies en el futuro"
+    },
+    {
+      "tipo": "Stock",
+      "descripcion": "Cálculo complejo entre inventario general y por variante",
+      "mitigacion": "Centralizar lógica de cálculo de stock"
+    },
+    {
+      "tipo": "Imágenes",
+      "descripcion": "URLs S3 hardcodeadas, si cambia estructura puede romper",
+      "mitigacion": "Centralizar generación de URLs en utilidades"
+    }
+  ],
+  "comentarios_relevantes_ia": [
+    "Producto.id es string, no integer",
+    "Stock se calcula sumando inventario_d de Detalle",
+    "Productos 'próximamente' tienen fecha_alta null O (stock_received_count = 0 AND inventario <= 0)",
+    "Productos 'nuevos' tienen fecha_alta dentro de 30 días O opc_nuevo = 'S'",
+    "Usuarios 'oro' pueden hacer encargos de productos 'próximamente'",
+    "Carrito se persiste en BD, no solo localStorage",
+    "Ofertas pueden ser: porcentaje, buy_x_get_y, order_discount, free_shipping",
+    "NUNCA modificar migraciones existentes, crear nuevas",
+    "SIEMPRE validar inputs en backend",
+    "Mantener estructura de respuesta JSON consistente"
+  ],
+  "configuracion_entorno": {
+    "variables_criticas": [
+      "DB_CONNECTION=mysql",
+      "DB_HOST",
+      "DB_DATABASE",
+      "DB_USERNAME",
+      "DB_PASSWORD",
+      "JWT_SECRET",
+      "MERCADOPAGO_ACCESS_TOKEN",
+      "AWS_ACCESS_KEY_ID",
+      "AWS_SECRET_ACCESS_KEY",
+      "AWS_BUCKET"
+    ]
+  },
+  "cronjobs": [
+    {
+      "nombre": "Sincronización de Productos",
+      "comando": "php artisan products:sync",
+      "descripcion": "Sincroniza productos desde API externa y registra en Historial",
+      "archivo": "app/Console/Commands/SyncProductsCommand.php"
+    }
+  ],
+  "estadisticas": {
+    "modelos": 20,
+    "controladores_api": 47,
+    "rutas_api": 232,
+    "paginas_frontend": 52,
+    "componentes_frontend": 114,
+    "migraciones": 30
+  }
+}

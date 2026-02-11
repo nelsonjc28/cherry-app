@@ -26,7 +26,7 @@ const NuevosPage = () => {
   // Recuperar filtros guardados de sessionStorage
   const getSavedFilters = () => {
     try {
-      const saved = sessionStorage.getItem('nuevosPageFilters');
+      const saved = sessionStorage.getItem('proximamentePageFilters');
       if (saved) {
         return JSON.parse(saved);
       }
@@ -275,15 +275,25 @@ const NuevosPage = () => {
           // Un producto es próximo si:
           // - stock_received_count === 0 Y inventario <= 0 (nunca ha recibido stock)
           // - O fecha_alta === null (producto sin fecha de alta)
+          // - Y además el tercer dígito del ID debe coincidir con el último dígito del año actual
+          const currentYearLastDigit = new Date().getFullYear() % 10;
+          
           const comingSoonProductsRaw = localProducts.filter(product => {
             const stockReceivedCount = product.stock_received_count || 0;
             const totalStock = product.inventario || 0;
             const fechaAlta = product.fecha_alta;
+            const productId = String(product.id_articulo || product.id || '');
+            
+            // Validar que el tercer dígito del ID coincida con el último dígito del año actual
+            // El tercer dígito (índice 2, empezando desde 0) debe ser igual al último dígito del año
+            const thirdDigit = productId.length >= 3 ? parseInt(productId.charAt(2), 10) : null;
+            const isValidYearDigit = thirdDigit !== null && thirdDigit === currentYearLastDigit;
             
             // Es próximo si nunca ha recibido stock (stock_received_count === 0)
             // y no tiene stock actual (inventario === 0)
             // O si fecha_alta es null
-            const isComingSoon = (stockReceivedCount === 0 && totalStock <= 0) || fechaAlta === null;
+            // Y además el tercer dígito del ID debe coincidir con el último dígito del año actual
+            const isComingSoon = ((stockReceivedCount === 0 && totalStock <= 0) || fechaAlta === null) && isValidYearDigit;
             
             if (isComingSoon) {
               return true;
@@ -388,7 +398,7 @@ const NuevosPage = () => {
           setAvailableSizes(sortedSizes);
           
           setAllProducts(productsWithOffers);
-          setFilteredProducts([...productsWithOffers]);
+          // No establecer filteredProducts aquí, se establecerá automáticamente por el useMemo cuando se apliquen los filtros
         } else {
           setAllProducts([]);
           setFilteredProducts([]);
@@ -429,7 +439,7 @@ const NuevosPage = () => {
   const handleFilterChange = useCallback((newFilters) => {
     setFilters(newFilters);
     try {
-      sessionStorage.setItem('nuevosPageFilters', JSON.stringify(newFilters));
+      sessionStorage.setItem('proximamentePageFilters', JSON.stringify(newFilters));
     } catch (e) {
     }
   }, []);
@@ -447,7 +457,7 @@ const NuevosPage = () => {
     };
     setFilters(defaultFilters);
     try {
-      sessionStorage.removeItem('nuevosPageFilters');
+      sessionStorage.removeItem('proximamentePageFilters');
     } catch (e) {
     }
   }, []);

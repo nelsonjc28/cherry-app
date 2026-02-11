@@ -465,7 +465,7 @@ const NuevosPage = () => {
           
           
           setAllProducts(productosSinProximamente);
-          setFilteredProducts([...productosSinProximamente]);
+          // No establecer filteredProducts aquí, se establecerá automáticamente por el useMemo cuando se apliquen los filtros
         } else {
           setAllProducts([]);
           setFilteredProducts([]);

@@ -1,310 +1,472 @@
-# ARQUITECTURA DEL PROYECTO CHERRY-APP
+# ARQUITECTURA DEL PROYECTO CHERRY APP
 
-## 1. ARQUITECTURA GENERAL
+## 1. VISIÓN GENERAL
 
-### 1.1 Patrón Arquitectónico
-- **Backend**: Laravel MVC con API REST
-- **Frontend**: Single Page Application (SPA) React
-- **Comunicación**: JSON sobre HTTP/HTTPS
-- **Autenticación**: JWT tokens almacenados en localStorage
+**Cherry App** es una plataforma de e-commerce desarrollada con arquitectura full-stack que permite a usuarios (vendedores) gestionar pedidos, productos, catálogos y realizar compras con integración de pagos mediante MercadoPago.
 
-### 1.2 Capas de la Aplicación
+### Stack Tecnológico
 
-#### Backend (Laravel)
+**Backend:**
+- Laravel 12.0 (PHP 8.2+)
+- MySQL (base de datos principal)
+- JWT Authentication (tymon/jwt-auth)
+- MercadoPago SDK (mercadopago/dx-php)
+- Eloquent ORM
+
+**Frontend:**
+- React 19.1.0 (SPA)
+- React Router DOM 7.6.3
+- Zustand 5.0.6 (gestión de estado global)
+- Vite 6.2.4 (build tool)
+- Tailwind CSS 4.0.0
+- Axios (cliente HTTP)
+
+**Servicios Externos:**
+- AWS S3 (almacenamiento de imágenes)
+- API Externa: `https://cherryapi.estrategiadmgs.com.mx/cherryApi/789/articulos`
+- MercadoPago (procesamiento de pagos)
+
+---
+
+## 2. ARQUITECTURA DE CAPAS
+
+### 2.1. Backend (Laravel)
+
 ```
 app/
-├── Console/Commands/        # Comandos Artisan (ej: products:sync)
+├── Console/
+│   ├── Commands/
+│   │   └── SyncProductsCommand.php    # Sincronización de productos desde API externa
+│   └── Kernel.php                      # Configuración de cronjobs
 ├── Http/
 │   ├── Controllers/
-│   │   ├── Api/            # Controladores API REST
-│   │   └── Admin/          # Controladores específicos de admin
-│   └── Middleware/         # Middleware personalizado (admin, auth)
-├── Models/                 # Modelos Eloquent (35 modelos)
-├── Services/               # Servicios de negocio (MercadoPago, ExternalSales)
-└── Mail/                   # Clases de correo electrónico
+│   │   └── Api/                        # Controladores API REST
+│   │       ├── AuthController.php      # Autenticación JWT
+│   │       ├── ProductController.php   # Gestión de productos
+│   │       ├── ProductSearchController.php
+│   │       ├── ProductSyncController.php
+│   │       ├── OrderController.php     # Gestión de pedidos
+│   │       ├── CartController.php     # Carrito de compras
+│   │       ├── MercadoPagoController.php
+│   │       ├── AddressController.php
+│   │       ├── FavoriteController.php
+│   │       ├── CategoryController.php
+│   │       ├── AdminCatalogController.php
+│   │       ├── UserOfferController.php
+│   │       └── HistorialController.php
+│   ├── Middleware/
+│   │   ├── Authenticate.php           # Middleware JWT
+│   │   └── AdminMiddleware.php        # Verificación de rol admin
+│   └── Kernel.php                     # Registro de middleware
+├── Models/                            # Modelos Eloquent
+│   ├── Producto.php
+│   ├── Detalle.php
+│   ├── Order.php
+│   ├── OrderItem.php
+│   ├── User.php
+│   ├── Address.php
+│   ├── Cart.php
+│   ├── CartItem.php
+│   ├── Catalog.php
+│   ├── CatalogProduct.php
+│   ├── CatalogOffer.php
+│   ├── UserOffer.php
+│   ├── Favorite.php
+│   ├── Review.php
+│   ├── Notification.php
+│   ├── Category.php
+│   ├── Linea.php
+│   ├── Genero.php
+│   ├── Sector.php
+│   └── Historial.php
+└── Services/                          # Servicios de negocio (si existen)
 ```
 
-#### Frontend (React)
+### 2.2. Frontend (React)
+
 ```
 resources/js/
-├── api/                    # Clientes API y configuración
-├── components/             # Componentes reutilizables (241 archivos)
-├── pages/                  # Páginas/views (99 archivos)
-├── hooks/                  # Custom hooks React
-├── store/                  # Estado global (Zustand)
-├── contexts/               # Contextos React
-└── utils/                  # Utilidades y helpers
+├── components/                        # Componentes reutilizables
+│   ├── Header/
+│   ├── Footer/
+│   ├── ProductCard/
+│   ├── CatalogFilter/
+│   ├── OrderDetailModal/
+│   └── ...
+├── pages/                            # Páginas/Views
+│   ├── HomePage.jsx
+│   ├── ProductPage.jsx
+│   ├── CartPage.jsx
+│   ├── CheckoutPage.jsx
+│   ├── NuevosPage.jsx
+│   ├── ProximamentePage.jsx
+│   ├── DestacadosPage.jsx
+│   ├── CategoryPage.jsx
+│   ├── PromocionesPage.jsx
+│   ├── FavoritosPage.jsx
+│   ├── AdminPanelPage.jsx
+│   └── ...
+├── store/                            # Zustand stores
+│   ├── cartStore.js
+│   └── userStore.js
+├── api/                              # Clientes API
+│   ├── cherryApi.js                  # API externa
+│   └── userOffers.js
+├── services/                         # Servicios frontend
+│   └── api.js                        # Cliente Axios configurado
+├── utils/                            # Utilidades
+│   └── productImageUtils.js
+└── components/
+    └── SimpleApp.jsx                 # Router principal
 ```
 
-### 1.3 Flujo de Datos
+---
 
-1. **Usuario interactúa** → React Component
-2. **Component llama** → API Client (axios)
-3. **Request HTTP** → Laravel Route
-4. **Route ejecuta** → Controller
-5. **Controller usa** → Model/Service
-6. **Model consulta** → Database
-7. **Response JSON** → Frontend
-8. **Frontend actualiza** → Estado (Zustand/State)
+## 3. MÓDULOS PRINCIPALES
 
-## 2. MÓDULOS PRINCIPALES
+### 3.1. Autenticación y Usuarios
+- **JWT Authentication**: Login, registro, refresh tokens
+- **Roles**: Admin, Operator, Client
+- **Categorías de vendedor**: oro, plata, bronce (determina crédito disponible)
+- **Crédito**: Balance y límite de crédito por usuario
 
-### 2.1 Módulo de Autenticación
-- **Archivos clave**:
-  - `app/Http/Controllers/Api/AuthController.php`
-  - `resources/js/pages/auth/LoginPage.jsx`
-  - `resources/js/store/userStore.js`
-- **Flujo**:
-  1. Usuario ingresa credenciales (email/teléfono + password)
-  2. Backend valida y genera JWT token
-  3. Frontend almacena token en localStorage
-  4. Token se incluye en headers de todas las peticiones
-  5. Middleware `auth:api` valida token en cada request
+### 3.2. Productos
+- **Sincronización**: Comando Artisan `products:sync` que sincroniza desde API externa
+- **Estados**: Nuevo (30 días), Próximamente (sin stock o fecha_alta null), Agotado
+- **Precios**: 10 niveles de precios (precio1-precio10)
+- **Stock**: Inventario general + inventario por detalle (color/talla)
+- **Imágenes**: Almacenadas en AWS S3, URLs generadas dinámicamente
 
-### 2.2 Módulo de Productos
-- **Archivos clave**:
-  - `app/Models/Producto.php`
-  - `app/Http/Controllers/Api/ProductSyncController.php`
-  - `app/Console/Commands/SyncProductsCommand.php`
-  - `resources/js/api/cherryApi.js`
-- **Características**:
-  - Sincronización desde API externa (`https://cherryapi.estrategiadmgs.com.mx`)
-  - Cache en memoria para optimización
-  - Búsqueda inteligente con índices
-  - Filtros por categoría, catálogo, precio, etc.
+### 3.3. Catálogos
+- **Catálogos**: Catálogos digitales con imágenes agrupadas
+- **Ofertas**: Ofertas por catálogo (CatalogOffer) y por usuario (UserOffer)
+- **PDFs**: Generación y visualización de catálogos en PDF
+- **Productos en catálogo**: Relación muchos-a-muchos entre Catalog y Producto
 
-### 2.3 Módulo de Carrito y Checkout
-- **Archivos clave**:
-  - `app/Http/Controllers/Api/CartController.php`
-  - `app/Http/Controllers/Api/CheckoutController.php`
-  - `app/Http/Controllers/PaymentController.php`
-  - `resources/js/store/cartStore.js`
-- **Flujo de Compra**:
-  1. Usuario agrega productos al carrito (localStorage + DB)
-  2. Usuario selecciona dirección y método de pago
-  3. Sistema calcula descuentos y envío
-  4. Si usa crédito: se descuenta del balance
-  5. Si paga con MercadoPago: se crea preferencia
-  6. Usuario completa pago externo
-  7. Webhook actualiza estado de orden
-  8. Admin gestiona envío y tracking
+### 3.4. Carrito y Pedidos
+- **Carrito**: Persistido en base de datos (tabla `carts` y `cart_items`)
+- **Pedidos**: Estados: pendiente, preparado, enviado, entregado
+- **Métodos de pago**: Crédito, MercadoPago
+- **Encargos**: Usuarios "oro" pueden hacer encargos de productos "próximamente"
 
-### 2.4 Módulo de Órdenes
-- **Archivos clave**:
-  - `app/Models/Order.php`
-  - `app/Http/Controllers/PaymentController.php`
-  - `app/Http/Controllers/Admin/AdminOrderController.php`
-- **Estados de Orden**:
-  - `pending` → `pendiente_pago` → `pagado` → `en_espera_envio` → `enviado`
-  - Estados especiales: `pago_rechazado`, `cancelado`
+### 3.5. Direcciones y Envíos
+- **Direcciones**: Múltiples direcciones por usuario, una por defecto
+- **Campos**: Calle, número, colonia, ciudad, estado, código postal, coordenadas
 
-### 2.5 Módulo de Catálogos y Ofertas
-- **Archivos clave**:
-  - `app/Models/Catalog.php`
-  - `app/Models/CatalogOffer.php`
-  - `app/Http/Controllers/Api/AdminCatalogController.php`
-- **Características**:
-  - Catálogos con PDFs e imágenes agrupadas
-  - Sistema de ofertas complejo (descuentos, buy-x-get-y, envío gratis)
-  - Ofertas dirigidas a usuarios específicos
-  - Ofertas por catálogo o globales
+### 3.6. Favoritos y Reseñas
+- **Favoritos**: Lista de productos favoritos por usuario
+- **Reseñas**: Sistema de calificaciones y comentarios (aprobación requerida)
 
-### 2.6 Módulo de Administración
-- **Archivos clave**:
-  - `resources/js/pages/AdminPanelPage.jsx`
-  - `app/Http/Middleware/AdminMiddleware.php`
-- **Funcionalidades**:
-  - Gestión de usuarios, productos, catálogos, categorías
-  - Dashboard con estadísticas de ventas
-  - Gestión de órdenes y estados
-  - Historial de sincronizaciones
+### 3.7. Notificaciones
+- **Notificaciones**: Sistema de notificaciones para usuarios
+- **Interés en productos**: Notificación cuando un producto "próximamente" está disponible
 
-## 3. FLUJOS CRÍTICOS
+### 3.8. Historial
+- **Historial**: Registro de ejecuciones del cronjob de sincronización de productos
+- **Filtros**: Por fecha de ejecución
+- **Estados**: Exitoso, Error
 
-### 3.1 Flujo de Autenticación
-```
-1. POST /api/login
-   → AuthController@login
-   → Valida credenciales (email/teléfono)
-   → Genera JWT token
-   → Retorna user + token
+---
 
-2. Frontend almacena token en localStorage
-3. Todas las peticiones incluyen: Authorization: Bearer {token}
-4. Middleware auth:api valida token
-5. Si expira, frontend redirige a /login
-```
+## 4. FLUJOS CRÍTICOS
 
-### 3.2 Flujo de Sincronización de Productos
-```
-1. Cronjob ejecuta: php artisan products:sync
-   O GET /products/sync (sin auth, para cronjob externo)
+### 4.1. Flujo de Autenticación
+1. Usuario registra/login → `AuthController`
+2. Backend genera JWT token → `tymon/jwt-auth`
+3. Token almacenado en `localStorage` (frontend)
+4. Token incluido en headers de peticiones API
+5. Middleware `auth:api` valida token en cada request
 
-2. ProductSyncController@sync:
-   → Obtiene productos de API externa
-   → Procesa cada producto:
-     * Sincroniza Genero y Sector
-     * Crea/actualiza Producto
-     * Crea/actualiza Detalles (variantes de color/talla)
-   → Registra en Historial
-   → Retorna estadísticas
+### 4.2. Flujo de Sincronización de Productos
+1. Cronjob ejecuta `products:sync` (o comando manual)
+2. `SyncProductsCommand` llama a `ProductSyncController`
+3. Fetch desde API externa: `https://cherryapi.estrategiadmgs.com.mx/cherryApi/789/articulos`
+4. Mapeo de datos externos a modelo `Producto`
+5. Actualización/creación en BD
+6. Registro en `Historial` (éxito/error)
 
-3. Frontend puede pre-cargar productos en cache
-```
+### 4.3. Flujo de Compra
+1. Usuario agrega productos al carrito → `CartController`
+2. Selecciona dirección y método de pago
+3. Si MercadoPago: `MercadoPagoController` crea preferencia
+4. Usuario completa pago en MercadoPago
+5. Webhook de MercadoPago notifica estado
+6. `OrderController` crea pedido
+7. Actualización de stock y crédito (si aplica)
 
-### 3.3 Flujo de Checkout y Pago
-```
-1. Usuario en carrito → POST /api/checkout/process
-2. CheckoutController valida:
-   - Dirección válida
-   - Productos disponibles
-   - Descuentos aplicables
-   - Crédito disponible (si aplica)
+### 4.4. Flujo de Ofertas y Descuentos
+1. Sistema carga ofertas de catálogo (`CatalogOffer`)
+2. Sistema carga ofertas de usuario (`UserOffer`)
+3. Frontend calcula precio final aplicando descuentos
+4. Tipos: porcentaje, buy_x_get_y, order_discount, free_shipping
 
-3. Si pago con crédito:
-   → Crea orden con status 'pagado' o 'pendiente_pago'
-   → Descuenta crédito del usuario
-   → Si hay saldo pendiente, crea preferencia MercadoPago
+### 4.5. Flujo de Imágenes de Productos
+1. Producto tiene campo `imagen` (nombre de archivo)
+2. `productImageUtils.js` genera URL S3: `https://cherry-fotos.s3.amazonaws.com/shopify/{id}/{id}_{number}.jpg`
+3. Si imagen no existe, se muestra placeholder
+4. Backend también puede servir imágenes como proxy (`ProductImageController`)
 
-4. Si pago con MercadoPago:
-   → Crea orden con status 'pending'
-   → Crea preferencia en MercadoPago
-   → Retorna URL de pago
-   → Usuario redirige a MercadoPago
+---
 
-5. Webhook MercadoPago:
-   → POST /api/mercadopago/webhook
-   → Actualiza estado de orden según pago
-   → Envía notificaciones
+## 5. BASE DE DATOS
 
-6. Admin gestiona:
-   → Cambia estado a 'en_espera_envio'
-   → Agrega tracking
-   → Cambia a 'enviado'
-```
+### 5.1. Entidades Principales
 
-### 3.4 Flujo de Ofertas y Descuentos
-```
-1. Usuario navega productos
-2. Sistema calcula ofertas aplicables:
-   - Ofertas de catálogo
-   - Ofertas de usuario específico
-   - Ofertas de categoría
-   - Descuentos por volumen (20% >= 7000, 10% adicional >= 15000)
+**productos**: Productos principales
+- `id` (string, PK)
+- `descripcion`, `marca`, `precio1-precio10`
+- `fecha_alta`, `opc_nuevo`, `opc_promo`
+- `inventario`, `stock_received_count`
+- `id_linea`, `catalogoId`, `sector_id`, `genero_id`
 
-3. En checkout:
-   → Aplica descuentos en orden
-   → Calcula subtotal, discounted_total, shipping
-   → Muestra resumen final
+**detalles**: Variantes de productos (colores/tallas)
+- `id` (integer, PK)
+- `producto_id` (FK → productos)
+- `nombreColor`, `detalle` (talla)
+- `inventario_d` (stock por variante)
 
-4. Ofertas especiales:
-   - Buy X Get Y
-   - Envío gratis (según monto mínimo)
-   - Descuentos por categoría de vendedor (oro/bronce)
-```
+**users**: Usuarios del sistema
+- `id` (PK)
+- `email`, `password`, `first_name`, `last_name`
+- `role_id`, `seller_category`
+- `credit_balance`, `credit_limit`
 
-## 4. DEPENDENCIAS CRÍTICAS
+**orders**: Pedidos
+- `id` (PK)
+- `user_id` (FK → users)
+- `address_id` (FK → addresses)
+- `total_amount`, `subtotal`, `discounted_total`
+- `status`, `payment_method`
+- `mercadopago_preference_id`, `mercadopago_payment_id`
 
-### 4.1 Backend (PHP)
-- `laravel/framework: ^12.0` - Framework principal
-- `tymon/jwt-auth: ^2.2` - Autenticación JWT
-- `mercadopago/dx-php: ^3.8` - Integración MercadoPago
+**order_items**: Items de pedidos
+- `id` (PK)
+- `order_id` (FK → orders)
+- `product_id` (string, referencia a productos)
+- `color`, `size`, `quantity`, `price`
 
-### 4.2 Frontend (JavaScript)
-- `react: ^19.1.0` - Librería UI
-- `react-router-dom: ^7.6.3` - Routing
-- `zustand: ^5.0.6` - Estado global
-- `axios: ^1.10.0` - Cliente HTTP
-- `@tanstack/react-query: ^5.81.5` - Cache y sincronización de datos
+**carts**: Carritos de compra
+- `id` (PK)
+- `user_id` (FK → users)
 
-### 4.3 Servicios Externos
-- **API Externa de Productos**: `https://cherryapi.estrategiadmgs.com.mx/cherryApi/789/articulos`
-- **MercadoPago**: API de pagos (sandbox/production)
-- **Base de Datos**: SQLite (dev) / MySQL (prod)
+**cart_items**: Items del carrito
+- `id` (PK)
+- `cart_id` (FK → carts)
+- `product_id`, `color`, `size`, `quantity`
 
-## 5. ÁREAS CRÍTICAS Y RIESGOS
+**catalogs**: Catálogos
+- `id` (PK)
+- `name`, `code`, `image`, `pdf_path`
 
-### 5.1 Áreas Críticas
+**catalog_products**: Relación muchos-a-muchos entre catálogos y productos
 
-1. **Sincronización de Productos**
-   - Proceso largo (puede tomar minutos)
-   - Requiere manejo de memoria y timeout
-   - Depende de API externa (punto único de fallo)
+**catalog_offers**: Ofertas por catálogo
+- `id` (PK)
+- `catalog_id` (FK → catalogs)
+- `discount_percentage`, `discount_category`
 
-2. **Proceso de Pago**
-   - Integración compleja con MercadoPago
-   - Manejo de webhooks asíncronos
-   - Estados de orden deben ser consistentes
+**user_offers**: Ofertas por usuario
+- `id` (PK)
+- `user_id` (FK → users)
+- `discount_percentage`, `discount_category`
 
-3. **Sistema de Créditos**
-   - Solo usuarios "oro" tienen crédito
-   - Balance debe actualizarse correctamente
-   - Órdenes con crédito parcial requieren lógica especial
+**addresses**: Direcciones de envío
+- `id` (PK)
+- `user_id` (FK → users)
+- `street_address`, `city`, `state`, `postal_code`
+- `is_default`
 
-4. **Cache de Productos**
-   - Cache en memoria puede crecer mucho
-   - Necesita invalidación correcta
-   - Filtros complejos pueden ser lentos
+**favorites**: Productos favoritos
+- `id` (PK)
+- `user_id` (FK → users)
+- `product_id` (string, referencia a productos)
 
-### 5.2 Riesgos Técnicos
+**reviews**: Reseñas de productos
+- `id` (PK)
+- `user_id` (FK → users)
+- `product_id` (string)
+- `rating`, `comment`, `is_approved`
 
-1. **Escalabilidad**
-   - Cache en memoria no escala horizontalmente
-   - Sincronización de productos bloqueante
-   - Sin sistema de colas para procesos pesados
+**notifications**: Notificaciones
+- `id` (PK)
+- `user_id` (FK → users)
+- `message`, `type`, `read_at`
 
-2. **Seguridad**
-   - Tokens JWT en localStorage (vulnerable a XSS)
-   - Ruta `/products/sync` sin autenticación (depende de IP/seguridad de red)
-   - Validación de permisos inconsistente en algunos endpoints
+**historials**: Historial de sincronizaciones
+- `id` (PK)
+- `ejecutado_at`, `estado`, `mensaje`
 
-3. **Mantenibilidad**
-   - Muchos controladores con lógica de negocio mezclada
-   - Algunos modelos con muchos campos (Producto tiene 100+ campos)
-   - Frontend con muchos componentes sin documentación clara
+**categories**: Categorías
+- `id` (PK)
+- `name`, `description`
 
-4. **Deuda Técnica**
-   - Archivos duplicados (`AdminCatalogOfferController_old.php`, `AdminCatalogOfferController_new.php`)
-   - Lógica de filtros duplicada en múltiples páginas
-   - Algunos componentes muy grandes (p. ej., `PaymentController.php` tiene 2400+ líneas)
+**lineas**: Líneas de productos
+- `id` (PK)
+- `name`
 
-### 5.3 Complejidades Arquitectónicas
+**generos**: Géneros
+- `id` (PK)
+- `name`
 
-1. **Doble Carrito**
-   - Carrito en localStorage (frontend)
-   - Carrito en base de datos (backend)
-   - Requiere sincronización compleja
+**sectores**: Sectores
+- `id` (PK)
+- `name`
 
-2. **Estados de Orden**
-   - Múltiples estados legacy y nuevos
-   - Transiciones de estado deben validarse
-   - Estados de pago externos (MercadoPago) vs internos
+### 5.2. Relaciones Clave
 
-3. **Sistema de Ofertas**
-   - Múltiples tipos de ofertas
-   - Cálculo de descuentos complejo
-   - Ofertas dirigidas a usuarios/productos específicos
+- `Producto` hasMany `Detalle`
+- `Producto` belongsTo `Linea` (id_linea)
+- `Order` belongsTo `User`
+- `Order` hasMany `OrderItem`
+- `User` hasMany `Order`
+- `User` hasMany `Address`
+- `User` hasMany `Favorite`
+- `Cart` belongsTo `User`
+- `Cart` hasMany `CartItem`
+- `Catalog` belongsToMany `Producto` (vía `catalog_products`)
+- `CatalogOffer` belongsTo `Catalog`
+- `UserOffer` belongsTo `User`
 
-## 6. ARCHIVOS FUENTE CLAVE
+---
+
+## 6. RUTAS API PRINCIPALES
+
+### Autenticación
+- `POST /api/register`
+- `POST /api/login`
+- `POST /api/logout`
+- `GET /api/me`
+
+### Productos
+- `GET /api/products/search?q=`
+- `GET /api/products/new`
+- `GET /api/products/coming-soon`
+- `GET /api/products/{id}`
+- `GET /api/top-selling`
+
+### Carrito
+- `GET /api/cart`
+- `PUT /api/cart`
+- `DELETE /api/cart`
+- `POST /api/cart/sync`
+
+### Pedidos
+- `GET /api/orders`
+- `POST /api/orders`
+- `GET /api/orders/{id}`
+
+### Direcciones
+- `GET /api/addresses`
+- `POST /api/addresses`
+- `PUT /api/addresses/{id}`
+- `DELETE /api/addresses/{id}`
+
+### Favoritos
+- `GET /api/favorites`
+- `POST /api/favorites/toggle`
+
+### Catálogos
+- `GET /api/admin/catalogs`
+- `GET /api/public/catalogs-with-images`
+
+### Ofertas
+- `GET /api/user-offers`
+- `GET /api/user-offers/products`
+
+### Historial
+- `GET /api/admin/historial`
+
+---
+
+## 7. CONFIGURACIÓN Y VARIABLES DE ENTORNO
+
+### Variables críticas (.env)
+- `DB_CONNECTION=mysql`
+- `DB_HOST`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`
+- `JWT_SECRET`
+- `MERCADOPAGO_ACCESS_TOKEN`
+- `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_BUCKET`
+- `EXTERNAL_API_URL` (hardcoded en código: `https://cherryapi.estrategiadmgs.com.mx/cherryApi/789/articulos`)
+
+---
+
+## 8. CRONJOBS Y TAREAS PROGRAMADAS
+
+### Sincronización de Productos
+- **Comando**: `php artisan products:sync`
+- **Frecuencia**: Configurado en `app/Console/Kernel.php`
+- **Función**: Sincroniza productos desde API externa y registra en `Historial`
+
+---
+
+## 9. ÁREAS CRÍTICAS Y RIESGOS
+
+### 9.1. Riesgos Técnicos
+1. **API Externa**: Dependencia crítica de API externa para sincronización
+2. **Sincronización**: Si falla, productos pueden quedar desactualizados
+3. **Stock**: Cálculo complejo entre `inventario` y `inventario_d` de detalles
+4. **Imágenes S3**: URLs hardcodeadas, si cambia estructura S3 puede romper
+5. **JWT**: Tokens almacenados en localStorage (vulnerable a XSS)
+
+### 9.2. Deuda Técnica
+1. **Código duplicado**: Lógica de filtrado repetida en múltiples páginas
+2. **Validación**: Algunas validaciones solo en frontend
+3. **Error handling**: Manejo de errores inconsistente
+4. **Logging**: Falta logging estructurado en algunos flujos críticos
+
+### 9.3. Complejidades Arquitectónicas
+1. **Productos "Próximamente"**: Lógica compleja para determinar estado
+2. **Ofertas**: Múltiples tipos de ofertas con lógica de aplicación compleja
+3. **Precios múltiples**: 10 niveles de precios, lógica de selección compleja
+4. **Stock por variante**: Cálculo de stock total requiere sumar `inventario_d`
+
+---
+
+## 10. CONVENCIONES Y ESTÁNDARES
 
 ### Backend
-- `app/Http/Controllers/PaymentController.php` - Lógica de pagos y órdenes
-- `app/Http/Controllers/Api/ProductSyncController.php` - Sincronización productos
-- `app/Services/MercadoPagoService.php` - Servicio MercadoPago
-- `app/Models/Producto.php` - Modelo principal de productos
-- `app/Models/Order.php` - Modelo de órdenes
-- `app/Console/Commands/SyncProductsCommand.php` - Comando Artisan sync
+- Controladores en `app/Http/Controllers/Api/`
+- Modelos en `app/Models/`
+- Migraciones en `database/migrations/`
+- Rutas API en `routes/api.php`
+- Middleware: `auth:api` para autenticación, `admin` para admin
 
 ### Frontend
-- `resources/js/App.jsx` - Componente raíz
-- `resources/js/store/userStore.js` - Estado de usuario
-- `resources/js/store/cartStore.js` - Estado de carrito
-- `resources/js/api/cherryApi.js` - Cliente API principal
-- `resources/js/pages/AdminPanelPage.jsx` - Panel de administración
-- `resources/js/pages/CartDetailsPage.jsx` - Página de carrito
+- Componentes en `resources/js/components/`
+- Páginas en `resources/js/pages/`
+- Stores Zustand en `resources/js/store/`
+- Utilidades en `resources/js/utils/`
+- API clients en `resources/js/api/`
 
-### Configuración
-- `routes/api.php` - Rutas API
-- `routes/web.php` - Rutas web (SPA)
-- `config/services.php` - Configuración servicios externos
-- `vite.config.js` - Configuración build frontend
+### Nomenclatura
+- Modelos: PascalCase (`Producto`, `Order`)
+- Controladores: PascalCase + Controller (`ProductController`)
+- Componentes React: PascalCase (`ProductCard.jsx`)
+- Variables: camelCase
+- Rutas API: kebab-case (`/api/products/new`)
+
+---
+
+## 11. DEPENDENCIAS CRÍTICAS
+
+### Backend
+- `laravel/framework: ^12.0`
+- `tymon/jwt-auth: ^2.2`
+- `mercadopago/dx-php: ^3.8`
+
+### Frontend
+- `react: ^19.1.0`
+- `react-router-dom: ^7.6.3`
+- `zustand: ^5.0.6`
+- `axios: ^1.10.0`
+
+---
+
+## 12. PRÓXIMOS PASOS SUGERIDOS
+
+1. **Refactorización**: Extraer lógica de negocio a Services
+2. **Testing**: Implementar tests unitarios y de integración
+3. **Documentación API**: Generar documentación Swagger/OpenAPI
+4. **Optimización**: Implementar caché para productos y catálogos
+5. **Seguridad**: Revisar validaciones y sanitización de inputs
+6. **Monitoreo**: Implementar logging estructurado y monitoreo de errores

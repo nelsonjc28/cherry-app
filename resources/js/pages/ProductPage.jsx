@@ -545,6 +545,38 @@ const ProductPage = () => {
     fetchProduct();
   }, [productId, user]);
 
+  // Load suggested products when product is loaded
+  useEffect(() => {
+    if (!productId || !product) return;
+    
+    const fetchSuggestedProducts = async () => {
+      try {
+        // Encode productId to handle special characters
+        const encodedProductId = encodeURIComponent(productId);
+        const response = await api.get(`/products/${encodedProductId}/suggested?limit=4`);
+        
+        if (response.data.success && response.data.data) {
+          // Apply user offers if user is logged in
+          const hasActiveSession = isUserSessionActive();
+          let suggestedProducts = response.data.data;
+          
+          if (hasActiveSession && suggestedProducts.length > 0) {
+            const productIds = suggestedProducts.map(p => p.id || p.id_articulo);
+            const productsWithOffers = await applyUserOffersToProducts(suggestedProducts);
+            suggestedProducts = productsWithOffers;
+          }
+          
+          setRelatedProducts(suggestedProducts);
+        }
+      } catch (err) {
+        // Silently fail - don't show error for suggested products
+        setRelatedProducts([]);
+      }
+    };
+    
+    fetchSuggestedProducts();
+  }, [productId, product]);
+
 
 
   // Efecto para resetear la cantidad cuando cambie la talla o color
@@ -1626,10 +1658,10 @@ const ProductPage = () => {
               </div>
             )}
 
-            {/* Alertas de descuento y envío */}
-            {productPageAlerts.length > 0 && (
+            {/* Alertas de descuento y envío (excluyendo alerta de próximamente que se muestra en paso 2) */}
+            {productPageAlerts.filter(alert => !alert.isComingSoonAlert).length > 0 && (
               <div className="product-page__alerts">
-                {productPageAlerts.map((alert, index) => (
+                {productPageAlerts.filter(alert => !alert.isComingSoonAlert).map((alert, index) => (
                   <div 
                     key={index} 
                     className={`product-page__alert product-page__alert--${alert.type}`}
@@ -1639,21 +1671,7 @@ const ProductPage = () => {
                     }}
                   >
                     <span className="product-page__alert-icon">{alert.icon}</span>
-                    {alert.isComingSoonAlert ? (
-                      <span className="product-page__alert-message">
-                        Si te interesa este producto da click{' '}
-                        <button
-                          type="button"
-                          className="product-page__alert-link"
-                          onClick={handleNotifyProductInterest}
-                        >
-                          aquí
-                        </button>
-                        {' '}para avisarte cuando llegue
-                      </span>
-                    ) : (
-                      <span className="product-page__alert-message">{alert.message}</span>
-                    )}
+                    <span className="product-page__alert-message">{alert.message}</span>
                   </div>
                 ))}
               </div>
@@ -1707,7 +1725,14 @@ const ProductPage = () => {
               )}
 
               {/* Size Selection - Step 2 */}
-              {tallasAMostrar.length > 0 && (
+              {tallasAMostrar.length > 0 && (() => {
+                // Verificar si el producto está "próximamente" y el usuario es "oro" (fuera del map para usar en el mensaje)
+                const inventoryStatus = getInventoryStatus();
+                const isComingSoon = inventoryStatus.status === 'coming-soon';
+                const isOroUser = user && user.seller_category === 'oro';
+                const showNotifyAlert = isComingSoon && (!user || !isOroUser);
+                
+                return (
                 <div className="product-page__option">
                   <div className="product-page__option-header product-page__step-number-border">
                     <span className="product-page__step-number">Paso 2</span>
@@ -1717,10 +1742,6 @@ const ProductPage = () => {
 
                   <div className="product-page__size-options">
                     {tallasAMostrar.map((talla, index) => {
-                      // Verificar si el producto está "próximamente" y el usuario es "oro"
-                      const inventoryStatus = getInventoryStatus();
-                      const isComingSoon = inventoryStatus.status === 'coming-soon';
-                      const isOroUser = user && user.seller_category === 'oro';
                       const stockDisponible = selectedColor ? getStockBySizeAndColor(talla, selectedColor) : getStockForSize(talla);
                       const isDisabled = selectedColor && stockDisponible <= 0 && !(isComingSoon && isOroUser);
                       const maxStock = getStockForSize(talla);
@@ -1782,8 +1803,31 @@ const ProductPage = () => {
                       );
                     })}
                   </div>
+                  
+                  {/* Mensaje de próximamente - Solo mostrar si es producto próximamente y no es usuario oro */}
+                  {showNotifyAlert && (
+                    <div className="product-page__alert product-page__alert--warning" style={{ 
+                      borderLeftColor: '#ff9800',
+                      backgroundColor: '#ff980015',
+                      marginTop: '1rem'
+                    }}>
+                      <span className="product-page__alert-icon">ℹ️</span>
+                      <span className="product-page__alert-message">
+                        Si te interesa este producto da click{' '}
+                        <button
+                          type="button"
+                          className="product-page__alert-link"
+                          onClick={handleNotifyProductInterest}
+                        >
+                          aquí
+                        </button>
+                        {' '}para avisarte cuando llegue
+                      </span>
+                    </div>
+                  )}
                 </div>
-              )}
+                );
+              })()}
 
               {/* Add to Cart - Step 3 */}
               <div className="product-page__option">
@@ -1869,10 +1913,10 @@ const ProductPage = () => {
         </div>
       </div>
 
-      {/* Related Products Section */}
+      {/* Suggested Products Section */}
       {relatedProducts.length > 0 && (
         <FeaturedProducts
-          title="Productos diseñados para reflejar tu estilo y personalidad."
+          title="También te podría gustar"
           products={relatedProducts}
           viewAllLink="/catalogo"
           viewAllText="Ver Más"

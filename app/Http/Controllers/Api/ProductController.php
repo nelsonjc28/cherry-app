@@ -380,16 +380,23 @@ class ProductController extends Controller
     /**
      * Obtener productos próximamente (stock_received_count === 0 y inventario <= 0)
      * Limitado a 4 productos para la sección "Próximamente"
+     * 
+     * Restricción adicional: Solo productos cuyo tercer dígito del ID coincida 
+     * con el último dígito del año actual (ej: 2026 -> tercer dígito debe ser "6")
      */
     public function getComingSoonProducts(Request $request): JsonResponse
     {
         try {
             $limit = $request->input('limit', 4);
 
+            // Obtener el último dígito del año actual (ej: 2026 -> 6)
+            $currentYearLastDigit = (int) date('Y') % 10;
+
             // Obtener productos próximamente con sus detalles
             // Un producto es próximo si nunca ha recibido stock (stock_received_count === 0)
-            // y no tiene stock actual (inventario <= 0)
-            $productos = DB::table('productos')
+            // y no tiene stock actual (inventario <= 0) O fecha_alta === null
+            // Y además el tercer dígito del ID debe coincidir con el último dígito del año actual
+            $query = DB::table('productos')
                 ->leftJoin('detalles', 'productos.id', '=', 'detalles.producto_id')
                 ->select(
                     'productos.id',
@@ -434,11 +441,17 @@ class ProductController extends Controller
                     })
                     ->orWhereNull('productos.fecha_alta');
                 })
+                ->whereRaw('SUBSTRING(productos.id, 3, 1) = ?', [$currentYearLastDigit]) // Tercer dígito debe coincidir con último dígito del año
                 ->orderBy('productos.fecha_alta', 'desc')
                 ->orderBy('productos.id', 'desc')
-                ->distinct()
-                ->limit($limit)
-                ->get()
+                ->distinct();
+            
+            // Aplicar límite solo si se especifica y es menor a 10000
+            if ($limit !== null && $limit < 10000) {
+                $query = $query->limit($limit);
+            }
+            
+            $productos = $query->get()
                 ->groupBy('id')
                 ->map(function ($productGroup) {
                     $producto = $productGroup->first();
@@ -539,6 +552,275 @@ class ProductController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => 'Error al obtener productos próximamente: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener productos sugeridos relacionados a un producto específico
+     * Basado en: misma línea, mismo género, mismo sector, con stock disponible
+     * 
+     * @param Request $request
+     * @param string $id - ID del producto actual (string)
+     * @return JsonResponse
+     */
+    public function suggested(Request $request, $id): JsonResponse
+    {
+        try {
+            $limit = $request->input('limit', 4);
+            
+            // Obtener información del producto actual
+            $currentProduct = DB::table('productos')
+                ->where('id', $id)
+                ->first();
+            
+            if (!$currentProduct) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Producto no encontrado'
+                ], 404);
+            }
+            
+            $idLinea = $currentProduct->id_linea;
+            $generoId = $currentProduct->genero_id;
+            $sectorId = $currentProduct->sector_id;
+            
+            // Calcular fecha límite para productos nuevos (30 días)
+            $thirtyDaysAgoDate = now()->subDays(30)->format('Y-m-d');
+            
+            // Primero obtener IDs de productos relacionados que cumplen las condiciones
+            $relatedProductIds = DB::table('productos')
+                ->where('productos.id', '!=', $id) // Excluir el producto actual
+                ->where(function($query) use ($idLinea, $generoId, $sectorId) {
+                    // Misma línea Y mismo género (prioridad alta)
+                    if ($idLinea && $generoId) {
+                        $query->where(function($q) use ($idLinea, $generoId) {
+                            $q->where('productos.id_linea', '=', $idLinea)
+                              ->where('productos.genero_id', '=', $generoId);
+                        });
+                    }
+                    
+                    // O mismo sector y línea (si no hay género)
+                    if ($sectorId && $idLinea) {
+                        $query->orWhere(function($q) use ($sectorId, $idLinea) {
+                            $q->where('productos.sector_id', '=', $sectorId)
+                              ->where('productos.id_linea', '=', $idLinea);
+                        });
+                    }
+                    
+                    // O mismo género (si no hay línea)
+                    if ($generoId) {
+                        $query->orWhere('productos.genero_id', '=', $generoId);
+                    }
+                    
+                    // O misma línea (última opción)
+                    if ($idLinea) {
+                        $query->orWhere('productos.id_linea', '=', $idLinea);
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+            
+            if (empty($relatedProductIds)) {
+                return response()->json([
+                    'success' => true,
+                    'data' => []
+                ]);
+            }
+            
+            // Calcular stock total por producto (suma de inventario_d)
+            $productStocks = DB::table('detalles')
+                ->whereIn('producto_id', $relatedProductIds)
+                ->select('producto_id', DB::raw('SUM(inventario_d) as total_stock'))
+                ->groupBy('producto_id')
+                ->pluck('total_stock', 'producto_id')
+                ->toArray();
+            
+            // Obtener inventario general de productos
+            $productInventories = DB::table('productos')
+                ->whereIn('id', $relatedProductIds)
+                ->pluck('inventario', 'id')
+                ->toArray();
+            
+            // Filtrar productos con stock disponible
+            $productsWithStock = [];
+            foreach ($relatedProductIds as $productId) {
+                $stockFromDetails = (float) ($productStocks[$productId] ?? 0);
+                $stockFromProduct = (float) ($productInventories[$productId] ?? 0);
+                $totalStock = $stockFromDetails > 0 ? $stockFromDetails : $stockFromProduct;
+                
+                if ($totalStock > 0) {
+                    $productsWithStock[] = $productId;
+                }
+            }
+            
+            if (empty($productsWithStock)) {
+                return response()->json([
+                    'success' => true,
+                    'data' => []
+                ]);
+            }
+            
+            // Obtener productos relacionados con sus detalles
+            // Prioridad: mismo sector y línea > mismo género > productos nuevos
+            $productos = DB::table('productos')
+                ->leftJoin('detalles', 'productos.id', '=', 'detalles.producto_id')
+                ->select(
+                    'productos.id',
+                    'productos.descripcion',
+                    'productos.marca',
+                    'productos.precio1',
+                    'productos.precio2',
+                    'productos.precio3',
+                    'productos.precio4',
+                    'productos.precio5',
+                    'productos.precio6',
+                    'productos.precio7',
+                    'productos.precio8',
+                    'productos.precio9',
+                    'productos.precio10',
+                    'productos.imagen',
+                    'productos.inventario',
+                    'productos.fecha_alta',
+                    'productos.opc_nuevo',
+                    'productos.opc_promo',
+                    'productos.desc_promo',
+                    'productos.id_linea',
+                    'productos.catalogoId',
+                    'productos.sector_id',
+                    'productos.genero_id',
+                    'productos.stock_received_count',
+                    'detalles.nombreColor',
+                    'detalles.detalle',
+                    'detalles.inventario_d'
+                )
+                ->whereIn('productos.id', $productsWithStock)
+                ->orderByRaw('CASE 
+                    WHEN productos.sector_id = ? AND productos.id_linea = ? THEN 1
+                    WHEN productos.id_linea = ? AND productos.genero_id = ? THEN 2
+                    WHEN productos.genero_id = ? THEN 3
+                    WHEN productos.id_linea = ? THEN 4
+                    ELSE 5
+                END', [$sectorId, $idLinea, $idLinea, $generoId, $generoId, $idLinea])
+                ->orderByRaw('CASE WHEN productos.opc_nuevo = "S" THEN 0 ELSE 1 END')
+                ->orderByRaw('CASE WHEN productos.fecha_alta IS NOT NULL AND productos.fecha_alta >= ? THEN 0 ELSE 1 END', [$thirtyDaysAgoDate])
+                ->orderBy('productos.fecha_alta', 'desc')
+                ->orderBy('productos.id', 'desc')
+                ->limit($limit)
+                ->get()
+                ->groupBy('id')
+                ->map(function ($productGroup) {
+                    $producto = $productGroup->first();
+                    
+                    // Convertir precio
+                    $precio1Raw = $producto->precio1;
+                    $precio1 = 0;
+                    if (is_numeric($precio1Raw)) {
+                        $precio1 = (float) $precio1Raw;
+                    } elseif (is_string($precio1Raw)) {
+                        $precio1 = (float) str_replace(',', '', $precio1Raw);
+                    }
+
+                    // Calcular descuento
+                    $descPromoValue = (float) ($producto->desc_promo ?? 0);
+                    $hasDiscount = $descPromoValue > 0;
+                    $discountPercentage = $hasDiscount ? max(0, $descPromoValue - 10) : 0;
+                    $originalPrice = $hasDiscount && $precio1 > 0 ? $precio1 : null;
+                    $finalPrice = $hasDiscount && $discountPercentage > 0 && $precio1 > 0 
+                        ? ($precio1 - ($precio1 * ($discountPercentage / 100))) 
+                        : $precio1;
+
+                    // Obtener colores y tallas únicos
+                    $colors = $productGroup->pluck('nombreColor')
+                        ->filter()
+                        ->unique()
+                        ->values()
+                        ->toArray();
+                    
+                    $sizes = $productGroup->pluck('detalle')
+                        ->filter()
+                        ->unique()
+                        ->values()
+                        ->toArray();
+
+                    // Calcular inventario total (suma de inventario_d)
+                    $inventarioTotal = $productGroup->sum('inventario_d') ?: (float) ($producto->inventario ?? 0);
+
+                    // Obtener rating
+                    $reviews = Review::where('product_id', $producto->id)
+                        ->where('is_approved', true)
+                        ->get();
+                    
+                    $rating = 0;
+                    $ratingCount = count($reviews);
+                    if ($ratingCount > 0) {
+                        $rating = round($reviews->sum('rating') / $ratingCount, 2);
+                    }
+
+                    // Determinar si es nuevo
+                    $isNew = false;
+                    if ($producto->opc_nuevo === 'S') {
+                        $isNew = true;
+                    } elseif ($producto->fecha_alta) {
+                        $now = time();
+                        $thirtyDaysAgo = $now - (30 * 24 * 60 * 60);
+                        $fechaAltaTimestamp = strtotime($producto->fecha_alta);
+                        if ($fechaAltaTimestamp && $fechaAltaTimestamp > $thirtyDaysAgo) {
+                            $isNew = true;
+                        }
+                    }
+
+                    // Mapear detalles
+                    $detalles = $productGroup->map(function ($detalle) {
+                        return [
+                            'id' => $detalle->id ?? null,
+                            'producto_id' => $detalle->producto_id ?? null,
+                            'nombreColor' => $detalle->nombreColor ?? null,
+                            'detalle' => $detalle->detalle ?? null,
+                            'inventario_d' => (float) ($detalle->inventario_d ?? 0)
+                        ];
+                    })->values()->toArray();
+
+                    return [
+                        'id' => $producto->id,
+                        'id_articulo' => $producto->id,
+                        'title' => $producto->descripcion,
+                        'description' => $producto->descripcion,
+                        'price' => $finalPrice,
+                        'originalPrice' => $originalPrice,
+                        'discount' => $discountPercentage,
+                        'image' => $this->getProductImageUrl($producto->id, $producto->imagen),
+                        'brand' => $producto->marca ?? 'Sin marca',
+                        'stock' => $inventarioTotal,
+                        'inventario' => $inventarioTotal,
+                        'colors' => $colors,
+                        'sizes' => $sizes,
+                        'isNew' => $isNew,
+                        'rating' => $rating,
+                        'ratingCount' => $ratingCount,
+                        'id_linea' => $producto->id_linea,
+                        'category_id' => $producto->id_linea,
+                        'catalogoId' => $producto->catalogoId,
+                        'fecha_alta' => $producto->fecha_alta ? date('Y-m-d', strtotime($producto->fecha_alta)) : null,
+                        'opc_nuevo' => $producto->opc_nuevo ?? 'N',
+                        'opc_promo' => $producto->opc_promo ?? 'N',
+                        'desc_promo' => $descPromoValue,
+                        'stock_received_count' => (int) ($producto->stock_received_count ?? 0),
+                        'detalles' => $detalles
+                    ];
+                })
+                ->values()
+                ->toArray();
+
+            return response()->json([
+                'success' => true,
+                'data' => $productos
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al obtener productos sugeridos: ' . $e->getMessage()
             ], 500);
         }
     }

@@ -844,11 +844,6 @@ const CatalogPdfPage = () => {
                   <h2>{selectedImageGroup?.name}</h2>
                 </div>
 
-                <button className="catalog-pdf__download-btn catalog-pdf__main-download-btn" type="button" aria-label="Descargar PDF">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M14.0942 6.18543H11.6493V1.95651C11.6493 1.09751 10.9225 0.370667 10.0635 0.370667H6.4623C5.6033 0.370667 4.87646 1.09751 4.87646 1.95651V6.18543H2.46466C1.044 6.18543 0.31716 7.90342 1.34135 8.89457L7.15611 14.7093C7.7508 15.3371 8.77499 15.3371 9.40272 14.7093L15.2175 8.89457C16.2086 7.90342 15.4818 6.18543 14.0942 6.18543ZM8.27941 13.586L2.46466 7.77127H6.4623V1.95651H10.0635V7.77127H14.0942L8.27941 13.586Z" fill="#F9738A" />
-                  </svg>
-                </button>
                 <div className="catalog-pdf__pagination">
                   <button
                     className="catalog-pdf__pagination-btn"
