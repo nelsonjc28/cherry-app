@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useFavoritesContext } from '../contexts/FavoritesContext';
-import { getExternalPromoProducts, generateS3ImageUrl } from '../api/cherryApi';
+import api from '../services/api';
 import './FavoritosPage.css';
 
 const FavoritosPage = () => {
@@ -16,99 +16,80 @@ const FavoritosPage = () => {
   
   const [favoriteProducts, setFavoriteProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(false);
-  const favoriteProductIds = Array.from(favorites || []);
 
-  // Cargar datos completos de los productos favoritos
+  // Cargar favoritos desde el backend
   useEffect(() => {
     const loadFavoriteProducts = async () => {
-      if (!initialized || favoriteProductIds.length === 0) {
-        setFavoriteProducts([]);
+      if (!initialized) {
         return;
       }
 
       setProductsLoading(true);
       try {
-        // Obtener todos los productos de la API externa
-        const allProducts = await getExternalPromoProducts(1000, true);
+        // Obtener favoritos directamente del endpoint del backend que incluye información completa del producto
+        const response = await api.get('/favorites');
         
-        if (!Array.isArray(allProducts)) {
+        if (response.data.success && response.data.favorites) {
+          const favoritesData = response.data.favorites || [];
+          
+          // Mapear los favoritos con información completa del producto desde el backend
+          const mappedProducts = favoritesData
+            .filter(fav => fav.product !== null) // Filtrar favoritos sin producto
+            .map(fav => {
+              const product = fav.product;
+              return {
+                id: product.id,
+                id_articulo: product.id || product.id_articulo,
+                descripcion: product.descripcion || product.title || `Producto ${product.id}`,
+                title: product.descripcion || product.title || `Producto ${product.id}`,
+                imagen: product.image || product.imagen,
+                image: product.image || product.imagen,
+                precio1: parseFloat(product.precio1 || product.price || 0),
+                price: parseFloat(product.precio1 || product.price || 0),
+                originalPrice: product.desc_promo && product.desc_promo > 0 
+                  ? parseFloat(product.precio1 || product.price || 0) 
+                  : null,
+                discount: product.desc_promo || product.discount || 0,
+                marca: product.marca || product.brand,
+                brand: product.marca || product.brand,
+                sku: product.sku,
+                ean: product.ean,
+                stock: product.stock || product.inventario || 0,
+                inventario: product.stock || product.inventario || 0
+              };
+            });
+          
+          setFavoriteProducts(mappedProducts);
+        } else {
           setFavoriteProducts([]);
-          return;
         }
-        
-        // Filtrar solo los productos que están en favoritos
-        const favoriteProductsData = allProducts.filter(product => 
-          favoriteProductIds.includes(product.id_articulo)
-        );
-        
-        setFavoriteProducts(favoriteProductsData);
       } catch (error) {
-        // En caso de error, crear productos básicos con la información disponible
-        const basicProducts = favoriteProductIds.map(id => ({
-          id_articulo: id,
-          descripcion: `Producto ${id}`,
-          imagen: `https://cherry-fotos.s3.amazonaws.com/shopify/${id}/${id}_1.jpg`,
-          precio1: 0
-        }));
-        setFavoriteProducts(basicProducts);
+        setFavoriteProducts([]);
       } finally {
         setProductsLoading(false);
       }
     };
 
-    loadFavoriteProducts();
-  }, [initialized]); // Solo depender de initialized, no de favoriteProductIds
-
-  // Efecto separado para manejar cambios en favoriteProductIds
-  useEffect(() => {
-    if (initialized && favoriteProductIds.length > 0) {
-      const loadFavoriteProducts = async () => {
-        setProductsLoading(true);
-        try {
-          const allProducts = await getExternalPromoProducts(1000, true);
-          
-          if (!Array.isArray(allProducts)) {
-            setFavoriteProducts([]);
-            return;
-          }
-          
-          const favoriteProductsData = allProducts.filter(product => 
-            favoriteProductIds.includes(product.id_articulo)
-          );
-          
-          setFavoriteProducts(favoriteProductsData);
-        } catch (error) {
-          const basicProducts = favoriteProductIds.map(id => ({
-            id_articulo: id,
-            descripcion: `Producto ${id}`,
-            imagen: `https://cherry-fotos.s3.amazonaws.com/shopify/${id}/${id}_1.jpg`,
-            precio1: 0
-          }));
-          setFavoriteProducts(basicProducts);
-        } finally {
-          setProductsLoading(false);
-        }
-      };
-
+    if (initialized) {
       loadFavoriteProducts();
     }
-  }, [favoriteProductIds, initialized]);
+  }, [initialized, favorites]);
 
   const handleRemoveFavorite = async (productId) => {
     try {
       // Encontrar el producto para obtener sus datos
-      const product = favoriteProducts.find(p => p.id_articulo === productId);
+      const product = favoriteProducts.find(p => (p.id_articulo === productId) || (p.id === productId));
       
       // Usar el toggle del contexto para remover el favorito
       await toggleFavorite(productId, {
         product_id: productId,
         product_title: product?.descripcion || product?.title || '',
-        product_image: product?.imagen || '',
+        product_image: product?.imagen || product?.image || '',
         product_price: product?.precio1 || product?.price || 0
       });
       
       // Actualizar el estado local inmediatamente
-      setFavoriteProducts(prev => prev.filter(product => product.id_articulo !== productId));
+      setFavoriteProducts(prev => prev.filter(product => (product.id_articulo !== productId) && (product.id !== productId)));
       
       if (window.showToast) {
         window.showToast('Producto removido de favoritos', 'success');
@@ -122,7 +103,9 @@ const FavoritosPage = () => {
   };
 
   const handleProductClick = (productId) => {
-    window.location.href = `/producto/${productId}`;
+    if (productId) {
+      window.location.href = `/producto/${productId}`;
+    }
   };
 
   if (loading || !initialized || productsLoading) {
@@ -186,12 +169,12 @@ const FavoritosPage = () => {
           <div className="favoritos-page__grid">
             {favoriteProducts.map((product) => (
               <div key={product.id_articulo} className="favoritos-page__item">
-                <div className="favoritos-page__item-image" onClick={() => handleProductClick(product.id_articulo)}>
+                <div className="favoritos-page__item-image" onClick={() => handleProductClick(product.id_articulo || product.id)}>
                   <img 
-                    src={generateS3ImageUrl(product.id_articulo)} 
-                    alt={product.descripcion || 'Producto'}
+                    src={product.image || product.imagen || `/images/placeholder-product.jpg`} 
+                    alt={product.descripcion || product.title || 'Producto'}
                     onError={(e) => {
-                      e.target.src = '/placeholder-product.jpg';
+                      e.target.src = '/images/placeholder-product.jpg';
                     }}
                   />
                   <div className="favoritos-page__item-overlay">
@@ -200,13 +183,13 @@ const FavoritosPage = () => {
                 </div>
                 
                 <div className="favoritos-page__item-content">
-                  <h3 onClick={() => handleProductClick(product.id_articulo)}>
-                    {product.descripcion || `Producto ${product.id_articulo}`}
+                  <h3 onClick={() => handleProductClick(product.id_articulo || product.id)}>
+                    {product.descripcion || product.title || `Producto ${product.id_articulo || product.id}`}
                   </h3>
                   
-                  {product.precio1 && (
+                  {(product.precio1 || product.price) && (
                     <div className="favoritos-page__item-price">
-                      ${product.precio1.toLocaleString()}
+                      ${(product.precio1 || product.price).toLocaleString()}
                     </div>
                   )}
                   

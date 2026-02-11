@@ -473,11 +473,7 @@
   filter: none;
 }
 
-/* Estilo para el item Nuevos */
-.new-items .nav-link {
-  background-color: var(--color-primary);
-  color: white;
-}
+/* Estilo para el item Nuevos - Removido, ahora usa el mismo estilo que los demás */
 
 /* Estilo para el item activo */
 .nav-item.active .nav-link::after {
@@ -617,14 +613,7 @@
     right: -4px;
   }
 
-  .new-items .nav-link img {
-    filter: brightness(0.3) saturate(100%);
-  }
-
-  /* Filtro solo para el icono Cart Plus en el menú móvil */
-  .mobile-menu-link[href="/nuevos"] img {
-    filter: brightness(0.3) saturate(100%);
-  }
+  /* Estilos de iconos removidos - ya no se usan */
 }
 
 @media (max-width: 576px) {

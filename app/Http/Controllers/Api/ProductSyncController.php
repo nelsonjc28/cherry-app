@@ -268,7 +268,7 @@ class ProductSyncController extends Controller
                     } else {
                         $stats['productos_actualizados']++;
                     }
-                    
+
                     // 4.5. Detectar si el producto pasó de sin stock a con stock
                     $newInventario = (float) ($productData['inventario'] ?? 0);
                     if ($oldInventario === 0 && $newInventario > 0) {
@@ -883,5 +883,5 @@ class ProductSyncController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
         }
-    }
+}
 }

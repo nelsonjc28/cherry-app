@@ -399,16 +399,16 @@ const MyOrders = () => {
                           >
                             👁️
                           </button>
-                        </div>
+                  </div>
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
-          </div>
-        )}
-      </div>
+              </div>
+          )}
+        </div>
 
         {totalPages > 1 && (
           <div className="my-orders__pagination">

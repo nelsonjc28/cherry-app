@@ -611,8 +611,8 @@ const CatalogFilter = ({
                   className="filter-section-header"
                   onClick={() => toggleSection('sizes')}
                 >
-                  <h3 className="filter-title">Talla</h3>
-                  <img src={getIconPath('Chevron Down.svg')} alt="Filter" />
+                  <h3 className="filter-title">Tallas</h3>
+                  <img src={getIconPath('Chevron Down.svg')} alt="Filter" className={`chevron ${expandedSections.sizes ? 'expanded' : ''}`} />
                 </button>
                 {expandedSections.sizes && (
                   <div className="filter-section-content">
@@ -638,8 +638,8 @@ const CatalogFilter = ({
                   className="filter-section-header"
                   onClick={() => toggleSection('colors')}
                 >
-                  <h3 className="filter-title">Color</h3>
-                  <img src={getIconPath('Chevron Down.svg')} alt="Filter" className={`chevron ${expandedSections.clothing ? 'expanded' : ''}`} />
+                  <h3 className="filter-title">Colores</h3>
+                  <img src={getIconPath('Chevron Down.svg')} alt="Filter" className={`chevron ${expandedSections.colors ? 'expanded' : ''}`} />
                 </button>
                 {expandedSections.colors && (
                   <div className="filter-section-content">

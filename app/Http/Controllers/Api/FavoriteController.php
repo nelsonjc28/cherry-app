@@ -39,13 +39,21 @@ class FavoriteController extends Controller
                     'created_at' => $favorite->created_at,
                     'product' => $product ? [
                         'id' => $product->id,
+                        'id_articulo' => $product->id,
                         'descripcion' => $product->descripcion,
-                        'imagen' => $product->imagen,
+                        'title' => $product->descripcion,
+                        'imagen' => $this->getProductImageUrl($product->id, $product->imagen),
+                        'image' => $this->getProductImageUrl($product->id, $product->imagen),
                         'precio1' => $product->precio1,
+                        'price' => (float) ($product->precio1 ?? 0),
                         'precio2' => $product->precio2,
                         'precio3' => $product->precio3,
                         'desc_promo' => $product->desc_promo,
+                        'discount' => (float) ($product->desc_promo ?? 0),
                         'marca' => $product->marca,
+                        'brand' => $product->marca,
+                        'inventario' => (float) ($product->inventario ?? 0),
+                        'stock' => (float) ($product->inventario ?? 0),
                         'sku' => $product->sku,
                         'ean' => $product->ean,
                         'fecha_alta' => $product->fecha_alta,
@@ -265,5 +273,35 @@ class FavoriteController extends Controller
                 'error' => 'Error al toggle favorito: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Generar URL completa de imagen del producto
+     */
+    private function getProductImageUrl($productId, $imagenFromDb = null): string
+    {
+        // Si no hay productId, devolver placeholder
+        if (!$productId) {
+            return asset('images/placeholder-product.png');
+        }
+
+        // Convertir a string para manejar correctamente
+        $productIdStr = trim((string) $productId);
+        
+        // Si hay imagen en la BD y no es un placeholder/imagen de prueba, verificar si es válida
+        if ($imagenFromDb && trim($imagenFromDb) !== '' && 
+            !str_contains(strtolower($imagenFromDb), 'placeholder') && 
+            !str_contains($imagenFromDb, 'Rectangle 4922') &&
+            !str_contains(strtolower($imagenFromDb), 'test') &&
+            !str_contains(strtolower($imagenFromDb), 'prueba')) {
+            // Si ya es una URL completa válida (S3), retornarla
+            if (filter_var($imagenFromDb, FILTER_VALIDATE_URL) && str_contains($imagenFromDb, 'cherry-fotos.s3')) {
+                return $imagenFromDb;
+            }
+        }
+
+        // Siempre usar S3 para obtener la imagen real del producto
+        // Generar URL de S3: https://cherry-fotos.s3.amazonaws.com/shopify/{productId}/{productId}_1.jpg
+        return "https://cherry-fotos.s3.amazonaws.com/shopify/{$productIdStr}/{$productIdStr}_1.jpg";
     }
 }

@@ -491,7 +491,7 @@ const Header = () => {
       <li className="mobile-menu-item">
         <div className="mobile-menu-header">
           <div className="mobile-menu-title" onClick={handleMainClick}>
-            {icon}
+            {icon && icon}
             <span>{title}</span>
           </div>
           <button
@@ -737,30 +737,26 @@ const Header = () => {
           <div className="nav-container">
             <ul className="nav-menu">
 
-              <li className="nav-item new-items" onMouseEnter={() => setActiveMenu(null)}>
+              <li className="nav-item" onMouseEnter={() => setActiveMenu(null)}>
                 <Link to="/nuevos" className="nav-link" data-discover="true">
-                  <img src={getIconPath('Cart Plus.svg')} alt="Nuevos" />
                   Nuevos
                 </Link>
               </li>
               <li className="nav-item nav-divider"></li>
               <li className="nav-item" onMouseEnter={() => setActiveMenu(null)}>
                 <Link to="/proximamente" className="nav-link" data-discover="true">
-                  <img src={getIconPath('Clock.svg')} alt="Próximamente" />
                   Próximamente
                 </Link>
               </li>
               <li className="nav-item nav-divider"></li>
               <li className="nav-item" onMouseEnter={() => setActiveMenu(null)}>
                 <Link to="/destacados" className="nav-link">
-                  <img src={getIconPath('Award.svg')} alt="Más Vendidos" />
                   Más Vendidos
                 </Link>
               </li>
               <li className="nav-item nav-divider"></li>
               <li className={`nav-item ${activeMenu === 'categorias' ? 'active' : ''}`} onMouseEnter={() => handleMouseEnter('categorias')}>
                 <Link to="/categorias" className="nav-link">
-                  <img src={getIconPath('File Alt.svg')} alt="Categorías" />
                   Categorías
                   <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
                 </Link>
@@ -768,7 +764,6 @@ const Header = () => {
               <li className="nav-item nav-divider"></li>
               <li className={`nav-item ${activeMenu === 'catalogos' ? 'active' : ''}`} onMouseEnter={() => handleMouseEnter('catalogos')}>
                 <Link to="/catalogos" className="nav-link">
-                  <img src={getIconPath('File Alt.svg')} alt="Catálogos" />
                   Catálogos
                   <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
                 </Link>
@@ -776,14 +771,12 @@ const Header = () => {
               <li className="nav-item nav-divider"></li>
               <li className="nav-item" onMouseEnter={() => setActiveMenu(null)}>
                 <Link to="/promociones" className="nav-link">
-                  <img src={getIconPath('Bullhorn.svg')} alt="Rebajas" />
                   Rebajas
                 </Link>
               </li>
               <li className="nav-item nav-divider"></li>
               <li className="nav-item contact-item" onMouseEnter={() => setActiveMenu(null)}>
                 <Link to="/contacto" className="nav-link">
-                  <img src={getIconPath('Phone.svg')} alt="Contacto" />
                   Contacto
                 </Link>
               </li>
@@ -900,21 +893,18 @@ const Header = () => {
             <ul className="mobile-menu-list">
               <li className="mobile-menu-item">
                 <Link to="/nuevos" className="mobile-menu-link" onClick={() => setMobileMenuOpen(false)}>
-                  <img src={getIconPath('Cart Plus.svg')} alt="Nuevos" />
                   <span>Nuevos</span>
                 </Link>
               </li>
 
               <li className="mobile-menu-item">
                 <Link to="/proximamente" className="mobile-menu-link" onClick={() => setMobileMenuOpen(false)}>
-                  <img src={getIconPath('Clock.svg')} alt="Próximamente" />
                   <span>Próximamente</span>
                 </Link>
               </li>
 
               <li className="mobile-menu-item">
                 <Link to="/destacados" className="mobile-menu-link" onClick={() => setMobileMenuOpen(false)}>
-                  <img src={getIconPath('Award.svg')} alt="Más Vendidos" />
                   <span>Más Vendidos</span>
                 </Link>
               </li>
@@ -922,25 +912,23 @@ const Header = () => {
               <MobileMenuItem
                 menuKey="categorias"
                 title="Categorías"
-                icon={<img src={getIconPath('File Alt.svg')} alt="Categorías" />}
+                icon={null}
               />
 
               <MobileMenuItem
                 menuKey="catalogos"
                 title="Catálogos"
-                icon={<img src={getIconPath('File Alt.svg')} alt="Catálogos" />}
+                icon={null}
               />
 
               <li className="mobile-menu-item">
                 <Link to="/promociones" className="mobile-menu-link" onClick={() => setMobileMenuOpen(false)}>
-                  <img src={getIconPath('Bullhorn.svg')} alt="Rebajas" />
                   <span>Rebajas</span>
                 </Link>
               </li>
 
               <li className="mobile-menu-item">
                 <Link to="/contacto" className="mobile-menu-link" onClick={() => setMobileMenuOpen(false)}>
-                  <img src={getIconPath('Phone.svg')} alt="Contacto" />
                   <span>Contacto</span>
                 </Link>
               </li>
