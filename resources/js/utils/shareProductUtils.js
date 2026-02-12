@@ -5,16 +5,16 @@
 
 import { generateS3ImageUrls } from '../api/cherryApi';
 
-// Variable global para prevenir múltiples ejecuciones simultáneas
-let isSharing = false;
-
 // Array para rastrear todas las URLs creadas y poder revocarlas
 const createdObjectURLs = [];
 
+// Map para rastrear ejecuciones en curso por ID de producto/catálogo
+const activeShares = new Map();
+
 /**
- * Limpiar todas las URLs creadas y resetear el estado de compartir
+ * Limpiar todas las URLs creadas para un ID específico
  */
-const cleanupMemory = () => {
+const cleanupMemory = (id = null) => {
   // Revocar todas las URLs creadas
   createdObjectURLs.forEach(url => {
     try {
@@ -25,8 +25,10 @@ const cleanupMemory = () => {
   });
   createdObjectURLs.length = 0; // Limpiar el array
   
-  // Resetear el flag de compartir
-  isSharing = false;
+  // Remover de ejecuciones activas si se proporciona ID
+  if (id) {
+    activeShares.delete(id);
+  }
 };
 
 /**
@@ -41,18 +43,19 @@ const createTrackedObjectURL = (blob) => {
 /**
  * Descargar una imagen (GET) y devolverla como File
  * Nota: usamos GET directo (no HEAD) para evitar problemas de CORS con S3.
- * Con timeout para evitar esperas infinitas
+ * Con timeout optimizado para respuesta rápida en móviles
  */
-const fetchImageAsFile = async (imageUrl, filename, timeout = 5000) => {
+const fetchImageAsFile = async (imageUrl, filename, timeout = 4000) => {
   try {
-    // Crear un AbortController para timeout
+    // Crear un AbortController para timeout más corto en móviles
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
     
     const response = await fetch(imageUrl, { 
       mode: 'cors', 
       credentials: 'omit',
-      signal: controller.signal
+      signal: controller.signal,
+      cache: 'force-cache' // Usar caché para acelerar
     });
     
     clearTimeout(timeoutId);
@@ -118,10 +121,10 @@ const downloadFileToDevice = async (file) => {
 
 /**
  * Descargar todas las imágenes disponibles de un producto como Files
- * Usa el endpoint del servidor que cachea las imágenes localmente
+ * Versión optimizada para respuesta rápida en móviles
  * - Recorre {id}_{n}.jpg hasta maxImages (máximo 5)
  * - Se detiene tras 2 fallos consecutivos una vez encontrada al menos 1
- * - Descarga imágenes en paralelo para mayor velocidad
+ * - Descarga imágenes en paralelo para máxima velocidad
  */
 const collectProductImageFiles = async (productId, maxImages = 5) => {
   // Limitar a máximo 5 imágenes para evitar problemas de memoria
@@ -132,46 +135,41 @@ const collectProductImageFiles = async (productId, maxImages = 5) => {
   // Usar endpoint del servidor que cachea las imágenes
   const baseUrl = `${window.location.origin}/api/product-images`;
 
-  // Intentar descargar las primeras 2 imágenes en paralelo (más rápido y menos carga)
+  // Intentar descargar TODAS las imágenes en paralelo para máxima velocidad
+  // Esto es crítico para que navigator.share reciba los archivos rápidamente
   const parallelPromises = [];
-  for (let i = 1; i <= Math.min(2, limit); i++) {
+  for (let i = 1; i <= limit; i++) {
     const url = `${baseUrl}/${productId}/${i}`;
     parallelPromises.push(
-      fetchImageAsFile(url, `${productId}_${i}.jpg`, 3000) // Timeout de 3s por imagen
+      fetchImageAsFile(url, `${productId}_${i}.jpg`, 2500) // Timeout reducido a 2.5s
         .then(file => ({ index: i, file }))
         .catch(() => ({ index: i, file: null }))
     );
   }
 
-  // Esperar las primeras imágenes en paralelo
+  // Esperar todas las imágenes en paralelo
   const parallelResults = await Promise.all(parallelPromises);
-  for (const { file } of parallelResults) {
-    if (file) {
-      files.push(file);
-      consecutiveMisses = 0;
-    } else {
-      consecutiveMisses++;
-    }
-  }
-
-  // Si encontramos al menos una imagen, continuar secuencialmente
-  if (files.length > 0) {
-    for (let i = 3; i <= limit; i++) {
-      if (consecutiveMisses >= 2) break;
-      
-      const url = `${baseUrl}/${productId}/${i}`;
-      const file = await fetchImageAsFile(url, `${productId}_${i}.jpg`, 3000);
+  
+  // Ordenar por índice y agregar solo las que se descargaron exitosamente
+  parallelResults
+    .sort((a, b) => a.index - b.index)
+    .forEach(({ file }) => {
       if (file) {
         files.push(file);
         consecutiveMisses = 0;
       } else {
         consecutiveMisses++;
+        // Si tenemos al menos una imagen y hay 2 fallos consecutivos, detener
+        if (files.length > 0 && consecutiveMisses >= 2) {
+          return;
+        }
       }
-    }
-  } else {
-    // Fallback: intentar al menos la primera imagen desde S3 directamente
+    });
+
+  // Si no encontramos ninguna imagen, intentar fallback desde S3
+  if (files.length === 0) {
     const fallback = generateS3ImageUrls(productId, 1);
-    const file = await fetchImageAsFile(fallback[0], `${productId}_1.jpg`, 5000);
+    const file = await fetchImageAsFile(fallback[0], `${productId}_1.jpg`, 4000);
     if (file) files.push(file);
   }
 
@@ -200,17 +198,10 @@ const generateShareText = (productData) => {
 
 /**
  * Compartir producto con todas sus imágenes usando Web Share API
- * Versión mejorada con gestión de memoria y manejo de errores robusto
+ * Versión reestructurada: secuencia async/await directa sin dependencias de estado
+ * Los archivos se pasan directamente a navigator.share sin esperar actualizaciones
  */
 export const shareProductWithImages = async (product) => {
-  // Prevenir múltiples ejecuciones simultáneas
-  if (isSharing) {
-    if (window.showToast) {
-      window.showToast('Ya se está compartiendo un producto. Espera un momento...', 'info');
-    }
-    return;
-  }
-
   const id = product.id;
   const title = product.title || 'Producto Cherry';
   const price = product.price || 0;
@@ -220,21 +211,31 @@ export const shareProductWithImages = async (product) => {
   
   const productUrl = `${window.location.origin}/producto/${id}`;
 
-  isSharing = true;
-  let imageFiles = [];
+  // Prevenir múltiples ejecuciones simultáneas para el mismo producto
+  if (activeShares.has(id)) {
+    if (window.showToast) {
+      window.showToast('Ya se está compartiendo este producto. Espera un momento...', 'info');
+    }
+    return;
+  }
+
+  // Marcar como en ejecución
+  activeShares.set(id, true);
 
   try {
     if (window.showToast) {
       window.showToast('Cargando imágenes del producto...', 'info');
     }
 
-    // Cargar imágenes como Files en memoria (máximo 5 imágenes)
+    // SECUENCIA DIRECTA: Descargar imágenes como Files (máximo 5 imágenes)
+    // Timeout optimizado para móviles: 10 segundos máximo
     const imageFilesPromise = collectProductImageFiles(id, 5);
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout al cargar imágenes')), 15000) // Timeout de 15s
+      setTimeout(() => reject(new Error('Timeout al cargar imágenes')), 10000)
     );
     
-    imageFiles = await Promise.race([imageFilesPromise, timeoutPromise]);
+    // Obtener archivos directamente - NO usar estado de React
+    const imageFiles = await Promise.race([imageFilesPromise, timeoutPromise]);
 
     // Generar texto de compartir con formato específico
     const shareText = generateShareText({
@@ -247,9 +248,6 @@ export const shareProductWithImages = async (product) => {
 
     // Si no hay imágenes, compartir solo texto
     if (imageFiles.length === 0) {
-      // Limpiar memoria antes de compartir texto
-      cleanupMemory();
-      
       if (navigator.share) {
         try {
           await navigator.share({
@@ -260,9 +258,8 @@ export const shareProductWithImages = async (product) => {
           if (window.showToast) window.showToast('¡Producto compartido!', 'success');
           return;
         } catch (shareError) {
-          // Si el usuario cancela, resetear estado y salir
+          // Si el usuario cancela, salir silenciosamente
           if (shareError.name === 'AbortError') {
-            cleanupMemory();
             return;
           }
           // Si hay otro error, intentar copiar al portapapeles
@@ -279,29 +276,28 @@ export const shareProductWithImages = async (product) => {
       return;
     }
 
-    // Validar soporte para compartir archivos ANTES de intentar compartir
+    // SECUENCIA DIRECTA: Validar soporte y compartir INMEDIATAMENTE con los archivos
+    // Esto es crítico: los archivos deben pasarse directamente sin esperar estados
     const canShareFiles = navigator.share && 
                          navigator.canShare && 
                          navigator.canShare({ files: imageFiles });
 
     // Intentar compartir directamente con las imágenes usando Web Share API
+    // IMPORTANTE: Usar imageFiles directamente, no esperar actualizaciones de estado
     if (canShareFiles) {
       try {
+        // Llamar a navigator.share inmediatamente con los archivos descargados
         await navigator.share({
           title: title,
           text: shareText,
-          files: imageFiles
+          files: imageFiles // Pasar directamente el array de archivos
         });
-        
-        // Limpiar memoria después de compartir exitosamente
-        cleanupMemory();
         
         if (window.showToast) window.showToast('¡Producto compartido!', 'success');
         return;
       } catch (shareError) {
-        // Si el usuario cancela, resetear estado inmediatamente
+        // Si el usuario cancela, salir silenciosamente
         if (shareError.name === 'AbortError') {
-          cleanupMemory();
           return;
         }
         // Si hay otro error, continuar con fallback
@@ -322,23 +318,19 @@ export const shareProductWithImages = async (product) => {
           window.showToast('Compartido. Descargando imágenes...', 'info');
         }
         
-        // Descargar imágenes secuencialmente con limpieza de memoria
+        // Descargar imágenes secuencialmente
         for (const file of imageFiles) {
           await downloadFileToDevice(file);
           await new Promise(r => setTimeout(r, 200));
         }
-        
-        // Limpiar memoria después de descargar
-        cleanupMemory();
         
         if (window.showToast) {
           window.showToast('Imágenes descargadas', 'success');
         }
         return;
       } catch (textShareError) {
-        // Si el usuario cancela, resetear estado inmediatamente
+        // Si el usuario cancela, salir silenciosamente
         if (textShareError.name === 'AbortError') {
-          cleanupMemory();
           return;
         }
         throw textShareError;
@@ -355,9 +347,6 @@ export const shareProductWithImages = async (product) => {
       await new Promise(r => setTimeout(r, 200));
     }
     
-    // Limpiar memoria después de descargar
-    cleanupMemory();
-    
     try {
       await navigator.clipboard.writeText(`${shareText}\n\n${productUrl}`);
       if (window.showToast) {
@@ -369,9 +358,6 @@ export const shareProductWithImages = async (product) => {
       }
     }
   } catch (error) {
-    // Limpiar memoria en caso de error
-    cleanupMemory();
-    
     // Si el usuario cancela, no mostrar error
     if (error.name === 'AbortError') {
       return;
@@ -390,9 +376,6 @@ export const shareProductWithImages = async (product) => {
         await downloadFileToDevice(file);
         await new Promise(r => setTimeout(r, 200));
       }
-      
-      // Limpiar memoria después de descargar
-      cleanupMemory();
       
       const fallbackShareText = generateShareText({
         title: title || 'Producto Cherry',
@@ -413,16 +396,13 @@ export const shareProductWithImages = async (product) => {
         }
       }
     } catch (fallbackError) {
-      // Limpiar memoria incluso en caso de error del fallback
-      cleanupMemory();
-      
       if (window.showToast) {
         window.showToast('No se pudo compartir. Intenta nuevamente.', 'error');
       }
     }
   } finally {
-    // Asegurar limpieza de memoria al finalizar
-    cleanupMemory();
+    // Asegurar limpieza de memoria y remover de ejecuciones activas
+    cleanupMemory(id);
   }
 };
 
@@ -431,14 +411,6 @@ export const shareProductWithImages = async (product) => {
  * Versión mejorada con gestión de memoria
  */
 export const shareCatalogPdf = async (pdfInfo) => {
-  // Prevenir múltiples ejecuciones simultáneas
-  if (isSharing) {
-    if (window.showToast) {
-      window.showToast('Ya se está compartiendo un catálogo. Espera un momento...', 'info');
-    }
-    return;
-  }
-
   const { pdf_url, pdf_name, catalogName } = pdfInfo;
   const catalogUrl = window.location.href;
 
@@ -446,7 +418,20 @@ export const shareCatalogPdf = async (pdfInfo) => {
     throw new Error('No hay PDF disponible para compartir');
   }
 
-  isSharing = true;
+  // Usar una clave única para este catálogo
+  const catalogKey = `catalog_${pdf_url}`;
+  
+  // Prevenir múltiples ejecuciones simultáneas para el mismo catálogo
+  if (activeShares.has(catalogKey)) {
+    if (window.showToast) {
+      window.showToast('Ya se está compartiendo este catálogo. Espera un momento...', 'info');
+    }
+    return;
+  }
+
+  // Marcar como en ejecución
+  activeShares.set(catalogKey, true);
+
   let blob = null;
   let objectURL = null;
 
@@ -455,11 +440,14 @@ export const shareCatalogPdf = async (pdfInfo) => {
       window.showToast('Cargando PDF del catálogo...', 'info');
     }
 
-    // Descargar el PDF desde el servidor con timeout
+    // SECUENCIA DIRECTA: Descargar el PDF desde el servidor con timeout optimizado
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // Timeout de 15s
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // Timeout de 10s para móviles
     
-    const response = await fetch(pdf_url, { signal: controller.signal });
+    const response = await fetch(pdf_url, { 
+      signal: controller.signal,
+      cache: 'force-cache' // Usar caché para acelerar
+    });
     clearTimeout(timeoutId);
     
     if (!response.ok) {
@@ -467,34 +455,33 @@ export const shareCatalogPdf = async (pdfInfo) => {
     }
 
     blob = await response.blob();
+    // Crear File directamente - NO usar estado de React
     const file = new File([blob], pdf_name || 'catalogo.pdf', { type: 'application/pdf' });
 
     // Generar texto de compartir
     const shareText = `Checa este catálogo que tenemos para ti: ${catalogName || 'Catálogo Cherry'}\n\nPregunta por productos disponibles y precios especiales.`;
 
-    // Validar soporte para compartir archivos ANTES de intentar compartir
+    // SECUENCIA DIRECTA: Validar soporte y compartir INMEDIATAMENTE con el archivo
     const canShareFiles = navigator.share && 
                          navigator.canShare && 
                          navigator.canShare({ files: [file] });
 
     // Intentar compartir directamente con el PDF usando Web Share API
+    // IMPORTANTE: Usar file directamente, no esperar actualizaciones de estado
     if (canShareFiles) {
       try {
+        // Llamar a navigator.share inmediatamente con el archivo descargado
         await navigator.share({
           title: catalogName || 'Catálogo Cherry',
           text: shareText,
-          files: [file]
+          files: [file] // Pasar directamente el archivo
         });
-        
-        // Limpiar memoria después de compartir exitosamente
-        cleanupMemory();
         
         if (window.showToast) window.showToast('¡Catálogo PDF compartido!', 'success');
         return;
       } catch (shareError) {
-        // Si el usuario cancela, resetear estado inmediatamente
+        // Si el usuario cancela, salir silenciosamente
         if (shareError.name === 'AbortError') {
-          cleanupMemory();
           return;
         }
         // Si hay otro error, continuar con fallback
@@ -539,17 +526,13 @@ export const shareCatalogPdf = async (pdfInfo) => {
           }
         }, 1000);
         
-        // Limpiar memoria
-        cleanupMemory();
-        
         if (window.showToast) {
           window.showToast('PDF descargado', 'success');
         }
         return;
       } catch (textShareError) {
-        // Si el usuario cancela, resetear estado inmediatamente
+        // Si el usuario cancela, salir silenciosamente
         if (textShareError.name === 'AbortError') {
-          cleanupMemory();
           return;
         }
         throw textShareError;
@@ -584,9 +567,6 @@ export const shareCatalogPdf = async (pdfInfo) => {
       }
     }, 1000);
     
-    // Limpiar memoria
-    cleanupMemory();
-    
     try {
       await navigator.clipboard.writeText(`${shareText}\n\n${catalogUrl}`);
       if (window.showToast) {
@@ -598,7 +578,7 @@ export const shareCatalogPdf = async (pdfInfo) => {
       }
     }
   } catch (error) {
-    // Limpiar memoria en caso de error
+    // Limpiar URL en caso de error
     if (objectURL) {
       try {
         URL.revokeObjectURL(objectURL);
@@ -610,7 +590,6 @@ export const shareCatalogPdf = async (pdfInfo) => {
         // Ignorar errores
       }
     }
-    cleanupMemory();
     
     // Si el usuario cancela, no mostrar error
     if (error.name === 'AbortError') {
@@ -624,9 +603,12 @@ export const shareCatalogPdf = async (pdfInfo) => {
       }
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       
-      const fallbackResponse = await fetch(pdf_url, { signal: controller.signal });
+      const fallbackResponse = await fetch(pdf_url, { 
+        signal: controller.signal,
+        cache: 'force-cache'
+      });
       clearTimeout(timeoutId);
       
       if (!fallbackResponse.ok) {
@@ -657,9 +639,6 @@ export const shareCatalogPdf = async (pdfInfo) => {
         }
       }, 1000);
       
-      // Limpiar memoria
-      cleanupMemory();
-      
       const fallbackShareText = `Checa este catálogo que tenemos para ti: ${catalogName || 'Catálogo Cherry'}\n\nPregunta por productos disponibles y precios especiales.`;
       
       try {
@@ -673,15 +652,12 @@ export const shareCatalogPdf = async (pdfInfo) => {
         }
       }
     } catch (fallbackError) {
-      // Limpiar memoria incluso en caso de error del fallback
-      cleanupMemory();
-      
       if (window.showToast) {
         window.showToast('No se pudo compartir. Intenta nuevamente.', 'error');
       }
     }
   } finally {
-    // Asegurar limpieza de memoria al finalizar
-    cleanupMemory();
+    // Asegurar limpieza de memoria y remover de ejecuciones activas
+    cleanupMemory(catalogKey);
   }
 };
