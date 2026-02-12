@@ -455,8 +455,17 @@ export const shareCatalogPdf = async (pdfInfo) => {
     }
 
     blob = await response.blob();
-    // Crear File directamente - NO usar estado de React
-    const file = new File([blob], pdf_name || 'catalogo.pdf', { type: 'application/pdf' });
+    
+    // Validar que el blob sea realmente un PDF
+    if (!blob.type || !blob.type.includes('pdf')) {
+      // Forzar tipo MIME explícitamente
+      blob = new Blob([blob], { type: 'application/pdf' });
+    }
+    
+    // Crear File directamente con tipo MIME explícito - NO usar estado de React
+    const file = new File([blob], pdf_name || 'catalogo.pdf', { 
+      type: 'application/pdf' // Tipo MIME explícito para reconocimiento correcto
+    });
 
     // Generar texto de compartir
     const shareText = `Checa este catálogo que tenemos para ti: ${catalogName || 'Catálogo Cherry'}\n\nPregunta por productos disponibles y precios especiales.`;
@@ -477,15 +486,64 @@ export const shareCatalogPdf = async (pdfInfo) => {
           files: [file] // Pasar directamente el archivo
         });
         
+        // Revocar blob inmediatamente después de compartir para liberar memoria
+        // No esperar a que se resuelva completamente, solo después de iniciar el share
+        blob = null; // Permitir garbage collection
+        
         if (window.showToast) window.showToast('¡Catálogo PDF compartido!', 'success');
         return;
       } catch (shareError) {
         // Si el usuario cancela, salir silenciosamente
         if (shareError.name === 'AbortError') {
+          blob = null; // Liberar memoria
           return;
         }
         // Si hay otro error, continuar con fallback
       }
+    }
+    
+    // Si no puede compartir archivos, descargar directamente como respaldo
+    if (!canShareFiles) {
+      if (window.showToast) {
+        window.showToast('Descargando PDF...', 'info');
+      }
+      
+      objectURL = createTrackedObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectURL;
+      a.download = pdf_name || 'catalogo.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      // Revocar URL inmediatamente después de iniciar descarga
+      setTimeout(() => {
+        if (objectURL) {
+          try {
+            URL.revokeObjectURL(objectURL);
+            const index = createdObjectURLs.indexOf(objectURL);
+            if (index > -1) {
+              createdObjectURLs.splice(index, 1);
+            }
+          } catch (e) {
+            // Ignorar errores
+          }
+        }
+      }, 500); // Reducido a 500ms para liberar memoria más rápido
+      
+      blob = null; // Liberar memoria
+      
+      try {
+        await navigator.clipboard.writeText(`${shareText}\n\n${catalogUrl}`);
+        if (window.showToast) {
+          window.showToast('PDF descargado. Enlace copiado al portapapeles.', 'success');
+        }
+      } catch (clipboardError) {
+        if (window.showToast) {
+          window.showToast('PDF descargado.', 'info');
+        }
+      }
+      return;
     }
     
     // Si no puede compartir archivos o falló, intentar compartir solo texto/URL
@@ -511,7 +569,7 @@ export const shareCatalogPdf = async (pdfInfo) => {
         a.click();
         document.body.removeChild(a);
         
-        // Revocar URL después de un delay
+        // Revocar URL inmediatamente después de iniciar descarga
         setTimeout(() => {
           if (objectURL) {
             try {
@@ -524,7 +582,9 @@ export const shareCatalogPdf = async (pdfInfo) => {
               // Ignorar errores
             }
           }
-        }, 1000);
+        }, 500); // Reducido a 500ms para liberar memoria más rápido
+        
+        blob = null; // Liberar memoria inmediatamente
         
         if (window.showToast) {
           window.showToast('PDF descargado', 'success');
@@ -552,7 +612,7 @@ export const shareCatalogPdf = async (pdfInfo) => {
     a.click();
     document.body.removeChild(a);
     
-    // Revocar URL después de un delay
+    // Revocar URL inmediatamente después de iniciar descarga
     setTimeout(() => {
       if (objectURL) {
         try {
@@ -565,7 +625,9 @@ export const shareCatalogPdf = async (pdfInfo) => {
           // Ignorar errores
         }
       }
-    }, 1000);
+    }, 500); // Reducido a 500ms para liberar memoria más rápido
+    
+    blob = null; // Liberar memoria inmediatamente
     
     try {
       await navigator.clipboard.writeText(`${shareText}\n\n${catalogUrl}`);
@@ -615,7 +677,13 @@ export const shareCatalogPdf = async (pdfInfo) => {
         throw new Error('Error al descargar el PDF');
       }
       
-      const fallbackBlob = await fallbackResponse.blob();
+      let fallbackBlob = await fallbackResponse.blob();
+      
+      // Validar y forzar tipo MIME explícito
+      if (!fallbackBlob.type || !fallbackBlob.type.includes('pdf')) {
+        fallbackBlob = new Blob([fallbackBlob], { type: 'application/pdf' });
+      }
+      
       const fallbackObjectURL = createTrackedObjectURL(fallbackBlob);
       const fallbackA = document.createElement('a');
       fallbackA.href = fallbackObjectURL;
@@ -624,7 +692,7 @@ export const shareCatalogPdf = async (pdfInfo) => {
       fallbackA.click();
       document.body.removeChild(fallbackA);
       
-      // Revocar URL después de un delay
+      // Revocar URL inmediatamente después de iniciar descarga
       setTimeout(() => {
         if (fallbackObjectURL) {
           try {
@@ -637,7 +705,9 @@ export const shareCatalogPdf = async (pdfInfo) => {
             // Ignorar errores
           }
         }
-      }, 1000);
+      }, 500); // Reducido a 500ms para liberar memoria más rápido
+      
+      fallbackBlob = null; // Liberar memoria inmediatamente
       
       const fallbackShareText = `Checa este catálogo que tenemos para ti: ${catalogName || 'Catálogo Cherry'}\n\nPregunta por productos disponibles y precios especiales.`;
       

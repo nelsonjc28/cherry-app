@@ -51,6 +51,9 @@ const CatalogPdfPage = () => {
 
   // Estado para evitar loops infinitos en el observer
   const [isNavigating, setIsNavigating] = useState(false);
+  
+  // Estado para bloquear el botón de compartir mientras se procesa
+  const [isSharingCatalog, setIsSharingCatalog] = useState(false);
 
   // Cargar catálogo e imágenes al montar
   useEffect(() => {
@@ -115,6 +118,11 @@ const CatalogPdfPage = () => {
   };
 
   const handleShareCatalog = useCallback(async () => {
+    // Bloquear botón para evitar múltiples clics
+    if (isSharingCatalog) {
+      return;
+    }
+
     // Buscar PDF en el catálogo o en el grupo de imágenes seleccionado
     let pdfPath = null;
     let pdfName = null;
@@ -149,6 +157,8 @@ const CatalogPdfPage = () => {
     }
 
     try {
+      setIsSharingCatalog(true);
+      
       const pdfUrl = pdfPath.startsWith('http') 
         ? pdfPath 
         : `${window.location.origin}/${pdfPath}`;
@@ -164,8 +174,10 @@ const CatalogPdfPage = () => {
           window.showToast('Error al compartir el catálogo', 'error');
         }
       }
+    } finally {
+      setIsSharingCatalog(false);
     }
-  }, [selectedCatalog, selectedImageGroup, imageGroups]);
+  }, [selectedCatalog, selectedImageGroup, imageGroups, isSharingCatalog]);
 
 
   const fetchImageGroups = async (catalogId) => {
@@ -721,9 +733,10 @@ const CatalogPdfPage = () => {
                 size="small"
                 className="catalog-pdf__controls-btn"
                 onClick={handleShareCatalog}
+                disabled={isSharingCatalog}
                 iconLeft={<i className="fas fa-share-alt"></i>}
               >
-                <span style={{ display: 'none' }}></span>
+                <span style={{ display: 'none' }}>{isSharingCatalog ? 'Procesando...' : ''}</span>
               </CustomButton>
             )}
           </div>
