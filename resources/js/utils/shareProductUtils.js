@@ -1,8 +1,42 @@
 /**
  * Utilidades para compartir productos con imágenes usando Web Share API
+ * Versión optimizada con gestión de memoria mejorada
  */
 
 import { generateS3ImageUrls } from '../api/cherryApi';
+
+// Variable global para prevenir múltiples ejecuciones simultáneas
+let isSharing = false;
+
+// Array para rastrear todas las URLs creadas y poder revocarlas
+const createdObjectURLs = [];
+
+/**
+ * Limpiar todas las URLs creadas y resetear el estado de compartir
+ */
+const cleanupMemory = () => {
+  // Revocar todas las URLs creadas
+  createdObjectURLs.forEach(url => {
+    try {
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      // Ignorar errores al revocar URLs ya revocadas
+    }
+  });
+  createdObjectURLs.length = 0; // Limpiar el array
+  
+  // Resetear el flag de compartir
+  isSharing = false;
+};
+
+/**
+ * Crear ObjectURL y rastrearlo para limpieza posterior
+ */
+const createTrackedObjectURL = (blob) => {
+  const url = URL.createObjectURL(blob);
+  createdObjectURLs.push(url);
+  return url;
+};
 
 /**
  * Descargar una imagen (GET) y devolverla como File
@@ -30,6 +64,7 @@ const fetchImageAsFile = async (imageUrl, filename, timeout = 5000) => {
     return new File([blob], filename, { type });
   } catch (error) {
     if (error.name === 'AbortError') {
+      // Timeout silencioso
     }
     return null;
   }
@@ -37,20 +72,46 @@ const fetchImageAsFile = async (imageUrl, filename, timeout = 5000) => {
 
 /**
  * Descargar archivo al dispositivo (dispara descarga del navegador)
+ * Con gestión de memoria mejorada
  */
 const downloadFileToDevice = async (file) => {
+  let objectURL = null;
   try {
-    const url = URL.createObjectURL(file);
+    objectURL = createTrackedObjectURL(file);
     const a = document.createElement('a');
-    a.href = url;
+    a.href = objectURL;
     a.download = file.name || 'imagen.jpg';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     // Dar tiempo a que el navegador inicie la descarga antes de revocar
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setTimeout(() => {
+      if (objectURL) {
+        try {
+          URL.revokeObjectURL(objectURL);
+          const index = createdObjectURLs.indexOf(objectURL);
+          if (index > -1) {
+            createdObjectURLs.splice(index, 1);
+          }
+        } catch (e) {
+          // Ignorar errores
+        }
+      }
+    }, 1000);
     return true;
   } catch (e) {
+    // Limpiar URL en caso de error
+    if (objectURL) {
+      try {
+        URL.revokeObjectURL(objectURL);
+        const index = createdObjectURLs.indexOf(objectURL);
+        if (index > -1) {
+          createdObjectURLs.splice(index, 1);
+        }
+      } catch (err) {
+        // Ignorar errores
+      }
+    }
     return false;
   }
 };
@@ -58,11 +119,13 @@ const downloadFileToDevice = async (file) => {
 /**
  * Descargar todas las imágenes disponibles de un producto como Files
  * Usa el endpoint del servidor que cachea las imágenes localmente
- * - Recorre {id}_{n}.jpg hasta maxImages
+ * - Recorre {id}_{n}.jpg hasta maxImages (máximo 5)
  * - Se detiene tras 2 fallos consecutivos una vez encontrada al menos 1
  * - Descarga imágenes en paralelo para mayor velocidad
  */
-const collectProductImageFiles = async (productId, maxImages = 12) => {
+const collectProductImageFiles = async (productId, maxImages = 5) => {
+  // Limitar a máximo 5 imágenes para evitar problemas de memoria
+  const limit = Math.min(maxImages, 5);
   const files = [];
   let consecutiveMisses = 0;
 
@@ -71,7 +134,7 @@ const collectProductImageFiles = async (productId, maxImages = 12) => {
 
   // Intentar descargar las primeras 2 imágenes en paralelo (más rápido y menos carga)
   const parallelPromises = [];
-  for (let i = 1; i <= Math.min(2, maxImages); i++) {
+  for (let i = 1; i <= Math.min(2, limit); i++) {
     const url = `${baseUrl}/${productId}/${i}`;
     parallelPromises.push(
       fetchImageAsFile(url, `${productId}_${i}.jpg`, 3000) // Timeout de 3s por imagen
@@ -91,9 +154,9 @@ const collectProductImageFiles = async (productId, maxImages = 12) => {
     }
   }
 
-  // Si encontramos al menos una imagen, continuar secuencialmente (más rápido que paralelo para muchas imágenes)
+  // Si encontramos al menos una imagen, continuar secuencialmente
   if (files.length > 0) {
-    for (let i = 3; i <= maxImages; i++) {
+    for (let i = 3; i <= limit; i++) {
       if (consecutiveMisses >= 2) break;
       
       const url = `${baseUrl}/${productId}/${i}`;
@@ -135,15 +198,16 @@ const generateShareText = (productData) => {
   return text;
 };
 
-// Variable global para prevenir múltiples ejecuciones simultáneas
-let isSharing = false;
-
 /**
  * Compartir producto con todas sus imágenes usando Web Share API
+ * Versión mejorada con gestión de memoria y manejo de errores robusto
  */
 export const shareProductWithImages = async (product) => {
   // Prevenir múltiples ejecuciones simultáneas
   if (isSharing) {
+    if (window.showToast) {
+      window.showToast('Ya se está compartiendo un producto. Espera un momento...', 'info');
+    }
     return;
   }
 
@@ -157,19 +221,20 @@ export const shareProductWithImages = async (product) => {
   const productUrl = `${window.location.origin}/producto/${id}`;
 
   isSharing = true;
+  let imageFiles = [];
 
   try {
     if (window.showToast) {
       window.showToast('Cargando imágenes del producto...', 'info');
     }
 
-    // Cargar imágenes como Files en memoria (con timeout para evitar esperas infinitas)
-    const imageFilesPromise = collectProductImageFiles(id, 6); // Reducir a 6 imágenes para mayor velocidad
+    // Cargar imágenes como Files en memoria (máximo 5 imágenes)
+    const imageFilesPromise = collectProductImageFiles(id, 5);
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout al cargar imágenes')), 10000) // Reducir timeout a 10s
+      setTimeout(() => reject(new Error('Timeout al cargar imágenes')), 15000) // Timeout de 15s
     );
     
-    const imageFiles = await Promise.race([imageFilesPromise, timeoutPromise]);
+    imageFiles = await Promise.race([imageFilesPromise, timeoutPromise]);
 
     // Generar texto de compartir con formato específico
     const shareText = generateShareText({
@@ -180,64 +245,100 @@ export const shareProductWithImages = async (product) => {
       hasDiscount
     });
 
+    // Si no hay imágenes, compartir solo texto
     if (imageFiles.length === 0) {
-      // Sin imágenes: al menos comparte texto
+      // Limpiar memoria antes de compartir texto
+      cleanupMemory();
+      
       if (navigator.share) {
-        await navigator.share({
-          title: title,
-          text: shareText,
-          url: productUrl
-        });
-      } else {
-        await navigator.clipboard.writeText(`${shareText}\n\n${productUrl}`);
-        if (window.showToast) window.showToast('Enlace copiado al portapapeles', 'success');
-      }
-      return;
-    }
-
-    // Intentar compartir directamente con las imágenes usando Web Share API
-    if (navigator.share) {
-      // Verificar si puede compartir archivos
-      if (navigator.canShare && navigator.canShare({ files: imageFiles })) {
         try {
           await navigator.share({
             title: title,
             text: shareText,
-            files: imageFiles
+            url: productUrl
           });
           if (window.showToast) window.showToast('¡Producto compartido!', 'success');
           return;
         } catch (shareError) {
-          // Si el usuario cancela, no hacer nada más
+          // Si el usuario cancela, resetear estado y salir
           if (shareError.name === 'AbortError') {
+            cleanupMemory();
             return;
           }
-          // Si hay otro error, intentar compartir solo texto
+          // Si hay otro error, intentar copiar al portapapeles
         }
       }
       
-      // Si no puede compartir archivos o falló, intentar compartir solo texto/URL
+      // Fallback: copiar al portapapeles
+      try {
+        await navigator.clipboard.writeText(`${shareText}\n\n${productUrl}`);
+        if (window.showToast) window.showToast('Enlace copiado al portapapeles', 'success');
+      } catch (clipboardError) {
+        if (window.showToast) window.showToast('No se pudo compartir. Intenta nuevamente.', 'error');
+      }
+      return;
+    }
+
+    // Validar soporte para compartir archivos ANTES de intentar compartir
+    const canShareFiles = navigator.share && 
+                         navigator.canShare && 
+                         navigator.canShare({ files: imageFiles });
+
+    // Intentar compartir directamente con las imágenes usando Web Share API
+    if (canShareFiles) {
+      try {
+        await navigator.share({
+          title: title,
+          text: shareText,
+          files: imageFiles
+        });
+        
+        // Limpiar memoria después de compartir exitosamente
+        cleanupMemory();
+        
+        if (window.showToast) window.showToast('¡Producto compartido!', 'success');
+        return;
+      } catch (shareError) {
+        // Si el usuario cancela, resetear estado inmediatamente
+        if (shareError.name === 'AbortError') {
+          cleanupMemory();
+          return;
+        }
+        // Si hay otro error, continuar con fallback
+      }
+    }
+    
+    // Si no puede compartir archivos o falló, intentar compartir solo texto/URL
+    if (navigator.share) {
       try {
         await navigator.share({
           title: title,
           text: shareText,
           url: productUrl
         });
+        
         // Si compartió solo texto, descargar las imágenes como fallback
         if (window.showToast) {
           window.showToast('Compartido. Descargando imágenes...', 'info');
         }
-        // Descargar imágenes secuencialmente
+        
+        // Descargar imágenes secuencialmente con limpieza de memoria
         for (const file of imageFiles) {
           await downloadFileToDevice(file);
           await new Promise(r => setTimeout(r, 200));
         }
+        
+        // Limpiar memoria después de descargar
+        cleanupMemory();
+        
         if (window.showToast) {
           window.showToast('Imágenes descargadas', 'success');
         }
         return;
       } catch (textShareError) {
+        // Si el usuario cancela, resetear estado inmediatamente
         if (textShareError.name === 'AbortError') {
+          cleanupMemory();
           return;
         }
         throw textShareError;
@@ -248,27 +349,51 @@ export const shareProductWithImages = async (product) => {
     if (window.showToast) {
       window.showToast('Descargando imágenes...', 'info');
     }
+    
     for (const file of imageFiles) {
       await downloadFileToDevice(file);
       await new Promise(r => setTimeout(r, 200));
     }
-    await navigator.clipboard.writeText(`${shareText}\n\n${productUrl}`);
-    if (window.showToast) {
-      window.showToast('Imágenes descargadas. Enlace copiado al portapapeles.', 'success');
+    
+    // Limpiar memoria después de descargar
+    cleanupMemory();
+    
+    try {
+      await navigator.clipboard.writeText(`${shareText}\n\n${productUrl}`);
+      if (window.showToast) {
+        window.showToast('Imágenes descargadas. Enlace copiado al portapapeles.', 'success');
+      }
+    } catch (clipboardError) {
+      if (window.showToast) {
+        window.showToast('Imágenes descargadas. No se pudo copiar el enlace.', 'info');
+      }
     }
   } catch (error) {
-    if (error.name === 'AbortError') return;
+    // Limpiar memoria en caso de error
+    cleanupMemory();
+    
+    // Si el usuario cancela, no mostrar error
+    if (error.name === 'AbortError') {
+      return;
+    }
     
     // Fallback final: descargar imágenes y copiar URL
     try {
       if (window.showToast) {
         window.showToast('Descargando imágenes...', 'info');
       }
-      const fallbackImageFiles = await collectProductImageFiles(id, 12);
+      
+      // Intentar obtener imágenes nuevamente (máximo 5)
+      const fallbackImageFiles = await collectProductImageFiles(id, 5);
+      
       for (const file of fallbackImageFiles) {
         await downloadFileToDevice(file);
         await new Promise(r => setTimeout(r, 200));
       }
+      
+      // Limpiar memoria después de descargar
+      cleanupMemory();
+      
       const fallbackShareText = generateShareText({
         title: title || 'Producto Cherry',
         price: price || 0,
@@ -276,22 +401,44 @@ export const shareProductWithImages = async (product) => {
         discountPercentage: discountPercentage || 0,
         hasDiscount: hasDiscount || false
       });
-      await navigator.clipboard.writeText(`${fallbackShareText}\n\n${productUrl}`);
-      if (window.showToast) {
-        window.showToast('Imágenes descargadas. Enlace copiado.', 'info');
+      
+      try {
+        await navigator.clipboard.writeText(`${fallbackShareText}\n\n${productUrl}`);
+        if (window.showToast) {
+          window.showToast('Imágenes descargadas. Enlace copiado.', 'info');
+        }
+      } catch (clipboardError) {
+        if (window.showToast) {
+          window.showToast('Imágenes descargadas.', 'info');
+        }
       }
     } catch (fallbackError) {
+      // Limpiar memoria incluso en caso de error del fallback
+      cleanupMemory();
+      
       if (window.showToast) {
         window.showToast('No se pudo compartir. Intenta nuevamente.', 'error');
       }
     }
+  } finally {
+    // Asegurar limpieza de memoria al finalizar
+    cleanupMemory();
   }
 };
 
 /**
  * Compartir PDF de catálogo usando Web Share API
+ * Versión mejorada con gestión de memoria
  */
 export const shareCatalogPdf = async (pdfInfo) => {
+  // Prevenir múltiples ejecuciones simultáneas
+  if (isSharing) {
+    if (window.showToast) {
+      window.showToast('Ya se está compartiendo un catálogo. Espera un momento...', 'info');
+    }
+    return;
+  }
+
   const { pdf_url, pdf_name, catalogName } = pdfInfo;
   const catalogUrl = window.location.href;
 
@@ -299,70 +446,110 @@ export const shareCatalogPdf = async (pdfInfo) => {
     throw new Error('No hay PDF disponible para compartir');
   }
 
+  isSharing = true;
+  let blob = null;
+  let objectURL = null;
+
   try {
     if (window.showToast) {
       window.showToast('Cargando PDF del catálogo...', 'info');
     }
 
-    // Descargar el PDF desde el servidor
-    const response = await fetch(pdf_url);
+    // Descargar el PDF desde el servidor con timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // Timeout de 15s
+    
+    const response = await fetch(pdf_url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    
     if (!response.ok) {
       throw new Error('Error al descargar el PDF');
     }
 
-    const blob = await response.blob();
+    blob = await response.blob();
     const file = new File([blob], pdf_name || 'catalogo.pdf', { type: 'application/pdf' });
 
     // Generar texto de compartir
     const shareText = `Checa este catálogo que tenemos para ti: ${catalogName || 'Catálogo Cherry'}\n\nPregunta por productos disponibles y precios especiales.`;
 
+    // Validar soporte para compartir archivos ANTES de intentar compartir
+    const canShareFiles = navigator.share && 
+                         navigator.canShare && 
+                         navigator.canShare({ files: [file] });
+
     // Intentar compartir directamente con el PDF usando Web Share API
-    if (navigator.share) {
-      // Verificar si puede compartir archivos
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({
-            title: catalogName || 'Catálogo Cherry',
-            text: shareText,
-            files: [file]
-          });
-          if (window.showToast) window.showToast('¡Catálogo PDF compartido!', 'success');
+    if (canShareFiles) {
+      try {
+        await navigator.share({
+          title: catalogName || 'Catálogo Cherry',
+          text: shareText,
+          files: [file]
+        });
+        
+        // Limpiar memoria después de compartir exitosamente
+        cleanupMemory();
+        
+        if (window.showToast) window.showToast('¡Catálogo PDF compartido!', 'success');
+        return;
+      } catch (shareError) {
+        // Si el usuario cancela, resetear estado inmediatamente
+        if (shareError.name === 'AbortError') {
+          cleanupMemory();
           return;
-        } catch (shareError) {
-          // Si el usuario cancela, no hacer nada más
-          if (shareError.name === 'AbortError') {
-            return;
-          }
-          // Si hay otro error, intentar compartir solo texto
         }
+        // Si hay otro error, continuar con fallback
       }
-      
-      // Si no puede compartir archivos o falló, intentar compartir solo texto/URL
+    }
+    
+    // Si no puede compartir archivos o falló, intentar compartir solo texto/URL
+    if (navigator.share) {
       try {
         await navigator.share({
           title: catalogName || 'Catálogo Cherry',
           text: shareText,
           url: catalogUrl
         });
+        
         // Si compartió solo texto, descargar el PDF como fallback
         if (window.showToast) {
           window.showToast('Compartido. Descargando PDF...', 'info');
         }
-        // Descargar PDF
-        const url = URL.createObjectURL(blob);
+        
+        // Descargar PDF con gestión de memoria
+        objectURL = createTrackedObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url;
+        a.href = objectURL;
         a.download = pdf_name || 'catalogo.pdf';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        
+        // Revocar URL después de un delay
+        setTimeout(() => {
+          if (objectURL) {
+            try {
+              URL.revokeObjectURL(objectURL);
+              const index = createdObjectURLs.indexOf(objectURL);
+              if (index > -1) {
+                createdObjectURLs.splice(index, 1);
+              }
+            } catch (e) {
+              // Ignorar errores
+            }
+          }
+        }, 1000);
+        
+        // Limpiar memoria
+        cleanupMemory();
+        
         if (window.showToast) {
           window.showToast('PDF descargado', 'success');
         }
         return;
       } catch (textShareError) {
+        // Si el usuario cancela, resetear estado inmediatamente
         if (textShareError.name === 'AbortError') {
+          cleanupMemory();
           return;
         }
         throw textShareError;
@@ -373,49 +560,128 @@ export const shareCatalogPdf = async (pdfInfo) => {
     if (window.showToast) {
       window.showToast('Descargando PDF...', 'info');
     }
-    const url = URL.createObjectURL(blob);
+    
+    objectURL = createTrackedObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
+    a.href = objectURL;
     a.download = pdf_name || 'catalogo.pdf';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    await navigator.clipboard.writeText(`${shareText}\n\n${catalogUrl}`);
-    if (window.showToast) {
-      window.showToast('PDF descargado. Enlace copiado al portapapeles.', 'success');
+    
+    // Revocar URL después de un delay
+    setTimeout(() => {
+      if (objectURL) {
+        try {
+          URL.revokeObjectURL(objectURL);
+          const index = createdObjectURLs.indexOf(objectURL);
+          if (index > -1) {
+            createdObjectURLs.splice(index, 1);
+          }
+        } catch (e) {
+          // Ignorar errores
+        }
+      }
+    }, 1000);
+    
+    // Limpiar memoria
+    cleanupMemory();
+    
+    try {
+      await navigator.clipboard.writeText(`${shareText}\n\n${catalogUrl}`);
+      if (window.showToast) {
+        window.showToast('PDF descargado. Enlace copiado al portapapeles.', 'success');
+      }
+    } catch (clipboardError) {
+      if (window.showToast) {
+        window.showToast('PDF descargado. No se pudo copiar el enlace.', 'info');
+      }
     }
   } catch (error) {
-    if (error.name === 'AbortError') return;
+    // Limpiar memoria en caso de error
+    if (objectURL) {
+      try {
+        URL.revokeObjectURL(objectURL);
+        const index = createdObjectURLs.indexOf(objectURL);
+        if (index > -1) {
+          createdObjectURLs.splice(index, 1);
+        }
+      } catch (e) {
+        // Ignorar errores
+      }
+    }
+    cleanupMemory();
+    
+    // Si el usuario cancela, no mostrar error
+    if (error.name === 'AbortError') {
+      return;
+    }
     
     // Fallback final: descargar PDF y copiar URL
     try {
       if (window.showToast) {
         window.showToast('Descargando PDF...', 'info');
       }
-      const fallbackResponse = await fetch(pdf_url);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      
+      const fallbackResponse = await fetch(pdf_url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
       if (!fallbackResponse.ok) {
         throw new Error('Error al descargar el PDF');
       }
+      
       const fallbackBlob = await fallbackResponse.blob();
-      const fallbackUrl = URL.createObjectURL(fallbackBlob);
+      const fallbackObjectURL = createTrackedObjectURL(fallbackBlob);
       const fallbackA = document.createElement('a');
-      fallbackA.href = fallbackUrl;
+      fallbackA.href = fallbackObjectURL;
       fallbackA.download = pdf_name || 'catalogo.pdf';
       document.body.appendChild(fallbackA);
       fallbackA.click();
       document.body.removeChild(fallbackA);
-      URL.revokeObjectURL(fallbackUrl);
+      
+      // Revocar URL después de un delay
+      setTimeout(() => {
+        if (fallbackObjectURL) {
+          try {
+            URL.revokeObjectURL(fallbackObjectURL);
+            const index = createdObjectURLs.indexOf(fallbackObjectURL);
+            if (index > -1) {
+              createdObjectURLs.splice(index, 1);
+            }
+          } catch (e) {
+            // Ignorar errores
+          }
+        }
+      }, 1000);
+      
+      // Limpiar memoria
+      cleanupMemory();
+      
       const fallbackShareText = `Checa este catálogo que tenemos para ti: ${catalogName || 'Catálogo Cherry'}\n\nPregunta por productos disponibles y precios especiales.`;
-      await navigator.clipboard.writeText(`${fallbackShareText}\n\n${catalogUrl}`);
-      if (window.showToast) {
-        window.showToast('PDF descargado. Enlace copiado.', 'info');
+      
+      try {
+        await navigator.clipboard.writeText(`${fallbackShareText}\n\n${catalogUrl}`);
+        if (window.showToast) {
+          window.showToast('PDF descargado. Enlace copiado.', 'info');
+        }
+      } catch (clipboardError) {
+        if (window.showToast) {
+          window.showToast('PDF descargado.', 'info');
+        }
       }
     } catch (fallbackError) {
+      // Limpiar memoria incluso en caso de error del fallback
+      cleanupMemory();
+      
       if (window.showToast) {
         window.showToast('No se pudo compartir. Intenta nuevamente.', 'error');
       }
     }
+  } finally {
+    // Asegurar limpieza de memoria al finalizar
+    cleanupMemory();
   }
 };
-

@@ -69,17 +69,17 @@ const CatalogCollectionsPage = () => {
             {catalogs.map((catalog) => (
               <div className="catalog-collections-page__card" key={catalog.id}>
                 <Link to={`/catalogo/${catalog.id}`} className="catalog-collections-page__card-image-link">
-                  <div className="catalog-collections-page__card-image-wrapper">
+                  <div className="catalog-collections-page__card-image-wrapper aspect-square">
                     <img 
                       src={catalog.image || '/images/placeholder-catalog.png'} 
                       alt={catalog.name} 
-                      className="catalog-collections-page__card-image" 
+                      className="catalog-collections-page__card-image object-contain" 
                     />
                   </div>
                 </Link>
                 <div className="catalog-collections-page__card-content">
                   <Link to={`/catalogo/${catalog.id}`} className="catalog-collections-page__card-title-link">
-                    <h2 className="catalog-collections-page__card-title">{catalog.name}</h2>
+                    <h2 className="catalog-collections-page__card-title line-clamp-1">{catalog.name}</h2>
                   </Link>
                   <p className="catalog-collections-page__card-description">
                     {catalog.description || 'Descubre nuestra colección exclusiva'}
