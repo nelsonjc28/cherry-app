@@ -446,7 +446,9 @@ export const shareCatalogPdf = async (pdfInfo) => {
     
     const response = await fetch(pdf_url, { 
       signal: controller.signal,
-      cache: 'force-cache' // Usar caché para acelerar
+      cache: 'force-cache', // Usar caché para acelerar
+      mode: 'cors', // Asegurar CORS para S3 o dominios externos
+      credentials: 'omit'
     });
     clearTimeout(timeoutId);
     
@@ -471,11 +473,12 @@ export const shareCatalogPdf = async (pdfInfo) => {
     const shareText = `Checa este catálogo que tenemos para ti: ${catalogName || 'Catálogo Cherry'}\n\nPregunta por productos disponibles y precios especiales.`;
 
     // SECUENCIA DIRECTA: Validar soporte y compartir INMEDIATAMENTE con el archivo
+    // PRIORIDAD: Siempre intentar compartir el archivo primero, NO descargar automáticamente
     const canShareFiles = navigator.share && 
                          navigator.canShare && 
                          navigator.canShare({ files: [file] });
 
-    // Intentar compartir directamente con el PDF usando Web Share API
+    // PRIORIDAD 1: Intentar compartir directamente con el PDF usando Web Share API
     // IMPORTANTE: Usar file directamente, no esperar actualizaciones de estado
     if (canShareFiles) {
       try {
@@ -486,8 +489,7 @@ export const shareCatalogPdf = async (pdfInfo) => {
           files: [file] // Pasar directamente el archivo
         });
         
-        // Revocar blob inmediatamente después de compartir para liberar memoria
-        // No esperar a que se resuelva completamente, solo después de iniciar el share
+        // Limpiar memoria después de compartir exitosamente
         blob = null; // Permitir garbage collection
         
         if (window.showToast) window.showToast('¡Catálogo PDF compartido!', 'success');
@@ -498,55 +500,13 @@ export const shareCatalogPdf = async (pdfInfo) => {
           blob = null; // Liberar memoria
           return;
         }
-        // Si hay otro error, continuar con fallback
+        // Si hay otro error al compartir archivos, intentar compartir solo texto/URL
+        // NO descargar automáticamente aquí
       }
     }
     
-    // Si no puede compartir archivos, descargar directamente como respaldo
-    if (!canShareFiles) {
-      if (window.showToast) {
-        window.showToast('Descargando PDF...', 'info');
-      }
-      
-      objectURL = createTrackedObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = objectURL;
-      a.download = pdf_name || 'catalogo.pdf';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      
-      // Revocar URL inmediatamente después de iniciar descarga
-      setTimeout(() => {
-        if (objectURL) {
-          try {
-            URL.revokeObjectURL(objectURL);
-            const index = createdObjectURLs.indexOf(objectURL);
-            if (index > -1) {
-              createdObjectURLs.splice(index, 1);
-            }
-          } catch (e) {
-            // Ignorar errores
-          }
-        }
-      }, 500); // Reducido a 500ms para liberar memoria más rápido
-      
-      blob = null; // Liberar memoria
-      
-      try {
-        await navigator.clipboard.writeText(`${shareText}\n\n${catalogUrl}`);
-        if (window.showToast) {
-          window.showToast('PDF descargado. Enlace copiado al portapapeles.', 'success');
-        }
-      } catch (clipboardError) {
-        if (window.showToast) {
-          window.showToast('PDF descargado.', 'info');
-        }
-      }
-      return;
-    }
-    
-    // Si no puede compartir archivos o falló, intentar compartir solo texto/URL
+    // PRIORIDAD 2: Si no puede compartir archivos o falló, intentar compartir solo texto/URL
+    // Esto abre el menú de compartir pero sin el archivo
     if (navigator.share) {
       try {
         await navigator.share({
@@ -555,51 +515,25 @@ export const shareCatalogPdf = async (pdfInfo) => {
           url: catalogUrl
         });
         
-        // Si compartió solo texto, descargar el PDF como fallback
+        // Si compartió solo texto, informar al usuario
         if (window.showToast) {
-          window.showToast('Compartido. Descargando PDF...', 'info');
+          window.showToast('Compartido. El PDF está disponible en el enlace.', 'info');
         }
         
-        // Descargar PDF con gestión de memoria
-        objectURL = createTrackedObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = objectURL;
-        a.download = pdf_name || 'catalogo.pdf';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        
-        // Revocar URL inmediatamente después de iniciar descarga
-        setTimeout(() => {
-          if (objectURL) {
-            try {
-              URL.revokeObjectURL(objectURL);
-              const index = createdObjectURLs.indexOf(objectURL);
-              if (index > -1) {
-                createdObjectURLs.splice(index, 1);
-              }
-            } catch (e) {
-              // Ignorar errores
-            }
-          }
-        }, 500); // Reducido a 500ms para liberar memoria más rápido
-        
-        blob = null; // Liberar memoria inmediatamente
-        
-        if (window.showToast) {
-          window.showToast('PDF descargado', 'success');
-        }
+        blob = null; // Liberar memoria
         return;
       } catch (textShareError) {
         // Si el usuario cancela, salir silenciosamente
         if (textShareError.name === 'AbortError') {
+          blob = null; // Liberar memoria
           return;
         }
-        throw textShareError;
+        // Si falla también compartir texto, continuar con último fallback
       }
     }
 
-    // Si no hay soporte para navigator.share, descargar el PDF y copiar URL
+    // PRIORIDAD 3: Último recurso - Solo si NO hay soporte para navigator.share
+    // Descargar el PDF y copiar URL al portapapeles
     if (window.showToast) {
       window.showToast('Descargando PDF...', 'info');
     }
@@ -625,7 +559,7 @@ export const shareCatalogPdf = async (pdfInfo) => {
           // Ignorar errores
         }
       }
-    }, 500); // Reducido a 500ms para liberar memoria más rápido
+    }, 500);
     
     blob = null; // Liberar memoria inmediatamente
     
@@ -669,7 +603,9 @@ export const shareCatalogPdf = async (pdfInfo) => {
       
       const fallbackResponse = await fetch(pdf_url, { 
         signal: controller.signal,
-        cache: 'force-cache'
+        cache: 'force-cache',
+        mode: 'cors', // Asegurar CORS para S3 o dominios externos
+        credentials: 'omit'
       });
       clearTimeout(timeoutId);
       
