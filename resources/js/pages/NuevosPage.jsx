@@ -279,55 +279,68 @@ const NuevosPage = () => {
           thirtyDaysAgo.setHours(0, 0, 0, 0);
           
           
-          // Filtrar solo productos nuevos (excluyendo productos próximamente)
-          let productosExcluidosProximamente = 0;
-          let productosNuevosPorOpcNuevo = 0;
-          let productosNuevosPorFecha = 0;
-          
+          // FILTRO EXCLUSIVO PARA MÓDULO "NUEVOS":
+          // Un producto SOLO debe renderizarse en esta lista si cumple AMBAS condiciones:
+          // 1. Stock: Debe ser mayor a 0 (stock > 0)
+          // 2. Antigüedad Máxima: Su fecha_alta no debe superar los 30 días de antigüedad respecto a la fecha actual
           const newProductsRaw = localProducts.filter(product => {
-            const productId = product.id_articulo || product.id;
-            const isTargetProduct = productId === '07612672903' || productId === 7612672903;
-            
-            // NO excluir productos próximamente aquí - dejar que pasen el filtro
-            // Los excluiremos después del mapeo antes de mostrarlos
-            
-            // Verificar fecha_alta - debe estar dentro de los últimos 30 días
-            if (product.fecha_alta) {
-              try {
-                // Parsear fecha (puede venir como 'YYYY-MM-DD' o Date object)
-                let fechaAlta;
-                if (typeof product.fecha_alta === 'string') {
-                  // Si viene como string 'YYYY-MM-DD', crear Date sin problemas de zona horaria
-                  const [year, month, day] = product.fecha_alta.split('-').map(Number);
-                  fechaAlta = new Date(year, month - 1, day);
-                  fechaAlta.setHours(0, 0, 0, 0);
-                } else {
-                  fechaAlta = new Date(product.fecha_alta);
-                  fechaAlta.setHours(0, 0, 0, 0);
-                }
-                
-                // Verificar que la fecha sea válida
-                if (isNaN(fechaAlta.getTime())) {
-                  return false;
-                }
-                
-                // Comparar si la fecha_alta está dentro de los últimos 30 días
-                // Calcular diferencia en días: (hoy - fecha_alta) <= 30 días
-                const diferenciaDias = Math.floor((today - fechaAlta) / (1000 * 60 * 60 * 24));
-                // Un producto es nuevo si la diferencia es <= 30 días (fecha reciente)
-                // Y >= 0 (no es una fecha futura)
-                const isNew = diferenciaDias <= 30 && diferenciaDias >= 0;
-                
-                if (isNew) {
-                  productosNuevosPorFecha++;
-                }
-                return isNew;
-              } catch (error) {
-                return false;
+            // Condición 1: Calcular stock total (suma de inventario_d de detalles O inventario general)
+            let totalStock = 0;
+            if (product.detalles && product.detalles.length > 0) {
+              const totalFromDetails = product.detalles.reduce((total, detalle) => {
+                return total + (parseFloat(detalle.inventario_d) || 0);
+              }, 0);
+              // Si la suma de detalles es > 0, usar ese valor
+              if (totalFromDetails > 0) {
+                totalStock = totalFromDetails;
+              } else {
+                // Si no hay detalles o la suma es 0, usar el inventario general
+                totalStock = parseFloat(product.inventario || product.stock || 0);
               }
+            } else {
+              // Si no hay detalles, usar el inventario general
+              totalStock = parseFloat(product.inventario || product.stock || 0);
             }
             
-            return false;
+            // Excluir productos con stock === 0
+            if (totalStock <= 0) {
+              return false;
+            }
+            
+            // Condición 2: Verificar fecha_alta - debe estar dentro de los últimos 30 días
+            if (!product.fecha_alta) {
+              return false; // Sin fecha_alta, no puede ser nuevo
+            }
+            
+            try {
+              // Parsear fecha (puede venir como 'YYYY-MM-DD' o Date object)
+              let fechaAlta;
+              if (typeof product.fecha_alta === 'string') {
+                // Si viene como string 'YYYY-MM-DD', crear Date sin problemas de zona horaria
+                const [year, month, day] = product.fecha_alta.split('-').map(Number);
+                fechaAlta = new Date(year, month - 1, day);
+                fechaAlta.setHours(0, 0, 0, 0);
+              } else {
+                fechaAlta = new Date(product.fecha_alta);
+                fechaAlta.setHours(0, 0, 0, 0);
+              }
+              
+              // Verificar que la fecha sea válida
+              if (isNaN(fechaAlta.getTime())) {
+                return false;
+              }
+              
+              // Comparar si la fecha_alta está dentro de los últimos 30 días
+              // Calcular diferencia en días: (hoy - fecha_alta) <= 30 días
+              const diferenciaDias = Math.floor((today - fechaAlta) / (1000 * 60 * 60 * 24));
+              // Un producto es nuevo si la diferencia es <= 30 días (fecha reciente)
+              // Y >= 0 (no es una fecha futura)
+              const isNew = diferenciaDias <= 30 && diferenciaDias >= 0;
+              
+              return isNew;
+            } catch (error) {
+              return false;
+            }
           });
           
           
