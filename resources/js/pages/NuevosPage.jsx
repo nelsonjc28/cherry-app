@@ -263,26 +263,35 @@ const NuevosPage = () => {
     const loadProducts = async () => {
       setLoading(true);
       try {
-        // Usar el endpoint /products/new que calcula el stock correctamente (suma de inventario_d)
-        // Este endpoint ya filtra por fecha_alta <= 30 días O opc_nuevo = 'S'
-        const newResponse = await api.get('/products/new', {
-          params: { limit: 10000 } // Obtener todos los productos nuevos sin límite
+        // Usar el mismo endpoint que "todos los productos" (/products/search)
+        const searchResponse = await api.get('/products/search', {
+          params: { q: '' }
         });
 
-        if (newResponse.data.success && newResponse.data.data) {
-          const localProducts = newResponse.data.data;
+        if (searchResponse.data.success && searchResponse.data.data.products) {
+          const localProducts = searchResponse.data.data.products;
+          
+          // Usar la misma lógica que "todos los productos" para identificar productos nuevos:
+          // opc_nuevo === 'S' O fecha_alta dentro de los últimos 45 días
+          const fortyFiveDaysAgo = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);
           
           // FILTRO EXCLUSIVO PARA MÓDULO "NUEVOS":
-          // El endpoint /products/new ya filtra por fecha_alta <= 30 días O opc_nuevo = 'S'
-          // Solo necesitamos aplicar el filtro de stock > 0
-          // NOTA: Los productos de /products/new ya tienen el stock calculado correctamente (suma de inventario_d)
+          // Un producto SOLO debe renderizarse si cumple AMBAS condiciones:
+          // 1. Es nuevo: opc_nuevo === 'S' O fecha_alta dentro de los últimos 45 días
+          // 2. Tiene stock > 0 (usando inventario directamente, como en ProductosPage)
           const newProductsRaw = localProducts.filter(product => {
-            // Condición: Stock > 0
-            // El endpoint /products/new ya calcula el stock como suma de inventario_d de detalles
-            const totalStock = parseFloat(product.stock || product.inventario || 0);
+            // Condición 1: Verificar si es nuevo (misma lógica que ProductosPage/ExplorarPage)
+            const isNewProduct = product.opc_nuevo === 'S' || 
+              (product.fecha_alta && new Date(product.fecha_alta) > fortyFiveDaysAgo);
+            
+            if (!isNewProduct) {
+              return false; // Excluir productos que no son nuevos
+            }
+            
+            // Condición 2: Stock > 0 (usando inventario directamente, como en ProductosPage)
+            const totalStock = parseFloat(product.inventario || product.stock || 0);
             
             // Excluir productos con stock === 0
-            // El backend ya filtró por fecha_alta <= 30 días O opc_nuevo = 'S'
             return totalStock > 0;
           });
           
