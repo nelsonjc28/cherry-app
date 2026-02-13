@@ -393,7 +393,7 @@ const NuevosPage = () => {
           setAvailableSizes(sortedSizes);
           
           // Excluir productos próximamente antes de mostrarlos en pantalla
-          // Usar la misma lógica que calculateTotalStock() y getStockStatus() en ProductCard/CatalogProductCard
+          // REGLA CORREGIDA: Excluir SOLO si el tercer dígito coincide con el año Y el stock es 0
           let excluidosEnFiltroFinal = 0;
           const productosSinProximamente = productsWithOffers.filter(product => {
             // Calcular stock total igual que en ProductCard (suma de inventario_d de detalles)
@@ -414,17 +414,20 @@ const NuevosPage = () => {
               totalStock = parseFloat(product.stock || product.inventario || 0);
             }
             
-            // REGLA DE NEGOCIO GLOBAL: Un producto es "Próximamente" si el tercer dígito del ID (índice 2) coincide con el último dígito del año actual
+            // Verificar si el tercer dígito del ID coincide con el último dígito del año actual
             const productId = String(product.id || product.id_articulo || '');
             const tercerDigito = productId.length > 2 ? productId[2] : null;
             const currentYearLastDigit = String(new Date().getFullYear() % 10);
-            const isComingSoon = tercerDigito === currentYearLastDigit;
+            const tercerDigitoCoincideConAno = tercerDigito === currentYearLastDigit;
             
-            if (isComingSoon) {
+            // EXCLUIR SOLO si AMBAS condiciones se cumplen:
+            // 1. El tercer dígito coincide con el último dígito del año actual
+            // 2. El stock es 0
+            if (tercerDigitoCoincideConAno && totalStock === 0) {
               excluidosEnFiltroFinal++;
-              return false; // Excluir productos próximamente
+              return false; // Excluir productos próximamente sin stock
             }
-            return true;
+            return true; // Incluir todos los demás productos (incluyendo próximamente con stock > 0)
           });
           
           
