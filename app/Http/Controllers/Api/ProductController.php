@@ -378,11 +378,12 @@ class ProductController extends Controller
     }
 
     /**
-     * Obtener productos próximamente (stock_received_count === 0 y inventario <= 0)
-     * Limitado a 4 productos para la sección "Próximamente"
+     * Obtener productos próximamente
+     * REGLA DE NEGOCIO GLOBAL: Un producto es "Próximamente" SOLO si el tercer dígito del ID (índice 2) 
+     * coincide con el último dígito del año actual, independientemente del stock o cualquier otra condición
      * 
-     * Restricción adicional: Solo productos cuyo tercer dígito del ID coincida 
-     * con el último dígito del año actual (ej: 2026 -> tercer dígito debe ser "6")
+     * Limitado a 4 productos para la sección "Próximamente" (por defecto)
+     * Ejemplo: En 2026, solo productos cuyo tercer dígito del ID sea "6"
      */
     public function getComingSoonProducts(Request $request): JsonResponse
     {
@@ -393,9 +394,8 @@ class ProductController extends Controller
             $currentYearLastDigit = (int) date('Y') % 10;
 
             // Obtener productos próximamente con sus detalles
-            // Un producto es próximo si nunca ha recibido stock (stock_received_count === 0)
-            // y no tiene stock actual (inventario <= 0) O fecha_alta === null
-            // Y además el tercer dígito del ID debe coincidir con el último dígito del año actual
+            // REGLA DE NEGOCIO GLOBAL: Un producto es "Próximamente" SOLO si el tercer dígito del ID (índice 2) 
+            // coincide con el último dígito del año actual, independientemente del stock o cualquier otra condición
             $query = DB::table('productos')
                 ->leftJoin('detalles', 'productos.id', '=', 'detalles.producto_id')
                 ->select(
@@ -427,20 +427,6 @@ class ProductController extends Controller
                     'detalles.detalle',
                     'detalles.inventario_d'
                 )
-                ->where(function($query) {
-                    // Productos próximamente: (stock_received_count === 0 Y inventario <= 0) O fecha_alta === null
-                    $query->where(function($q) {
-                        $q->where(function($subQ) {
-                            $subQ->where('productos.stock_received_count', '=', 0)
-                                 ->orWhereNull('productos.stock_received_count');
-                        })
-                        ->where(function($subQ) {
-                            $subQ->where('productos.inventario', '<=', 0)
-                                 ->orWhereNull('productos.inventario');
-                        });
-                    })
-                    ->orWhereNull('productos.fecha_alta');
-                })
                 ->whereRaw('SUBSTRING(productos.id, 3, 1) = ?', [$currentYearLastDigit]) // Tercer dígito debe coincidir con último dígito del año
                 ->orderBy('productos.fecha_alta', 'desc')
                 ->orderBy('productos.id', 'desc')
