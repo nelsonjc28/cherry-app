@@ -263,84 +263,27 @@ const NuevosPage = () => {
     const loadProducts = async () => {
       setLoading(true);
       try {
-        // Usar el backend local
-        const searchResponse = await api.get('/products/search', {
-          params: { q: '' }
+        // Usar el endpoint /products/new que calcula el stock correctamente (suma de inventario_d)
+        // Este endpoint ya filtra por fecha_alta <= 30 días O opc_nuevo = 'S'
+        const newResponse = await api.get('/products/new', {
+          params: { limit: 10000 } // Obtener todos los productos nuevos sin límite
         });
 
-        if (searchResponse.data.success && searchResponse.data.data.products) {
-          const localProducts = searchResponse.data.data.products;
-          
-          // Calcular fecha límite (30 días atrás) - usar solo fecha, sin hora
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const thirtyDaysAgo = new Date(today);
-          thirtyDaysAgo.setDate(today.getDate() - 30);
-          thirtyDaysAgo.setHours(0, 0, 0, 0);
-          
+        if (newResponse.data.success && newResponse.data.data) {
+          const localProducts = newResponse.data.data;
           
           // FILTRO EXCLUSIVO PARA MÓDULO "NUEVOS":
-          // Un producto SOLO debe renderizarse en esta lista si cumple AMBAS condiciones:
-          // 1. Stock: Debe ser mayor a 0 (stock > 0)
-          // 2. Antigüedad Máxima: Su fecha_alta no debe superar los 30 días de antigüedad respecto a la fecha actual
+          // El endpoint /products/new ya filtra por fecha_alta <= 30 días O opc_nuevo = 'S'
+          // Solo necesitamos aplicar el filtro de stock > 0
+          // NOTA: Los productos de /products/new ya tienen el stock calculado correctamente (suma de inventario_d)
           const newProductsRaw = localProducts.filter(product => {
-            // Condición 1: Calcular stock total (suma de inventario_d de detalles O inventario general)
-            let totalStock = 0;
-            if (product.detalles && product.detalles.length > 0) {
-              const totalFromDetails = product.detalles.reduce((total, detalle) => {
-                return total + (parseFloat(detalle.inventario_d) || 0);
-              }, 0);
-              // Si la suma de detalles es > 0, usar ese valor
-              if (totalFromDetails > 0) {
-                totalStock = totalFromDetails;
-              } else {
-                // Si no hay detalles o la suma es 0, usar el inventario general
-                totalStock = parseFloat(product.inventario || product.stock || 0);
-              }
-            } else {
-              // Si no hay detalles, usar el inventario general
-              totalStock = parseFloat(product.inventario || product.stock || 0);
-            }
+            // Condición: Stock > 0
+            // El endpoint /products/new ya calcula el stock como suma de inventario_d de detalles
+            const totalStock = parseFloat(product.stock || product.inventario || 0);
             
             // Excluir productos con stock === 0
-            if (totalStock <= 0) {
-              return false;
-            }
-            
-            // Condición 2: Verificar fecha_alta - debe estar dentro de los últimos 30 días
-            if (!product.fecha_alta) {
-              return false; // Sin fecha_alta, no puede ser nuevo
-            }
-            
-            try {
-              // Parsear fecha (puede venir como 'YYYY-MM-DD' o Date object)
-              let fechaAlta;
-              if (typeof product.fecha_alta === 'string') {
-                // Si viene como string 'YYYY-MM-DD', crear Date sin problemas de zona horaria
-                const [year, month, day] = product.fecha_alta.split('-').map(Number);
-                fechaAlta = new Date(year, month - 1, day);
-                fechaAlta.setHours(0, 0, 0, 0);
-              } else {
-                fechaAlta = new Date(product.fecha_alta);
-                fechaAlta.setHours(0, 0, 0, 0);
-              }
-              
-              // Verificar que la fecha sea válida
-              if (isNaN(fechaAlta.getTime())) {
-                return false;
-              }
-              
-              // Comparar si la fecha_alta está dentro de los últimos 30 días
-              // Calcular diferencia en días: (hoy - fecha_alta) <= 30 días
-              const diferenciaDias = Math.floor((today - fechaAlta) / (1000 * 60 * 60 * 24));
-              // Un producto es nuevo si la diferencia es <= 30 días (fecha reciente)
-              // Y >= 0 (no es una fecha futura)
-              const isNew = diferenciaDias <= 30 && diferenciaDias >= 0;
-              
-              return isNew;
-            } catch (error) {
-              return false;
-            }
+            // El backend ya filtró por fecha_alta <= 30 días O opc_nuevo = 'S'
+            return totalStock > 0;
           });
           
           
