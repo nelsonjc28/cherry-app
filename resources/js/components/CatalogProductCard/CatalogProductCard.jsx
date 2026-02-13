@@ -96,23 +96,35 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
   };
 
   // Función para determinar si debe mostrar "Próximamente" o "Agotado"
+  // REGLA DE NEGOCIO GLOBAL: Lógica de Etiquetas de Disponibilidad
+  // - "Próximamente": Si el tercer dígito del ID (índice 2) coincide con el último dígito del año actual, independientemente del stock
+  // - "Agotado": Si stock === 0 Y el tercer dígito del ID NO coincide con el último dígito del año actual
   const getStockStatus = () => {
     const totalStock = calculateTotalStock();
-    const stockReceivedCountValue = stock_received_count || stockReceivedCount || 0;
-    const fechaAlta = product?.fecha_alta || product?.fechaAlta;
+    
+    // Obtener el ID del producto como string y calcular el último dígito del año actual
+    const productId = String(id || '');
+    const tercerDigito = productId.length > 2 ? productId[2] : null;
+    const currentYearLastDigit = String(new Date().getFullYear() % 10);
+    const isComingSoon = tercerDigito === currentYearLastDigit;
     
     // Si tiene stock, no mostrar badge de stock
     if (totalStock > 0) {
       return null;
     }
     
-    // "Próximamente": 
-    // - stock_received_count === 0 Y inventario <= 0 (nunca ha recibido stock)
-    // - O fecha_alta === null (producto sin fecha de alta)
-    // "Agotado": stock_received_count > 0 Y inventario <= 0 (ya recibió stock antes pero ahora está sin stock)
-    const shouldShowComingSoon = (stockReceivedCountValue === 0 && totalStock <= 0) || fechaAlta === null;
+    // PRIORIDAD 1: Si el tercer dígito del ID coincide con el último dígito del año actual, mostrar "Próximamente" (independientemente del stock)
+    if (isComingSoon) {
+      return 'coming-soon';
+    }
     
-    return shouldShowComingSoon ? 'coming-soon' : 'out-of-stock';
+    // PRIORIDAD 2: Si stock === 0 Y el tercer dígito NO coincide con el último dígito del año actual, mostrar "Agotado"
+    if (totalStock === 0 && !isComingSoon) {
+      return 'out-of-stock';
+    }
+    
+    // Fallback: Sin stock disponible - mostrar "Agotado"
+    return 'out-of-stock';
   };
 
   const stockStatus = getStockStatus();

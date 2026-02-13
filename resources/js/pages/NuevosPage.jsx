@@ -449,12 +449,11 @@ const NuevosPage = () => {
               totalStock = parseFloat(product.stock || product.inventario || 0);
             }
             
-            const stockReceivedCount = product.stock_received_count || product.stockReceivedCount || 0;
-            const fechaAlta = product.fecha_alta || product.fechaAlta;
-            
-            // Misma lógica que getStockStatus(): "Próximamente" si 
-            // (stock_received_count === 0 Y totalStock <= 0) O fecha_alta === null
-            const isComingSoon = (stockReceivedCount === 0 && totalStock <= 0) || fechaAlta === null;
+            // REGLA DE NEGOCIO GLOBAL: Un producto es "Próximamente" si el tercer dígito del ID (índice 2) coincide con el último dígito del año actual
+            const productId = String(product.id || product.id_articulo || '');
+            const tercerDigito = productId.length > 2 ? productId[2] : null;
+            const currentYearLastDigit = String(new Date().getFullYear() % 10);
+            const isComingSoon = tercerDigito === currentYearLastDigit;
             
             if (isComingSoon) {
               excluidosEnFiltroFinal++;

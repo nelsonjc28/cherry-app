@@ -272,28 +272,18 @@ const NuevosPage = () => {
           const localProducts = searchResponse.data.data.products;
           
           // Filtrar solo productos próximamente
-          // Un producto es próximo si:
-          // - stock_received_count === 0 Y inventario <= 0 (nunca ha recibido stock)
-          // - O fecha_alta === null (producto sin fecha de alta)
-          // - Y además el tercer dígito del ID debe coincidir con el último dígito del año actual
-          const currentYearLastDigit = new Date().getFullYear() % 10;
+          // REGLA DE NEGOCIO GLOBAL: Un producto es "Próximamente" si el tercer dígito del ID (índice 2) coincide con el último dígito del año actual
+          const currentYearLastDigit = String(new Date().getFullYear() % 10);
           
           const comingSoonProductsRaw = localProducts.filter(product => {
-            const stockReceivedCount = product.stock_received_count || 0;
-            const totalStock = product.inventario || 0;
-            const fechaAlta = product.fecha_alta;
             const productId = String(product.id_articulo || product.id || '');
             
             // Validar que el tercer dígito del ID coincida con el último dígito del año actual
             // El tercer dígito (índice 2, empezando desde 0) debe ser igual al último dígito del año
-            const thirdDigit = productId.length >= 3 ? parseInt(productId.charAt(2), 10) : null;
-            const isValidYearDigit = thirdDigit !== null && thirdDigit === currentYearLastDigit;
+            const thirdDigit = productId.length >= 3 ? productId.charAt(2) : null;
             
-            // Es próximo si nunca ha recibido stock (stock_received_count === 0)
-            // y no tiene stock actual (inventario === 0)
-            // O si fecha_alta es null
-            // Y además el tercer dígito del ID debe coincidir con el último dígito del año actual
-            const isComingSoon = ((stockReceivedCount === 0 && totalStock <= 0) || fechaAlta === null) && isValidYearDigit;
+            // PRIORIDAD: Un producto es "Próximamente" si el tercer dígito del ID coincide con el último dígito del año actual
+            const isComingSoon = thirdDigit !== null && thirdDigit === currentYearLastDigit;
             
             if (isComingSoon) {
               return true;

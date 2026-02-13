@@ -40,6 +40,15 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
   const discountPercentage = calculateDiscountPercentage();
   const hasOffer = discountPercentage > 0;
 
+  // REGLA DE NEGOCIO GLOBAL: Lógica de Etiquetas de Disponibilidad
+  // - "Próximamente": Si el tercer dígito del ID (índice 2) coincide con el último dígito del año actual, independientemente del stock
+  // - "Agotado": Si stock === 0 Y el tercer dígito del ID NO coincide con el último dígito del año actual
+  const productId = String(id || '');
+  const tercerDigito = productId.length > 2 ? productId[2] : null;
+  const currentYearLastDigit = String(new Date().getFullYear() % 10);
+  const isComingSoon = tercerDigito === currentYearLastDigit;
+  const isOutOfStock = stock === 0 && !isComingSoon;
+
   const handleCardClick = (e) => {
     // No navegar si se hace clic en el botón de favoritos
     if (e.target.closest('.favorite-button')) {
@@ -65,8 +74,13 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
           <span className="best-seller-new-badge">Nuevo</span>
         )}
 
-        {/* Out of stock badge - only if NOT new */}
-        {!isNew && stock <= 0 && (
+        {/* Próximamente badge - si el tercer dígito del ID es "6" */}
+        {!isNew && isComingSoon && (
+          <span className="best-seller-out-of-stock-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
+        )}
+
+        {/* Out of stock badge - solo si NO es nuevo y NO es "Próximamente" */}
+        {!isNew && !isComingSoon && isOutOfStock && (
           <span className="best-seller-out-of-stock-badge">Agotado</span>
         )}
 

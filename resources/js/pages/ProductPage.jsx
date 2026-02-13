@@ -1283,11 +1283,17 @@ const ProductPage = () => {
 
 
   // Función para determinar el estado del inventario
+  // REGLA DE NEGOCIO GLOBAL: Lógica de Etiquetas de Disponibilidad
+  // - "Próximamente": Si el tercer dígito del ID (índice 2) coincide con el último dígito del año actual, independientemente del stock
+  // - "Agotado": Si stock === 0 Y el tercer dígito del ID NO coincide con el último dígito del año actual
   const getInventoryStatus = () => {
     const totalInventory = getTotalInventory();
     
-    // Obtener stock_received_count del producto (contador de veces que recibió stock)
-    const stockReceivedCount = product?.stock_received_count ?? product?.stockReceivedCount ?? 0;
+    // Obtener el ID del producto como string y calcular el último dígito del año actual
+    const productId = String(product?.id || product?.id_articulo || '');
+    const tercerDigito = productId.length > 2 ? productId[2] : null;
+    const currentYearLastDigit = String(new Date().getFullYear() % 10);
+    const isComingSoon = tercerDigito === currentYearLastDigit;
 
     // Si el producto tiene stock disponible, mostrar "En Stock"
     if (totalInventory > 0) {
@@ -1302,15 +1308,8 @@ const ProductPage = () => {
       };
     }
 
-    // Lógica para "Próximamente" vs "Agotado":
-    // "Próximamente": 
-    // - stock_received_count === 0 Y inventario <= 0 (nunca ha recibido stock)
-    // - O fecha_alta === null (producto sin fecha de alta)
-    // "Agotado": stock_received_count > 0 Y inventario <= 0 (ya recibió stock antes pero ahora está sin stock)
-    const fechaAlta = product?.fecha_alta || product?.fechaAlta;
-    const shouldShowComingSoon = (stockReceivedCount === 0 && totalInventory <= 0) || fechaAlta === null;
-
-    if (shouldShowComingSoon) {
+    // PRIORIDAD 1: Si el tercer dígito del ID coincide con el último dígito del año actual, mostrar "Próximamente" (independientemente del stock)
+    if (isComingSoon) {
       return {
         status: 'coming-soon',
         text: 'Próximamente',
@@ -1322,7 +1321,20 @@ const ProductPage = () => {
       };
     }
 
-    // Sin inventario disponible - mostrar "Agotado"
+    // PRIORIDAD 2: Si stock === 0 Y el tercer dígito NO coincide con el último dígito del año actual, mostrar "Agotado"
+    if (totalInventory === 0 && !isComingSoon) {
+      return {
+        status: 'out-of-stock',
+        text: 'Agotado',
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 0.25C3.71875 0.25 0.25 3.75 0.25 8C0.25 12.2812 3.71875 15.75 8 15.75C12.25 15.75 15.75 12.2812 15.75 8C15.75 3.75 12.25 0.25 8 0.25ZM8 1.75C11.4375 1.75 14.25 4.5625 14.25 8C14.25 11.4688 11.4375 14.25 8 14.25C4.53125 14.25 1.75 11.4688 1.75 8C1.75 4.5625 4.53125 1.75 8 1.75ZM5.125 5.125L4.40625 5.84375C4.28125 6 4.28125 6.21875 4.40625 6.375L7.03125 9L4.40625 11.6562C4.28125 11.8125 4.28125 12.0312 4.40625 12.1875L5.125 12.9062C5.25 13.0312 5.5 13.0312 5.65625 12.9062L8.28125 10.2812L10.9062 12.9062C11.0625 13.0312 11.2812 13.0312 11.4375 12.9062L12.1562 12.1875C12.2812 12.0312 12.2812 11.8125 12.1562 11.6562L9.53125 9L12.1562 6.375C12.2812 6.21875 12.2812 6 12.1562 5.84375L11.4375 5.125C11.2812 5 11.0625 5 10.9062 5.125L8.28125 7.75L5.65625 5.125C5.5 5 5.25 5 5.125 5.125Z" fill="#D32F2F" />
+          </svg>
+        )
+      };
+    }
+
+    // Fallback: Sin inventario disponible - mostrar "Agotado"
     return {
       status: 'out-of-stock',
       text: 'Agotado',
