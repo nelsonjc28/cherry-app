@@ -320,8 +320,14 @@ class ProductController extends Controller
                         ->values()
                         ->toArray();
 
-                    // Calcular inventario total
+                    // Calcular inventario total (suma de inventario_d de detalles O inventario general)
                     $inventarioTotal = $productGroup->sum('inventario_d') ?: (float) ($producto->inventario ?? 0);
+                    
+                    // FILTRO CRÍTICO Condición 1: El stock debe ser exactamente 0
+                    // Si el producto tiene stock > 0, excluirlo de "Próximamente"
+                    if ($inventarioTotal > 0) {
+                        return null; // Excluir productos con stock > 0
+                    }
 
                     // Obtener rating
                     $reviews = Review::where('product_id', $producto->id)
@@ -394,8 +400,9 @@ class ProductController extends Controller
             $currentYearLastDigit = (int) date('Y') % 10;
 
             // Obtener productos próximamente con sus detalles
-            // REGLA DE NEGOCIO GLOBAL: Un producto es "Próximamente" SOLO si el tercer dígito del ID (índice 2) 
-            // coincide con el último dígito del año actual, independientemente del stock o cualquier otra condición
+            // FILTRO CRÍTICO: Un producto SOLO puede mostrarse en "Próximamente" si cumple AMBAS condiciones:
+            // 1. Su stock es exactamente 0 (suma de inventario_d de detalles O inventario general)
+            // 2. El tercer carácter de su ID (id[2]) coincide con el último dígito del año actual
             $query = DB::table('productos')
                 ->leftJoin('detalles', 'productos.id', '=', 'detalles.producto_id')
                 ->select(
@@ -427,7 +434,7 @@ class ProductController extends Controller
                     'detalles.detalle',
                     'detalles.inventario_d'
                 )
-                ->whereRaw('SUBSTRING(productos.id, 3, 1) = ?', [$currentYearLastDigit]) // Tercer dígito debe coincidir con último dígito del año
+                ->whereRaw('SUBSTRING(productos.id, 3, 1) = ?', [$currentYearLastDigit]) // Condición 2: Tercer dígito debe coincidir con último dígito del año
                 ->orderBy('productos.fecha_alta', 'desc')
                 ->orderBy('productos.id', 'desc')
                 ->distinct();
@@ -525,6 +532,10 @@ class ProductController extends Controller
                         'stock_received_count' => (int) ($producto->stock_received_count ?? 0),
                         'detalles' => $detalles
                     ];
+                })
+                ->filter(function ($producto) {
+                    // FILTRO CRÍTICO: Excluir productos null (que fueron filtrados por tener stock > 0)
+                    return $producto !== null;
                 })
                 ->values()
                 ->toArray();

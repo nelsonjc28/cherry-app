@@ -271,24 +271,42 @@ const NuevosPage = () => {
         if (searchResponse.data.success && searchResponse.data.data.products) {
           const localProducts = searchResponse.data.data.products;
           
-          // Filtrar solo productos próximamente
-          // REGLA DE NEGOCIO GLOBAL: Un producto es "Próximamente" si el tercer dígito del ID (índice 2) coincide con el último dígito del año actual
+          // FILTRO CRÍTICO: Un producto SOLO puede mostrarse en "Próximamente" si cumple AMBAS condiciones simultáneamente (AND):
+          // 1. Su stock es exactamente 0 (suma de inventario_d de detalles O inventario general)
+          // 2. El tercer carácter de su ID (id[2]) coincide con el último dígito del año actual
           const currentYearLastDigit = String(new Date().getFullYear() % 10);
           
           const comingSoonProductsRaw = localProducts.filter(product => {
-            const productId = String(product.id_articulo || product.id || '');
-            
-            // Validar que el tercer dígito del ID coincida con el último dígito del año actual
-            // El tercer dígito (índice 2, empezando desde 0) debe ser igual al último dígito del año
-            const thirdDigit = productId.length >= 3 ? productId.charAt(2) : null;
-            
-            // PRIORIDAD: Un producto es "Próximamente" si el tercer dígito del ID coincide con el último dígito del año actual
-            const isComingSoon = thirdDigit !== null && thirdDigit === currentYearLastDigit;
-            
-            if (isComingSoon) {
-              return true;
+            // Calcular stock total igual que en ProductCard (suma de inventario_d de detalles)
+            let totalStock = 0;
+            if (product.detalles && product.detalles.length > 0) {
+              const totalFromDetails = product.detalles.reduce((total, detalle) => {
+                return total + (parseFloat(detalle.inventario_d) || 0);
+              }, 0);
+              // Si la suma de detalles es > 0, usar ese valor
+              if (totalFromDetails > 0) {
+                totalStock = totalFromDetails;
+              } else {
+                // Si no hay detalles o la suma es 0, usar el inventario general
+                totalStock = parseFloat(product.stock || product.inventario || 0);
+              }
+            } else {
+              // Si no hay detalles, usar el inventario general
+              totalStock = parseFloat(product.stock || product.inventario || 0);
             }
-            return false;
+            
+            // Condición 1: El stock debe ser exactamente 0
+            if (totalStock !== 0) {
+              return false; // Excluir productos con stock > 0
+            }
+            
+            // Condición 2: El tercer dígito del ID debe coincidir con el último dígito del año actual
+            const productId = String(product.id_articulo || product.id || '');
+            const thirdDigit = productId.length >= 3 ? productId.charAt(2) : null;
+            const isValidYearDigit = thirdDigit !== null && thirdDigit === currentYearLastDigit;
+            
+            // Ambas condiciones deben cumplirse (AND)
+            return isValidYearDigit;
           });
           
           // Mapear productos al formato esperado
