@@ -27,7 +27,7 @@ const AffiliateSection = () => {
           <img src={`${window.location.origin}/images/logo.svg`} alt="Cherry" width={175}/>
         </div>
         <h2 id="affiliate-heading" className="affiliateTitle">
-          ¡Afíliate ahora mismo y comienza tu propio negocio!
+          El momento es hoy: sé tu propia jefa, emprende con Cherry y transforma tu futuro
         </h2>
         <Link 
           to="/registro" 

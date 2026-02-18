@@ -1,0 +1,136 @@
+/* Horizontal Product Carousel */
+.horizontal-product-carousel {
+  width: 100%;
+  margin-bottom: 40px;
+}
+
+.horizontal-carousel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 0 10px;
+}
+
+.horizontal-carousel-title {
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: #333;
+  margin: 0;
+}
+
+.horizontal-carousel-view-all {
+  color: var(--color-primary, #EA2630);
+  font-size: 0.95rem;
+  font-weight: 400;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.horizontal-carousel-view-all:hover {
+  color: #cc0000;
+}
+
+.horizontal-carousel-view-all .arrow {
+  margin-left: 5px;
+  transition: transform 0.3s ease;
+}
+
+.horizontal-carousel-view-all:hover .arrow {
+  transform: translateX(5px);
+}
+
+/* Container con padding para mostrar parte de la siguiente tarjeta en desktop */
+.horizontal-carousel-container {
+  width: 100%;
+  padding: 0 10px;
+  position: relative;
+}
+
+/* Scroll horizontal container */
+.horizontal-carousel-scroll {
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  gap: 20px;
+  padding: 10px 0;
+  /* Ocultar scrollbar pero mantener funcionalidad */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE y Edge */
+}
+
+.horizontal-carousel-scroll::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Cada item del carrusel */
+.horizontal-carousel-item {
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  width: calc(50% - 10px); /* Móvil: 2 columnas visibles */
+  min-width: calc(50% - 10px);
+}
+
+/* Tablet: mostrar más espacio para la siguiente tarjeta */
+@media (min-width: 768px) {
+  .horizontal-carousel-item {
+    width: calc(33.333% - 14px); /* 3 columnas visibles */
+    min-width: calc(33.333% - 14px);
+  }
+  
+  .horizontal-carousel-container {
+    padding: 0 20px;
+  }
+}
+
+/* Desktop: mostrar parte de la siguiente tarjeta */
+@media (min-width: 1024px) {
+  .horizontal-carousel-item {
+    width: calc(25% - 15px); /* 4 columnas visibles, pero se ve parte de la 5ta */
+    min-width: calc(25% - 15px);
+  }
+  
+  .horizontal-carousel-container {
+    padding: 0 30px; /* Más padding para mostrar parte de la siguiente tarjeta */
+  }
+  
+  .horizontal-carousel-scroll {
+    gap: 30px;
+  }
+}
+
+/* Asegurar que las tarjetas no se reduzcan */
+.horizontal-carousel-item > * {
+  width: 100%;
+  height: 100%;
+}
+
+/* Mejorar el scroll en móviles */
+@media (max-width: 767px) {
+  .horizontal-carousel-scroll {
+    gap: 15px;
+    -webkit-overflow-scrolling: touch; /* Scroll suave en iOS */
+  }
+  
+  .horizontal-carousel-item {
+    width: calc(50% - 7.5px);
+    min-width: calc(50% - 7.5px);
+  }
+  
+  .horizontal-carousel-container {
+    padding: 0 15px;
+  }
+}
+
+/* Estilos para pantallas muy pequeñas */
+@media (max-width: 480px) {
+  .horizontal-carousel-item {
+    width: calc(60% - 7.5px); /* Mostrar menos para invitar al scroll */
+    min-width: calc(60% - 7.5px);
+  }
+}

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import ProductGrid from '../../ProductGrid/ProductGrid';
-import ProductSlider from '../../ProductSlider/ProductSlider';
+import HorizontalProductCarousel from '../../HorizontalProductCarousel/HorizontalProductCarousel';
 import api from '../../../services/api';
 import { getProductImageUrl } from '../../../utils/productImageUtils';
 import { applyUserOffersToProducts } from '../../../api/userOffers';
@@ -25,6 +24,64 @@ const FeaturedProducts = ({
       try {
         setLocalLoading(true);
         setError(null);
+        
+        // Si se pasan productos directamente, usarlos (no hacer llamada API)
+        if (products && products.length > 0 && !useApi) {
+          // Mapear productos al formato esperado
+          const mappedProducts = products.map(product => {
+            const productId = product.id_articulo || product.id;
+            const imageUrl = productId ? getProductImageUrl(productId, 1) : '';
+            
+            const productColors = product.colors || [];
+            const availableColors = productColors.length > 0 ? productColors : [];
+            
+            const productSizes = product.sizes || [];
+            const availableSizes = productSizes.length > 0 ? productSizes : [];
+            
+            const isNewProduct = product.isNew !== undefined ? product.isNew : 
+              (product.opc_nuevo === 'S' || 
+               (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 45 * 24 * 60 * 60 * 1000)));
+          
+            return {
+              id: product.id,
+              id_articulo: productId,
+              title: product.title || product.description || 'Sin nombre',
+              description: product.description || 'Sin descripción',
+              price: product.price || 0,
+              originalPrice: product.originalPrice,
+              discount: product.discount || 0,
+              image: imageUrl,
+              brand: product.brand || 'Sin marca',
+              stock: product.stock || product.inventario || 0,
+              inventario: product.inventario || product.stock || 0,
+              colors: availableColors,
+              colores: productColors,
+              sizes: availableSizes,
+              tallas: productSizes,
+              isNew: isNewProduct,
+              rating: product.rating || 0,
+              ratingCount: product.ratingCount || 0,
+              id_linea: product.id_linea,
+              category_id: product.category_id || product.id_linea,
+              catalogoId: product.catalogoId,
+              fecha_alta: product.fecha_alta,
+              fechaAlta: product.fecha_alta,
+              opcNuevo: product.opc_nuevo,
+              opcPromo: product.opc_promo,
+              descPromo: product.desc_promo,
+              codigo: productId,
+              detalles: product.detalles || [],
+              linea: product.id_linea,
+              precio1: product.price || 0
+            };
+          });
+          
+          // Aplicar ofertas de usuario
+          const productsWithOffers = await applyUserOffersToProducts(mappedProducts);
+          setApiProducts(productsWithOffers);
+          setLocalLoading(false);
+          return;
+        }
         
         if (useApi) {
           // Obtener productos nuevos (últimos 45 días) desde el backend local
@@ -107,7 +164,7 @@ const FeaturedProducts = ({
     };
 
     loadNewProducts();
-  }, [useApi]); // Se ejecuta cuando useApi cambia
+  }, [useApi, products]); // Se ejecuta cuando useApi o products cambian
 
   const handleFavoriteToggle = (productId) => {
     // Here you would typically update your favorites state/API
@@ -140,34 +197,18 @@ const FeaturedProducts = ({
   return (
     <section className={`featured-products ${className}`}>
       <div className="container">
-
-        {/* Desktop Grid */}
-        <div className="desktop-view">
-          <ProductGrid 
-            title={title}
-            viewAllLink={viewAllLink}
-            viewAllText={viewAllText}
-            products={apiProducts}
-            onFavoriteToggle={handleFavoriteToggle}
-            showTitle={false}
-            showViewAll={false}
-            showFavoriteButton={false}
-            variant="bestseller"
-          />
-        </div>
-        
-        {/* Mobile Slider */}
-        <div className="mobile-view">
-          <ProductSlider 
-            products={apiProducts}
-            onFavoriteToggle={handleFavoriteToggle}
-            showTitle={false}
-            showViewAll={false}
-            slidesPerView={{ desktop: 4, tablet: 2, mobile: 1.2 }}
-            showFavoriteButton={false}
-            variant="bestseller"
-          />
-        </div>
+        <HorizontalProductCarousel
+          title={title}
+          viewAllLink={viewAllLink}
+          viewAllText={viewAllText}
+          products={apiProducts}
+          onFavoriteToggle={handleFavoriteToggle}
+          showTitle={true}
+          showViewAll={showViewAllButton}
+          showFavoriteButton={false}
+          variant="bestseller"
+          useCatalogCard={true}
+        />
       </div>
     </section>
   );

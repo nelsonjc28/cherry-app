@@ -35,9 +35,9 @@
   margin-top: 8px; /* Align with title baseline */
 }
 
-/* Desktop and Mobile Views */
+/* Desktop and Mobile Views - Ya no se usan, se usa HorizontalProductCarousel */
 .desktop-view {
-  display: block;
+  display: none;
 }
 
 .mobile-view {
@@ -75,15 +75,6 @@
   .view-all-button {
     margin-top: 0;
     align-self: flex-end;
-  }
-  
-  /* Switch to mobile slider view */
-  .desktop-view {
-    display: none;
-  }
-  
-  .mobile-view {
-    display: block;
   }
 }
 

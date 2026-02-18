@@ -385,11 +385,13 @@ class ProductController extends Controller
 
     /**
      * Obtener productos próximamente
-     * REGLA DE NEGOCIO GLOBAL: Un producto es "Próximamente" SOLO si el tercer dígito del ID (índice 2) 
-     * coincide con el último dígito del año actual, independientemente del stock o cualquier otra condición
+     * REGLA DE NEGOCIO GLOBAL: Un producto es "Próximamente" SOLO si cumple TODAS las condiciones:
+     * 1. El tercer dígito del ID (índice 2) coincide con el último dígito del año actual
+     * 2. Su stock es exactamente 0 (suma de inventario_d de detalles O inventario general)
+     * 3. stock_received_count = 0 (el producto nunca ha recibido stock)
      * 
      * Limitado a 4 productos para la sección "Próximamente" (por defecto)
-     * Ejemplo: En 2026, solo productos cuyo tercer dígito del ID sea "6"
+     * Ejemplo: En 2026, solo productos cuyo tercer dígito del ID sea "6", con stock = 0 y stock_received_count = 0
      */
     public function getComingSoonProducts(Request $request): JsonResponse
     {
@@ -400,9 +402,10 @@ class ProductController extends Controller
             $currentYearLastDigit = (int) date('Y') % 10;
 
             // Obtener productos próximamente con sus detalles
-            // FILTRO CRÍTICO: Un producto SOLO puede mostrarse en "Próximamente" si cumple AMBAS condiciones:
+            // FILTRO CRÍTICO: Un producto SOLO puede mostrarse en "Próximamente" si cumple TODAS las condiciones:
             // 1. Su stock es exactamente 0 (suma de inventario_d de detalles O inventario general)
             // 2. El tercer carácter de su ID (id[2]) coincide con el último dígito del año actual
+            // 3. stock_received_count = 0 (el producto nunca ha recibido stock)
             $query = DB::table('productos')
                 ->leftJoin('detalles', 'productos.id', '=', 'detalles.producto_id')
                 ->select(
@@ -435,6 +438,7 @@ class ProductController extends Controller
                     'detalles.inventario_d'
                 )
                 ->whereRaw('SUBSTRING(productos.id, 3, 1) = ?', [$currentYearLastDigit]) // Condición 2: Tercer dígito debe coincidir con último dígito del año
+                ->where('productos.stock_received_count', '=', 0) // Condición 3: stock_received_count debe ser 0
                 ->orderBy('productos.fecha_alta', 'desc')
                 ->orderBy('productos.id', 'desc')
                 ->distinct();
@@ -534,7 +538,7 @@ class ProductController extends Controller
                     ];
                 })
                 ->filter(function ($producto) {
-                    // FILTRO CRÍTICO: Excluir productos null (que fueron filtrados por tener stock > 0)
+                    // FILTRO CRÍTICO: Excluir productos null (que fueron filtrados por tener stock > 0 o stock_received_count > 0)
                     return $producto !== null;
                 })
                 ->values()
@@ -564,9 +568,9 @@ class ProductController extends Controller
     public function suggested(Request $request, $id): JsonResponse
     {
         try {
-            $limit = $request->input('limit', 4);
+            $limit = $request->input('limit', 8); // 8 productos aleatorios
             
-            // Obtener información del producto actual
+            // Verificar que el producto actual existe
             $currentProduct = DB::table('productos')
                 ->where('id', $id)
                 ->first();
@@ -578,47 +582,14 @@ class ProductController extends Controller
                 ], 404);
             }
             
-            $idLinea = $currentProduct->id_linea;
-            $generoId = $currentProduct->genero_id;
-            $sectorId = $currentProduct->sector_id;
-            
-            // Calcular fecha límite para productos nuevos (30 días)
-            $thirtyDaysAgoDate = now()->subDays(30)->format('Y-m-d');
-            
-            // Primero obtener IDs de productos relacionados que cumplen las condiciones
-            $relatedProductIds = DB::table('productos')
+            // Obtener todos los IDs de productos con stock disponible (excluyendo el actual)
+            // Primero obtener todos los productos
+            $allProductIds = DB::table('productos')
                 ->where('productos.id', '!=', $id) // Excluir el producto actual
-                ->where(function($query) use ($idLinea, $generoId, $sectorId) {
-                    // Misma línea Y mismo género (prioridad alta)
-                    if ($idLinea && $generoId) {
-                        $query->where(function($q) use ($idLinea, $generoId) {
-                            $q->where('productos.id_linea', '=', $idLinea)
-                              ->where('productos.genero_id', '=', $generoId);
-                        });
-                    }
-                    
-                    // O mismo sector y línea (si no hay género)
-                    if ($sectorId && $idLinea) {
-                        $query->orWhere(function($q) use ($sectorId, $idLinea) {
-                            $q->where('productos.sector_id', '=', $sectorId)
-                              ->where('productos.id_linea', '=', $idLinea);
-                        });
-                    }
-                    
-                    // O mismo género (si no hay línea)
-                    if ($generoId) {
-                        $query->orWhere('productos.genero_id', '=', $generoId);
-                    }
-                    
-                    // O misma línea (última opción)
-                    if ($idLinea) {
-                        $query->orWhere('productos.id_linea', '=', $idLinea);
-                    }
-                })
                 ->pluck('id')
                 ->toArray();
             
-            if (empty($relatedProductIds)) {
+            if (empty($allProductIds)) {
                 return response()->json([
                     'success' => true,
                     'data' => []
@@ -627,7 +598,7 @@ class ProductController extends Controller
             
             // Calcular stock total por producto (suma de inventario_d)
             $productStocks = DB::table('detalles')
-                ->whereIn('producto_id', $relatedProductIds)
+                ->whereIn('producto_id', $allProductIds)
                 ->select('producto_id', DB::raw('SUM(inventario_d) as total_stock'))
                 ->groupBy('producto_id')
                 ->pluck('total_stock', 'producto_id')
@@ -635,13 +606,13 @@ class ProductController extends Controller
             
             // Obtener inventario general de productos
             $productInventories = DB::table('productos')
-                ->whereIn('id', $relatedProductIds)
+                ->whereIn('id', $allProductIds)
                 ->pluck('inventario', 'id')
                 ->toArray();
             
             // Filtrar productos con stock disponible
             $productsWithStock = [];
-            foreach ($relatedProductIds as $productId) {
+            foreach ($allProductIds as $productId) {
                 $stockFromDetails = (float) ($productStocks[$productId] ?? 0);
                 $stockFromProduct = (float) ($productInventories[$productId] ?? 0);
                 $totalStock = $stockFromDetails > 0 ? $stockFromDetails : $stockFromProduct;
@@ -658,8 +629,18 @@ class ProductController extends Controller
                 ]);
             }
             
-            // Obtener productos relacionados con sus detalles
-            // Prioridad: mismo sector y línea > mismo género > productos nuevos
+            // Mezclar aleatoriamente y tomar el límite solicitado
+            shuffle($productsWithStock);
+            $randomProductIds = array_slice($productsWithStock, 0, min($limit, count($productsWithStock)));
+            
+            if (empty($randomProductIds)) {
+                return response()->json([
+                    'success' => true,
+                    'data' => []
+                ]);
+            }
+            
+            // Obtener productos aleatorios con sus detalles
             $productos = DB::table('productos')
                 ->leftJoin('detalles', 'productos.id', '=', 'detalles.producto_id')
                 ->select(
@@ -691,19 +672,8 @@ class ProductController extends Controller
                     'detalles.detalle',
                     'detalles.inventario_d'
                 )
-                ->whereIn('productos.id', $productsWithStock)
-                ->orderByRaw('CASE 
-                    WHEN productos.sector_id = ? AND productos.id_linea = ? THEN 1
-                    WHEN productos.id_linea = ? AND productos.genero_id = ? THEN 2
-                    WHEN productos.genero_id = ? THEN 3
-                    WHEN productos.id_linea = ? THEN 4
-                    ELSE 5
-                END', [$sectorId, $idLinea, $idLinea, $generoId, $generoId, $idLinea])
-                ->orderByRaw('CASE WHEN productos.opc_nuevo = "S" THEN 0 ELSE 1 END')
-                ->orderByRaw('CASE WHEN productos.fecha_alta IS NOT NULL AND productos.fecha_alta >= ? THEN 0 ELSE 1 END', [$thirtyDaysAgoDate])
-                ->orderBy('productos.fecha_alta', 'desc')
-                ->orderBy('productos.id', 'desc')
-                ->limit($limit)
+                ->whereIn('productos.id', $randomProductIds)
+                ->inRandomOrder() // Orden aleatorio
                 ->get()
                 ->groupBy('id')
                 ->map(function ($productGroup) {
@@ -834,6 +804,23 @@ class ProductController extends Controller
         if ($imagenFromDb && trim($imagenFromDb) !== '' && 
             !str_contains($imagenFromDb, 'placeholder') && 
             !str_contains($imagenFromDb, 'Rectangle 4922')) {
+            return $imagenFromDb;
+        }
+
+        // Si no hay productId, devolver placeholder
+        if (!$productId) {
+            return asset('images/placeholder-product.png');
+        }
+
+        // Convertir a string para manejar correctamente
+        $productIdStr = trim((string) $productId);
+        
+        // Generar URL de S3: https://cherry-fotos.s3.amazonaws.com/shopify/{productId}/{productId}_1.jpg
+        return "https://cherry-fotos.s3.amazonaws.com/shopify/{$productIdStr}/{$productIdStr}_1.jpg";
+    }
+}
+
+tr_contains($imagenFromDb, 'Rectangle 4922')) {
             return $imagenFromDb;
         }
 

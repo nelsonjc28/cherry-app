@@ -31,6 +31,7 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\TopSellingController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\HistorialController;
+use App\Http\Controllers\Api\RecentProductController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/complete-profile', [AuthController::class, 'completeProfile'])->middleware('auth:api');
@@ -333,6 +334,12 @@ Route::get('/products/new', [ProductController::class, 'getNewProducts']);
 Route::get('/products/coming-soon', [ProductController::class, 'getComingSoonProducts']);
 Route::get('/products/{id}/suggested', [ProductController::class, 'suggested']);
 Route::get('/products/{id}', [ProductController::class, 'show']);
+
+// Recent Products routes (requires authentication)
+Route::middleware(['auth:api'])->group(function () {
+    Route::post('/recent-products', [RecentProductController::class, 'store']);
+    Route::get('/recent-products', [RecentProductController::class, 'index']);
+});
 
 // Public welcome sections routes (no authentication required)
 Route::get('/welcome-sections/active', [WelcomeSectionController::class, 'getActiveSection']);

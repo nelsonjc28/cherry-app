@@ -103,8 +103,9 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
 
   // Función para determinar si debe mostrar "Próximamente" o "Agotado"
   // REGLA DE NEGOCIO GLOBAL: Lógica de Etiquetas de Disponibilidad
-  // - "Próximamente": Si el tercer dígito del ID (índice 2) coincide con el último dígito del año actual, independientemente del stock
-  // - "Agotado": Si stock === 0 Y el tercer dígito del ID NO coincide con el último dígito del año actual
+  // - "Próximamente": Si el tercer dígito del ID (índice 2) coincide con el último dígito del año actual
+  //   Y stock === 0 Y stock_received_count === 0
+  // - "Agotado": Si stock === 0 Y (el tercer dígito del ID NO coincide con el último dígito del año actual O stock_received_count > 0)
   const getStockStatus = () => {
     const totalStock = calculateTotalStock();
     
@@ -114,18 +115,22 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
     const currentYearLastDigit = String(new Date().getFullYear() % 10);
     const isComingSoon = tercerDigito === currentYearLastDigit;
     
+    // Obtener stock_received_count del producto
+    const stockReceivedCountValue = product?.stock_received_count || stockReceivedCount || 0;
+    
     // Si tiene stock, no mostrar badge de stock
     if (totalStock > 0) {
       return null;
     }
     
-    // PRIORIDAD 1: Si el tercer dígito del ID coincide con el último dígito del año actual, mostrar "Próximamente" (independientemente del stock)
-    if (isComingSoon) {
+    // PRIORIDAD 1: Si el tercer dígito del ID coincide con el último dígito del año actual
+    // Y stock === 0 Y stock_received_count === 0, mostrar "Próximamente"
+    if (isComingSoon && totalStock === 0 && stockReceivedCountValue === 0) {
       return 'coming-soon';
     }
     
-    // PRIORIDAD 2: Si stock === 0 Y el tercer dígito NO coincide con el último dígito del año actual, mostrar "Agotado"
-    if (totalStock === 0 && !isComingSoon) {
+    // PRIORIDAD 2: Si stock === 0 Y (el tercer dígito NO coincide con el último dígito del año actual O stock_received_count > 0), mostrar "Agotado"
+    if (totalStock === 0 && (!isComingSoon || stockReceivedCountValue > 0)) {
       return 'out-of-stock';
     }
     

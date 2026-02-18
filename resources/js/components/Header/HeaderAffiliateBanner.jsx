@@ -13,7 +13,7 @@ const HeaderAffiliateBanner = () => {
   return (
     
     <div className="affiliate-container">
-      <p className="affiliate-text-header">¡Afiliate ahora mismo y comienza tu propio negocio!</p>
+      <p className="affiliate-text-header">El momento es hoy: sé tu propia jefa, emprende con Cherry y transforma tu futuro</p>
       <a className="affiliate-button-header" href="/afiliate" data-discover="true">Afiliate aquí</a>
     </div>
   );

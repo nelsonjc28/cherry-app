@@ -16,6 +16,7 @@ import FeaturedProducts from '../components/sections/FeaturedProducts/FeaturedPr
 import ProductGallery from '../components/ProductGallery/ProductGallery';
 import StarRating from '../components/StarRating/StarRating';
 import ProductReviews from '../components/ProductReviews/ProductReviews';
+import RecentlyViewedSection from '../components/RecentlyViewedSection/RecentlyViewedSection';
 
 
 // Hooks
@@ -26,6 +27,7 @@ import { getProductById, generateS3ImageUrl, isUserSessionActive } from '../api/
 import { applyUserOffersToProducts } from '../api/userOffers';
 import useCartStore from '../store/cartStore';
 import useUserStore from '../store/userStore';
+import useRecentProductsStore from '../store/recentProductsStore';
 import api from '../services/api';
 import { favoriteService } from '../services/api';
 
@@ -44,7 +46,9 @@ const formatMoneyWithCommas = (value) => {
 const ProductPage = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useUserStore();
+  const { registerProduct } = useRecentProductsStore();
 
   // State management
   const [product, setProduct] = useState(null);
@@ -510,6 +514,13 @@ const ProductPage = () => {
         }
 
         setProduct(productWithOffer);
+        
+        // Registrar producto en "Vistos Recientemente" si el usuario está autenticado
+        const productIdToSave = productData.id || productData.id_articulo || productId;
+        if (productIdToSave && user) {
+          registerProduct(String(productIdToSave));
+        }
+        
         // Set default color/size if available
         if (productData.detalles && productData.detalles.length > 0) {
           const availableColors = [...new Set(productData.detalles.map(d => d.nombreColor).filter(Boolean))];
@@ -553,7 +564,7 @@ const ProductPage = () => {
       try {
         // Encode productId to handle special characters
         const encodedProductId = encodeURIComponent(productId);
-        const response = await api.get(`/products/${encodedProductId}/suggested?limit=4`);
+        const response = await api.get(`/products/${encodedProductId}/suggested?limit=8`);
         
         if (response.data.success && response.data.data) {
           // Apply user offers if user is logged in
@@ -1284,8 +1295,9 @@ const ProductPage = () => {
 
   // Función para determinar el estado del inventario
   // REGLA DE NEGOCIO GLOBAL: Lógica de Etiquetas de Disponibilidad
-  // - "Próximamente": Si el tercer dígito del ID (índice 2) coincide con el último dígito del año actual, independientemente del stock
-  // - "Agotado": Si stock === 0 Y el tercer dígito del ID NO coincide con el último dígito del año actual
+  // - "Próximamente": Si el tercer dígito del ID (índice 2) coincide con el último dígito del año actual
+  //   Y stock === 0 Y stock_received_count === 0
+  // - "Agotado": Si stock === 0 Y (el tercer dígito del ID NO coincide con el último dígito del año actual O stock_received_count > 0)
   const getInventoryStatus = () => {
     const totalInventory = getTotalInventory();
     
@@ -1294,6 +1306,9 @@ const ProductPage = () => {
     const tercerDigito = productId.length > 2 ? productId[2] : null;
     const currentYearLastDigit = String(new Date().getFullYear() % 10);
     const isComingSoon = tercerDigito === currentYearLastDigit;
+    
+    // Obtener stock_received_count del producto
+    const stockReceivedCount = product?.stock_received_count || product?.stockReceivedCount || 0;
 
     // Si el producto tiene stock disponible, mostrar "En Stock"
     if (totalInventory > 0) {
@@ -1308,8 +1323,9 @@ const ProductPage = () => {
       };
     }
 
-    // PRIORIDAD 1: Si el tercer dígito del ID coincide con el último dígito del año actual, mostrar "Próximamente" (independientemente del stock)
-    if (isComingSoon) {
+    // PRIORIDAD 1: Si el tercer dígito del ID coincide con el último dígito del año actual
+    // Y stock === 0 Y stock_received_count === 0, mostrar "Próximamente"
+    if (isComingSoon && totalInventory === 0 && stockReceivedCount === 0) {
       return {
         status: 'coming-soon',
         text: 'Próximamente',
@@ -1321,8 +1337,8 @@ const ProductPage = () => {
       };
     }
 
-    // PRIORIDAD 2: Si stock === 0 Y el tercer dígito NO coincide con el último dígito del año actual, mostrar "Agotado"
-    if (totalInventory === 0 && !isComingSoon) {
+    // PRIORIDAD 2: Si stock === 0 Y (el tercer dígito NO coincide con el último dígito del año actual O stock_received_count > 0), mostrar "Agotado"
+    if (totalInventory === 0 && (!isComingSoon || stockReceivedCount > 0)) {
       return {
         status: 'out-of-stock',
         text: 'Agotado',
@@ -1458,7 +1474,6 @@ const ProductPage = () => {
     };
   }
 
-  const location = useLocation();
   const canonicalUrl = `https://cherrydistribuidores.com.mx${location.pathname}`;
 
   return (
@@ -1925,6 +1940,9 @@ const ProductPage = () => {
         </div>
       </div>
 
+      {/* Recently Viewed Section */}
+      <RecentlyViewedSection currentProductId={productId} />
+
       {/* Suggested Products Section */}
       {relatedProducts.length > 0 && (
         <FeaturedProducts
@@ -1935,6 +1953,7 @@ const ProductPage = () => {
           showViewAllButton={true}
           className="product-page__related-products"
           alwaysShowTitle={true}
+          useApi={false}
         />
       )}
 
