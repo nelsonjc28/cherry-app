@@ -486,7 +486,20 @@ class ProductController extends Controller
 
                     // Calcular inventario total
                     $inventarioTotal = $productGroup->sum('inventario_d') ?: (float) ($producto->inventario ?? 0);
-
+                    
+                    // FILTRO CRÍTICO Condición 1: El stock debe ser exactamente 0
+                    // Si el producto tiene stock > 0, excluirlo de "Próximamente"
+                    if ($inventarioTotal > 0) {
+                        return null; // Excluir productos con stock > 0
+                    }
+                    
+                    // FILTRO CRÍTICO Condición 3: stock_received_count debe ser 0
+                    // Si el producto ya recibió stock alguna vez, excluirlo de "Próximamente"
+                    $stockReceivedCount = (int) ($producto->stock_received_count ?? 0);
+                    if ($stockReceivedCount > 0) {
+                        return null; // Excluir productos que ya recibieron stock
+                    }
+                    
                     // Obtener rating
                     $reviews = Review::where('product_id', $producto->id)
                         ->where('is_approved', true)
