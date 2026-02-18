@@ -142,19 +142,28 @@
   position: relative;
 }
 
-.how-it-works__icon {
-  width: 48px;
-  height: 48px;
+.how-it-works__title-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.how-it-works__icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .how-it-works__icon img {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  filter: brightness(0) saturate(100%) invert(22%) sepia(95%) saturate(7492%) hue-rotate(346deg) brightness(92%) contrast(89%);
 }
 
 .how-it-works__number {
@@ -179,7 +188,7 @@
   font-size: 16px;
   font-weight: 500;
   color: #373737;
-  margin-bottom: 6px;
+  margin: 0;
   line-height: 1.3;
 }
 
@@ -750,10 +759,14 @@
     max-width: 320px;
   }
 
+  .how-it-works__title-wrapper {
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
   .how-it-works__icon {
-    width: 64px;
-    height: 64px;
-    margin-bottom: 16px;
+    width: 24px;
+    height: 24px;
   }
 
   .how-it-works__number {

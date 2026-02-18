@@ -382,39 +382,45 @@ const RegisterPage = () => {
 
           <div className="how-it-works__steps">
             <div className="how-it-works__step">
-              <div className="how-it-works__icon">
-                <img src={getIconPath('Share Alt.svg')} alt="Compartir" />
-              </div>
               <div className="how-it-works__number">
                 <span>1</span>
               </div>
-              <h3 className="how-it-works__step-title">Regístrate y comparte</h3>
+              <div className="how-it-works__title-wrapper">
+                <div className="how-it-works__icon">
+                  <img src={getIconPath('Share Alt.svg')} alt="Compartir" />
+                </div>
+                <h3 className="how-it-works__step-title">Regístrate y comparte</h3>
+              </div>
               <p className="how-it-works__step-description">
                 Únete a Cherry y comienza a ofrecer nuestros catálogos a tus clientes.
               </p>
             </div>
 
             <div className="how-it-works__step">
-              <div className="how-it-works__icon">
-                <img src={getIconPath('Shopping Cart.svg')} alt="Carrito de compras" />
-              </div>
               <div className="how-it-works__number">
                 <span>2</span>
               </div>
-              <h3 className="how-it-works__step-title">Haz tu pedido</h3>
+              <div className="how-it-works__title-wrapper">
+                <div className="how-it-works__icon">
+                  <img src={getIconPath('Shopping Cart.svg')} alt="Carrito de compras" />
+                </div>
+                <h3 className="how-it-works__step-title">Haz tu pedido</h3>
+              </div>
               <p className="how-it-works__step-description">
                 Selecciona los modelos que te pidan y compra a precio especial.
               </p>
             </div>
 
             <div className="how-it-works__step">
-              <div className="how-it-works__icon">
-                <img src={getIconPath('Clock.svg')} alt="Reloj" />
-              </div>
               <div className="how-it-works__number">
                 <span>3</span>
               </div>
-              <h3 className="how-it-works__step-title">Recibe y gana</h3>
+              <div className="how-it-works__title-wrapper">
+                <div className="how-it-works__icon">
+                  <img src={getIconPath('Clock.svg')} alt="Reloj" />
+                </div>
+                <h3 className="how-it-works__step-title">Recibe y gana</h3>
+              </div>
               <p className="how-it-works__step-description">
                 Entrega tu mercancía y empieza a generar tus propias ganancias.
               </p>
