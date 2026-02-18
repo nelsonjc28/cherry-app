@@ -26,6 +26,7 @@ class ProductSearchController extends Controller
             
             $query = trim($request->input('q', ''));
             $page = (int) $request->input('page', 1);
+            $sort = $request->input('sort', 'más recientes'); // Parámetro de ordenamiento
             // Sin límite - obtener todos los productos que coincidan
             $perPage = PHP_INT_MAX; // Sin límite
             
@@ -90,7 +91,7 @@ class ProductSearchController extends Controller
             // Sin paginación - obtener TODOS los productos que coincidan
             $paginatedIds = $allProductIds; // Todos los IDs sin límite
             
-            $productos = DB::table('productos')
+            $productosQuery = DB::table('productos')
                 ->select([
                     'productos.id',
                     'productos.id_linea',
@@ -106,8 +107,12 @@ class ProductSearchController extends Controller
                     'productos.inventario',
                     'productos.sku'
                 ])
-                ->whereIn('productos.id', $paginatedIds)
-                ->get();
+                ->whereIn('productos.id', $paginatedIds);
+            
+            // Aplicar ordenamiento según el parámetro sort
+            $this->applySorting($productosQuery, $sort);
+            
+            $productos = $productosQuery->get();
 
             // Obtener IDs de productos para buscar colores
             $productIds = $productos->pluck('id')->toArray();
@@ -283,12 +288,14 @@ class ProductSearchController extends Controller
             // Aumentar límite de memoria para cargar todos los productos
             ini_set('memory_limit', '512M');
             
+            $sort = $request->input('sort', 'más recientes'); // Parámetro de ordenamiento
+            
             // Sin límite - obtener TODOS los productos
             $perPage = PHP_INT_MAX;
 
             // Sin caché - siempre obtener datos frescos de la BD
             // Obtener TODOS los productos SIN límite
-            $productos = DB::table('productos')
+            $productosQuery = DB::table('productos')
                 ->select([
                     'productos.id',
                     'productos.id_linea',
@@ -302,8 +309,12 @@ class ProductSearchController extends Controller
                     'productos.fecha_alta',
                     'productos.marca',
                     'productos.inventario'
-                ])
-                ->get();
+                ]);
+            
+            // Aplicar ordenamiento según el parámetro sort
+            $this->applySorting($productosQuery, $sort);
+            
+            $productos = $productosQuery->get();
 
             $total = $productos->count();
 
@@ -851,5 +862,60 @@ class ProductSearchController extends Controller
         }
         
         return "https://cherry-fotos.s3.amazonaws.com/shopify/{$productId}/{$productId}_{$imageNumber}.jpg";
+    }
+
+    /**
+     * Aplica ordenamiento a la consulta según el parámetro sort
+     */
+    private function applySorting($query, string $sort): void
+    {
+        switch ($sort) {
+            case 'precio-menor':
+            case 'Precio: menor a mayor':
+                $query->orderBy('productos.precio1', 'asc');
+                break;
+            
+            case 'precio-mayor':
+            case 'Precio: mayor a menor':
+                $query->orderBy('productos.precio1', 'desc');
+                break;
+            
+            case 'más-recientes':
+            case 'más recientes':
+            case 'Más recientes':
+                $query->orderByRaw('CASE WHEN productos.fecha_alta IS NOT NULL THEN productos.fecha_alta ELSE "1970-01-01" END DESC')
+                      ->orderBy('productos.id', 'desc');
+                break;
+            
+            case 'más-antiguos':
+                $query->orderByRaw('CASE WHEN productos.fecha_alta IS NOT NULL THEN productos.fecha_alta ELSE "1970-01-01" END ASC')
+                      ->orderBy('productos.id', 'asc');
+                break;
+            
+            case 'nombre-a-z':
+            case 'Nombre A-Z':
+                $query->orderBy('productos.descripcion', 'asc');
+                break;
+            
+            case 'nombre-z-a':
+            case 'Nombre Z-A':
+                $query->orderBy('productos.descripcion', 'desc');
+                break;
+            
+            default:
+                // Por defecto: más recientes
+                $query->orderByRaw('CASE WHEN productos.fecha_alta IS NOT NULL THEN productos.fecha_alta ELSE "1970-01-01" END DESC')
+                      ->orderBy('productos.id', 'desc');
+                break;
+        }
+    }
+
+    /**
+     * Obtiene la cláusula ORDER BY según el parámetro sort (método legacy, mantener por compatibilidad)
+     */
+    private function getOrderByClause(string $sort): string
+    {
+        // Este método ya no se usa, pero se mantiene por compatibilidad
+        return '';
     }
 }

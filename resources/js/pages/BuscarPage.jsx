@@ -14,6 +14,7 @@ import { flexibleSearchInFields } from '../utils/searchNormalizer';
 import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
 import './BuscarPage.css';
+import './NuevosPage.css';
 
 
 const BuscarPage = () => {
@@ -183,7 +184,8 @@ const BuscarPage = () => {
         try {
           const searchResponse = await api.get('/products/search', {
             params: { 
-              q: query || '' // Si no hay query, el backend devolverá todos los productos
+              q: query || '', // Si no hay query, el backend devolverá todos los productos
+              sort: filters.sortBy || 'más recientes' // Enviar parámetro de ordenamiento al backend
               // Sin per_page para obtener todos los productos sin límite
             }
           });
@@ -329,7 +331,7 @@ const BuscarPage = () => {
     };
 
     loadProducts();
-  }, [query, colorFilter, skuFilter]);
+  }, [query, colorFilter, skuFilter, filters.sortBy]);
 
   // Filtrar productos basado en filtros adicionales
   useEffect(() => {
@@ -499,50 +501,9 @@ const BuscarPage = () => {
       });
     }
 
-    // Aplicar ordenamiento
-    if (filters.sortBy) {
-      filtered = [...filtered].sort((a, b) => {
-        switch (filters.sortBy) {
-          case 'Más recientes':
-          case 'más recientes':
-            // Ordenar por fecha_alta del backend (más recientes primero)
-            const dateA = new Date(a.fechaAlta || a.fecha_alta || a.created_at || 0);
-            const dateB = new Date(b.fechaAlta || b.fecha_alta || b.created_at || 0);
-            return dateB - dateA;
-
-          case 'Precio: menor a mayor':
-          case 'precio-menor':
-            // Usar precio1 del backend como fuente principal
-            const priceA = parseFloat(a.price || a.precio1 || 0);
-            const priceB = parseFloat(b.price || b.precio1 || 0);
-            return priceA - priceB;
-
-          case 'Precio: mayor a menor':
-          case 'precio-mayor':
-            // Usar precio1 del backend como fuente principal
-            const priceA2 = parseFloat(a.price || a.precio1 || 0);
-            const priceB2 = parseFloat(b.price || b.precio1 || 0);
-            return priceB2 - priceA2;
-
-          case 'Nombre A-Z':
-          case 'nombre-a-z':
-            // Usar descripcion del backend
-            const nameA = (a.title || a.descripcion || a.name || '').toLowerCase();
-            const nameB = (b.title || b.descripcion || b.name || '').toLowerCase();
-            return nameA.localeCompare(nameB);
-
-          case 'Nombre Z-A':
-          case 'nombre-z-a':
-            // Usar descripcion del backend
-            const nameA2 = (a.title || a.descripcion || a.name || '').toLowerCase();
-            const nameB2 = (b.title || b.descripcion || b.name || '').toLowerCase();
-            return nameB2.localeCompare(nameA2);
-
-          default:
-            return 0;
-        }
-      });
-    }
+    // El ordenamiento ahora se hace en el backend, pero mantenemos esta lógica
+    // como respaldo para filtros adicionales que se aplican después
+    // El backend ya devuelve los productos ordenados según filters.sortBy
 
     setFilteredProducts(filtered);
   }, [filters, products]);
@@ -630,10 +591,20 @@ const BuscarPage = () => {
         <link rel="canonical" href={canonicalUrl} />
       </Helmet>
 
-      <main className="buscar-page">
-        <div className='container'>
+      <div className="nuevos-page">
+        <div className="container">
           {/* Header section with title and filters  -  MOBILE */}
           <div className="nuevos-page__header-mobile">
+            <div className="nuevos-page__title-section">
+              <h1 className="nuevos-page__title">Resultados de búsqueda</h1>
+              <div className='nuevos-page__content-texts'>
+                <span className="nuevos-page__results-count">
+                  ({filteredProducts.length})
+                  <p className="nuevos-page__text-results-count">Resultados</p>
+                </span>
+              </div>
+            </div>
+
             <div className="nuevos-page__controls">
               <div className="nuevos-page__sort-section">
                 <div className="nuevos-page__mobile-filter-controls">
@@ -646,27 +617,56 @@ const BuscarPage = () => {
                   </button>
                 </div>
                 <label htmlFor="sort-select" className="nuevos-page__sort-label">Ordenar por:</label>
-                  <select
-                    id="sort-select"
-                    value={filters.sortBy}
-                    onChange={(e) => handleFilterChange({ ...filters, sortBy: e.target.value })}
-                    className="nuevos-page__sort-select"
-                  >
-                    <option value="Más recientes">Más recientes</option>
-                    <option value="Precio: menor a mayor">Precio: menor a mayor</option>
-                    <option value="Precio: mayor a menor">Precio: mayor a menor</option>
-                    <option value="Nombre A-Z">Nombre: A-Z</option>
-                    <option value="Nombre Z-A">Nombre: Z-A</option>
-                  </select>
+                <select
+                  id="sort-select"
+                  value={filters.sortBy}
+                  onChange={(e) => handleFilterChange({ ...filters, sortBy: e.target.value })}
+                  className="nuevos-page__sort-select"
+                >
+                  <option value="más recientes">más recientes</option>
+                  <option value="precio-menor">Precio: menor a mayor</option>
+                  <option value="precio-mayor">Precio: mayor a menor</option>
+                  <option value="nombre-a-z">Nombre: A-Z</option>
+                  <option value="nombre-z-a">Nombre: Z-A</option>
+                </select>
               </div>
             </div>
           </div>
-          {/* <div className="container"> */}
-            <p className="buscar-results">
-              {filteredProducts.length} productos encontrados
-            </p>
 
-            <div className="buscar-content">
+          {/* Header section with title and filters  -  DESKTOP */}
+          <div className="nuevos-page__header-desktop">
+            <div className="nuevos-page__title-section">
+              <h1 className="nuevos-page__title">Resultados de búsqueda</h1>
+              <div className='nuevos-page__content-texts'>
+                <span className="nuevos-page__results-count">
+                  ({filteredProducts.length})
+                  <p className="nuevos-page__text-results-count">Resultados</p>
+                </span>
+              </div>
+            </div>
+
+            <div className="nuevos-page__controls">
+              <div className="nuevos-page__sort-section">
+                <label htmlFor="sort-select-desktop" className="nuevos-page__sort-label">Ordenar por:</label>
+                <select
+                  id="sort-select-desktop"
+                  value={filters.sortBy}
+                  onChange={(e) => handleFilterChange({ ...filters, sortBy: e.target.value })}
+                  className="nuevos-page__sort-select"
+                >
+                  <option value="más recientes">más recientes</option>
+                  <option value="precio-menor">Precio: menor a mayor</option>
+                  <option value="precio-mayor">Precio: mayor a menor</option>
+                  <option value="nombre-a-z">Nombre: A-Z</option>
+                  <option value="nombre-z-a">Nombre: Z-A</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Main content */}
+          <div className="nuevos-page__content">
+
               {/* Filtros */}
               <aside className="nuevos-page__sidebar">
                 <CatalogFilter
@@ -683,7 +683,7 @@ const BuscarPage = () => {
               </aside>
 
               {/* Resultados */}
-              {/* <div className="buscar-results-section"> */}
+              <main className="nuevos-page__products-section">
                 {loading ? (
                   <div className="buscar-loading">
                     <div className="loading-spinner"></div>
@@ -706,7 +706,7 @@ const BuscarPage = () => {
                   </div>
                 ) : (
                   <>
-                    <div className={`buscar-products-grid ${filteredProducts.length === 1 ? 'single-result' : ''}`}>
+                    <div className={`nuevos-page__products-grid ${filteredProducts.length === 1 ? 'single-result' : ''}`}>
                       {infiniteScroll.displayedItems.map((product, index) => (
                         <ProductCard
                           key={product.id || `product-${index}`}
@@ -724,9 +724,8 @@ const BuscarPage = () => {
                     />
                   </>
                 )}
-              {/* </div> */}
-            </div>
-          {/* </div> */}
+              </main>
+          </div>
           {/* Mobile filter modal */}
           {isFilterModalOpen && (
             <div className="nuevos-page__filter-modal-overlay" onClick={toggleFilterModal}>
@@ -747,7 +746,7 @@ const BuscarPage = () => {
             </div>
           )}
         </div>
-      </main>
+      </div>
     </>
   );
 };
