@@ -271,9 +271,10 @@ const NuevosPage = () => {
         if (searchResponse.data.success && searchResponse.data.data.products) {
           const localProducts = searchResponse.data.data.products;
           
-          // FILTRO CRÍTICO: Un producto SOLO puede mostrarse en "Próximamente" si cumple AMBAS condiciones simultáneamente (AND):
+          // FILTRO CRÍTICO: Un producto SOLO puede mostrarse en "Próximamente" si cumple TODAS las condiciones simultáneamente (AND):
           // 1. Su stock es exactamente 0 (suma de inventario_d de detalles O inventario general)
           // 2. El tercer carácter de su ID (id[2]) coincide con el último dígito del año actual
+          // 3. stock_received_count = 0 (el producto nunca ha recibido stock)
           const currentYearLastDigit = String(new Date().getFullYear() % 10);
           
           const comingSoonProductsRaw = localProducts.filter(product => {
@@ -305,7 +306,13 @@ const NuevosPage = () => {
             const thirdDigit = productId.length >= 3 ? productId.charAt(2) : null;
             const isValidYearDigit = thirdDigit !== null && thirdDigit === currentYearLastDigit;
             
-            // Ambas condiciones deben cumplirse (AND)
+            // Condición 3: stock_received_count debe ser 0
+            const stockReceivedCount = product.stock_received_count || product.stockReceivedCount || 0;
+            if (stockReceivedCount > 0) {
+              return false; // Excluir productos que ya recibieron stock
+            }
+            
+            // Todas las condiciones deben cumplirse (AND)
             return isValidYearDigit;
           });
           

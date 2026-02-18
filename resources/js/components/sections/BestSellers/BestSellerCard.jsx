@@ -5,7 +5,7 @@ import StarRating from '../../StarRating/StarRating';
 import { formatPrice } from '../../../utils/formatters';
 import './BestSellerCard.css';
 
-const BestSellerCard = ({ id, title, image, price, originalPrice, discount, userOffer, hasUserOffer, rating, totalRatings, description, stock = 0, isNew = false, onFavoriteToggle }) => {
+const BestSellerCard = ({ id, title, image, price, originalPrice, discount, userOffer, hasUserOffer, rating, totalRatings, description, stock = 0, isNew = false, onFavoriteToggle, product, stock_received_count = 0, stockReceivedCount = 0 }) => {
   // Hook para detectar si es móvil
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
@@ -41,13 +41,20 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
   const hasOffer = discountPercentage > 0;
 
   // REGLA DE NEGOCIO GLOBAL: Lógica de Etiquetas de Disponibilidad
-  // - "Próximamente": Si el tercer dígito del ID (índice 2) coincide con el último dígito del año actual, independientemente del stock
-  // - "Agotado": Si stock === 0 Y el tercer dígito del ID NO coincide con el último dígito del año actual
+  // - "Próximamente": Si el tercer dígito del ID (índice 2) coincide con el último dígito del año actual
+  //   Y stock === 0 Y stock_received_count === 0
+  // - "Agotado": Si stock === 0 Y (el tercer dígito del ID NO coincide con el último dígito del año actual O stock_received_count > 0)
   const productId = String(id || '');
   const tercerDigito = productId.length > 2 ? productId[2] : null;
   const currentYearLastDigit = String(new Date().getFullYear() % 10);
   const isComingSoon = tercerDigito === currentYearLastDigit;
-  const isOutOfStock = stock === 0 && !isComingSoon;
+  
+  // Obtener stock_received_count del producto
+  const stockReceivedCountValue = product?.stock_received_count || stock_received_count || stockReceivedCount || 0;
+  
+  // Verificar si debe mostrar "Próximamente" (debe cumplir las 3 condiciones)
+  const shouldShowComingSoon = isComingSoon && stock === 0 && stockReceivedCountValue === 0;
+  const isOutOfStock = stock === 0 && !shouldShowComingSoon;
 
   const handleCardClick = (e) => {
     // No navegar si se hace clic en el botón de favoritos
@@ -74,13 +81,13 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
           <span className="best-seller-new-badge">Nuevo</span>
         )}
 
-        {/* Próximamente badge - si el tercer dígito del ID es "6" */}
-        {!isNew && isComingSoon && (
+        {/* Próximamente badge - si cumple las 3 condiciones */}
+        {!isNew && shouldShowComingSoon && (
           <span className="best-seller-out-of-stock-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
         )}
 
         {/* Out of stock badge - solo si NO es nuevo y NO es "Próximamente" */}
-        {!isNew && !isComingSoon && isOutOfStock && (
+        {!isNew && !shouldShowComingSoon && isOutOfStock && (
           <span className="best-seller-out-of-stock-badge">Agotado</span>
         )}
 
