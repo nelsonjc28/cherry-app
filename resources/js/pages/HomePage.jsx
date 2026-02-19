@@ -6,23 +6,18 @@ import CategorySection from '../components/sections/CategorySection/CategorySect
 
 import RecentCatalogs from '../components/sections/RecentCatalogs/RecentCatalogs';
 import FeaturedProducts from '../components/sections/FeaturedProducts/FeaturedProducts';
-import ComingSoonProducts from '../components/sections/ComingSoonProducts/ComingSoonProducts';
 import FeaturedCategories from '../components/sections/FeaturedCategories/FeaturedCategories';
 import CustomerReviews from '../components/sections/CustomerReviews/CustomerReviews';
 import BestSellers from '../components/sections/BestSellers/BestSellers';
 import AffiliateSection from '../components/sections/AffiliateSection/AffiliateSection';
 
 import useUserStore from '../store/userStore';
-import { getTopSellingProducts } from '../api/cherryApi';
-import { applyUserOffersToProducts } from '../api/userOffers';
 import useProductCachePreload from '../hooks/useProductCachePreload';
 import OffersModal from '../components/OffersModal/OffersModal';
 import api from '../config/axios';
 
 const HomePage = () => {
   const { user, initialized } = useUserStore();
-  const [topSellingProducts, setTopSellingProducts] = useState([]);
-  const [loadingTopSelling, setLoadingTopSelling] = useState(true);
   const [showOffersModal, setShowOffersModal] = useState(false);
 
   // 🚀 PRECARGA: Inicia descarga de todos los productos en background
@@ -73,41 +68,6 @@ const HomePage = () => {
     return () => clearTimeout(timer);
   }, [user, initialized]);
 
-  // Cargar productos más vendidos (20 productos)
-  useEffect(() => {
-    const loadTopSellingProducts = async () => {
-      setLoadingTopSelling(true);
-      
-      try {
-        
-        // Obtener productos más vendidos (limitado a 20)
-        const products = await getTopSellingProducts(20);
-        
-        if (products.length === 0) {
-          setTopSellingProducts([]);
-          return;
-        }
-        
-        // Aplicar ofertas personalizadas si hay usuario logueado
-        let finalProducts = products;
-        if (user) {
-          finalProducts = await applyUserOffersToProducts(products);
-        }
-        
-        setTopSellingProducts(finalProducts);
-        
-        
-      } catch (error) {
-        setTopSellingProducts([]);
-      } finally {
-        setLoadingTopSelling(false);
-      }
-    };
-
-    loadTopSellingProducts();
-  }, [user]);
-
-  
   const featuredProducts = [
     {
       id: 1,
@@ -293,12 +253,6 @@ const HomePage = () => {
           />
         </section>
 
-        {/* Coming Soon Products Section */}
-        <section aria-labelledby="coming-soon-products-heading">
-          <h2 id="coming-soon-products-heading" className="sr-only">Productos Próximamente</h2>
-          <ComingSoonProducts />
-        </section>
-
         {/* Featured Categories */}
         <section aria-labelledby="featured-categories-heading">
           <h2 id="featured-categories-heading" className="sr-only">Categorías Destacadas</h2>
@@ -322,11 +276,8 @@ const HomePage = () => {
         <section aria-labelledby="best-sellers-heading">
           <h2 id="best-sellers-heading" className="sr-only">Productos Más Vendidos</h2>
           <BestSellers 
-            products={topSellingProducts}
             title="Productos más vendidos"
             description="Los 6 productos favoritos de nuestros clientes este mes"
-            loading={loadingTopSelling}
-            useApi={false}
           />
         </section>
       </main>
