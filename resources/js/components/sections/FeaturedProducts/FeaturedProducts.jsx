@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import HorizontalProductCarousel from '../../HorizontalProductCarousel/HorizontalProductCarousel';
 import api from '../../../services/api';
 import { getProductImageUrl } from '../../../utils/productImageUtils';
@@ -17,154 +17,113 @@ const FeaturedProducts = ({
   const [apiProducts, setApiProducts] = useState([]);
   const [localLoading, setLocalLoading] = useState(false);
   const [error, setError] = useState(null);
+  const isLoadingRef = useRef(false); // Ref para evitar múltiples llamadas simultáneas
 
-  // Cargar productos nuevos desde la base de datos local
+  // Función helper para mapear productos
+  const mapProduct = (product) => {
+    const productId = product.id_articulo || product.id;
+    const imageUrl = productId ? getProductImageUrl(productId, 1) : '';
+    
+    const productColors = product.colors || [];
+    const availableColors = productColors.length > 0 ? productColors : [];
+    
+    const productSizes = product.sizes || [];
+    const availableSizes = productSizes.length > 0 ? productSizes : [];
+    
+    const isNewProduct = product.isNew !== undefined ? product.isNew : 
+      (product.opc_nuevo === 'S' || 
+       (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 45 * 24 * 60 * 60 * 1000)));
+    
+    return {
+      id: product.id,
+      id_articulo: productId,
+      title: product.title || product.description || 'Sin nombre',
+      description: product.description || 'Sin descripción',
+      price: product.price || 0,
+      originalPrice: product.originalPrice,
+      discount: product.discount || 0,
+      image: imageUrl,
+      brand: product.brand || 'Sin marca',
+      stock: product.stock || product.inventario || 0,
+      inventario: product.inventario || product.stock || 0,
+      colors: availableColors,
+      colores: productColors,
+      sizes: availableSizes,
+      tallas: productSizes,
+      isNew: isNewProduct,
+      rating: product.rating || 0,
+      ratingCount: product.ratingCount || 0,
+      id_linea: product.id_linea,
+      category_id: product.category_id || product.id_linea,
+      catalogoId: product.catalogoId,
+      fecha_alta: product.fecha_alta,
+      fechaAlta: product.fecha_alta,
+      opcNuevo: product.opc_nuevo,
+      opcPromo: product.opc_promo,
+      descPromo: product.desc_promo,
+      codigo: productId,
+      detalles: product.detalles || [],
+      linea: product.id_linea,
+      precio1: product.price || 0
+    };
+  };
+
+  // Cargar productos desde API cuando useApi es true
   useEffect(() => {
+    // Solo ejecutar si useApi es true y no hay productos pasados como props
+    if (!useApi || (products && products.length > 0)) {
+      return;
+    }
+
+    // Evitar múltiples llamadas simultáneas
+    if (isLoadingRef.current) {
+      return;
+    }
+
     const loadNewProducts = async () => {
       try {
+        isLoadingRef.current = true;
         setLocalLoading(true);
         setError(null);
         
-        // Si se pasan productos directamente, usarlos (no hacer llamada API)
-        if (products && products.length > 0 && !useApi) {
+        // Obtener productos nuevos (últimos 45 días) desde el backend local
+        const response = await api.get('/products/new', {
+          params: { limit: 4 }
+        });
+        
+        if (response.data.success && response.data.data) {
           // Mapear productos al formato esperado
-          const mappedProducts = products.map(product => {
-            const productId = product.id_articulo || product.id;
-            const imageUrl = productId ? getProductImageUrl(productId, 1) : '';
-            
-            const productColors = product.colors || [];
-            const availableColors = productColors.length > 0 ? productColors : [];
-            
-            const productSizes = product.sizes || [];
-            const availableSizes = productSizes.length > 0 ? productSizes : [];
-            
-            const isNewProduct = product.isNew !== undefined ? product.isNew : 
-              (product.opc_nuevo === 'S' || 
-               (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 45 * 24 * 60 * 60 * 1000)));
-          
-            return {
-              id: product.id,
-              id_articulo: productId,
-              title: product.title || product.description || 'Sin nombre',
-              description: product.description || 'Sin descripción',
-              price: product.price || 0,
-              originalPrice: product.originalPrice,
-              discount: product.discount || 0,
-              image: imageUrl,
-              brand: product.brand || 'Sin marca',
-              stock: product.stock || product.inventario || 0,
-              inventario: product.inventario || product.stock || 0,
-              colors: availableColors,
-              colores: productColors,
-              sizes: availableSizes,
-              tallas: productSizes,
-              isNew: isNewProduct,
-              rating: product.rating || 0,
-              ratingCount: product.ratingCount || 0,
-              id_linea: product.id_linea,
-              category_id: product.category_id || product.id_linea,
-              catalogoId: product.catalogoId,
-              fecha_alta: product.fecha_alta,
-              fechaAlta: product.fecha_alta,
-              opcNuevo: product.opc_nuevo,
-              opcPromo: product.opc_promo,
-              descPromo: product.desc_promo,
-              codigo: productId,
-              detalles: product.detalles || [],
-              linea: product.id_linea,
-              precio1: product.price || 0
-            };
-          });
+          const mappedProducts = response.data.data.map(mapProduct);
           
           // Aplicar ofertas de usuario
           const productsWithOffers = await applyUserOffersToProducts(mappedProducts);
           setApiProducts(productsWithOffers);
-          setLocalLoading(false);
-          return;
-        }
-        
-        if (useApi) {
-          // Obtener productos nuevos (últimos 45 días) desde el backend local
-          const response = await api.get('/products/new', {
-            params: { limit: 4 }
-          });
-          
-          if (response.data.success && response.data.data) {
-            // Mapear productos al formato esperado por ProductCard (igual que en CatalogPage y otras páginas)
-            const mappedProducts = response.data.data.map(product => {
-              // Usar id_articulo o id para construir la URL de imagen desde S3
-              const productId = product.id_articulo || product.id;
-              
-              // Siempre construir URL desde S3 usando la ruta base correcta
-              // https://cherry-fotos.s3.amazonaws.com/shopify/{productId}/{productId}_1.jpg
-              const imageUrl = productId ? getProductImageUrl(productId, 1) : '';
-          
-              // Extraer colores y tallas de arrays o detalles
-              const productColors = product.colors || [];
-              const availableColors = productColors.length > 0 ? productColors : [];
-              
-              const productSizes = product.sizes || [];
-              const availableSizes = productSizes.length > 0 ? productSizes : [];
-              
-              // Determinar si es nuevo
-              const isNewProduct = product.isNew !== undefined ? product.isNew : 
-                (product.opc_nuevo === 'S' || 
-                 (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 45 * 24 * 60 * 60 * 1000)));
-            
-            return {
-                id: product.id,
-                id_articulo: productId,
-                title: product.title || product.description || 'Sin nombre',
-                description: product.description || 'Sin descripción',
-                price: product.price || 0,
-                originalPrice: product.originalPrice,
-                discount: product.discount || 0,
-                image: imageUrl,
-                brand: product.brand || 'Sin marca',
-                stock: product.stock || product.inventario || 0,
-                inventario: product.inventario || product.stock || 0,
-                colors: availableColors,
-                colores: productColors,
-                sizes: availableSizes,
-                tallas: productSizes,
-                isNew: isNewProduct,
-                rating: product.rating || 0,
-                ratingCount: product.ratingCount || 0,
-                id_linea: product.id_linea,
-                category_id: product.category_id || product.id_linea,
-                catalogoId: product.catalogoId,
-                fecha_alta: product.fecha_alta,
-                fechaAlta: product.fecha_alta,
-                opcNuevo: product.opc_nuevo,
-                opcPromo: product.opc_promo,
-                descPromo: product.desc_promo,
-                codigo: productId,
-                detalles: product.detalles || [],
-                linea: product.id_linea,
-                precio1: product.price || 0
-            };
-          });
-          
-            // Aplicar ofertas de usuario (igual que en otras páginas)
-            const productsWithOffers = await applyUserOffersToProducts(mappedProducts);
-            
-            setApiProducts(productsWithOffers);
-          } else {
-            setApiProducts([]);
-          }
         } else {
-          setApiProducts(products);
+          setApiProducts([]);
         }
       } catch (err) {
         setError(err.message || 'Error al cargar productos');
         setApiProducts([]);
       } finally {
         setLocalLoading(false);
+        isLoadingRef.current = false;
       }
     };
 
     loadNewProducts();
-  }, [useApi, products]); // Se ejecuta cuando useApi o products cambian
+  }, [useApi]); // Solo ejecutar cuando useApi cambia
+  
+  // Actualizar productos cuando se pasan como props y no estamos usando API
+  useEffect(() => {
+    if (!useApi && products && products.length > 0) {
+      const mappedProducts = products.map(mapProduct);
+      applyUserOffersToProducts(mappedProducts).then(productsWithOffers => {
+        setApiProducts(productsWithOffers);
+      });
+    } else if (!useApi && (!products || products.length === 0)) {
+      setApiProducts([]);
+    }
+  }, [products, useApi]); // Solo cuando products cambia Y no estamos usando API
 
   const handleFavoriteToggle = (productId) => {
     // Here you would typically update your favorites state/API
