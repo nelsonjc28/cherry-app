@@ -15,17 +15,17 @@
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="/manifest.json">
     <!-- Favicon con logo Cherry - Google requiere favicon.ico en la raíz -->
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ url('/icons/logo-cherry.png') }}">
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ url('/icons/logo-cherry.png') }}">
-    <link rel="icon" type="image/png" sizes="192x192" href="{{ url('/icons/logo-cherry.png') }}">
-    <link rel="icon" type="image/png" sizes="512x512" href="{{ url('/icons/logo-cherry.png') }}">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ url('/icons/logo-cherry.png') }}">
-    <link rel="apple-touch-icon" sizes="192x192" href="{{ url('/icons/logo-cherry.png') }}">
-    <link rel="apple-touch-icon" sizes="512x512" href="{{ url('/icons/logo-cherry.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url('/icons/cherryapp.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url('/icons/cherryapp.png') }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url('/icons/cherryapp.png') }}">
+    <link rel="icon" type="image/png" sizes="512x512" href="{{ url('/icons/cherryapp.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url('/icons/cherryapp.png') }}">
+    <link rel="apple-touch-icon" sizes="192x192" href="{{ url('/icons/cherryapp.png') }}">
+    <link rel="apple-touch-icon" sizes="512x512" href="{{ url('/icons/cherryapp.png') }}">
     
     <!-- Favicon principal para Google Search -->
-    <link rel="shortcut icon" href="{{ url('/icons/logo-cherry.png') }}">
-    <link rel="icon" type="image/png" href="{{ url('/icons/logo-cherry.png') }}">
+    <link rel="shortcut icon" href="{{ url('/icons/cherryapp.png') }}">
+    <link rel="icon" type="image/png" href="{{ url('/icons/cherryapp.png') }}">
     
     <!-- Modern PWA Meta Tags -->
     <meta name="theme-color" content="#ffffff">
@@ -47,8 +47,8 @@
     <meta property="og:site_name" content="Cherry" />
     <meta property="og:title" content="Cherry - Tienda de Ropa y Calzado para Dama en México" />
     <meta property="og:description" content="Empieza a vender por catálogo, gana dinero y conviértete en tu propio jefe. Tú eliges cómo y cuándo comenzar a vender. ¡Emprende hoy mismo con Cherry!!!" />
-    <meta property="og:image" content="{{ url('/icons/logo-cherry.png') }}" />
-    <meta property="og:image:secure_url" content="{{ url('/icons/logo-cherry.png') }}" />
+    <meta property="og:image" content="{{ url('/icons/cherryapp.png') }}" />
+    <meta property="og:image:secure_url" content="{{ url('/icons/cherryapp.png') }}" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="512" />
     <meta property="og:image:height" content="512" />
@@ -59,11 +59,11 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Cherry - Tienda de Ropa y Calzado para Dama en México" />
     <meta name="twitter:description" content="Empieza a vender por catálogo, gana dinero y conviértete en tu propio jefe. Tú eliges cómo y cuándo comenzar a vender. ¡Emprende hoy mismo con Cherry!!!" />
-    <meta name="twitter:image" content="{{ url('/icons/logo-cherry.png') }}" />
+    <meta name="twitter:image" content="{{ url('/icons/cherryapp.png') }}" />
     
     <!-- Microsoft Tiles -->
     <meta name="msapplication-TileColor" content="#E91E63">
-    <meta name="msapplication-TileImage" content="{{ url('/icons/logo-cherry.png') }}">
+    <meta name="msapplication-TileImage" content="{{ url('/icons/cherryapp.png') }}">
     
     <!-- Schema.org Organization with Logo - Required by Google for Site Icon -->
     <script type="application/ld+json">
@@ -72,9 +72,9 @@
         "@type": "Organization",
         "name": "Cherry",
         "url": "{{ url('/') }}",
-        "logo": "{{ url('/icons/logo-cherry.png') }}",
+        "logo": "{{ url('/icons/cherryapp.png') }}",
         "description": "Empieza a vender por catálogo, gana dinero y conviértete en tu propio jefe. Tú eliges cómo y cuándo comenzar a vender. ¡Emprende hoy mismo con Cherry!!!",
-        "image": "{{ url('/icons/logo-cherry.png') }}"
+        "image": "{{ url('/icons/cherryapp.png') }}"
     }
     </script>
     

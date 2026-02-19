@@ -1,31 +1,42 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './ReviewCard.css';
 
+const getInitials = (name) => {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
+
 const ReviewCard = ({ name, avatar, rating, text }) => {
-  // Generate stars based on rating
+  const [imgError, setImgError] = useState(false);
+
   const generateStars = (rating) => {
     return '★'.repeat(rating);
   };
 
   return (
     <div className="review-card">
-      {/* User Avatar */}
-      <img 
-        className="review-avatar" 
-        src={avatar} 
-        alt={name}
-        loading="lazy"
-      />
+      {avatar && !imgError ? (
+        <img 
+          className="review-avatar" 
+          src={avatar} 
+          alt={name}
+          loading="lazy"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <div className="review-avatar review-avatar-initials">
+          {getInitials(name)}
+        </div>
+      )}
       
-      {/* Reviewer Name */}
       <div className="reviewer">{name}</div>
       
-      {/* Star Rating */}
       <div className="rating">
         {generateStars(rating)}
       </div>
       
-      {/* Review Text */}
       <p className="review-text">"{text}"</p>
     </div>
   );

@@ -28,6 +28,18 @@
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
+.review-avatar-initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #EA2630;
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+
 /* Reviewer Name Styles */
 .reviewer {
   font-weight: 400;
