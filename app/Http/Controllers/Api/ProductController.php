@@ -268,6 +268,7 @@ class ProductController extends Controller
                     'productos.catalogoId',
                     'productos.sector_id',
                     'productos.genero_id',
+                    'productos.stock_received_count',
                     'detalles.nombreColor',
                     'detalles.detalle',
                     'detalles.inventario_d'
@@ -322,12 +323,6 @@ class ProductController extends Controller
 
                     // Calcular inventario total (suma de inventario_d de detalles O inventario general)
                     $inventarioTotal = $productGroup->sum('inventario_d') ?: (float) ($producto->inventario ?? 0);
-                    
-                    // FILTRO CRÍTICO Condición 1: El stock debe ser exactamente 0
-                    // Si el producto tiene stock > 0, excluirlo de "Próximamente"
-                    if ($inventarioTotal > 0) {
-                        return null; // Excluir productos con stock > 0
-                    }
 
                     // Obtener rating
                     $reviews = Review::where('product_id', $producto->id)
@@ -366,6 +361,10 @@ class ProductController extends Controller
                         'desc_promo' => $descPromoValue,
                         'stock_received_count' => (int) ($producto->stock_received_count ?? 0)
                     ];
+                })
+                ->filter(function ($producto) {
+                    // Filtrar productos null (por si acaso)
+                    return $producto !== null;
                 })
                 ->values()
                 ->toArray();

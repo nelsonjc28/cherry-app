@@ -116,6 +116,11 @@ export const getAllProducts = async (catalog = 'Cherry 2025 - 2026') => {
   try {
     const response = await axios.get(CHERRY_API_URL);
     
+    // Si la respuesta es 404, retornar array vacío silenciosamente
+    if (response.status === 404) {
+      console.warn('[cherryApi] API externa no disponible, retornando array vacío');
+      return [];
+    }
     
     const products = response.data;
     
@@ -170,6 +175,13 @@ export const getAllProducts = async (catalog = 'Cherry 2025 - 2026') => {
       
     return productsArray;
   } catch (error) {
+    // Silenciar errores 404 de API externa - el endpoint puede no existir
+    if (error.response?.status === 404 || error.message?.includes('404')) {
+      console.warn('[cherryApi] API externa no disponible (404), retornando array vacío');
+      return [];
+    }
+    // Para otros errores, también retornar array vacío pero loguear el error
+    console.warn('[cherryApi] Error al obtener productos:', error.message);
     return [];
   }
 };

@@ -13,6 +13,12 @@ const useCatalogs = () => {
       const response = await fetch('https://cherryapi.estrategiadmgs.com.mx/cherryApi/');
       
       if (!response.ok) {
+        // Silenciar error 404 - el endpoint puede no existir
+        if (response.status === 404) {
+          console.warn('[useCatalogs] API externa no disponible, usando datos locales');
+          setCatalogs([]);
+          return;
+        }
         throw new Error('Error al cargar los catálogos desde la API externa');
       }
       
@@ -48,7 +54,13 @@ const useCatalogs = () => {
       setCatalogs(catalogsArray);
       
     } catch (err) {
-      setError(err.message);
+      // Silenciar errores de API externa si no es crítica
+      if (err.message.includes('404') || err.message.includes('Failed to fetch')) {
+        console.warn('[useCatalogs] API externa no disponible:', err.message);
+        setCatalogs([]);
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -61,6 +73,11 @@ const useCatalogs = () => {
       const response = await fetch('https://cherryapi.estrategiadmgs.com.mx/cherryApi/');
       
       if (!response.ok) {
+        // Silenciar error 404 - el endpoint puede no existir
+        if (response.status === 404) {
+          console.warn('[useCatalogs] API externa no disponible para catálogo:', catalogSlug);
+          return [];
+        }
         throw new Error('Error al cargar los productos del catálogo');
       }
       
@@ -108,6 +125,11 @@ const useCatalogs = () => {
       const response = await fetch('https://cherryapi.estrategiadmgs.com.mx/cherryApi/');
       
       if (!response.ok) {
+        // Silenciar error 404 - el endpoint puede no existir
+        if (response.status === 404) {
+          console.warn('[useCatalogs] API externa no disponible para detalles:', catalogSlug);
+          return null;
+        }
         throw new Error('Error al cargar los detalles del catálogo');
       }
       
@@ -161,6 +183,11 @@ const useCatalogs = () => {
       const response = await fetch('https://cherryapi.estrategiadmgs.com.mx/cherryApi/');
       
       if (!response.ok) {
+        // Silenciar error 404 - el endpoint puede no existir
+        if (response.status === 404) {
+          console.warn('[useCatalogs] API externa no disponible para temporada:', seasonalCatalog);
+          return [];
+        }
         throw new Error('Error al cargar los productos del catálogo de temporada');
       }
       
