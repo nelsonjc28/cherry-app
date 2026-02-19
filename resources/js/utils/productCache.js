@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'cherry-products-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const PRODUCTS_STORE = 'products';
 const METADATA_STORE = 'metadata';
 const CACHE_DURATION = 1000 * 60 * 10; // 10 minutos
@@ -23,7 +23,15 @@ class ProductCacheManager {
     try {
       this.dbPromise = openDB(DB_NAME, DB_VERSION, {
         upgrade(db, oldVersion, newVersion, transaction) {
-          // Crear store de productos si no existe
+          if (oldVersion < 2) {
+            if (db.objectStoreNames.contains(PRODUCTS_STORE)) {
+              db.deleteObjectStore(PRODUCTS_STORE);
+            }
+            if (db.objectStoreNames.contains(METADATA_STORE)) {
+              db.deleteObjectStore(METADATA_STORE);
+            }
+          }
+
           if (!db.objectStoreNames.contains(PRODUCTS_STORE)) {
             const productsStore = db.createObjectStore(PRODUCTS_STORE, { keyPath: 'id' });
             productsStore.createIndex('timestamp', 'timestamp');
@@ -31,7 +39,6 @@ class ProductCacheManager {
             productsStore.createIndex('category', 'category');
           }
 
-          // Crear store de metadata si no existe
           if (!db.objectStoreNames.contains(METADATA_STORE)) {
             db.createObjectStore(METADATA_STORE, { keyPath: 'key' });
           }

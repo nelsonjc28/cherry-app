@@ -53,10 +53,9 @@ const ExplorarPage = () => {
               ? [...new Set(product.detalles.map(d => d.detalle).filter(Boolean))] 
               : [];
             
-            // Determinar si es nuevo (45 días)
-            const fortyFiveDaysAgo = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);
-            const isNewProduct = product.opc_nuevo === 'S' || 
-              (product.fecha_alta && new Date(product.fecha_alta) > fortyFiveDaysAgo);
+            // Determinar si es nuevo (30 días)
+            const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+            const isNewProduct = product.fecha_alta && new Date(product.fecha_alta) > thirtyDaysAgo;
             
             let finalPrice = product.price;
             let originalPrice = product.originalPrice;

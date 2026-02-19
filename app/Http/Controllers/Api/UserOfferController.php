@@ -354,7 +354,7 @@ class UserOfferController extends Controller
             // Formatear productos usando SOLO el descuento de la oferta personalizada
             $products = [];
             $now = time();
-            $fortyFiveDaysAgo = $now - (45 * 24 * 60 * 60);
+            $thirtyDaysAgo = $now - (30 * 24 * 60 * 60);
             
             foreach ($productos as $producto) {
                 $precio1Raw = $producto->precio1;
@@ -401,11 +401,10 @@ class UserOfferController extends Controller
                 }
                 
                 $isNew = false;
-                if ($producto->opc_nuevo === 'S') {
-                    $isNew = true;
-                } elseif ($producto->fecha_alta) {
+                if ($producto->fecha_alta) {
                     $fechaAltaTimestamp = strtotime($producto->fecha_alta);
-                    if ($fechaAltaTimestamp && $fechaAltaTimestamp > $fortyFiveDaysAgo) {
+                    $thirtyDaysAgo = time() - (30 * 24 * 60 * 60);
+                    if ($fechaAltaTimestamp && $fechaAltaTimestamp > $thirtyDaysAgo) {
                         $isNew = true;
                     }
                 }

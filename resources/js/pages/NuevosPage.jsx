@@ -272,17 +272,16 @@ const NuevosPage = () => {
           const localProducts = searchResponse.data.data.products;
           
           // Usar la misma lógica que "todos los productos" para identificar productos nuevos:
-          // opc_nuevo === 'S' O fecha_alta dentro de los últimos 45 días
-          const fortyFiveDaysAgo = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);
+          // fecha_alta dentro de los últimos 30 días
+          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
           
           // FILTRO EXCLUSIVO PARA MÓDULO "NUEVOS":
           // Un producto SOLO debe renderizarse si cumple AMBAS condiciones:
-          // 1. Es nuevo: opc_nuevo === 'S' O fecha_alta dentro de los últimos 45 días
+          // 1. Es nuevo: fecha_alta dentro de los últimos 30 días
           // 2. Tiene stock > 0 (usando inventario directamente, como en ProductosPage)
           const newProductsRaw = localProducts.filter(product => {
             // Condición 1: Verificar si es nuevo (misma lógica que ProductosPage/ExplorarPage)
-            const isNewProduct = product.opc_nuevo === 'S' || 
-              (product.fecha_alta && new Date(product.fecha_alta) > fortyFiveDaysAgo);
+            const isNewProduct = product.fecha_alta && new Date(product.fecha_alta) > thirtyDaysAgo;
             
             if (!isNewProduct) {
               return false; // Excluir productos que no son nuevos

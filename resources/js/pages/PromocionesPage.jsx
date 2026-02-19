@@ -89,9 +89,8 @@ const PromocionesPage = () => {
                 [];
               const availableSizes = productSizes.length > 0 ? productSizes : ['M'];
               
-              // Determinar si es nuevo (45 días)
-              const isNewProduct = product.opc_nuevo === 'S' || 
-                                 (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 45 * 24 * 60 * 60 * 1000));
+              // Determinar si es nuevo (30 días)
+              const isNewProduct = product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
               
               // Usar los valores que ya vienen calculados del backend
               let finalPrice = product.price;

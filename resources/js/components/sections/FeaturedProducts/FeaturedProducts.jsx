@@ -31,8 +31,7 @@ const FeaturedProducts = ({
     const availableSizes = productSizes.length > 0 ? productSizes : [];
     
     const isNewProduct = product.isNew !== undefined ? product.isNew : 
-      (product.opc_nuevo === 'S' || 
-       (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 45 * 24 * 60 * 60 * 1000)));
+      (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
     
     return {
       id: product.id,

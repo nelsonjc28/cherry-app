@@ -206,8 +206,7 @@ const RecentlyViewedSection = ({ currentProductId }) => {
             : sizes;
 
           // Determinar si es nuevo
-          const isNewProduct = product.opc_nuevo === 'S' || 
-            (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 45 * 24 * 60 * 60 * 1000));
+          const isNewProduct = product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
           return {
             id: productId,

@@ -885,7 +885,7 @@ class AdminCatalogController extends Controller
             // Construir respuesta en el mismo formato que ProductSearchController
             $products = [];
             $now = time();
-            $fortyFiveDaysAgo = $now - (45 * 24 * 60 * 60);
+            $thirtyDaysAgo = $now - (30 * 24 * 60 * 60);
             
             foreach ($productos as $producto) {
                 // Convertir precio correctamente
@@ -909,13 +909,11 @@ class AdminCatalogController extends Controller
                     ? ($precio1 - ($precio1 * ($discountPercentage / 100))) 
                     : $precio1;
                 
-                // Determinar si es nuevo (45 días)
                 $isNew = false;
-                if ($producto->opc_nuevo === 'S') {
-                    $isNew = true;
-                } elseif ($producto->fecha_alta) {
+                if ($producto->fecha_alta) {
                     $fechaAltaTimestamp = strtotime($producto->fecha_alta);
-                    if ($fechaAltaTimestamp && $fechaAltaTimestamp > $fortyFiveDaysAgo) {
+                    $thirtyDaysAgo = time() - (30 * 24 * 60 * 60);
+                    if ($fechaAltaTimestamp && $fechaAltaTimestamp > $thirtyDaysAgo) {
                         $isNew = true;
                     }
                 }

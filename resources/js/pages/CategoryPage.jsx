@@ -388,9 +388,8 @@ const CategoryPage = ({ categorySlug }) => {
                       [];
                     const availableSizes = productSizes.length > 0 ? productSizes : ['M']; // Talla por defecto
                     
-                    // Determinar si el producto es nuevo basado en propiedades reales (45 días)
-                    const isNewProduct = product.opc_nuevo === 'S' || 
-                                       (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 45 * 24 * 60 * 60 * 1000));
+                    // Determinar si el producto es nuevo basado en propiedades reales (30 días)
+                    const isNewProduct = product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
                     
                     // Calcular descuento si existe
                     const hasDiscount = product.opc_promo === 'S' && product.desc_promo > 0;
@@ -479,7 +478,7 @@ const CategoryPage = ({ categorySlug }) => {
 
             if (searchResponse.data.success && searchResponse.data.data.products) {
               const localProducts = searchResponse.data.data.products;
-              const fortyFiveDaysAgo = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);
+              const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
               
               // Mapear productos
               productsData = localProducts.map(product => {
@@ -496,8 +495,7 @@ const CategoryPage = ({ categorySlug }) => {
                   ? [...new Set(product.detalles.map(d => d.detalle).filter(Boolean))] 
                   : [];
                 
-                const isNewProduct = product.opc_nuevo === 'S' || 
-                  (product.fecha_alta && new Date(product.fecha_alta) > fortyFiveDaysAgo);
+                const isNewProduct = product.fecha_alta && new Date(product.fecha_alta) > thirtyDaysAgo;
                 
                 let finalPrice = product.price;
                 let originalPrice = product.originalPrice;

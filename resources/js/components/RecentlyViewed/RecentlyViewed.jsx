@@ -115,7 +115,7 @@ const RecentlyViewed = ({ currentProductId }) => {
             sizes: productSizes.length > 0 ? productSizes : ['M'],
             rating: product.rating || 0,
             ratingCount: product.ratingCount || product.totalRatings || 0,
-            isNew: product.opc_nuevo === 'S' || product.isNew || false,
+            isNew: (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)) || false,
             fecha_alta: product.fecha_alta || null,
             fechaAlta: product.fecha_alta || null,
             inventario: product.inventario || 0,

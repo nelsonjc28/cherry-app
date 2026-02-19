@@ -82,33 +82,21 @@ const CATALOG_MAPPING = {
 };
 
 /**
- * Verifica si un producto es nuevo basándose en las fechas de movimiento de sus detalles
- * Un producto es nuevo si algún detalle tiene fechaMovimiento menor a 60 días
+ * Verifica si un producto es nuevo basándose exclusivamente en fecha_alta.
+ * Un producto es nuevo si fecha_alta está dentro de los últimos 30 días.
  */
 const isProductNew = (apiProduct) => {
-  // Si no tiene detalles, usar el campo tradicional
-  if (!apiProduct.detalles || !Array.isArray(apiProduct.detalles) || apiProduct.detalles.length === 0) {
-    return apiProduct.opc_nuevo === 'S' || apiProduct.is_new === true;
+  const fechaAlta = apiProduct.fecha_alta || apiProduct.fechaAlta;
+  if (!fechaAlta) return false;
+
+  try {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+    const fecha = new Date(fechaAlta);
+    return !isNaN(fecha.getTime()) && fecha >= thirtyDaysAgo;
+  } catch {
+    return false;
   }
-  
-  const now = new Date();
-  const sixtyDaysAgo = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000));
-  
-  // Revisar cada detalle del producto
-  return apiProduct.detalles.some(detalle => {
-    if (!detalle.fechaMovimiento) return false;
-    
-    try {
-      // Parsear la fecha (formato: "YYYY-MM-DD")
-      const [year, month, day] = detalle.fechaMovimiento.split('-').map(Number);
-      const fechaMovimiento = new Date(year, month - 1, day);
-      
-      // Si la fecha es válida y es menor a 60 días, el producto es nuevo
-      return !isNaN(fechaMovimiento.getTime()) && fechaMovimiento >= sixtyDaysAgo;
-    } catch (error) {
-      return false;
-    }
-  });
 };
 
 // Función para obtener todos los productos

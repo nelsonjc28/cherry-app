@@ -134,7 +134,7 @@ const CatalogosPage = () => {
 
         if (searchResponse.data.success && searchResponse.data.data.products) {
           const localProducts = searchResponse.data.data.products;
-          const fortyFiveDaysAgo = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);
+          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
           
           // Mapear productos al formato esperado
           const mappedProducts = localProducts.map(product => {
@@ -151,8 +151,7 @@ const CatalogosPage = () => {
               ? [...new Set(product.detalles.map(d => d.detalle).filter(Boolean))] 
               : [];
             
-            const isNewProduct = product.opc_nuevo === 'S' || 
-              (product.fecha_alta && new Date(product.fecha_alta) > fortyFiveDaysAgo);
+            const isNewProduct = product.fecha_alta && new Date(product.fecha_alta) > thirtyDaysAgo;
             
             let finalPrice = product.price;
             let originalPrice = product.originalPrice;

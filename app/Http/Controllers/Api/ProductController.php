@@ -80,15 +80,11 @@ class ProductController extends Controller
                 ? ($precio1 - ($precio1 * ($discountPercentage / 100))) 
                 : $precio1;
 
-            // Determinar si es nuevo (45 días)
             $isNew = false;
-            if ($producto->opc_nuevo === 'S') {
-                $isNew = true;
-            } elseif ($producto->fecha_alta) {
-                $now = time();
-                $fortyFiveDaysAgo = $now - (45 * 24 * 60 * 60);
+            if ($producto->fecha_alta) {
                 $fechaAltaTimestamp = strtotime($producto->fecha_alta);
-                if ($fechaAltaTimestamp && $fechaAltaTimestamp > $fortyFiveDaysAgo) {
+                $thirtyDaysAgo = time() - (30 * 24 * 60 * 60);
+                if ($fechaAltaTimestamp && $fechaAltaTimestamp > $thirtyDaysAgo) {
                     $isNew = true;
                 }
             }
@@ -240,8 +236,6 @@ class ProductController extends Controller
             // Calcular fecha límite (30 días atrás desde hoy)
             $thirtyDaysAgoDate = now()->subDays(30)->format('Y-m-d');
 
-            // Obtener productos nuevos con sus detalles
-            // Productos con opc_nuevo === 'S' O fecha_alta dentro de los últimos 30 días
             $productos = DB::table('productos')
                 ->leftJoin('detalles', 'productos.id', '=', 'detalles.producto_id')
                 ->select(
@@ -273,15 +267,9 @@ class ProductController extends Controller
                     'detalles.detalle',
                     'detalles.inventario_d'
                 )
-                ->where(function($query) use ($thirtyDaysAgoDate) {
-                    $query->where('productos.opc_nuevo', '=', 'S')
-                          ->orWhere(function($q) use ($thirtyDaysAgoDate) {
-                              $q->whereNotNull('productos.fecha_alta')
-                                ->where('productos.fecha_alta', '>=', $thirtyDaysAgoDate);
-                          });
-                })
-                ->orderByRaw('CASE WHEN productos.opc_nuevo = "S" THEN 0 ELSE 1 END')
-                ->orderByRaw('CASE WHEN productos.fecha_alta IS NOT NULL THEN productos.fecha_alta ELSE "1970-01-01" END DESC')
+                ->whereNotNull('productos.fecha_alta')
+                ->where('productos.fecha_alta', '>=', $thirtyDaysAgoDate)
+                ->orderBy('productos.fecha_alta', 'desc')
                 ->orderBy('productos.id', 'desc')
                 ->distinct()
                 ->limit($limit)
@@ -736,14 +724,10 @@ class ProductController extends Controller
                         $rating = round($reviews->sum('rating') / $ratingCount, 2);
                     }
 
-                    // Determinar si es nuevo
                     $isNew = false;
-                    if ($producto->opc_nuevo === 'S') {
-                        $isNew = true;
-                    } elseif ($producto->fecha_alta) {
-                        $now = time();
-                        $thirtyDaysAgo = $now - (30 * 24 * 60 * 60);
+                    if ($producto->fecha_alta) {
                         $fechaAltaTimestamp = strtotime($producto->fecha_alta);
+                        $thirtyDaysAgo = time() - (30 * 24 * 60 * 60);
                         if ($fechaAltaTimestamp && $fechaAltaTimestamp > $thirtyDaysAgo) {
                             $isNew = true;
                         }

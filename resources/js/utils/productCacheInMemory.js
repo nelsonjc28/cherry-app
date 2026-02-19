@@ -140,16 +140,12 @@ class ProductCacheManager {
    */
   filterOnlyNew(products) {
     const now = new Date();
-    const fortyFiveDaysAgo = new Date(now.getTime() - (45 * 24 * 60 * 60 * 1000));
+    const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
     return products.filter(p => {
-      // Si no tiene detalles, verificar el campo tradicional
-      if (!p.detalles || !Array.isArray(p.detalles) || p.detalles.length === 0) {
-        return p.opc_nuevo === 'S';
-      }
-
+      if (!p.fecha_alta) return false;
       const [year, month, day] = p.fecha_alta.split('-').map(Number);
       const fechaMovimiento = new Date(year, month - 1, day);
-      return !isNaN(fechaMovimiento.getTime()) && fechaMovimiento >= fortyFiveDaysAgo ? p : false;
+      return !isNaN(fechaMovimiento.getTime()) && fechaMovimiento >= thirtyDaysAgo;
       // Revisar cada detalle del producto
       /* return p.detalles.some(detalle => {
         if (!detalle.fechaMovimiento) return false;
