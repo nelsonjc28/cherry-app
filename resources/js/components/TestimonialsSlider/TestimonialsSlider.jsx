@@ -10,35 +10,27 @@ import 'swiper/css/effect-coverflow';
 import './TestimonialsSlider.css';
 
 const TestimonialsSlider = () => {
-  // Mock data para testimonios
   const testimonials = [
     {
       id: 1,
-      name: "Laura Martínez",
-      avatar: "https://ui-avatars.com/api/?name=Laura+Martínez&background=EA2630&color=fff&size=128",
+      name: "Fe de los Ángeles A.",
+      avatar: "https://ui-avatars.com/api/?name=Fe+Angeles&background=EA2630&color=fff&size=128",
       rating: 5,
-      text: "Ser parte de Cherry ha transformado mi vida. Ahora tengo mi propio negocio y gano más de lo que imaginaba. ¡Totalmente recomendado!"
+      text: "Comprar en CHERRY es comprar entre familia, me siento cómoda y contenta, porque ahí encuentro ropa muy bonita, exclusiva, telas de calidad y un personal que se ha vuelto parte de mi familia. LO RECOMIENDO AMPLIAMENTE."
     },
     {
       id: 2,
-      name: "Carlos Rodríguez",
-      avatar: "https://ui-avatars.com/api/?name=Carlos+Rodríguez&background=EA2630&color=fff&size=128",
+      name: "Isabel G.",
+      avatar: "https://ui-avatars.com/api/?name=Isabel+G&background=EA2630&color=fff&size=128",
       rating: 5,
-      text: "La plataforma es muy fácil de usar y el soporte es excelente. En solo 3 meses he logrado crear una red de clientes increíble."
+      text: "Pertenecer como cliente a la empresa CHERRY es un privilegio, en cuanto empecé a comprar se reflejó, mis ventas subieron, y mis clientas están muy satisfechas, las telas son de excelente calidad y modelos en tendencia, por lo tanto a mi negocio y a mí me benefician mucho en todos los aspectos."
     },
     {
       id: 3,
-      name: "Diana Flores",
-      avatar: "https://ui-avatars.com/api/?name=Diana+Flores&background=EA2630&color=fff&size=128",
+      name: "Sergio L.",
+      avatar: "https://ui-avatars.com/api/?name=Sergio+L&background=EA2630&color=fff&size=128",
       rating: 5,
-      text: "Los productos son de alta calidad y mis clientes están encantados. Las ganancias quincenales son puntuales. ¡Es una gran oportunidad!"
-    },
-    {
-      id: 4,
-      name: "Roberto Sánchez",
-      avatar: "https://ui-avatars.com/api/?name=Roberto+Sánchez&background=EA2630&color=fff&size=128",
-      rating: 5,
-      text: "Comencé sin experiencia y ahora manejo mi propio negocio desde casa. El material promocional y los catálogos son muy profesionales."
+      text: "En CHERRY no solo encuentro ropa hermosa, exclusiva y con telas de excelente calidad; también encuentro calidez, apoyo y personas que se han convertido en parte de mi familia. Ser parte de CHERRY transformó mi vida, no solo me ayuda a sentirme seguro y confiado, también me dio la oportunidad de mejorar mis ingresos y crecer económicamente."
     }
   ];
 

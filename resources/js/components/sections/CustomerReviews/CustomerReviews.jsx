@@ -7,7 +7,6 @@ const CustomerReviews = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fallback reviews data
   const fallbackReviews = [
     {
       id: 1,
@@ -42,12 +41,10 @@ const CustomerReviews = () => {
         if (data.success && data.reviews.length > 0) {
           setReviews(data.reviews);
         } else {
-          // Si no hay reseñas aprobadas, dejar el array vacío
           setReviews([]);
         }
       } catch (err) {
         setError(err.message);
-        // En caso de error, no mostrar reseñas
         setReviews([]);
       } finally {
         setLoading(false);
