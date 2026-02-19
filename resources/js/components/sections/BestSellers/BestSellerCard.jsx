@@ -44,17 +44,26 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
   // - "Próximamente": Si el tercer dígito del ID (índice 2) coincide con el último dígito del año actual
   //   Y stock === 0 Y stock_received_count === 0
   // - "Agotado": Si stock === 0 Y (el tercer dígito del ID NO coincide con el último dígito del año actual O stock_received_count > 0)
-  const productId = String(id || '');
-  const tercerDigito = productId.length > 2 ? productId[2] : null;
-  const currentYearLastDigit = String(new Date().getFullYear() % 10);
-  const isComingSoon = tercerDigito === currentYearLastDigit;
   
-  // Obtener stock_received_count del producto
-  const stockReceivedCountValue = product?.stock_received_count || stock_received_count || stockReceivedCount || 0;
+  // Obtener stock_received_count del producto y asegurar que sea un número
+  const stockReceivedCountValue = parseInt(product?.stock_received_count || stock_received_count || stockReceivedCount || 0, 10);
   
-  // Verificar si debe mostrar "Próximamente" (debe cumplir las 3 condiciones)
-  const shouldShowComingSoon = isComingSoon && stock === 0 && stockReceivedCountValue === 0;
-  const isOutOfStock = stock === 0 && !shouldShowComingSoon;
+  // REGLA CRÍTICA: Si stock_received_count > 0 y stock === 0, SIEMPRE mostrar "Agotado"
+  // independientemente del tercer dígito del ID
+  const isOutOfStock = stock === 0;
+  let shouldShowComingSoon = false;
+  
+  if (stockReceivedCountValue > 0 && stock === 0) {
+    // Si stock_received_count > 0, nunca mostrar "Próximamente"
+    shouldShowComingSoon = false;
+  } else {
+    // Solo verificar "Próximamente" si stock_received_count === 0
+    const productId = String(id || '');
+    const tercerDigito = productId.length > 2 ? productId[2] : null;
+    const currentYearLastDigit = String(new Date().getFullYear() % 10);
+    const isComingSoon = tercerDigito === currentYearLastDigit;
+    shouldShowComingSoon = isComingSoon && stock === 0 && stockReceivedCountValue === 0;
+  }
 
   const handleCardClick = (e) => {
     // No navegar si se hace clic en el botón de favoritos

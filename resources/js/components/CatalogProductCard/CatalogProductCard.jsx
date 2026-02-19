@@ -103,19 +103,25 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
   const getStockStatus = () => {
     const totalStock = calculateTotalStock();
     
-    // Obtener el ID del producto como string y calcular el último dígito del año actual
-    const productId = String(id || '');
-    const tercerDigito = productId.length > 2 ? productId[2] : null;
-    const currentYearLastDigit = String(new Date().getFullYear() % 10);
-    const isComingSoon = tercerDigito === currentYearLastDigit;
+    // Obtener stock_received_count del producto y asegurar que sea un número
+    const stockReceivedCountValue = parseInt(product?.stock_received_count || stockReceivedCount || 0, 10);
     
-    // Obtener stock_received_count del producto
-    const stockReceivedCountValue = product?.stock_received_count || stockReceivedCount || 0;
+    // REGLA CRÍTICA: Si stock_received_count > 0 y stock === 0, SIEMPRE mostrar "Agotado"
+    // independientemente del tercer dígito del ID
+    if (stockReceivedCountValue > 0 && totalStock === 0) {
+      return 'out-of-stock';
+    }
     
     // Si tiene stock, no mostrar badge de stock
     if (totalStock > 0) {
       return null;
     }
+    
+    // Obtener el ID del producto como string y calcular el último dígito del año actual
+    const productId = String(id || '');
+    const tercerDigito = productId.length > 2 ? productId[2] : null;
+    const currentYearLastDigit = String(new Date().getFullYear() % 10);
+    const isComingSoon = tercerDigito === currentYearLastDigit;
     
     // PRIORIDAD 1: Si el tercer dígito del ID coincide con el último dígito del año actual
     // Y stock === 0 Y stock_received_count === 0, mostrar "Próximamente"

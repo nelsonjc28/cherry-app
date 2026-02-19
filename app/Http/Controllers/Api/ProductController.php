@@ -807,19 +807,13 @@ class ProductController extends Controller
 
     /**
      * Generar URL de imagen del producto desde S3
+     * Formato: https://cherry-fotos.s3.amazonaws.com/shopify/{productId}/{productId}_1.jpg
      * @param string|int $productId - ID del producto
-     * @param string|null $imagenFromDb - Imagen desde la base de datos (si existe)
+     * @param string|null $imagenFromDb - Parámetro ignorado (mantenido para compatibilidad)
      * @return string URL de la imagen
      */
     private function getProductImageUrl($productId, $imagenFromDb = null)
     {
-        // Si hay imagen en la BD y no es un placeholder, usarla
-        if ($imagenFromDb && trim($imagenFromDb) !== '' && 
-            !str_contains($imagenFromDb, 'placeholder') && 
-            !str_contains($imagenFromDb, 'Rectangle 4922')) {
-            return $imagenFromDb;
-        }
-
         // Si no hay productId, devolver placeholder
         if (!$productId) {
             return asset('images/placeholder-product.png');
@@ -828,24 +822,8 @@ class ProductController extends Controller
         // Convertir a string para manejar correctamente
         $productIdStr = trim((string) $productId);
         
-        // Generar URL de S3: https://cherry-fotos.s3.amazonaws.com/shopify/{productId}/{productId}_1.jpg
-        return "https://cherry-fotos.s3.amazonaws.com/shopify/{$productIdStr}/{$productIdStr}_1.jpg";
-    }
-}
-
-tr_contains($imagenFromDb, 'Rectangle 4922')) {
-            return $imagenFromDb;
-        }
-
-        // Si no hay productId, devolver placeholder
-        if (!$productId) {
-            return asset('images/placeholder-product.png');
-        }
-
-        // Convertir a string para manejar correctamente
-        $productIdStr = trim((string) $productId);
-        
-        // Generar URL de S3: https://cherry-fotos.s3.amazonaws.com/shopify/{productId}/{productId}_1.jpg
+        // Siempre generar URL de S3 basada en el ID del producto
+        // Formato: https://cherry-fotos.s3.amazonaws.com/shopify/{productId}/{productId}_1.jpg
         return "https://cherry-fotos.s3.amazonaws.com/shopify/{$productIdStr}/{$productIdStr}_1.jpg";
     }
 }

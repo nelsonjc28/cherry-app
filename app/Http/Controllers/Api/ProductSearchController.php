@@ -105,7 +105,8 @@ class ProductSearchController extends Controller
                     'productos.opc_nuevo',
                     'productos.marca',
                     'productos.inventario',
-                    'productos.sku'
+                    'productos.sku',
+                    'productos.stock_received_count'
                 ])
                 ->whereIn('productos.id', $paginatedIds);
             
@@ -308,7 +309,8 @@ class ProductSearchController extends Controller
                     'productos.desc_promo',
                     'productos.fecha_alta',
                     'productos.marca',
-                    'productos.inventario'
+                    'productos.inventario',
+                    'productos.stock_received_count'
                 ]);
             
             // Aplicar ordenamiento según el parámetro sort
@@ -524,7 +526,8 @@ class ProductSearchController extends Controller
                     'productos.opc_nuevo',
                     'productos.marca',
                     'productos.inventario',
-                    'productos.sku'
+                    'productos.sku',
+                    'productos.stock_received_count'
                 ])
                 ->where('productos.desc_promo', '>', 0)
                 ->get();
@@ -627,7 +630,8 @@ class ProductSearchController extends Controller
                             'productos.opc_nuevo',
                             'productos.marca',
                             'productos.inventario',
-                            'productos.sku'
+                            'productos.sku',
+                            'productos.stock_received_count'
                         ])
                         ->whereIn(DB::raw('CAST(productos.id AS CHAR)'), $productIdsConOfertasNormalized)
                         ->get();

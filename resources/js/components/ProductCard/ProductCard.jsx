@@ -109,19 +109,59 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
   const getStockStatus = () => {
     const totalStock = calculateTotalStock();
     
-    // Obtener el ID del producto como string y calcular el último dígito del año actual
-    const productId = String(id || '');
-    const tercerDigito = productId.length > 2 ? productId[2] : null;
-    const currentYearLastDigit = String(new Date().getFullYear() % 10);
-    const isComingSoon = tercerDigito === currentYearLastDigit;
+    // Obtener stock_received_count del producto directamente del objeto product
+    // Intentar múltiples fuentes para asegurar que obtenemos el valor correcto
+    const stockReceivedCountValue = parseInt(
+      product?.stock_received_count || 
+      product?.stockReceivedCount || 
+      stock_received_count || 
+      stockReceivedCount || 
+      0, 
+      10
+    );
     
-    // Obtener stock_received_count del producto
-    const stockReceivedCountValue = product?.stock_received_count || stockReceivedCount || 0;
+    // Debug temporal para producto específico
+    if (id === '14612611701' || String(id) === '14612611701') {
+      const totalFromDetails = product?.detalles && product.detalles.length > 0
+        ? product.detalles.reduce((total, detalle) => {
+            return total + (parseFloat(detalle.inventario_d) || 0);
+          }, 0)
+        : 0;
+      console.log('[ProductCard] Debug producto 14612611701:', {
+        id,
+        totalStock,
+        stockReceivedCountValue,
+        'product.stock_received_count': product?.stock_received_count,
+        'product.stockReceivedCount': product?.stockReceivedCount,
+        stock_received_count,
+        stockReceivedCount,
+        'stock (destructured)': stock,
+        'inventario (destructured)': inventario,
+        'product.stock': product?.stock,
+        'product.inventario': product?.inventario,
+        'totalFromDetails': totalFromDetails,
+        'product.detalles': product?.detalles,
+        'willShowComingSoon': stockReceivedCountValue === 0 && totalStock === 0,
+        'willShowOutOfStock': stockReceivedCountValue > 0 && totalStock === 0
+      });
+    }
+    
+    // REGLA CRÍTICA: Si stock_received_count > 0 y stock === 0, SIEMPRE mostrar "Agotado"
+    // independientemente del tercer dígito del ID
+    if (stockReceivedCountValue > 0 && totalStock === 0) {
+      return 'out-of-stock';
+    }
     
     // Si tiene stock, no mostrar badge de stock
     if (totalStock > 0) {
       return null;
     }
+    
+    // Obtener el ID del producto como string y calcular el último dígito del año actual
+    const productId = String(id || '');
+    const tercerDigito = productId.length > 2 ? productId[2] : null;
+    const currentYearLastDigit = String(new Date().getFullYear() % 10);
+    const isComingSoon = tercerDigito === currentYearLastDigit;
     
     // PRIORIDAD 1: Si el tercer dígito del ID coincide con el último dígito del año actual
     // Y stock === 0 Y stock_received_count === 0, mostrar "Próximamente"

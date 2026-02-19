@@ -263,7 +263,94 @@ const NuevosPage = () => {
     const loadProducts = async () => {
       setLoading(true);
       try {
-        // Usar el backend local
+        // OPCIÓN 1: Usar endpoint específico de "coming-soon" que ya tiene el filtro aplicado en backend
+        // Este endpoint ya filtra por stock_received_count = 0 en el backend
+        let comingSoonResponse;
+        try {
+          comingSoonResponse = await api.get('/products/coming-soon', {
+            params: { limit: 10000 } // Obtener todos los productos próximamente
+          });
+        } catch (err) {
+          console.warn('[ProximamentePage] Error al obtener desde /products/coming-soon, usando /products/search:', err);
+          comingSoonResponse = null;
+        }
+        
+        // Si el endpoint coming-soon funciona, usarlo directamente
+        if (comingSoonResponse && comingSoonResponse.data.success && comingSoonResponse.data.data) {
+          const comingSoonProducts = comingSoonResponse.data.data;
+          
+          // Mapear productos al formato esperado
+          const mappedProducts = comingSoonProducts.map(product => {
+            const rawPrice = product.price || product.precio1;
+            const numericPrice = typeof rawPrice === 'string' 
+              ? parseFloat(rawPrice.replace(/[^\d.-]/g, '')) 
+              : parseFloat(rawPrice) || 0;
+            
+            const productColors = product.colors || [];
+            const productSizes = product.sizes || [];
+            
+            let finalPrice = product.price;
+            let originalPrice = product.originalPrice;
+            let discountPercentage = product.discount || 0;
+            
+            if (finalPrice === undefined || finalPrice === null || finalPrice === 0) {
+              const hasDiscount = product.opc_promo === 'S' && product.desc_promo > 0;
+              const originalDiscountPercentage = hasDiscount ? parseFloat(product.desc_promo) : 0;
+              discountPercentage = hasDiscount ? Math.max(0, originalDiscountPercentage - 10) : 0;
+              originalPrice = hasDiscount && numericPrice > 0 
+                ? (numericPrice / (1 - originalDiscountPercentage / 100)) 
+                : null;
+              finalPrice = hasDiscount && discountPercentage > 0 && numericPrice > 0 
+                ? (numericPrice - (numericPrice * (discountPercentage / 100))) 
+                : numericPrice;
+            }
+            
+            discountPercentage = discountPercentage !== undefined && discountPercentage !== null 
+              ? parseFloat(discountPercentage) 
+              : 0;
+            
+            return {
+              id: product.id,
+              id_articulo: product.id,
+              title: product.title || product.description || 'Sin nombre',
+              description: product.description || 'Sin descripción',
+              price: finalPrice,
+              originalPrice: originalPrice,
+              discount: discountPercentage,
+              image: product.image || getProductImageUrl(product.id, product.imagen),
+              brand: product.brand || 'Sin marca',
+              stock: product.stock || product.inventario || 0,
+              inventario: product.inventario || product.stock || 0,
+              colors: productColors,
+              colores: productColors,
+              sizes: productSizes,
+              tallas: productSizes,
+              isNew: false,
+              rating: product.rating || 0,
+              ratingCount: product.ratingCount || 0,
+              id_linea: product.id_linea,
+              category_id: product.category_id || product.id_linea,
+              catalogoId: product.catalogoId,
+              fecha_alta: product.fecha_alta,
+              fechaAlta: product.fecha_alta,
+              opcNuevo: product.opc_nuevo,
+              opcPromo: product.opc_promo,
+              descPromo: product.desc_promo,
+              codigo: product.id,
+              detalles: product.detalles || [],
+              linea: product.id_linea,
+              precio1: finalPrice,
+              stock_received_count: product.stock_received_count || 0,
+              stockReceivedCount: product.stock_received_count || 0
+            };
+          });
+          
+          setAllProducts(mappedProducts);
+          setLoading(false);
+          return; // Salir temprano si usamos el endpoint coming-soon
+        }
+        
+        // OPCIÓN 2: Usar /products/search y filtrar en frontend (método actual)
         const searchResponse = await api.get('/products/search', {
           params: { q: '' }
         });
@@ -307,12 +394,51 @@ const NuevosPage = () => {
             const isValidYearDigit = thirdDigit !== null && thirdDigit === currentYearLastDigit;
             
             // Condición 3: stock_received_count debe ser 0
-            const stockReceivedCount = product.stock_received_count || product.stockReceivedCount || 0;
-            if (stockReceivedCount > 0) {
+            // Verificar múltiples posibles nombres del campo y convertir a número
+            const stockReceivedCountRaw = product.stock_received_count ?? 
+                                         product.stockReceivedCount ?? 
+                                         product['stock_received_count'] ??
+                                         (product.hasOwnProperty('stock_received_count') ? product.stock_received_count : null);
+            
+            // Convertir a número de forma segura (maneja null, undefined, string, número)
+            let stockReceivedCountNum = 0;
+            if (stockReceivedCountRaw !== null && stockReceivedCountRaw !== undefined && stockReceivedCountRaw !== '') {
+              const parsed = parseInt(String(stockReceivedCountRaw), 10);
+              stockReceivedCountNum = isNaN(parsed) ? 0 : parsed;
+            }
+            
+            // Debug: Log para productos específicos problemáticos (SIEMPRE mostrar)
+            const isProblematicProduct = product.id === '14612611701' || product.id_articulo === '14612611701';
+            if (isProblematicProduct) {
+              console.warn('[ProximamentePage] 🔍 DEBUG Producto 14612611701:', {
+                id: product.id || product.id_articulo,
+                id_articulo: product.id_articulo,
+                stock_received_count: product.stock_received_count,
+                stockReceivedCount: product.stockReceivedCount,
+                stockReceivedCountRaw,
+                stockReceivedCountNum,
+                totalStock,
+                isValidYearDigit,
+                todas_las_propiedades: Object.keys(product),
+                producto_completo: JSON.stringify(product, null, 2)
+              });
+            }
+            
+            // VERIFICACIÓN CRÍTICA: Si stock_received_count > 0, EXCLUIR INMEDIATAMENTE
+            // Esta verificación debe ser ANTES de cualquier otra condición
+            if (stockReceivedCountNum > 0) {
+              if (isProblematicProduct) {
+                console.error('[ProximamentePage] ❌ EXCLUYENDO producto 14612611701 porque stock_received_count =', stockReceivedCountNum);
+              }
               return false; // Excluir productos que ya recibieron stock
             }
             
+            // Verificación adicional: Si es el producto problemático y el campo es null/undefined, 
+            // puede ser que la migración no se ejecutó. En ese caso, verificar en la BD directamente.
+            // Por ahora, si el campo no existe, asumimos que es 0 (comportamiento por defecto)
+            
             // Todas las condiciones deben cumplirse (AND)
+            // IMPORTANTE: Si stock_received_count > 0, ya se excluyó arriba
             return isValidYearDigit;
           });
           
