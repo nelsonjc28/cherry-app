@@ -526,6 +526,7 @@ class ProductSearchController extends Controller
                     'productos.stock_received_count'
                 ])
                 ->where('productos.desc_promo', '>', 0)
+                ->inRandomOrder()
                 ->get();
 
             $productIds = $productosConDescuento->pluck('id')->toArray();

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link, useLocation } from 'react-router-dom';
 import CatalogProductCard from '../components/CatalogProductCard/CatalogProductCard';
@@ -16,12 +16,22 @@ import { getProductImageUrl } from '../utils/productImageUtils';
 
 import './PromocionesPage.css';
 
+const shuffleArray = (array) => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 const PromocionesPage = () => {
   const [productsWithOffers, setProductsWithOffers] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [sortBy, setSortBy] = useState('más recientes');
+  const hasUserSorted = useRef(false);
   const [availableColors, setAvailableColors] = useState([]);
   const [availableSizes, setAvailableSizes] = useState([]);
   const [catalogs, setCatalogs] = useState([]);
@@ -181,22 +191,12 @@ const PromocionesPage = () => {
           allProducts = [];
         }
 
-            // Ordenar productos: primero los que tienen ofertas personalizadas (hasUserOffer === true)
-            allProducts.sort((a, b) => {
-              // Si ambos tienen oferta personalizada o ninguno, mantener orden original
-              if ((a.hasUserOffer && b.hasUserOffer) || (!a.hasUserOffer && !b.hasUserOffer)) {
-                return 0;
-              }
-              // Si solo 'a' tiene oferta personalizada, va primero
-              if (a.hasUserOffer && !b.hasUserOffer) {
-                return -1;
-              }
-              // Si solo 'b' tiene oferta personalizada, va primero
-              return 1;
-            });
-            
-            const productosConOfertasPersonalizadas = allProducts.filter(p => p.hasUserOffer === true);
-            setProductsWithOffers(allProducts);
+            // Separar productos con ofertas personalizadas y el resto,
+            // mezclar cada grupo y luego unir (ofertas personalizadas primero)
+            const conOferta = allProducts.filter(p => p.hasUserOffer === true);
+            const sinOferta = allProducts.filter(p => !p.hasUserOffer);
+            const shuffled = [...shuffleArray(conOferta), ...shuffleArray(sinOferta)];
+            setProductsWithOffers(shuffled);
       } catch (error) {
         setProductsWithOffers([]);
       } finally {
@@ -510,11 +510,8 @@ const PromocionesPage = () => {
   // Procesar productos (filtrar y ordenar)
   const processedProducts = useMemo(() => {
     if (productsWithOffers.length === 0) return [];
-    
     let filtered = filterProducts(productsWithOffers, filters);
-    const sorted = sortProducts(filtered, sortBy);
-    
-    return sorted;
+    return hasUserSorted.current ? sortProducts(filtered, sortBy) : filtered;
   }, [productsWithOffers, filters, sortBy, filterProducts, sortProducts]);
 
   // Actualizar productos filtrados cuando cambian los procesados
@@ -528,6 +525,7 @@ const PromocionesPage = () => {
   }, []);
 
   const handleSortChange = useCallback((e) => {
+    hasUserSorted.current = true;
     setSortBy(e.target.value);
   }, []);
 

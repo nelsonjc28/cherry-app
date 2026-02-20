@@ -64,6 +64,7 @@ const CategoryPage = ({ categorySlug }) => {
   // State management for filters and products
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [sortBy, setSortBy] = useState('más recientes');
+  const hasUserSorted = useRef(false);
   const [allProducts, setAllProducts] = useState([]); // Store all products
   const [filteredProducts, setFilteredProducts] = useState([]); // Store filtered products
   const [loading, setLoading] = useState(true);
@@ -613,7 +614,9 @@ const CategoryPage = ({ categorySlug }) => {
         });
       }
       
-      filtered = sortProducts(filtered, sortBy);
+      if (hasUserSorted.current) {
+        filtered = sortProducts(filtered, sortBy);
+      }
       setFilteredProducts(filtered);
     }
   }, [filters.category, filters.department, filters.sector, filters.sizes, filters.colors, filters.priceRange, sortBy, allProducts, colorFilter, dtuFilter]);
@@ -625,6 +628,7 @@ const CategoryPage = ({ categorySlug }) => {
 
   // Handle sort change
   const handleSortChange = (e) => {
+    hasUserSorted.current = true;
     setSortBy(e.target.value);
   };
 

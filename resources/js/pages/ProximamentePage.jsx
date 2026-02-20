@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useLocation } from 'react-router-dom';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
@@ -12,10 +12,20 @@ import { publicCatalogService } from '../services/api';
 import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
 
+const shuffleArray = (array) => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 const NuevosPage = () => {
   // State management for filters and products
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [sortBy, setSortBy] = useState('más recientes');
+  const hasUserSorted = useRef(false);
   const [allProducts, setAllProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -345,9 +355,9 @@ const NuevosPage = () => {
             };
           });
           
-          setAllProducts(mappedProducts);
+          setAllProducts(shuffleArray(mappedProducts));
           setLoading(false);
-          return; // Salir temprano si usamos el endpoint coming-soon
+          return;
         }
         
         // OPCIÓN 2: Usar /products/search y filtrar en frontend (método actual)
@@ -538,8 +548,7 @@ const NuevosPage = () => {
           });
           setAvailableSizes(sortedSizes);
           
-          setAllProducts(productsWithOffers);
-          // No establecer filteredProducts aquí, se establecerá automáticamente por el useMemo cuando se apliquen los filtros
+          setAllProducts(shuffleArray(productsWithOffers));
         } else {
           setAllProducts([]);
           setFilteredProducts([]);
@@ -559,8 +568,7 @@ const NuevosPage = () => {
   const processedProducts = useMemo(() => {
     if (allProducts.length === 0) return [];
     let filtered = filterProducts(allProducts, filters);
-    const sorted = sortProducts(filtered, sortBy);
-    return sorted;
+    return hasUserSorted.current ? sortProducts(filtered, sortBy) : filtered;
   }, [allProducts, filters, sortBy, filterProducts, sortProducts]);
 
   // Update filtered products when processed products change
@@ -574,6 +582,7 @@ const NuevosPage = () => {
   }, []);
 
   const handleSortChange = useCallback((e) => {
+    hasUserSorted.current = true;
     setSortBy(e.target.value);
   }, []);
 

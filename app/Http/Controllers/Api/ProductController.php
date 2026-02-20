@@ -269,8 +269,7 @@ class ProductController extends Controller
                 )
                 ->whereNotNull('productos.fecha_alta')
                 ->where('productos.fecha_alta', '>=', $thirtyDaysAgoDate)
-                ->orderBy('productos.fecha_alta', 'desc')
-                ->orderBy('productos.id', 'desc')
+                ->inRandomOrder()
                 ->distinct()
                 ->limit($limit)
                 ->get()
@@ -426,8 +425,7 @@ class ProductController extends Controller
                 )
                 ->whereRaw('SUBSTRING(productos.id, 3, 1) = ?', [$currentYearLastDigit]) // Condición 2: Tercer dígito debe coincidir con último dígito del año
                 ->where('productos.stock_received_count', '=', 0) // Condición 3: stock_received_count debe ser 0
-                ->orderBy('productos.fecha_alta', 'desc')
-                ->orderBy('productos.id', 'desc')
+                ->inRandomOrder()
                 ->distinct();
             
             // Aplicar límite solo si se especifica y es menor a 10000

@@ -172,6 +172,7 @@ class CategoryController extends Controller
                     'productos.inventario'
                 ])
                 ->where('productos.id_linea', $category->code)
+                ->inRandomOrder()
                 ->get();
 
             // Obtener IDs de productos para buscar colores y detalles
