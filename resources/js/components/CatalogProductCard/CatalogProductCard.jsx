@@ -251,11 +251,6 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
           <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
         )}
 
-        {/* Próximamente badge - solo si stockStatus === 'coming-soon' */}
-        {stockStatus === 'coming-soon' && (
-          <span className="catalog-offer-badge catalog-out-of-stock-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
-        )}
-
         {/* Out of stock badge - solo si no es nuevo y no es "Próximamente" */}
         {!isNew && stockStatus === 'out-of-stock' && (
           <span className="catalog-offer-badge catalog-out-of-stock-badge">Agotado</span>
@@ -275,6 +270,11 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
       
       {/* Product information */}
       <div className="catalog-product-info">
+        {/* Próximamente badge - reubicado entre imagen e ID */}
+        {stockStatus === 'coming-soon' && (
+          <span className="catalog-offer-badge catalog-out-of-stock-badge catalog-coming-soon-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
+        )}
+
         {/* Product ID */}
         <div className="catalog-product-id-icon">
           <div className="catalog-product-id">{id}</div>
