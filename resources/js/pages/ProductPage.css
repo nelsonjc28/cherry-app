@@ -78,6 +78,41 @@
   color: #999;
 }
 
+/* Product detail badges */
+.product-page__detail-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.product-page__badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.product-page__badge--out-of-stock {
+  background: #6c757d;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.product-page__badge--discount {
+  background: #ff4444;
+  color: #fff;
+  box-shadow: 0 2px 4px rgba(255, 68, 68, 0.3);
+}
+
+.product-page__detail-badges .catalog-offer-badge {
+  position: static;
+}
+
 /* Main Container */
 .product-page__container {
   display: grid;
@@ -1123,6 +1158,11 @@
   .product-page__breadcrumb {
     margin-bottom: 0;
     font-size: 12px;
+  }
+
+  .product-page__badge {
+    padding: 3px 8px;
+    font-size: 0.68rem;
   }
 
   /* Selected Color Display - Mobile */

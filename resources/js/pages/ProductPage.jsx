@@ -1377,7 +1377,17 @@ const ProductPage = () => {
   };
 
   const inventoryStatusData = getInventoryStatus();
-  
+
+  const isNewProduct = (() => {
+    const fa = fecha_alta || product?.fechaAlta;
+    if (!fa) return false;
+    try {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const d = new Date(fa);
+      return !isNaN(d.getTime()) && d >= thirtyDaysAgo;
+    } catch { return false; }
+  })();
+
   // Agregar alerta de "próximamente" si aplica (después de que getInventoryStatus esté definida)
   const inventoryStatus = getInventoryStatus();
   const isComingSoon = inventoryStatus.status === 'coming-soon';
@@ -1504,13 +1514,24 @@ const ProductPage = () => {
 
       <div className="product-page">
         <div className="product-page__container container">
-          {/* Breadcrumb and title MOBILE */}
+          {/* Badges and share button MOBILE */}
           <div className="product-page__breadcrumb show-mobile">
-            <div className="product-page__texts-breadcrumb">
-              <span className="product-page__breadcrumb-item">Nuevo</span>
-              <span className="product-page__breadcrumb-separator">|</span>
-              <span className="product-page__breadcrumb-item">+50 vendido</span>
-              <span className="product-page__breadcrumb-separator">|</span>
+            <div className="product-page__detail-badges">
+              {inventoryStatusData.status === 'coming-soon' ? (
+                <span className="catalog-offer-badge catalog-out-of-stock-badge catalog-coming-soon-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
+              ) : (
+                <>
+                  {isNewProduct && (
+                    <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
+                  )}
+                  {inventoryStatusData.status === 'out-of-stock' && (
+                    <span className="product-page__badge product-page__badge--out-of-stock">Agotado</span>
+                  )}
+                  {hasOffer && discountPercentage > 0 && (
+                    <span className="product-page__badge product-page__badge--discount">-{discountPercentage}%</span>
+                  )}
+                </>
+              )}
             </div>
 
             <CustomButton
@@ -1549,13 +1570,24 @@ const ProductPage = () => {
 
           {/* Product Info */}
           <div className="product-page__info">
-            {/* Breadcrumb and title DESKTOP */}
+            {/* Badges and share button DESKTOP */}
             <div className="product-page__breadcrumb show-desktop">
-              <div className="product-page__texts-breadcrumb">
-                <span className="product-page__breadcrumb-item">Nuevo</span>
-                <span className="product-page__breadcrumb-separator">|</span>
-                <span className="product-page__breadcrumb-item">+50 vendido</span>
-                <span className="product-page__breadcrumb-separator">|</span>
+              <div className="product-page__detail-badges">
+                {inventoryStatusData.status === 'coming-soon' ? (
+                  <span className="catalog-offer-badge catalog-out-of-stock-badge catalog-coming-soon-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
+                ) : (
+                  <>
+                    {isNewProduct && (
+                      <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
+                    )}
+                    {inventoryStatusData.status === 'out-of-stock' && (
+                      <span className="product-page__badge product-page__badge--out-of-stock">Agotado</span>
+                    )}
+                    {hasOffer && discountPercentage > 0 && (
+                      <span className="product-page__badge product-page__badge--discount">-{discountPercentage}%</span>
+                    )}
+                  </>
+                )}
               </div>
 
               <CustomButton
