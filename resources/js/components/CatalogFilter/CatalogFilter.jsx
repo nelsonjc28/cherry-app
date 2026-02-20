@@ -15,10 +15,11 @@ const CatalogFilter = ({
   catalogs = [],
   catalogLoading = false,
   hideCatalogSelector = false,
-  hideCategorySelector = false, // Mostrar categorías por defecto
+  hideCategorySelector = false,
   availableColors = [],
   availableSizes = [],
-  availableCategories: propAvailableCategories = null // Categorías pasadas como prop (prioridad)
+  availableCategories: propAvailableCategories = null,
+  isProximamente = false
 }) => {
   // Local state for expandable sections
   const [expandedSections, setExpandedSections] = useState({
@@ -28,6 +29,7 @@ const CatalogFilter = ({
     catalog: false,
     category: false,
     price: false,
+    availability: false,
   });
 
   // State to show/hide the accordion
@@ -564,42 +566,39 @@ const CatalogFilter = ({
                 )}
               </div>
             )}
-            {/* <div className="filter-section">
-              <h3 className="filter-title">Filtrar por:</h3>
-              <div className="radio-group">
-                {availabilityOptions.map((option) => (
-                  <label key={option.value} className="radio-label">
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => handleFilterChange('availability', option.value)}
-                      className={`availability-button ${filters.availability === option.value ? 'selected' : ''}`}
-                    >
-                      <div className="availability-indicator"></div>
-                      <span className="radio-text">
+            {/* Availability filter */}
+            <div className="filter-section expandable">
+              <button
+                className="filter-section-header"
+                onClick={() => toggleSection('availability')}
+              >
+                <h3 className="filter-title">Disponibilidad</h3>
+                <img src={getIconPath('Chevron Down.svg')} alt="Filter" className={`chevron ${expandedSections.availability ? 'expanded' : ''}`} />
+              </button>
+              {expandedSections.availability && (
+                <div className="filter-section-content">
+                  {isProximamente && (
+                    <p className="filter-info-note">
+                      En "Próximamente" los productos aún no tienen existencia.
+                    </p>
+                  )}
+                  <div className="availability-options">
+                    {availabilityOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => !isProximamente && handleFilterChange('availability', option.value)}
+                        className={`availability-btn ${filters.availability === option.value ? 'active' : ''} ${isProximamente && option.value === 'con-existencia' ? 'disabled' : ''}`}
+                        disabled={isProximamente && option.value === 'con-existencia'}
+                      >
                         {option.label}
-                        {option.value === 'con-existencia' && (
-                          <span style={{ fontSize: '10px', opacity: 0.8, marginLeft: '4px' }}>
-                            (solo con stock)
-                          </span>
-                        )}
-                      </span>
-                      {filters.availability === option.value && (
-                        <span style={{
-                          position: 'absolute',
-                          right: '12px',
-                          fontSize: '12px',
-                          color: 'white',
-                          fontWeight: 'bold'
-                        }}>
-                          ✓
-                        </span>
-                      )}
-                    </button>
-                  </label>
-                ))}
-              </div>
-            </div> */}
+                        {filters.availability === option.value && <span className="availability-check">✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* <div className="accordion-filter-content"> */}
               {/* Sort by */}

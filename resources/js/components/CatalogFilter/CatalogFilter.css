@@ -316,6 +316,61 @@
   font-size: 0.85rem;
 }
 
+/* Availability filter */
+.availability-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.availability-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  font-size: 0.85rem;
+  color: #373737;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.availability-btn:hover:not(.disabled) {
+  background: #f8f9fa;
+  border-color: #bbb;
+}
+
+.availability-btn.active {
+  background: var(--color-primary, #EA2630);
+  color: white;
+  border-color: var(--color-primary, #EA2630);
+}
+
+.availability-btn.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.availability-check {
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.filter-info-note {
+  font-size: 0.78rem;
+  color: #888;
+  background: #fef9e7;
+  border: 1px solid #f0e3a6;
+  border-radius: 4px;
+  padding: 0.4rem 0.6rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
 /* Size grid */
 .size-grid {
   display: grid;

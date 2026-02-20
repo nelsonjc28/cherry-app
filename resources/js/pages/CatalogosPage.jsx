@@ -325,6 +325,14 @@ const CatalogosPage = () => {
       });
     }
 
+    // Filtrar por disponibilidad
+    if (currentFilters.availability === 'con-existencia') {
+      filtered = filtered.filter(product => {
+        const stock = parseFloat(product.inventario || product.stock || 0);
+        return stock > 0;
+      });
+    }
+
     // Filtrar por tallas
     if (currentFilters.sizes && currentFilters.sizes.length > 0) {
       filtered = filtered.filter(product => {
@@ -334,7 +342,6 @@ const CatalogosPage = () => {
           const filterSizeLower = filterSize.toLowerCase().trim();
           return product.sizes.some(productSize => {
             const productSizeLower = productSize.toString().toLowerCase().trim();
-            // Exact match only - no partial matching
             return productSizeLower === filterSizeLower;
           });
         });

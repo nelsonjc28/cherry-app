@@ -744,6 +744,7 @@ const NuevosPage = () => {
                 catalogs={catalogs}
                 catalogLoading={catalogLoading}
                 hideCatalogSelector={false}
+                isProximamente={true}
               />
             </aside>
 
@@ -797,6 +798,7 @@ const NuevosPage = () => {
                   catalogs={catalogs}
                   catalogLoading={catalogLoading}
                   hideCatalogSelector={false}
+                  isProximamente={true}
                 />
               </div>
             </div>
