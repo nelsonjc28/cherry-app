@@ -525,11 +525,8 @@ const DestacadosPage = () => {
               ) : (
                 <>
                   <div className="destacados-products-grid">
-                    {infiniteScroll.displayedItems.map((product, index) => (
+                    {infiniteScroll.displayedItems.map((product) => (
                       <div key={product.id} className="product-ranking-item">
-                        <div className="ranking-badge">
-                          #{product.ranking || (index + 1)}
-                        </div>
                         <ProductCard
                           product={product}
                           onFavoriteToggle={handleFavoriteToggle}

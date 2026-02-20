@@ -499,21 +499,6 @@
   position: relative;
 }
 
-.ranking-badge {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  background: var(--color-primary);
-  color: white;
-  font-weight: 700;
-  font-size: 0.9rem;
-  padding: 6px 10px;
-  border-radius: 50px;
-  box-shadow: 0 2px 8px rgba(234, 38, 48, 0.3);
-  z-index: 10;
-  border: 2px solid white;
-}
-
 /* Badge de sesión de usuario */
 .user-session-badge {
   display: inline-block;
@@ -555,15 +540,7 @@
   margin-bottom: 1.5rem;
 }
 
-/* Responsive para ranking badges */
 @media (max-width: 768px) {
-  .ranking-badge {
-    font-size: 0.8rem;
-    padding: 4px 8px;
-    bottom: 6px;
-    right: 6px;
-  }
-
   .user-session-badge {
     display: block;
     margin: 8px 0 0 0;
