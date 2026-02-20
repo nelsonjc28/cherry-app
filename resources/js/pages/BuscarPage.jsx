@@ -739,7 +739,6 @@ const BuscarPage = () => {
                   availableSizes={availableSizes}
                   catalogs={catalogs}
                   catalogLoading={catalogLoading}
-                  hideCatalogSelector={true}
                 />
               </div>
             </div>
