@@ -355,6 +355,33 @@ const NuevosPage = () => {
             };
           });
           
+          const colorSet = new Set();
+          const sizeSet = new Set();
+          mappedProducts.forEach(product => {
+            if (product.detalles && product.detalles.length > 0) {
+              product.detalles.forEach(detalle => {
+                if (detalle.nombreColor) colorSet.add(detalle.nombreColor.trim());
+                if (detalle.detalle) sizeSet.add(detalle.detalle.trim());
+              });
+            }
+            if (product.colors) product.colors.forEach(c => colorSet.add(c));
+            if (product.sizes) product.sizes.forEach(s => sizeSet.add(s));
+          });
+
+          setAvailableColors(Array.from(colorSet).sort());
+
+          const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+          const extractedSizes = Array.from(sizeSet);
+          const sortedSizes = extractedSizes.sort((a, b) => {
+            const indexA = sizeOrder.indexOf(a.toUpperCase());
+            const indexB = sizeOrder.indexOf(b.toUpperCase());
+            if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+            if (indexA !== -1) return -1;
+            if (indexB !== -1) return 1;
+            return a.localeCompare(b);
+          });
+          setAvailableSizes(sortedSizes);
+
           setAllProducts(shuffleArray(mappedProducts));
           setLoading(false);
           return;

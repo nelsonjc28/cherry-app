@@ -124,33 +124,32 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  max-height: 200px;
+  max-height: 175px;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-right: 0.5rem;
   border: 1px solid #ddd;
   border-radius: 4px;
   padding: 0.5rem;
   background: white;
 }
 
-/* Custom scrollbar for multiselect */
+/* Scrollbar estilo Select2 */
 .multiselect-container::-webkit-scrollbar {
   width: 6px;
 }
 
 .multiselect-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #f5f5f5;
   border-radius: 3px;
 }
 
 .multiselect-container::-webkit-scrollbar-thumb {
-  background: #888;
+  background: #c0c0c0;
   border-radius: 3px;
 }
 
 .multiselect-container::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: #999;
 }
 
 .multiselect-option {
@@ -228,7 +227,7 @@
 .filter-section.expandable {
   border: none;
   border-radius: 4px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .filter-section-header {
@@ -275,9 +274,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  max-height: 250px;
-  overflow-y: auto;
-  padding-right: 0.5rem;
+  height: auto;
+  overflow: visible;
 }
 
 .checkbox-option {
@@ -314,6 +312,35 @@
   text-align: center;
   color: #888;
   font-size: 0.85rem;
+}
+
+/* Scroll container for grids (sizes, colors) */
+.filter-scroll-container {
+  max-height: 175px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 0.5rem;
+  background: white;
+}
+
+.filter-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.filter-scroll-container::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 3px;
+}
+
+.filter-scroll-container::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border-radius: 3px;
+}
+
+.filter-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #999;
 }
 
 /* Availability filter */
@@ -374,7 +401,7 @@
 /* Size grid */
 .size-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
 }
 
@@ -435,7 +462,7 @@
 
 /* Cuadro de color */
 .color-swatch {
-  width: 40px; /* ← aquí puedes cambiar el tamaño */
+  width: 40px;
   height: 40px;
   border-radius: 26px;
   border: 2px solid #ddd;
@@ -588,7 +615,7 @@
   }
 
   .size-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 
   .color-grid {
@@ -600,7 +627,7 @@
 
 @media (min-width: 1024px) {
   .size-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 
   .color-grid {

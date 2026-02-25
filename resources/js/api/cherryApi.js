@@ -1230,10 +1230,21 @@ export const getTopSellingProducts = async (limit = 20) => {
     const mappedProducts = products.map(product => {
       // Calcular stock total desde detalles si está disponible
       let stock = product.inventario || 0;
-      if (product.detalles && Array.isArray(product.detalles)) {
-        stock = product.detalles.reduce((total, detalle) => {
+      const detallesArr = product.detalles && Array.isArray(product.detalles) ? product.detalles : [];
+      if (detallesArr.length > 0) {
+        stock = detallesArr.reduce((total, detalle) => {
           return total + (detalle.inventario_d || 0);
         }, 0);
+      }
+
+      // Extraer tallas desde detalles si no vienen como campo separado
+      let sizes = product.sizes || [];
+      if (sizes.length === 0 && detallesArr.length > 0) {
+        const sizeSet = new Set();
+        detallesArr.forEach(d => {
+          if (d.detalle) sizeSet.add(d.detalle.toString().trim());
+        });
+        sizes = Array.from(sizeSet);
       }
       
       return {
@@ -1250,8 +1261,8 @@ export const getTopSellingProducts = async (limit = 20) => {
         inventario: stock,
         colors: product.colors || product.colores || [],
         colores: product.colores || product.colors || [],
-        sizes: product.sizes || [],
-        tallas: product.sizes || [],
+        sizes: sizes,
+        tallas: sizes,
         isNew: product.isNew || false,
         rating: product.rating || 0,
         ratingCount: product.ratingCount || product.totalRatings || 0,

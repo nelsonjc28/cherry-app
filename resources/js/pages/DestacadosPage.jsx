@@ -7,7 +7,7 @@ import CherryButton from '../components/CherryButton/CherryButton';
 import InfiniteScrollLoader from '../components/InfiniteScrollLoader/InfiniteScrollLoader';
 import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
-import { getTopSellingProducts, getAvailableColors, getAvailableSizes } from '../api/cherryApi';
+import { getTopSellingProducts } from '../api/cherryApi';
 import { applyUserOffersToProducts } from '../api/userOffers';
 import { publicCatalogService } from '../services/api';
 import useUserStore from '../store/userStore';
@@ -153,8 +153,17 @@ const DestacadosPage = () => {
     // Filter by colors
     if (currentFilters.colors && currentFilters.colors.length > 0) {
       filtered = filtered.filter(product => {
+        if (product.detalles && product.detalles.length > 0) {
+          return currentFilters.colors.some(filterColor => {
+            const filterColorLower = filterColor.toLowerCase();
+            return product.detalles.some(detalle => {
+              if (!detalle.nombreColor) return false;
+              const productColorLower = detalle.nombreColor.toLowerCase();
+              return productColorLower === filterColorLower || productColorLower.includes(filterColorLower);
+            });
+          });
+        }
         if (!product.colors || product.colors.length === 0) return false;
-
         return currentFilters.colors.some(filterColor => {
           const filterColorLower = filterColor.toLowerCase();
           return product.colors.some(productColor => {
@@ -167,17 +176,24 @@ const DestacadosPage = () => {
       });
     }
 
-    // Filter by sizes
     // Filter by sizes - EXACT MATCH ONLY (restrictive)
     if (currentFilters.sizes && currentFilters.sizes.length > 0) {
       filtered = filtered.filter(product => {
+        if (product.detalles && product.detalles.length > 0) {
+          return currentFilters.sizes.some(filterSize => {
+            const filterSizeLower = filterSize.toLowerCase().trim();
+            return product.detalles.some(detalle => {
+              if (!detalle.detalle) return false;
+              const productSizeLower = detalle.detalle.toString().toLowerCase().trim();
+              return productSizeLower === filterSizeLower;
+            });
+          });
+        }
         if (!product.sizes || product.sizes.length === 0) return false;
-
         return currentFilters.sizes.some(filterSize => {
           const filterSizeLower = filterSize.toLowerCase().trim();
           return product.sizes.some(productSize => {
             const productSizeLower = productSize.toString().toLowerCase().trim();
-            // Exact match only - no partial matching
             return productSizeLower === filterSizeLower;
           });
         });
@@ -217,30 +233,46 @@ const DestacadosPage = () => {
 
 
 
-  // Cargar colores y tallas disponibles
+  // Extraer colores y tallas de los productos cargados
   useEffect(() => {
-    const loadFiltersData = async () => {
-      try {
-        const [colors, sizes] = await Promise.all([
-          getAvailableColors(),
-          getAvailableSizes()
-        ]);
-
-        setAvailableColors(colors);
-        setAvailableSizes(sizes);
-      } catch (error) {
-        setAvailableColors([]);
-        setAvailableSizes([]);
+    if (topSellingProducts.length === 0) return;
+    
+    const colorSet = new Set();
+    const sizeSet = new Set();
+    topSellingProducts.forEach(product => {
+      if (product.detalles && product.detalles.length > 0) {
+        product.detalles.forEach(detalle => {
+          if (detalle.nombreColor) colorSet.add(detalle.nombreColor.trim());
+          if (detalle.detalle) sizeSet.add(detalle.detalle.trim());
+        });
       }
-    };
-    // Load catalogs
+      if (product.colors) product.colors.forEach(c => colorSet.add(c));
+      if (product.sizes) product.sizes.forEach(s => sizeSet.add(s));
+    });
+
+    setAvailableColors(Array.from(colorSet).sort());
+    
+    const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+    const extractedSizes = Array.from(sizeSet);
+    const sortedSizes = extractedSizes.sort((a, b) => {
+      const indexA = sizeOrder.indexOf(a.toUpperCase());
+      const indexB = sizeOrder.indexOf(b.toUpperCase());
+      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      return a.localeCompare(b);
+    });
+    setAvailableSizes(sortedSizes);
+  }, [topSellingProducts]);
+
+  // Load catalogs
+  useEffect(() => {
     const loadCatalogs = async () => {
       setCatalogLoading(true);
       try {
         const response = await publicCatalogService.getAll();
 
         let catalogsData = [];
-
 
         if (response.data) {
           if (response.data.success && Array.isArray(response.data.data)) {
@@ -267,7 +299,6 @@ const DestacadosPage = () => {
     };
 
     loadCatalogs();
-    loadFiltersData();
   }, []);
 
   // Cargar productos más vendidos (SIN caché para no sobrescribir la caché principal)

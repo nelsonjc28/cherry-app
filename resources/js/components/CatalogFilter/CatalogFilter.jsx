@@ -403,7 +403,7 @@ const CatalogFilter = ({
                         <span className="multiselect-label" style={{ fontWeight: 'bold' }}>Seleccione</span>
                       </label>
                       {catalogs.map((catalog) => {
-                        const catalogCode = String(catalog.code || catalog.id); // Usar code, con fallback a id por compatibilidad
+                        const catalogCode = String(catalog.code || catalog.id);
                         const selectedCatalogs = Array.isArray(filters.catalogs) 
                           ? filters.catalogs.map(cat => String(cat))
                           : (filters.catalog ? [String(filters.catalog)] : []);
@@ -426,7 +426,6 @@ const CatalogFilter = ({
                                   newFilters.catalogs = currentSelected.filter(cat => cat !== catalogCode);
                                 }
                                 
-                                // Si no hay catálogos seleccionados, limpiar el filtro completamente
                                 if (newFilters.catalogs.length === 0) {
                                   newFilters.catalogs = [];
                                   newFilters.catalog = 'Seleccione';
@@ -615,17 +614,19 @@ const CatalogFilter = ({
                 </button>
                 {expandedSections.sizes && (
                   <div className="filter-section-content">
-                    <div className="size-grid">
-                      {sizes.map((size) => (
-                        <label key={size} className="size-option">
-                          <input
-                            type="checkbox"
-                            checked={filters.sizes.includes(size)}
-                            onChange={() => handleFilterChange('sizes', size)}
-                          />
-                          <span className="size-text">{size}</span>
-                        </label>
-                      ))}
+                    <div className="filter-scroll-container">
+                      <div className="size-grid">
+                        {sizes.map((size) => (
+                          <label key={size} className="size-option">
+                            <input
+                              type="checkbox"
+                              checked={filters.sizes.includes(size)}
+                              onChange={() => handleFilterChange('sizes', size)}
+                            />
+                            <span className="size-text">{size}</span>
+                          </label>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -642,24 +643,26 @@ const CatalogFilter = ({
                 </button>
                 {expandedSections.colors && (
                   <div className="filter-section-content">
-                    <div className="color-grid">
-                      {colors.map((color) => (
-                        <label key={color.value} className="color-option">
-                          <input
-                            type="checkbox"
-                            checked={filters.colors && filters.colors.includes(color.value)}
-                            onChange={() => handleFilterChange('colors', color.value)}
-                          />
-                          <div className="color-box">
-                            <span
-                              className="color-swatch"
-                              style={{ backgroundColor: color.hex }}
-                              title={color.name}
-                            ></span>
-                            <span className="color-name">{color.name}</span>
-                          </div>
-                        </label>
-                      ))}
+                    <div className="filter-scroll-container">
+                      <div className="color-grid">
+                        {colors.map((color) => (
+                          <label key={color.value} className="color-option">
+                            <input
+                              type="checkbox"
+                              checked={filters.colors && filters.colors.includes(color.value)}
+                              onChange={() => handleFilterChange('colors', color.value)}
+                            />
+                            <div className="color-box">
+                              <span
+                                className="color-swatch"
+                                style={{ backgroundColor: color.hex }}
+                                title={color.name}
+                              ></span>
+                              <span className="color-name">{color.name}</span>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
