@@ -236,6 +236,22 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /**
+     * Check if the user has seller category 'diamante'
+     */
+    public function isDiamanteSeller()
+    {
+        return $this->seller_category === 'diamante';
+    }
+
+    /**
+     * Check if the user has premium seller category (oro or diamante)
+     */
+    public function isPremiumSeller()
+    {
+        return in_array($this->seller_category, ['oro', 'diamante']);
+    }
+
+    /**
      * Check if the user has seller category 'bronce'
      */
     public function isBronceSeller()

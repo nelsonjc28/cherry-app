@@ -32,8 +32,7 @@ class RecalculateCreditBalance extends Command
         
         $this->info('🔄 Recalculando crédito disponible...');
         
-        // Obtener usuarios con categoría oro (los únicos que tienen crédito)
-        $query = User::where('seller_category', 'oro')
+        $query = User::whereIn('seller_category', ['oro', 'diamante'])
             ->whereNotNull('credit_limit')
             ->where('credit_limit', '>', 0);
         

@@ -2329,11 +2329,11 @@ class PaymentController extends Controller
      */
     private function processCreditPayment(Request $request, User $user, $addressId, $deliveryType)
     {
-        // Verificar que el usuario tenga categoría oro
-        if ($user->seller_category !== 'oro') {
+        // Verificar que el usuario tenga categoría oro o diamante
+        if (!in_array($user->seller_category, ['oro', 'diamante'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Solo los usuarios con categoría Oro pueden pagar con crédito'
+                'message' => 'Solo los usuarios con categoría Oro o Diamante pueden pagar con crédito'
             ], 403);
         }
 

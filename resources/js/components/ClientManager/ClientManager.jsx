@@ -202,7 +202,8 @@ const ClientManager = () => {
       }
 
       await fetchClients();
-      window.showToast(`Categoría actualizada a ${newCategory === 'oro' ? 'Oro' : 'Bronce'}`, 'success');
+      const categoryLabels = { oro: 'Oro', bronce: 'Bronce', diamante: 'Diamante' };
+      window.showToast(`Categoría actualizada a ${categoryLabels[newCategory] || newCategory}`, 'success');
     } catch (err) {
       window.showToast('Error: ' + err.message, 'error');
     }
@@ -210,8 +211,8 @@ const ClientManager = () => {
 
   const handleUpdateCredit = async (clientId) => {
     const client = clients.find(c => c.id === clientId);
-    if (!client || client.seller_category !== 'oro') {
-      window.showToast('Solo los clientes con categoría Oro pueden tener crédito', 'warning');
+    if (!client || !['oro', 'diamante'].includes(client.seller_category)) {
+      window.showToast('Solo los clientes con categoría Oro o Diamante pueden tener crédito', 'warning');
       return;
     }
 
@@ -516,21 +517,46 @@ const ClientManager = () => {
                   <div className="client-manager__client-role">
                     Cliente
                   </div>
-                  <div className="client-manager__client-category" style={{
-                    marginTop: '8px',
-                    padding: '3px 4px',
-                    borderRadius: '4px',
-                    display: 'inline-block',
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    backgroundColor: client.seller_category === 'oro' ? '#FFD700' : '#CD7F32',
-                    color: '#fff',
-                    whiteSpace: 'nowrap',
-                    lineHeight: '1.2'
-                  }}>
-                    {client.seller_category === 'oro' ? '🥇 Oro' : '🥉 Bronce'}
-                  </div>
-                  {client.seller_category === 'oro' && (
+                  {!isOperator ? (
+                    <select
+                      value={client.seller_category}
+                      onChange={(e) => handleUpdateCategory(client.id, e.target.value)}
+                      style={{
+                        marginTop: '8px',
+                        padding: '4px 6px',
+                        borderRadius: '4px',
+                        display: 'inline-block',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        border: '1px solid',
+                        borderColor: client.seller_category === 'diamante' ? '#00BCD4' : client.seller_category === 'oro' ? '#FFD700' : '#CD7F32',
+                        backgroundColor: client.seller_category === 'diamante' ? '#00BCD4' : client.seller_category === 'oro' ? '#FFD700' : '#CD7F32',
+                        color: '#fff',
+                        cursor: 'pointer',
+                        outline: 'none',
+                      }}
+                    >
+                      <option value="bronce">🥉 Bronce</option>
+                      <option value="oro">🥇 Oro</option>
+                      <option value="diamante">💎 Diamante</option>
+                    </select>
+                  ) : (
+                    <div className="client-manager__client-category" style={{
+                      marginTop: '8px',
+                      padding: '3px 4px',
+                      borderRadius: '4px',
+                      display: 'inline-block',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      backgroundColor: client.seller_category === 'diamante' ? '#00BCD4' : client.seller_category === 'oro' ? '#FFD700' : '#CD7F32',
+                      color: '#fff',
+                      whiteSpace: 'nowrap',
+                      lineHeight: '1.2'
+                    }}>
+                      {client.seller_category === 'diamante' ? '💎 Diamante' : client.seller_category === 'oro' ? '🥇 Oro' : '🥉 Bronce'}
+                    </div>
+                  )}
+                  {['oro', 'diamante'].includes(client.seller_category) && (
                     <div style={{ marginTop: '4px' }}>
                       <div className="client-manager__client-credit" style={{
                         fontSize: '12px',
@@ -579,69 +605,7 @@ const ClientManager = () => {
                     <span className="client-manager__btn-icon">📊</span>
                     <span className="client-manager__btn-text">Estados de Cuenta</span>
                   </button>
-                  {!isOperator && client.seller_category === 'bronce' && (
-                    <button
-                      className="client-manager__action-btn client-manager__action-btn--gold"
-                      onClick={() => handleUpdateCategory(client.id, 'oro')}
-                      data-tooltip="Cambiar a Oro"
-                      onMouseEnter={(e) => {
-                        const button = e.currentTarget;
-                        const tooltipText = button.getAttribute('data-tooltip');
-                        let tooltip = document.querySelector('.client-tooltip');
-                        if (!tooltip) {
-                          tooltip = document.createElement('div');
-                          tooltip.className = 'client-tooltip';
-                          document.body.appendChild(tooltip);
-                        }
-                        tooltip.textContent = tooltipText;
-                        tooltip.style.display = 'block';
-                        
-                        const rect = button.getBoundingClientRect();
-                        const tooltipRect = tooltip.getBoundingClientRect();
-                        tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
-                        tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
-                      }}
-                      onMouseLeave={() => {
-                        const tooltip = document.querySelector('.client-tooltip');
-                        if (tooltip) tooltip.style.display = 'none';
-                      }}
-                    >
-                      <span className="client-manager__btn-icon">🥇</span>
-                      <span className="client-manager__btn-text">Cambiar a Oro</span>
-                    </button>
-                  )}
-                  {!isOperator && client.seller_category === 'oro' && (
-                    <button
-                      className="client-manager__action-btn client-manager__action-btn--bronze"
-                      onClick={() => handleUpdateCategory(client.id, 'bronce')}
-                      data-tooltip="Cambiar a Bronce"
-                      onMouseEnter={(e) => {
-                        const button = e.currentTarget;
-                        const tooltipText = button.getAttribute('data-tooltip');
-                        let tooltip = document.querySelector('.client-tooltip');
-                        if (!tooltip) {
-                          tooltip = document.createElement('div');
-                          tooltip.className = 'client-tooltip';
-                          document.body.appendChild(tooltip);
-                        }
-                        tooltip.textContent = tooltipText;
-                        tooltip.style.display = 'block';
-                        
-                        const rect = button.getBoundingClientRect();
-                        const tooltipRect = tooltip.getBoundingClientRect();
-                        tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
-                        tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
-                      }}
-                      onMouseLeave={() => {
-                        const tooltip = document.querySelector('.client-tooltip');
-                        if (tooltip) tooltip.style.display = 'none';
-                      }}
-                    >
-                      <span className="client-manager__btn-icon">🥉</span>
-                      <span className="client-manager__btn-text">Cambiar a Bronce</span>
-                    </button>
-                  )}
-                  {!isOperator && client.seller_category === 'oro' && (
+                  {!isOperator && ['oro', 'diamante'].includes(client.seller_category) && (
                     <button
                       className="client-manager__action-btn client-manager__action-btn--red"
                       onClick={() => handleUpdateCredit(client.id)}

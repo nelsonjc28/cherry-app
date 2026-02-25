@@ -309,13 +309,12 @@ const CartDetailsPage = () => {
 
     if (!itemToUpdate) return;
 
-    // Si el producto es "Próximamente" y el usuario es "oro", saltar validación de stock
+    // Si el producto es "Próximamente" y el usuario es "oro" o "diamante", saltar validación de stock
     const isComingSoon = itemToUpdate.isComingSoon === true;
     const { user } = useUserStore.getState();
-    const isOroUser = user && user.seller_category === 'oro';
+    const isPremiumUser = user && ['oro', 'diamante'].includes(user.seller_category);
     
-    if (isComingSoon && isOroUser) {
-      // Permitir actualizar cantidad sin validar stock para productos "Próximamente" de usuarios "oro"
+    if (isComingSoon && isPremiumUser) {
       updateQuantity(itemToUpdate.id_articulo, newQty, itemToUpdate.selectedColor, itemToUpdate.selectedSize);
       return;
     }
@@ -496,9 +495,9 @@ const CartDetailsPage = () => {
       return;
     }
 
-    // Si es pago con crédito, validar que el usuario tenga categoría oro
+    // Si es pago con crédito, validar que el usuario tenga categoría oro o diamante
     if (paymentMethod === 'credit') {
-      if (!user || user.seller_category !== 'oro') {
+      if (!user || !['oro', 'diamante'].includes(user.seller_category)) {
         if (window.showToast) {
           window.showToast('Solo los usuarios con categoría Oro pueden pagar con crédito', 'error');
         }
@@ -521,20 +520,22 @@ const CartDetailsPage = () => {
         return sum + (itemPrice * itemQuantity);
       }, 0);
 
-      // Calcular descuentos del 20% y 10% adicional para productos regulares
+      // Determinar porcentaje de descuento según categoría del usuario
+      const isDiamante = user && user.seller_category === 'diamante';
+      const mainDiscountRate = isDiamante ? 0.33 : 0.20;
+      const mainDiscountPercent = isDiamante ? 33 : 20;
+
       let regularDiscountTwentyAmount = 0;
       let regularDiscountAdditionalTenAmount = 0;
       let regularDayFortyFiveDiscountAmount = 0;
       
       if (eligibleRegularTotal >= 7000) {
-        // A partir de 7000: aplicar descuento del 20%
-        regularDiscountTwentyAmount = eligibleRegularTotal * 0.20;
+        regularDiscountTwentyAmount = eligibleRegularTotal * mainDiscountRate;
         regularDayFortyFiveDiscountAmount = regularDiscountTwentyAmount;
         
         if (eligibleRegularTotal >= 15000) {
-          // A partir de 15000: aplicar 10% adicional además del 20%
-          const totalAfterTwenty = eligibleRegularTotal - regularDiscountTwentyAmount;
-          regularDiscountAdditionalTenAmount = totalAfterTwenty * 0.10;
+          const totalAfterMain = eligibleRegularTotal - regularDiscountTwentyAmount;
+          regularDiscountAdditionalTenAmount = totalAfterMain * 0.10;
           regularDayFortyFiveDiscountAmount = regularDiscountTwentyAmount + regularDiscountAdditionalTenAmount;
         }
       }
@@ -739,24 +740,25 @@ const CartDetailsPage = () => {
     return sum + (itemPrice * itemQuantity);
   }, 0);
 
-  // Calcular monto del descuento dayFortyFive
-  // Lógica: A partir de 7000 se aplica 20%, a partir de 15000 se aplica 20% + 10% adicional
+  // Determinar porcentaje de descuento según categoría del usuario
+  const isDiamanteUser = user && user.seller_category === 'diamante';
+  const mainDiscountRate = isDiamanteUser ? 0.33 : 0.20;
+  const mainDiscountPercent = isDiamanteUser ? 33 : 20;
+
   let dayFortyFiveDiscountAmount = 0;
-  let discountTwentyAmount = 0; // 20% cuando >= 7000
-  let discountAdditionalTenAmount = 0; // 10% adicional cuando >= 15000
-  let descuento1 = 0; // Porcentaje 20 para enviar al backend
-  let descuento2 = 0; // Porcentaje 10 para enviar al backend
+  let discountTwentyAmount = 0;
+  let discountAdditionalTenAmount = 0;
+  let descuento1 = 0;
+  let descuento2 = 0;
   
   if (eligibleTotal >= 7000) {
-    // A partir de 7000: aplicar descuento del 20%
-    discountTwentyAmount = eligibleTotal * 0.20;
-    descuento1 = 20;
+    discountTwentyAmount = eligibleTotal * mainDiscountRate;
+    descuento1 = mainDiscountPercent;
     dayFortyFiveDiscountAmount = discountTwentyAmount;
     
     if (eligibleTotal >= 15000) {
-      // A partir de 15000: aplicar 10% adicional además del 20%
-      const totalAfterTwenty = eligibleTotal - discountTwentyAmount;
-      discountAdditionalTenAmount = totalAfterTwenty * 0.10;
+      const totalAfterMain = eligibleTotal - discountTwentyAmount;
+      discountAdditionalTenAmount = totalAfterMain * 0.10;
       descuento2 = 10;
       dayFortyFiveDiscountAmount = discountTwentyAmount + discountAdditionalTenAmount;
     }
@@ -814,8 +816,13 @@ const CartDetailsPage = () => {
     
     // Solo mostrar alertas si hay productos elegibles (sin rebaja)
     if (eligibleTotal <= 0) return alerts;
+
+    // Para usuarios Diamante: mensajes genéricos sin revelar la categoría
+    const discountLabel = isDiamanteUser ? 'tu descuento especial' : 'tu descuento del 30%';
+    const maxDiscountLabel = isDiamanteUser
+      ? '¡Felicidades! Has alcanzado el descuento máximo disponible'
+      : '¡Increíble! Tienes el descuento máximo del 30% + 10% adicional';
     
-    // Alerta para el 30%
     if (eligibleTotal < DISCOUNT_30_THRESHOLD) {
       const remaining = DISCOUNT_30_THRESHOLD - eligibleTotal;
       const isNear = eligibleTotal >= (DISCOUNT_30_THRESHOLD * NEAR_THRESHOLD_PERCENT);
@@ -824,19 +831,22 @@ const CartDetailsPage = () => {
         alerts.push({
           type: 'near',
           icon: '🔥',
-          message: `¡Ya casi! Te faltan $${formatMoney(remaining)} para obtener tu descuento del 30%`,
+          message: isDiamanteUser
+            ? `¡Ya casi! Te faltan $${formatMoney(remaining)} para activar tu descuento`
+            : `¡Ya casi! Te faltan $${formatMoney(remaining)} para obtener tu descuento del 30%`,
           color: '#ff9800'
         });
       } else {
         alerts.push({
           type: 'info',
           icon: '💰',
-          message: `Te faltan $${formatMoney(remaining)} para obtener un descuento del 30%`,
+          message: isDiamanteUser
+            ? `Te faltan $${formatMoney(remaining)} para activar tu descuento`
+            : `Te faltan $${formatMoney(remaining)} para obtener un descuento del 30%`,
           color: '#2196f3'
         });
       }
     }
-    // Alerta para el 10% adicional (si ya tiene el 30%)
     else if (eligibleTotal >= DISCOUNT_30_THRESHOLD && eligibleTotal < DISCOUNT_40_THRESHOLD) {
       const remaining = DISCOUNT_40_THRESHOLD - eligibleTotal;
       const isNear = eligibleTotal >= (DISCOUNT_40_THRESHOLD * NEAR_THRESHOLD_PERCENT);
@@ -844,7 +854,9 @@ const CartDetailsPage = () => {
       alerts.push({
         type: 'success',
         icon: '✅',
-        message: `¡Felicidades! Ya tienes tu descuento del 30%`,
+        message: isDiamanteUser
+          ? '¡Felicidades! Ya tienes tu descuento activado'
+          : `¡Felicidades! Ya tienes ${discountLabel}`,
         color: '#4caf50'
       });
       
@@ -864,12 +876,11 @@ const CartDetailsPage = () => {
         });
       }
     }
-    // Ya tiene el 30% + 10% adicional
     else if (eligibleTotal >= DISCOUNT_40_THRESHOLD) {
       alerts.push({
         type: 'success',
         icon: '🎉',
-        message: `¡Increíble! Tienes el descuento máximo del 30% + 10% adicional`,
+        message: maxDiscountLabel,
         color: '#4caf50'
       });
     }

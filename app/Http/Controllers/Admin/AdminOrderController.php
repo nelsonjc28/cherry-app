@@ -529,10 +529,10 @@ class AdminOrderController extends Controller
                 ], 404);
             }
             
-            if ($user->seller_category !== 'oro') {
+            if (!in_array($user->seller_category, ['oro', 'diamante'])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'El usuario no tiene categoría oro'
+                    'message' => 'El usuario no tiene categoría oro o diamante'
                 ], 400);
             }
             

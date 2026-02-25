@@ -339,10 +339,10 @@ class ClientController extends Controller
             }
 
             $validator = Validator::make($request->all(), [
-                'seller_category' => 'required|in:bronce,oro'
+                'seller_category' => 'required|in:bronce,oro,diamante'
             ], [
                 'seller_category.required' => 'La categoría es requerida',
-                'seller_category.in' => 'La categoría debe ser "bronce" o "oro"'
+                'seller_category.in' => 'La categoría debe ser "bronce", "oro" o "diamante"'
             ]);
 
             if ($validator->fails()) {
@@ -364,9 +364,15 @@ class ClientController extends Controller
                 ]);
             }
 
+            $categoryLabels = [
+                'bronce' => 'Bronce',
+                'oro' => 'Oro',
+                'diamante' => 'Diamante'
+            ];
+
             return response()->json([
                 'success' => true,
-                'message' => 'Categoría actualizada exitosamente',
+                'message' => 'Categoría actualizada a ' . ($categoryLabels[$request->seller_category] ?? $request->seller_category),
                 'user' => $user->load('role')
             ]);
 
@@ -402,11 +408,11 @@ class ClientController extends Controller
                 ], 404);
             }
 
-            // Solo permitir crédito para categoría oro
-            if ($user->seller_category !== 'oro') {
+            // Solo permitir crédito para categoría oro o diamante
+            if (!in_array($user->seller_category, ['oro', 'diamante'])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Solo los clientes con categoría "oro" pueden tener crédito'
+                    'message' => 'Solo los clientes con categoría "oro" o "diamante" pueden tener crédito'
                 ], 400);
             }
 
@@ -469,11 +475,11 @@ class ClientController extends Controller
                 ], 404);
             }
 
-            // Solo permitir límite de crédito para categoría oro
-            if ($user->seller_category !== 'oro') {
+            // Solo permitir límite de crédito para categoría oro o diamante
+            if (!in_array($user->seller_category, ['oro', 'diamante'])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Solo los clientes con categoría "oro" pueden tener límite de crédito'
+                    'message' => 'Solo los clientes con categoría "oro" o "diamante" pueden tener límite de crédito'
                 ], 400);
             }
 

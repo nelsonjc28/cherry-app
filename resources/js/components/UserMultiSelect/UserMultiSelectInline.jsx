@@ -162,12 +162,15 @@ const UserMultiSelect = ({
   // Verificar si todas las categorías están seleccionadas
   const oroUsers = allUsers.filter(u => u.seller_category === 'oro');
   const bronceUsers = allUsers.filter(u => u.seller_category === 'bronce');
+  const diamanteUsers = allUsers.filter(u => u.seller_category === 'diamante');
   
   const selectedOroUsers = selectedUsers.filter(u => u.seller_category === 'oro');
   const selectedBronceUsers = selectedUsers.filter(u => u.seller_category === 'bronce');
+  const selectedDiamanteUsers = selectedUsers.filter(u => u.seller_category === 'diamante');
   
   const allOroSelected = oroUsers.length > 0 && selectedOroUsers.length === oroUsers.length;
   const allBronceSelected = bronceUsers.length > 0 && selectedBronceUsers.length === bronceUsers.length;
+  const allDiamanteSelected = diamanteUsers.length > 0 && selectedDiamanteUsers.length === diamanteUsers.length;
 
   return (
     <div style={{ position: "relative", width: "100%" }} ref={dropdownRef}>
@@ -315,6 +318,37 @@ const UserMultiSelect = ({
                 }}
               />
               <span>🥇 Seleccionar Oro ({oroUsers.length})</span>
+            </div>
+          )}
+
+          {/* Select by Category - Diamante */}
+          {diamanteUsers.length > 0 && (
+            <div
+              onClick={() => handleSelectByCategory('diamante')}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                padding: "8px 12px",
+                cursor: "pointer",
+                backgroundColor: allDiamanteSelected ? "#e0f7fa" : "transparent",
+                borderBottom: "1px solid #f1f3f4",
+                fontWeight: 600,
+                color: allDiamanteSelected ? "#006064" : "#00BCD4",
+              }}
+            >
+              <input
+                type="checkbox"
+                readOnly
+                checked={allDiamanteSelected}
+                style={{
+                  width: "14px",
+                  height: "14px",
+                  cursor: "pointer",
+                  accentColor: "#00BCD4",
+                }}
+              />
+              <span>💎 Seleccionar Diamante ({diamanteUsers.length})</span>
             </div>
           )}
 

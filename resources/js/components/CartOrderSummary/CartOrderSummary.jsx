@@ -49,7 +49,7 @@ const CartOrderSummary = ({
   }, [paymentMethod]);
   
   // Verificar si el usuario puede usar crédito
-  const canUseCredit = user && user.seller_category === 'oro';
+  const canUseCredit = user && ['oro', 'diamante'].includes(user.seller_category);
   const availableCredit = canUseCredit ? (parseFloat(user.credit_balance || 0)) : 0;
   
   const [paymentCards, setPaymentCards] = useState([]);
@@ -917,12 +917,10 @@ const CartOrderSummary = ({
       const color = item.selectedColor;
       const requestedQuantity = item.quantity;
       
-      // Si el producto es "Próximamente" y el usuario es "oro", saltar validación de stock
       const isComingSoon = item.isComingSoon === true;
-      const isOroUser = user && user.seller_category === 'oro';
+      const isPremiumUser = user && ['oro', 'diamante'].includes(user.seller_category);
       
-      if (isComingSoon && isOroUser) {
-        // Permitir productos "Próximamente" para usuarios "oro" sin validar stock
+      if (isComingSoon && isPremiumUser) {
         continue;
       }
 

@@ -408,21 +408,17 @@ const useCartStore = create(
 
         const maxStock = getStockForVariant(product, product.selectedColor, product.selectedSize);
         
-        // Verificar si es producto "Próximamente" y usuario "oro"
+        // Verificar si es producto "Próximamente" y usuario premium (oro/diamante)
         const isComingSoon = product.isComingSoon === true;
         const user = useUserStore.getState?.()?.user;
-        const isOroUser = user && user.seller_category === 'oro';
+        const isPremiumUser = user && ['oro', 'diamante'].includes(user.seller_category);
         
-        // No mostrar mensaje si es producto "Próximamente" y usuario "oro"
-        if (maxStock === 0 && !(isComingSoon && isOroUser)) {
+        if (maxStock === 0 && !(isComingSoon && isPremiumUser)) {
            window.showToast("No hay stock para esta combinación de color y talla.",'error');
           return;
         }
         
-        // Si es producto "Próximamente" y usuario "oro", permitir agregar al carrito sin stock (continuar sin return)
-        
-        // Si es producto "Próximamente" y usuario "oro", permitir agregar al carrito sin stock
-        if (maxStock === 0 && isComingSoon && isOroUser) {
+        if (maxStock === 0 && isComingSoon && isPremiumUser) {
           // Continuar con el proceso de agregar al carrito
         } else if (maxStock === 0) {
           return;
@@ -441,15 +437,13 @@ const useCartStore = create(
           const existing = updatedItems[existingIndex];
           const newQuantity = existing.quantity + quantity;
 
-          // Verificar si es producto "Próximamente" y usuario "oro"
           const isComingSoon = product.isComingSoon === true || existing.isComingSoon === true;
           const user = useUserStore.getState?.()?.user;
-          const isOroUser = user && user.seller_category === 'oro';
+          const isPremiumUser = user && ['oro', 'diamante'].includes(user.seller_category);
           
-          // Para productos "Próximamente" de usuarios "oro", permitir cualquier cantidad
-          const maxAllowed = (isComingSoon && isOroUser) ? 9999 : maxStock;
+          const maxAllowed = (isComingSoon && isPremiumUser) ? 9999 : maxStock;
 
-          if (newQuantity > maxAllowed && !(isComingSoon && isOroUser)) {
+          if (newQuantity > maxAllowed && !(isComingSoon && isPremiumUser)) {
             // Preservar userOffer al actualizar cantidad
             updatedItems[existingIndex] = { 
               ...existing, 
@@ -469,17 +463,14 @@ const useCartStore = create(
             };
           }
         } else {
-          // Verificar si es producto "Próximamente" y usuario "oro"
           const isComingSoon = product.isComingSoon === true;
           const user = useUserStore.getState?.()?.user;
-          const isOroUser = user && user.seller_category === 'oro';
+          const isPremiumUser = user && ['oro', 'diamante'].includes(user.seller_category);
           
-          // Para productos "Próximamente" de usuarios "oro", permitir cualquier cantidad
-          const maxAllowed = (isComingSoon && isOroUser) ? 9999 : maxStock;
+          const maxAllowed = (isComingSoon && isPremiumUser) ? 9999 : maxStock;
           const qty = quantity > maxAllowed ? maxAllowed : quantity;
           
-          // Solo mostrar mensaje si no es producto "Próximamente" o usuario no es "oro"
-          if (quantity > maxStock && !(isComingSoon && isOroUser)) {
+          if (quantity > maxStock && !(isComingSoon && isPremiumUser)) {
             window.showToast(`Solo hay ${maxStock} unidades disponibles para esta combinación.`, 'error')
           }
           // Asegurar que userOffer se incluya al agregar nuevo producto

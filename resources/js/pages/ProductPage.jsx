@@ -596,7 +596,7 @@ const ProductPage = () => {
       // Verificar si el producto está "próximamente" y el usuario es "oro"
       const inventoryStatus = getInventoryStatus();
       const isComingSoon = inventoryStatus.status === 'coming-soon';
-      const isOroUser = user && user.seller_category === 'oro';
+      const isOroUser = user && ['oro', 'diamante'].includes(user.seller_category);
       
       const stockDisponible = getStockBySizeAndColor(selectedSize, selectedColor);
       // Si la cantidad actual excede el stock disponible, ajustarla (excepto para usuarios "oro" con productos "Próximamente")
@@ -612,7 +612,7 @@ const ProductPage = () => {
       // Verificar si el producto está "próximamente" y el usuario es "oro"
       const inventoryStatus = getInventoryStatus();
       const isComingSoon = inventoryStatus.status === 'coming-soon';
-      const isOroUser = user && user.seller_category === 'oro';
+      const isOroUser = user && ['oro', 'diamante'].includes(user.seller_category);
       
       const stockDisponible = getStockBySizeAndColor(selectedSize, selectedColor);
       // Ajustar la cantidad al stock disponible de la nueva talla (excepto para usuarios "oro" con productos "Próximamente")
@@ -628,7 +628,7 @@ const ProductPage = () => {
       // Verificar si el producto está "próximamente" y el usuario es "oro"
       const inventoryStatus = getInventoryStatus();
       const isComingSoon = inventoryStatus.status === 'coming-soon';
-      const isOroUser = user && user.seller_category === 'oro';
+      const isOroUser = user && ['oro', 'diamante'].includes(user.seller_category);
       
       const stockDisponible = getStockBySizeAndColor(selectedSize, selectedColor);
       // Si la talla seleccionada no tiene stock para el nuevo color, resetearla (excepto para usuarios "oro" con productos "Próximamente")
@@ -720,7 +720,7 @@ const ProductPage = () => {
       }
       
       // Si el usuario NO es "oro", solo notificar al admin (no agregar a wishlist automáticamente)
-      if (!user.seller_category || user.seller_category !== 'oro') {
+      if (!user.seller_category || !['oro', 'diamante'].includes(user.seller_category)) {
         try {
           // Notificar al admin
           await api.post('/api/notify-product-interest', {
@@ -892,7 +892,7 @@ const ProductPage = () => {
     // Verificar si el producto está "próximamente" y el usuario es "oro"
     const inventoryStatus = getInventoryStatus();
     const isComingSoon = inventoryStatus.status === 'coming-soon';
-    const isOroUser = user && user.seller_category === 'oro';
+    const isOroUser = user && ['oro', 'diamante'].includes(user.seller_category);
     
     const stockMaximo = getStockForSize(talla);
     
@@ -924,7 +924,7 @@ const ProductPage = () => {
     // Verificar si el producto está "próximamente" y el usuario es "oro"
     const inventoryStatus = getInventoryStatus();
     const isComingSoon = inventoryStatus.status === 'coming-soon';
-    const isOroUser = user && user.seller_category === 'oro';
+    const isOroUser = user && ['oro', 'diamante'].includes(user.seller_category);
     
     // Verificar si la talla tiene stock
     const stockDisponible = selectedColor ? getStockBySizeAndColor(talla, selectedColor) : getStockForSize(talla);
@@ -1391,7 +1391,7 @@ const ProductPage = () => {
   // Agregar alerta de "próximamente" si aplica (después de que getInventoryStatus esté definida)
   const inventoryStatus = getInventoryStatus();
   const isComingSoon = inventoryStatus.status === 'coming-soon';
-  const isOroUser = user && user.seller_category === 'oro';
+  const isOroUser = user && ['oro', 'diamante'].includes(user.seller_category);
   const showNotifyAlert = isComingSoon && (!user || !isOroUser);
   
   const productPageAlerts = [...baseAlerts];
@@ -1802,7 +1802,7 @@ const ProductPage = () => {
                 // Verificar si el producto está "próximamente" y el usuario es "oro" (fuera del map para usar en el mensaje)
                 const inventoryStatus = getInventoryStatus();
                 const isComingSoon = inventoryStatus.status === 'coming-soon';
-                const isOroUser = user && user.seller_category === 'oro';
+                const isOroUser = user && ['oro', 'diamante'].includes(user.seller_category);
                 const showNotifyAlert = isComingSoon && (!user || !isOroUser);
                 
                 return (
@@ -1919,7 +1919,7 @@ const ProductPage = () => {
                 {(() => {
                   const inventoryStatus = getInventoryStatus();
                   const isComingSoon = inventoryStatus.status === 'coming-soon';
-                  const isOroUser = user && user.seller_category === 'oro';
+                  const isOroUser = user && ['oro', 'diamante'].includes(user.seller_category);
                   const showNotifyAlert = isComingSoon && (!user || !isOroUser);
                   
                   // Si es "próximamente" y no es usuario oro, no mostrar botón de agregar al carrito
