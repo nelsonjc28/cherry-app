@@ -19,6 +19,21 @@
   margin: 0;
 }
 
+/* Título más pequeño en móvil para que no baje (También te podría gustar / Vistos Recientemente) */
+@media (max-width: 767px) {
+  .horizontal-carousel-title {
+    font-size: 1rem;
+    line-height: 1.25;
+  }
+}
+
+@media (max-width: 480px) {
+  .horizontal-carousel-title {
+    font-size: 0.875rem;
+    line-height: 1.3;
+  }
+}
+
 .horizontal-carousel-view-all {
   color: var(--color-primary, #EA2630);
   font-size: 0.95rem;
