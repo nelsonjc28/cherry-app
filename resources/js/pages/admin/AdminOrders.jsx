@@ -53,7 +53,7 @@ const AdminOrders = () => {
   };
   
   const getInitialItemsPerPage = () => {
-    return parseInt(searchParams.get('itemsPerPage') || localStorage.getItem('adminOrders_itemsPerPage') || '10', 10);
+    return 50;
   };
   
   const getInitialCurrentPage = () => {
@@ -442,22 +442,6 @@ const AdminOrders = () => {
           />
         </div>
 
-        <div className="filter-group">
-          <label htmlFor="items-per-page">Mostrar:</label>
-          <select
-            id="items-per-page"
-            value={itemsPerPage}
-            onChange={(e) => {
-              updateItemsPerPage(Number(e.target.value));
-            }}
-            className="filter-select"
-          >
-            <option value={10}>10</option>
-            <option value={25}>25</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-          </select>
-        </div>
       </div>
 
       <div className="admin-orders__table-container">

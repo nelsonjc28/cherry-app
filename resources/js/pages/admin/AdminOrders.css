@@ -252,6 +252,7 @@
   width: auto;
   border-collapse: collapse;
   table-layout: auto;
+  margin: 0 auto;
 }
 
 .admin-orders__table thead {
@@ -260,7 +261,7 @@
 }
 
 .admin-orders__table th {
-  padding: 14px 16px;
+  padding: 8px 6px;
   text-align: left;
   font-size: 12px;
   font-weight: 600;
@@ -272,7 +273,6 @@
   top: 0;
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   z-index: 10;
-  width: auto;
 }
 
 .admin-orders__table tbody tr {
@@ -291,16 +291,11 @@
 }
 
 .admin-orders__table td {
-  padding: 14px 16px;
+  padding: 8px 6px;
   font-size: 13px;
   color: #333;
   vertical-align: middle;
   white-space: nowrap;
-}
-
-.admin-orders__table tbody td {
-  padding: 10px 32px;
-  font-size: 12px;
 }
 
 .order-number-cell {
