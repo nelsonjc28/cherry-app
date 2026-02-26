@@ -85,23 +85,23 @@ const ProductPage = () => {
 
     try {
       setIsSharing(true);
-      
+
       // Validar que el producto existe
       if (!product) {
         throw new Error("No hay información del producto disponible");
       }
-      
+
       // Compartir usando las imágenes del producto en S3 (todas las disponibles)
       const { shareProductWithImages } = await import('../utils/shareProductUtils');
-      
+
       // Calcular información de precio y descuento directamente
       const basePrice = product?.precio1 || 0;
-      
+
       // Calcular descuento con la misma lógica que calculateDiscountPercentage
       let discountPercentage = 0;
       const userOffer = product?.userOffer || userDiscounts[product.id_articulo];
       const hasUserOffer = Boolean(product?.hasUserOffer || userOffer);
-      
+
       if (hasUserOffer && userOffer && userOffer.discount_percentage > 0) {
         discountPercentage = Math.round(userOffer.discount_percentage);
       } else if (product?.desc_promo && product.desc_promo > 0) {
@@ -112,7 +112,7 @@ const ProductPage = () => {
       } else if (product?.originalPrice && product?.price && product.originalPrice > product.price) {
         discountPercentage = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
       }
-      
+
       // Calcular precio final con la misma lógica que calculateFinalPrice
       let finalPrice = basePrice;
       if (product?.price && product.price !== basePrice) {
@@ -120,9 +120,9 @@ const ProductPage = () => {
       } else if (discountPercentage > 0 && basePrice > 0) {
         finalPrice = basePrice - (basePrice * (discountPercentage / 100));
       }
-      
+
       const hasDiscount = discountPercentage > 0 && basePrice > finalPrice;
-      
+
       await shareProductWithImages({
         id: product.id_articulo || product.id || product.codigo,
         title: product.descripcion || 'Producto Cherry',
@@ -132,13 +132,13 @@ const ProductPage = () => {
         hasDiscount: hasDiscount
       });
     } catch (error) {
-      
+
       let errorMessage = "No se pudo compartir el producto.";
-      
+
       if (error.message) {
         errorMessage = `Error: ${error.message}`;
       }
-      
+
       if (window.showToast) {
         window.showToast(errorMessage, "error");
       }
@@ -161,39 +161,39 @@ const ProductPage = () => {
 
       // Obtener la URL de la imagen del producto
       const productImageUrl = generateS3ImageUrl(product.id_articulo);
-      
+
       // Crear un canvas personalizado con la imagen y el texto
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      
+
       // Dimensiones del canvas
       const canvasWidth = 800;
       const canvasHeight = 1000;
       canvas.width = canvasWidth;
       canvas.height = canvasHeight;
-      
+
       // Fondo blanco
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-      
+
       // Definir padding y dimensiones máximas
       const imagePadding = 40;
       const imageMaxWidth = canvasWidth - (imagePadding * 2);
       const imageMaxHeight = 500;
-      
+
       // Variables para almacenar las dimensiones finales de la imagen
       let finalImageHeight = 0;
-      
+
       // Cargar y dibujar la imagen del producto
       const productImage = new Image();
       productImage.crossOrigin = 'anonymous';
-      
+
       await new Promise((resolve, reject) => {
         productImage.onload = () => {
           // Calcular dimensiones de la imagen (mantener proporción)
           let imageWidth = productImage.naturalWidth;
           let imageHeight = productImage.naturalHeight;
-          
+
           // Ajustar tamaño manteniendo proporción
           const aspectRatio = imageWidth / imageHeight;
           if (imageWidth > imageMaxWidth) {
@@ -204,48 +204,48 @@ const ProductPage = () => {
             imageHeight = imageMaxHeight;
             imageWidth = imageHeight * aspectRatio;
           }
-          
+
           // Guardar la altura final para calcular la posición del texto
           finalImageHeight = imageHeight;
-          
+
           // Centrar la imagen horizontalmente
           const imageX = (canvasWidth - imageWidth) / 2;
           const imageY = imagePadding;
-          
+
           // Dibujar la imagen
           ctx.drawImage(productImage, imageX, imageY, imageWidth, imageHeight);
-          
+
           resolve();
         };
-        
+
         productImage.onerror = () => {
           // Si falla, usar altura por defecto
           finalImageHeight = 500;
           resolve();
         };
-        
+
         productImage.src = productImageUrl;
       });
-      
+
       // Calcular posición Y para el texto (después de la imagen)
       const textStartY = imagePadding + finalImageHeight + 60;
-      
+
       // Configurar estilos de texto
       ctx.fillStyle = '#333333';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
-      
+
       // Dibujar título
       ctx.font = 'bold 32px Arial, sans-serif';
       const productName = product?.descripcion || 'Producto';
       const maxTitleWidth = canvasWidth - (imagePadding * 2);
       ctx.fillText(productName, canvasWidth / 2, textStartY, maxTitleWidth);
-      
+
       // Calcular precios
       const basePrice = product?.precio1 || 0;
       let discount = 0;
       let finalPrice = basePrice;
-      
+
       if (product?.userOffer?.discount_percentage > 0) {
         discount = Math.round(product.userOffer.discount_percentage);
       } else if (product?.desc_promo && product.desc_promo > 0) {
@@ -255,16 +255,16 @@ const ProductPage = () => {
       } else if (product?.discount && product.discount > 0) {
         discount = Math.round(product.discount);
       }
-      
+
       if (discount > 0 && basePrice > 0) {
         finalPrice = basePrice - (basePrice * (discount / 100));
       } else if (product?.price && product.price !== basePrice) {
         finalPrice = product.price;
       }
-      
+
       // Dibujar precios
       let priceY = textStartY + 60;
-      
+
       if (discount > 0) {
         // Precio tachado
         ctx.fillStyle = '#999999';
@@ -272,7 +272,7 @@ const ProductPage = () => {
         const strikethroughText = `$${basePrice.toFixed(2)}`;
         const strikethroughWidth = ctx.measureText(strikethroughText).width;
         ctx.fillText(strikethroughText, canvasWidth / 2, priceY);
-        
+
         // Dibujar línea tachada
         ctx.strokeStyle = '#999999';
         ctx.lineWidth = 2;
@@ -280,12 +280,12 @@ const ProductPage = () => {
         ctx.moveTo((canvasWidth / 2) - (strikethroughWidth / 2), priceY + 12);
         ctx.lineTo((canvasWidth / 2) + (strikethroughWidth / 2), priceY + 12);
         ctx.stroke();
-        
+
         // Precio con descuento
         ctx.fillStyle = '#e74c3c';
         ctx.font = 'bold 36px Arial, sans-serif';
         ctx.fillText(`$${finalPrice.toFixed(2)}`, canvasWidth / 2, priceY + 30);
-        
+
         // Descuento
         ctx.fillStyle = '#27ae60';
         ctx.font = 'bold 28px Arial, sans-serif';
@@ -296,7 +296,7 @@ const ProductPage = () => {
         ctx.font = 'bold 36px Arial, sans-serif';
         ctx.fillText(`$${basePrice.toFixed(2)}`, canvasWidth / 2, priceY);
       }
-      
+
       // Dibujar texto de llamada a la acción
       ctx.fillStyle = '#666666';
       ctx.font = '20px Arial, sans-serif';
@@ -339,7 +339,7 @@ const ProductPage = () => {
         try {
           // Detectar si es móvil
           const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-          
+
           // Verificar si puede compartir archivos
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
             if (isMobile) {
@@ -350,7 +350,7 @@ const ProductPage = () => {
                 text: shareText + '\n\n📸 ' + window.location.href,
                 url: window.location.href
               });
-              
+
               // Descargar la imagen automáticamente para que el usuario pueda adjuntarla
               const dataUrl = canvas.toDataURL('image/png');
               const link = document.createElement('a');
@@ -359,7 +359,7 @@ const ProductPage = () => {
               document.body.appendChild(link);
               link.click();
               document.body.removeChild(link);
-              
+
               if (window.showToast) {
                 window.showToast('Texto compartido. La imagen se descargó para adjuntarla.', 'info');
               }
@@ -379,7 +379,7 @@ const ProductPage = () => {
                   text: shareText + '\n\n📸 ' + window.location.href,
                   url: window.location.href
                 });
-                
+
                 // Descargar la imagen
                 const dataUrl = canvas.toDataURL('image/png');
                 const link = document.createElement('a');
@@ -397,7 +397,7 @@ const ProductPage = () => {
               text: shareText + '\n\n📸 ' + window.location.href,
               url: window.location.href
             });
-            
+
             // Descargar la imagen por separado
             const dataUrl = canvas.toDataURL('image/png');
             const link = document.createElement('a');
@@ -407,7 +407,7 @@ const ProductPage = () => {
             link.click();
             document.body.removeChild(link);
           }
-          
+
           if (window.showToast && !isMobile) {
             window.showToast('¡Compartido exitosamente!', 'success');
           }
@@ -423,7 +423,7 @@ const ProductPage = () => {
 
       // Fallback: Descargar imagen y abrir WhatsApp Web
       const dataUrl = canvas.toDataURL('image/png');
-      
+
       // Descargar la imagen automáticamente
       const link = document.createElement('a');
       link.download = fileName;
@@ -434,7 +434,7 @@ const ProductPage = () => {
 
       // Abrir WhatsApp Web con el texto formateado
       const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText + '\n\n📸 La imagen se ha descargado, puedes adjuntarla desde tu galería')}`;
-      
+
       // Abrir WhatsApp después de un pequeño delay
       setTimeout(() => {
         window.open(whatsappUrl, "_blank");
@@ -445,9 +445,9 @@ const ProductPage = () => {
       }
 
     } catch (error) {
-      
+
       let errorMessage = "No se pudo compartir la imagen.";
-      
+
       if (error.message) {
         if (error.message.includes("No se encontró el elemento")) {
           errorMessage = "No se pudo capturar la pantalla. Por favor, intenta de nuevo.";
@@ -457,7 +457,7 @@ const ProductPage = () => {
           errorMessage = `Error: ${error.message}`;
         }
       }
-      
+
       if (window.showToast) {
         window.showToast(errorMessage, "error");
       }
@@ -492,7 +492,7 @@ const ProductPage = () => {
       try {
         // Llamar al nuevo endpoint del backend
         const response = await api.get(`/products/${productId}`);
-        
+
         if (!response.data.success || !response.data.data) {
           throw new Error('Producto no encontrado');
         }
@@ -514,13 +514,13 @@ const ProductPage = () => {
         }
 
         setProduct(productWithOffer);
-        
+
         // Registrar producto en "Vistos Recientemente" si el usuario está autenticado
         const productIdToSave = productData.id || productData.id_articulo || productId;
         if (productIdToSave && user) {
           registerProduct(String(productIdToSave));
         }
-        
+
         // Set default color/size if available
         if (productData.detalles && productData.detalles.length > 0) {
           const availableColors = [...new Set(productData.detalles.map(d => d.nombreColor).filter(Boolean))];
@@ -559,24 +559,24 @@ const ProductPage = () => {
   // Load suggested products when product is loaded
   useEffect(() => {
     if (!productId || !product) return;
-    
+
     const fetchSuggestedProducts = async () => {
       try {
         // Encode productId to handle special characters
         const encodedProductId = encodeURIComponent(productId);
         const response = await api.get(`/products/${encodedProductId}/suggested?limit=8`);
-        
+
         if (response.data.success && response.data.data) {
           // Apply user offers if user is logged in
           const hasActiveSession = isUserSessionActive();
           let suggestedProducts = response.data.data;
-          
+
           if (hasActiveSession && suggestedProducts.length > 0) {
             const productIds = suggestedProducts.map(p => p.id || p.id_articulo);
             const productsWithOffers = await applyUserOffersToProducts(suggestedProducts);
             suggestedProducts = productsWithOffers;
           }
-          
+
           setRelatedProducts(suggestedProducts);
         }
       } catch (err) {
@@ -584,7 +584,7 @@ const ProductPage = () => {
         setRelatedProducts([]);
       }
     };
-    
+
     fetchSuggestedProducts();
   }, [productId, product]);
 
@@ -597,7 +597,7 @@ const ProductPage = () => {
       const inventoryStatus = getInventoryStatus();
       const isComingSoon = inventoryStatus.status === 'coming-soon';
       const isOroUser = user && ['oro', 'diamante'].includes(user.seller_category);
-      
+
       const stockDisponible = getStockBySizeAndColor(selectedSize, selectedColor);
       // Si la cantidad actual excede el stock disponible, ajustarla (excepto para usuarios "oro" con productos "Próximamente")
       if (quantity > stockDisponible && !(isComingSoon && isOroUser)) {
@@ -613,7 +613,7 @@ const ProductPage = () => {
       const inventoryStatus = getInventoryStatus();
       const isComingSoon = inventoryStatus.status === 'coming-soon';
       const isOroUser = user && ['oro', 'diamante'].includes(user.seller_category);
-      
+
       const stockDisponible = getStockBySizeAndColor(selectedSize, selectedColor);
       // Ajustar la cantidad al stock disponible de la nueva talla (excepto para usuarios "oro" con productos "Próximamente")
       if (quantity > stockDisponible && !(isComingSoon && isOroUser)) {
@@ -629,7 +629,7 @@ const ProductPage = () => {
       const inventoryStatus = getInventoryStatus();
       const isComingSoon = inventoryStatus.status === 'coming-soon';
       const isOroUser = user && ['oro', 'diamante'].includes(user.seller_category);
-      
+
       const stockDisponible = getStockBySizeAndColor(selectedSize, selectedColor);
       // Si la talla seleccionada no tiene stock para el nuevo color, resetearla (excepto para usuarios "oro" con productos "Próximamente")
       if (stockDisponible <= 0 && !(isComingSoon && isOroUser)) {
@@ -680,7 +680,7 @@ const ProductPage = () => {
         user_name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email,
         user_email: user.email
       });
-      
+
       if (response.data && response.data.success) {
         if (window.showToast) {
           window.showToast('✅ Te avisaremos cuando este producto esté disponible.', 'success');
@@ -709,7 +709,7 @@ const ProductPage = () => {
     // Verificar si el producto está "próximamente" (coming-soon)
     const inventoryStatus = getInventoryStatus();
     const isComingSoon = inventoryStatus.status === 'coming-soon';
-    
+
     // Si el producto está "próximamente", manejar según categoría del usuario
     if (isComingSoon) {
       if (!user) {
@@ -718,7 +718,7 @@ const ProductPage = () => {
         }
         return;
       }
-      
+
       // Si el usuario NO es "oro", solo notificar al admin (no agregar a wishlist automáticamente)
       if (!user.seller_category || !['oro', 'diamante'].includes(user.seller_category)) {
         try {
@@ -730,7 +730,7 @@ const ProductPage = () => {
             user_name: `${user.first_name} ${user.last_name}`,
             user_email: user.email
           });
-          
+
           if (window.showToast) {
             window.showToast('✅ Te avisaremos cuando este producto esté disponible.', 'success');
           }
@@ -815,7 +815,7 @@ const ProductPage = () => {
       if (window.showToast) {
         const totalUnidades = getTotalUnits();
         let message = `${totalUnidades} unidad${totalUnidades > 1 ? 'es' : ''} agregada${totalUnidades > 1 ? 's' : ''} al carrito`;
-        
+
         // Si es un producto "próximamente", indicar que es un encargo
         if (isComingSoon) {
           message += ' 📦 (Encargo - Próximamente)';
@@ -893,9 +893,9 @@ const ProductPage = () => {
     const inventoryStatus = getInventoryStatus();
     const isComingSoon = inventoryStatus.status === 'coming-soon';
     const isOroUser = user && ['oro', 'diamante'].includes(user.seller_category);
-    
+
     const stockMaximo = getStockForSize(talla);
-    
+
     // Para productos "Próximamente" de usuarios "oro", permitir cualquier cantidad positiva
     const maxAllowed = (isComingSoon && isOroUser) ? 9999 : stockMaximo;
 
@@ -925,7 +925,7 @@ const ProductPage = () => {
     const inventoryStatus = getInventoryStatus();
     const isComingSoon = inventoryStatus.status === 'coming-soon';
     const isOroUser = user && ['oro', 'diamante'].includes(user.seller_category);
-    
+
     // Verificar si la talla tiene stock
     const stockDisponible = selectedColor ? getStockBySizeAndColor(talla, selectedColor) : getStockForSize(talla);
 
@@ -980,7 +980,7 @@ const ProductPage = () => {
   const DISCOUNT_30_THRESHOLD = 7000;
   const DISCOUNT_40_THRESHOLD = 15000;
   const NEAR_THRESHOLD_PERCENT = 0.7;
-  
+
   // Calcular total elegible del carrito (productos sin rebaja)
   const eligibleCartTotal = (cartItems || []).reduce((sum, item) => {
     const hasNoPromo = item.desc_promo === 0 || item.desc_promo === null || item.desc_promo === undefined;
@@ -999,15 +999,15 @@ const ProductPage = () => {
 
   const getProductPageAlerts = () => {
     const alerts = [];
-    
+
     // Alertas para descuentos (solo si hay items elegibles o el producto actual es elegible)
     const productHasNoPromo = !product?.desc_promo || product.desc_promo === 0;
-    
+
     if (productHasNoPromo || eligibleCartTotal > 0) {
       if (eligibleCartTotal < DISCOUNT_30_THRESHOLD) {
         const remaining = DISCOUNT_30_THRESHOLD - eligibleCartTotal;
         const isNear = eligibleCartTotal >= (DISCOUNT_30_THRESHOLD * NEAR_THRESHOLD_PERCENT);
-        
+
         if (isNear && eligibleCartTotal > 0) {
           alerts.push({
             type: 'near',
@@ -1019,7 +1019,7 @@ const ProductPage = () => {
           alerts.push({
             type: 'info',
             icon: '💰',
-            message: eligibleCartTotal > 0 
+            message: eligibleCartTotal > 0
               ? `Te faltan $${formatMoneyWithCommas(remaining)} para obtener un descuento del 30%`
               : `Agrega $${DISCOUNT_30_THRESHOLD.toLocaleString()} en productos para obtener 30% de descuento`,
             color: '#2196f3'
@@ -1028,14 +1028,14 @@ const ProductPage = () => {
       } else if (eligibleCartTotal >= DISCOUNT_30_THRESHOLD && eligibleCartTotal < DISCOUNT_40_THRESHOLD) {
         const remaining = DISCOUNT_40_THRESHOLD - eligibleCartTotal;
         const isNear = eligibleCartTotal >= (DISCOUNT_40_THRESHOLD * NEAR_THRESHOLD_PERCENT);
-        
+
         alerts.push({
           type: 'success',
           icon: '✅',
           message: `¡Tienes 30% de descuento!`,
           color: '#4caf50'
         });
-        
+
         if (isNear) {
           alerts.push({
             type: 'near',
@@ -1060,12 +1060,12 @@ const ProductPage = () => {
         });
       }
     }
-    
+
     // Alertas para envío gratis
     if (cartTotal < freeShippingMin) {
       const remaining = freeShippingMin - cartTotal;
       const isNear = cartTotal >= (freeShippingMin * NEAR_THRESHOLD_PERCENT);
-      
+
       if (isNear && cartTotal > 0) {
         alerts.push({
           type: 'near',
@@ -1089,10 +1089,10 @@ const ProductPage = () => {
         color: '#4caf50'
       });
     }
-    
+
     return alerts;
   };
-  
+
   // Calcular alertas base
   const baseAlerts = getProductPageAlerts();
 
@@ -1300,7 +1300,7 @@ const ProductPage = () => {
   // - "Agotado": Si stock === 0 Y (el tercer dígito del ID NO coincide con el último dígito del año actual O stock_received_count > 0)
   const getInventoryStatus = () => {
     const totalInventory = getTotalInventory();
-    
+
     // Obtener stock_received_count del producto y asegurar que sea un número
     const stockReceivedCount = parseInt(product?.stock_received_count || product?.stockReceivedCount || 0, 10);
 
@@ -1393,7 +1393,7 @@ const ProductPage = () => {
   const isComingSoon = inventoryStatus.status === 'coming-soon';
   const isOroUser = user && ['oro', 'diamante'].includes(user.seller_category);
   const showNotifyAlert = isComingSoon && (!user || !isOroUser);
-  
+
   const productPageAlerts = [...baseAlerts];
   if (showNotifyAlert) {
     productPageAlerts.push({
@@ -1458,7 +1458,7 @@ const ProductPage = () => {
   // Construir URL completa del producto para el schema
   const productUrl = `${window.location.origin}/producto/${id_articulo}`;
   const productImageUrl = generateS3ImageUrl(id_articulo);
-  
+
   // Construir schema JSON-LD para SEO (requerido por Google)
   const productSchema = {
     "@context": "https://schema.org",
@@ -1486,7 +1486,7 @@ const ProductPage = () => {
       }
     }
   };
-  
+
   // Agregar aggregateRating si hay calificaciones
   if (ratingData && ratingData.count > 0 && ratingData.average > 0) {
     productSchema.aggregateRating = {
@@ -1636,9 +1636,9 @@ const ProductPage = () => {
                     `🎁 Compra ${userOffer.buy_quantity} por el precio de ${userOffer.buy_quantity - userOffer.get_quantity}` :
                     hasUserOffer && userOffer && userOffer.discount_category === 'order_discount' ?
                       `💰 Descuento en pedido ${Math.round(userOffer.discount_percentage)}%` :
-                        hasUserOffer && userOffer && userOffer.discount_percentage > 0 ?
-                          (<>{!isMobile && "Rebaja "}{Math.round(userOffer.discount_percentage)}%</>) :
-                          (<>🏷️ {!isMobile && "Rebaja "}{discountPercentage}%</>)
+                      hasUserOffer && userOffer && userOffer.discount_percentage > 0 ?
+                        (<>{!isMobile && "Rebaja "}{Math.round(userOffer.discount_percentage)}%</>) :
+                        (<>🏷️ {!isMobile && "Rebaja "}{discountPercentage}%</>)
                   }
                 </div>
               )}
@@ -1690,7 +1690,7 @@ const ProductPage = () => {
                   </div>
                 </div>
               )}
-              
+
             </div>
 
             <div className="product-page__container-info-details">
@@ -1735,10 +1735,10 @@ const ProductPage = () => {
             {productPageAlerts.filter(alert => !alert.isComingSoonAlert).length > 0 && (
               <div className="product-page__alerts">
                 {productPageAlerts.filter(alert => !alert.isComingSoonAlert).map((alert, index) => (
-                  <div 
-                    key={index} 
+                  <div
+                    key={index}
                     className={`product-page__alert product-page__alert--${alert.type}`}
-                    style={{ 
+                    style={{
                       borderLeftColor: alert.color,
                       backgroundColor: `${alert.color}15`
                     }}
@@ -1804,101 +1804,110 @@ const ProductPage = () => {
                 const isComingSoon = inventoryStatus.status === 'coming-soon';
                 const isOroUser = user && ['oro', 'diamante'].includes(user.seller_category);
                 const showNotifyAlert = isComingSoon && (!user || !isOroUser);
-                
+
                 return (
-                <div className="product-page__option">
-                  <div className="product-page__option-header product-page__step-number-border">
-                    <span className="product-page__step-number">Paso 2</span>
-                    <span className="product-page__step-description">Selecciona la talla y cantidad de piezas</span>
-                  </div>
-                  <div className="product-page__option-label">Talla</div>
-
-                  <div className="product-page__size-options">
-                    {tallasAMostrar.map((talla, index) => {
-                      const stockDisponible = selectedColor ? getStockBySizeAndColor(talla, selectedColor) : getStockForSize(talla);
-                      const isDisabled = selectedColor && stockDisponible <= 0 && !(isComingSoon && isOroUser);
-                      const maxStock = getStockForSize(talla);
-                      const maxAllowed = (isComingSoon && isOroUser) ? 9999 : maxStock;
-                      const canIncrease = (quantitiesBySize[talla] || 0) < maxAllowed;
-                      
-                      return (
-                        <div key={talla} className={`product-page__size-item ${selectedSize === talla ? 'product-page__size-item--selected' : ''}`}>
-                          <button
-                            className={`product-page__size-button ${isDisabled ? 'product-page__size-button--out-of-stock' : ''}`}
-                            onClick={() => handleSizeSelection(talla)}
-                            disabled={isDisabled}
-                            title={isDisabled ?
-                              'Sin stock disponible para este color' :
-                              (isComingSoon && isOroUser ? 'Seleccionar talla (Encargo - Próximamente)' : 'Seleccionar talla')
-                            }
-                          >
-                            <span className="product-page__size-number">{talla}</span>
-                            <span className="product-page__size-availability">
-                              {isComingSoon && isOroUser ? 
-                                'Disponible para encargo' :
-                                (selectedColor ?
-                                  `${stockDisponible} disponibles` :
-                                  'Disponibles'
-                                )
-                              }
-                            </span>
-                          </button>
-
-                          <div className="product-page__size-quantity">
-                            <button
-                              className={`product-page__quantity-btn ${(quantitiesBySize[talla] || 0) <= 0 ? 'product-page__quantity-btn--disabled' : ''}`}
-                              onClick={() => handleQuantityChangeForSize(talla, (quantitiesBySize[talla] || 0) - 1)}
-                              disabled={(quantitiesBySize[talla] || 0) <= 0}
-                            >
-                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                              </svg>
-                            </button>
-                            <span className="product-page__quantity-display">
-                              {quantitiesBySize[talla] || 0}
-                            </span>
-                            <button
-                              className={`product-page__quantity-btn ${!canIncrease ? 'product-page__quantity-btn--disabled' : ''}`}
-                              onClick={() => handleQuantityChangeForSize(talla, (quantitiesBySize[talla] || 0) + 1)}
-                              disabled={!canIncrease}
-                              title={!canIncrease ?
-                                (isComingSoon && isOroUser ? '' : `Máximo ${maxStock} unidades disponibles`) :
-                                'Aumentar cantidad'
-                              }
-                            >
-                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  
-                  {/* Mensaje de próximamente - Solo mostrar si es producto próximamente y no es usuario oro */}
-                  {showNotifyAlert && (
-                    <div className="product-page__alert product-page__alert--warning" style={{ 
-                      borderLeftColor: '#ff9800',
-                      backgroundColor: '#ff980015',
-                      marginTop: '1rem'
-                    }}>
-                      <span className="product-page__alert-icon">ℹ️</span>
-                      <span className="product-page__alert-message">
-                        Si te interesa este producto da click{' '}
-                        <button
-                          type="button"
-                          className="product-page__alert-link"
-                          onClick={handleNotifyProductInterest}
-                        >
-                          aquí
-                        </button>
-                        {' '}para avisarte cuando llegue
-                      </span>
+                  <div className="product-page__option">
+                    <div className="product-page__option-header product-page__step-number-border">
+                      <span className="product-page__step-number">Paso 2</span>
+                      <span className="product-page__step-description">Selecciona la talla y cantidad de piezas</span>
                     </div>
-                  )}
-                </div>
+                    <div className="product-page__option-label">Talla</div>
+
+                    {/* Mensaje de próximamente - Solo mostrar si es producto próximamente y no es usuario oro */}
+                    {showNotifyAlert && (
+                      <div className="product-page__coming-soon-alert">
+                        <div className="product-page__coming-soon-alert-row1">
+                          <span className="product-page__coming-soon-alert-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D2042D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                              <line x1="12" y1="9" x2="12" y2="13" />
+                              <line x1="12" y1="17" x2="12.01" y2="17" />
+                            </svg>
+                          </span>
+                          <span className="product-page__coming-soon-alert-line1">Pieza agotada temporalmente.</span>
+                        </div>
+                        <div className="product-page__coming-soon-alert-row2">
+                          <span className="product-page__coming-soon-alert-line2">Te avisamos en cuanto vuelva a estar disponible.</span>
+                          <button
+                            type="button"
+                            className="product-page__coming-soon-alert-btn"
+                            onClick={handleNotifyProductInterest}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px' }}>
+                              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                            </svg>
+                            Notificarme
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+
+                    <div className="product-page__size-options">
+                      {tallasAMostrar.map((talla, index) => {
+                        const stockDisponible = selectedColor ? getStockBySizeAndColor(talla, selectedColor) : getStockForSize(talla);
+                        const isDisabled = selectedColor && stockDisponible <= 0 && !(isComingSoon && isOroUser);
+                        const maxStock = getStockForSize(talla);
+                        const maxAllowed = (isComingSoon && isOroUser) ? 9999 : maxStock;
+                        const canIncrease = (quantitiesBySize[talla] || 0) < maxAllowed;
+
+                        return (
+                          <div key={talla} className={`product-page__size-item ${selectedSize === talla ? 'product-page__size-item--selected' : ''}`}>
+                            <button
+                              className={`product-page__size-button ${isDisabled ? 'product-page__size-button--out-of-stock' : ''}`}
+                              onClick={() => handleSizeSelection(talla)}
+                              disabled={isDisabled}
+                              title={isDisabled ?
+                                'Sin stock disponible para este color' :
+                                (isComingSoon && isOroUser ? 'Seleccionar talla (Encargo - Próximamente)' : 'Seleccionar talla')
+                              }
+                            >
+                              <span className="product-page__size-number">{talla}</span>
+                              <span className="product-page__size-availability">
+                                {isComingSoon && isOroUser ?
+                                  'Disponible para encargo' :
+                                  (selectedColor ?
+                                    `${stockDisponible} disponibles` :
+                                    'Disponibles'
+                                  )
+                                }
+                              </span>
+                            </button>
+
+                            <div className="product-page__size-quantity">
+                              <button
+                                className={`product-page__quantity-btn ${(quantitiesBySize[talla] || 0) <= 0 ? 'product-page__quantity-btn--disabled' : ''}`}
+                                onClick={() => handleQuantityChangeForSize(talla, (quantitiesBySize[talla] || 0) - 1)}
+                                disabled={(quantitiesBySize[talla] || 0) <= 0}
+                              >
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                              </button>
+                              <span className="product-page__quantity-display">
+                                {quantitiesBySize[talla] || 0}
+                              </span>
+                              <button
+                                className={`product-page__quantity-btn ${!canIncrease ? 'product-page__quantity-btn--disabled' : ''}`}
+                                onClick={() => handleQuantityChangeForSize(talla, (quantitiesBySize[talla] || 0) + 1)}
+                                disabled={!canIncrease}
+                                title={!canIncrease ?
+                                  (isComingSoon && isOroUser ? '' : `Máximo ${maxStock} unidades disponibles`) :
+                                  'Aumentar cantidad'
+                                }
+                              >
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 );
               })()}
 
@@ -1921,13 +1930,13 @@ const ProductPage = () => {
                   const isComingSoon = inventoryStatus.status === 'coming-soon';
                   const isOroUser = user && ['oro', 'diamante'].includes(user.seller_category);
                   const showNotifyAlert = isComingSoon && (!user || !isOroUser);
-                  
+
                   // Si es "próximamente" y no es usuario oro, no mostrar botón de agregar al carrito
                   // (la alerta ya se muestra arriba)
                   if (showNotifyAlert) {
                     return null;
                   }
-                  
+
                   return (
                     <CherryButton
                       variant="red"
