@@ -192,15 +192,15 @@ class ExternalSalesService
             
             // Crear item para esta talla/color específica
             // Cada OrderItem representa una combinación única de producto/talla/color
+            // Estructura según API externa: idArtd, idArticulo, cantidad, precio, descuento, opcDecto
             // IMPORTANTE: Enviar precio ORIGINAL (precio1) en el campo 'precio', NO el precio con descuento
-            // El descuento se envía en el campo 'descuento' como porcentaje
             $items[] = [
-                'idArtd' => (int) $detalle->id, // Identificador del artículo por color y talla
-                'idArticulo' => $idArticulo, // Identificador del artículo
-                'cantidad' => (float) $cantidad, // Cantidad de esta talla específica
-                'precio' => (float) $precioOriginal, // Precio ORIGINAL sin descuentos (precio1)
-                'descuento' => (float) $porcentajeDescuento, // Porcentaje de descuento TOTAL aplicado (la API espera porcentaje, no monto)
-                'opcDecto' => $porcentajeDescuento > 0 ? 'S' : 'N' // Indica si hay descuento
+                'idArtd' => (int) $detalle->id,
+                'idArticulo' => (string) $idArticulo,
+                'cantidad' => (int) $cantidad,
+                'precio' => (float) $precioOriginal,
+                'descuento' => (float) $porcentajeDescuento,
+                'opcDecto' => $porcentajeDescuento > 0 ? 'S' : 'N'
             ];
         }
         

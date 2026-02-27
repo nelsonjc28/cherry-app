@@ -16,6 +16,15 @@ import { getProductImageUrl } from '../utils/productImageUtils';
 import './BuscarPage.css';
 import './NuevosPage.css';
 
+// Mezclar array de forma aleatoria (Fisher-Yates) para que los resultados de búsqueda varíen
+const shuffleArray = (array) => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
 
 const BuscarPage = () => {
   const [searchParams] = useSearchParams();
@@ -319,8 +328,10 @@ const BuscarPage = () => {
           });
         }
 
-        setProducts(filtered);
-        setFilteredProducts(filtered);
+        // Orden aleatorio en resultados de búsqueda
+        const shuffled = shuffleArray(filtered);
+        setProducts(shuffled);
+        setFilteredProducts(shuffled);
         setLoading(false);
       } catch (error) {
         setProducts([]);
