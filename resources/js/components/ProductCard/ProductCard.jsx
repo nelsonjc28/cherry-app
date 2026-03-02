@@ -283,7 +283,14 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
     };
 
     return (
-      <div className="product-card product-card--bestseller">
+      <div className="product-card product-card--bestseller product-card--flex">
+        {/* Próximamente: arriba del card, antes de la foto (centrado en móvil) */}
+        {stockStatus === 'coming-soon' && (
+          <div className="product-card__coming-soon-wrap">
+            <span className="out-of-stock-badge product-card__coming-soon-top" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
+          </div>
+        )}
+
         {/* Product Image Container */}
         <div className="product-image-container product-image-container--bestseller" onClick={handleCardClick}>
           <img
@@ -298,13 +305,8 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
           <span className="new-badge">Nuevo</span>
         )}
 
-        {/* Próximamente badge - si cumple condiciones */}
-        {stockStatus === 'coming-soon' && (
-          <span className="catalog-offer-badge catalog-out-of-stock-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
-        )}
-
         {/* Out of stock badge - solo si no es nuevo y no es "Próximamente" */}
-        {stockStatus === 'out-of-stock' && (
+        {!isNew && stockStatus === 'out-of-stock' && (
           <span className="out-of-stock-badge">Agotado</span>
         )}
 
@@ -350,7 +352,14 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
 
   // Render default variant
   return (
-    <div className="product-card">
+    <div className="product-card product-card--flex">
+      {/* Próximamente: arriba del card, antes de la foto (centrado en móvil) */}
+      {stockStatus === 'coming-soon' && (
+        <div className="product-card__coming-soon-wrap">
+          <span className="out-of-stock-badge product-card__coming-soon-top" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
+        </div>
+      )}
+
       {/* Product image container */}
       <div className="product-image-container">
         <Link to={`/producto/${id}`} className="product-link">
@@ -380,13 +389,8 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
           <span className="new-badge">Nuevo</span>
         )}
 
-        {/* Próximamente badge - si cumple condiciones */}
-        {stockStatus === 'coming-soon' && (
-          <span className="catalog-offer-badge catalog-out-of-stock-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
-        )}
-
         {/* Out of stock badge - solo si no es nuevo y no es "Próximamente" */}
-        {stockStatus === 'out-of-stock' && (
+        {!isNew && stockStatus === 'out-of-stock' && (
           <span className="out-of-stock-badge">Agotado</span>
         )}
 

@@ -13,6 +13,25 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
+/* Contenedor Próximamente: centrado en móvil */
+.product-card__coming-soon-wrap {
+  margin-bottom: 6px;
+}
+@media (max-width: 767px) {
+  .product-card__coming-soon-wrap {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+}
+
+/* Próximamente arriba del card: en flujo, no overlay */
+.product-card__coming-soon-top {
+  position: static !important;
+  display: block;
+  margin-bottom: 0;
+}
+
 /* Product image container */
 .product-image-container {
   position: relative;

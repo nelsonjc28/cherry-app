@@ -132,10 +132,22 @@
 
 
 
-/* Próximamente badge - mobile: reubicado dentro de info, flujo normal */
+/* Contenedor Próximamente: centrado en móvil */
+.catalog-product-card__coming-soon-wrap {
+  margin-bottom: 6px;
+}
+@media (max-width: 767px) {
+  .catalog-product-card__coming-soon-wrap {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+}
+
+/* Próximamente badge - flujo normal */
 .catalog-coming-soon-badge {
   position: static;
-  margin-bottom: 6px;
+  margin-bottom: 0;
 }
 
 /* Product information */
@@ -325,13 +337,6 @@
 
 /* Tablet styles */
 @media (min-width: 768px) {
-  .catalog-coming-soon-badge {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    margin-bottom: 0;
-  }
-
   .catalog-product-image-container {
     height: 280px;
   }
