@@ -58,7 +58,7 @@ const RecentCatalogs = () => {
                 <div className="home-catalog-content">
                   <div className="catalog-text">
                     <p className="catalog-subtitle">{catalog.subtitle}</p>
-                    <h3 className="catalog-title line-clamp-1">{catalog.title}</h3>
+                    <h3 className="catalog-title">{catalog.title}</h3>
                   </div>
                   <div className='content-btn-explore'>
                     <a

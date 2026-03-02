@@ -91,24 +91,26 @@
   opacity: 0.8;
 }
 
+/* El título puede ocupar varias líneas; la imagen conserva su tamaño */
 .catalog-title {
   font-size: 31px;
   font-weight: 400;
   line-height: 44px;
   color: #333;
   margin-bottom: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
-/* Catalog Image */
+/* Catalog Image: tamaño fijo para que no se reduzca cuando el título es largo */
 .home-catalog-image {
-  flex: 1;
+  flex: 0 0 auto;
   position: relative;
   overflow: hidden;
   width: 278px;
   height: 278px;
+  min-width: 278px;
+  min-height: 278px;
   border-radius: 0.25rem;
   display: flex;
   align-items: center;
@@ -303,9 +305,12 @@
     padding: 16px;
   }
 
+  /* Móvil: mitad imagen, mitad texto */
   .home-catalog-image {
     order: -1;
-    width: 100%;
+    flex: 0 0 50%;
+    width: 50%;
+    min-width: 0;
     aspect-ratio: 1 / 1;
     min-height: 120px;
   }
@@ -317,6 +322,9 @@
   }
 
   .home-catalog-content {
+    flex: 0 0 50%;
+    width: 50%;
+    min-width: 0;
     justify-content: space-between;
     gap: 8px;
   }
@@ -393,13 +401,23 @@
     margin-bottom: 24px;
   }
 
-  .home-catalog-image,
-  .home-catalog-content {
-    height: auto;
+  /* Mitad imagen, mitad texto (conservar distribución 50/50) */
+  .home-catalog-image {
+    flex: 0 0 50%;
+    width: 50%;
     min-height: 120px;
+  }
+
+  .home-catalog-content {
+    flex: 0 0 50%;
+    width: 50%;
+    min-width: 0;
+    height: auto;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    gap: 6px;
   }
 
   .home-catalog-image img {
@@ -408,14 +426,13 @@
     object-fit: contain;
   }
 
-  .home-catalog-content {
-    gap: 6px;
-  }
-
   .catalog-title {
     font-size: 19px;
     line-height: 1.1;
     margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .catalog-subtitle {
@@ -447,6 +464,9 @@
     font-size: 15px;
     line-height: 1.1;
     margin-bottom: 3px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .catalog-subtitle {

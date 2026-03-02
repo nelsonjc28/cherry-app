@@ -183,6 +183,30 @@ const ClientManager = () => {
     setShowAccountStatementModal(true);
   };
 
+  const categoryLabels = { oro: 'Oro', bronce: 'Bronce', diamante: 'Diamante' };
+
+  const handleCategoryChangeWithConfirm = (clientId, newCategory, currentCategory) => {
+    if (newCategory === currentCategory) return;
+    const categoryName = categoryLabels[newCategory] || newCategory;
+    Swal.fire({
+      title: '¿Confirmar cambio de categoría?',
+      text: `El usuario pasará a la categoría ${categoryName}. Esto afectará sus reglas de descuento en el carrito automáticamente.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, cambiar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#EA2630',
+      cancelButtonColor: '#6c757d',
+      reverseButtons: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        handleUpdateCategory(clientId, newCategory);
+      } else {
+        setClients(prev => [...prev]);
+      }
+    });
+  };
+
   const handleUpdateCategory = async (clientId, newCategory) => {
     try {
       const response = await fetch(`/api/admin/clients/${clientId}/seller-category`, {
@@ -202,8 +226,7 @@ const ClientManager = () => {
       }
 
       await fetchClients();
-      const categoryLabels = { oro: 'Oro', bronce: 'Bronce', diamante: 'Diamante' };
-      window.showToast(`Categoría actualizada a ${categoryLabels[newCategory] || newCategory}`, 'success');
+      window.showToast('Categoría actualizada correctamente', 'success');
     } catch (err) {
       window.showToast('Error: ' + err.message, 'error');
     }
@@ -520,7 +543,7 @@ const ClientManager = () => {
                   {!isOperator ? (
                     <select
                       value={client.seller_category}
-                      onChange={(e) => handleUpdateCategory(client.id, e.target.value)}
+                      onChange={(e) => handleCategoryChangeWithConfirm(client.id, e.target.value, client.seller_category)}
                       style={{
                         marginTop: '8px',
                         padding: '4px 6px',

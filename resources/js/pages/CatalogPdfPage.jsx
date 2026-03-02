@@ -734,9 +734,8 @@ const CatalogPdfPage = () => {
                 className="catalog-pdf__controls-btn"
                 onClick={handleShareCatalog}
                 disabled={isSharingCatalog}
-                iconLeft={<i className="fas fa-share-alt"></i>}
               >
-                <span style={{ display: 'none' }}>{isSharingCatalog ? 'Procesando...' : ''}</span>
+                {isSharingCatalog ? 'Procesando...' : 'Compartir'}
               </CustomButton>
             )}
           </div>
@@ -845,15 +844,17 @@ const CatalogPdfPage = () => {
             ) : (
               /* Vista de imágenes del grupo seleccionado */
               <>
-                {/* Botón para volver a grupos */}
+                {/* Botón para volver a grupos: solo si hay más de un grupo */}
                 <div className="catalog-pdf__back-to-groups">
-                  <button
-                    className="catalog-pdf__back-btn"
-                    onClick={handleBackToGroups}
-                    title="Volver a grupos"
-                  >
-                    ← Volver a grupos
-                  </button>
+                  {imageGroups.length > 1 && (
+                    <button
+                      className="catalog-pdf__back-btn"
+                      onClick={handleBackToGroups}
+                      title="Volver a grupos"
+                    >
+                      ← Volver a grupos
+                    </button>
+                  )}
                   <h2>{selectedImageGroup?.name}</h2>
                 </div>
 

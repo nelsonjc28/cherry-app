@@ -91,18 +91,18 @@ function AdminPanelPage() {
   useEffect(() => {
     const titleMap = {
       'home': 'Dashboard - Admin - Cherry Central',
-      'users': 'Gestionar Administradores - Admin - Cherry Central',
-      'operators': 'Gestionar Operadores - Admin - Cherry Central',
-      'clients': 'Gestionar Clientes - Admin - Cherry Central',
-      'category-products': 'Gestionar Categorías - Admin - Cherry Central',
+      'users': 'Administradores - Admin - Cherry Central',
+      'operators': 'Operadores - Admin - Cherry Central',
+      'clients': 'Clientes - Admin - Cherry Central',
+      'category-products': 'Categorías - Admin - Cherry Central',
       'category-order': 'Ordenar Categorías - Admin - Cherry Central',
       'menu-category-order': 'Ordenar Categorías del Menú - Admin - Cherry Central',
       'welcome-sections': 'Secciones de Bienvenida - Admin - Cherry Central',
       'home-catalogs': 'Catálogos Home - Admin - Cherry Central',
-      'catalogs': 'Gestionar Catálogos - Admin - Cherry Central',
+      'catalogs': 'Catálogos - Admin - Cherry Central',
       'catalog-order': 'Ordenar Catálogos - Admin - Cherry Central',
-      'orders': 'Gestión de Órdenes - Admin - Cherry Central',
-      'reviews': 'Gestionar Reseñas - Admin - Cherry Central',
+      'orders': 'Órdenes - Admin - Cherry Central',
+      'reviews': 'Reseñas - Admin - Cherry Central',
       'contact-info': 'Información de Contacto - Admin - Cherry Central',
       'privacy-policy': 'Política de Privacidad - Admin - Cherry Central',
       'discounts': 'Descuentos - Admin - Cherry Central',
@@ -251,13 +251,13 @@ function AdminPanelPage() {
                       className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='users'?' active':''}`} 
                       onClick={()=>handleMenuChange('users')}
                     >
-                      Gestionar Administradores
+                      Administradores
                     </button>
                     <button 
                       className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='operators'?' active':''}`} 
                       onClick={()=>handleMenuChange('operators')}
                     >
-                      Gestionar Operadores
+                      Operadores
                     </button>
                   </>
                 )}
@@ -265,7 +265,7 @@ function AdminPanelPage() {
                   className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='clients'?' active':''}`} 
                   onClick={()=>handleMenuChange('clients')}
                 >
-                  Gestionar Clientes
+                  Clientes
                 </button>
               </div>
             )}
@@ -286,7 +286,7 @@ function AdminPanelPage() {
                   className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='category-products'?' active':''}`} 
                   onClick={()=>handleMenuChange('category-products')}
                 >
-                  Gestionar Categorías
+                  Categorías
                 </button>
                 <button 
                   className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='category-order'?' active':''}`} 
@@ -319,7 +319,7 @@ function AdminPanelPage() {
                   className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='catalogs'?' active':''}`} 
                   onClick={()=>handleMenuChange('catalogs')}
                 >
-                  Gestionar Catálogos
+                  Catálogos
                 </button>
                 <button 
                   className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='catalog-order'?' active':''}`} 
@@ -338,8 +338,8 @@ function AdminPanelPage() {
           </div>
 
           <button className={`admin-panel__sidebar-link${selectedMenu==='welcome-sections'?' active':''}`} onClick={()=>handleMenuChange('welcome-sections')}>Secciones de Bienvenida</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='orders'?' active':''}`} onClick={()=>handleMenuChange('orders')}>Gestión de Órdenes</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='reviews'?' active':''}`} onClick={()=>handleMenuChange('reviews')}>Gestión de Reseñas</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='orders'?' active':''}`} onClick={()=>handleMenuChange('orders')}>Órdenes</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='reviews'?' active':''}`} onClick={()=>handleMenuChange('reviews')}>Reseñas</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='contact-info'?' active':''}`} onClick={()=>handleMenuChange('contact-info')}>Información de Contacto</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='privacy-policy'?' active':''}`} onClick={()=>handleMenuChange('privacy-policy')}>Terminos y condiciones</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='discounts'?' active':''}`} onClick={()=>handleMenuChange('discounts')}>Descuentos</button>
