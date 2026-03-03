@@ -5,7 +5,7 @@
     "isEntry": true
   },
   "resources/js/main.jsx": {
-    "file": "assets/main-eKb-ylNd.js",
+    "file": "assets/main-DBPREcdC.js",
     "name": "main",
     "src": "resources/js/main.jsx",
     "isEntry": true,
@@ -13,7 +13,7 @@
       "resources/js/utils/searchNormalizer.js"
     ],
     "css": [
-      "assets/main-DJsJuiNV.css"
+      "assets/main-VeGYOJDK.css"
     ]
   },
   "resources/js/utils/searchNormalizer.js": {
