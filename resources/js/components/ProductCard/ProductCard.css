@@ -25,11 +25,20 @@
   }
 }
 
-/* Próximamente arriba del card: en flujo, no overlay */
-.product-card__coming-soon-top {
-  position: static !important;
-  display: block;
+/* Span Próximamente igual que en /proximamente (mismo estilo gris que la sección) */
+.product-card .catalog-offer-badge.catalog-out-of-stock-badge.catalog-coming-soon-badge {
+  position: static;
+  display: inline-block;
   margin-bottom: 0;
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #6c757d !important;
+  color: white !important;
+  box-shadow: 0 2px 4px rgba(108, 117, 125, 0.3);
 }
 
 /* Product image container */
@@ -242,17 +251,41 @@
   margin-bottom: 0.5rem;
 }
 
+/* Fila de precios cuando hay oferta: más espacio y mismo tamaño para ambos */
+.product-price-container--with-offer {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+.product-price-container--with-offer .product-price,
+.product-price-container--with-offer .original-price {
+  font-size: 14px;
+  font-weight: 600;
+}
+.product-price-container--with-offer .original-price {
+  color: #637381;
+  text-decoration: line-through;
+  margin-bottom: 0;
+}
+
 .original-price {
   font-size: 14px;
   color: #637381;
   text-decoration: line-through;
-  margin-bottom: 2px;
+  margin-bottom: 0;
 }
 
 .product-price {
-  font-size: 20px;
+  font-size: 14px;
   font-weight: 600;
   color: #212B36;
+}
+
+/* Precio en oferta: mismo tamaño que .product-price, solo color rojo */
+.product-price.product-price--offer {
+  color: #dc2626;
 }
 
 /* Color selector */
@@ -291,7 +324,7 @@
   align-items: center;
   justify-content: center;
   color: #999;
-  font-size: 12px;
+  font-size: 14px;
   cursor: default;
 }
 
@@ -396,7 +429,11 @@
   }
 
   .product-price {
-    font-size: 1.2rem;
+    font-size: 14px;
+  }
+  .product-price-container--with-offer .product-price,
+  .product-price-container--with-offer .original-price {
+    font-size: 14px;
   }
 
   .color-option {
@@ -426,7 +463,11 @@
   }
 
   .product-price {
-    font-size: 1.3rem;
+    font-size: 14px;
+  }
+  .product-price-container--with-offer .product-price,
+  .product-price-container--with-offer .original-price {
+    font-size: 14px;
   }
 }
 
@@ -526,10 +567,32 @@
   margin-bottom: 15px;
 }
 
+/* Fila de precios bestseller con oferta: más espacio entre precios */
+.product-price-bestseller--with-offer {
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+}
+
 .price-value {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: #333;
+}
+
+/* Precio en oferta (bestseller): mismo tamaño que .price-value, solo color rojo */
+.price-value.price-value--offer {
+  color: #dc2626;
+}
+
+/* Precio tachado en bestseller: mismo tamaño que .price-value */
+.product-price-bestseller--with-offer .price-value,
+.product-price-bestseller--with-offer .original-price--bestseller {
+  font-size: 14px;
+  font-weight: 600;
+}
+.product-price-bestseller--with-offer .original-price--bestseller {
+  color: #637381;
+  text-decoration: line-through;
 }
 
 /* Estilo para el precio con "desde:" */
@@ -562,7 +625,11 @@
   }
   
   .price-value {
-    font-size: 1.2rem;
+    font-size: 14px;
+  }
+  .product-price-bestseller--with-offer .price-value,
+  .product-price-bestseller--with-offer .original-price--bestseller {
+    font-size: 14px;
   }
 }
 
@@ -602,6 +669,10 @@
   }
   
   .price-value {
-    font-size: 1.1rem;
+    font-size: 14px;
+  }
+  .product-price-bestseller--with-offer .price-value,
+  .product-price-bestseller--with-offer .original-price--bestseller {
+    font-size: 14px;
   }
 }

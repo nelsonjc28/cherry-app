@@ -253,8 +253,8 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
           className="catalog-favorite-btn"
         />
 
-        {/* New badge - highest priority if product is new */}
-        {isNew && (
+        {/* New badge - no mostrar si el producto es "Próximamente" */}
+        {isNew && stockStatus !== 'coming-soon' && (
           <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
         )}
 

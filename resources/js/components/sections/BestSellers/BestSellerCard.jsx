@@ -92,7 +92,7 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
 
         {/* Próximamente badge - si cumple las 3 condiciones */}
         {!isNew && shouldShowComingSoon && (
-          <span className="best-seller-out-of-stock-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
+          <span className="catalog-offer-badge catalog-out-of-stock-badge catalog-coming-soon-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
         )}
 
         {/* Out of stock badge - solo si NO es nuevo y NO es "Próximamente" */}

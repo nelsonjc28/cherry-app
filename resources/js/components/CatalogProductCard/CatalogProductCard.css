@@ -69,7 +69,7 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* Out of stock badge */
+/* Out of stock badge (Agotado y Próximamente - mismo estilo que en /proximamente) */
 .catalog-out-of-stock-badge {
   background: #6c757d !important;
   color: white !important;

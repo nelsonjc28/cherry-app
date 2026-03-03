@@ -1613,16 +1613,12 @@ const ProductPage = () => {
                 />
               </div>
               <div className="product-page__info-stock">
-                {inventoryStatusData.status === 'coming-soon' ? (
-                  <span className="catalog-offer-badge catalog-out-of-stock-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
-                ) : (
-                  <>
-                    {inventoryStatusData.icon}
-                    <span className={`product-page__stock-status product-page__stock-status--${inventoryStatusData.status}`}>
-                      {inventoryStatusData.text}
-                    </span>
-                  </>
-                )}
+                <>
+                  {inventoryStatusData.icon}
+                  <span className={`product-page__stock-status product-page__stock-status--${inventoryStatusData.status}`}>
+                    {inventoryStatusData.text}
+                  </span>
+                </>
               </div>
             </div>
 
@@ -1824,7 +1820,7 @@ const ProductPage = () => {
                               <line x1="12" y1="17" x2="12.01" y2="17" />
                             </svg>
                           </span>
-                          <span className="product-page__coming-soon-alert-line1">Pieza agotada temporalmente.</span>
+                          <span className="product-page__coming-soon-alert-line1">Muy pronto disponible</span>
                         </div>
                         <div className="product-page__coming-soon-alert-row2">
                           <span className="product-page__coming-soon-alert-line2">Te avisamos en cuanto vuelva a estar disponible.</span>

@@ -287,7 +287,7 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
         {/* Próximamente: arriba del card, antes de la foto (centrado en móvil) */}
         {stockStatus === 'coming-soon' && (
           <div className="product-card__coming-soon-wrap">
-            <span className="out-of-stock-badge product-card__coming-soon-top" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
+            <span className="catalog-offer-badge catalog-out-of-stock-badge catalog-coming-soon-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
           </div>
         )}
 
@@ -300,8 +300,8 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
             loading="lazy"
           />
 
-        {/* New badge - highest priority if product is new */}
-        {isNew && (
+        {/* Nuevo: no mostrar si el producto es "Próximamente" */}
+        {isNew && stockStatus !== 'coming-soon' && (
           <span className="new-badge">Nuevo</span>
         )}
 
@@ -337,13 +337,21 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
               readOnly={true}
             />
 
-            {/* Price */}
-            <div className="product-price-bestseller">
-              <span className="price-label">Desde:</span>
-              <div className="product-price-container--bestseller">
-                <span className="price-value">${(price && typeof price === 'number') ? price.toFixed(2) : '0.00'}</span>
+            {/* Price: misma fila solo si hay rebaja; si no, precio normal sin desplazar */}
+            {hasOffer && originalPrice && Number(originalPrice) > 0 && Number(originalPrice) > Number(price) ? (
+              <div className="product-price-bestseller product-price-bestseller--with-offer">
+                <span className="price-label">Desde:</span>
+                <span className="price-value price-value--offer">${(price != null && typeof price === 'number') ? price.toFixed(2) : '0.00'}</span>
+                <span className="original-price original-price--bestseller">${(originalPrice != null && typeof originalPrice === 'number') ? originalPrice.toFixed(2) : '0.00'}</span>
               </div>
-            </div>
+            ) : (
+              <div className="product-price-bestseller">
+                <span className="price-label">Desde:</span>
+                <div className="product-price-container--bestseller">
+                  <span className="price-value">${(price && typeof price === 'number') ? price.toFixed(2) : '0.00'}</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -356,7 +364,7 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
       {/* Próximamente: arriba del card, antes de la foto (centrado en móvil) */}
       {stockStatus === 'coming-soon' && (
         <div className="product-card__coming-soon-wrap">
-          <span className="out-of-stock-badge product-card__coming-soon-top" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
+          <span className="catalog-offer-badge catalog-out-of-stock-badge catalog-coming-soon-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
         </div>
       )}
 
@@ -384,8 +392,8 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
           />
         )}
 
-        {/* New badge - highest priority if product is new */}
-        {isNew && (
+        {/* Nuevo: no mostrar si el producto es "Próximamente" */}
+        {isNew && stockStatus !== 'coming-soon' && (
           <span className="new-badge">Nuevo</span>
         )}
 
@@ -440,13 +448,17 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
           />
         </div>
         
-        {/* Price */}
-        <div className="product-price-container">
-          {hasOffer && originalPrice && (
-            <div className="original-price">{formatPrice(originalPrice)}</div>
-          )}
-          <div className="product-price">{formatPrice(price)}</div>
-        </div>
+        {/* Price: misma fila solo si hay rebaja; si no, precio normal sin desplazar */}
+        {hasOffer && originalPrice && Number(originalPrice) > 0 && Number(originalPrice) > Number(price) ? (
+          <div className="product-price-container product-price-container--with-offer">
+            <span className="product-price product-price--offer">{formatPrice(price)}</span>
+            <span className="original-price">{formatPrice(originalPrice)}</span>
+          </div>
+        ) : (
+          <div className="product-price-container">
+            <div className="product-price">{formatPrice(price)}</div>
+          </div>
+        )}
         
         {/* Color selector */}
         <div className="catalog-color-selector">
