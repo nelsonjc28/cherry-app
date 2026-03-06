@@ -755,11 +755,20 @@ const Header = () => {
                 </Link>
               </li>
               <li className="nav-item nav-divider"></li>
-              <li className={`nav-item ${activeMenu === 'categorias' ? 'active' : ''}`} onMouseEnter={() => handleMouseEnter('categorias')}>
-                <Link to="/categorias" className="nav-link">
-                  Categorías
-                  <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
-                </Link>
+              <li className={`nav-item ${activeMenu === 'categorias' ? 'active' : ''}`}>
+                <span className="nav-link nav-link--split">
+                  <Link to="/categorias" className="nav-link-text" data-discover="true">
+                    Categorías
+                  </Link>
+                  <span
+                    className="nav-link-dropdown-trigger"
+                    onMouseEnter={() => handleMouseEnter('categorias')}
+                    role="button"
+                    aria-label="Ver menú de categorías"
+                  >
+                    <img src={getIconPath('Chevron Down.svg')} alt="Expandir" className="dropdown-icon" />
+                  </span>
+                </span>
               </li>
               <li className="nav-item nav-divider"></li>
               <li className={`nav-item ${activeMenu === 'catalogos' ? 'active' : ''}`} onMouseEnter={() => handleMouseEnter('catalogos')}>

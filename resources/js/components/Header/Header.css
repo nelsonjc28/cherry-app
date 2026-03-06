@@ -419,6 +419,39 @@
   letter-spacing: 0%;
 }
 
+/* Categorías: texto es link a /categorias, icono abre dropdown al hover (sin cambiar estilos del icono) */
+.nav-link--split {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nav-link-text {
+  color: inherit;
+  text-decoration: none;
+}
+.nav-link-text:hover {
+  color: #333333;
+}
+.nav-link-dropdown-trigger {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+/* Icono siempre visible en desktop/tablet (solo se oculta en móvil porque .main-navigation tiene display: none) */
+.main-navigation .nav-link-dropdown-trigger img {
+  visibility: visible;
+  opacity: 1;
+  width: 12px;
+  height: 12px;
+  min-width: 12px;
+  min-height: 12px;
+  object-fit: contain;
+  filter: none; /* Evitar que se vuelva blanco o transparente */
+}
+.nav-link-dropdown-trigger:hover img {
+  filter: none;
+}
+
 
 
 .nav-link img {
