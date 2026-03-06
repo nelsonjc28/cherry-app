@@ -729,13 +729,13 @@ const CatalogPdfPage = () => {
           <div className="catalog-pdf__controls">
             {shouldShowShareButton && (
               <CustomButton
-                variant="filled"
-                size="small"
+                variant="outlined"
+                size="medium"
                 className="catalog-pdf__controls-btn"
                 onClick={handleShareCatalog}
                 disabled={isSharingCatalog}
               >
-                {isSharingCatalog ? 'Procesando...' : 'Compartir'}
+                {isSharingCatalog ? 'Procesando...' : 'Compartir catálogo'}
               </CustomButton>
             )}
           </div>
