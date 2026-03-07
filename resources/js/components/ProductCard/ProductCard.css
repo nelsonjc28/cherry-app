@@ -13,26 +13,11 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
-/* Contenedor Próximamente: en desktop arriba del card; en móvil misma posición que badge Nuevo */
-.product-card__coming-soon-wrap {
-  margin-bottom: 6px;
-}
-@media (max-width: 767px) {
-  .product-card__coming-soon-wrap {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    z-index: 3;
-    display: flex;
-    justify-content: flex-start;
-    width: auto;
-    margin-bottom: 0;
-  }
-}
-
-/* Span Próximamente igual que en /proximamente (mismo estilo gris que la sección) */
+/* Próximamente badge - misma posición y estilo que Nuevo (sobre la imagen) */
 .product-card .catalog-offer-badge.catalog-out-of-stock-badge.catalog-coming-soon-badge {
-  position: static;
+  position: absolute;
+  top: 4px;
+  left: 4px;
   display: inline-block;
   margin-bottom: 0;
   padding: 3px 6px;

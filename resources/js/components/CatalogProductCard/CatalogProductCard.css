@@ -132,26 +132,11 @@
 
 
 
-/* Contenedor Próximamente: en desktop arriba del card; en móvil misma posición que badge Nuevo */
-.catalog-product-card__coming-soon-wrap {
-  margin-bottom: 6px;
-}
-@media (max-width: 767px) {
-  .catalog-product-card__coming-soon-wrap {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    z-index: 3;
-    display: flex;
-    justify-content: flex-start;
-    width: auto;
-    margin-bottom: 0;
-  }
-}
-
-/* Próximamente badge - flujo normal */
-.catalog-coming-soon-badge {
-  position: static;
+/* Próximamente badge - misma posición que Nuevo (sobre la imagen, position de .catalog-offer-badge) */
+.catalog-product-image-container .catalog-coming-soon-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
   margin-bottom: 0;
 }
 

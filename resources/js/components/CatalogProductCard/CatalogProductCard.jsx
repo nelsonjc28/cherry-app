@@ -224,13 +224,6 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
 
   return (
     <div className="catalog-product-card">
-      {/* Próximamente: arriba del card, antes de la foto (centrado en móvil) */}
-      {stockStatus === 'coming-soon' && (
-        <div className="catalog-product-card__coming-soon-wrap">
-          <span className="catalog-offer-badge catalog-out-of-stock-badge catalog-coming-soon-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
-        </div>
-      )}
-
       {/* Product image container */}
       <div className="catalog-product-image-container">
         <Link to={`/producto/${id}`} className="catalog-product-link">
@@ -252,6 +245,11 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
           size="small"
           className="catalog-favorite-btn"
         />
+
+        {/* Próximamente badge - misma posición que Nuevo (sobre la imagen) */}
+        {stockStatus === 'coming-soon' && (
+          <span className="catalog-offer-badge catalog-out-of-stock-badge catalog-coming-soon-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
+        )}
 
         {/* New badge - no mostrar si el producto es "Próximamente" */}
         {isNew && stockStatus !== 'coming-soon' && (
