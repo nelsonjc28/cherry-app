@@ -429,10 +429,10 @@ const RegisterPage = () => {
         </div>
       </section>
 
-      {/* Sección ¿Qué incluye tu registro? */}
+      {/* Sección Descubre tus beneficios */}
       <section className="register-includes">
         <div className="register-includes__container">
-          <h2 className="register-includes__title">¿Qué incluye tu registro?</h2>
+          <h2 className="register-includes__title">Descubre tus beneficios:</h2>
 
           <div className="register-includes__grid">
             <div className="register-includes__column">
@@ -442,7 +442,7 @@ const RegisterPage = () => {
                     <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
                   </svg>
                 </div>
-                <span>Acceso a tu panel personal</span>
+                <span>Acceso a tu panel personal fácil de usar y siempre disponible</span>
               </div>
 
               <div className="register-includes__item">
@@ -451,7 +451,7 @@ const RegisterPage = () => {
                     <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
                   </svg>
                 </div>
-                <span>Precios exclusivos</span>
+                <span>Productos exclusivos, solo para nuestros clientes</span>
               </div>
 
               <div className="register-includes__item">
@@ -460,7 +460,7 @@ const RegisterPage = () => {
                     <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
                   </svg>
                 </div>
-                <span>Catálogos digitales</span>
+                <span>Precios especiales de mayoreo que aumentan tus ganancias</span>
               </div>
 
               <div className="register-includes__item">
@@ -469,7 +469,7 @@ const RegisterPage = () => {
                     <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
                   </svg>
                 </div>
-                <span>En tus compras se incluye el catálogo físico de temporada</span>
+                <span>Catálogos digitales actualizados para vender siempre en tendencia</span>
               </div>
             </div>
 
@@ -489,7 +489,7 @@ const RegisterPage = () => {
                     <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
                   </svg>
                 </div>
-                <span>Productos exclusivos</span>
+                <span>Envíos a domicilio</span>
               </div>
 
               <div className="register-includes__item">
@@ -498,16 +498,7 @@ const RegisterPage = () => {
                     <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
                   </svg>
                 </div>
-                <span>Entrega a domicilio</span>
-              </div>
-
-              <div className="register-includes__item">
-                <div className="register-includes__check">
-                  <svg width="16" height="12" viewBox="0 0 16 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
-                  </svg>
-                </div>
-                <span>¡Gana!</span>
+                <span>En tus compras se incluye el catálogo físico de temporada</span>
               </div>
             </div>
           </div>
