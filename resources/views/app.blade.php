@@ -1,4 +1,4 @@
-<!-- <!DOCTYPE html> -->
+<!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
@@ -68,8 +68,8 @@
     <!-- Schema.org Organization with Logo - Required by Google for Site Icon -->
     <script type="application/ld+json">
     {
-        "@context": "https://schema.org",
-        "@type": "Organization",
+        "@@context": "https://schema.org",
+        "@@type": "Organization",
         "name": "Cherry",
         "url": "{{ url('/') }}",
         "logo": "{{ url('/icons/cherryapp.png') }}",
