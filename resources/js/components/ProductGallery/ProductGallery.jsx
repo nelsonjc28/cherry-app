@@ -37,8 +37,8 @@ const ProductGallery = ({ productId, productTitle, onImageChange }) => {
       
 
       
-      // Intentar cargar hasta 6 imágenes por producto
-      for (let i = 1; i <= 6; i++) {
+      // Intentar cargar hasta 24 imágenes por producto (mismo límite que S3/externa)
+      for (let i = 1; i <= 24; i++) {
         const imageUrl = `https://cherry-fotos.s3.amazonaws.com/shopify/${productId}/${productId}_${i}.jpg`;
 
         

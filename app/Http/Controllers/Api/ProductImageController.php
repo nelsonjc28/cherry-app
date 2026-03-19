@@ -126,7 +126,7 @@ class ProductImageController extends Controller
     {
         try {
             $productId = $request->input('product_id');
-            $maxImages = (int) ($request->input('max_images', 12));
+            $maxImages = (int) ($request->input('max_images', 24));
             
             if (empty($productId)) {
                 return response()->json([
