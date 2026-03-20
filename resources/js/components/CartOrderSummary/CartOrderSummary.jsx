@@ -558,7 +558,7 @@ const CartOrderSummary = ({
           // Manejar diferentes estados del pago
           if (paymentStatus === 'approved') {
             if (window.showToast) {
-              window.showToast('¡Pago procesado exitosamente!', 'success');
+              window.showToast('¡Gracias por tu compra!', 'success');
             }
             
             if (onIntegratedPaymentSuccess) {

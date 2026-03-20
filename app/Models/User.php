@@ -107,6 +107,14 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /**
+     * Admin u operador (mismas rutas que AdminMiddleware).
+     */
+    public function isAdminOrOperator(): bool
+    {
+        return $this->isAdmin() || $this->isOperator();
+    }
+
+    /**
      * Check if the user has a specific role
      */
     public function hasRole($roleName)

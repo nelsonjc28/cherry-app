@@ -6,6 +6,10 @@ import { getIconPath } from '../utils/assetPaths';
 import api from '../services/api';
 import useCartStore from '../store/cartStore';
 
+/** Texto principal bajo el título «¡Gracias por tu compra!» */
+const THANK_YOU_DESCRIPTION =
+  'Gracias por tu compra. Tu pedido se está procesando y pronto recibirás un correo con los detalles.';
+
 export default function CheckoutSuccessPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -16,20 +20,118 @@ export default function CheckoutSuccessPage() {
   const [paymentStatus, setPaymentStatus] = useState(null);
   const [orderData, setOrderData] = useState(null);
   const [message, setMessage] = useState('');
+  /** Texto junto al ícono verde (ej. pago con tarjeta / crédito / Mercado Pago) */
+  const [statusHeadline, setStatusHeadline] = useState('Compra confirmada');
   const [error, setError] = useState(null);
   
   // Obtener datos del pago desde el state de navegación (pago con tarjeta)
   const stateOrderData = location.state?.orderData;
   const statePaymentStatus = location.state?.paymentStatus;
+  const stateOrderInfo = location.state?.orderInfo;
+  const statePaymentPayload = location.state?.paymentData;
+  const stateOrderIdOnly = location.state?.orderId;
 
   useEffect(() => {
     const verifyPayment = async () => {
-      // Si viene de pago con tarjeta (tiene state)
+      // Si viene de pago con tarjeta / checkout integrado (tiene orderData en state)
       if (stateOrderData) {
         setOrderData(stateOrderData);
         setPaymentStatus(statePaymentStatus || 'approved');
-        setMessage('¡Pago realizado con éxito!');
+        setStatusHeadline('Pago realizado con éxito');
+        setMessage(THANK_YOU_DESCRIPTION);
         setLoading(false);
+        return;
+      }
+
+      // Pago con crédito de cuenta (Carrito) — antes no se leía y se redirigía al carrito
+      if (stateOrderInfo?.orderId) {
+        setPaymentStatus('approved');
+        setStatusHeadline(
+          stateOrderInfo.amountPending > 0
+            ? 'Pago parcial con crédito'
+            : 'Pago con crédito de cuenta confirmado'
+        );
+        const creditUsed = Number(stateOrderInfo.creditUsed || 0);
+        if (stateOrderInfo.amountPending > 0) {
+          setMessage(
+            `${THANK_YOU_DESCRIPTION} Usaste $${creditUsed.toFixed(2)} de crédito; completa el saldo pendiente con Mercado Pago cuando se abra la pasarela.`
+          );
+        } else {
+          setMessage(
+            creditUsed > 0
+              ? `${THANK_YOU_DESCRIPTION} Crédito utilizado: $${creditUsed.toFixed(2)}.`
+              : THANK_YOU_DESCRIPTION
+          );
+        }
+        try {
+          const res = await api.get(`/payment/status/${stateOrderInfo.orderId}`);
+          if (res.data?.success && res.data?.order) {
+            setOrderData(res.data.order);
+          } else {
+            setOrderData({
+              id: stateOrderInfo.orderId,
+              total_amount: stateOrderInfo.totalAmount ?? stateOrderInfo.total ?? 0,
+              created_at: new Date().toISOString(),
+            });
+          }
+        } catch {
+          setOrderData({
+            id: stateOrderInfo.orderId,
+            total_amount: stateOrderInfo.totalAmount ?? stateOrderInfo.total ?? 0,
+            created_at: new Date().toISOString(),
+          });
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Pago integrado (checkout con tarjeta en sitio — process-integrated): solo viene order_id en data
+      if (statePaymentPayload?.data?.order_id) {
+        const d = statePaymentPayload.data;
+        try {
+          const res = await api.get(`/payment/status/${d.order_id}`);
+          if (res.data?.success && res.data?.order) {
+            setOrderData(res.data.order);
+          } else {
+            setOrderData({
+              id: d.order_id,
+              total_amount: 0,
+              created_at: new Date().toISOString(),
+            });
+          }
+        } catch {
+          setOrderData({
+            id: d.order_id,
+            total_amount: 0,
+            created_at: new Date().toISOString(),
+          });
+        }
+        setPaymentStatus(d.payment_status || 'approved');
+        setStatusHeadline('Pago con Mercado Pago confirmado');
+        setMessage(THANK_YOU_DESCRIPTION);
+        setLoading(false);
+        return;
+      }
+
+      // Desde página de pago pendiente (solo orderId en state)
+      if (stateOrderIdOnly) {
+        try {
+          const res = await api.get(`/payment/status/${stateOrderIdOnly}`);
+          if (res.data?.success && res.data?.order) {
+            setOrderData(res.data.order);
+            setPaymentStatus('approved');
+            setStatusHeadline('Pago confirmado');
+            setMessage(THANK_YOU_DESCRIPTION);
+          } else {
+            setError('No se encontró el pedido');
+            setPaymentStatus('error');
+          }
+        } catch (e) {
+          setError(e.response?.data?.message || 'No se pudo cargar el pedido');
+          setPaymentStatus('error');
+        } finally {
+          setLoading(false);
+        }
         return;
       }
 
@@ -67,7 +169,12 @@ export default function CheckoutSuccessPage() {
         if (response.data.success) {
           setPaymentStatus(response.data.payment_status);
           setOrderData(response.data.order);
-          setMessage(response.data.message);
+          if (response.data.payment_status === 'approved') {
+            setStatusHeadline('Pago con Mercado Pago confirmado');
+            setMessage(THANK_YOU_DESCRIPTION);
+          } else {
+            setMessage(response.data.message || '');
+          }
         } else {
           setError(response.data.message || 'Error al verificar el pago');
           setPaymentStatus('error');
@@ -91,7 +198,7 @@ export default function CheckoutSuccessPage() {
     };
 
     verifyPayment();
-  }, [stateOrderData, statePaymentStatus, searchParams, navigate]);
+  }, [location.state, searchParams, navigate]);
 
   // Limpiar carrito después de pago exitoso
   useEffect(() => {
@@ -232,7 +339,7 @@ export default function CheckoutSuccessPage() {
           <svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M8.5 0.250122C4.21875 0.250122 0.75 3.75012 0.75 8.00012C0.75 12.2814 4.21875 15.7501 8.5 15.7501C12.75 15.7501 16.25 12.2814 16.25 8.00012C16.25 3.75012 12.75 0.250122 8.5 0.250122ZM8.5 1.75012C11.9375 1.75012 14.75 4.56262 14.75 8.00012C14.75 11.4689 11.9375 14.2501 8.5 14.2501C5.03125 14.2501 2.25 11.4689 2.25 8.00012C2.25 4.56262 5.03125 1.75012 8.5 1.75012ZM12.875 5.84387L12.1562 5.12512C12.0312 4.96887 11.7812 4.96887 11.625 5.12512L7.21875 9.50012L5.34375 7.62512C5.1875 7.46887 4.96875 7.46887 4.8125 7.62512L4.09375 8.31262C3.96875 8.46887 3.96875 8.71887 4.09375 8.84387L6.9375 11.7189C7.09375 11.8751 7.3125 11.8751 7.46875 11.7189L12.875 6.37512C13 6.21887 13 5.96887 12.875 5.84387Z" fill="#1DA534" />
           </svg>
-          <span className="checkout-success-status-text">Pago realizado con éxito</span>
+          <span className="checkout-success-status-text">{statusHeadline}</span>
         </div>
         <h1 className="checkout-success-title">¡Gracias por tu compra!</h1>
         <p className="checkout-success-desc">

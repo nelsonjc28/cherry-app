@@ -647,7 +647,7 @@ const CartDetailsPage = () => {
           } else {
             // Pago completo con crédito
             if (window.showToast) {
-              window.showToast(`¡Orden pagada completamente con crédito! Crédito usado: $${data.credit_used.toFixed(2)}`, 'success');
+              window.showToast('¡Gracias por tu compra!', 'success');
             }
             
             setTimeout(() => {
@@ -660,7 +660,7 @@ const CartDetailsPage = () => {
                   }
                 }
               });
-            }, 1500);
+            }, 800);
           }
         } else {
           // Pago con MercadoPago (flujo normal)
@@ -700,12 +700,11 @@ const CartDetailsPage = () => {
     // Limpiar carrito
     clearCart();
 
-    // Mostrar mensaje de éxito
     if (window.showToast) {
-      window.showToast('¡Pago procesado exitosamente!', 'success');
+      window.showToast('¡Gracias por tu compra!', 'success');
     }
 
-    // Redirigir a página de éxito
+    // Redirigir a página de éxito (muestra mensaje de agradecimiento + detalle Mercado Pago)
     setTimeout(() => {
       navigate('/compra-exitosa', {
         state: {
@@ -717,7 +716,7 @@ const CartDetailsPage = () => {
           }
         }
       });
-    }, 1500);
+    }, 600);
   };
 
   // Handle integrated payment error

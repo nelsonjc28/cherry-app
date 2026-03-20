@@ -217,8 +217,8 @@ class NotificationController extends Controller
             
             // Verificar que el usuario tenga permiso para marcar esta notificación
             if ($notification->target_user_role === 'admin') {
-                // Solo los admins pueden marcar notificaciones de admin
-                if (!$user->hasRole('admin')) {
+                // Admin u operador (mismo alcance que middleware admin)
+                if (!$user->isAdminOrOperator()) {
                     return response()->json([
                         'success' => false,
                         'message' => 'No tienes permisos para marcar esta notificación'
@@ -262,7 +262,7 @@ class NotificationController extends Controller
         try {
             $user = Auth::user();
             
-            if ($user->hasRole('admin')) {
+            if ($user->isAdminOrOperator()) {
                 Notification::forAdmin()->unread()->update(['is_read' => true]);
             } else {
                 Notification::forUser($user->id)->unread()->update(['is_read' => true]);
@@ -289,8 +289,8 @@ class NotificationController extends Controller
         try {
             $user = Auth::user();
             
-            // Verificar si es admin por el rol
-            if ($user->hasRole('admin')) {
+            // Admin u operador: notificaciones de panel (forAdmin)
+            if ($user->isAdminOrOperator()) {
                 $count = Notification::forAdmin()->unread()->count();
             } else {
                 $count = Notification::forUser($user->id)->unread()->count();

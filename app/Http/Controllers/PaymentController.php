@@ -1157,7 +1157,7 @@ class PaymentController extends Controller
         /** @var User $user */
         $user = Auth::user();
 
-        if (!$user || $user->role->name !== 'admin') {
+        if (!$user || !$user->isAdminOrOperator()) {
             return response()->json([
                 'success' => false,
                 'message' => 'No tienes permisos para cambiar el estado de órdenes'
@@ -3046,21 +3046,21 @@ class PaymentController extends Controller
             // Log para debugging
             Log::info('Verificando permisos para imprimir orden', [
                 'user_id' => $user->id,
-                'user_is_admin' => $user->isAdmin(),
+                'user_is_admin_or_operator' => $user->isAdminOrOperator(),
                 'order_user_id' => $order->user_id,
                 'order_id' => $orderId
             ]);
 
-            // Verificar que el usuario tenga acceso a esta orden (solo el dueño o admin)
+            // Verificar que el usuario tenga acceso a esta orden (dueño o personal admin/operador)
             // Usar comparación flexible (==) para manejar tipos diferentes (int vs string)
-            if ((int)$order->user_id != (int)$user->id && !$user->isAdmin()) {
+            if ((int)$order->user_id != (int)$user->id && !$user->isAdminOrOperator()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'No tienes permiso para ver esta orden',
                     'debug' => [
                         'user_id' => $user->id,
                         'order_user_id' => $order->user_id,
-                        'is_admin' => $user->isAdmin()
+                        'is_admin_or_operator' => $user->isAdminOrOperator()
                     ]
                 ], 403);
             }

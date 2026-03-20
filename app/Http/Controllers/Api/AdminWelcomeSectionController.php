@@ -67,7 +67,7 @@ class AdminWelcomeSectionController extends Controller
         try {
             // Verificar autenticación
             $user = $request->user();
-            if (!$user || !$user->isAdmin()) {
+            if (!$user || !$user->isAdminOrOperator()) {
                 return response()->json([
                     'success' => false,
                     'error' => 'Acceso no autorizado'
@@ -167,7 +167,7 @@ class AdminWelcomeSectionController extends Controller
             
             // Verificar autenticación
             $user = $request->user();
-            if (!$user || !$user->isAdmin()) {
+            if (!$user || !$user->isAdminOrOperator()) {
                 return response()->json([
                     'success' => false,
                     'error' => 'Acceso no autorizado'
@@ -292,7 +292,7 @@ class AdminWelcomeSectionController extends Controller
         try {
             // Verificar autenticación
             $user = $request->user();
-            if (!$user || !$user->isAdmin()) {
+            if (!$user || !$user->isAdminOrOperator()) {
                 return response()->json([
                     'success' => false,
                     'error' => 'Acceso no autorizado'
