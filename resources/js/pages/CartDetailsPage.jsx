@@ -620,9 +620,17 @@ const CartDetailsPage = () => {
           clearCart();
           
           if (data.amount_pending > 0) {
-            // Hay saldo pendiente - mostrar opción de pagar con MercadoPago
+            const payOrderId = data.order_payment_id ?? data.order_id;
             if (window.showToast) {
-              window.showToast(`Orden creada. Crédito usado: $${data.credit_used.toFixed(2)}. Saldo pendiente: $${data.amount_pending.toFixed(2)}`, 'info');
+              if (data.order_split) {
+                const line1 = data.order_credit
+                  ? `Orden #${data.order_credit.id}: aplicada a tu crédito. `
+                  : '';
+                const line2 = `Orden #${payOrderId}: pendiente de pago externo (Mercado Pago).`;
+                window.showToast(line1 + line2, 'info');
+              } else {
+                window.showToast(`Orden creada. Crédito usado: $${data.credit_used.toFixed(2)}. Saldo pendiente: $${data.amount_pending.toFixed(2)}`, 'info');
+              }
             }
             
             // Si hay URL de pago pendiente, redirigir
@@ -636,7 +644,9 @@ const CartDetailsPage = () => {
                 navigate('/compra-exitosa', {
                   state: {
                     orderInfo: {
-                      orderId: data.order_id,
+                      orderId: payOrderId,
+                      orderCreditId: data.order_credit_id ?? null,
+                      orderSplit: !!data.order_split,
                       creditUsed: data.credit_used,
                       amountPending: data.amount_pending
                     }

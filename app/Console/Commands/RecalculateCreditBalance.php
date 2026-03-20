@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\User;
 use App\Models\Order;
+use App\Services\CreditAvailabilityService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -62,7 +63,7 @@ class RecalculateCreditBalance extends Command
             $creditUsed = Order::where('user_id', $user->id)
                 ->where('paid_with_credit', true)
                 ->where('credit_used', '>', 0)
-                ->whereIn('status', ['pagado', 'en_espera_envio', 'enviado', 'pendiente_pago'])
+                ->whereIn('status', CreditAvailabilityService::COMMITTED_CREDIT_STATUSES)
                 ->sum('credit_used');
             
             $creditUsed = (float) $creditUsed;

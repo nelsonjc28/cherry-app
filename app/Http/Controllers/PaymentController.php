@@ -16,6 +16,8 @@ use App\Models\PaymentCard;
 use App\Models\User;
 use App\Models\Notification;
 use App\Services\ExternalSalesService;
+use App\Services\CreditAvailabilityService;
+use App\Services\OrderCreditSplitService;
 use App\Mail\OrderConfirmationMail;
 use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
@@ -24,13 +26,20 @@ class PaymentController extends Controller
 {
     protected $mercadoPagoService;
     protected $externalSalesService;
+    protected CreditAvailabilityService $creditAvailabilityService;
+
+    protected OrderCreditSplitService $orderCreditSplitService;
 
     public function __construct(
-        MercadoPagoService $mercadoPagoService, 
-        ExternalSalesService $externalSalesService
+        MercadoPagoService $mercadoPagoService,
+        ExternalSalesService $externalSalesService,
+        CreditAvailabilityService $creditAvailabilityService,
+        OrderCreditSplitService $orderCreditSplitService
     ) {
         $this->mercadoPagoService = $mercadoPagoService;
         $this->externalSalesService = $externalSalesService;
+        $this->creditAvailabilityService = $creditAvailabilityService;
+        $this->orderCreditSplitService = $orderCreditSplitService;
     }
 
     /**
@@ -2325,7 +2334,8 @@ class PaymentController extends Controller
     }
 
     /**
-     * Process payment with credit (only for oro category users)
+     * Process payment with credit (only for oro category users).
+     * Si el total supera el cupo disponible, divide en dos pedidos: uno pagado con crédito y otro pendiente en Mercado Pago.
      */
     private function processCreditPayment(Request $request, User $user, $addressId, $deliveryType)
     {
@@ -2348,163 +2358,260 @@ class PaymentController extends Controller
             ], 422);
         }
 
-        $totalAmount = (float) $request->total_amount;
-        $availableCredit = (float) ($user->credit_balance ?? 0);
-        
-        // Calcular cuánto crédito usar y cuánto queda pendiente
-        $creditToUse = min($totalAmount, $availableCredit);
-        $amountPaid = 0; // No se pagó con dinero real, solo con crédito
-        $amountPending = max(0, $totalAmount - $creditToUse); // Saldo adicional si no cubrió todo con crédito
-        
-        // Si no hay crédito suficiente y hay monto pendiente, verificar si quiere pagar el resto con MercadoPago
-        $payRemainderWithMercadoPago = $request->input('pay_remainder_with_mercadopago', false);
-        
-        DB::beginTransaction();
-        
+        $totalAmount = round((float) $request->total_amount, 2);
+        $payRemainderWithMercadoPago = $request->boolean('pay_remainder_with_mercadopago', true);
+
         try {
-            // Preparar payment_data inicial con delivery_type y shipping_amount
-            $shippingAmount = (float) $request->input('shipping_amount', 0);
-            $initialPaymentData = [
-                'delivery_type' => $deliveryType,
-                'shipping_amount' => $shippingAmount
-            ];
-            
-            // Obtener descuentos del request (20% y 10% adicional)
-            $descuento1 = $request->input('descuento1', 0);
-            $descuento2 = $request->input('descuento2', 0);
-            
-            // Obtener subtotal y discounted_total del request
-            $subtotal = $request->input('subtotal', 0);
-            $discountedTotal = $request->input('discounted_total', 0);
+            $tx = DB::transaction(function () use ($request, $user, $addressId, $deliveryType, $totalAmount, $payRemainderWithMercadoPago) {
+                /** @var User $lockedUser */
+                $lockedUser = User::query()
+                    ->whereKey($user->id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
-            // Crear la orden
-            $order = Order::create([
-                'user_id' => $user->id,
-                'address_id' => $addressId,
-                'total_amount' => $totalAmount,
-                'subtotal' => (float) $subtotal, // Monto total sin descuentos aplicados
-                'discounted_total' => (float) $discountedTotal, // Monto total con descuentos aplicados (sin envío)
-                'shipping_amount' => $shippingAmount,
-                'descuento1' => (float) $descuento1, // 20% cuando total elegible >= 7000
-                'descuento2' => (float) $descuento2, // 10% adicional cuando total elegible >= 15000
-                'credit_used' => $creditToUse,
-                'amount_paid' => $amountPaid,
-                'amount_pending' => $amountPending,
-                'paid_with_credit' => true,
-                'status' => $amountPending > 0 ? 'pendiente_pago' : 'pagado',
-                'payment_method' => $amountPending > 0 ? 'credito_mercadopago' : 'credito',
-                'external_reference' => uniqid('order_' . $user->id . '_'),
-                'payment_data' => json_encode($initialPaymentData)
-            ]);
+                $validation = $this->creditAvailabilityService->validateNewCreditOrder(
+                    $lockedUser,
+                    $totalAmount,
+                    $payRemainderWithMercadoPago
+                );
 
-            // Crear los items del pedido
-            foreach ($request->items as $item) {
-                OrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => $item['product_id'],
-                    'name' => $item['name'],
-                    'size' => $item['size'] ?? null,
-                    'color' => $item['color'] ?? null,
-                    'barcode' => $item['barcode'] ?? null,
-                    'quantity' => $item['quantity'],
-                    'price' => $item['price'],
-                    'subtotal' => $item['quantity'] * $item['price']
-                ]);
-            }
+                if (! $validation['ok']) {
+                    return ['error_response' => response()->json([
+                        'success' => false,
+                        'message' => $validation['message'],
+                        'credit_limit' => $validation['credit_limit'],
+                        'credit_committed' => $validation['credit_committed'],
+                        'credit_available' => $validation['credit_available'],
+                        'amount_requested' => $totalAmount,
+                        'amount_exceeded' => $validation['amount_exceeded'],
+                    ], 422)];
+                }
 
-            // NO descontar crédito todavía si hay saldo pendiente que se pagará con MercadoPago
-            // El crédito se descontará cuando se complete el pago de MercadoPago (vía webhook)
-            // Solo descontar si se pagó completamente con crédito
-            if ($creditToUse > 0 && $amountPending === 0) {
-                // Pago completo con crédito, descontar inmediatamente
-                $user->credit_balance = max(0, $user->credit_balance - $creditToUse);
-                $user->save();
-            } elseif ($creditToUse > 0 && $amountPending > 0 && !$payRemainderWithMercadoPago) {
-                // Hay saldo pendiente pero NO quiere pagar con MercadoPago
-                // En este caso, descontar el crédito porque la orden está completa (solo crédito parcial)
-                $user->credit_balance = max(0, $user->credit_balance - $creditToUse);
-                $user->save();
-            }
-            // Si hay saldo pendiente Y quiere pagar con MercadoPago, NO descontar todavía
-            // Se descontará cuando se apruebe el pago de MercadoPago (vía webhook)
+                $creditToUse = (float) $validation['credit_to_use'];
+                $amountPending = (float) $validation['amount_pending'];
+                $creditAvailable = (float) $validation['credit_available'];
 
-            DB::commit();
+                $descuento1 = (float) $request->input('descuento1', 0);
+                $descuento2 = (float) $request->input('descuento2', 0);
+                $subtotal = (float) $request->input('subtotal', 0);
+                $discountedTotal = (float) $request->input('discounted_total', 0);
+                $shippingAmount = (float) $request->input('shipping_amount', 0);
 
-            // Recargar el pedido con relaciones necesarias
-            $order->load(['user', 'items', 'address']);
+                $linesSum = $this->orderCreditSplitService->sumLines($request->items);
+                if (abs($linesSum + $shippingAmount - $totalAmount) > 0.05) {
+                    $shippingAmount = round($totalAmount - $linesSum, 2);
+                    if ($shippingAmount < 0) {
+                        $shippingAmount = 0;
+                    }
+                }
 
-            // Si hay monto pendiente y quiere pagar con MercadoPago, crear preferencia
-            if ($amountPending > 0 && $payRemainderWithMercadoPago) {
-                // Crear preferencia de MercadoPago solo para el monto pendiente
-                $address = $addressId ? $user->addresses()->find($addressId) : null;
-                
-                $orderData = [
-                    'order_id' => $order->external_reference . '_remainder',
-                    'user' => [
-                        'first_name' => $user->first_name,
-                        'last_name' => $user->last_name,
-                        'email' => $user->email,
-                        'phone' => $user->phone
-                    ],
-                    'address' => $address ? [
-                        'street_address' => $address->street_address,
-                        'city' => $address->city,
-                        'state' => $address->state,
-                        'postal_code' => $address->postal_code,
-                        'country' => $address->country
-                    ] : [
-                        'street_address' => '',
-                        'city' => '',
-                        'state' => '',
-                        'postal_code' => '',
-                        'country' => 'México'
-                    ],
-                    'items' => [[
-                        'product_id' => 0,
-                        'name' => 'Saldo pendiente de orden #' . str_pad($order->id, 8, '0', STR_PAD_LEFT),
-                        'quantity' => 1,
-                        'price' => $amountPending,
-                        'size' => null,
-                        'color' => null,
-                        'barcode' => null
-                    ]],
-                    'delivery_type' => $deliveryType
+                // Pago 100 % con crédito: una sola orden (sin split)
+                if ($amountPending <= 0.001) {
+                    $initialPaymentData = [
+                        'delivery_type' => $deliveryType,
+                        'shipping_amount' => $shippingAmount,
+                    ];
+
+                    $order = Order::create([
+                        'user_id' => $lockedUser->id,
+                        'address_id' => $addressId,
+                        'total_amount' => $totalAmount,
+                        'subtotal' => $subtotal,
+                        'discounted_total' => $discountedTotal,
+                        'shipping_amount' => $shippingAmount,
+                        'descuento1' => $descuento1,
+                        'descuento2' => $descuento2,
+                        'credit_used' => $creditToUse,
+                        'amount_paid' => 0.0,
+                        'amount_pending' => 0.0,
+                        'paid_with_credit' => $creditToUse > 0,
+                        'status' => 'pagado',
+                        'payment_method' => 'credito',
+                        'external_reference' => uniqid('order_'.$lockedUser->id.'_'),
+                        'payment_data' => json_encode($initialPaymentData),
+                    ]);
+
+                    foreach ($request->items as $item) {
+                        OrderItem::create([
+                            'order_id' => $order->id,
+                            'product_id' => (string) $item['product_id'],
+                            'name' => $item['name'],
+                            'size' => $item['size'] ?? null,
+                            'color' => $item['color'] ?? null,
+                            'barcode' => $item['barcode'] ?? null,
+                            'quantity' => (int) $item['quantity'],
+                            'price' => (float) $item['price'],
+                            'subtotal' => (int) $item['quantity'] * (float) $item['price'],
+                        ]);
+                    }
+
+                    $freshUser = User::query()->whereKey($lockedUser->id)->firstOrFail();
+                    $this->creditAvailabilityService->syncCreditBalanceFromOrders($freshUser);
+
+                    return [
+                        'mode' => 'single',
+                        'order' => $order->fresh(['user', 'items', 'address']),
+                        'credit_to_use' => $creditToUse,
+                        'amount_pending' => 0.0,
+                    ];
+                }
+
+                // Split: crédito solo sobre líneas de producto; envío va a la orden B
+                $lineCreditCap = min($creditAvailable, $linesSum);
+                $split = $this->orderCreditSplitService->splitItemsByCreditCap($request->items, $lineCreditCap);
+                $creditItems = $split['credit_items'];
+                $mpItems = $split['mp_items'];
+                $creditSubtotal = $split['credit_subtotal'];
+                $mpLinesSubtotal = $split['mp_lines_subtotal'];
+
+                $splitGroupId = uniqid('split_'.$lockedUser->id.'_', true);
+
+                $orderCredit = null;
+                if (count($creditItems) > 0) {
+                    $amtA = $this->orderCreditSplitService->prorateOrderAmounts(
+                        $creditSubtotal,
+                        $linesSum,
+                        $subtotal,
+                        $discountedTotal,
+                        $descuento1,
+                        $descuento2
+                    );
+
+                    $pdA = [
+                        'delivery_type' => $deliveryType,
+                        'shipping_amount' => 0,
+                        'split_group_id' => $splitGroupId,
+                        'split_role' => 'credit',
+                    ];
+
+                    $orderCredit = Order::create([
+                        'user_id' => $lockedUser->id,
+                        'address_id' => $addressId,
+                        'total_amount' => $creditSubtotal,
+                        'subtotal' => $amtA['subtotal'],
+                        'discounted_total' => $creditSubtotal,
+                        'shipping_amount' => 0,
+                        'descuento1' => $amtA['descuento1'],
+                        'descuento2' => $amtA['descuento2'],
+                        'credit_used' => $creditSubtotal,
+                        'amount_paid' => 0.0,
+                        'amount_pending' => 0.0,
+                        'paid_with_credit' => true,
+                        'status' => 'pagado',
+                        'payment_method' => 'credito',
+                        'external_reference' => uniqid('order_'.$lockedUser->id.'_cr_'),
+                        'payment_data' => json_encode($pdA),
+                    ]);
+
+                    foreach ($creditItems as $item) {
+                        OrderItem::create([
+                            'order_id' => $orderCredit->id,
+                            'product_id' => (string) $item['product_id'],
+                            'name' => $item['name'],
+                            'size' => $item['size'] ?? null,
+                            'color' => $item['color'] ?? null,
+                            'barcode' => $item['barcode'] ?? null,
+                            'quantity' => (int) $item['quantity'],
+                            'price' => (float) $item['price'],
+                            'subtotal' => (int) $item['quantity'] * (float) $item['price'],
+                        ]);
+                    }
+                }
+
+                $amtB = $this->orderCreditSplitService->prorateOrderAmounts(
+                    $mpLinesSubtotal,
+                    $linesSum,
+                    $subtotal,
+                    $discountedTotal,
+                    $descuento1,
+                    $descuento2
+                );
+
+                $orderBTotal = round($mpLinesSubtotal + $shippingAmount, 2);
+
+                $pdB = [
+                    'delivery_type' => $deliveryType,
+                    'shipping_amount' => $shippingAmount,
+                    'split_group_id' => $splitGroupId,
+                    'split_role' => 'mercadopago_remainder',
+                    'split_paired_order_id' => $orderCredit ? $orderCredit->id : null,
                 ];
 
-                $preference = $this->mercadoPagoService->createPreference($orderData);
-                
-                $order->update([
-                    'mercadopago_preference_id' => $preference->id
+                $orderB = Order::create([
+                    'user_id' => $lockedUser->id,
+                    'address_id' => $addressId,
+                    'total_amount' => $orderBTotal,
+                    'subtotal' => $amtB['subtotal'],
+                    'discounted_total' => $mpLinesSubtotal,
+                    'shipping_amount' => $shippingAmount,
+                    'descuento1' => $amtB['descuento1'],
+                    'descuento2' => $amtB['descuento2'],
+                    'credit_used' => 0.0,
+                    'amount_paid' => 0.0,
+                    'amount_pending' => $orderBTotal,
+                    'paid_with_credit' => false,
+                    'status' => 'pendiente_pago',
+                    'payment_method' => 'mercadopago',
+                    'external_reference' => uniqid('order_'.$lockedUser->id.'_mp_'),
+                    'payment_data' => json_encode($pdB),
                 ]);
 
-                // Enviar email de confirmación
-                try {
-                    Mail::to($user->email)->send(new OrderConfirmationMail($order));
-                    Log::info('Email de confirmación enviado al cliente (crédito parcial)', ['order_id' => $order->id]);
-                } catch (\Exception $e) {
-                    Log::error('Error al enviar email de confirmación (crédito parcial)', [
-                        'order_id' => $order->id,
-                        'error' => $e->getMessage()
+                if ($orderCredit) {
+                    $pdA = json_decode($orderCredit->payment_data, true) ?? [];
+                    $pdA['split_paired_order_id'] = $orderB->id;
+                    $orderCredit->update(['payment_data' => json_encode($pdA)]);
+                }
+
+                if (count($mpItems) > 0) {
+                    foreach ($mpItems as $item) {
+                        OrderItem::create([
+                            'order_id' => $orderB->id,
+                            'product_id' => (string) $item['product_id'],
+                            'name' => $item['name'],
+                            'size' => $item['size'] ?? null,
+                            'color' => $item['color'] ?? null,
+                            'barcode' => $item['barcode'] ?? null,
+                            'quantity' => (int) $item['quantity'],
+                            'price' => (float) $item['price'],
+                            'subtotal' => (int) $item['quantity'] * (float) $item['price'],
+                        ]);
+                    }
+                } elseif ($shippingAmount > 0.001) {
+                    OrderItem::create([
+                        'order_id' => $orderB->id,
+                        'product_id' => '0',
+                        'name' => 'Envío',
+                        'size' => null,
+                        'color' => null,
+                        'barcode' => null,
+                        'quantity' => 1,
+                        'price' => $shippingAmount,
+                        'subtotal' => $shippingAmount,
                     ]);
                 }
 
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Orden creada con crédito. Debe pagar el saldo pendiente con MercadoPago.',
-                    'data' => [
-                        'order_id' => $order->id,
-                        'credit_used' => $creditToUse,
-                        'amount_pending' => $amountPending,
-                        'preference_id' => $preference->id,
-                        'payment_url' => $preference->init_point ?? $this->mercadoPagoService->getPaymentUrl($preference->id),
-                        'sandbox_payment_url' => $preference->sandbox_init_point ?? $this->mercadoPagoService->getSandboxPaymentUrl($preference->id)
-                    ]
-                ]);
+                $freshUser = User::query()->whereKey($lockedUser->id)->firstOrFail();
+                $this->creditAvailabilityService->syncCreditBalanceFromOrders($freshUser);
+
+                return [
+                    'mode' => 'split',
+                    'order_credit' => $orderCredit ? $orderCredit->fresh(['user', 'items', 'address']) : null,
+                    'order_payment' => $orderB->fresh(['user', 'items', 'address']),
+                    'credit_subtotal' => $creditSubtotal,
+                    'amount_pending' => $orderBTotal,
+                    'split_group_id' => $splitGroupId,
+                ];
+            });
+
+            if (isset($tx['error_response'])) {
+                return $tx['error_response'];
             }
 
-            // Si se pagó completamente con crédito, enviar inmediatamente a API externa
-            if ($amountPending === 0) {
-                // Enviar email de confirmación
+            if (($tx['mode'] ?? '') === 'single') {
+                /** @var Order $order */
+                $order = $tx['order'];
+                $creditToUse = $tx['credit_to_use'];
+
                 try {
                     Mail::to($user->email)->send(new OrderConfirmationMail($order));
                     Log::info('Email de confirmación enviado al cliente (crédito completo)', ['order_id' => $order->id]);
@@ -2515,31 +2622,25 @@ class PaymentController extends Controller
                     ]);
                 }
 
-                // Enviar inmediatamente a la API externa solo si está pagado completamente
                 try {
                     $paymentData = $order->payment_data ?? [];
                     if (is_string($paymentData)) {
                         $paymentData = json_decode($paymentData, true) ?? [];
                     }
-                    
+
                     $alreadySent = isset($paymentData['external_api_sent']) && $paymentData['external_api_sent'] === true;
-                    
-                    if (!$alreadySent) {
+
+                    if (! $alreadySent) {
                         $this->externalSalesService->sendSaleToExternalApi($order);
-                        
-                        // Marcar que ya se envió
+
                         $paymentData['external_api_sent'] = true;
                         $paymentData['external_api_sent_at'] = now()->toIso8601String();
                         $order->update(['payment_data' => json_encode($paymentData)]);
-                        
+
                         Log::info('Pedido con crédito completo enviado a API externa inmediatamente', [
                             'order_id' => $order->id,
                             'paid_with_credit' => true,
                             'amount_pending' => 0
-                        ]);
-                    } else {
-                        Log::info('Pedido con crédito ya fue enviado a API externa anteriormente, omitiendo duplicado', [
-                            'order_id' => $order->id
                         ]);
                     }
                 } catch (\Exception $e) {
@@ -2548,13 +2649,13 @@ class PaymentController extends Controller
                         'error' => $e->getMessage(),
                         'trace' => $e->getTraceAsString()
                     ]);
-                    // No bloquear el proceso si falla el envío a API externa
                 }
 
                 return response()->json([
                     'success' => true,
                     'message' => 'Orden pagada completamente con crédito',
                     'data' => [
+                        'order_split' => false,
                         'order_id' => $order->id,
                         'credit_used' => $creditToUse,
                         'amount_pending' => 0
@@ -2562,19 +2663,146 @@ class PaymentController extends Controller
                 ]);
             }
 
-            // Si hay monto pendiente pero no quiere pagar con MercadoPago
+            /** @var Order|null $orderCredit */
+            $orderCredit = $tx['order_credit'];
+            /** @var Order $orderPayment */
+            $orderPayment = $tx['order_payment'];
+            $creditSubtotal = $tx['credit_subtotal'];
+            $amountPending = $tx['amount_pending'];
+
+            $address = $addressId ? $user->addresses()->find($addressId) : null;
+
+            $prefLineItems = [];
+            foreach ($orderPayment->items as $oi) {
+                $prefLineItems[] = [
+                    'product_id' => $oi->product_id,
+                    'name' => $oi->name,
+                    'quantity' => (int) $oi->quantity,
+                    'price' => (float) $oi->price,
+                    'size' => $oi->size,
+                    'color' => $oi->color,
+                    'barcode' => $oi->barcode,
+                ];
+            }
+
+            $sumPref = 0.0;
+            foreach ($prefLineItems as $li) {
+                $sumPref += $li['price'] * $li['quantity'];
+            }
+            $sumPref = round($sumPref, 2);
+            if (abs($sumPref - $amountPending) > 0.05) {
+                $diff = round($amountPending - $sumPref, 2);
+                if (abs($diff) > 0.001) {
+                    $prefLineItems[] = [
+                        'product_id' => '0',
+                        'name' => 'Ajuste de total',
+                        'quantity' => 1,
+                        'price' => $diff,
+                        'size' => null,
+                        'color' => null,
+                        'barcode' => null,
+                    ];
+                }
+            }
+
+            $orderData = [
+                'order_id' => $orderPayment->external_reference,
+                'user' => [
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name,
+                    'email' => $user->email,
+                    'phone' => $user->phone
+                ],
+                'address' => $address ? [
+                    'street_address' => $address->street_address,
+                    'city' => $address->city,
+                    'state' => $address->state,
+                    'postal_code' => $address->postal_code,
+                    'country' => $address->country
+                ] : [
+                    'street_address' => '',
+                    'city' => '',
+                    'state' => '',
+                    'postal_code' => '',
+                    'country' => 'México'
+                ],
+                'items' => $prefLineItems,
+                'delivery_type' => $deliveryType
+            ];
+
+            $preference = $this->mercadoPagoService->createPreference($orderData);
+
+            $orderPayment->update([
+                'mercadopago_preference_id' => $preference->id
+            ]);
+
+            if ($orderCredit) {
+                try {
+                    Mail::to($user->email)->send(new OrderConfirmationMail($orderCredit));
+                } catch (\Exception $e) {
+                    Log::error('Email orden crédito (split)', ['order_id' => $orderCredit->id, 'error' => $e->getMessage()]);
+                }
+
+                try {
+                    $paymentData = $orderCredit->payment_data ?? [];
+                    if (is_string($paymentData)) {
+                        $paymentData = json_decode($paymentData, true) ?? [];
+                    }
+                    if (empty($paymentData['external_api_sent'])) {
+                        $this->externalSalesService->sendSaleToExternalApi($orderCredit);
+                        $paymentData['external_api_sent'] = true;
+                        $paymentData['external_api_sent_at'] = now()->toIso8601String();
+                        $orderCredit->update(['payment_data' => json_encode($paymentData)]);
+                    }
+                } catch (\Exception $e) {
+                    Log::error('API externa orden crédito (split)', [
+                        'order_id' => $orderCredit->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            try {
+                Mail::to($user->email)->send(new OrderConfirmationMail($orderPayment));
+            } catch (\Exception $e) {
+                Log::error('Email orden MP (split)', ['order_id' => $orderPayment->id, 'error' => $e->getMessage()]);
+            }
+
+            $payUrl = $preference->init_point ?? $this->mercadoPagoService->getPaymentUrl($preference->id);
+            $sandboxUrl = $preference->sandbox_init_point ?? $this->mercadoPagoService->getSandboxPaymentUrl($preference->id);
+
             return response()->json([
                 'success' => true,
-                'message' => 'Orden creada con crédito parcial. Tiene un saldo pendiente.',
+                'message' => 'Pedido dividido: una parte con tu crédito y el resto pendiente en Mercado Pago.',
                 'data' => [
-                    'order_id' => $order->id,
-                    'credit_used' => $creditToUse,
-                    'amount_pending' => $amountPending
+                    'order_split' => true,
+                    'order_id' => $orderPayment->id,
+                    'order_credit_id' => $orderCredit ? $orderCredit->id : null,
+                    'order_payment_id' => $orderPayment->id,
+                    'credit_used' => $creditSubtotal,
+                    'amount_pending' => $amountPending,
+                    'order_credit' => $orderCredit ? [
+                        'id' => $orderCredit->id,
+                        'total_amount' => (float) $orderCredit->total_amount,
+                        'credit_used' => (float) $orderCredit->credit_used,
+                        'message' => 'Orden aplicada a tu crédito (pendiente de facturación según tu flujo habitual).',
+                    ] : null,
+                    'order_payment' => [
+                        'id' => $orderPayment->id,
+                        'total_amount' => (float) $orderPayment->total_amount,
+                        'amount_pending' => (float) $orderPayment->amount_pending,
+                        'message' => 'Orden pendiente de pago externo (Mercado Pago).',
+                    ],
+                    'preference_id' => $preference->id,
+                    'payment_url' => $payUrl,
+                    'sandbox_payment_url' => $sandboxUrl,
+                    'init_point' => $preference->init_point ?? null,
+                    'sandbox_init_point' => $preference->sandbox_init_point ?? null,
+                    'split_group_id' => $tx['split_group_id'],
                 ]
             ]);
 
         } catch (\Exception $e) {
-            DB::rollBack();
             Log::error('Error procesando pago con crédito', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
