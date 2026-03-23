@@ -276,6 +276,46 @@
   align-items: center;
 }
 
+/* Una fila por producto: columnas Color / Talla / Cantidad alineadas con Total pzas, Precio, Subtotal */
+.product-details--grouped {
+  grid-template-columns:
+    minmax(100px, 2fr)
+    minmax(0, 1fr)
+    minmax(0, 1fr)
+    minmax(0, 1fr)
+    minmax(0, 1fr)
+    minmax(0, 1fr)
+    minmax(0, 1fr);
+  align-items: flex-start;
+  gap: 8px 10px;
+}
+
+.product-details__main {
+  min-width: 0;
+}
+
+/* Misma idea que .product-quantity: título arriba, valores alineados a la derecha */
+.product-variant-col {
+  text-align: right;
+  font-size: 12px;
+}
+
+.product-variant-col__label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.product-variant-col__lines > div + div {
+  margin-top: 5px;
+}
+
+.product-variant-col__lines {
+  line-height: 1.4;
+  color: #333;
+}
+
 .product-name {
   font-weight: bold;
   font-size: 13px;

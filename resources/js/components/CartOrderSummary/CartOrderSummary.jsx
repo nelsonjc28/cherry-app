@@ -519,17 +519,15 @@ const CartOrderSummary = ({
       transaction_amount: formattedTransactionAmount,
         installments: 1, // Siempre 1 cuota
         items: cartItems.map(item => {
-          const productId = item.id_articulo || item.product_id || item.id;
-          const parsedProductId = parseInt(productId, 10);
-
           const mappedItem = {
-            product_id: parsedProductId,
+            product_id: String(item.id_articulo || item.product_id || item.id),
             name: item.title || item.name,
             quantity: parseInt(item.quantity, 10),
             price: parseFloat(item.precio || item.price),
             size: item.selectedSize || null,
             color: item.selectedColor || null,
-            barcode: item.barcode || null
+            barcode: item.barcode || null,
+            detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null
           };
 
           return mappedItem;
@@ -787,7 +785,8 @@ const CartOrderSummary = ({
           price: parseFloat(item.precio || item.price), // Precio ya incluye descuentos individuales (desc_promo)
           size: item.selectedSize || null,
           color: item.selectedColor || null,
-          barcode: item.barcode || null
+          barcode: item.barcode || null,
+          detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null
         })),
         address_id: deliveryType === 'envio' && selectedAddress ? parseInt(selectedAddress.id, 10) : null,
         delivery_type: deliveryType, // 'envio' or 'retiro'

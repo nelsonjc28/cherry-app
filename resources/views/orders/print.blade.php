@@ -109,6 +109,45 @@
             align-items: center;
         }
 
+        /* Misma grilla que el modal: nombre | Color | Talla | Cantidad | Total pzas | Precio | Subtotal */
+        .product-details--grouped {
+            grid-template-columns:
+                minmax(100px, 2fr)
+                minmax(0, 1fr)
+                minmax(0, 1fr)
+                minmax(0, 1fr)
+                minmax(0, 1fr)
+                minmax(0, 1fr)
+                minmax(0, 1fr);
+            align-items: flex-start;
+            gap: 8px 10px;
+        }
+
+        .product-details__main {
+            min-width: 0;
+        }
+
+        .product-variant-col {
+            text-align: right;
+            font-size: 12px;
+        }
+
+        .product-variant-col__label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+
+        .product-variant-col__lines > div + div {
+            margin-top: 5px;
+        }
+
+        .product-variant-col__lines {
+            line-height: 1.4;
+            color: #333;
+        }
+
         .product-name {
             font-weight: bold;
             font-size: 13px;
@@ -284,19 +323,47 @@
         @foreach($groupedItems as $item)
         <div class="product-item">
             <img src="{{ $item['image'] }}" alt="{{ $item['name'] }}" class="product-image" onerror="this.style.display='none'">
-            <div class="product-details">
-                <div>
+            <div class="product-details product-details--grouped">
+                <div class="product-details__main">
                     <div class="product-name">{{ $item['name'] }}</div>
                     <div class="product-id">ID: {{ $item['product_id'] }}</div>
                 </div>
+                <div class="product-variant-col">
+                    <span class="product-variant-col__label">Color</span>
+                    <div class="product-variant-col__lines">
+                        @foreach($item['variants'] as $v)
+                        <div>{{ $v['color'] !== null && $v['color'] !== '' ? $v['color'] : '—' }}</div>
+                        @endforeach
+                    </div>
+                </div>
+                <div class="product-variant-col">
+                    <span class="product-variant-col__label">Talla</span>
+                    <div class="product-variant-col__lines">
+                        @foreach($item['variants'] as $v)
+                        <div>{{ $v['size'] !== null && $v['size'] !== '' ? $v['size'] : '—' }}</div>
+                        @endforeach
+                    </div>
+                </div>
+                <div class="product-variant-col">
+                    <span class="product-variant-col__label">Cantidad</span>
+                    <div class="product-variant-col__lines">
+                        @foreach($item['variants'] as $v)
+                        <div>{{ $v['quantity'] }}</div>
+                        @endforeach
+                    </div>
+                </div>
                 <div class="product-quantity">
-                    Cantidad: {{ $item['quantity'] }}
+                    <strong>Total pzas:</strong> {{ $item['total_quantity'] }}
                 </div>
                 <div class="product-price">
-                    Precio: ${{ number_format($item['price'], 2) }}
+                    @if($item['single_unit_price'] !== null)
+                    <span>Precio: ${{ number_format($item['single_unit_price'], 2) }}</span>
+                    @else
+                    <span style="font-size: 12px; color: #555;">Varios precios</span>
+                    @endif
                 </div>
                 <div class="product-subtotal">
-                    ${{ number_format($item['subtotal'], 2) }}
+                    ${{ number_format($item['total_subtotal'], 2) }}
                 </div>
             </div>
         </div>

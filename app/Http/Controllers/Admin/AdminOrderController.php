@@ -139,6 +139,7 @@ class AdminOrderController extends Controller
                         return [
                             'id' => $item->id,
                             'product_id' => $item->product_id,
+                            'detalle_id' => $item->detalle_id,
                             'title' => $item->name ?? 'Producto',
                             'quantity' => (int) $item->quantity,
                             'price' => (float) $item->price,
@@ -348,6 +349,7 @@ class AdminOrderController extends Controller
                     return [
                         'id' => $item->id,
                         'product_id' => $item->product_id,
+                        'detalle_id' => $item->detalle_id,
                         'title' => $item->name ?? 'Producto',
                         'quantity' => (int) $item->quantity,
                         'price' => (float) $item->price,

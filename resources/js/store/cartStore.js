@@ -68,6 +68,17 @@ const saveCartToDatabase = async (cartState) => {
  * Helper function to save cart to localStorage when there's no session
  * This ensures immediate persistence before sync
  */
+/** id de tabla `detalles` (variante talla/color) según catálogo cargado */
+const resolveDetalleIdFromCatalog = (productDetaill, color, size) => {
+  if (!productDetaill?.detalles) return null;
+  const variant = productDetaill.detalles.find(
+    (v) => v.nombreColor === color && v.detalle === size
+  );
+  if (variant?.id == null) return null;
+  const n = Number(variant.id);
+  return Number.isFinite(n) ? n : null;
+};
+
 const saveCartToLocalStorage = (items, totalItems, totalPrice, couponCode = null, discount = 0) => {
   if (isAuthenticated()) {
     return; // No guardar en localStorage si hay sesión
@@ -433,6 +444,12 @@ const useCartStore = create(
 
         let updatedItems = [...items];
 
+        const detalleId = resolveDetalleIdFromCatalog(
+          productDetaill,
+          product.selectedColor,
+          product.selectedSize
+        );
+
         if (existingIndex !== -1) {
           const existing = updatedItems[existingIndex];
           const newQuantity = existing.quantity + quantity;
@@ -448,6 +465,7 @@ const useCartStore = create(
             updatedItems[existingIndex] = { 
               ...existing, 
               quantity: maxStock,
+              detalle_id: existing.detalle_id ?? detalleId,
               // Preservar userOffer del producto nuevo si existe, sino mantener el existente
               userOffer: product.userOffer || existing.userOffer
             };
@@ -458,6 +476,7 @@ const useCartStore = create(
             updatedItems[existingIndex] = { 
               ...existing, 
               quantity: newQuantity,
+              detalle_id: existing.detalle_id ?? detalleId,
               // Preservar userOffer del producto nuevo si existe, sino mantener el existente
               userOffer: product.userOffer || existing.userOffer
             };
@@ -474,7 +493,7 @@ const useCartStore = create(
             window.showToast(`Solo hay ${maxStock} unidades disponibles para esta combinación.`, 'error')
           }
           // Asegurar que userOffer se incluya al agregar nuevo producto
-          updatedItems.push({ ...product, quantity: qty });
+          updatedItems.push({ ...product, quantity: qty, detalle_id: detalleId });
         }
 
         // Aplicar lógica de Buy X Get Y

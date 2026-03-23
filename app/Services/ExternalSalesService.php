@@ -26,6 +26,12 @@ class ExternalSalesService
         
         // Obtener delivery_type desde payment_data o determinar por address
         $paymentData = $order->payment_data ?? [];
+        if (is_string($paymentData)) {
+            $paymentData = json_decode($paymentData, true) ?? [];
+        }
+        if (! is_array($paymentData)) {
+            $paymentData = [];
+        }
         $deliveryType = $paymentData['delivery_type'] ?? ($address ? 'envio' : 'retiro');
         
         // Normalizar método de envío para la API externa
@@ -65,10 +71,16 @@ class ExternalSalesService
         // Preparar items con idArtd e idArticulo
         // IMPORTANTE: Por cada talla/color comprada se envía un item separado
         $items = [];
-        $importeNeto = 0;
-        $descuentos = 0;
-        
+        /** @var float Suma de precio catálogo (precio1) × cantidad — base para descuentos */
+        $importeBrutoCatalogo = 0.0;
+        /** @var float Suma de subtotales reales de línea (neto pagado por mercancía) */
+        $sumaNetoLineas = 0.0;
+
         foreach ($order->items as $orderItem) {
+            if ($this->isNonInventoryOrderLine($orderItem)) {
+                continue;
+            }
+
             // Normalizar product_id agregando ceros a la izquierda (formato: 6 dígitos)
             // Ejemplo: 10000 -> "010000", "010000" -> "010000"
             $productIdNormalized = $this->normalizeProductId($orderItem->product_id);
@@ -125,10 +137,14 @@ class ExternalSalesService
                 );
             }
             
-            // Buscar el detalle que coincida con el producto, tamaño y color
-            // idArtd es el identificador del artículo por color y talla en el sistema
-            // Usar el ID del producto encontrado (no el original del orderItem)
-            $detalle = $this->findDetalleForOrderItem($orderItem, $producto->id);
+            // Preferir detalle_id persistido en la línea; si no, buscar por producto/talla/color
+            $detalle = null;
+            if (! empty($orderItem->detalle_id)) {
+                $detalle = Detalle::find($orderItem->detalle_id);
+            }
+            if (! $detalle) {
+                $detalle = $this->findDetalleForOrderItem($orderItem, $producto->id);
+            }
             
             if (!$detalle) {
                 Log::error('No se encontró detalle para OrderItem - CRÍTICO', [
@@ -152,39 +168,33 @@ class ExternalSalesService
                 $precioOriginal = (float) ($producto->precio2 ?? $producto->precio3 ?? $producto->precio4 ?? 0);
             }
             
-            // Precio que pagó el cliente (precio unitario después de TODOS los descuentos aplicados)
-            // Este precio ya incluye:
-            // - Descuentos individuales del producto (ej: 50% de desc_promo)
-            // - Descuentos adicionales del 20% y 10% (si aplican)
+            // Neto real de la línea (precio unitario final × cantidad): incluye desc. por producto + escalas $7k / $15k
             $precioConDescuento = (float) $orderItem->price;
             $cantidad = (int) $orderItem->quantity;
-            
+            $netLine = round((float) $orderItem->subtotal, 2);
+            $sumaNetoLineas += $netLine;
+
             // Si no hay precio original, usar el precio pagado como precio original (sin descuento)
             if ($precioOriginal <= 0) {
                 $precioOriginal = $precioConDescuento;
             }
-            
-            // Calcular descuento total: diferencia entre precio original y precio con descuento
-            $descuentoUnitario = 0;
-            $descuentoItem = 0;
-            $porcentajeDescuento = 0;
-            
-            // Si hay precio original y es mayor al precio con descuento, hay descuento
-            if ($precioOriginal > $precioConDescuento && $precioOriginal > 0) {
-                $descuentoUnitario = $precioOriginal - $precioConDescuento;
-                $descuentoItem = $descuentoUnitario * $cantidad;
-                // Calcular porcentaje de descuento total: ((precio_original - precio_con_descuento) / precio_original) * 100
-                $porcentajeDescuento = (($descuentoUnitario / $precioOriginal) * 100);
+
+            $grossLine = round($precioOriginal * $cantidad, 2);
+            $importeBrutoCatalogo += $grossLine;
+
+            // % de descuento sobre precio catálogo para que (precio × (1 - %/100) × cantidad) refleje el neto de línea
+            $porcentajeDescuento = 0.0;
+            if ($grossLine > 0.0001) {
+                $porcentajeDescuento = (($grossLine - $netLine) / $grossLine) * 100;
+                if ($porcentajeDescuento < 0) {
+                    $porcentajeDescuento = 0.0;
+                }
+                if ($porcentajeDescuento > 100) {
+                    $porcentajeDescuento = 100.0;
+                }
             }
-            
-            // Calcular subtotales
-            // ImporteNeto: suma de (precio original * cantidad) - esto es el total sin descuentos
-            $subtotalOriginal = $precioOriginal * $cantidad;
-            $importeNeto += $subtotalOriginal;
-            
-            // Descuentos: suma de descuentos aplicados (en monto absoluto para el total)
-            $descuentos += $descuentoItem;
-            
+            $porcentajeDescuento = round($porcentajeDescuento, 6);
+
             // idArticulo: Identificador del artículo en el sistema (ejemplo: "PL09406", "CH09809", "01000")
             // Usar el ID del producto tal cual está en la base de datos (sin normalización)
             // Esto preserva los ceros a la izquierda (ej: "01000" se envía como "01000", no como "010000")
@@ -200,7 +210,9 @@ class ExternalSalesService
                 'cantidad' => (int) $cantidad,
                 'precio' => (float) $precioOriginal,
                 'descuento' => (float) $porcentajeDescuento,
-                'opcDecto' => $porcentajeDescuento > 0 ? 'S' : 'N'
+                'opcDecto' => $porcentajeDescuento > 0.00001 ? 'S' : 'N',
+                'talla' => (string) ($detalle->detalle ?? ''),
+                'nombreColor' => (string) ($detalle->nombreColor ?? ''),
             ];
         }
         
@@ -261,15 +273,39 @@ class ExternalSalesService
         if ($deliveryType === 'retiro') {
             $costoEnvio = 0;
         }
-        
-        // Usar valores de la BD para importeNeto e importeFinal
-        // importeNeto: precio total sin descuento (subtotal de la orden)
-        // importeFinal: precio con descuento aplicado (discounted_total + envío, o total_amount)
-        $importeNeto = (float) ($order->subtotal ?? $importeNeto); // Usar subtotal de la BD, fallback al cálculo anterior
-        $importeFinal = (float) ($order->total_amount ?? ($order->discounted_total + $costoEnvio)); // Usar total_amount de la BD, fallback a discounted_total + envío
-        
-        // Calcular importeTotal para referencia (importeNeto - descuentos individuales de productos)
-        $importeTotal = $importeNeto - $descuentos;
+
+        // --- Totales API (requisito cliente) ---
+        // importeNeto = mercancía CON descuentos (lo cobrado en productos, sin envío).
+        // importeTotal = mercancía SIN descuentos (bruto antes de aplicar descuentos).
+        // subtotal BD = carrito antes de escalas $7k/$15k; discounted_total = tras descuentos (sin envío).
+        $subtotalOrden = round((float) ($order->subtotal ?? 0), 2);
+        $discountedTotalOrden = round((float) ($order->discounted_total ?? 0), 2);
+        if ($discountedTotalOrden <= 0.01 && $sumaNetoLineas > 0.01) {
+            $discountedTotalOrden = round($sumaNetoLineas, 2);
+        }
+
+        $importeNeto = $discountedTotalOrden;
+
+        // Bruto sin descuentos: prioridad subtotal de orden; si viene igual al neto (error u orden vieja), catálogo o reconstrucción
+        $importeBrutoCatalogo = round($importeBrutoCatalogo, 2);
+        $importeTotal = $subtotalOrden;
+        if ($importeTotal < $importeNeto - 0.01) {
+            $importeTotal = round(max($importeBrutoCatalogo, $importeNeto), 2);
+        }
+        if ($importeTotal <= $importeNeto + 0.01) {
+            $candidatoCatalogo = round(max($importeBrutoCatalogo, $importeNeto), 2);
+            $deltaVolumen = round(max(0.0, $subtotalOrden - $discountedTotalOrden), 2);
+            $importeTotal = round(max($candidatoCatalogo, $importeNeto + $deltaVolumen), 2);
+        }
+        $importeTotal = round(max($importeTotal, $importeNeto), 2);
+
+        // Descuento monetario total de mercancía: bruto − neto (cuadra con importeTotal / importeNeto)
+        $descuentos = round(max(0.0, $importeTotal - $importeNeto), 2);
+
+        // Descuento por escalas según columnas de la orden (referencia; también en impoDecto1)
+        $descuentoVolumenMonto = round(max(0.0, $subtotalOrden - $discountedTotalOrden), 2);
+
+        $importeFinal = (float) ($order->total_amount ?? ($discountedTotalOrden + $costoEnvio));
         
         // Validar que importeFinal sea válido
         if ($importeFinal <= 0) {
@@ -287,7 +323,13 @@ class ExternalSalesService
         // Preparar payload para la API externa
         // id_pedido debe ser un número grande único (usar timestamp + order_id)
         $idPedido = (int) ($order->created_at->timestamp . str_pad($order->id, 4, '0', STR_PAD_LEFT));
-        
+
+        $tipoPago = 'MP';
+        $pm = strtolower((string) ($order->payment_method ?? ''));
+        if (str_contains($pm, 'credito') && ! str_contains($pm, 'mercadopago')) {
+            $tipoPago = 'CREDITO';
+        }
+
         $payload = [
             'id_pedido' => $idPedido,
             'numero_pedido' => (int) $numeroPedido,
@@ -296,26 +338,36 @@ class ExternalSalesService
             'pago' => [
                 'external_reference' => (int) ($mercadopagoPaymentId ?? $idPedido),
                 'fecha_pago' => $order->created_at->format('Y-m-d\TH:i:s'),
-                'tipoPago' => 'MP' // MercadoPago
+                'tipoPago' => $tipoPago,
             ],
             'cliente' => $clienteData,
-            'metodoEnvio' => $metodoEnvio, // Método de envío: 'ENVIO A DOMICILIO' o 'RETIRO EN TIENDA'
+            'metodoEnvio' => $metodoEnvio,
             'decto1' => 0.0,
-            'impoDecto1' => 0.0,
+            'impoDecto1' => (float) $descuentoVolumenMonto,
             'refDecto1' => null,
             'decto2' => 0.0,
             'impoDecto2' => 0.0,
             'decto3' => 0.0,
             'impoDecto3' => 0.0,
-            'descuento1' => (float) $descuento1, // 20% cuando total elegible >= 7000
-            'descuento2' => (float) $descuento2, // 10% adicional cuando total elegible >= 15000
+            'descuento1' => (float) $descuento1,
+            'descuento2' => (float) $descuento2,
             'importeNeto' => (float) $importeNeto,
             'descuentos' => (float) $descuentos,
             'importeTotal' => (float) $importeTotal,
             'costoEnvio' => (float) $costoEnvio,
             'items' => $items,
-            'importeFinal' => (float) $importeFinal
+            'importeFinal' => (float) $importeFinal,
         ];
+
+        $splitGroupId = $paymentData['split_group_id'] ?? null;
+        if (! empty($splitGroupId)) {
+            $payload['operacionVinculada'] = [
+                'split_group_id' => (string) $splitGroupId,
+                'split_role' => $paymentData['split_role'] ?? null,
+                'paired_order_id' => $paymentData['split_paired_order_id'] ?? null,
+                'nota' => 'Operación fraccionada (crédito / Mercado Pago). Sumar importeNeto de órdenes con el mismo split_group_id para el total de mercancía del carrito.',
+            ];
+        }
 
         // Log detallado del payload antes de enviar
         Log::info('Payload para API externa', [
@@ -324,11 +376,14 @@ class ExternalSalesService
             'subtotal_from_db' => $order->subtotal,
             'discounted_total_from_db' => $order->discounted_total,
             'total_amount_from_db' => $order->total_amount,
-            'importeNeto' => $importeNeto, // Precio total sin descuento (subtotal)
+            'importe_bruto_catalogo' => $importeBrutoCatalogo,
+            'importeNeto' => $importeNeto, // Con descuento (neto cobrado mercancía)
+            'descuento_volumen_monto' => $descuentoVolumenMonto,
+            'suma_neto_lineas' => $sumaNetoLineas,
             'descuentos' => $descuentos,
-            'importeTotal' => $importeTotal,
+            'importeTotal' => $importeTotal, // Sin descuento (bruto lista)
             'costoEnvio' => $costoEnvio,
-            'importeFinal' => $importeFinal, // Precio con descuento aplicado (total_amount)
+            'importeFinal' => $importeFinal,
             'payload' => $payload
         ]);
         
@@ -411,6 +466,23 @@ class ExternalSalesService
         }
     }
     
+    /**
+     * Líneas que no son inventariables (envío, ajustes MP) — no se envían a la API de artículos.
+     */
+    private function isNonInventoryOrderLine(OrderItem $orderItem): bool
+    {
+        $pid = trim((string) ($orderItem->product_id ?? ''));
+        if ($pid === '0' || $pid === '') {
+            return true;
+        }
+        $name = strtolower(trim((string) ($orderItem->name ?? '')));
+
+        return str_contains($name, 'envío')
+            || str_contains($name, 'envio')
+            || str_contains($name, 'ajuste de total')
+            || str_contains($name, 'saldo pendiente');
+    }
+
     /**
      * Normalizar product_id agregando ceros a la izquierda (formato: 6 dígitos)
      * Ejemplo: 10000 -> "010000", "010000" -> "010000", 123 -> "000123"

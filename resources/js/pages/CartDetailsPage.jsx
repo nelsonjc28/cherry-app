@@ -409,7 +409,8 @@ const CartDetailsPage = () => {
             price: parseFloat(item.precio || item.price),
             size: item.selectedSize || null,
             color: item.selectedColor || null,
-            barcode: item.barcode || null
+            barcode: item.barcode || null,
+            detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null
           })),
           total_amount: advanceOrderTotal,
           is_advance_order: true,
@@ -574,7 +575,8 @@ const CartDetailsPage = () => {
             price: parseFloat(item.precio || item.price),
             size: item.selectedSize || null,
             color: item.selectedColor || null,
-            barcode: item.barcode || null
+            barcode: item.barcode || null,
+            detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null
           };
 
           return mappedItem;
@@ -648,7 +650,8 @@ const CartDetailsPage = () => {
                       orderCreditId: data.order_credit_id ?? null,
                       orderSplit: !!data.order_split,
                       creditUsed: data.credit_used,
-                      amountPending: data.amount_pending
+                      amountPending: data.amount_pending,
+                      totalAmount: regularFinalTotal
                     }
                   }
                 });
@@ -666,7 +669,8 @@ const CartDetailsPage = () => {
                   orderInfo: {
                     orderId: data.order_id,
                     creditUsed: data.credit_used,
-                    amountPending: 0
+                    amountPending: 0,
+                    totalAmount: regularFinalTotal
                   }
                 }
               });

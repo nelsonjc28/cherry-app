@@ -116,22 +116,30 @@ class PaymentStatusController extends Controller
             ], 404);
         }
 
-        // Si la orden ya está pagada, no necesitamos verificar
+        // Si la orden ya está pagada, no necesitamos verificar (incluye pago con crédito sin MP)
         if ($order->isPaid()) {
+            $order->load(['items', 'address']);
+
             return response()->json([
                 'success' => true,
                 'payment_status' => 'approved',
                 'order_status' => $order->status,
-                'message' => 'El pago ya fue aprobado'
+                'message' => 'El pago ya fue aprobado',
+                'order' => $order,
             ]);
         }
 
-        // Si no hay payment_id de MercadoPago, no podemos verificar
-        if (!$order->mercadopago_payment_id) {
+        // Sin Mercado Pago (ej. solo crédito aún marcado como pendiente): devolver la orden para la UI
+        if (! $order->mercadopago_payment_id) {
+            $order->load(['items', 'address']);
+
             return response()->json([
-                'success' => false,
-                'message' => 'No se puede verificar el estado del pago'
-            ], 400);
+                'success' => true,
+                'payment_status' => 'pending',
+                'order_status' => $order->status,
+                'message' => 'Estado del pedido consultado',
+                'order' => $order,
+            ]);
         }
 
         try {
@@ -175,12 +183,15 @@ class PaymentStatusController extends Controller
                 }
             }
 
+            $order->refresh()->load(['items', 'address']);
+
             return response()->json([
                 'success' => true,
                 'payment_status' => $payment->status,
                 'order_status' => $newOrderStatus,
                 'requires_polling' => in_array($payment->status, ['pending', 'in_process']),
-                'status_detail' => $payment->status_detail ?? null
+                'status_detail' => $payment->status_detail ?? null,
+                'order' => $order,
             ]);
 
         } catch (\Exception $e) {

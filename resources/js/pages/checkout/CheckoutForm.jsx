@@ -160,9 +160,10 @@ const CheckoutForm = ({ cartItems = [], totalAmount = 0, onPaymentSuccess, onPay
           quantity: item.quantity,
           price: item.precio || item.price,
           name: item.title || item.name,
-          size: item.size || item.talla || null,
-          color: item.color || null,
-          barcode: item.barcode || item.codbarra || null
+          size: item.selectedSize || item.size || item.talla || null,
+          color: item.selectedColor || item.color || null,
+          barcode: item.barcode || item.codbarra || null,
+          detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null
         }))
       };
 

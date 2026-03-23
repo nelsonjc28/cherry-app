@@ -170,10 +170,14 @@ const IntegratedCheckout = ({
         transaction_amount: totalAmount,
         installments: parseInt(cardData.installments),
         items: cartItems.map(item => ({
-          product_id: item.id_articulo || item.product_id || item.id,
+          product_id: String(item.id_articulo || item.product_id || item.id),
           name: item.title || item.name,
           quantity: item.quantity,
-          price: item.precio || item.price
+          price: item.precio || item.price,
+          size: item.selectedSize || item.size || null,
+          color: item.selectedColor || item.color || null,
+          barcode: item.barcode || null,
+          detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null
         })),
         address_id: selectedAddress.id
       };;

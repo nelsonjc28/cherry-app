@@ -21,6 +21,7 @@ use App\Services\OrderCreditSplitService;
 use App\Mail\OrderConfirmationMail;
 use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
+use App\Support\OrderItemDetalleResolver;
 
 class PaymentController extends Controller
 {
@@ -43,6 +44,36 @@ class PaymentController extends Controller
     }
 
     /**
+     * Construye el array para persistir un order_item con detalle_id (variante talla/color) cuando exista.
+     *
+     * @param  array<string, mixed>  $item
+     * @return array<string, mixed>
+     */
+    protected function orderItemPayloadFromLine(int $orderId, array $item): array
+    {
+        $qty = (int) ($item['quantity'] ?? 0);
+        $price = (float) ($item['price'] ?? 0);
+        $pid = (string) ($item['product_id'] ?? '');
+        $name = $item['name'] ?? 'Producto';
+        $lowerName = strtolower((string) $name);
+        $isShippingLine = $pid === '0' || str_contains($lowerName, 'envío') || str_contains($lowerName, 'envio') || str_contains($lowerName, 'ajuste');
+        $detalleId = $isShippingLine ? null : OrderItemDetalleResolver::resolve($item);
+
+        return [
+            'order_id' => $orderId,
+            'product_id' => $pid,
+            'name' => $name,
+            'size' => $item['size'] ?? null,
+            'color' => $item['color'] ?? null,
+            'barcode' => $item['barcode'] ?? null,
+            'detalle_id' => $detalleId,
+            'quantity' => $qty,
+            'price' => $price,
+            'subtotal' => round($qty * $price, 2),
+        ];
+    }
+
+    /**
      * Crear una preferencia de pago con MercadoPago
      */
     public function createPaymentPreference(Request $request)
@@ -58,6 +89,7 @@ class PaymentController extends Controller
             'items.*.size' => 'nullable|string',
             'items.*.color' => 'nullable|string',
             'items.*.barcode' => 'nullable|string',
+            'items.*.detalle_id' => 'nullable|integer|min:1',
             'delivery_type' => 'nullable|string|in:envio,retiro',
             'shipping_amount' => 'nullable|numeric|min:0',
             'total_amount' => 'required|numeric|min:0.01'
@@ -151,17 +183,7 @@ class PaymentController extends Controller
 
         // Crear los items del pedido
         foreach ($request->items as $item) {
-            OrderItem::create([
-                'order_id' => $order->id,
-                'product_id' => (string) $item['product_id'],
-                'name' => $item['name'],
-                'size' => $item['size'] ?? null,
-                'color' => $item['color'] ?? null,
-                'barcode' => $item['barcode'] ?? null,
-                'quantity' => (int) $item['quantity'],
-                'price' => (float) $item['price'],
-                'subtotal' => (float) ($item['quantity'] * $item['price'])
-            ]);
+            OrderItem::create($this->orderItemPayloadFromLine($order->id, $item));
         }
 
         DB::commit();
@@ -802,6 +824,7 @@ class PaymentController extends Controller
             'items.*.size' => 'nullable|string',
             'items.*.color' => 'nullable|string',
             'items.*.barcode' => 'nullable|string',
+            'items.*.detalle_id' => 'nullable|integer|min:1',
             'delivery_type' => 'nullable|string|in:envio,retiro',
             'shipping_amount' => 'nullable|numeric|min:0'
         ];
@@ -925,17 +948,7 @@ class PaymentController extends Controller
 
                 // Crear los items del pedido
                 foreach ($requestData['items'] as $item) {
-                    OrderItem::create([
-                        'order_id' => $order->id,
-                        'product_id' => $item['product_id'],
-                        'name' => $item['name'],
-                        'size' => $item['size'] ?? null,
-                        'color' => $item['color'] ?? null,
-                        'barcode' => $item['barcode'] ?? null,
-                        'quantity' => $item['quantity'],
-                        'price' => $item['price'],
-                        'subtotal' => $item['quantity'] * $item['price']
-                    ]);
+                    OrderItem::create($this->orderItemPayloadFromLine($order->id, $item));
                 }
 
                 // Crear o actualizar registro dayFortyFive si se aplicó descuento
@@ -1411,6 +1424,7 @@ class PaymentController extends Controller
                         return [
                             'id' => $item->id,
                             'product_id' => $item->product_id,
+                            'detalle_id' => $item->detalle_id,
                             'title' => $item->name ?? 'Producto',
                             'quantity' => (int) $item->quantity,
                             'price' => (float) $item->price,
@@ -2068,17 +2082,7 @@ class PaymentController extends Controller
 
             // Crear los items del pedido
             foreach ($request->items as $item) {
-                OrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => $item['product_id'],
-                    'name' => $item['name'],
-                    'size' => $item['size'] ?? null,
-                    'color' => $item['color'] ?? null,
-                    'barcode' => $item['barcode'] ?? null,
-                    'quantity' => $item['quantity'],
-                    'price' => $item['price'],
-                    'subtotal' => $item['quantity'] * $item['price']
-                ]);
+                OrderItem::create($this->orderItemPayloadFromLine($order->id, $item));
             }
 
             // Preparar datos para MercadoPago - pago en efectivo
@@ -2432,17 +2436,7 @@ class PaymentController extends Controller
                     ]);
 
                     foreach ($request->items as $item) {
-                        OrderItem::create([
-                            'order_id' => $order->id,
-                            'product_id' => (string) $item['product_id'],
-                            'name' => $item['name'],
-                            'size' => $item['size'] ?? null,
-                            'color' => $item['color'] ?? null,
-                            'barcode' => $item['barcode'] ?? null,
-                            'quantity' => (int) $item['quantity'],
-                            'price' => (float) $item['price'],
-                            'subtotal' => (int) $item['quantity'] * (float) $item['price'],
-                        ]);
+                        OrderItem::create($this->orderItemPayloadFromLine($order->id, $item));
                     }
 
                     $freshUser = User::query()->whereKey($lockedUser->id)->firstOrFail();
@@ -2504,17 +2498,7 @@ class PaymentController extends Controller
                     ]);
 
                     foreach ($creditItems as $item) {
-                        OrderItem::create([
-                            'order_id' => $orderCredit->id,
-                            'product_id' => (string) $item['product_id'],
-                            'name' => $item['name'],
-                            'size' => $item['size'] ?? null,
-                            'color' => $item['color'] ?? null,
-                            'barcode' => $item['barcode'] ?? null,
-                            'quantity' => (int) $item['quantity'],
-                            'price' => (float) $item['price'],
-                            'subtotal' => (int) $item['quantity'] * (float) $item['price'],
-                        ]);
+                        OrderItem::create($this->orderItemPayloadFromLine($orderCredit->id, $item));
                     }
                 }
 
@@ -2564,21 +2548,10 @@ class PaymentController extends Controller
 
                 if (count($mpItems) > 0) {
                     foreach ($mpItems as $item) {
-                        OrderItem::create([
-                            'order_id' => $orderB->id,
-                            'product_id' => (string) $item['product_id'],
-                            'name' => $item['name'],
-                            'size' => $item['size'] ?? null,
-                            'color' => $item['color'] ?? null,
-                            'barcode' => $item['barcode'] ?? null,
-                            'quantity' => (int) $item['quantity'],
-                            'price' => (float) $item['price'],
-                            'subtotal' => (int) $item['quantity'] * (float) $item['price'],
-                        ]);
+                        OrderItem::create($this->orderItemPayloadFromLine($orderB->id, $item));
                     }
                 } elseif ($shippingAmount > 0.001) {
-                    OrderItem::create([
-                        'order_id' => $orderB->id,
+                    OrderItem::create($this->orderItemPayloadFromLine($orderB->id, [
                         'product_id' => '0',
                         'name' => 'Envío',
                         'size' => null,
@@ -2586,8 +2559,7 @@ class PaymentController extends Controller
                         'barcode' => null,
                         'quantity' => 1,
                         'price' => $shippingAmount,
-                        'subtotal' => $shippingAmount,
-                    ]);
+                    ]));
                 }
 
                 $freshUser = User::query()->whereKey($lockedUser->id)->firstOrFail();
@@ -2840,6 +2812,7 @@ class PaymentController extends Controller
             'items.*.size' => 'nullable|string',
             'items.*.color' => 'nullable|string',
             'items.*.barcode' => 'nullable|string',
+            'items.*.detalle_id' => 'nullable|integer|min:1',
             'total_amount' => 'required|numeric|min:0'
         ]);
 
@@ -2891,17 +2864,7 @@ class PaymentController extends Controller
 
             // Crear los items del pedido
             foreach ($request->items as $item) {
-                OrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => (string) $item['product_id'],
-                    'name' => $item['name'],
-                    'size' => $item['size'] ?? null,
-                    'color' => $item['color'] ?? null,
-                    'barcode' => $item['barcode'] ?? null,
-                    'quantity' => (int) $item['quantity'],
-                    'price' => (float) $item['price'],
-                    'subtotal' => (float) ($item['quantity'] * $item['price'])
-                ]);
+                OrderItem::create($this->orderItemPayloadFromLine($order->id, $item));
             }
 
             DB::commit();
@@ -3304,22 +3267,39 @@ class PaymentController extends Controller
             $totalAmount = (float) $order->total_amount;
             $totalPieces = $order->items->sum('quantity');
 
-            // Agrupar items por producto para mostrar en el PDF
+            // Agrupar por producto con desglose color / talla / cantidad (misma estructura que OrderDetailModal)
             $groupedItems = [];
             foreach ($order->items as $item) {
                 $productId = (string) $item->product_id;
-                if (!isset($groupedItems[$productId])) {
+                if (! isset($groupedItems[$productId])) {
                     $groupedItems[$productId] = [
                         'product_id' => $productId,
                         'name' => $item->name,
                         'image' => $this->getProductImageUrlSimple($item->product_id),
-                        'quantity' => 0,
-                        'subtotal' => 0,
-                        'price' => $item->price
+                        'variants' => [],
+                        'total_quantity' => 0,
+                        'total_subtotal' => 0.0,
                     ];
                 }
-                $groupedItems[$productId]['quantity'] += $item->quantity;
-                $groupedItems[$productId]['subtotal'] += $item->subtotal;
+                $groupedItems[$productId]['variants'][] = [
+                    'color' => $item->color,
+                    'size' => $item->size,
+                    'quantity' => (int) $item->quantity,
+                    'price' => (float) $item->price,
+                    'subtotal' => (float) $item->subtotal,
+                ];
+                $groupedItems[$productId]['total_quantity'] += (int) $item->quantity;
+                $groupedItems[$productId]['total_subtotal'] += (float) $item->subtotal;
+            }
+
+            foreach ($groupedItems as $key => $row) {
+                $priceKeys = array_unique(array_map(
+                    fn ($v) => number_format($v['price'], 2, '.', ''),
+                    $row['variants']
+                ));
+                $groupedItems[$key]['single_unit_price'] = count($priceKeys) === 1
+                    ? (float) $row['variants'][0]['price']
+                    : null;
             }
 
             return view('orders.print', [

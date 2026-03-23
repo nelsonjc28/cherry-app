@@ -13,6 +13,7 @@ class OrderItem extends Model
     protected $fillable = [
         'order_id',
         'product_id',
+        'detalle_id',
         'name',
         'size',
         'color',
@@ -46,5 +47,13 @@ class OrderItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Producto::class, 'product_id', 'id');
+    }
+
+    /**
+     * Variante talla/color en tabla detalles (idArtd).
+     */
+    public function detalleRow(): BelongsTo
+    {
+        return $this->belongsTo(Detalle::class, 'detalle_id', 'id');
     }
 }

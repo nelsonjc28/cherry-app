@@ -64,117 +64,65 @@ const formatOrderNumber = (order) => {
   return prefix + String(orderId).padStart(4, '0');
 };
 
+/** Agrupa ítems por producto; el desglose talla/color/cantidad va en la misma fila. */
+const groupOrderItemsByProduct = (items) => {
+  if (!items?.length) return [];
+  const map = new Map();
+
+  items.forEach((item, idx) => {
+    const pid = String(item.product_id ?? `row-${idx}`);
+    const validImage =
+      item.image && item.image !== '/images/catalogProductImages/Rectangle 4922.png'
+        ? item.image
+        : null;
+
+    if (!map.has(pid)) {
+      map.set(pid, {
+        key: pid,
+        productId: item.product_id,
+        title: item.title || item.name || 'Producto',
+        image: validImage,
+        variants: [],
+        totalQuantity: 0,
+        totalSubtotal: 0
+      });
+    }
+
+    const row = map.get(pid);
+    if (!row.image && validImage) row.image = validImage;
+
+    const qty = item.quantity || 0;
+    const price = parseFloat(item.price) || 0;
+    const subtotal = parseFloat(item.subtotal) || 0;
+    const orig =
+      item.original_price != null ? parseFloat(item.original_price) : null;
+
+    row.variants.push({
+      key: item.id != null ? String(item.id) : `${pid}-v-${idx}`,
+      color: item.color || null,
+      size: item.size || null,
+      quantity: qty,
+      price,
+      subtotal,
+      hasDiscount: !!item.has_discount,
+      originalPrice: orig,
+      discountPercentage: item.discount_percentage || 0,
+      barcode: item.barcode || null
+    });
+    row.totalQuantity += qty;
+    row.totalSubtotal += subtotal;
+  });
+
+  return Array.from(map.values());
+};
+
 const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, isAdmin = false }) => {
   if (!isOpen || !order) return null;
 
-  // Agrupar productos por product_id
-  const groupedProducts = React.useMemo(() => {
-    if (!order.items || order.items.length === 0) return [];
-    const grouped = {};
-    
-    order.items.forEach((item) => {
-      const productId = item.product_id;
-      
-      // Debug: Log de cada item
-      
-      
-      if (!grouped[productId]) {
-        // Usar la imagen del item solo si existe y no es placeholder
-        const validImage = item.image && item.image !== '/images/catalogProductImages/Rectangle 4922.png' 
-          ? item.image 
-          : null;
-        
-        grouped[productId] = {
-          product_id: productId,
-          title: item.title || 'Producto',
-          image: validImage,
-          items: [],
-          totalQuantity: 0,
-          totalSubtotal: 0,
-          sizes: [],
-          colors: [],
-          barcodes: [],
-          hasDiscount: item.has_discount || false,
-          originalPrice: item.original_price || null,
-          discountPercentage: item.discount_percentage || 0,
-          price: item.price || 0
-        };
-        
-      }
-      
-      // Si el grupo no tiene imagen y este item tiene una válida, actualizarla
-      if (!grouped[productId].image && item.image && item.image !== '/images/catalogProductImages/Rectangle 4922.png') {
-        grouped[productId].image = item.image;
-      }
-      
-      grouped[productId].items.push(item);
-      grouped[productId].totalQuantity += item.quantity || 0;
-      grouped[productId].totalSubtotal += parseFloat(item.subtotal) || 0;
-      
-      // Actualizar información de precio original y descuento
-      // Siempre actualizar el precio original si el item lo tiene
-      if (item.original_price && item.original_price > 0) {
-        // Actualizar precio original si no existe o si este es mayor
-        if (!grouped[productId].originalPrice || item.original_price > grouped[productId].originalPrice) {
-          grouped[productId].originalPrice = item.original_price;
-        }
-      }
-      
-      // Actualizar información de descuento si el item tiene descuento
-      if (item.has_discount && item.original_price && item.original_price > item.price) {
-        
-        grouped[productId].hasDiscount = true;
-        // Usar el precio original más alto si hay múltiples items con diferentes precios originales
-        if (!grouped[productId].originalPrice || item.original_price > grouped[productId].originalPrice) {
-          grouped[productId].originalPrice = item.original_price;
-        }
-        // Usar el porcentaje de descuento más alto
-        if (item.discount_percentage > (grouped[productId].discountPercentage || 0)) {
-          grouped[productId].discountPercentage = item.discount_percentage;
-        }
-        // Usar el precio con descuento (el más bajo)
-        if (!grouped[productId].price || item.price < grouped[productId].price) {
-          grouped[productId].price = item.price;
-        }
-      } else if (!grouped[productId].price && item.price) {
-        // Si no hay descuento pero aún no tenemos precio, establecerlo
-        grouped[productId].price = item.price;
-      }
-      
-      // Asegurar que si algún item tiene descuento, el grupo lo refleje
-      if (item.has_discount && item.original_price && item.original_price > item.price) {
-        if (!grouped[productId].hasDiscount) {
-          grouped[productId].hasDiscount = true;
-        }
-        if (!grouped[productId].originalPrice || item.original_price > grouped[productId].originalPrice) {
-          grouped[productId].originalPrice = item.original_price;
-        }
-        if (item.discount_percentage > (grouped[productId].discountPercentage || 0)) {
-          grouped[productId].discountPercentage = item.discount_percentage;
-        }
-      }
-      
-      if (item.size && !grouped[productId].sizes.includes(item.size)) {
-        grouped[productId].sizes.push(item.size);
-      }
-      
-      if (item.color && !grouped[productId].colors.includes(item.color)) {
-        grouped[productId].colors.push(item.color);
-      }
-      
-      // Solo agregar códigos de barras si es admin
-      if (isAdmin && item.barcode && !grouped[productId].barcodes.includes(item.barcode)) {
-        grouped[productId].barcodes.push(item.barcode);
-      }
-    });
-    
-    const result = Object.values(grouped);
-    result.forEach(group => {
-      
-    });
-    
-    return result;
-  }, [order.items]);
+  const groupedRows = React.useMemo(
+    () => groupOrderItemsByProduct(order.items),
+    [order.items]
+  );
 
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
@@ -182,8 +130,8 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
     }
   };
 
-  // Calcular total de piezas
-  const totalPieces = groupedProducts.reduce((sum, group) => sum + group.totalQuantity, 0);
+  const totalPieces = groupedRows.reduce((sum, row) => sum + row.totalQuantity, 0);
+  const linesSubtotalSum = groupedRows.reduce((sum, row) => sum + row.totalSubtotal, 0);
 
   return (
     <div className="order-detail-modal-overlay" onClick={handleBackdropClick}>
@@ -451,35 +399,76 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
           <div className="products-section">
             <h2>Productos</h2>
             <div className="order-detail-products">
-              {groupedProducts.map((group, index) => (
-                <div key={group.product_id || index} className="product-item">
-                  {group.image && group.image !== '/images/catalogProductImages/Rectangle 4922.png' && (
-                    <img 
-                      src={group.image} 
-                      alt={group.title}
-                      className="product-image"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                      }}
-                    />
-                  )}
-                  <div className="product-details">
-                    <div>
-                      <div className="product-name">{group.title}</div>
-                      <div className="product-id">ID: {group.product_id}</div>
-                    </div>
-                    <div className="product-quantity">
-                      Cantidad: {group.totalQuantity}
-                    </div>
-                    <div className="product-price">
-                      Precio: ${(group.price || (group.items && group.items[0]?.price) || 0).toFixed(2)}
-                    </div>
-                    <div className="product-subtotal">
-                      ${group.totalSubtotal.toFixed(2)}
+              {groupedRows.map((row) => {
+                const unitKeys = [...new Set(row.variants.map((v) => v.price.toFixed(2)))];
+                const singleUnitPrice = unitKeys.length === 1 ? parseFloat(unitKeys[0], 10) : null;
+                const anyDiscount = row.variants.some(
+                  (v) => v.hasDiscount && v.originalPrice != null && v.originalPrice > v.price
+                );
+
+                return (
+                  <div key={row.key} className="product-item">
+                    {row.image && (
+                      <img
+                        src={row.image}
+                        alt={row.title}
+                        className="product-image"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    )}
+                    <div className="product-details product-details--grouped">
+                      <div className="product-details__main">
+                        <div className="product-name">{row.title}</div>
+                        <div className="product-id">ID: {row.productId}</div>
+                      </div>
+                      <div className="product-variant-col">
+                        <span className="product-variant-col__label">Color</span>
+                        <div className="product-variant-col__lines">
+                          {row.variants.map((v) => (
+                            <div key={`${v.key}-c`}>{v.color || '—'}</div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="product-variant-col">
+                        <span className="product-variant-col__label">Talla</span>
+                        <div className="product-variant-col__lines">
+                          {row.variants.map((v) => (
+                            <div key={`${v.key}-s`}>{v.size || '—'}</div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="product-variant-col">
+                        <span className="product-variant-col__label">Cantidad</span>
+                        <div className="product-variant-col__lines">
+                          {row.variants.map((v) => (
+                            <div key={`${v.key}-q`}>{v.quantity}</div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="product-quantity">
+                        <strong>Total pzas:</strong> {row.totalQuantity}
+                      </div>
+                      <div className="product-price">
+                        {singleUnitPrice != null ? (
+                          <>
+                            {anyDiscount ? (
+                              <span style={{ fontSize: '11px', color: '#666', display: 'block' }}>
+                                (mismo precio en todas las líneas)
+                              </span>
+                            ) : null}
+                            <span>Precio: ${singleUnitPrice.toFixed(2)}</span>
+                          </>
+                        ) : (
+                          <span style={{ fontSize: '12px', color: '#555' }}>Varios precios</span>
+                        )}
+                      </div>
+                      <div className="product-subtotal">${row.totalSubtotal.toFixed(2)}</div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -487,7 +476,7 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
           <div className="summary-section">
             <div className="summary-row">
               <span className="summary-label">Subtotal:</span>
-              <span>${groupedProducts.reduce((sum, group) => sum + group.totalSubtotal, 0).toFixed(2)}</span>
+              <span>${linesSubtotalSum.toFixed(2)}</span>
             </div>
             <div className="summary-row">
               <span className="summary-label">Envío:</span>
