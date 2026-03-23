@@ -3293,10 +3293,9 @@ class PaymentController extends Controller
             }
 
             foreach ($groupedItems as $key => $row) {
-                $priceKeys = array_unique(array_map(
-                    fn ($v) => number_format($v['price'], 2, '.', ''),
-                    $row['variants']
-                ));
+                $priceKeys = array_unique(array_map(function ($v) {
+                    return number_format($v['price'], 2, '.', '');
+                }, $row['variants']));
                 $groupedItems[$key]['single_unit_price'] = count($priceKeys) === 1
                     ? (float) $row['variants'][0]['price']
                     : null;
