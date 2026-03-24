@@ -10,6 +10,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Address> $addresses
@@ -41,6 +42,7 @@ class User extends Authenticatable implements JWTSubject
         'seller_category',
         'credit_balance',
         'credit_limit',
+        'welcome_sent',
     ];
 
     /**
@@ -71,6 +73,7 @@ class User extends Authenticatable implements JWTSubject
             'password' => 'hashed',
             'credit_balance' => 'decimal:2',
             'credit_limit' => 'decimal:2',
+            'welcome_sent' => 'boolean',
         ];
     }
 
@@ -80,6 +83,16 @@ class User extends Authenticatable implements JWTSubject
     public function role()
     {
         return $this->belongsTo(Role::class);
+    }
+
+    public function cart(): HasOne
+    {
+        return $this->hasOne(Cart::class);
+    }
+
+    public function productNotifications(): HasMany
+    {
+        return $this->hasMany(ProductNotification::class);
     }
 
     /**

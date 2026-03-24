@@ -16,13 +16,15 @@ class Cart extends Model
         'total_items',
         'total_price',
         'coupon_code',
-        'discount'
+        'discount',
+        'last_notified_at',
     ];
 
     protected $casts = [
         'items' => 'array',
         'total_price' => 'decimal:2',
         'discount' => 'decimal:2',
+        'last_notified_at' => 'datetime',
     ];
 
     /**

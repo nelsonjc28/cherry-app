@@ -199,4 +199,9 @@ class Producto extends Model
     {
         return $this->hasMany(Review::class, 'product_id', 'id');
     }
+
+    public function productNotifications(): HasMany
+    {
+        return $this->hasMany(ProductNotification::class, 'producto_id', 'id');
+    }
 }

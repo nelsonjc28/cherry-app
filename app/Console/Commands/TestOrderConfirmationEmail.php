@@ -15,14 +15,14 @@ class TestOrderConfirmationEmail extends Command
      *
      * @var string
      */
-    protected $signature = 'test:order-confirmation-email {order_id?} {--email=}';
+    protected $signature = 'test:order-confirmation-email {order_id?} {--email=} {--preview : Genera HTML en storage sin enviar correo}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Test sending order confirmation email';
+    protected $description = 'Prueba el correo de confirmación: envío real o vista previa (--preview)';
 
     /**
      * Execute the console command.
@@ -34,7 +34,7 @@ class TestOrderConfirmationEmail extends Command
         
         // Si se proporciona un ID de orden, usarlo
         if ($orderId) {
-            $order = Order::with(['user', 'address', 'items'])->find($orderId);
+            $order = Order::with(['user', 'address', 'items.detalleRow'])->find($orderId);
             
             if (!$order) {
                 $this->error("❌ No se encontró la orden con ID: {$orderId}");
@@ -45,24 +45,22 @@ class TestOrderConfirmationEmail extends Command
             $this->info("👤 Cliente: {$order->user->first_name} {$order->user->last_name}");
             $this->info("📧 Email del cliente: {$order->user->email}");
             $this->line("");
-            
-            // Si se proporciona un email de prueba, usarlo
+
             $emailToSend = $testEmail ?: $order->user->email;
-            
-            if ($testEmail) {
+            if (! $this->option('preview') && $testEmail) {
                 $this->warn("⚠️  Se enviará a: {$emailToSend} (email de prueba)");
             }
-            
+
         } else {
             // Buscar la última orden pagada, si no hay, usar la última orden
-            $order = Order::with(['user', 'address', 'items'])
+            $order = Order::with(['user', 'address', 'items.detalleRow'])
                 ->where('status', 'pagado')
                 ->orderBy('id', 'desc')
                 ->first();
             
             if (!$order) {
                 // Si no hay orden pagada, usar la última orden disponible
-                $order = Order::with(['user', 'address', 'items'])
+                $order = Order::with(['user', 'address', 'items.detalleRow'])
                     ->orderBy('id', 'desc')
                     ->first();
                 
@@ -81,10 +79,9 @@ class TestOrderConfirmationEmail extends Command
             $this->info("👤 Cliente: {$order->user->first_name} {$order->user->last_name}");
             $this->info("📧 Email del cliente: {$order->user->email}");
             $this->line("");
-            
+
             $emailToSend = $testEmail ?: $order->user->email;
-            
-            if ($testEmail) {
+            if (! $this->option('preview') && $testEmail) {
                 $this->warn("⚠️  Se enviará a: {$emailToSend} (email de prueba)");
             }
         }
@@ -97,9 +94,31 @@ class TestOrderConfirmationEmail extends Command
         $this->line("   - Items: " . $order->items->count());
         $this->line("   - Dirección: " . ($order->address ? "Envío a domicilio" : "Retiro en tienda"));
         $this->line("");
-        
+
+        if ($this->option('preview')) {
+            $order->loadMissing(['user', 'address', 'items.detalleRow']);
+            $html = (new OrderConfirmationMail($order))->render();
+            $dir = storage_path('app/email-previews');
+            if (! is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+            $path = $dir.DIRECTORY_SEPARATOR.'order-confirmation-'.$order->id.'.html';
+            file_put_contents($path, $html);
+            $this->info('✅ Vista previa generada (no se envió ningún correo).');
+            $this->line('');
+            $this->line('📄 Archivo: '.$path);
+            $this->line('');
+            $this->warn('Abre el HTML en el navegador (doble clic o arrastra al Chrome).');
+            if (app()->environment('local')) {
+                $url = url('/dev/mail-preview/order-confirmation/'.$order->id);
+                $this->line('🌐 O en local con servidor activo: '.$url);
+            }
+
+            return 0;
+        }
+
         // Confirmar antes de enviar
-        if (!$this->confirm('¿Deseas enviar el correo de confirmación?', true)) {
+        if (! $this->confirm('¿Deseas enviar el correo de confirmación?', true)) {
             $this->info("❌ Envío cancelado.");
             return 0;
         }

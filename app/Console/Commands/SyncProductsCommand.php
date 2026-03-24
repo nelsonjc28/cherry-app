@@ -8,9 +8,12 @@ use App\Models\Sector;
 use App\Models\Producto;
 use App\Models\Detalle;
 use App\Models\Historial;
+use App\Models\ProductNotification;
+use App\Mail\ProductAvailableEmail;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class SyncProductsCommand extends Command
 {
@@ -258,11 +261,30 @@ class SyncProductsCommand extends Command
                         continue;
                     }
 
+                    $existingProducto = Producto::query()->whereKey($productData['id'])->first();
+                    $previousInventario = $existingProducto ? (float) $existingProducto->inventario : 0.0;
+                    $newInventario = (float) ($productData['inventario'] ?? 0);
+
                     // 4. Crear o actualizar producto
                     $producto = Producto::updateOrCreate(
                         ['id' => $productData['id']],
                         $productData
                     );
+
+                    if ($previousInventario <= 0 && $newInventario > 0) {
+                        $pendingNotifications = ProductNotification::query()
+                            ->where('producto_id', $producto->id)
+                            ->where('is_notified', false)
+                            ->with(['user'])
+                            ->get();
+
+                        foreach ($pendingNotifications as $productNotification) {
+                            $recipient = $productNotification->user;
+                            if ($recipient && $recipient->email) {
+                                Mail::to($recipient)->send(new ProductAvailableEmail($productNotification));
+                            }
+                        }
+                    }
 
                     if ($producto->wasRecentlyCreated) {
                         $stats['productos_creados']++;

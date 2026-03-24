@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Listeners\MarkProductStockNotificationSent;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +22,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Event::listen(MessageSent::class, MarkProductStockNotificationSent::class);
+
         // Intentar aumentar los límites de upload (puede no funcionar si está deshabilitado en php.ini)
         // Nota: upload_max_filesize y post_max_size generalmente NO se pueden cambiar con ini_set()
         // porque PHP los lee antes de ejecutar el código. Estos valores deben configurarse en php.ini

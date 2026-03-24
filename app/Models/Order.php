@@ -26,6 +26,7 @@ class Order extends Model
         'paid_with_credit',
         'is_advance_order',
         'status',
+        'fulfillment_email_last_status',
         'is_prepared',
         'tracking_number',
         'payment_method',
@@ -90,6 +91,7 @@ class Order extends Model
             'pagado' => 'Pagado',
             'en_espera_envio' => 'En Espera de Envío',
             'enviado' => 'Enviado',
+            'entregado' => 'Entregado',
             'pago_rechazado' => 'Pago Rechazado',
             'cancelado' => 'Cancelado',
             // Estados legacy

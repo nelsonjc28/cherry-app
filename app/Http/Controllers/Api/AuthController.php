@@ -8,7 +8,10 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use App\Mail\WelcomeEmail;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 
@@ -61,8 +64,20 @@ class AuthController extends Controller
 
         $token = JWTAuth::fromUser($user);
 
+        if ($user->email && ! $user->welcome_sent) {
+            try {
+                Mail::to($user->email)->queue(new WelcomeEmail($user));
+                $user->forceFill(['welcome_sent' => true])->save();
+            } catch (\Throwable $e) {
+                Log::error('Welcome email queue failed on register', [
+                    'user_id' => $user->id,
+                    'message' => $e->getMessage(),
+                ]);
+            }
+        }
+
         return response()->json([
-            'user' => $user,
+            'user' => $user->fresh(),
             'token' => $token,
         ], 201);
     }
