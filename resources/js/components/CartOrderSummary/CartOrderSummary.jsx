@@ -542,8 +542,8 @@ const CartOrderSummary = ({
         day_forty_five_discount_percentage: dayFortyFiveDiscountPercentage,
         eligible_total: eligibleTotal,
         // Descuentos del 20% y 10% adicional
-        descuento1: discount1 || 0, // 20% cuando total elegible >= 7000
-        descuento2: discount2 || 0  // 10% adicional cuando total elegible >= 15000
+        descuento1: Number(discount1) || 0, // 30 u 33 si aplica volumen $7k; 0 si no
+        descuento2: Number(discount2) || 0  // 10 si aplica $15k; 0 si no
       };
 
       try {
@@ -795,8 +795,8 @@ const CartOrderSummary = ({
         subtotal: subtotalSinDescuento, // Monto total sin descuentos aplicados
         discounted_total: totalConDescuentoSinEnvio, // Monto total con descuentos aplicados (sin envío)
         // Descuentos del 20% y 10% adicional
-        descuento1: discount1 || 0, // 20% cuando total elegible >= 7000
-        descuento2: discount2 || 0  // 10% adicional cuando total elegible >= 15000
+        descuento1: Number(discount1) || 0, // 30 u 33 si aplica volumen $7k; 0 si no
+        descuento2: Number(discount2) || 0  // 10 si aplica $15k; 0 si no
       };
 
       const response = await api.post('/payment/create-preference', paymentData);
@@ -815,10 +815,17 @@ const CartOrderSummary = ({
           totalAmount: finalTotal
         }));
 
-        // Redirigir a Mercado Pago
+        const mpUrl =
+          data.redirect_url
+          || data.init_point
+          || data.sandbox_init_point
+          || data.payment_url
+          || data.sandbox_payment_url;
         setTimeout(() => {
-          window.location.href = data.init_point || data.sandbox_init_point || data.payment_url;
-        }, 1500);
+          if (mpUrl) {
+            window.location.replace(mpUrl);
+          }
+        }, data.order_split || data.requires_mercadopago_redirect ? 0 : 1500);
       } else {
         // Verificar si hay una orden pendiente
         if (response.data.has_pending_order && response.data.pending_order) {
@@ -891,10 +898,15 @@ const CartOrderSummary = ({
   };
 
   // Función para procesar el pago - Siempre usa Mercado Pago
-  const handleProcessPayment = () => {
-    // Si es pago con crédito, usar onGenerateOrder del padre
+  const handleProcessPayment = async () => {
+    // Si es pago con crédito, usar onGenerateOrder del padre (pasar método explícito: evita race con setState del padre)
     if (selectedPaymentMethod === 'credit' && onGenerateOrder) {
-      onGenerateOrder();
+      setIsProcessingPayment(true);
+      try {
+        await onGenerateOrder({ paymentMethod: 'credit' });
+      } finally {
+        setIsProcessingPayment(false);
+      }
       return;
     }
     // Si es MercadoPago, usar el método integrado

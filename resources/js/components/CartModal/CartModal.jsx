@@ -5,6 +5,7 @@ import './CartModal.css';
 import { getIconPath } from '../../utils/assetPaths';
 import { useEffect, useMemo } from 'react';
 import useUserStore from '../../store/userStore';
+import { getVolumeDiscountMainTier, getSellerCategoryFromUser } from '../../utils/sellerVolumeDiscount';
 
 const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout }) => {   
   const { user } = useUserStore();
@@ -53,16 +54,18 @@ const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout 
       return sum + (itemPrice * itemQuantity);
     }, 0);
 
-    // Calcular total después de descuentos para envío gratis
+    const { mainRate: volMainRate } = getVolumeDiscountMainTier(user);
+
+    // Calcular total después de descuentos para envío gratis (misma regla que checkout: 30% no-diamante / 33% diamante + 10%)
     let discountAmount = 0;
     if (eligibleTotal >= 7000) {
       if (eligibleTotal >= 15000) {
-        const discount30 = eligibleTotal * 0.30;
-        const totalAfter30 = eligibleTotal - discount30;
-        const discount10 = totalAfter30 * 0.10;
-        discountAmount = discount30 + discount10;
+        const discountMain = eligibleTotal * volMainRate;
+        const totalAfterMain = eligibleTotal - discountMain;
+        const discount10 = totalAfterMain * 0.10;
+        discountAmount = discountMain + discount10;
       } else {
-        discountAmount = eligibleTotal * 0.30;
+        discountAmount = eligibleTotal * volMainRate;
       }
     }
 
@@ -83,6 +86,9 @@ const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout 
     };
   }, [cartItems, user]);
 
+  const isDiamanteUser = getSellerCategoryFromUser(user) === 'diamante';
+  const { mainPercent: modalVolMainPercent } = getVolumeDiscountMainTier(user);
+
   if (!open) return null;
 
   return (
@@ -102,7 +108,7 @@ const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout 
             <div className="cart-modal__discount-warning">
               <span className="cart-modal__discount-warning-icon">ℹ️</span>
               <span className="cart-modal__discount-warning-text">
-                Recuerda que en productos con rebaja no se aplica el descuento del 30%+10% adicional
+                {`Recuerda que en productos con rebaja no se aplica el descuento por volumen (${modalVolMainPercent}% + 10% adicional cuando aplica)`}
               </span>
             </div>
           )}
@@ -112,19 +118,31 @@ const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout 
             <div className="cart-modal__benefits">
               <div className="cart-modal__benefits-title">Beneficios disponibles</div>
               
-              {/* Descuento del 30% */}
+              {/* Descuento por volumen (30% oro / 33% diamante) */}
               {benefits.discount30 ? (
                 <div className="cart-modal__benefit-item cart-modal__benefit-item--active">
                   <span className="cart-modal__benefit-icon">✓</span>
                   <span className="cart-modal__benefit-text">
-                    <strong>30% de descuento</strong> aplicado en compras mayores a $7,000
+                    {isDiamanteUser ? (
+                      <>
+                        <strong>Descuento por volumen</strong> aplicado en compras mayores a $7,000
+                      </>
+                    ) : (
+                      <>
+                        <strong>{modalVolMainPercent}% de descuento</strong> aplicado en compras mayores a $7,000
+                      </>
+                    )}
                   </span>
                 </div>
               ) : (
                 <div className="cart-modal__benefit-item">
                   <span className="cart-modal__benefit-icon">🎁</span>
                   <span className="cart-modal__benefit-text">
-                    Obtén <strong>30% de descuento</strong> en compras mayores a $7,000
+                    {isDiamanteUser ? (
+                      <>Activa tu <strong>descuento por volumen</strong> en compras mayores a $7,000</>
+                    ) : (
+                      <>Obtén <strong>{modalVolMainPercent}% de descuento</strong> en compras mayores a $7,000</>
+                    )}
                     {benefits.remainingForDiscount30 > 0 && (
                       <span className="cart-modal__benefit-remaining">
                         {' '}(Te faltan ${benefits.remainingForDiscount30.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 })})

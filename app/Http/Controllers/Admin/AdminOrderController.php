@@ -27,9 +27,10 @@ class AdminOrderController extends Controller
                 $paymentData = is_array($order->payment_data) ? $order->payment_data : (is_string($order->payment_data) ? json_decode($order->payment_data, true) : []);
                 $deliveryType = $paymentData['delivery_type'] ?? 'envio';
                 
-                // Calcular subtotal de productos
+                // Subtotal bruto de líneas (catálogo); el total cobrado está en total_amount (neto con descuentos).
                 $subtotalProducts = $order->items->sum('subtotal');
-                
+                $storedOrderTotal = (float) $order->total_amount;
+
                 // Obtener costo de envío desde el campo dedicado o desde payment_data (fallback para órdenes antiguas)
                 $shippingCost = 0;
                 if ($order->shipping_amount !== null) {
@@ -37,20 +38,19 @@ class AdminOrderController extends Controller
                 } elseif (isset($paymentData['shipping_amount'])) {
                     $shippingCost = (float) $paymentData['shipping_amount'];
                 } else {
-                    // Calcular como diferencia entre total_amount y subtotal de productos (solo si no hay campo)
-                    $totalAmount = (float) $order->total_amount;
-                    if ($totalAmount > $subtotalProducts) {
-                        $shippingCost = $totalAmount - $subtotalProducts;
+                    // Inferir envío solo cuando total > suma de líneas (órdenes sin descuento global en ítems)
+                    if ($storedOrderTotal > $subtotalProducts) {
+                        $shippingCost = $storedOrderTotal - $subtotalProducts;
                     }
                 }
-                
+
                 // Si es retiro en tienda, el costo de envío es 0
                 if ($deliveryType === 'retiro') {
                     $shippingCost = 0;
                 }
-                
-                // Calcular totalAmount como subtotal de productos + envío
-                $totalAmount = $subtotalProducts + $shippingCost;
+
+                // Listado: mostrar el total registrado en la orden (coherente con split crédito/MP y descuentos)
+                $totalAmount = $storedOrderTotal;
                 
                 return [
                     'id' => $order->id,

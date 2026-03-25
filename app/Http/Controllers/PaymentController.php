@@ -74,6 +74,109 @@ class PaymentController extends Controller
     }
 
     /**
+     * Si falla Mercado Pago tras un split, elimina ambas órdenes y re-sincroniza cupo (no dejar crédito “confirmado” sin cobro MP).
+     */
+    protected function rollbackCreditSplitOrders(?Order $orderCredit, Order $orderPayment, User $user): void
+    {
+        DB::transaction(function () use ($orderCredit, $orderPayment) {
+            if ($orderCredit !== null) {
+                OrderItem::where('order_id', $orderCredit->id)->delete();
+                Order::whereKey($orderCredit->id)->delete();
+            }
+            OrderItem::where('order_id', $orderPayment->id)->delete();
+            Order::whereKey($orderPayment->id)->delete();
+        });
+
+        $fresh = User::query()->whereKey($user->id)->first();
+        if ($fresh) {
+            $this->creditAvailabilityService->syncCreditBalanceFromOrders($fresh);
+        }
+
+        Log::warning('Split crédito/Mercado Pago revertido tras fallo al crear preferencia', [
+            'order_credit_id' => $orderCredit?->id,
+            'order_payment_id' => $orderPayment->id,
+            'user_id' => $user->id,
+        ]);
+    }
+
+    /**
+     * URLs de checkout Pro: MP puede devolver init_point como "" y el operador ?? no usa el fallback.
+     *
+     * @param  object{id?: ?string, init_point?: ?string, sandbox_init_point?: ?string}  $preference
+     * @return array{pay_url: string, sandbox_url: string, redirect_url: string, init_point: ?string, sandbox_init_point: ?string}
+     */
+    protected function mercadoPagoCheckoutUrlsFromPreference(object $preference): array
+    {
+        $prefId = $preference->id ?? null;
+
+        $rawInit = $preference->init_point ?? null;
+        $rawSandbox = $preference->sandbox_init_point ?? null;
+
+        $initTrim = is_string($rawInit) ? trim($rawInit) : '';
+        $sandboxTrim = is_string($rawSandbox) ? trim($rawSandbox) : '';
+
+        $fallbackPay = $this->mercadoPagoService->getPaymentUrl($prefId);
+        $fallbackSandbox = $this->mercadoPagoService->getSandboxPaymentUrl($prefId);
+
+        $payUrl = $initTrim !== '' ? $rawInit : $fallbackPay;
+        $sandboxUrl = $sandboxTrim !== '' ? $rawSandbox : $fallbackSandbox;
+
+        $redirectUrl = ($initTrim !== '' ? $rawInit : null)
+            ?: ($sandboxTrim !== '' ? $rawSandbox : null)
+            ?: $payUrl
+            ?: $sandboxUrl;
+
+        return [
+            'pay_url' => $payUrl,
+            'sandbox_url' => $sandboxUrl,
+            'redirect_url' => $redirectUrl,
+            'init_point' => $initTrim !== '' ? $rawInit : null,
+            'sandbox_init_point' => $sandboxTrim !== '' ? $rawSandbox : null,
+        ];
+    }
+
+    /**
+     * Para split crédito/MP: primero líneas disponibles (no pre-order), luego "próximamente", para que el cupo cubra surtido inmediato antes que encargos.
+     *
+     * @param  array<int, array<string, mixed>>  $items
+     * @return array<int, array<string, mixed>>
+     */
+    protected function sortItemsForCreditSplit(array $items): array
+    {
+        $sorted = array_values($items);
+        usort($sorted, function ($a, $b) {
+            $aSoon = filter_var($a['is_coming_soon'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            $bSoon = filter_var($b['is_coming_soon'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            if ($aSoon !== $bSoon) {
+                return $aSoon <=> $bSoon;
+            }
+            $aLine = (float) ($a['price'] ?? 0) * (int) ($a['quantity'] ?? 0);
+            $bLine = (float) ($b['price'] ?? 0) * (int) ($b['quantity'] ?? 0);
+            if (abs($aLine - $bLine) > 0.0001) {
+                return $aLine <=> $bLine;
+            }
+
+            return (float) ($a['price'] ?? 0) <=> (float) ($b['price'] ?? 0);
+        });
+
+        return $sorted;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $lines
+     */
+    protected function orderLinesContainComingSoon(array $lines): bool
+    {
+        foreach ($lines as $line) {
+            if (filter_var($line['is_coming_soon'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Crear una preferencia de pago con MercadoPago
      */
     public function createPaymentPreference(Request $request)
@@ -90,6 +193,7 @@ class PaymentController extends Controller
             'items.*.color' => 'nullable|string',
             'items.*.barcode' => 'nullable|string',
             'items.*.detalle_id' => 'nullable|integer|min:1',
+            'items.*.is_coming_soon' => 'nullable|boolean',
             'delivery_type' => 'nullable|string|in:envio,retiro',
             'shipping_amount' => 'nullable|numeric|min:0',
             'total_amount' => 'required|numeric|min:0.01'
@@ -308,6 +412,8 @@ class PaymentController extends Controller
             // NO enviar email aquí - se enviará cuando el pago sea aprobado desde el webhook
             // Esto evita envíos duplicados de correo
 
+        $mpUrls = $this->mercadoPagoCheckoutUrlsFromPreference($preference);
+
         return response()->json([
             'success' => true,
             'message' => 'Preferencia de pago creada correctamente',
@@ -315,12 +421,13 @@ class PaymentController extends Controller
                 'order_id' => $order->id,
                 'external_reference' => $order->external_reference,
                 'preference_id' => $preference->id,
-                    'payment_url' => $preference->init_point ?? $this->mercadoPagoService->getPaymentUrl($preference->id),
-                    'sandbox_payment_url' => $preference->sandbox_init_point ?? $this->mercadoPagoService->getSandboxPaymentUrl($preference->id),
-                    'init_point' => $preference->init_point ?? null,
-                    'sandbox_init_point' => $preference->sandbox_init_point ?? null
-                ]
-            ]);
+                'redirect_url' => $mpUrls['redirect_url'],
+                'payment_url' => $mpUrls['pay_url'],
+                'sandbox_payment_url' => $mpUrls['sandbox_url'],
+                'init_point' => $mpUrls['init_point'],
+                'sandbox_init_point' => $mpUrls['sandbox_init_point'],
+            ],
+        ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -1296,9 +1403,10 @@ class PaymentController extends Controller
                 $paymentData = is_array($order->payment_data) ? $order->payment_data : (is_string($order->payment_data) ? json_decode($order->payment_data, true) : []);
                 $deliveryType = $paymentData['delivery_type'] ?? 'envio';
                 
-                // Calcular subtotal de productos
+                // Subtotal bruto de líneas (catálogo); el total cobrado está en total_amount (neto con descuentos).
                 $subtotalProducts = $order->items->sum('subtotal');
-                
+                $storedOrderTotal = (float) $order->total_amount;
+
                 // Obtener costo de envío desde el campo dedicado o desde payment_data (fallback para órdenes antiguas)
                 $shippingCost = 0;
                 if ($order->shipping_amount !== null) {
@@ -1306,20 +1414,17 @@ class PaymentController extends Controller
                 } elseif (isset($paymentData['shipping_amount'])) {
                     $shippingCost = (float) $paymentData['shipping_amount'];
                 } else {
-                    // Calcular como diferencia entre total_amount y subtotal de productos (solo si no hay campo)
-                    $totalAmount = (float) $order->total_amount;
-                    if ($totalAmount > $subtotalProducts) {
-                        $shippingCost = $totalAmount - $subtotalProducts;
+                    if ($storedOrderTotal > $subtotalProducts) {
+                        $shippingCost = $storedOrderTotal - $subtotalProducts;
                     }
                 }
-                
+
                 // Si es retiro en tienda, el costo de envío es 0
                 if ($deliveryType === 'retiro') {
                     $shippingCost = 0;
                 }
-                
-                // Calcular totalAmount como subtotal de productos + envío
-                $totalAmount = $subtotalProducts + $shippingCost;
+
+                $totalAmount = $storedOrderTotal;
                 
                 return [
                     'id' => $order->id,
@@ -2373,6 +2478,8 @@ class PaymentController extends Controller
                     ->lockForUpdate()
                     ->firstOrFail();
 
+                $sortedItems = $this->sortItemsForCreditSplit($request->items);
+
                 $validation = $this->creditAvailabilityService->validateNewCreditOrder(
                     $lockedUser,
                     $totalAmount,
@@ -2395,22 +2502,30 @@ class PaymentController extends Controller
                 $amountPending = (float) $validation['amount_pending'];
                 $creditAvailable = (float) $validation['credit_available'];
 
+                Log::info('Crédito mixto: validación previa al reparto', [
+                    'total_pedido' => round($totalAmount, 2),
+                    'credito_aplicado' => round($creditToUse, 2),
+                    'monto_pendiente_mercadopago' => round($amountPending, 2),
+                    'cupo_disponible' => round($creditAvailable, 2),
+                ]);
+
                 $descuento1 = (float) $request->input('descuento1', 0);
                 $descuento2 = (float) $request->input('descuento2', 0);
                 $subtotal = (float) $request->input('subtotal', 0);
                 $discountedTotal = (float) $request->input('discounted_total', 0);
                 $shippingAmount = (float) $request->input('shipping_amount', 0);
 
-                $linesSum = $this->orderCreditSplitService->sumLines($request->items);
-                if (abs($linesSum + $shippingAmount - $totalAmount) > 0.05) {
-                    $shippingAmount = round($totalAmount - $linesSum, 2);
+                $linesSum = $this->orderCreditSplitService->sumLines($sortedItems);
+                // Coherencia: total ≈ mercancía neta + envío (no subtotal bruto + envío)
+                if (abs($discountedTotal + $shippingAmount - $totalAmount) > 0.05) {
+                    $shippingAmount = round($totalAmount - $discountedTotal, 2);
                     if ($shippingAmount < 0) {
                         $shippingAmount = 0;
                     }
                 }
 
-                // Pago 100 % con crédito: una sola orden (sin split)
-                if ($amountPending <= 0.001) {
+                // Pago 100 % con crédito: una sola orden (sin split). Remanentes ≤ $0.01 se consideran cubiertos.
+                if ($amountPending <= 0.01) {
                     $initialPaymentData = [
                         'delivery_type' => $deliveryType,
                         'shipping_amount' => $shippingAmount,
@@ -2433,9 +2548,10 @@ class PaymentController extends Controller
                         'payment_method' => 'credito',
                         'external_reference' => uniqid('order_'.$lockedUser->id.'_'),
                         'payment_data' => json_encode($initialPaymentData),
+                        'is_advance_order' => $this->orderLinesContainComingSoon($sortedItems),
                     ]);
 
-                    foreach ($request->items as $item) {
+                    foreach ($sortedItems as $item) {
                         OrderItem::create($this->orderItemPayloadFromLine($order->id, $item));
                     }
 
@@ -2450,9 +2566,15 @@ class PaymentController extends Controller
                     ];
                 }
 
-                // Split: crédito solo sobre líneas de producto; envío va a la orden B
-                $lineCreditCap = min($creditAvailable, $linesSum);
-                $split = $this->orderCreditSplitService->splitItemsByCreditCap($request->items, $lineCreditCap);
+                // Split: cupo contra total NETO de mercancía; reparto de líneas en bruto proporcional al neto
+                $merchandiseNet = round(max(0, $discountedTotal), 2);
+                $netCreditForMerch = round(min($merchandiseNet, $creditToUse), 2);
+                $grossCreditCap = $this->orderCreditSplitService->grossCapForNetCredit(
+                    $linesSum,
+                    $merchandiseNet,
+                    $netCreditForMerch
+                );
+                $split = $this->orderCreditSplitService->splitItemsByCreditCap($sortedItems, $grossCreditCap);
                 $creditItems = $split['credit_items'];
                 $mpItems = $split['mp_items'];
                 $creditSubtotal = $split['credit_subtotal'];
@@ -2460,47 +2582,16 @@ class PaymentController extends Controller
 
                 $splitGroupId = uniqid('split_'.$lockedUser->id.'_', true);
 
-                $orderCredit = null;
-                if (count($creditItems) > 0) {
-                    $amtA = $this->orderCreditSplitService->prorateOrderAmounts(
+                $amtA = count($creditItems) > 0
+                    ? $this->orderCreditSplitService->prorateOrderAmounts(
                         $creditSubtotal,
                         $linesSum,
                         $subtotal,
                         $discountedTotal,
                         $descuento1,
                         $descuento2
-                    );
-
-                    $pdA = [
-                        'delivery_type' => $deliveryType,
-                        'shipping_amount' => 0,
-                        'split_group_id' => $splitGroupId,
-                        'split_role' => 'credit',
-                    ];
-
-                    $orderCredit = Order::create([
-                        'user_id' => $lockedUser->id,
-                        'address_id' => $addressId,
-                        'total_amount' => $creditSubtotal,
-                        'subtotal' => $amtA['subtotal'],
-                        'discounted_total' => $creditSubtotal,
-                        'shipping_amount' => 0,
-                        'descuento1' => $amtA['descuento1'],
-                        'descuento2' => $amtA['descuento2'],
-                        'credit_used' => $creditSubtotal,
-                        'amount_paid' => 0.0,
-                        'amount_pending' => 0.0,
-                        'paid_with_credit' => true,
-                        'status' => 'pagado',
-                        'payment_method' => 'credito',
-                        'external_reference' => uniqid('order_'.$lockedUser->id.'_cr_'),
-                        'payment_data' => json_encode($pdA),
-                    ]);
-
-                    foreach ($creditItems as $item) {
-                        OrderItem::create($this->orderItemPayloadFromLine($orderCredit->id, $item));
-                    }
-                }
+                    )
+                    : null;
 
                 $amtB = $this->orderCreditSplitService->prorateOrderAmounts(
                     $mpLinesSubtotal,
@@ -2511,25 +2602,103 @@ class PaymentController extends Controller
                     $descuento2
                 );
 
-                $orderBTotal = round($mpLinesSubtotal + $shippingAmount, 2);
+                $totalNetA = $amtA ? round((float) $amtA['discounted_total'], 2) : 0.0;
+                $netOrderB = round((float) $amtB['discounted_total'], 2);
+                $driftNet = round($merchandiseNet - $totalNetA - $netOrderB, 2);
+                if (abs($driftNet) >= 0.01) {
+                    $netOrderB = round($netOrderB + $driftNet, 2);
+                }
+
+                $validatedPending = round((float) $amountPending, 2);
+                $orderBTotal = round($netOrderB + $shippingAmount, 2);
+
+                // Alinear siempre al pendiente validado (CreditAvailabilityService). Si no, puede quedar orden MP al 100% del carrito sin orden de crédito (reparto por piezas con precio unitario > cupo bruto).
+                if ($validatedPending > 0.01 && ($orderBTotal <= 0.01 || abs($orderBTotal - $validatedPending) > 0.05)) {
+                    Log::info('Crédito mixto: alineando total orden Mercado Pago al pendiente validado', [
+                        'total_pedido' => round($totalAmount, 2),
+                        'credito_aplicado' => round($creditToUse, 2),
+                        'pendiente_validado' => $validatedPending,
+                        'order_b_total_antes_split' => $orderBTotal,
+                        'mercancia_neta' => $merchandiseNet,
+                        'envio' => $shippingAmount,
+                        'lineas_credito_reparto' => count($creditItems),
+                    ]);
+                    $orderBTotal = $validatedPending;
+                    $netOrderB = round($orderBTotal - $shippingAmount, 2);
+                    $totalNetA = round($merchandiseNet - $netOrderB, 2);
+                }
+
+                // Cupo aplicado en dinero pero ninguna línea entró al reparto (p. ej. todas las piezas cuestan más que el tope bruto por unidad).
+                if (count($creditItems) === 0 && $totalNetA > 0.01 && round((float) $creditToUse, 2) > 0.01) {
+                    $creditGross = $merchandiseNet > 0.0001
+                        ? round($linesSum * min(1.0, max(0.0, $totalNetA / $merchandiseNet)), 2)
+                        : round($totalNetA, 2);
+                    if ($creditGross < 0.01) {
+                        $creditGross = round($totalNetA, 2);
+                    }
+                    Log::info('Crédito mixto: orden crédito con línea única (reparto por piezas vacío)', [
+                        'total_neto_credito' => $totalNetA,
+                        'subtotal_bruto_linea' => $creditGross,
+                    ]);
+                    $creditItems = [[
+                        'product_id' => '0',
+                        'name' => 'Mercancía cubierta con cupo de crédito',
+                        'quantity' => 1,
+                        'price' => $creditGross,
+                        'size' => null,
+                        'color' => null,
+                        'barcode' => null,
+                        'is_coming_soon' => false,
+                    ]];
+                    $creditSubtotal = $this->orderCreditSplitService->sumLines($creditItems);
+                    $amtA = $this->orderCreditSplitService->prorateOrderAmounts(
+                        $creditSubtotal,
+                        $linesSum,
+                        $subtotal,
+                        $discountedTotal,
+                        $descuento1,
+                        $descuento2
+                    );
+                    $totalNetA = round((float) $amtA['discounted_total'], 2);
+                    $netOrderB = round($merchandiseNet - $totalNetA, 2);
+                    $orderBTotal = round($netOrderB + $shippingAmount, 2);
+                    if (abs($orderBTotal - $validatedPending) > 0.05 && $validatedPending > 0.01) {
+                        $orderBTotal = $validatedPending;
+                        $netOrderB = round($orderBTotal - $shippingAmount, 2);
+                        $totalNetA = round($merchandiseNet - $netOrderB, 2);
+                    }
+                }
+
+                $ratioA = $merchandiseNet > 0.0001
+                    ? min(1.0, max(0.0, $totalNetA / $merchandiseNet))
+                    : ($totalNetA > 0 ? 1.0 : 0.0);
+                $ratioB = $merchandiseNet > 0.0001
+                    ? min(1.0, max(0.0, $netOrderB / $merchandiseNet))
+                    : ($netOrderB > 0 ? 1.0 : 0.0);
+                $orderASubtotal = round($subtotal * $ratioA, 2);
+                $orderBSubtotal = round($subtotal * $ratioB, 2);
+                $orderADesc1 = round($descuento1 * $ratioA, 2);
+                $orderADesc2 = round($descuento2 * $ratioA, 2);
+                $orderBDesc1 = round($descuento1 * $ratioB, 2);
+                $orderBDesc2 = round($descuento2 * $ratioB, 2);
 
                 $pdB = [
                     'delivery_type' => $deliveryType,
                     'shipping_amount' => $shippingAmount,
                     'split_group_id' => $splitGroupId,
                     'split_role' => 'mercadopago_remainder',
-                    'split_paired_order_id' => $orderCredit ? $orderCredit->id : null,
+                    'split_paired_order_id' => null,
                 ];
 
                 $orderB = Order::create([
                     'user_id' => $lockedUser->id,
                     'address_id' => $addressId,
                     'total_amount' => $orderBTotal,
-                    'subtotal' => $amtB['subtotal'],
-                    'discounted_total' => $mpLinesSubtotal,
+                    'subtotal' => $orderBSubtotal,
+                    'discounted_total' => $netOrderB,
                     'shipping_amount' => $shippingAmount,
-                    'descuento1' => $amtB['descuento1'],
-                    'descuento2' => $amtB['descuento2'],
+                    'descuento1' => $orderBDesc1,
+                    'descuento2' => $orderBDesc2,
                     'credit_used' => 0.0,
                     'amount_paid' => 0.0,
                     'amount_pending' => $orderBTotal,
@@ -2538,12 +2707,45 @@ class PaymentController extends Controller
                     'payment_method' => 'mercadopago',
                     'external_reference' => uniqid('order_'.$lockedUser->id.'_mp_'),
                     'payment_data' => json_encode($pdB),
+                    'is_advance_order' => $this->orderLinesContainComingSoon($mpItems),
                 ]);
 
-                if ($orderCredit) {
-                    $pdA = json_decode($orderCredit->payment_data, true) ?? [];
-                    $pdA['split_paired_order_id'] = $orderB->id;
-                    $orderCredit->update(['payment_data' => json_encode($pdA)]);
+                $orderCredit = null;
+                if (count($creditItems) > 0) {
+                    $pdA = [
+                        'delivery_type' => $deliveryType,
+                        'shipping_amount' => 0,
+                        'split_group_id' => $splitGroupId,
+                        'split_role' => 'credit',
+                        'split_paired_order_id' => $orderB->id,
+                    ];
+
+                    $orderCredit = Order::create([
+                        'user_id' => $lockedUser->id,
+                        'address_id' => $addressId,
+                        'total_amount' => $totalNetA,
+                        'subtotal' => $orderASubtotal,
+                        'discounted_total' => $totalNetA,
+                        'shipping_amount' => 0,
+                        'descuento1' => $orderADesc1,
+                        'descuento2' => $orderADesc2,
+                        'credit_used' => $totalNetA,
+                        'amount_paid' => 0.0,
+                        'amount_pending' => 0.0,
+                        'paid_with_credit' => true,
+                        'status' => 'pagado',
+                        'payment_method' => 'credito',
+                        'external_reference' => uniqid('order_'.$lockedUser->id.'_cr_'),
+                        'payment_data' => json_encode($pdA),
+                        'is_advance_order' => $this->orderLinesContainComingSoon($creditItems),
+                    ]);
+
+                    foreach ($creditItems as $item) {
+                        OrderItem::create($this->orderItemPayloadFromLine($orderCredit->id, $item));
+                    }
+
+                    $pdB['split_paired_order_id'] = $orderCredit->id;
+                    $orderB->update(['payment_data' => json_encode($pdB)]);
                 }
 
                 if (count($mpItems) > 0) {
@@ -2569,7 +2771,7 @@ class PaymentController extends Controller
                     'mode' => 'split',
                     'order_credit' => $orderCredit ? $orderCredit->fresh(['user', 'items', 'address']) : null,
                     'order_payment' => $orderB->fresh(['user', 'items', 'address']),
-                    'credit_subtotal' => $creditSubtotal,
+                    'credit_subtotal' => $orderCredit ? (float) $orderCredit->discounted_total : 0.0,
                     'amount_pending' => $orderBTotal,
                     'split_group_id' => $splitGroupId,
                 ];
@@ -2702,7 +2904,29 @@ class PaymentController extends Controller
                 'delivery_type' => $deliveryType
             ];
 
-            $preference = $this->mercadoPagoService->createPreference($orderData);
+            Log::info('Crédito mixto: creando preferencia Mercado Pago (orden secundaria)', [
+                'total_pedido' => round($totalAmount, 2),
+                'credito_aplicado' => $orderCredit ? round((float) $orderCredit->total_amount, 2) : 0.0,
+                'monto_enviado_mercadopago' => round((float) $orderPayment->total_amount, 2),
+                'order_payment_id' => $orderPayment->id,
+                'order_credit_id' => $orderCredit ? $orderCredit->id : null,
+            ]);
+
+            try {
+                $preference = $this->mercadoPagoService->createPreference($orderData);
+            } catch (\Exception $e) {
+                Log::error('Crédito mixto: error Mercado Pago; revirtiendo órdenes del split', [
+                    'error' => $e->getMessage(),
+                    'order_payment_id' => $orderPayment->id,
+                    'order_credit_id' => $orderCredit ? $orderCredit->id : null,
+                ]);
+                $this->rollbackCreditSplitOrders($orderCredit, $orderPayment, $user);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se pudo iniciar el pago en Mercado Pago. No se registró el pedido. Intenta de nuevo o elige otro método de pago.',
+                ], 502);
+            }
 
             $orderPayment->update([
                 'mercadopago_preference_id' => $preference->id
@@ -2740,19 +2964,30 @@ class PaymentController extends Controller
                 Log::error('Email orden MP (split)', ['order_id' => $orderPayment->id, 'error' => $e->getMessage()]);
             }
 
-            $payUrl = $preference->init_point ?? $this->mercadoPagoService->getPaymentUrl($preference->id);
-            $sandboxUrl = $preference->sandbox_init_point ?? $this->mercadoPagoService->getSandboxPaymentUrl($preference->id);
+            $mpUrls = $this->mercadoPagoCheckoutUrlsFromPreference($preference);
+
+            $checkoutUrl = $mpUrls['redirect_url'];
+            $orderIds = array_values(array_filter([
+                $orderCredit ? $orderCredit->id : null,
+                $orderPayment->id,
+            ]));
 
             return response()->json([
                 'success' => true,
+                'status' => 'success',
                 'message' => 'Pedido dividido: una parte con tu crédito y el resto pendiente en Mercado Pago.',
                 'data' => [
                     'order_split' => true,
+                    'requires_mercadopago_redirect' => true,
+                    'requires_payment' => true,
+                    'redirect_url' => $checkoutUrl,
+                    'payment_url' => $checkoutUrl,
                     'order_id' => $orderPayment->id,
                     'order_credit_id' => $orderCredit ? $orderCredit->id : null,
                     'order_payment_id' => $orderPayment->id,
                     'credit_used' => $creditSubtotal,
                     'amount_pending' => $amountPending,
+                    'orders' => $orderIds,
                     'order_credit' => $orderCredit ? [
                         'id' => $orderCredit->id,
                         'total_amount' => (float) $orderCredit->total_amount,
@@ -2766,10 +3001,9 @@ class PaymentController extends Controller
                         'message' => 'Orden pendiente de pago externo (Mercado Pago).',
                     ],
                     'preference_id' => $preference->id,
-                    'payment_url' => $payUrl,
-                    'sandbox_payment_url' => $sandboxUrl,
-                    'init_point' => $preference->init_point ?? null,
-                    'sandbox_init_point' => $preference->sandbox_init_point ?? null,
+                    'sandbox_payment_url' => $mpUrls['sandbox_url'],
+                    'init_point' => $mpUrls['init_point'],
+                    'sandbox_init_point' => $mpUrls['sandbox_init_point'],
                     'split_group_id' => $tx['split_group_id'],
                 ]
             ]);
@@ -3019,6 +3253,8 @@ class PaymentController extends Controller
                 'mercadopago_preference_id' => $preference->id
             ]);
 
+            $mpUrls = $this->mercadoPagoCheckoutUrlsFromPreference($preference);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Preferencia de pago creada para el saldo pendiente',
@@ -3026,8 +3262,11 @@ class PaymentController extends Controller
                     'order_id' => $order->id,
                     'amount_pending' => $order->amount_pending,
                     'preference_id' => $preference->id,
-                    'payment_url' => $preference->init_point ?? $this->mercadoPagoService->getPaymentUrl($preference->id),
-                    'sandbox_payment_url' => $preference->sandbox_init_point ?? $this->mercadoPagoService->getSandboxPaymentUrl($preference->id)
+                    'redirect_url' => $mpUrls['redirect_url'],
+                    'init_point' => $mpUrls['init_point'],
+                    'sandbox_init_point' => $mpUrls['sandbox_init_point'],
+                    'payment_url' => $mpUrls['pay_url'],
+                    'sandbox_payment_url' => $mpUrls['sandbox_url'],
                 ]
             ]);
 
@@ -3159,14 +3398,19 @@ class PaymentController extends Controller
                 'mercadopago_preference_id' => $preference->id
             ]);
 
+            $mpUrls = $this->mercadoPagoCheckoutUrlsFromPreference($preference);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Preferencia de pago creada correctamente',
                 'data' => [
                     'order_id' => $order->id,
                     'preference_id' => $preference->id,
-                    'payment_url' => $preference->init_point ?? $this->mercadoPagoService->getPaymentUrl($preference->id),
-                    'sandbox_payment_url' => $preference->sandbox_init_point ?? $this->mercadoPagoService->getSandboxPaymentUrl($preference->id)
+                    'redirect_url' => $mpUrls['redirect_url'],
+                    'init_point' => $mpUrls['init_point'],
+                    'sandbox_init_point' => $mpUrls['sandbox_init_point'],
+                    'payment_url' => $mpUrls['pay_url'],
+                    'sandbox_payment_url' => $mpUrls['sandbox_url'],
                 ]
             ]);
 
@@ -3357,6 +3601,15 @@ class PaymentController extends Controller
             ->get();
 
         foreach ($pendingOrders as $order) {
+            // No bloquear por duplicado si la pendiente es solo la parte Mercado Pago de un split (crédito + saldo MP)
+            $paymentData = $order->payment_data;
+            if (! is_array($paymentData)) {
+                $paymentData = is_string($paymentData) ? (json_decode($paymentData, true) ?? []) : [];
+            }
+            if (($paymentData['split_role'] ?? '') === 'mercadopago_remainder') {
+                continue;
+            }
+
             // Normalizar los items de la orden pendiente: crear un array con product_id => cantidad total
             $orderItemsNormalized = [];
             foreach ($order->items as $orderItem) {

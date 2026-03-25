@@ -174,10 +174,15 @@ const CheckoutForm = ({ cartItems = [], totalAmount = 0, onPaymentSuccess, onPay
           window.showToast('Redirigiendo a Mercado Pago...', 'info');
         }
         
-        // Redirigir al checkout de Mercado Pago
-        const paymentUrl = response.data.data.init_point || response.data.data.sandbox_init_point;
+        const d = response.data.data || {};
+        const paymentUrl =
+          d.redirect_url
+          || d.init_point
+          || d.sandbox_init_point
+          || d.payment_url
+          || d.sandbox_payment_url;
         if (paymentUrl) {
-          window.location.href = paymentUrl;
+          window.location.replace(paymentUrl);
         } else {
           throw new Error('No se pudo obtener la URL de pago');
         }

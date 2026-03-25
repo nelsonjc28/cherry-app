@@ -3,7 +3,7 @@ import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import './CheckoutSuccessPage.css';
 import { getIconPath } from '../utils/assetPaths';
-import api from '../services/api';
+import api from '../config/axios';
 import useCartStore from '../store/cartStore';
 
 /** Texto principal bajo el título «
@@ -90,7 +90,8 @@ export default function CheckoutSuccessPage() {
   /** Texto junto al ícono verde (ej. pago con tarjeta / crédito / Mercado Pago) */
   const [statusHeadline, setStatusHeadline] = useState('Compra confirmada');
   const [error, setError] = useState(null);
-  
+  const [missingPurchaseContext, setMissingPurchaseContext] = useState(false);
+
   // Obtener datos del pago desde el state de navegación (pago con tarjeta)
   const stateOrderData = location.state?.orderData;
   const statePaymentStatus = location.state?.paymentStatus;
@@ -123,13 +124,14 @@ export default function CheckoutSuccessPage() {
       // Pago con crédito de cuenta (Carrito) — antes no se leía y se redirigía al carrito
       if (stateOrderInfo?.orderId) {
         setPaymentStatus('approved');
+        const amountPendingNum = Number(stateOrderInfo.amountPending ?? 0);
         setStatusHeadline(
-          stateOrderInfo.amountPending > 0
+          amountPendingNum > 0
             ? 'Pago parcial con crédito'
             : 'Pago con crédito de cuenta confirmado'
         );
         const creditUsed = Number(stateOrderInfo.creditUsed || 0);
-        if (stateOrderInfo.amountPending > 0) {
+        if (amountPendingNum > 0) {
           setMessage(
             `${THANK_YOU_DESCRIPTION} Usaste $${creditUsed.toFixed(2)} de crédito; completa el saldo pendiente con Mercado Pago cuando se abra la pasarela.`
           );
@@ -224,11 +226,10 @@ export default function CheckoutSuccessPage() {
       const cleanExternalRef = (externalReference && externalReference !== 'null' && externalReference !== '') ? externalReference : null;
       const cleanPreferenceId = (preferenceId && preferenceId !== 'null' && preferenceId !== '') ? preferenceId : null;
 
-      // Si no hay parámetros de pago válidos, redirigir al carrito
+      // Sin state de React ni datos de retorno de MP (URL directa, recarga o bookmark)
       if (!cleanPaymentId && !cleanExternalRef && !cleanPreferenceId) {
-        // Si viene de Mercado Pago pero sin parámetros válidos, probablemente canceló o hubo error
-        // Redirigir al carrito
-        navigate('/carrito-detalle', { replace: true });
+        setMissingPurchaseContext(true);
+        setLoading(false);
         return;
       }
 
@@ -295,6 +296,43 @@ export default function CheckoutSuccessPage() {
         <div className="checkout-success-card checkout-loading">
           <div className="checkout-spinner"></div>
           <p>Verificando tu pago...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (missingPurchaseContext) {
+    return (
+      <div className="container checkout-success-page">
+        <div className="checkout-success-card">
+          <h1 className="checkout-success-title">Compra exitosa</h1>
+          <p className="checkout-success-desc">
+            No tenemos datos de un pago en esta visita (por ejemplo abriste el enlace directo, recargaste la página o faltan parámetros de Mercado Pago en la URL).
+            Si ya pagaste, revisa <strong>Mis pedidos</strong>. Si estabas en medio de un pago, vuelve al carrito o inicia de nuevo el checkout.
+          </p>
+          <div className="checkout-success-actions">
+            <CustomButton
+              variant="filled"
+              onClick={() => navigate('/perfil/mis-pedidos')}
+              className="btn-checkout"
+            >
+              Ver mis pedidos
+            </CustomButton>
+            <CustomButton
+              variant="outlined"
+              onClick={() => navigate('/carrito-detalle')}
+              className="btn-checkout"
+            >
+              Ir al carrito
+            </CustomButton>
+            <CustomButton
+              variant="outlined"
+              onClick={() => navigate('/')}
+              className="btn-checkout"
+            >
+              Ir al inicio
+            </CustomButton>
+          </div>
         </div>
       </div>
     );

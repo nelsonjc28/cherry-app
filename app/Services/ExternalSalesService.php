@@ -251,7 +251,7 @@ class ExternalSalesService
         
         // Leer descuentos de la orden (almacenados cuando se creó la orden)
         // Estos valores se calculan en el frontend y se guardan en la BD
-        $descuento1 = (float) ($order->descuento1 ?? 0); // 20% cuando total elegible >= 7000
+        $descuento1 = (float) ($order->descuento1 ?? 0); // 30 u 33 (primer tramo volumen) si aplica; 0 si no
         $descuento2 = (float) ($order->descuento2 ?? 0); // 10% adicional cuando total elegible >= 15000
         
         // Log para verificar descuentos leídos de la BD

@@ -836,3 +836,10 @@ button, input, select, textarea {
 .slideInUp {
   animation: slideInUp 0.5s ease forwards;
 }
+
+/* Respond.io launcher: extra bottom space on small screens so fixed CTAs / nav stay clear */
+@media (max-width: 768px) {
+  body.has-respond-io-widget .app-container {
+    padding-bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px));
+  }
+}

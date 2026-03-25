@@ -80,8 +80,9 @@ class CartEmailPricingService
             ];
         }
 
+        $sellerCategory = strtolower(trim((string) $sellerCategory));
         $isDiamante = $sellerCategory === 'diamante';
-        $mainRate = $isDiamante ? 0.33 : 0.20;
+        $mainRate = $isDiamante ? 0.33 : 0.30;
 
         $vol20 = 0.0;
         $vol10 = 0.0;

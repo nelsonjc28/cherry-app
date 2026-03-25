@@ -60,6 +60,7 @@ import ScrollToTop from './ScrollToTop/ScrollToTop';
 import SimplePWAInstaller from './PWAInstaller/SimplePWAInstaller';
 import PWAInstallAlerts from './PWAInstaller/PWAInstallAlerts';
 import PWADiagnostics from './PWAInstaller/PWADiagnostics';
+import RespondIoBootstrap from './RespondIoBootstrap';
 
 const SimpleApp = () => {
   return (
@@ -67,6 +68,7 @@ const SimpleApp = () => {
       <FavoritesProvider>
         <Router>
           <ScrollToTop />
+          <RespondIoBootstrap />
           <ExternalApiProvider>
             <div className="App app-container">
               <Header />

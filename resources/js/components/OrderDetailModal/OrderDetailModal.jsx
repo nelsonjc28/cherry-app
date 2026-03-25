@@ -4,6 +4,18 @@ import CherryButton from '../CherryButton/CherryButton';
 import api from '../../config/axios';
 import './OrderDetailModal.css';
 
+/** URL de checkout (MP devuelve init_point o podemos armar redirect con preference_id). */
+const mercadoPagoUrlFromPayload = (d) => {
+  if (!d || typeof d !== 'object') return null;
+  return [
+    d.redirect_url,
+    d.init_point,
+    d.sandbox_init_point,
+    d.payment_url,
+    d.sandbox_payment_url,
+  ].find((u) => typeof u === 'string' && u.trim().length > 0) || null;
+};
+
 const RetryRemainderPaymentButton = ({ orderId }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -12,12 +24,11 @@ const RetryRemainderPaymentButton = ({ orderId }) => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await api.post(`/payment/retry-remainder/${orderId}`);
-      
+
       if (response.data.success) {
-        // Redirigir a la URL de pago de MercadoPago
-        const paymentUrl = response.data.data.payment_url || response.data.data.sandbox_payment_url;
+        const paymentUrl = mercadoPagoUrlFromPayload(response.data.data);
         if (paymentUrl) {
           window.location.href = paymentUrl;
         } else {
@@ -54,6 +65,59 @@ const RetryRemainderPaymentButton = ({ orderId }) => {
 };
 
 RetryRemainderPaymentButton.propTypes = {
+  orderId: PropTypes.number.isRequired
+};
+
+/** Orden completa pendiente en MP (incluye la parte “faltante” de un split crédito + MP). */
+const PayPendingOrderButton = ({ orderId }) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handlePay = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await api.post(`/payment/pay-pending-order/${orderId}`);
+
+      if (response.data.success) {
+        const paymentUrl = mercadoPagoUrlFromPayload(response.data.data);
+        if (paymentUrl) {
+          window.location.href = paymentUrl;
+        } else {
+          setError('No se pudo obtener la URL de pago');
+        }
+      } else {
+        setError(response.data.message || 'Error al crear la preferencia de pago');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Error al iniciar el pago');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ width: '100%' }}>
+      {error && (
+        <div style={{ color: '#d32f2f', marginBottom: '8px', fontSize: '14px' }}>
+          {error}
+        </div>
+      )}
+      <CherryButton
+        variant="red"
+        size="medium"
+        onClick={handlePay}
+        disabled={loading}
+        style={{ width: '100%' }}
+      >
+        {loading ? 'Abriendo Mercado Pago…' : 'Pagar con Mercado Pago'}
+      </CherryButton>
+    </div>
+  );
+};
+
+PayPendingOrderButton.propTypes = {
   orderId: PropTypes.number.isRequired
 };
 
@@ -132,6 +196,12 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
 
   const totalPieces = groupedRows.reduce((sum, row) => sum + row.totalQuantity, 0);
   const linesSubtotalSum = groupedRows.reduce((sum, row) => sum + row.totalSubtotal, 0);
+  const shippingNum = parseFloat(order.shipping_cost) || 0;
+  const totalNum = parseFloat(order.totalAmount) || 0;
+  const netMerchandise = Math.max(0, totalNum - shippingNum);
+  // Si el total registrado no coincide con líneas bruto + envío (descuentos globales / split crédito–MP), el resumen usa mercancía neta.
+  const summarySubtotal =
+    Math.abs(linesSubtotalSum + shippingNum - totalNum) > 0.05 ? netMerchandise : linesSubtotalSum;
 
   return (
     <div className="order-detail-modal-overlay" onClick={handleBackdropClick}>
@@ -274,13 +344,21 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
                         </span>
                       </div>
                     )}
-                    {order.amount_pending > 0 && order.status === 'pendiente_pago' && (
+                    {order.amount_pending > 0 && order.statusRaw === 'pendiente_pago' && (
                       <div className="info-row" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e0e0e0' }}>
                         <RetryRemainderPaymentButton orderId={order.id} />
                       </div>
                     )}
                   </>
                 )}
+                {/* Split crédito + MP: la orden del faltante no lleva paid_with_credit pero sí pendiente_pago */}
+                {!order.paid_with_credit &&
+                  order.statusRaw === 'pendiente_pago' &&
+                  parseFloat(order.amount_pending ?? order.totalAmount ?? 0) > 0.01 && (
+                    <div className="info-row" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e0e0e0' }}>
+                      <PayPendingOrderButton orderId={order.id} />
+                    </div>
+                  )}
               </div>
             </div>
 
@@ -476,7 +554,7 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
           <div className="summary-section">
             <div className="summary-row">
               <span className="summary-label">Subtotal:</span>
-              <span>${linesSubtotalSum.toFixed(2)}</span>
+              <span>${summarySubtotal.toFixed(2)}</span>
             </div>
             <div className="summary-row">
               <span className="summary-label">Envío:</span>

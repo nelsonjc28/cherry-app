@@ -6,6 +6,17 @@ import { orderService } from '../../services/api';
 import api from '../../config/axios';
 import './MyOrders.css';
 
+const mercadoPagoUrlFromPayload = (d) => {
+  if (!d || typeof d !== 'object') return null;
+  return [
+    d.redirect_url,
+    d.init_point,
+    d.sandbox_init_point,
+    d.payment_url,
+    d.sandbox_payment_url,
+  ].find((u) => typeof u === 'string' && u.trim().length > 0) || null;
+};
+
 // Función helper para formatear el número de orden igual que en API externa
 const formatOrderNumber = (order) => {
   const prefix = (order.is_advance_order ?? false) ? 'PD' : 'CD';
@@ -124,19 +135,14 @@ const MyOrders = () => {
       const response = await api.post(`/payment/retry-remainder/${orderId}`);
       
       if (response.data.success) {
-        // Redirigir a la URL de pago de MercadoPago
-        const paymentUrl = response.data.data.payment_url || response.data.data.sandbox_payment_url;
+        const paymentUrl = mercadoPagoUrlFromPayload(response.data.data);
         if (paymentUrl) {
           window.location.href = paymentUrl;
-        } else {
-          if (window.showToast) {
-            window.showToast('No se pudo obtener la URL de pago', 'error');
-          }
+        } else if (window.showToast) {
+          window.showToast('No se pudo obtener la URL de pago', 'error');
         }
-      } else {
-        if (window.showToast) {
-          window.showToast(response.data.message || 'Error al crear la preferencia de pago', 'error');
-        }
+      } else if (window.showToast) {
+        window.showToast(response.data.message || 'Error al crear la preferencia de pago', 'error');
       }
     } catch (err) {
       if (window.showToast) {
@@ -154,19 +160,14 @@ const MyOrders = () => {
       const response = await api.post(`/payment/pay-pending-order/${orderId}`);
       
       if (response.data.success) {
-        // Redirigir a la URL de pago de MercadoPago
-        const paymentUrl = response.data.data.payment_url || response.data.data.sandbox_payment_url;
+        const paymentUrl = mercadoPagoUrlFromPayload(response.data.data);
         if (paymentUrl) {
           window.location.href = paymentUrl;
-        } else {
-          if (window.showToast) {
-            window.showToast('No se pudo obtener la URL de pago', 'error');
-          }
+        } else if (window.showToast) {
+          window.showToast('No se pudo obtener la URL de pago', 'error');
         }
-      } else {
-        if (window.showToast) {
-          window.showToast(response.data.message || 'Error al crear la preferencia de pago', 'error');
-        }
+      } else if (window.showToast) {
+        window.showToast(response.data.message || 'Error al crear la preferencia de pago', 'error');
       }
     } catch (err) {
       if (window.showToast) {
@@ -300,16 +301,16 @@ const MyOrders = () => {
                       <td className="order-pieces-cell">{totalPieces}</td>
                       <td className="order-total-cell">{formatCurrency(order.totalAmount)}</td>
                       <td className="order-status-cell">
-                        <span className={`status-badge status-badge--${getStatusColor(order.status)}`}>
+                        <span className={`status-badge status-badge--${getStatusColor(order.statusRaw || order.status)}`}>
                           {order.statusDisplay || order.status}
                         </span>
                       </td>
                       <td className="order-actions-cell">
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
                           {/* Botón para pagar saldo pendiente (cuando se pagó parcialmente con crédito) */}
-                          {order.paid_with_credit && 
-                           parseFloat(order.amount_pending || 0) > 0 && 
-                           (order.statusRaw === 'pendiente_pago' || order.status === 'pendiente_pago' || order.statusDisplay === 'Pendiente de Pago') && (
+                          {order.paid_with_credit &&
+                           parseFloat(order.amount_pending || 0) > 0 &&
+                           order.statusRaw === 'pendiente_pago' && (
                             <button
                               className="order-action-btn order-action-btn--pay"
                               onClick={() => handlePayRemainder(order.id)}
@@ -340,7 +341,7 @@ const MyOrders = () => {
                             </button>
                           )}
                           {/* Botón para pagar orden pendiente completa */}
-                          {(order.status === 'pending' || order.status === 'pendiente_pago' || order.statusDisplay === 'Pendiente' || order.statusDisplay === 'Pendiente de Pago') && 
+                          {(order.statusRaw === 'pending' || order.statusRaw === 'pendiente_pago') &&
                            !order.paid_with_credit && (
                             <button
                               className="order-action-btn order-action-btn--pay"
@@ -439,7 +440,7 @@ const MyOrders = () => {
       <OrderDetailModal
           order={{
             ...selectedOrderForDetail,
-            statusColor: getStatusColor(selectedOrderForDetail.status),
+            statusColor: getStatusColor(selectedOrderForDetail.statusRaw || selectedOrderForDetail.status),
             status: selectedOrderForDetail.statusDisplay || selectedOrderForDetail.status
           }}
           isOpen={showOrderDetailModal}

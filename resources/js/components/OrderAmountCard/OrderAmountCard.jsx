@@ -12,6 +12,8 @@ const OrderAmountCard = ({
   discount = 0,
   discountThirtyAmount = 0,
   discountAdditionalTenAmount = 0,
+  /** Porcentaje del primer tramo de volumen (30 oro/no-diamante, 33 diamante); por defecto 30 */
+  volumeMainPercent = null,
   shipping = 0,
   isFreeShipping = false,
   total = 0,
@@ -22,6 +24,7 @@ const OrderAmountCard = ({
   const discount10 = Number(discountAdditionalTenAmount) || 0;
   const has30Percent = discount30 > 0;
   const has40Percent = discount30 > 0 && discount10 > 0;
+  const mainPercentLabel = volumeMainPercent != null ? volumeMainPercent : 30;
 
   return (
     <div className="address-selector">
@@ -35,15 +38,14 @@ const OrderAmountCard = ({
           <span>Sub-Total</span>
           <span>${formatMoney(subtotal)}</span>
         </div>
-        {/* Mostrar descuentos cuando aplique el 30% o el 40% */}
+        {/* Descuento volumen: primer tramo (30% oro / 33% diamante) y opcional +10% sobre remanente */}
         {has30Percent && (
           <>
             {has40Percent ? (
-              // Descuento del 30% + 10% adicional sobre el total después del 30%
               <>
                 <div className="cart-order-summary__row">
                   <span>Descuento</span>
-                  <span className="cart-order-summary__free-shipping">30%</span>
+                  <span className="cart-order-summary__free-shipping">{mainPercentLabel}%</span>
                 </div>
                 <div className="cart-order-summary__row">
                   <span>Adicional</span>
@@ -55,11 +57,10 @@ const OrderAmountCard = ({
                 </div>
               </>
             ) : (
-              // Solo descuento del 30%
               <>
                 <div className="cart-order-summary__row">
                   <span>Descuento</span>
-                  <span className="cart-order-summary__free-shipping">30%</span>
+                  <span className="cart-order-summary__free-shipping">{mainPercentLabel}%</span>
                 </div>
                 <div className="cart-order-summary__row">
                   <span>Total descuento</span>
@@ -94,6 +95,7 @@ OrderAmountCard.propTypes = {
   discount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   discountThirtyAmount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   discountAdditionalTenAmount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  volumeMainPercent: PropTypes.number,
   shipping: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   isFreeShipping: PropTypes.bool,
   total: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),

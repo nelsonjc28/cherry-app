@@ -85,6 +85,17 @@ class MercadoPagoService
 
             Log::debug('Items procesados para preferencia', ['items' => $items]);
 
+            $montoEnviadoMp = 0.0;
+            foreach ($items as $row) {
+                $montoEnviadoMp += (float) ($row['unit_price'] ?? 0) * (int) ($row['quantity'] ?? 0);
+            }
+            $montoEnviadoMp = round($montoEnviadoMp, 2);
+            Log::info('Mercado Pago: monto enviado en ítems de la preferencia', [
+                'monto_enviado_mercadopago' => $montoEnviadoMp,
+                'external_reference' => $orderData['order_id'] ?? 'N/A',
+                'lineas' => count($items),
+            ]);
+
             $backUrlSuccess = $this->getValidUrl('/compra-exitosa');
             $backUrlFailure = $this->getValidUrl('/carrito-detalle');
             $backUrlPending = $this->getValidUrl('/carrito-detalle');

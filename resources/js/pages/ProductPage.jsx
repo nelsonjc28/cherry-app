@@ -36,6 +36,7 @@ import { formatPrice } from '../utils/formatters';
 import useHorizontalDragScroll from '../hooks/useHorizontalDragScroll';
 import colorConverter from '../services/colorConverter';
 import { validateStock, getProductStock } from '../services/inventoryService';
+import { getVolumeDiscountMainTier, getSellerCategoryFromUser } from '../utils/sellerVolumeDiscount';
 
 // Función para formatear montos con separador de miles
 const formatMoneyWithCommas = (value) => {
@@ -999,6 +1000,8 @@ const ProductPage = () => {
 
   const getProductPageAlerts = () => {
     const alerts = [];
+    const isDiamanteUser = getSellerCategoryFromUser(user) === 'diamante';
+    const { mainPercent: volMainPercent } = getVolumeDiscountMainTier(user);
 
     // Alertas para descuentos (solo si hay items elegibles o el producto actual es elegible)
     const productHasNoPromo = !product?.desc_promo || product.desc_promo === 0;
@@ -1012,7 +1015,9 @@ const ProductPage = () => {
           alerts.push({
             type: 'near',
             icon: '🔥',
-            message: `¡Ya casi! Te faltan $${formatMoneyWithCommas(remaining)} para obtener tu descuento del 30%`,
+            message: isDiamanteUser
+              ? `¡Ya casi! Te faltan $${formatMoneyWithCommas(remaining)} para activar tu descuento por volumen`
+              : `¡Ya casi! Te faltan $${formatMoneyWithCommas(remaining)} para obtener tu descuento del ${volMainPercent}%`,
             color: '#ff9800'
           });
         } else {
@@ -1020,8 +1025,12 @@ const ProductPage = () => {
             type: 'info',
             icon: '💰',
             message: eligibleCartTotal > 0
-              ? `Te faltan $${formatMoneyWithCommas(remaining)} para obtener un descuento del 30%`
-              : `Agrega $${DISCOUNT_30_THRESHOLD.toLocaleString()} en productos para obtener 30% de descuento`,
+              ? (isDiamanteUser
+                ? `Te faltan $${formatMoneyWithCommas(remaining)} para activar tu descuento por volumen`
+                : `Te faltan $${formatMoneyWithCommas(remaining)} para obtener un descuento del ${volMainPercent}%`)
+              : (isDiamanteUser
+                ? `Agrega $${DISCOUNT_30_THRESHOLD.toLocaleString()} en productos elegibles para activar tu descuento por volumen`
+                : `Agrega $${DISCOUNT_30_THRESHOLD.toLocaleString()} en productos para obtener ${volMainPercent}% de descuento`),
             color: '#2196f3'
           });
         }
@@ -1032,7 +1041,9 @@ const ProductPage = () => {
         alerts.push({
           type: 'success',
           icon: '✅',
-          message: `¡Tienes 30% de descuento!`,
+          message: isDiamanteUser
+            ? '¡Tienes tu descuento por volumen activado!'
+            : `¡Tienes ${volMainPercent}% de descuento!`,
           color: '#4caf50'
         });
 
@@ -1055,7 +1066,9 @@ const ProductPage = () => {
         alerts.push({
           type: 'success',
           icon: '🎉',
-          message: `¡Tienes el descuento máximo del 30% + 10% adicional!`,
+          message: isDiamanteUser
+            ? '¡Tienes el descuento máximo por volumen (incluye 10% adicional)!'
+            : `¡Tienes el descuento máximo del ${volMainPercent}% + 10% adicional!`,
           color: '#4caf50'
         });
       }

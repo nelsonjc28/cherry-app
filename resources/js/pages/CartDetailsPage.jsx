@@ -11,6 +11,7 @@ import AddressSelector from '../components/AddressSelector/AddressSelector';
 import BuyerInfo from '../components/BuyerInfo/BuyerInfo';
 import { validateStock } from '../services/inventoryService';
 import useUserStore from '../store/userStore';
+import { getVolumeDiscountMainTier, getSellerCategoryFromUser } from '../utils/sellerVolumeDiscount';
 
 
 
@@ -20,6 +21,27 @@ import useUserStore from '../store/userStore';
 const formatMoney = (value) => {
   const num = typeof value === 'number' ? value : parseFloat(value || 0);
   return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+/** MP a veces manda init_point ""; el backend ya corrige, pero aquí reforzamos + armamos URL con preference_id. */
+const pickMercadoPagoCheckoutUrl = (payload) => {
+  if (!payload || typeof payload !== 'object') return null;
+  const candidates = [
+    payload.payment_url,
+    payload.redirect_url,
+    payload.init_point,
+    payload.sandbox_init_point,
+    payload.sandbox_payment_url,
+  ];
+  const found = candidates.find((u) => typeof u === 'string' && u.trim().length > 0);
+  if (found) return found.trim();
+
+  const pid = payload.preference_id;
+  if (pid != null && String(pid).trim() !== '') {
+    const id = encodeURIComponent(String(pid).trim());
+    return `https://www.mercadopago.com.mx/checkout/v1/redirect?pref_id=${id}&source_operation=checkout_pro`;
+  }
+  return null;
 };
 
 const CartDetailsPage = () => {
@@ -56,10 +78,6 @@ const CartDetailsPage = () => {
   const hasRegularItems = regularItems.length > 0;
   
   // Calcular totales separados
-  const advanceOrderTotal = advanceOrderItems.reduce((sum, item) => {
-    return sum + (parseFloat(item.precio || item.price || 0) * parseInt(item.quantity || 0));
-  }, 0);
-  
   const regularItemsTotal = regularItems.reduce((sum, item) => {
     return sum + (parseFloat(item.precio || item.price || 0) * parseInt(item.quantity || 0));
   }, 0);
@@ -386,7 +404,10 @@ const CartDetailsPage = () => {
   }, [deliveryType, storeAddress, selectedAddress]);
 
   // Handle generate order with MercadoPago or Credit
-  const handleGenerateOrder = async () => {
+  // options.paymentMethod: 'credit' | 'mercadopago' — debe coincidir con el radio del resumen (evita desfase con state del padre)
+  const handleGenerateOrder = async (options = {}) => {
+    const pm = options.paymentMethod ?? paymentMethod;
+
     if (cartItems.length === 0) {
       if (window.showToast) {
         window.showToast('No hay productos en el carrito', 'warning');
@@ -394,12 +415,71 @@ const CartDetailsPage = () => {
       return;
     }
 
-    // Si hay productos adelantados, crear pedido adelantado primero
-    if (hasAdvanceOrders) {
+    // Carrito mixto (disponible + próximamente) + crédito: un solo create-preference con todo el carrito
+    // para que Total − Crédito = saldo MP y siempre se genere preferencia/URL si hay excedente.
+    const skipSeparateAdvanceOrder =
+      pm === 'credit' &&
+      hasAdvanceOrders &&
+      hasRegularItems &&
+      user &&
+      ['oro', 'diamante'].includes(user.seller_category);
+
+    // Si hay productos adelantados, crear pedido adelantado primero (excepto el caso unificado arriba)
+    if (hasAdvanceOrders && !skipSeparateAdvanceOrder) {
       try {
         if (window.showToast) {
           window.showToast('Creando pedido adelantado...', 'info');
         }
+
+        // Misma lógica de volumen ($7k / $15k) que en create-preference, solo sobre líneas "próximamente"
+        const advanceItemsSubtotal = advanceOrderItems.reduce(
+          (sum, item) =>
+            sum +
+            parseFloat(item.precio || item.price || 0) * parseInt(item.quantity || 0, 10),
+          0
+        );
+
+        const eligibleAdvanceItems = advanceOrderItems.filter((item) => {
+          const hasNoPromo =
+            item.desc_promo === 0 || item.desc_promo === null || item.desc_promo === undefined;
+          const hasNoUserOffer =
+            !item.userOffer || item.userOffer.discount_category === null;
+          return hasNoPromo && hasNoUserOffer;
+        });
+
+        const eligibleAdvanceTotal = eligibleAdvanceItems.reduce((sum, item) => {
+          const itemPrice = item.precio || item.price || 0;
+          const itemQuantity = item.quantity || 0;
+          return sum + itemPrice * itemQuantity;
+        }, 0);
+
+        const { mainRate: advMainRate, mainPercent: advMainPercent } =
+          getVolumeDiscountMainTier(user);
+
+        let advanceVolMain = 0;
+        let advanceVolExtraTen = 0;
+        let advanceVolumeDiscountTotal = 0;
+        let advanceDescuento1 = 0;
+        let advanceDescuento2 = 0;
+
+        if (eligibleAdvanceTotal >= 7000) {
+          advanceDescuento1 = advMainPercent;
+          advanceVolMain = eligibleAdvanceTotal * advMainRate;
+          advanceVolumeDiscountTotal = advanceVolMain;
+
+          if (eligibleAdvanceTotal >= 15000) {
+            advanceDescuento2 = 10;
+            const totalAfterMain = eligibleAdvanceTotal - advanceVolMain;
+            advanceVolExtraTen = totalAfterMain * 0.1;
+            advanceVolumeDiscountTotal = advanceVolMain + advanceVolExtraTen;
+          }
+        }
+
+        const advanceDiscountedMerch = Math.max(
+          0,
+          advanceItemsSubtotal - advanceVolumeDiscountTotal
+        );
+        const advanceOrderTotalCharged = parseFloat(advanceDiscountedMerch.toFixed(2));
 
         const advanceOrderData = {
           items: advanceOrderItems.map(item => ({
@@ -412,18 +492,24 @@ const CartDetailsPage = () => {
             barcode: item.barcode || null,
             detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null
           })),
-          total_amount: advanceOrderTotal,
+          total_amount: advanceOrderTotalCharged,
+          subtotal: advanceItemsSubtotal,
+          discounted_total: advanceDiscountedMerch,
+          descuento1: advanceDescuento1,
+          descuento2: advanceDescuento2,
+          shipping_amount: 0,
+          delivery_type: deliveryType,
           is_advance_order: true,
-          // Descuentos del 20% y 10% adicional (0 para pedidos adelantados ya que no aplican)
-          descuento1: 0,
-          descuento2: 0
         };
 
         const advanceResponse = await api.post('/payment/create-advance-order', advanceOrderData);
 
         if (advanceResponse.data.success) {
           if (window.showToast) {
-            window.showToast(`Pedido adelantado creado exitosamente. Total: $${advanceOrderTotal.toFixed(2)}`, 'success');
+            window.showToast(
+              `Pedido adelantado creado exitosamente. Total: $${advanceOrderTotalCharged.toFixed(2)}`,
+              'success'
+            );
           }
 
           // Remover productos adelantados del carrito
@@ -497,7 +583,7 @@ const CartDetailsPage = () => {
     }
 
     // Si es pago con crédito, validar que el usuario tenga categoría oro o diamante
-    if (paymentMethod === 'credit') {
+    if (pm === 'credit') {
       if (!user || !['oro', 'diamante'].includes(user.seller_category)) {
         if (window.showToast) {
           window.showToast('Solo los usuarios con categoría Oro pueden pagar con crédito', 'error');
@@ -507,8 +593,10 @@ const CartDetailsPage = () => {
     }
 
     try {
-      // Calcular total elegible para productos regulares (solo productos con desc_promo = 0 y sin userOffer)
-      const eligibleRegularItems = regularItems.filter(item => {
+      const paymentLineItems = skipSeparateAdvanceOrder ? cartItems : regularItems;
+
+      // Calcular total elegible (solo productos con desc_promo = 0 y sin userOffer)
+      const eligibleRegularItems = paymentLineItems.filter(item => {
         const hasNoPromo = item.desc_promo === 0 || item.desc_promo === null || item.desc_promo === undefined;
         const hasNoUserOffer = !item.userOffer || item.userOffer.discount_category === null;
         return hasNoPromo && hasNoUserOffer;
@@ -521,28 +609,34 @@ const CartDetailsPage = () => {
         return sum + (itemPrice * itemQuantity);
       }, 0);
 
-      // Determinar porcentaje de descuento según categoría del usuario
-      const isDiamante = user && user.seller_category === 'diamante';
-      const mainDiscountRate = isDiamante ? 0.33 : 0.20;
-      const mainDiscountPercent = isDiamante ? 33 : 20;
+      // Volumen $7k / $15k: diamante 33% + 10%; oro (y no-diamante) 30% + 10%
+      const { mainRate: mainDiscountRate, mainPercent: mainDiscountPercent } = getVolumeDiscountMainTier(user);
 
       let regularDiscountTwentyAmount = 0;
       let regularDiscountAdditionalTenAmount = 0;
       let regularDayFortyFiveDiscountAmount = 0;
-      
+      let paymentDescuento1 = 0;
+      let paymentDescuento2 = 0;
+
       if (eligibleRegularTotal >= 7000) {
+        paymentDescuento1 = mainDiscountPercent;
         regularDiscountTwentyAmount = eligibleRegularTotal * mainDiscountRate;
         regularDayFortyFiveDiscountAmount = regularDiscountTwentyAmount;
-        
+
         if (eligibleRegularTotal >= 15000) {
+          paymentDescuento2 = 10;
           const totalAfterMain = eligibleRegularTotal - regularDiscountTwentyAmount;
           regularDiscountAdditionalTenAmount = totalAfterMain * 0.10;
           regularDayFortyFiveDiscountAmount = regularDiscountTwentyAmount + regularDiscountAdditionalTenAmount;
         }
       }
 
-      // Calcular total después de descuentos (regularItemsTotal ya incluye descuentos individuales de productos)
-      const regularTotalAfterDiscount = Math.max(0, regularItemsTotal - regularDayFortyFiveDiscountAmount);
+      const lineItemsGrossTotal = paymentLineItems.reduce((sum, item) => {
+        return sum + (parseFloat(item.precio || item.price || 0) * parseInt(item.quantity || 0, 10));
+      }, 0);
+
+      // Calcular total después de descuentos (subtotal de líneas ya incluye descuentos por producto)
+      const regularTotalAfterDiscount = Math.max(0, lineItemsGrossTotal - regularDayFortyFiveDiscountAmount);
 
       // Calcular shipping amount para productos regulares
       let regularShippingAmount = 0;
@@ -562,12 +656,11 @@ const CartDetailsPage = () => {
       const regularFinalTotal = parseFloat((regularTotalAfterDiscount + regularShippingAmount).toFixed(2));
       
       // Calcular subtotal (monto total sin descuentos) y discounted_total (monto con descuentos pero sin envío)
-      const regularSubtotal = regularItemsTotal; // Subtotal sin descuentos aplicados
+      const regularSubtotal = lineItemsGrossTotal; // Subtotal sin descuentos de volumen
       const regularDiscountedTotal = regularTotalAfterDiscount; // Total con descuentos aplicados (sin envío)
 
-      // Preparar datos para el pago (solo productos regulares)
       const paymentData = {
-        items: regularItems.map(item => {
+        items: paymentLineItems.map(item => {
           const mappedItem = {
             product_id: String(item.id_articulo || item.product_id || item.id), // Enviar como string para soportar IDs con ceros a la izquierda
             name: item.title || item.name,
@@ -576,7 +669,8 @@ const CartDetailsPage = () => {
             size: item.selectedSize || null,
             color: item.selectedColor || null,
             barcode: item.barcode || null,
-            detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null
+            detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null,
+            is_coming_soon: item.isComingSoon === true,
           };
 
           return mappedItem;
@@ -587,111 +681,148 @@ const CartDetailsPage = () => {
         total_amount: regularFinalTotal, // Total FINAL con descuentos y envío incluidos
         subtotal: regularSubtotal, // Monto total sin descuentos aplicados
         discounted_total: regularDiscountedTotal, // Monto total con descuentos aplicados (sin envío)
-        use_credit: paymentMethod === 'credit',
-        pay_remainder_with_mercadopago: paymentMethod === 'credit', // Si paga con crédito y hay pendiente, pagar resto con MP
-        // Descuentos del 20% y 10% adicional
-        descuento1: descuento1 || 0, // 20% cuando total elegible >= 7000
-        descuento2: descuento2 || 0  // 10% adicional cuando total elegible >= 15000
+        use_credit: pm === 'credit',
+        pay_remainder_with_mercadopago: pm === 'credit', // Si paga con crédito y hay pendiente, pagar resto con MP
+        // Porcentajes para API/BD: 30 u 33 en primer tramo si aplica $7k; 10 en segundo si aplica $15k; si no, 0
+        descuento1: paymentDescuento1,
+        descuento2: paymentDescuento2
       };
 
+      const longTimeout = { timeout: 120000 };
+
       let response;
-      
-      if (paymentMethod === 'credit') {
-        // Mostrar loading
+
+      if (pm === 'credit') {
         if (window.showToast) {
           window.showToast('Procesando pago con crédito...', 'info');
         }
-        
-        // Llamar al mismo endpoint pero con use_credit=true
-        response = await api.post('/payment/create-preference', paymentData);
+        response = await api.post('/payment/create-preference', paymentData, longTimeout);
       } else {
-        // Mostrar loading
         if (window.showToast) {
           window.showToast('Creando preferencia de pago...', 'info');
         }
-        
-        response = await api.post('/payment/create-preference', paymentData);
+        response = await api.post('/payment/create-preference', paymentData, longTimeout);
       }
 
       if (response.data.success) {
-        const { data } = response.data;
+        let payload = response.data.data ?? response.data;
+        if (payload?.data && typeof payload.data === 'object' && !Array.isArray(payload.data)) {
+          const inner = payload.data;
+          if (
+            inner.preference_id != null
+            || inner.order_split != null
+            || inner.redirect_url != null
+            || inner.payment_url != null
+            || inner.requires_payment != null
+          ) {
+            payload = inner;
+          }
+        }
 
         // Si es pago con crédito
-        if (paymentMethod === 'credit') {
-          // Limpiar carrito
-          clearCart();
-          
-          if (data.amount_pending > 0) {
-            const payOrderId = data.order_payment_id ?? data.order_id;
-            if (window.showToast) {
-              if (data.order_split) {
-                const line1 = data.order_credit
-                  ? `Orden #${data.order_credit.id}: aplicada a tu crédito. `
-                  : '';
-                const line2 = `Orden #${payOrderId}: pendiente de pago externo (Mercado Pago).`;
-                window.showToast(line1 + line2, 'info');
-              } else {
-                window.showToast(`Orden creada. Crédito usado: $${data.credit_used.toFixed(2)}. Saldo pendiente: $${data.amount_pending.toFixed(2)}`, 'info');
-              }
-            }
-            
-            // Si hay URL de pago pendiente, redirigir
-            if (data.payment_url || data.init_point || data.sandbox_init_point) {
-              setTimeout(() => {
-                window.location.href = data.init_point || data.sandbox_init_point || data.payment_url;
-              }, 2000);
-            } else {
-              // Redirigir a página de éxito o mis órdenes
-              setTimeout(() => {
-                navigate('/compra-exitosa', {
-                  state: {
-                    orderInfo: {
-                      orderId: payOrderId,
-                      orderCreditId: data.order_credit_id ?? null,
-                      orderSplit: !!data.order_split,
-                      creditUsed: data.credit_used,
-                      amountPending: data.amount_pending,
-                      totalAmount: regularFinalTotal
-                    }
-                  }
-                });
-              }, 2000);
-            }
-          } else {
-            // Pago completo con crédito
-            if (window.showToast) {
-              window.showToast('¡Gracias por tu compra!', 'success');
-            }
-            
-            setTimeout(() => {
-              navigate('/compra-exitosa', {
-                state: {
-                  orderInfo: {
-                    orderId: data.order_id,
-                    creditUsed: data.credit_used,
-                    amountPending: 0,
-                    totalAmount: regularFinalTotal
-                  }
+        if (pm === 'credit') {
+          const pendingRaw =
+            payload?.amount_pending ??
+            payload?.order_payment?.amount_pending ??
+            0;
+          const pendingMp =
+            typeof pendingRaw === 'number'
+              ? pendingRaw
+              : parseFloat(String(pendingRaw).replace(/,/g, '')) || 0;
+
+          const isSplitResponse =
+            payload?.order_split === true ||
+            payload?.order_split === 1 ||
+            payload?.requires_mercadopago_redirect === true ||
+            payload?.requires_mercadopago_redirect === 1 ||
+            payload?.requires_payment === true ||
+            payload?.requires_payment === 1;
+          const needsMercadoPagoCheckout =
+            pendingMp > 0.01 || isSplitResponse;
+
+          if (needsMercadoPagoCheckout) {
+            const payOrderId =
+              payload?.order_payment_id ?? payload?.order_id;
+
+            const mercadoPagoCheckoutUrl = pickMercadoPagoCheckoutUrl(payload);
+
+            if (mercadoPagoCheckoutUrl) {
+              if (window.showToast) {
+                if (payload?.order_split) {
+                  const line1 = payload?.order_credit
+                    ? `Orden #${payload.order_credit.id}: aplicada a tu crédito. `
+                    : '';
+                  window.showToast(
+                    `${line1}Redirigiendo a Mercado Pago para completar el pago…`,
+                    'info'
+                  );
+                } else {
+                  window.showToast(
+                    `Saldo pendiente: $${pendingMp.toFixed(2)}. Abriendo Mercado Pago…`,
+                    'info'
+                  );
                 }
-              });
-            }, 800);
+              }
+              void clearCart();
+              window.location.replace(mercadoPagoCheckoutUrl);
+              return;
+            }
+
+            void clearCart();
+            if (window.showToast) {
+              window.showToast(
+                'Tu orden quedó con saldo pendiente pero no se obtuvo el enlace de Mercado Pago. Revisa Mis pedidos o contacta soporte.',
+                'warning'
+              );
+            }
+            setTimeout(() => {
+              navigate(`/perfil/mis-pedidos?highlight=${payOrderId}`, { replace: true });
+            }, 2500);
+            return;
           }
+
+          // Pago completo con crédito
+          void clearCart();
+          if (window.showToast) {
+            window.showToast('¡Gracias por tu compra!', 'success');
+          }
+
+          setTimeout(() => {
+            navigate('/compra-exitosa', {
+              state: {
+                orderInfo: {
+                  orderId: payload?.order_id,
+                  creditUsed: payload?.credit_used,
+                  amountPending: 0,
+                  totalAmount: regularFinalTotal,
+                },
+              },
+            });
+          }, 800);
         } else {
           // Pago con MercadoPago (flujo normal)
           if (window.showToast) {
             window.showToast('¡Redirigiendo a MercadoPago!', 'success');
           }
 
-          // Guardar información del pedido en localStorage para cuando regrese
           localStorage.setItem('pending_order', JSON.stringify({
-            orderId: data.order_id,
-            externalReference: data.external_reference,
+            orderId: payload?.order_id,
+            externalReference: payload?.external_reference,
             totalAmount: totalPrice
           }));
 
-          // Redirigir a MercadoPago
+          const mpOnlyUrl = [
+            payload?.redirect_url,
+            payload?.init_point,
+            payload?.sandbox_init_point,
+            payload?.payment_url,
+            payload?.sandbox_payment_url,
+          ].find((u) => typeof u === 'string' && u.trim().length > 0);
+
           setTimeout(() => {
-            window.location.href = data.init_point || data.sandbox_init_point || data.payment_url;
+            if (mpOnlyUrl) {
+              window.location.href = mpOnlyUrl;
+            }
           }, 1500);
         }
 
@@ -738,7 +869,7 @@ const CartDetailsPage = () => {
     // El error ya se maneja en el componente IntegratedCheckout
   };
 
-  // Calcular descuento dayFortyFive (30% o 40%)
+  // Calcular descuento por volumen ($7k / $15k): 30% oro (no-diamante) / 33% diamante + 10% opcional
   // Calcular total elegible (solo productos con desc_promo = 0 y sin userOffer)
   const eligibleItems = cartItems.filter(item => {
     const hasNoPromo = item.desc_promo === 0 || item.desc_promo === null || item.desc_promo === undefined;
@@ -753,10 +884,8 @@ const CartDetailsPage = () => {
     return sum + (itemPrice * itemQuantity);
   }, 0);
 
-  // Determinar porcentaje de descuento según categoría del usuario
-  const isDiamanteUser = user && user.seller_category === 'diamante';
-  const mainDiscountRate = isDiamanteUser ? 0.33 : 0.20;
-  const mainDiscountPercent = isDiamanteUser ? 33 : 20;
+  const isDiamanteUser = getSellerCategoryFromUser(user) === 'diamante';
+  const { mainRate: mainDiscountRate, mainPercent: mainDiscountPercent } = getVolumeDiscountMainTier(user);
 
   let dayFortyFiveDiscountAmount = 0;
   let discountTwentyAmount = 0;
@@ -803,8 +932,8 @@ const CartDetailsPage = () => {
   // Order summary data
   const orderSummary = {
     creditDays: '',
-    discount1: descuento1, // 20% cuando total elegible >= 7000
-    discount2: descuento2, // 10% adicional cuando total elegible >= 15000
+    discount1: descuento1, // 30 u 33 si elegible >= 7000; 0 si no
+    discount2: descuento2, // 10 si elegible >= 15000; 0 si no
     pieces: totalItems,
     subtotal: baseTotal.toFixed(2),
     discountTotal: dayFortyFiveDiscountAmount > 0 ? dayFortyFiveDiscountAmount.toFixed(2) : '0.00',
@@ -830,11 +959,13 @@ const CartDetailsPage = () => {
     // Solo mostrar alertas si hay productos elegibles (sin rebaja)
     if (eligibleTotal <= 0) return alerts;
 
-    // Para usuarios Diamante: mensajes genéricos sin revelar la categoría
-    const discountLabel = isDiamanteUser ? 'tu descuento especial' : 'tu descuento del 30%';
+    // Diamante: mensaje genérico; oro/bronce: porcentaje real del primer tramo (20%, no 30/33 mezclado)
+    const discountLabel = isDiamanteUser
+      ? 'tu descuento especial'
+      : `tu descuento del ${mainDiscountPercent}%`;
     const maxDiscountLabel = isDiamanteUser
       ? '¡Felicidades! Has alcanzado el descuento máximo disponible'
-      : '¡Increíble! Tienes el descuento máximo del 30% + 10% adicional';
+      : `¡Increíble! Tienes el descuento máximo del ${mainDiscountPercent}% + 10% adicional`;
     
     if (eligibleTotal < DISCOUNT_30_THRESHOLD) {
       const remaining = DISCOUNT_30_THRESHOLD - eligibleTotal;
@@ -846,7 +977,7 @@ const CartDetailsPage = () => {
           icon: '🔥',
           message: isDiamanteUser
             ? `¡Ya casi! Te faltan $${formatMoney(remaining)} para activar tu descuento`
-            : `¡Ya casi! Te faltan $${formatMoney(remaining)} para obtener tu descuento del 30%`,
+            : `¡Ya casi! Te faltan $${formatMoney(remaining)} para obtener tu descuento del ${mainDiscountPercent}%`,
           color: '#ff9800'
         });
       } else {
@@ -855,7 +986,7 @@ const CartDetailsPage = () => {
           icon: '💰',
           message: isDiamanteUser
             ? `Te faltan $${formatMoney(remaining)} para activar tu descuento`
-            : `Te faltan $${formatMoney(remaining)} para obtener un descuento del 30%`,
+            : `Te faltan $${formatMoney(remaining)} para obtener un descuento del ${mainDiscountPercent}%`,
           color: '#2196f3'
         });
       }
@@ -955,7 +1086,7 @@ const CartDetailsPage = () => {
   const discountWarningAlert = hasProductsWithDiscount ? [{
     type: 'warning',
     icon: 'ℹ️',
-    message: 'Recuerda que en productos con rebaja no se aplica el descuento del 30%+10% adicional',
+    message: `Recuerda que en productos con rebaja no se aplica el descuento por volumen (${mainDiscountPercent}% + 10% adicional cuando aplica)`,
     color: '#ff9800'
   }] : [];
 
@@ -1026,6 +1157,7 @@ const CartDetailsPage = () => {
               discount={dayFortyFiveDiscountAmount}
               discountThirtyAmount={discountTwentyAmount}
               discountAdditionalTenAmount={discountAdditionalTenAmount}
+              volumeMainPercent={mainDiscountPercent}
               shipping={shippingAmount}
               isFreeShipping={isFreeShippingApplied}
               total={parseFloat(finalTotalWithShipping)}

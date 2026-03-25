@@ -102,11 +102,32 @@ class OrderCreditSplitService
 
         $ratio = $linesSubtotalThisOrder / $cartLinesSum;
 
+        // discounted_total debe ser la parte del total NETO con descuentos (no el bruto de líneas)
+        $discountedThis = round((float) $requestDiscountedTotal * $ratio, 2);
+
         return [
             'subtotal' => round($requestSubtotal * $ratio, 2),
-            'discounted_total' => round($linesSubtotalThisOrder, 2),
+            'discounted_total' => $discountedThis,
             'descuento1' => round((float) $descuento1 * $ratio, 2),
             'descuento2' => round((float) $descuento2 * $ratio, 2),
         ];
+    }
+
+    /**
+     * Tope en subtotal bruto de líneas equivalente a un tope en mercancía neta (descuentos $7k/$15k a nivel carrito).
+     */
+    public function grossCapForNetCredit(float $linesGross, float $merchandiseNet, float $netCreditCap): float
+    {
+        $linesGross = round(max(0, $linesGross), 2);
+        $merchandiseNet = round(max(0, $merchandiseNet), 2);
+        $netCreditCap = round(max(0, $netCreditCap), 2);
+
+        if ($linesGross <= 0 || $merchandiseNet <= 0.0001) {
+            return 0.0;
+        }
+
+        $netCreditCap = min($netCreditCap, $merchandiseNet);
+
+        return round($linesGross * ($netCreditCap / $merchandiseNet), 2);
     }
 }

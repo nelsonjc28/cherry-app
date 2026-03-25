@@ -42,4 +42,14 @@ return [
         'currency_id' => env('MERCADOPAGO_CURRENCY_ID', 'MXN'), // ARS, MXN, BRL, etc.
     ],
 
+    /*
+    | Respond.io Website Chat — script URL from dashboard overrides channel-based URL.
+    | WordPress/cache docs reference: https://cdn.respond.io/webchat/widget/{id}.js
+    */
+    'respond_io' => [
+        'enabled' => filter_var(env('RESPOND_IO_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+        'channel_id' => trim((string) env('RESPOND_IO_CHANNEL_ID', 'YOUR_RESPOND_IO_CHANNEL_ID')),
+        'widget_script_url' => ($u = trim((string) env('RESPOND_IO_WIDGET_SCRIPT_URL', ''))) !== '' ? $u : null,
+    ],
+
 ];

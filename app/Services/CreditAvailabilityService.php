@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Cupo de crédito: límite vs crédito ya comprometido en pedidos activos.
@@ -88,10 +89,35 @@ class CreditAvailabilityService
 
         $creditLimit = round((float) $limitRaw, 2);
         $committed = $this->sumCommittedCredit((int) $user->id);
-        $available = max(0.0, round($creditLimit - $committed, 2));
+        $availableMath = max(0.0, round($creditLimit - $committed, 2));
+
+        // Cupo teórico vs saldo mostrado en perfil: si credit_balance es menor, es lo que el cliente “ve” y debe generar saldo MP.
+        $available = $availableMath;
+        if ($user->credit_balance !== null) {
+            $balanceShown = round(max(0.0, (float) $user->credit_balance), 2);
+            if ($balanceShown > 0 && $balanceShown + 0.005 < $availableMath) {
+                $available = $balanceShown;
+                Log::info('Cupo ajustado por credit_balance del usuario (menor que límite−comprometido)', [
+                    'available_math' => $availableMath,
+                    'credit_balance' => $balanceShown,
+                    'available_usado' => $available,
+                ]);
+            }
+        }
 
         $creditToUse = min($totalAmount, $available);
         $amountPending = max(0.0, round($totalAmount - $creditToUse, 2));
+
+        Log::info('Validación crédito nuevo pedido', [
+            'total_pedido' => $totalAmount,
+            'credito_aplicado' => round($creditToUse, 2),
+            'monto_pendiente_mercadopago' => round($amountPending, 2),
+            'cupo_disponible' => round($available, 2),
+            'cupo_por_limite' => round($availableMath, 2),
+            'limite' => round($creditLimit, 2),
+            'comprometido' => round($committed, 2),
+            'credit_balance_raw' => $user->credit_balance,
+        ]);
 
         // Sin cupo aplicable al total: solo Mercado Pago (split con una sola orden de pago)
         if ($creditToUse <= 0 && $totalAmount > 0) {

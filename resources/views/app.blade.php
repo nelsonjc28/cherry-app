@@ -1,3 +1,13 @@
+@php
+    $respondIo = config('services.respond_io', []);
+    $respondIoEnabled = $respondIo['enabled'] ?? false;
+    $respondIoWidgetSrc = $respondIo['widget_script_url'] ?? null;
+    $respondChannelId = $respondIo['channel_id'] ?? 'YOUR_RESPOND_IO_CHANNEL_ID';
+    if (empty($respondIoWidgetSrc) && $respondChannelId !== 'YOUR_RESPOND_IO_CHANNEL_ID' && $respondChannelId !== '') {
+        $respondIoWidgetSrc = 'https://cdn.respond.io/webchat/widget/' . rawurlencode($respondChannelId) . '.js';
+    }
+    $respondIoLoadWidget = $respondIoEnabled && ! empty($respondIoWidgetSrc);
+@endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -337,11 +347,22 @@
     <!-- Favicon Generator Script - For creating Cherry favicons -->
     
     
+    @if ($respondIoEnabled)
+        {{-- Identify visitors: must exist before widget script (https://help.respond.io/website-chat-widget) --}}
+        <meta name="respond-io-widget-src" content="{{ $respondIoLoadWidget ? e($respondIoWidgetSrc) : '' }}">
+        @unless ($respondIoLoadWidget)
+            <meta name="respond-io-needs-config" content="1">
+        @endunless
+        <script>
+            window.__respond_settings = window.__respond_settings || {};
+        </script>
+    @endif
+
     <!-- Vite Assets -->
     @viteReactRefresh
     @vite(['resources/css/app.css', 'resources/js/main.jsx'])
 </head>
-<body>
+<body class="{{ $respondIoLoadWidget ? 'has-respond-io-widget' : '' }}">
     <div id="root"></div>
     
     <!-- Toast Container -->
