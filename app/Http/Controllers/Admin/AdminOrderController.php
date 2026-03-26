@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\User;
 use App\Models\Notification;
+use App\Services\UserSellerCategoryActivityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -223,6 +224,17 @@ class AdminOrderController extends Controller
             // Notificar al cliente sobre el cambio de estado
             $this->notifyCustomerStatusChange($order, $oldStatus, $newStatus);
 
+            if ($newStatus === 'pagado' && $oldStatus !== 'pagado' && $order->user) {
+                try {
+                    app(UserSellerCategoryActivityService::class)->recordSuccessfulPurchase($order->user, (float) ($order->subtotal ?? $order->total_amount));
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error('Vigencia categoría: error tras marcar pagado (admin)', [
+                        'order_id' => $order->id,
+                        'user_id' => $order->user_id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
 
             // Si el estado es 'pagado', notificar al admin
             if ($newStatus === 'pagado') {
@@ -552,6 +564,8 @@ class AdminOrderController extends Controller
                     'message' => 'Esta orden no tiene crédito usado para restaurar'
                 ], 400);
             }
+
+            $previousOrderStatus = $order->status;
             
             \Illuminate\Support\Facades\DB::beginTransaction();
             
@@ -577,6 +591,18 @@ class AdminOrderController extends Controller
                 $order->save();
                 
                 \Illuminate\Support\Facades\DB::commit();
+
+                if ($previousOrderStatus !== 'pagado' && $order->status === 'pagado') {
+                    try {
+                        app(UserSellerCategoryActivityService::class)->recordSuccessfulPurchase($user, (float) ($order->subtotal ?? $order->total_amount));
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::error('Vigencia categoría: error tras markCreditOrderAsPaid', [
+                            'order_id' => $order->id,
+                            'user_id' => $user->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
                 
                 // Log de la operación
                 \Illuminate\Support\Facades\Log::info('Orden a crédito marcada como pagada y crédito restaurado', [

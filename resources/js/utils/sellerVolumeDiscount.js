@@ -30,3 +30,35 @@ export function getVolumeDiscountMainTier(user) {
   // oro, bronce, invitado u otros: primer tramo 30% (API externa: descuento1 = 30 o 33; 0 si no aplica)
   return { mainRate: 0.3, mainPercent: 30 };
 }
+
+export function isBronzeBenefitActive(user, now = new Date()) {
+  const cat = getSellerCategoryFromUser(user);
+  if (cat !== 'bronce') return false;
+  if (!user?.bronze_benefit_active) return false;
+  if (!user?.benefit_expires_at) return false;
+
+  const expiresAt = new Date(user.benefit_expires_at);
+  if (Number.isNaN(expiresAt.getTime())) return false;
+
+  return now < expiresAt;
+}
+
+export function canApplyMainDiscount(user, eligibleTotal) {
+  const cat = getSellerCategoryFromUser(user);
+  const total = Number(eligibleTotal || 0);
+  if (total <= 0) return false;
+
+  if (cat === 'bronce') {
+    if (isBronzeBenefitActive(user)) return true;
+    return total >= 7000;
+  }
+
+  return true;
+}
+
+export function getBronzeBenefitRemainingDays(user, now = new Date()) {
+  if (!isBronzeBenefitActive(user, now)) return 0;
+  const expiresAt = new Date(user.benefit_expires_at);
+  const msLeft = expiresAt.getTime() - now.getTime();
+  return Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
+}

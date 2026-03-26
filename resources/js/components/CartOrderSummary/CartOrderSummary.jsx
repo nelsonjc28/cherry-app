@@ -39,18 +39,8 @@ const CartOrderSummary = ({
 }) => {
   const navigate = useNavigate();
   // Estado para método de pago seleccionado
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(paymentMethod || 'mercadopago');
-  
-  // Sincronizar con prop externa
-  useEffect(() => {
-    if (paymentMethod) {
-      setSelectedPaymentMethod(paymentMethod);
-    }
-  }, [paymentMethod]);
-  
-  // Verificar si el usuario puede usar crédito
-  const canUseCredit = user && ['oro', 'diamante'].includes(user.seller_category);
-  const availableCredit = canUseCredit ? (parseFloat(user.credit_balance || 0)) : 0;
+  const sellerCategory = (user?.seller_category ?? '').toString().toLowerCase();
+  const isDirectOrderSeller = sellerCategory === 'oro' || sellerCategory === 'diamante';
   
   const [paymentCards, setPaymentCards] = useState([]);
   const [isLoadingCards, setIsLoadingCards] = useState(true);
@@ -897,19 +887,16 @@ const CartOrderSummary = ({
     }
   };
 
-  // Función para procesar el pago - Siempre usa Mercado Pago
   const handleProcessPayment = async () => {
-    // Si es pago con crédito, usar onGenerateOrder del padre (pasar método explícito: evita race con setState del padre)
-    if (selectedPaymentMethod === 'credit' && onGenerateOrder) {
+    if (isDirectOrderSeller && hasRegularItems && onGenerateOrder) {
       setIsProcessingPayment(true);
       try {
-        await onGenerateOrder({ paymentMethod: 'credit' });
+        await onGenerateOrder();
       } finally {
         setIsProcessingPayment(false);
       }
       return;
     }
-    // Si es MercadoPago, usar el método integrado
     processMercadoPagoPayment();
   };
 
@@ -929,7 +916,7 @@ const CartOrderSummary = ({
       const requestedQuantity = item.quantity;
       
       const isComingSoon = item.isComingSoon === true;
-      const isPremiumUser = user && ['oro', 'diamante'].includes(user.seller_category);
+      const isPremiumUser = isDirectOrderSeller;
       
       if (isComingSoon && isPremiumUser) {
         continue;
@@ -1046,8 +1033,8 @@ const CartOrderSummary = ({
       <div className="cart-order-summary__divider" />
         </>
       )}
-      {/* Método de pago - Solo si hay productos regulares */}
-      {hasRegularItems && (
+      {/* Método de pago: Bronce → solo Mercado Pago. Oro/Diamante → pedido directo (sin selectores). */}
+      {hasRegularItems && !isDirectOrderSeller && (
         <div className="cart-order-summary__section payment-method-section">
           <div className="cart-order-summary__section-title section-title-flex">
             <img 
@@ -1055,62 +1042,17 @@ const CartOrderSummary = ({
               alt="Mercado Pago" 
               style={{ width: '40px', height: '40px', marginRight: '8px', display: 'block', objectFit: 'contain' }}
               onError={(e) => {
-                // Fallback al icono SVG si la imagen no carga
                 e.target.src = getIconPath('Handshake.svg');
               }}
             />
             <span>Método de Pago</span>
           </div>
-          
-          {/* Opción de crédito para usuarios Oro - Solo si hay productos regulares */}
-          {canUseCredit && (
-            <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', marginBottom: '8px' }}>
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="credit"
-                  checked={selectedPaymentMethod === 'credit'}
-                  onChange={(e) => {
-                    setSelectedPaymentMethod(e.target.value);
-                    if (onPaymentMethodChange) {
-                      onPaymentMethodChange(e.target.value);
-                    }
-                  }}
-                  style={{ marginRight: '8px', width: '18px', height: '18px', cursor: 'pointer' }}
-                />
-                <span style={{ fontWeight: '600', fontSize: '14px' }}>Pagar con Crédito</span>
-              </label>
-              <div style={{ marginLeft: '26px', fontSize: '12px', color: '#666' }}>
-                <div>Crédito disponible: <strong style={{ color: '#28a745' }}>${availableCredit.toFixed(2)}</strong></div>
-                {availableCredit < parseFloat(total) && (
-                  <div style={{ marginTop: '4px', color: '#ff9800' }}>
-                    Saldo pendiente: <strong>${(parseFloat(total) - availableCredit).toFixed(2)}</strong> (se pagará con MercadoPago)
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-          
-          {/* Solo mostrar opción de MercadoPago si hay crédito disponible */}
-          {canUseCredit && (
-            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', marginTop: '12px' }}>
-              <input
-                type="radio"
-                name="paymentMethod"
-                value="mercadopago"
-                checked={selectedPaymentMethod === 'mercadopago'}
-                onChange={(e) => {
-                  setSelectedPaymentMethod(e.target.value);
-                  if (onPaymentMethodChange) {
-                    onPaymentMethodChange(e.target.value);
-                  }
-                }}
-                style={{ marginRight: '8px', width: '18px', height: '18px', cursor: 'pointer' }}
-              />
-              <span style={{ fontWeight: '600', fontSize: '14px' }}>Pagar con MercadoPago</span>
-            </label>
-          )}
+          <div style={{ marginTop: '12px', fontSize: '14px', fontWeight: 600, color: '#333' }}>
+            Pagar con Mercado Pago
+          </div>
+          <div style={{ marginTop: '6px', fontSize: '12px', color: '#666' }}>
+            Al continuar se abrirá el checkout de Mercado Pago.
+          </div>
         </div>
       )}
       
@@ -1121,7 +1063,9 @@ const CartOrderSummary = ({
             📦 Productos Adelantados
           </div>
           <div style={{ fontSize: '12px', color: '#856404' }}>
-            Los productos marcados como "Próximamente" se crearán como pedido adelantado y quedarán pendientes de pago. El administrador los marcará como pagados cuando el cliente haya pagado el total con el administrador.
+            {isDirectOrderSeller
+              ? 'Los artículos "Próximamente" se incluyen en el mismo pedido; al confirmar queda registrado como venta en firme (sin pago en línea).'
+              : 'Los productos marcados como "Próximamente" se crearán como pedido adelantado y quedarán pendientes de pago. El administrador los marcará como pagados cuando el cliente haya pagado el total con el administrador.'}
           </div>
         </div>
       )}
@@ -1231,7 +1175,6 @@ const CartOrderSummary = ({
 
       <div className="cart-order-summary__actions">
         {hasAdvanceOrders && !hasRegularItems ? (
-          // Solo productos adelantados - Botón "Generar pedido"
           <CustomButton
             variant="filled"
             size="small"
@@ -1241,10 +1184,13 @@ const CartOrderSummary = ({
             className="cart-order-summary__summary-btn"
             style={{ backgroundColor: '#d32f2f', color: 'white' }}
           >
-            {isProcessingPayment ? 'Generando pedido...' : 'Generar Pedido Adelantado'}
+            {isProcessingPayment
+              ? (isDirectOrderSeller ? 'Confirmando pedido...' : 'Generando pedido...')
+              : isDirectOrderSeller
+                ? 'Confirmar Pedido'
+                : 'Generar Pedido Adelantado'}
           </CustomButton>
         ) : (
-          // Productos regulares o mixtos - Botón de pago normal
           <CustomButton
             variant="outlined"
             size="small"
@@ -1253,10 +1199,10 @@ const CartOrderSummary = ({
             iconLeft={<img className="cart-order-summary__generate-icon" src={getIconPath('Handshake.svg')} alt="Handshake" />}
             className="cart-order-summary__summary-btn"
           >
-            {isProcessingPayment 
-              ? 'Procesando pago...' 
-              : selectedPaymentMethod === 'credit' 
-                ? `Pagar con Crédito ($${Math.min(availableCredit, parseFloat(total)).toFixed(2)})`
+            {isProcessingPayment
+              ? (isDirectOrderSeller && hasRegularItems ? 'Confirmando pedido...' : 'Procesando pago...')
+              : isDirectOrderSeller && hasRegularItems
+                ? 'Confirmar Pedido'
                 : 'Pagar con Mercado Pago'}
           </CustomButton>
         )}

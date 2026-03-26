@@ -14,3 +14,4 @@ Artisan::command('inspire', function () {
 */
 Schedule::command('mail:abandoned-cart')->daily();
 Schedule::command('mail:order-status-update')->hourly();
+Schedule::command('users:degrade-expired-seller-categories')->daily();

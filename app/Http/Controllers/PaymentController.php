@@ -18,6 +18,8 @@ use App\Models\Notification;
 use App\Services\ExternalSalesService;
 use App\Services\CreditAvailabilityService;
 use App\Services\OrderCreditSplitService;
+use App\Services\OrderPricingService;
+use App\Services\UserSellerCategoryActivityService;
 use App\Mail\OrderConfirmationMail;
 use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
@@ -31,16 +33,24 @@ class PaymentController extends Controller
 
     protected OrderCreditSplitService $orderCreditSplitService;
 
+    protected OrderPricingService $orderPricingService;
+
+    protected UserSellerCategoryActivityService $sellerCategoryActivityService;
+
     public function __construct(
         MercadoPagoService $mercadoPagoService,
         ExternalSalesService $externalSalesService,
         CreditAvailabilityService $creditAvailabilityService,
-        OrderCreditSplitService $orderCreditSplitService
+        OrderCreditSplitService $orderCreditSplitService,
+        OrderPricingService $orderPricingService,
+        UserSellerCategoryActivityService $sellerCategoryActivityService
     ) {
         $this->mercadoPagoService = $mercadoPagoService;
         $this->externalSalesService = $externalSalesService;
         $this->creditAvailabilityService = $creditAvailabilityService;
         $this->orderCreditSplitService = $orderCreditSplitService;
+        $this->orderPricingService = $orderPricingService;
+        $this->sellerCategoryActivityService = $sellerCategoryActivityService;
     }
 
     /**
@@ -177,6 +187,228 @@ class PaymentController extends Controller
     }
 
     /**
+     * Pedido directo (Oro / Diamante): sin Mercado Pago ni validación de crédito; venta en firme.
+     */
+    public function createDirectOrder(Request $request)
+    {
+        $deliveryType = $request->input('delivery_type', 'envio');
+
+        $rules = [
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required|string',
+            'items.*.name' => 'required|string',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.price' => 'required|numeric|min:0',
+            'items.*.size' => 'nullable|string',
+            'items.*.color' => 'nullable|string',
+            'items.*.barcode' => 'nullable|string',
+            'items.*.detalle_id' => 'nullable|integer|min:1',
+            'items.*.is_coming_soon' => 'nullable|boolean',
+            'items.*.desc_promo' => 'nullable|numeric',
+            'items.*.user_offer_applies' => 'nullable|boolean',
+            'delivery_type' => 'nullable|string|in:envio,retiro',
+            'shipping_amount' => 'nullable|numeric|min:0',
+            'total_amount' => 'required|numeric|min:0.01',
+            'subtotal' => 'nullable|numeric|min:0',
+            'discounted_total' => 'required|numeric|min:0',
+            'descuento1' => 'nullable|numeric|min:0',
+            'descuento2' => 'nullable|numeric|min:0',
+        ];
+
+        if ($deliveryType === 'envio') {
+            $rules['address_id'] = 'required|exists:addresses,id';
+        } else {
+            $rules['address_id'] = 'nullable';
+        }
+
+        $validator = Validator::make($request->all(), $rules);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Datos de validación incorrectos',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        /** @var User $user */
+        $user = Auth::user();
+
+        if (! $user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuario no autenticado',
+            ], 401);
+        }
+
+        $cat = strtolower((string) ($user->seller_category ?? ''));
+        if (! in_array($cat, ['oro', 'diamante'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El pedido directo solo está disponible para categorías Oro y Diamante.',
+            ], 403);
+        }
+
+        $pendingOrderCheck = $this->checkPendingOrdersWithSimilarProducts($user->id, $request->items);
+        if ($pendingOrderCheck['has_pending']) {
+            return response()->json([
+                'success' => false,
+                'message' => $pendingOrderCheck['message'],
+                'pending_order' => $pendingOrderCheck['order'],
+                'has_pending_order' => true,
+            ], 422);
+        }
+
+        $addressId = null;
+        if ($deliveryType === 'envio') {
+            $address = $user->addresses()->find($request->address_id);
+            if (! $address) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dirección no encontrada o no pertenece al usuario',
+                ], 404);
+            }
+            $addressId = $request->address_id;
+        }
+
+        $itemsForPricing = [];
+        foreach ($request->items as $item) {
+            $itemsForPricing[] = [
+                'price' => $item['price'],
+                'quantity' => $item['quantity'],
+                'desc_promo' => $item['desc_promo'] ?? null,
+                'user_offer_applies' => filter_var($item['user_offer_applies'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            ];
+        }
+
+        $summary = $this->orderPricingService->summarizeVolumeFromItems($user, $itemsForPricing);
+        $shippingAmount = (float) $request->input('shipping_amount', 0);
+        $discountedTotalReq = round((float) $request->input('discounted_total'), 2);
+        $totalAmountReq = round((float) $request->input('total_amount'), 2);
+
+        if (! $this->orderPricingService->totalsMatchRequest(
+            $summary['discounted_merchandise'],
+            $discountedTotalReq,
+            $totalAmountReq,
+            $shippingAmount,
+            2.0
+        )) {
+            $payload = [
+                'success' => false,
+                'message' => 'Los totales no coinciden con el cálculo del servidor. Actualiza el carrito e intenta de nuevo.',
+            ];
+            if (config('app.debug')) {
+                $payload['expected_discounted_merchandise'] = $summary['discounted_merchandise'];
+            }
+
+            return response()->json($payload, 422);
+        }
+
+        $descuento1 = (float) $request->input('descuento1', 0);
+        $descuento2 = (float) $request->input('descuento2', 0);
+        $subtotal = (float) $request->input('subtotal', $summary['lines_sum']);
+        $sortedItems = $this->sortItemsForCreditSplit($request->items);
+
+        try {
+            /** @var Order $order */
+            $order = DB::transaction(function () use ($request, $user, $addressId, $deliveryType, $totalAmountReq, $subtotal, $discountedTotalReq, $shippingAmount, $descuento1, $descuento2, $sortedItems) {
+                $initialPaymentData = [
+                    'delivery_type' => $deliveryType,
+                    'shipping_amount' => $shippingAmount,
+                ];
+
+                $order = Order::create([
+                    'user_id' => $user->id,
+                    'address_id' => $addressId,
+                    'total_amount' => $totalAmountReq,
+                    'subtotal' => $subtotal,
+                    'discounted_total' => $discountedTotalReq,
+                    'shipping_amount' => $shippingAmount,
+                    'descuento1' => $descuento1,
+                    'descuento2' => $descuento2,
+                    'credit_used' => 0,
+                    'amount_paid' => $totalAmountReq,
+                    'amount_pending' => 0,
+                    'paid_with_credit' => false,
+                    'status' => 'pagado',
+                    'payment_method' => 'pedido_directo',
+                    'external_reference' => uniqid('order_'.$user->id.'_'),
+                    'payment_data' => json_encode($initialPaymentData),
+                    'is_advance_order' => $this->orderLinesContainComingSoon($sortedItems),
+                ]);
+
+                foreach ($sortedItems as $item) {
+                    OrderItem::create($this->orderItemPayloadFromLine($order->id, $item));
+                }
+
+                return $order->fresh(['user', 'items', 'address']);
+            });
+
+            try {
+                Mail::to($user->email)->send(new OrderConfirmationMail($order));
+                Log::info('Email de confirmación enviado (pedido directo)', ['order_id' => $order->id]);
+            } catch (\Exception $e) {
+                Log::error('Error al enviar email de confirmación (pedido directo)', [
+                    'order_id' => $order->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            try {
+                $paymentData = $order->payment_data ?? [];
+                if (is_string($paymentData)) {
+                    $paymentData = json_decode($paymentData, true) ?? [];
+                }
+                $alreadySent = isset($paymentData['external_api_sent']) && $paymentData['external_api_sent'] === true;
+
+                if (! $alreadySent) {
+                    $this->externalSalesService->sendSaleToExternalApi($order);
+                    $paymentData['external_api_sent'] = true;
+                    $paymentData['external_api_sent_at'] = now()->toIso8601String();
+                    $order->update(['payment_data' => json_encode($paymentData)]);
+
+                    Log::info('Pedido directo enviado a API externa', ['order_id' => $order->id]);
+                }
+            } catch (\Exception $e) {
+                Log::error('Error al enviar pedido directo a API externa', [
+                    'order_id' => $order->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            try {
+                $this->sellerCategoryActivityService->recordSuccessfulPurchase($user, (float) ($order->subtotal ?? $order->total_amount));
+            } catch (\Throwable $e) {
+                Log::error('No se pudo actualizar vigencia de categoría (pedido directo)', [
+                    'order_id' => $order->id,
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pedido confirmado',
+                'data' => [
+                    'order_id' => $order->id,
+                    'external_reference' => $order->external_reference,
+                    'payment_method' => 'pedido_directo',
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error en createDirectOrder', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'No se pudo confirmar el pedido: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Crear una preferencia de pago con MercadoPago
      */
     public function createPaymentPreference(Request $request)
@@ -194,9 +426,13 @@ class PaymentController extends Controller
             'items.*.barcode' => 'nullable|string',
             'items.*.detalle_id' => 'nullable|integer|min:1',
             'items.*.is_coming_soon' => 'nullable|boolean',
+            'items.*.desc_promo' => 'nullable|numeric',
+            'items.*.user_offer_applies' => 'nullable|boolean',
             'delivery_type' => 'nullable|string|in:envio,retiro',
             'shipping_amount' => 'nullable|numeric|min:0',
-            'total_amount' => 'required|numeric|min:0.01'
+            'total_amount' => 'required|numeric|min:0.01',
+            'subtotal' => 'nullable|numeric|min:0',
+            'discounted_total' => 'required|numeric|min:0',
         ];
         
         // address_id es requerido solo si es envío
@@ -224,6 +460,14 @@ class PaymentController extends Controller
                 'success' => false,
                 'message' => 'Usuario no autenticado'
             ], 401);
+        }
+
+        $sellerCat = strtolower((string) ($user->seller_category ?? ''));
+        if (in_array($sellerCat, ['oro', 'diamante'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tu categoría confirma el pedido sin Mercado Pago ni crédito. Usa el botón Confirmar pedido en el carrito.',
+            ], 422);
         }
 
         // Verificar si hay órdenes pendientes con productos similares
@@ -258,6 +502,39 @@ class PaymentController extends Controller
         // Si es pago con crédito, procesar de manera diferente
         if ($useCredit) {
             return $this->processCreditPayment($request, $user, $addressId, $deliveryType);
+        }
+
+        $itemsForPricing = [];
+        foreach ($request->items as $item) {
+            $itemsForPricing[] = [
+                'price' => $item['price'],
+                'quantity' => $item['quantity'],
+                'desc_promo' => $item['desc_promo'] ?? null,
+                'user_offer_applies' => filter_var($item['user_offer_applies'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            ];
+        }
+
+        $summary = $this->orderPricingService->summarizeVolumeFromItems($user, $itemsForPricing);
+        $shippingAmountVal = (float) $request->input('shipping_amount', 0);
+        $discountedTotalReq = round((float) $request->input('discounted_total'), 2);
+        $totalAmountReq = round((float) $request->input('total_amount'), 2);
+
+        if (! $this->orderPricingService->totalsMatchRequest(
+            $summary['discounted_merchandise'],
+            $discountedTotalReq,
+            $totalAmountReq,
+            $shippingAmountVal,
+            2.0
+        )) {
+            $payload = [
+                'success' => false,
+                'message' => 'Los totales no coinciden con el cálculo del servidor. Actualiza el carrito e intenta de nuevo.',
+            ];
+            if (config('app.debug')) {
+                $payload['expected_discounted_merchandise'] = $summary['discounted_merchandise'];
+            }
+
+            return response()->json($payload, 422);
         }
 
         DB::beginTransaction();
@@ -709,6 +986,18 @@ class PaymentController extends Controller
         
         // 4. Notificar al admin
         $this->notifyAdminPaymentReceived($order, $order->user);
+
+        if ($order->user) {
+            try {
+                $this->sellerCategoryActivityService->recordSuccessfulPurchase($order->user, (float) ($order->subtotal ?? $order->total_amount));
+            } catch (\Throwable $e) {
+                Log::error('No se pudo actualizar vigencia de categoría tras pago aprobado', [
+                    'order_id' => $order->id,
+                    'user_id' => $order->user_id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     /**
@@ -1293,7 +1582,7 @@ class PaymentController extends Controller
             ], 403);
         }
 
-        $order = Order::find($orderId);
+        $order = Order::with('user')->find($orderId);
         if (!$order) {
             return response()->json([
                 'success' => false,
@@ -1340,6 +1629,21 @@ class PaymentController extends Controller
 
             // NOTA: El email de confirmación se envía cuando el pago es aprobado desde el webhook
             // No enviar email aquí porque este método es para cambios manuales de estado
+
+            if ($newStatus === 'pagado' && $oldStatus !== 'pagado' && $order->user_id) {
+                $buyer = $order->user ?? User::find($order->user_id);
+                try {
+                    if ($buyer) {
+                        $this->sellerCategoryActivityService->recordSuccessfulPurchase($buyer, (float) ($order->subtotal ?? $order->total_amount));
+                    }
+                } catch (\Throwable $e) {
+                    Log::error('No se pudo actualizar vigencia de categoría al marcar orden pagada', [
+                        'order_id' => $order->id,
+                        'user_id' => $order->user_id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
 
             return response()->json([
                 'success' => true,
@@ -2825,6 +3129,16 @@ class PaymentController extends Controller
                     ]);
                 }
 
+                try {
+                    $this->sellerCategoryActivityService->recordSuccessfulPurchase($user, (float) ($order->subtotal ?? $order->total_amount));
+                } catch (\Throwable $e) {
+                    Log::error('No se pudo actualizar vigencia de categoría (crédito completo)', [
+                        'order_id' => $order->id,
+                        'user_id' => $user->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+
                 return response()->json([
                     'success' => true,
                     'message' => 'Orden pagada completamente con crédito',
@@ -2835,6 +3149,17 @@ class PaymentController extends Controller
                         'amount_pending' => 0
                     ]
                 ]);
+            }
+
+            if (! empty($tx['order_credit'])) {
+                try {
+                    $this->sellerCategoryActivityService->recordSuccessfulPurchase($user, (float) ($tx['credit_subtotal'] ?? 0));
+                } catch (\Throwable $e) {
+                    Log::error('No se pudo actualizar vigencia de categoría (split crédito + MP)', [
+                        'user_id' => $user->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
 
             /** @var Order|null $orderCredit */

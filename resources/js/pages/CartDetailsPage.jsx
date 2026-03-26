@@ -11,7 +11,13 @@ import AddressSelector from '../components/AddressSelector/AddressSelector';
 import BuyerInfo from '../components/BuyerInfo/BuyerInfo';
 import { validateStock } from '../services/inventoryService';
 import useUserStore from '../store/userStore';
-import { getVolumeDiscountMainTier, getSellerCategoryFromUser } from '../utils/sellerVolumeDiscount';
+import {
+  getVolumeDiscountMainTier,
+  getSellerCategoryFromUser,
+  canApplyMainDiscount,
+  isBronzeBenefitActive,
+  getBronzeBenefitRemainingDays,
+} from '../utils/sellerVolumeDiscount';
 
 
 
@@ -24,6 +30,11 @@ const formatMoney = (value) => {
 };
 
 /** MP a veces manda init_point ""; el backend ya corrige, pero aquí reforzamos + armamos URL con preference_id. */
+const isDirectOrderSellerCategory = (u) => {
+  const c = getSellerCategoryFromUser(u);
+  return c === 'oro' || c === 'diamante';
+};
+
 const pickMercadoPagoCheckoutUrl = (payload) => {
   if (!payload || typeof payload !== 'object') return null;
   const candidates = [
@@ -330,7 +341,7 @@ const CartDetailsPage = () => {
     // Si el producto es "Próximamente" y el usuario es "oro" o "diamante", saltar validación de stock
     const isComingSoon = itemToUpdate.isComingSoon === true;
     const { user } = useUserStore.getState();
-    const isPremiumUser = user && ['oro', 'diamante'].includes(user.seller_category);
+    const isPremiumUser = isDirectOrderSellerCategory(user);
     
     if (isComingSoon && isPremiumUser) {
       updateQuantity(itemToUpdate.id_articulo, newQty, itemToUpdate.selectedColor, itemToUpdate.selectedSize);
@@ -415,14 +426,189 @@ const CartDetailsPage = () => {
       return;
     }
 
+    const isDirectCategory = isDirectOrderSellerCategory(user);
+
+    if (isDirectCategory) {
+      if (deliveryType === 'envio' && !selectedAddress) {
+        if (window.showToast) {
+          window.showToast('Por favor selecciona una dirección de entrega', 'warning');
+        }
+        return;
+      }
+
+      for (const item of cartItems) {
+        if (item.isComingSoon === true) continue;
+        try {
+          const stockValidation = await validateStock(
+            item.id_articulo,
+            item.selectedSize,
+            item.selectedColor,
+            item.quantity
+          );
+          if (!stockValidation.isValid) {
+            if (window.showToast) {
+              window.showToast(stockValidation.message || 'Stock insuficiente', 'error');
+            }
+            return;
+          }
+        } catch (err) {
+          if (window.showToast) {
+            window.showToast('Error al validar disponibilidad del producto', 'error');
+          }
+          return;
+        }
+      }
+
+      const paymentLineItems = cartItems;
+
+      const eligibleRegularItems = paymentLineItems.filter(item => {
+        const hasNoPromo = item.desc_promo === 0 || item.desc_promo === null || item.desc_promo === undefined;
+        const hasNoUserOffer = !item.userOffer || item.userOffer.discount_category === null;
+        return hasNoPromo && hasNoUserOffer;
+      });
+
+      const eligibleRegularTotal = eligibleRegularItems.reduce((sum, item) => {
+        const itemPrice = item.precio || item.price || 0;
+        const itemQuantity = item.quantity || 0;
+        return sum + itemPrice * itemQuantity;
+      }, 0);
+
+      const { mainRate: mainDiscountRate, mainPercent: mainDiscountPercent } = getVolumeDiscountMainTier(user);
+
+      let regularDiscountTwentyAmount = 0;
+      let regularDiscountAdditionalTenAmount = 0;
+      let regularDayFortyFiveDiscountAmount = 0;
+      let paymentDescuento1 = 0;
+      let paymentDescuento2 = 0;
+
+      if (canApplyMainDiscount(user, eligibleRegularTotal)) {
+        paymentDescuento1 = mainDiscountPercent;
+        regularDiscountTwentyAmount = eligibleRegularTotal * mainDiscountRate;
+        regularDayFortyFiveDiscountAmount = regularDiscountTwentyAmount;
+
+        const totalAfterMain = eligibleRegularTotal - regularDiscountTwentyAmount;
+        if (totalAfterMain > 15000) {
+          paymentDescuento2 = 10;
+          regularDiscountAdditionalTenAmount = totalAfterMain * 0.1;
+          regularDayFortyFiveDiscountAmount = regularDiscountTwentyAmount + regularDiscountAdditionalTenAmount;
+        }
+      }
+
+      const lineItemsGrossTotal = paymentLineItems.reduce((sum, item) => {
+        return sum + parseFloat(item.precio || item.price || 0) * parseInt(item.quantity || 0, 10);
+      }, 0);
+
+      const regularTotalAfterDiscount = Math.max(0, lineItemsGrossTotal - regularDayFortyFiveDiscountAmount);
+
+      let regularShippingAmount = 0;
+      if (deliveryType === 'retiro') {
+        regularShippingAmount = 0;
+      } else {
+        const freeShippingMin = user?.free_shipping_min_amount || 0;
+        if (user?.free_shipping && freeShippingMin > 0) {
+          regularShippingAmount = regularTotalAfterDiscount < freeShippingMin ? 150 : 0;
+        } else {
+          regularShippingAmount = regularTotalAfterDiscount < 3000 ? 150 : 0;
+        }
+      }
+
+      const regularFinalTotal = parseFloat((regularTotalAfterDiscount + regularShippingAmount).toFixed(2));
+      const regularSubtotal = lineItemsGrossTotal;
+      const regularDiscountedTotal = regularTotalAfterDiscount;
+
+      const directData = {
+        items: paymentLineItems.map(item => ({
+          product_id: String(item.id_articulo || item.product_id || item.id),
+          name: item.title || item.name,
+          quantity: parseInt(item.quantity, 10),
+          price: parseFloat(item.precio || item.price),
+          size: item.selectedSize || null,
+          color: item.selectedColor || null,
+          barcode: item.barcode || null,
+          detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null,
+          is_coming_soon: item.isComingSoon === true,
+          desc_promo: item.desc_promo != null ? item.desc_promo : null,
+          user_offer_applies: !!(item.userOffer && item.userOffer.discount_category),
+        })),
+        address_id: deliveryType === 'envio' ? selectedAddress.id : null,
+        delivery_type: deliveryType,
+        shipping_amount: parseFloat(regularShippingAmount || 0),
+        total_amount: regularFinalTotal,
+        subtotal: regularSubtotal,
+        discounted_total: regularDiscountedTotal,
+        descuento1: paymentDescuento1,
+        descuento2: paymentDescuento2,
+      };
+
+      const longTimeout = { timeout: 120000 };
+
+      try {
+        if (window.showToast) {
+          window.showToast('Confirmando pedido...', 'info');
+        }
+        const response = await api.post('/orders/direct', directData, longTimeout);
+        if (response.data.success) {
+          void clearCart();
+          if (window.showToast) {
+            window.showToast('¡Pedido confirmado!', 'success');
+          }
+          const payload = response.data.data ?? response.data;
+          setTimeout(() => {
+            navigate('/compra-exitosa', {
+              state: {
+                orderInfo: {
+                  orderId: payload?.order_id,
+                  totalAmount: regularFinalTotal,
+                  directOrder: true,
+                },
+              },
+            });
+          }, 600);
+        } else {
+          throw new Error(response.data.message || 'No se pudo confirmar el pedido');
+        }
+      } catch (error) {
+        if (error.response?.data?.has_pending_order && error.response?.data?.pending_order) {
+          const pendingOrder = error.response.data.pending_order;
+          const orderNumber = pendingOrder.number || `#${pendingOrder.id}`;
+          Swal.fire({
+            title: 'Orden Pendiente',
+            html: `
+              <p>${error.response.data.message}</p>
+              <p style="margin-top: 15px; font-size: 14px;">
+                <strong>Orden:</strong> ${orderNumber}<br>
+                <strong>Total:</strong> $${parseFloat(pendingOrder.total_amount || 0).toFixed(2)}
+              </p>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Ver Mis Órdenes',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#EA2630',
+            cancelButtonColor: '#6c757d',
+            reverseButtons: true
+          }).then((result) => {
+            if (result.isConfirmed) {
+              window.location.href = '/perfil/mis-pedidos';
+            }
+          });
+        } else {
+          const errorMessage = error.response?.data?.message || error.message || 'Error al confirmar el pedido';
+          if (window.showToast) {
+            window.showToast(errorMessage, 'error');
+          }
+        }
+      }
+      return;
+    }
+
     // Carrito mixto (disponible + próximamente) + crédito: un solo create-preference con todo el carrito
     // para que Total − Crédito = saldo MP y siempre se genere preferencia/URL si hay excedente.
     const skipSeparateAdvanceOrder =
       pm === 'credit' &&
       hasAdvanceOrders &&
       hasRegularItems &&
-      user &&
-      ['oro', 'diamante'].includes(user.seller_category);
+      isDirectOrderSellerCategory(user);
 
     // Si hay productos adelantados, crear pedido adelantado primero (excepto el caso unificado arriba)
     if (hasAdvanceOrders && !skipSeparateAdvanceOrder) {
@@ -431,7 +617,7 @@ const CartDetailsPage = () => {
           window.showToast('Creando pedido adelantado...', 'info');
         }
 
-        // Misma lógica de volumen ($7k / $15k) que en create-preference, solo sobre líneas "próximamente"
+        // Misma lógica de volumen desde pieza 1: 30/33% + 10% adicional sobre neto > 15k, solo en líneas "próximamente"
         const advanceItemsSubtotal = advanceOrderItems.reduce(
           (sum, item) =>
             sum +
@@ -462,14 +648,14 @@ const CartDetailsPage = () => {
         let advanceDescuento1 = 0;
         let advanceDescuento2 = 0;
 
-        if (eligibleAdvanceTotal >= 7000) {
+        if (canApplyMainDiscount(user, eligibleAdvanceTotal)) {
           advanceDescuento1 = advMainPercent;
           advanceVolMain = eligibleAdvanceTotal * advMainRate;
           advanceVolumeDiscountTotal = advanceVolMain;
 
-          if (eligibleAdvanceTotal >= 15000) {
+          const totalAfterMain = eligibleAdvanceTotal - advanceVolMain;
+          if (totalAfterMain > 15000) {
             advanceDescuento2 = 10;
-            const totalAfterMain = eligibleAdvanceTotal - advanceVolMain;
             advanceVolExtraTen = totalAfterMain * 0.1;
             advanceVolumeDiscountTotal = advanceVolMain + advanceVolExtraTen;
           }
@@ -584,7 +770,7 @@ const CartDetailsPage = () => {
 
     // Si es pago con crédito, validar que el usuario tenga categoría oro o diamante
     if (pm === 'credit') {
-      if (!user || !['oro', 'diamante'].includes(user.seller_category)) {
+      if (!isDirectOrderSellerCategory(user)) {
         if (window.showToast) {
           window.showToast('Solo los usuarios con categoría Oro pueden pagar con crédito', 'error');
         }
@@ -609,7 +795,7 @@ const CartDetailsPage = () => {
         return sum + (itemPrice * itemQuantity);
       }, 0);
 
-      // Volumen $7k / $15k: diamante 33% + 10%; oro (y no-diamante) 30% + 10%
+      // Volumen desde pieza 1: diamante 33% / oro (y no-diamante) 30% + 10% si el neto tras primer tramo supera $15k
       const { mainRate: mainDiscountRate, mainPercent: mainDiscountPercent } = getVolumeDiscountMainTier(user);
 
       let regularDiscountTwentyAmount = 0;
@@ -618,14 +804,14 @@ const CartDetailsPage = () => {
       let paymentDescuento1 = 0;
       let paymentDescuento2 = 0;
 
-      if (eligibleRegularTotal >= 7000) {
+      if (canApplyMainDiscount(user, eligibleRegularTotal)) {
         paymentDescuento1 = mainDiscountPercent;
         regularDiscountTwentyAmount = eligibleRegularTotal * mainDiscountRate;
         regularDayFortyFiveDiscountAmount = regularDiscountTwentyAmount;
 
-        if (eligibleRegularTotal >= 15000) {
+        const totalAfterMain = eligibleRegularTotal - regularDiscountTwentyAmount;
+        if (totalAfterMain > 15000) {
           paymentDescuento2 = 10;
-          const totalAfterMain = eligibleRegularTotal - regularDiscountTwentyAmount;
           regularDiscountAdditionalTenAmount = totalAfterMain * 0.10;
           regularDayFortyFiveDiscountAmount = regularDiscountTwentyAmount + regularDiscountAdditionalTenAmount;
         }
@@ -683,7 +869,7 @@ const CartDetailsPage = () => {
         discounted_total: regularDiscountedTotal, // Monto total con descuentos aplicados (sin envío)
         use_credit: pm === 'credit',
         pay_remainder_with_mercadopago: pm === 'credit', // Si paga con crédito y hay pendiente, pagar resto con MP
-        // Porcentajes para API/BD: 30 u 33 en primer tramo si aplica $7k; 10 en segundo si aplica $15k; si no, 0
+        // Porcentajes para API/BD: 30 u 33 si hay elegibles; 10 si aplica segundo tramo (>15k neto tras primer descuento)
         descuento1: paymentDescuento1,
         descuento2: paymentDescuento2
       };
@@ -869,7 +1055,7 @@ const CartDetailsPage = () => {
     // El error ya se maneja en el componente IntegratedCheckout
   };
 
-  // Calcular descuento por volumen ($7k / $15k): 30% oro (no-diamante) / 33% diamante + 10% opcional
+  // Calcular descuento por volumen desde pieza 1: 30% oro (no-diamante) / 33% diamante + 10% opcional
   // Calcular total elegible (solo productos con desc_promo = 0 y sin userOffer)
   const eligibleItems = cartItems.filter(item => {
     const hasNoPromo = item.desc_promo === 0 || item.desc_promo === null || item.desc_promo === undefined;
@@ -884,7 +1070,11 @@ const CartDetailsPage = () => {
     return sum + (itemPrice * itemQuantity);
   }, 0);
 
-  const isDiamanteUser = getSellerCategoryFromUser(user) === 'diamante';
+  const sellerCategory = getSellerCategoryFromUser(user);
+  const isDiamanteUser = sellerCategory === 'diamante';
+  const isBronzeUser = sellerCategory === 'bronce';
+  const bronzeBenefitActive = isBronzeBenefitActive(user);
+  const bronzeBenefitDaysLeft = getBronzeBenefitRemainingDays(user);
   const { mainRate: mainDiscountRate, mainPercent: mainDiscountPercent } = getVolumeDiscountMainTier(user);
 
   let dayFortyFiveDiscountAmount = 0;
@@ -893,13 +1083,13 @@ const CartDetailsPage = () => {
   let descuento1 = 0;
   let descuento2 = 0;
   
-  if (eligibleTotal >= 7000) {
+  if (canApplyMainDiscount(user, eligibleTotal)) {
     discountTwentyAmount = eligibleTotal * mainDiscountRate;
     descuento1 = mainDiscountPercent;
     dayFortyFiveDiscountAmount = discountTwentyAmount;
     
-    if (eligibleTotal >= 15000) {
-      const totalAfterMain = eligibleTotal - discountTwentyAmount;
+    const totalAfterMain = eligibleTotal - discountTwentyAmount;
+    if (totalAfterMain > 15000) {
       discountAdditionalTenAmount = totalAfterMain * 0.10;
       descuento2 = 10;
       dayFortyFiveDiscountAmount = discountTwentyAmount + discountAdditionalTenAmount;
@@ -932,8 +1122,8 @@ const CartDetailsPage = () => {
   // Order summary data
   const orderSummary = {
     creditDays: '',
-    discount1: descuento1, // 30 u 33 si elegible >= 7000; 0 si no
-    discount2: descuento2, // 10 si elegible >= 15000; 0 si no
+    discount1: descuento1, // 30 u 33 si hay productos elegibles; 0 si no
+    discount2: descuento2, // 10 si el neto tras primer descuento supera 15,000; 0 si no
     pieces: totalItems,
     subtotal: baseTotal.toFixed(2),
     discountTotal: dayFortyFiveDiscountAmount > 0 ? dayFortyFiveDiscountAmount.toFixed(2) : '0.00',
@@ -948,7 +1138,7 @@ const CartDetailsPage = () => {
   };
 
   // ===== ALERTAS DE DESCUENTO =====
-  const DISCOUNT_30_THRESHOLD = 7000;
+  const DISCOUNT_30_THRESHOLD = isBronzeUser && !bronzeBenefitActive ? 7000 : 0;
   const DISCOUNT_40_THRESHOLD = 15000;
   const NEAR_THRESHOLD_PERCENT = 0.7; // 70% del umbral = "ya casi"
   
@@ -959,7 +1149,28 @@ const CartDetailsPage = () => {
     // Solo mostrar alertas si hay productos elegibles (sin rebaja)
     if (eligibleTotal <= 0) return alerts;
 
-    // Diamante: mensaje genérico; oro/bronce: porcentaje real del primer tramo (20%, no 30/33 mezclado)
+    if (isBronzeUser) {
+      if (bronzeBenefitActive) {
+        alerts.push({
+          type: 'success',
+          icon: '⏳',
+          message: `Tu descuento del 30% vence en: ${bronzeBenefitDaysLeft} día(s). ¡Compra algo para renovarlo!`,
+          color: '#4caf50'
+        });
+      } else {
+        const remainingToActivate = Math.max(0, 7000 - eligibleTotal);
+        alerts.push({
+          type: 'info',
+          icon: '💡',
+          message: remainingToActivate > 0
+            ? `¡Te faltan $${formatMoney(remainingToActivate)} para obtener el 30% de descuento!`
+            : 'Tu compra actual activa el 30% de descuento por 45 días.',
+          color: '#2196f3'
+        });
+      }
+    }
+
+    // Diamante: mensaje genérico; oro/bronce: porcentaje real del primer tramo
     const discountLabel = isDiamanteUser
       ? 'tu descuento especial'
       : `tu descuento del ${mainDiscountPercent}%`;

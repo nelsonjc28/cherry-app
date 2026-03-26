@@ -30,7 +30,7 @@ if (app()->environment('local')) {
 }
 
 // Ruta para todas las demás páginas (SPA)
-// Excluir /products/sync y /products/replace-all de la ruta catch-all
+// Excluir rutas backend (/api/*) y utilitarias para evitar colisiones con API.
 Route::get('/{any}', function () {
     return view('app');
-})->where('any', '^(?!products/(sync|replace-all)).*');
+})->where('any', '^(?!(api/|products/(sync|replace-all))).*');

@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\ProductSearchController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\TopSellingController;
 use App\Http\Controllers\Api\CartController;
+use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\HistorialController;
 use App\Http\Controllers\Api\RecentProductController;
 
@@ -105,6 +106,9 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('/checkout/process', [CheckoutController::class, 'processPayment']);
     Route::get('/checkout/test', [CheckoutController::class, 'test']);
     
+    // Pedido directo (Oro / Diamante)
+    Route::post('/orders/direct', [OrderController::class, 'storeDirectOrder']);
+
     // MercadoPago Payment routes
     Route::post('/payment/create-preference', [PaymentController::class, 'createPaymentPreference']);
     Route::post('/payment/process-integrated', [PaymentController::class, 'processIntegratedPayment']);
