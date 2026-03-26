@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { tryConsumeCherryPwaInstallSuccessNotification } from '../utils/pwaInstallNotification';
 
 const InstallPWA = () => {
     const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -61,7 +62,11 @@ const InstallPWA = () => {
             setIsInstalled(true);
             setShowInstallBanner(false);
             setDeferredPrompt(null);
-            
+
+            if (!tryConsumeCherryPwaInstallSuccessNotification()) {
+                return;
+            }
+
             toast.success('¡Cherry App instalada correctamente! 🎉', {
                 position: "top-center",
                 autoClose: 4000,

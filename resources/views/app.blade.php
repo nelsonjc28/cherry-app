@@ -563,10 +563,8 @@
         });
         
         window.addEventListener('appinstalled', () => {
-            Toast.show('🎉 ¡Cherry App instalada exitosamente!', 'success', 4000);
             deferredPrompt = null;
-            // Limpiar el flag para permitir mostrar el toast nuevamente si es necesario
-            localStorage.removeItem('pwa-install-toast-shown');
+            // El mensaje de éxito lo muestra pwa-install-helper.js (una sola vez vía app_install_notified)
         });
         
         // Escuchar eventos de instalación automática desde React
@@ -586,6 +584,7 @@
             localStorage.removeItem('pwa-install-toast-shown');
             localStorage.removeItem('pwa-modal-shown');
             localStorage.removeItem('pwa-manually-installed');
+            localStorage.removeItem('app_install_notified');
             console.log('🧹 Cache de instalación PWA completamente limpiado');
             console.log('🔄 Recarga la página para ver el botón de instalación');
             
@@ -608,15 +607,6 @@
                 console.log('🚀 Instalador PWA forzado a aparecer');
             }, 500);
         };
-        
-        // Handle installation errors
-        window.addEventListener('appinstalled', (evt) => {
-    
-        });
-        
-        window.addEventListener('beforeinstallprompt', (evt) => {
-    
-        });
         
         // Listen for messages from Service Worker
         if ('serviceWorker' in navigator) {

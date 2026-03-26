@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
+import { tryConsumeCherryPwaInstallSuccessNotification } from '../../utils/pwaInstallNotification';
 import './PWAInstaller.css';
 
 const PWAInstaller = () => {
@@ -79,7 +80,7 @@ const PWAInstaller = () => {
         if (outcome === 'accepted') {
 
           // Mostrar toast de éxito
-          if (window.Toast) {
+          if (window.Toast && tryConsumeCherryPwaInstallSuccessNotification()) {
             window.Toast.show('¡Cherry App instalada exitosamente! 🎉', 'success', 4000);
           }
           setShowInstallModal(false);

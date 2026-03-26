@@ -1037,9 +1037,9 @@ const CartOrderSummary = ({
       {hasRegularItems && !isDirectOrderSeller && (
         <div className="cart-order-summary__section payment-method-section">
           <div className="cart-order-summary__section-title section-title-flex">
-            <img 
-              src="/images/mercadopago-logo.png" 
-              alt="Mercado Pago" 
+            <img
+              src="/images/mercadopago-logo.png"
+              alt="Mercado Pago"
               style={{ width: '40px', height: '40px', marginRight: '8px', display: 'block', objectFit: 'contain' }}
               onError={(e) => {
                 e.target.src = getIconPath('Handshake.svg');
@@ -1047,11 +1047,13 @@ const CartOrderSummary = ({
             />
             <span>Método de Pago</span>
           </div>
-          <div style={{ marginTop: '12px', fontSize: '14px', fontWeight: 600, color: '#333' }}>
-            Pagar con Mercado Pago
-          </div>
-          <div style={{ marginTop: '6px', fontSize: '12px', color: '#666' }}>
-            Al continuar se abrirá el checkout de Mercado Pago.
+          <div style={{ marginTop: '10px', marginLeft: '24px' }}>
+            <div style={{ fontSize: '14px', fontWeight: 600, color: '#333' }}>
+              Pagar con Mercado Pago
+            </div>
+            <div style={{ marginTop: '6px', fontSize: '12px', color: '#666' }}>
+              Al continuar se abrirá el checkout de Mercado Pago.
+            </div>
           </div>
         </div>
       )}

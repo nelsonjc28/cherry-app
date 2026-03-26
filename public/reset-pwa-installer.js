@@ -10,7 +10,8 @@
     'pwa-install-toast-shown',
     'pwa-installed',
     'pwa-manually-installed',
-    'pwa-install-dismissed'
+    'pwa-install-dismissed',
+    'app_install_notified'
   ];
 
   // Eliminar cada clave

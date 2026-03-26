@@ -58,18 +58,12 @@
     }));
   });
 
-  // Handle appinstalled event
-  window.addEventListener('appinstalled', (e) => {
+  // Handle appinstalled event (solo dispara evento para React; el toast único lo controla app_install_notified)
+  window.addEventListener('appinstalled', () => {
     deferredPrompt = null;
-    
-    // Dispatch custom event
     window.dispatchEvent(new CustomEvent('pwa-installed', {
       detail: { platform: 'native' }
     }));
-  });
-
-  // Handle installation errors
-  window.addEventListener('appinstalled', (e) => {
   });
 
   // Utility functions

@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './PWAInstallAlerts.css';
+import { tryConsumeCherryPwaInstallSuccessNotification } from '../../utils/pwaInstallNotification';
+
+const SUCCESS_COPY = '🎉 ¡Cherry App instalada correctamente!';
 
 const PWAInstallAlerts = () => {
   const [showSuccessToast, setShowSuccessToast] = useState(false);
@@ -9,8 +12,10 @@ const PWAInstallAlerts = () => {
   useEffect(() => {
     // Escuchar eventos de instalación exitosa
     const handlePWAInstalled = (event) => {
-
-      /* setToastMessage('🎉 ¡Cherry App instalada exitosamente!'); */
+      if (!tryConsumeCherryPwaInstallSuccessNotification()) {
+        return;
+      }
+      setToastMessage(SUCCESS_COPY);
       setShowSuccessToast(true);
       
       // Ocultar después de 4 segundos

@@ -1,4 +1,21 @@
 // PWA Installation Helper - Diagnóstico y solución de problemas
+(function () {
+    if (typeof window === 'undefined') {
+        return;
+    }
+    window.__cherryTryConsumePwaInstallSuccess = function () {
+        try {
+            if (localStorage.getItem('app_install_notified') === 'true') {
+                return false;
+            }
+            localStorage.setItem('app_install_notified', 'true');
+            return true;
+        } catch (e) {
+            return false;
+        }
+    };
+})();
+
 class PWAInstallHelper {
     constructor() {
         this.isDebugMode = window.location.search.includes('pwa-debug=true');
@@ -95,6 +112,10 @@ class PWAInstallHelper {
     setupEventListeners() {
         // Escuchar instalación exitosa
         window.addEventListener('appinstalled', () => {
+            if (typeof window.__cherryTryConsumePwaInstallSuccess === 'function'
+                && !window.__cherryTryConsumePwaInstallSuccess()) {
+                return;
+            }
             this.showInstallationSuccess();
         });
 

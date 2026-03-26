@@ -68,7 +68,7 @@ const CartDetailsPage = () => {
   } = useCartStore();
 
 
-  const { user } = useUserStore();
+  const { user, fetchUser } = useUserStore();
 
   // State for selected address
   const [selectedAddress, setSelectedAddress] = useState(null);
@@ -115,6 +115,30 @@ const CartDetailsPage = () => {
   useEffect(() => {
     initCart();
   }, [initCart]);
+
+  // Refrescar usuario al entrar al carrito para evitar categoría cacheada
+  // (p.ej. cambio admin de Oro/Diamante a Bronce sin hard refresh).
+  useEffect(() => {
+    fetchUser();
+
+    const refreshUser = () => {
+      fetchUser();
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refreshUser();
+      }
+    };
+
+    window.addEventListener('focus', refreshUser);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', refreshUser);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [fetchUser]);
 
   // Fetch store address from contact_info
   useEffect(() => {
