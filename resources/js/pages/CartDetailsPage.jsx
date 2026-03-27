@@ -14,10 +14,15 @@ import useUserStore from '../store/userStore';
 import {
   getVolumeDiscountMainTier,
   getSellerCategoryFromUser,
-  canApplyMainDiscount,
   isBronzeBenefitActive,
   getBronzeBenefitRemainingDays,
 } from '../utils/sellerVolumeDiscount';
+import {
+  cartItemToPricingLine,
+  summarizeVolumeFromCartItems,
+  summarizeVolumeFromPricingLines,
+  discountedMerchandiseForSubset,
+} from '../utils/cartVolumePricing';
 
 
 
@@ -450,6 +455,9 @@ const CartDetailsPage = () => {
       return;
     }
 
+    /** Snapshot del carrito completo (disponibles + anticipados) para volumen y validación en servidor. */
+    const fullCartPricingLinesSnapshot = cartItems.map(cartItemToPricingLine);
+
     const isDirectCategory = isDirectOrderSellerCategory(user);
 
     if (isDirectCategory) {
@@ -484,45 +492,12 @@ const CartDetailsPage = () => {
       }
 
       const paymentLineItems = cartItems;
-
-      const eligibleRegularItems = paymentLineItems.filter(item => {
-        const hasNoPromo = item.desc_promo === 0 || item.desc_promo === null || item.desc_promo === undefined;
-        const hasNoUserOffer = !item.userOffer || item.userOffer.discount_category === null;
-        return hasNoPromo && hasNoUserOffer;
-      });
-
-      const eligibleRegularTotal = eligibleRegularItems.reduce((sum, item) => {
-        const itemPrice = item.precio || item.price || 0;
-        const itemQuantity = item.quantity || 0;
-        return sum + itemPrice * itemQuantity;
-      }, 0);
-
-      const { mainRate: mainDiscountRate, mainPercent: mainDiscountPercent } = getVolumeDiscountMainTier(user);
-
-      let regularDiscountTwentyAmount = 0;
-      let regularDiscountAdditionalTenAmount = 0;
-      let regularDayFortyFiveDiscountAmount = 0;
-      let paymentDescuento1 = 0;
-      let paymentDescuento2 = 0;
-
-      if (canApplyMainDiscount(user, eligibleRegularTotal)) {
-        paymentDescuento1 = mainDiscountPercent;
-        regularDiscountTwentyAmount = eligibleRegularTotal * mainDiscountRate;
-        regularDayFortyFiveDiscountAmount = regularDiscountTwentyAmount;
-
-        const totalAfterMain = eligibleRegularTotal - regularDiscountTwentyAmount;
-        if (totalAfterMain > 15000) {
-          paymentDescuento2 = 10;
-          regularDiscountAdditionalTenAmount = totalAfterMain * 0.1;
-          regularDayFortyFiveDiscountAmount = regularDiscountTwentyAmount + regularDiscountAdditionalTenAmount;
-        }
-      }
-
-      const lineItemsGrossTotal = paymentLineItems.reduce((sum, item) => {
-        return sum + parseFloat(item.precio || item.price || 0) * parseInt(item.quantity || 0, 10);
-      }, 0);
-
-      const regularTotalAfterDiscount = Math.max(0, lineItemsGrossTotal - regularDayFortyFiveDiscountAmount);
+      const volSummary = summarizeVolumeFromCartItems(user, paymentLineItems);
+      const paymentDescuento1 = volSummary.descuento1;
+      const paymentDescuento2 = volSummary.descuento2;
+      const regularDayFortyFiveDiscountAmount = volSummary.volume_discount;
+      const lineItemsGrossTotal = volSummary.lines_sum;
+      const regularTotalAfterDiscount = volSummary.discounted_merchandise;
 
       let regularShippingAmount = 0;
       if (deliveryType === 'retiro') {
@@ -641,53 +616,17 @@ const CartDetailsPage = () => {
           window.showToast('Creando pedido adelantado...', 'info');
         }
 
-        // Misma lógica de volumen desde pieza 1: 30/33% + 10% adicional sobre neto > 15k, solo en líneas "próximamente"
-        const advanceItemsSubtotal = advanceOrderItems.reduce(
-          (sum, item) =>
-            sum +
-            parseFloat(item.precio || item.price || 0) * parseInt(item.quantity || 0, 10),
+        // Volumen sobre el carrito completo (disponibles + anticipados); el anticipado recibe su parte proporcional
+        const globalVol = summarizeVolumeFromPricingLines(user, fullCartPricingLinesSnapshot);
+        const advanceLines = advanceOrderItems.map(cartItemToPricingLine);
+        const advanceItemsSubtotal = advanceLines.reduce(
+          (sum, line) => sum + line.price * line.quantity,
           0
         );
-
-        const eligibleAdvanceItems = advanceOrderItems.filter((item) => {
-          const hasNoPromo =
-            item.desc_promo === 0 || item.desc_promo === null || item.desc_promo === undefined;
-          const hasNoUserOffer =
-            !item.userOffer || item.userOffer.discount_category === null;
-          return hasNoPromo && hasNoUserOffer;
-        });
-
-        const eligibleAdvanceTotal = eligibleAdvanceItems.reduce((sum, item) => {
-          const itemPrice = item.precio || item.price || 0;
-          const itemQuantity = item.quantity || 0;
-          return sum + itemPrice * itemQuantity;
-        }, 0);
-
-        const { mainRate: advMainRate, mainPercent: advMainPercent } =
-          getVolumeDiscountMainTier(user);
-
-        let advanceVolMain = 0;
-        let advanceVolExtraTen = 0;
-        let advanceVolumeDiscountTotal = 0;
-        let advanceDescuento1 = 0;
-        let advanceDescuento2 = 0;
-
-        if (canApplyMainDiscount(user, eligibleAdvanceTotal)) {
-          advanceDescuento1 = advMainPercent;
-          advanceVolMain = eligibleAdvanceTotal * advMainRate;
-          advanceVolumeDiscountTotal = advanceVolMain;
-
-          const totalAfterMain = eligibleAdvanceTotal - advanceVolMain;
-          if (totalAfterMain > 15000) {
-            advanceDescuento2 = 10;
-            advanceVolExtraTen = totalAfterMain * 0.1;
-            advanceVolumeDiscountTotal = advanceVolMain + advanceVolExtraTen;
-          }
-        }
-
-        const advanceDiscountedMerch = Math.max(
-          0,
-          advanceItemsSubtotal - advanceVolumeDiscountTotal
+        const advanceDiscountedMerch = discountedMerchandiseForSubset(
+          user,
+          fullCartPricingLinesSnapshot,
+          advanceLines
         );
         const advanceOrderTotalCharged = parseFloat(advanceDiscountedMerch.toFixed(2));
 
@@ -700,13 +639,21 @@ const CartDetailsPage = () => {
             size: item.selectedSize || null,
             color: item.selectedColor || null,
             barcode: item.barcode || null,
-            detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null
+            detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null,
+            desc_promo: item.desc_promo != null ? item.desc_promo : null,
+            user_offer_applies: !!(item.userOffer && item.userOffer.discount_category),
+          })),
+          items_for_volume_pricing: fullCartPricingLinesSnapshot.map((line) => ({
+            price: line.price,
+            quantity: line.quantity,
+            desc_promo: line.desc_promo,
+            user_offer_applies: line.user_offer_applies,
           })),
           total_amount: advanceOrderTotalCharged,
           subtotal: advanceItemsSubtotal,
           discounted_total: advanceDiscountedMerch,
-          descuento1: advanceDescuento1,
-          descuento2: advanceDescuento2,
+          descuento1: globalVol.descuento1,
+          descuento2: globalVol.descuento2,
           shipping_amount: 0,
           delivery_type: deliveryType,
           is_advance_order: true,
@@ -804,49 +751,19 @@ const CartDetailsPage = () => {
 
     try {
       const paymentLineItems = skipSeparateAdvanceOrder ? cartItems : regularItems;
+      const regularLines = paymentLineItems.map(cartItemToPricingLine);
 
-      // Calcular total elegible (solo productos con desc_promo = 0 y sin userOffer)
-      const eligibleRegularItems = paymentLineItems.filter(item => {
-        const hasNoPromo = item.desc_promo === 0 || item.desc_promo === null || item.desc_promo === undefined;
-        const hasNoUserOffer = !item.userOffer || item.userOffer.discount_category === null;
-        return hasNoPromo && hasNoUserOffer;
-      });
+      const globalVol = summarizeVolumeFromPricingLines(user, fullCartPricingLinesSnapshot);
+      const regularDiscountedTotal = discountedMerchandiseForSubset(
+        user,
+        fullCartPricingLinesSnapshot,
+        regularLines
+      );
 
-      // Calcular total elegible (suma de precios de productos elegibles)
-      const eligibleRegularTotal = eligibleRegularItems.reduce((sum, item) => {
-        const itemPrice = item.precio || item.price || 0;
-        const itemQuantity = item.quantity || 0;
-        return sum + (itemPrice * itemQuantity);
-      }, 0);
-
-      // Volumen desde pieza 1: diamante 33% / oro (y no-diamante) 30% + 10% si el neto tras primer tramo supera $15k
-      const { mainRate: mainDiscountRate, mainPercent: mainDiscountPercent } = getVolumeDiscountMainTier(user);
-
-      let regularDiscountTwentyAmount = 0;
-      let regularDiscountAdditionalTenAmount = 0;
-      let regularDayFortyFiveDiscountAmount = 0;
-      let paymentDescuento1 = 0;
-      let paymentDescuento2 = 0;
-
-      if (canApplyMainDiscount(user, eligibleRegularTotal)) {
-        paymentDescuento1 = mainDiscountPercent;
-        regularDiscountTwentyAmount = eligibleRegularTotal * mainDiscountRate;
-        regularDayFortyFiveDiscountAmount = regularDiscountTwentyAmount;
-
-        const totalAfterMain = eligibleRegularTotal - regularDiscountTwentyAmount;
-        if (totalAfterMain > 15000) {
-          paymentDescuento2 = 10;
-          regularDiscountAdditionalTenAmount = totalAfterMain * 0.10;
-          regularDayFortyFiveDiscountAmount = regularDiscountTwentyAmount + regularDiscountAdditionalTenAmount;
-        }
-      }
-
-      const lineItemsGrossTotal = paymentLineItems.reduce((sum, item) => {
-        return sum + (parseFloat(item.precio || item.price || 0) * parseInt(item.quantity || 0, 10));
-      }, 0);
-
-      // Calcular total después de descuentos (subtotal de líneas ya incluye descuentos por producto)
-      const regularTotalAfterDiscount = Math.max(0, lineItemsGrossTotal - regularDayFortyFiveDiscountAmount);
+      const lineItemsGrossTotal = regularLines.reduce((sum, line) => sum + line.price * line.quantity, 0);
+      const regularDayFortyFiveDiscountAmount = Math.max(0, lineItemsGrossTotal - regularDiscountedTotal);
+      const paymentDescuento1 = globalVol.descuento1;
+      const paymentDescuento2 = globalVol.descuento2;
 
       // Calcular shipping amount para productos regulares
       let regularShippingAmount = 0;
@@ -856,18 +773,16 @@ const CartDetailsPage = () => {
         // Calcular envío basado en el total después de descuentos
         const freeShippingMin = user?.free_shipping_min_amount || 0;
         if (user?.free_shipping && freeShippingMin > 0) {
-          regularShippingAmount = regularTotalAfterDiscount < freeShippingMin ? 150 : 0;
+          regularShippingAmount = regularDiscountedTotal < freeShippingMin ? 150 : 0;
         } else {
-          regularShippingAmount = regularTotalAfterDiscount < 3000 ? 150 : 0;
+          regularShippingAmount = regularDiscountedTotal < 3000 ? 150 : 0;
         }
       }
 
       // Calcular total final con descuentos y envío
-      const regularFinalTotal = parseFloat((regularTotalAfterDiscount + regularShippingAmount).toFixed(2));
-      
-      // Calcular subtotal (monto total sin descuentos) y discounted_total (monto con descuentos pero sin envío)
+      const regularFinalTotal = parseFloat((regularDiscountedTotal + regularShippingAmount).toFixed(2));
+
       const regularSubtotal = lineItemsGrossTotal; // Subtotal sin descuentos de volumen
-      const regularDiscountedTotal = regularTotalAfterDiscount; // Total con descuentos aplicados (sin envío)
 
       const paymentData = {
         items: paymentLineItems.map(item => {
@@ -881,10 +796,18 @@ const CartDetailsPage = () => {
             barcode: item.barcode || null,
             detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null,
             is_coming_soon: item.isComingSoon === true,
+            desc_promo: item.desc_promo != null ? item.desc_promo : null,
+            user_offer_applies: !!(item.userOffer && item.userOffer.discount_category),
           };
 
           return mappedItem;
         }),
+        items_for_volume_pricing: fullCartPricingLinesSnapshot.map((line) => ({
+          price: line.price,
+          quantity: line.quantity,
+          desc_promo: line.desc_promo,
+          user_offer_applies: line.user_offer_applies,
+        })),
         address_id: deliveryType === 'envio' ? selectedAddress.id : null,
         delivery_type: deliveryType, // 'envio' or 'retiro'
         shipping_amount: parseFloat(regularShippingAmount || 0), // Monto del envío
@@ -1079,46 +1002,21 @@ const CartDetailsPage = () => {
     // El error ya se maneja en el componente IntegratedCheckout
   };
 
-  // Calcular descuento por volumen desde pieza 1: 30% oro (no-diamante) / 33% diamante + 10% opcional
-  // Calcular total elegible (solo productos con desc_promo = 0 y sin userOffer)
-  const eligibleItems = cartItems.filter(item => {
-    const hasNoPromo = item.desc_promo === 0 || item.desc_promo === null || item.desc_promo === undefined;
-    const hasNoUserOffer = !item.userOffer || item.userOffer.discount_category === null;
-    return hasNoPromo && hasNoUserOffer;
-  });
-
-  // Calcular total elegible (suma de precios de productos elegibles)
-  const eligibleTotal = eligibleItems.reduce((sum, item) => {
-    const itemPrice = item.precio || item.price || 0;
-    const itemQuantity = item.quantity || 0;
-    return sum + (itemPrice * itemQuantity);
-  }, 0);
+  // Descuento por volumen alineado con PriceService (elegible total ≥ $15k para +10% adicional)
+  const volumeSummary = summarizeVolumeFromCartItems(user, cartItems);
+  const eligibleTotal = volumeSummary.eligible_total;
+  const dayFortyFiveDiscountAmount = volumeSummary.volume_discount;
+  const discountTwentyAmount = volumeSummary.vol_main;
+  const discountAdditionalTenAmount = volumeSummary.vol_extra;
+  const descuento1 = volumeSummary.descuento1;
+  const descuento2 = volumeSummary.descuento2;
 
   const sellerCategory = getSellerCategoryFromUser(user);
   const isDiamanteUser = sellerCategory === 'diamante';
   const isBronzeUser = sellerCategory === 'bronce';
   const bronzeBenefitActive = isBronzeBenefitActive(user);
   const bronzeBenefitDaysLeft = getBronzeBenefitRemainingDays(user);
-  const { mainRate: mainDiscountRate, mainPercent: mainDiscountPercent } = getVolumeDiscountMainTier(user);
-
-  let dayFortyFiveDiscountAmount = 0;
-  let discountTwentyAmount = 0;
-  let discountAdditionalTenAmount = 0;
-  let descuento1 = 0;
-  let descuento2 = 0;
-  
-  if (canApplyMainDiscount(user, eligibleTotal)) {
-    discountTwentyAmount = eligibleTotal * mainDiscountRate;
-    descuento1 = mainDiscountPercent;
-    dayFortyFiveDiscountAmount = discountTwentyAmount;
-    
-    const totalAfterMain = eligibleTotal - discountTwentyAmount;
-    if (totalAfterMain > 15000) {
-      discountAdditionalTenAmount = totalAfterMain * 0.10;
-      descuento2 = 10;
-      dayFortyFiveDiscountAmount = discountTwentyAmount + discountAdditionalTenAmount;
-    }
-  }
+  const { mainPercent: mainDiscountPercent } = getVolumeDiscountMainTier(user);
 
   // El total SIN descuento (CartOrderSummary aplicará el descuento internamente)
   const baseTotal = (totalPrice && typeof totalPrice === 'number') ? totalPrice : 0;

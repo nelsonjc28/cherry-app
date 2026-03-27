@@ -8,6 +8,7 @@ import CustomButton from '../CustomButton';
 import api from '../../config/axios';
 import { validateStock } from '../../services/inventoryService';
 import useCartStore from '../../store/cartStore';
+import { cartItemToPricingLine } from '../../utils/cartVolumePricing';
 
 const CartOrderSummary = ({
   creditDays,
@@ -503,6 +504,14 @@ const CartOrderSummary = ({
       const subtotalSinDescuento = Number(subtotal) || 0; // Subtotal sin descuentos aplicados
       const totalConDescuentoSinEnvio = totalConDescuento - parseFloat(shippingAmount || 0); // Total con descuentos pero sin envío
 
+      const linesForVolume = cartItems.map(cartItemToPricingLine);
+      const itemsForVolumePricing = linesForVolume.map((line) => ({
+        price: line.price,
+        quantity: line.quantity,
+        desc_promo: line.desc_promo,
+        user_offer_applies: line.user_offer_applies,
+      }));
+
       const paymentData = {
         token: cardToken.id,
         payment_method_id: finalPaymentMethodId,
@@ -517,11 +526,15 @@ const CartOrderSummary = ({
             size: item.selectedSize || null,
             color: item.selectedColor || null,
             barcode: item.barcode || null,
-            detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null
+            detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null,
+            is_coming_soon: item.isComingSoon === true,
+            desc_promo: item.desc_promo ?? null,
+            user_offer_applies: !!(item.userOffer && item.userOffer.discount_category),
           };
 
           return mappedItem;
         }),
+        items_for_volume_pricing: itemsForVolumePricing,
       address_id: deliveryType === 'envio' && selectedAddress ? parseInt(selectedAddress.id, 10) : null,
       delivery_type: deliveryType, // 'envio' or 'retiro'
       shipping_amount: parseFloat(shippingAmount || 0), // Monto del envío
@@ -767,6 +780,14 @@ const CartOrderSummary = ({
       const subtotalSinDescuento = Number(subtotal) || 0; // Subtotal sin descuentos aplicados
       const totalConDescuentoSinEnvio = totalAmountToSend - parseFloat(shippingAmount || 0); // Total con descuentos pero sin envío
 
+      const linesForVolume = cartItems.map(cartItemToPricingLine);
+      const itemsForVolumePricing = linesForVolume.map((line) => ({
+        price: line.price,
+        quantity: line.quantity,
+        desc_promo: line.desc_promo,
+        user_offer_applies: line.user_offer_applies,
+      }));
+
       const paymentData = {
         items: cartItems.map(item => ({
           product_id: String(item.id_articulo || item.product_id || item.id), // Enviar como string para soportar IDs con ceros a la izquierda
@@ -776,8 +797,12 @@ const CartOrderSummary = ({
           size: item.selectedSize || null,
           color: item.selectedColor || null,
           barcode: item.barcode || null,
-          detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null
+          detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null,
+          is_coming_soon: item.isComingSoon === true,
+          desc_promo: item.desc_promo ?? null,
+          user_offer_applies: !!(item.userOffer && item.userOffer.discount_category),
         })),
+        items_for_volume_pricing: itemsForVolumePricing,
         address_id: deliveryType === 'envio' && selectedAddress ? parseInt(selectedAddress.id, 10) : null,
         delivery_type: deliveryType, // 'envio' or 'retiro'
         shipping_amount: parseFloat(shippingAmount || 0), // Monto del envío

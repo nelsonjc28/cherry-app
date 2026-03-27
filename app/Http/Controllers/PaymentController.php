@@ -84,6 +84,27 @@ class PaymentController extends Controller
     }
 
     /**
+     * Líneas para {@see OrderPricingService::summarizeVolumeFromItems} / subset.
+     *
+     * @param  array<int, array<string, mixed>>  $items
+     * @return array<int, array<string, mixed>>
+     */
+    protected function pricingLinesFromRequestItems(array $items): array
+    {
+        $out = [];
+        foreach ($items as $item) {
+            $out[] = [
+                'price' => (float) ($item['price'] ?? 0),
+                'quantity' => (int) ($item['quantity'] ?? 0),
+                'desc_promo' => $item['desc_promo'] ?? null,
+                'user_offer_applies' => filter_var($item['user_offer_applies'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
      * Si falla Mercado Pago tras un split, elimina ambas órdenes y re-sincroniza cupo (no dejar crédito “confirmado” sin cobro MP).
      */
     protected function rollbackCreditSplitOrders(?Order $orderCredit, Order $orderPayment, User $user): void
@@ -428,6 +449,11 @@ class PaymentController extends Controller
             'items.*.is_coming_soon' => 'nullable|boolean',
             'items.*.desc_promo' => 'nullable|numeric',
             'items.*.user_offer_applies' => 'nullable|boolean',
+            'items_for_volume_pricing' => 'nullable|array',
+            'items_for_volume_pricing.*.price' => 'required|numeric|min:0',
+            'items_for_volume_pricing.*.quantity' => 'required|integer|min:1',
+            'items_for_volume_pricing.*.desc_promo' => 'nullable|numeric',
+            'items_for_volume_pricing.*.user_offer_applies' => 'nullable|boolean',
             'delivery_type' => 'nullable|string|in:envio,retiro',
             'shipping_amount' => 'nullable|numeric|min:0',
             'total_amount' => 'required|numeric|min:0.01',
@@ -504,23 +530,29 @@ class PaymentController extends Controller
             return $this->processCreditPayment($request, $user, $addressId, $deliveryType);
         }
 
-        $itemsForPricing = [];
-        foreach ($request->items as $item) {
-            $itemsForPricing[] = [
-                'price' => $item['price'],
-                'quantity' => $item['quantity'],
-                'desc_promo' => $item['desc_promo'] ?? null,
-                'user_offer_applies' => filter_var($item['user_offer_applies'] ?? false, FILTER_VALIDATE_BOOLEAN),
-            ];
+        $itemsForPricing = $this->pricingLinesFromRequestItems($request->items);
+        $fullRaw = $request->input('items_for_volume_pricing');
+        $fullItemsForPricing = is_array($fullRaw) && count($fullRaw) > 0
+            ? $this->pricingLinesFromRequestItems($fullRaw)
+            : null;
+
+        if ($fullItemsForPricing !== null) {
+            $expectedMerchandise = $this->orderPricingService->discountedMerchandiseForSubset(
+                $user,
+                $fullItemsForPricing,
+                $itemsForPricing
+            );
+        } else {
+            $summary = $this->orderPricingService->summarizeVolumeFromItems($user, $itemsForPricing);
+            $expectedMerchandise = $summary['discounted_merchandise'];
         }
 
-        $summary = $this->orderPricingService->summarizeVolumeFromItems($user, $itemsForPricing);
         $shippingAmountVal = (float) $request->input('shipping_amount', 0);
         $discountedTotalReq = round((float) $request->input('discounted_total'), 2);
         $totalAmountReq = round((float) $request->input('total_amount'), 2);
 
         if (! $this->orderPricingService->totalsMatchRequest(
-            $summary['discounted_merchandise'],
+            $expectedMerchandise,
             $discountedTotalReq,
             $totalAmountReq,
             $shippingAmountVal,
@@ -531,7 +563,7 @@ class PaymentController extends Controller
                 'message' => 'Los totales no coinciden con el cálculo del servidor. Actualiza el carrito e intenta de nuevo.',
             ];
             if (config('app.debug')) {
-                $payload['expected_discounted_merchandise'] = $summary['discounted_merchandise'];
+                $payload['expected_discounted_merchandise'] = $expectedMerchandise;
             }
 
             return response()->json($payload, 422);
@@ -3372,7 +3404,18 @@ class PaymentController extends Controller
             'items.*.color' => 'nullable|string',
             'items.*.barcode' => 'nullable|string',
             'items.*.detalle_id' => 'nullable|integer|min:1',
-            'total_amount' => 'required|numeric|min:0'
+            'items.*.desc_promo' => 'nullable|numeric',
+            'items.*.user_offer_applies' => 'nullable|boolean',
+            'items_for_volume_pricing' => 'nullable|array',
+            'items_for_volume_pricing.*.price' => 'required|numeric|min:0',
+            'items_for_volume_pricing.*.quantity' => 'required|integer|min:1',
+            'items_for_volume_pricing.*.desc_promo' => 'nullable|numeric',
+            'items_for_volume_pricing.*.user_offer_applies' => 'nullable|boolean',
+            'delivery_type' => 'nullable|string|in:envio,retiro',
+            'shipping_amount' => 'nullable|numeric|min:0',
+            'total_amount' => 'required|numeric|min:0',
+            'subtotal' => 'nullable|numeric|min:0',
+            'discounted_total' => 'required|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -3381,6 +3424,45 @@ class PaymentController extends Controller
                 'message' => 'Datos de validación incorrectos',
                 'errors' => $validator->errors()
             ], 422);
+        }
+
+        $itemsForPricingSubset = $this->pricingLinesFromRequestItems($request->items);
+        $fullRaw = $request->input('items_for_volume_pricing');
+        $fullItemsForPricing = is_array($fullRaw) && count($fullRaw) > 0
+            ? $this->pricingLinesFromRequestItems($fullRaw)
+            : null;
+
+        if ($fullItemsForPricing !== null) {
+            $expectedMerchandise = $this->orderPricingService->discountedMerchandiseForSubset(
+                $user,
+                $fullItemsForPricing,
+                $itemsForPricingSubset
+            );
+        } else {
+            $summary = $this->orderPricingService->summarizeVolumeFromItems($user, $itemsForPricingSubset);
+            $expectedMerchandise = $summary['discounted_merchandise'];
+        }
+
+        $shippingAmountVal = (float) $request->input('shipping_amount', 0);
+        $discountedTotalReq = round((float) $request->input('discounted_total'), 2);
+        $totalAmountReq = round((float) $request->input('total_amount'), 2);
+
+        if (! $this->orderPricingService->totalsMatchRequest(
+            $expectedMerchandise,
+            $discountedTotalReq,
+            $totalAmountReq,
+            $shippingAmountVal,
+            2.0
+        )) {
+            $payload = [
+                'success' => false,
+                'message' => 'Los totales no coinciden con el cálculo del servidor. Actualiza el carrito e intenta de nuevo.',
+            ];
+            if (config('app.debug')) {
+                $payload['expected_discounted_merchandise'] = $expectedMerchandise;
+            }
+
+            return response()->json($payload, 422);
         }
 
         // Verificar si hay órdenes pendientes con productos similares

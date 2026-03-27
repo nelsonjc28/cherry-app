@@ -132,12 +132,42 @@
   justify-content: center;
 }
 
-.catalog-pdf__controls-btn {
-  padding-right: 0;
-  text-align: center;
+/* Botón compartir PDF: icono + texto centrados (sobrescribe gap/padding de CustomButton) */
+.custom-btn.catalog-pdf__controls-btn {
   display: inline-flex;
-  justify-content: center;
+  flex-direction: row;
   align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-sizing: border-box;
+  gap: 8px;
+  padding: 10px 18px;
+  min-height: 44px;
+}
+
+.catalog-pdf__controls-btn .custom-btn__icon--left {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.catalog-pdf__controls-btn .custom-btn__content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.catalog-pdf__share-btn-icon {
+  display: block;
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  vertical-align: middle;
 }
 
 .catalog-pdf__whatsapp-text {
@@ -364,10 +394,6 @@
 @media (min-width: 1024px) {
   .catalog-pdf__header {
     padding: 15px 0 15px 0;
-  }
-
-  .catalog-pdf__controls-btn {
-    padding-right: 25px;
   }
 
   .catalog-pdf__title-section {

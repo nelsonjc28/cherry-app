@@ -732,10 +732,20 @@ const CatalogPdfPage = () => {
                 variant="outlined"
                 size="medium"
                 className="catalog-pdf__controls-btn"
+                iconLeft={
+                  <img
+                    src={getIconPath('Share Alt.svg')}
+                    alt=""
+                    className="catalog-pdf__share-btn-icon"
+                    width={18}
+                    height={18}
+                    aria-hidden
+                  />
+                }
                 onClick={handleShareCatalog}
                 disabled={isSharingCatalog}
               >
-                {isSharingCatalog ? 'Procesando...' : 'Compartir catálogo'}
+                {isSharingCatalog ? 'Procesando...' : 'Compartir PDF'}
               </CustomButton>
             )}
           </div>
