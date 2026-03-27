@@ -476,7 +476,7 @@ const Header = () => {
       } else if (menuKey === 'catalogos') {
         navigate('/catalogos');
       } else if (menuKey === 'categorias') {
-        navigate('/categorias');
+        navigate('/buscar');
       } else if (menuKey === 'promociones') {
         navigate('/promociones');
       }
@@ -757,7 +757,7 @@ const Header = () => {
               <li className="nav-item nav-divider"></li>
               <li className={`nav-item ${activeMenu === 'categorias' ? 'active' : ''}`}>
                 <span className="nav-link nav-link--split">
-                  <Link to="/categorias" className="nav-link-text" data-discover="true">
+                  <Link to="/buscar" className="nav-link-text" data-discover="true">
                     Categorías
                   </Link>
                   <span
