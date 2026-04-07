@@ -7,10 +7,34 @@ return [
     /** URL absoluta del logo para correos (S3 o CDN). Si vacío, se usa asset público. */
     'mail_logo_url' => env('CHERRY_MAIL_LOGO_URL'),
 
+    /** Imagen hero (columna izquierda) del correo de confirmación de pedido; si vacío: /images/welcome-default.jpg */
+    'mail_order_confirmation_hero_url' => env('CHERRY_MAIL_ORDER_CONFIRMATION_HERO_URL', ''),
+
     'social_facebook' => env('CHERRY_SOCIAL_FACEBOOK_URL', 'https://www.facebook.com/'),
 
     'social_instagram' => env('CHERRY_SOCIAL_INSTAGRAM_URL', 'https://www.instagram.com/'),
 
+    /** WhatsApp o página de contacto para enlaces en correos (ej. https://wa.me/52...) */
+    'social_whatsapp' => env('CHERRY_SOCIAL_WHATSAPP_URL', ''),
+
     'returns_policy_url' => env('CHERRY_RETURNS_POLICY_URL', 'https://cherrydev.789.com.mx'),
+
+    /** Retiro en tienda: texto del correo de confirmación (sin envío a domicilio). */
+    'pickup_store_address' => env(
+        'CHERRY_PICKUP_STORE_ADDRESS',
+        'José Ma. Izazaga 127 Piso 2, Col. Centro, México, CDMX, C.P. 06080'
+    ),
+
+    /** Líneas de horario (una por elemento). */
+    'pickup_store_hours' => [
+        'Lunes a Jueves: 9:00 am - 7:00 pm',
+        'Viernes: 9:00 a 5:00 pm',
+    ],
+
+    /** Enlace “Ver en mapa”. Si vacío, se arma búsqueda en Google Maps con la dirección. */
+    'pickup_map_url' => env('CHERRY_PICKUP_MAP_URL', ''),
+
+    /** Enlace “Agendar cita” (Calendly, WhatsApp, etc.). Si vacío, se usa contacto del sitio. */
+    'pickup_appointment_url' => env('CHERRY_PICKUP_APPOINTMENT_URL', ''),
 
 ];

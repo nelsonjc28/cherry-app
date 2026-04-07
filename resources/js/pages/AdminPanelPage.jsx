@@ -19,6 +19,7 @@ import AdminCatalogOrderManager from '../components/AdminCatalogOrderManager/Adm
 import AdminOrders from './admin/AdminOrders';
 import AdminDashboard from './admin/AdminDashboard';
 import AdminHistorial from './admin/AdminHistorial';
+import MailImageManager from '../components/admin/MailImageManager';
 
 import useUserStore from '../store/userStore';
 import '../index.css';
@@ -106,7 +107,8 @@ function AdminPanelPage() {
       'contact-info': 'Información de Contacto - Admin - Cherry Central',
       'privacy-policy': 'Política de Privacidad - Admin - Cherry Central',
       'discounts': 'Descuentos - Admin - Cherry Central',
-      'historial': 'Historial - Admin - Cherry Central'
+      'historial': 'Historial - Admin - Cherry Central',
+      'mail-images': 'Imágenes de correo - Admin - Cherry Central'
     };
     
     const title = titleMap[selectedMenu] || 'Admin Panel - Cherry Central';
@@ -133,7 +135,8 @@ function AdminPanelPage() {
     '/admin/contacto': 'contact-info',
     '/admin/privacidad': 'privacy-policy',
     '/admin/descuentos': 'discounts',
-    '/admin/historial': 'historial'
+    '/admin/historial': 'historial',
+    '/admin/imagenes-correo': 'mail-images'
   };
 
   // Mapeo de secciones a URLs
@@ -154,7 +157,8 @@ function AdminPanelPage() {
     'contact-info': '/admin/contacto',
     'privacy-policy': '/admin/privacidad',
     'discounts': '/admin/descuentos',
-    'historial': '/admin/historial'
+    'historial': '/admin/historial',
+    'mail-images': '/admin/imagenes-correo'
   };
 
   // Función para cambiar de sección y actualizar URL
@@ -340,6 +344,7 @@ function AdminPanelPage() {
           <button className={`admin-panel__sidebar-link${selectedMenu==='welcome-sections'?' active':''}`} onClick={()=>handleMenuChange('welcome-sections')}>Secciones de Bienvenida</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='orders'?' active':''}`} onClick={()=>handleMenuChange('orders')}>Órdenes</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='reviews'?' active':''}`} onClick={()=>handleMenuChange('reviews')}>Reseñas</button>
+          <button className={`admin-panel__sidebar-link${selectedMenu==='mail-images'?' active':''}`} onClick={()=>handleMenuChange('mail-images')}>Imágenes de correo</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='contact-info'?' active':''}`} onClick={()=>handleMenuChange('contact-info')}>Información de Contacto</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='privacy-policy'?' active':''}`} onClick={()=>handleMenuChange('privacy-policy')}>Terminos y condiciones</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='discounts'?' active':''}`} onClick={()=>handleMenuChange('discounts')}>Descuentos</button>
@@ -466,6 +471,12 @@ function AdminPanelPage() {
         {selectedMenu === 'reviews' && isAdminOrOperatorRole && (
           <section>
             <AdminReviews />
+          </section>
+        )}
+
+        {selectedMenu === 'mail-images' && isAdminOrOperatorRole && (
+          <section>
+            <MailImageManager />
           </section>
         )}
 

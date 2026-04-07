@@ -3,7 +3,9 @@
 namespace App\Mail;
 
 use App\Models\Cart;
+use App\Models\MailConfig;
 use App\Models\User;
+use App\Services\MailImageService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -24,6 +26,20 @@ class AbandonedCartEmail extends Mailable implements ShouldQueue
 
     public string $cartUrl;
 
+    public string $logoUrl;
+
+    public string $shopUrl;
+
+    public string $heroImageUrl;
+
+    public string $promoBannerImageUrl;
+
+    public string $socialFacebook;
+
+    public string $socialInstagram;
+
+    public string $socialWhatsapp;
+
     /**
      * @param  array<string, mixed>  $pricing  Salida de CartEmailPricingService::buildPreview()
      */
@@ -32,7 +48,21 @@ class AbandonedCartEmail extends Mailable implements ShouldQueue
         $this->user = $user;
         $this->cart = $cart;
         $this->pricing = $pricing;
-        $this->cartUrl = rtrim(config('app.url'), '/').'/carrito-detalle';
+
+        $base = rtrim((string) config('app.url'), '/');
+        $this->cartUrl = $base.'/carrito-detalle';
+        $configuredLogo = config('cherry.mail_logo_url');
+        $this->logoUrl = (is_string($configuredLogo) && $configuredLogo !== '')
+            ? $configuredLogo
+            : $base.'/images/logo.svg';
+        $this->shopUrl = $base;
+        $banner = MailImageService::bannerAbsoluteUrl(MailConfig::TYPE_ABANDONED_CART);
+        $this->heroImageUrl = $banner;
+        $this->promoBannerImageUrl = $banner;
+        $this->socialFacebook = (string) config('cherry.social_facebook');
+        $this->socialInstagram = (string) config('cherry.social_instagram');
+        $wa = config('cherry.social_whatsapp');
+        $this->socialWhatsapp = (is_string($wa) && $wa !== '') ? $wa : $base.'/contacto';
     }
 
     public function envelope(): Envelope

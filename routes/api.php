@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Api\UserTermsController;
 use App\Http\Controllers\Api\TermsConditionsController;
+use App\Http\Controllers\Api\MailSettingsController;
 use App\Http\Controllers\Api\UserDiscountController;
 use App\Http\Controllers\Api\ProductSyncController;
 use App\Http\Controllers\Api\ProductSearchController;
@@ -380,6 +381,10 @@ Route::middleware(['auth:api', 'admin'])->group(function () {
     
     // Admin historial routes
     Route::get('/admin/historial', [HistorialController::class, 'index']);
+
+    // Imágenes de cabecera / banners de correos automáticos
+    Route::get('/admin/mail-images', [MailSettingsController::class, 'index']);
+    Route::post('/admin/mail-images/upload', [MailSettingsController::class, 'uploadImage']);
 });
 
 // Public home categories route (no authentication required)

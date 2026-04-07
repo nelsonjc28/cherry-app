@@ -1,0 +1,155 @@
+.mail-image-manager {
+  max-width: 960px;
+}
+
+.mail-image-manager__title {
+  font-size: 1.35rem;
+  margin: 0 0 0.5rem;
+  color: #1a1a1a;
+}
+
+.mail-image-manager__intro {
+  font-size: 0.9rem;
+  color: #4b5563;
+  line-height: 1.5;
+  margin: 0 0 1.25rem;
+}
+
+.mail-image-manager__intro code {
+  font-size: 0.8rem;
+  background: #f3f4f6;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}
+
+.mail-image-manager__loading {
+  color: #6b7280;
+}
+
+.mail-image-manager__error {
+  background: #fef2f2;
+  color: #b91c1c;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.mail-image-manager__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .mail-image-manager__list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.mail-image-manager__card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  background: #fff;
+}
+
+.mail-image-manager__card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.35rem;
+}
+
+.mail-image-manager__badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+}
+
+.mail-image-manager__tag {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.mail-image-manager__tag--custom {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.mail-image-manager__label {
+  font-size: 0.85rem;
+  color: #1f2937;
+  line-height: 1.4;
+  margin: 0 0 0.75rem;
+}
+
+.mail-image-manager__preview-wrap {
+  width: 100%;
+  max-height: 140px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #f9fafb;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mail-image-manager__preview {
+  width: 100%;
+  height: auto;
+  max-height: 140px;
+  object-fit: cover;
+  display: block;
+}
+
+.mail-image-manager__file-input {
+  display: none;
+}
+
+.mail-image-manager__btn {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  background: #111;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.mail-image-manager__btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.mail-image-manager__spinner-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mail-image-manager__spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: mail-image-spin 0.7s linear infinite;
+}
+
+@keyframes mail-image-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

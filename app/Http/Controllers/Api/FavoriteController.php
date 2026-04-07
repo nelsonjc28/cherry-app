@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Favorite;
+use App\Models\ProductNotification;
 use App\Models\Producto;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -125,6 +126,8 @@ class FavoriteController extends Controller
 
             $favorite = Favorite::addToFavorites($user->id, $productData);
 
+            ProductNotification::subscribeWhenFavoriteAdded($user->id, (string) $producto->id);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Producto agregado a favoritos',
@@ -187,6 +190,8 @@ class FavoriteController extends Controller
 
             $deleted = Favorite::removeFromFavorites($user->id, $request->product_id);
 
+            ProductNotification::unsubscribeWhenFavoriteRemoved($user->id, (string) $request->product_id);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Producto removido de favoritos',
@@ -222,7 +227,9 @@ class FavoriteController extends Controller
 
             if ($existingFavorite) {
                 // Si ya existe, lo removemos
+                $pid = (string) $existingFavorite->product_id;
                 $existingFavorite->delete();
+                ProductNotification::unsubscribeWhenFavoriteRemoved($user->id, $pid);
                 $message = 'Producto removido de favoritos';
                 $action = 'removed';
                 $isFavorited = false;
@@ -253,6 +260,8 @@ class FavoriteController extends Controller
                     'product_image' => $productData['product_image'],
                     'product_price' => $productData['product_price']
                 ]);
+
+                ProductNotification::subscribeWhenFavoriteAdded($user->id, (string) $producto->id);
 
                 $message = 'Producto agregado a favoritos';
                 $action = 'added';

@@ -271,6 +271,10 @@ class SyncProductsCommand extends Command
                         $productData
                     );
 
+                    if ($previousInventario > 0 && $newInventario <= 0) {
+                        ProductNotification::resetNotifiedForProducts([(string) $producto->id]);
+                    }
+
                     if ($previousInventario <= 0 && $newInventario > 0) {
                         $pendingNotifications = ProductNotification::query()
                             ->where('producto_id', $producto->id)

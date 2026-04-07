@@ -2,8 +2,10 @@
 
 namespace App\Mail;
 
+use App\Models\MailConfig;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Services\MailImageService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -23,6 +25,20 @@ class OrderConfirmationMail extends Mailable
     public string $logoUrl;
 
     public string $customerFirstName;
+
+    /** Nombre para saludo (nombre + apellido). */
+    public string $customerDisplayName;
+
+    /** True si hay guía o el pedido figura como enviado (texto tipo “ya fue enviado”). */
+    public bool $showAsShipped;
+
+    public ?string $trackingNumber;
+
+    /** FedEx u orderViewUrl si no hay guía. */
+    public string $trackingUrl;
+
+    /** Imagen ancha / hero izquierda del correo. */
+    public string $heroImageUrl;
 
     public float $merchandiseNetSubtotal;
 
@@ -46,6 +62,21 @@ class OrderConfirmationMail extends Mailable
 
     public bool $showPendingPaymentNotice;
 
+    /** Sin dirección de envío = retiro en tienda (plantilla de correo distinta). */
+    public bool $isPickupOrder;
+
+    public string $pickupStoreAddress;
+
+    /** @var list<string> */
+    public array $pickupStoreHours;
+
+    public string $pickupMapUrl;
+
+    public string $pickupAppointmentUrl;
+
+    /** True cuando el admin marcó el pedido como preparado (listo para recoger). */
+    public bool $pickupOrderReady;
+
     /**
      * Create a new message instance.
      */
@@ -54,6 +85,9 @@ class OrderConfirmationMail extends Mailable
         $this->order = $order->loadMissing(['user', 'address', 'items.detalleRow']);
 
         $this->customerFirstName = (string) ($this->order->user?->first_name ?? 'Cliente');
+        $fn = trim((string) ($this->order->user?->first_name ?? ''));
+        $ln = trim((string) ($this->order->user?->last_name ?? ''));
+        $this->customerDisplayName = trim($fn.' '.$ln) !== '' ? trim($fn.' '.$ln) : $this->customerFirstName;
 
         $this->orderLines = $this->buildProductLines($this->order);
 
@@ -81,16 +115,57 @@ class OrderConfirmationMail extends Mailable
         $base = config('cherry.orders_web_base', 'https://cherrydev.789.com.mx');
         $this->orderViewUrl = $base.'/orders/'.$this->order->id;
 
+        $tn = $this->order->tracking_number;
+        $this->trackingNumber = (is_string($tn) && trim($tn) !== '') ? trim($tn) : null;
+        $this->showAsShipped = $this->trackingNumber !== null
+            || in_array((string) $this->order->status, ['enviado', 'entregado'], true);
+
+        $this->trackingUrl = $this->trackingNumber !== null
+            ? 'https://www.fedex.com/fedextrack/?trknbr='.rawurlencode($this->trackingNumber)
+            : $this->orderViewUrl;
+
+        $this->heroImageUrl = $this->resolveHeroImageUrl();
+
         $this->paymentMethodLabel = $this->formatPaymentMethod($this->order->payment_method ?? '');
         $this->showPendingPaymentNotice = in_array($this->order->status, ['pending', 'pendiente_pago'], true);
 
         $this->logoUrl = $this->resolveLogoUrl();
+
+        $this->isPickupOrder = $this->order->address_id === null;
+        $this->pickupStoreAddress = (string) config('cherry.pickup_store_address');
+        $hours = config('cherry.pickup_store_hours');
+        $this->pickupStoreHours = is_array($hours)
+            ? array_values(array_filter(array_map('strval', $hours)))
+            : [];
+        $configuredMap = config('cherry.pickup_map_url');
+        $this->pickupMapUrl = (is_string($configuredMap) && trim($configuredMap) !== '')
+            ? trim($configuredMap)
+            : 'https://www.google.com/maps/search/?api=1&query='.rawurlencode($this->pickupStoreAddress);
+        $configuredAppt = config('cherry.pickup_appointment_url');
+        $webBase = rtrim((string) config('cherry.orders_web_base'), '/');
+        if ($webBase === '') {
+            $webBase = rtrim((string) config('app.url'), '/');
+        }
+        $this->pickupAppointmentUrl = (is_string($configuredAppt) && trim($configuredAppt) !== '')
+            ? trim($configuredAppt)
+            : $webBase.'/contacto';
+        $this->pickupOrderReady = (bool) ($this->order->is_prepared ?? false);
     }
 
     public function envelope(): Envelope
     {
+        if ($this->isPickupOrder && ! $this->showAsShipped) {
+            $subject = $this->pickupOrderReady
+                ? 'Tu pedido #'.$this->order->id.' está listo para recoger en tienda — '.config('app.name')
+                : 'Confirmación de pedido (retiro en tienda) #'.$this->order->id.' — '.config('app.name');
+        } else {
+            $subject = $this->showAsShipped
+                ? 'Tu pedido #'.$this->order->id.' ya fue enviado — '.config('app.name')
+                : 'Confirmación de pedido #'.$this->order->id.' — '.config('app.name');
+        }
+
         return new Envelope(
-            subject: 'Confirmación de pedido #'.$this->order->id.' — '.config('app.name'),
+            subject: $subject,
         );
     }
 
@@ -178,6 +253,11 @@ class OrderConfirmationMail extends Mailable
         }
 
         return asset('images/logo.svg');
+    }
+
+    protected function resolveHeroImageUrl(): string
+    {
+        return MailImageService::bannerAbsoluteUrl(MailConfig::TYPE_ORDER_CONFIRMATION);
     }
 
     protected function formatPaymentMethod(string $method): string

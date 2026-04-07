@@ -2,8 +2,10 @@
 
 namespace App\Mail;
 
+use App\Models\MailConfig;
 use App\Models\Order;
 use App\Services\CartEmailPricingService;
+use App\Services\MailImageService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -20,9 +22,12 @@ class OrderStatusEmail extends Mailable implements ShouldQueue
     /** @var list<array<string, mixed>> */
     public array $lines;
 
+    public string $headerImageUrl;
+
     public function __construct(Order $order)
     {
         $this->order = $order->loadMissing(['user', 'items']);
+        $this->headerImageUrl = MailImageService::bannerAbsoluteUrl(MailConfig::TYPE_ORDER_STATUS);
         $this->lines = [];
         foreach ($this->order->items as $item) {
             $pid = (string) $item->product_id;

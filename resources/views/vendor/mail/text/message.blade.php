@@ -1,0 +1,23 @@
+<x-mail::layout>
+{{-- Sin encabezado con nombre de app --}}
+<x-slot:header></x-slot:header>
+
+{{-- Body --}}
+{{ $slot }}
+
+{{-- Subcopy --}}
+@isset($subcopy)
+<x-slot:subcopy>
+<x-mail::subcopy>
+{{ $subcopy }}
+</x-mail::subcopy>
+</x-slot:subcopy>
+@endisset
+
+{{-- Footer --}}
+<x-slot:footer>
+<x-mail::footer>
+© {{ date('Y') }} {{ config('mail.from.name', config('app.name')) }}. @lang('All rights reserved.')
+</x-mail::footer>
+</x-slot:footer>
+</x-mail::layout>

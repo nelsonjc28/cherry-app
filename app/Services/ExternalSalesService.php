@@ -302,8 +302,16 @@ class ExternalSalesService
         // Descuento monetario total de mercancía: bruto − neto (cuadra con importeTotal / importeNeto)
         $descuentos = round(max(0.0, $importeTotal - $importeNeto), 2);
 
-        // Descuento por escalas según columnas de la orden (referencia; también en impoDecto1)
+        // Descuento por escalas según columnas de la orden (importe monetario del volumen)
         $descuentoVolumenMonto = round(max(0.0, $subtotalOrden - $discountedTotalOrden), 2);
+
+        // API externa: decto1 = mismo valor que descuento1 (%); impoDecto1 = importe monetario del desc. volumen.
+        // Sin descuentos de volumen: decto1 e impoDecto1 vacíos (null).
+        $hayDescuentoVolumen = $descuentoVolumenMonto > 0.009
+            || $descuento1 > 0.0001
+            || $descuento2 > 0.0001;
+        $decto1Api = $hayDescuentoVolumen ? (float) $descuento1 : null;
+        $impoDecto1Api = $hayDescuentoVolumen ? (float) $descuentoVolumenMonto : null;
 
         $importeFinal = (float) ($order->total_amount ?? ($discountedTotalOrden + $costoEnvio));
         
@@ -342,8 +350,8 @@ class ExternalSalesService
             ],
             'cliente' => $clienteData,
             'metodoEnvio' => $metodoEnvio,
-            'decto1' => 0.0,
-            'impoDecto1' => (float) $descuentoVolumenMonto,
+            'decto1' => $decto1Api,
+            'impoDecto1' => $impoDecto1Api,
             'refDecto1' => null,
             'decto2' => 0.0,
             'impoDecto2' => 0.0,
