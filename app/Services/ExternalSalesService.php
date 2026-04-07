@@ -305,13 +305,40 @@ class ExternalSalesService
         // Descuento por escalas según columnas de la orden (importe monetario del volumen)
         $descuentoVolumenMonto = round(max(0.0, $subtotalOrden - $discountedTotalOrden), 2);
 
-        // API externa: decto1 = mismo valor que descuento1 (%); impoDecto1 = importe monetario del desc. volumen.
-        // Sin descuentos de volumen: decto1 e impoDecto1 vacíos (null).
+        // API externa: dectoN / impoDectoN alineados con descuentoN (misma regla que cartVolumePricing / PriceService).
+        // Sin descuento de volumen: decto1, impoDecto1, decto2, impoDecto2 = null.
+        // Con solo tramo 1: impoDecto1 = monto total volumen; decto2/impoDecto2 = null.
+        // Con tramo 2 (10 % sobre neto tras tramo 1): reparte monto entre impoDecto1 (vol_main) e impoDecto2 (vol_extra).
         $hayDescuentoVolumen = $descuentoVolumenMonto > 0.009
             || $descuento1 > 0.0001
             || $descuento2 > 0.0001;
-        $decto1Api = $hayDescuentoVolumen ? (float) $descuento1 : null;
-        $impoDecto1Api = $hayDescuentoVolumen ? (float) $descuentoVolumenMonto : null;
+
+        $decto1Api = null;
+        $impoDecto1Api = null;
+        $decto2Api = null;
+        $impoDecto2Api = null;
+
+        if ($hayDescuentoVolumen) {
+            if ($descuento2 > 0.0001 && $descuento1 > 0.0001) {
+                $d1f = $descuento1 / 100.0;
+                $denom = $d1f + 0.1 * (1.0 - $d1f);
+                $eligibleEq = $denom > 0.000001
+                    ? ($descuentoVolumenMonto / $denom)
+                    : 0.0;
+                $volMain = round($eligibleEq * $d1f, 2);
+                $volExtra = round(max(0.0, $descuentoVolumenMonto - $volMain), 2);
+                $decto1Api = (float) $descuento1;
+                $impoDecto1Api = $volMain;
+                $decto2Api = (float) $descuento2;
+                $impoDecto2Api = $volExtra;
+            } elseif ($descuento2 > 0.0001) {
+                $decto2Api = (float) $descuento2;
+                $impoDecto2Api = (float) $descuentoVolumenMonto;
+            } else {
+                $decto1Api = (float) $descuento1;
+                $impoDecto1Api = (float) $descuentoVolumenMonto;
+            }
+        }
 
         $importeFinal = (float) ($order->total_amount ?? ($discountedTotalOrden + $costoEnvio));
         
@@ -353,8 +380,8 @@ class ExternalSalesService
             'decto1' => $decto1Api,
             'impoDecto1' => $impoDecto1Api,
             'refDecto1' => null,
-            'decto2' => 0.0,
-            'impoDecto2' => 0.0,
+            'decto2' => $decto2Api,
+            'impoDecto2' => $impoDecto2Api,
             'decto3' => 0.0,
             'impoDecto3' => 0.0,
             'descuento1' => (float) $descuento1,
