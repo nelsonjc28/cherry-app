@@ -1312,6 +1312,7 @@ const ProductPage = () => {
   // - "Próximamente": Si el tercer dígito del ID (índice 2) coincide con el último dígito del año actual
   //   Y stock === 0 Y stock_received_count === 0
   // - "Agotado": Si stock === 0 Y (el tercer dígito del ID NO coincide con el último dígito del año actual O stock_received_count > 0)
+  // - Con oferta de catálogo (desc_promo > 0) y sin stock: siempre "Agotado" y UI de oferta (nunca "Próximamente").
   const getInventoryStatus = () => {
     const totalInventory = getTotalInventory();
 
@@ -1352,8 +1353,8 @@ const ProductPage = () => {
     const isComingSoon = tercerDigito === currentYearLastDigit;
 
     // PRIORIDAD 1: Si el tercer dígito del ID coincide con el último dígito del año actual
-    // Y stock === 0 Y stock_received_count === 0, mostrar "Próximamente"
-    if (isComingSoon && totalInventory === 0 && stockReceivedCount === 0) {
+    // Y stock === 0 Y stock_received_count === 0, mostrar "Próximamente" (solo sin oferta desc_promo)
+    if (isComingSoon && totalInventory === 0 && stockReceivedCount === 0 && !hasActiveDescPromo(product)) {
       return {
         status: 'coming-soon',
         text: 'Próximamente',
@@ -1403,8 +1404,7 @@ const ProductPage = () => {
   })();
 
   // Agregar alerta de "próximamente" si aplica (después de que getInventoryStatus esté definida)
-  const inventoryStatus = getInventoryStatus();
-  const isComingSoon = inventoryStatus.status === 'coming-soon';
+  const isComingSoon = inventoryStatusData.status === 'coming-soon';
   const isOroUser = user && ['oro', 'diamante'].includes(user.seller_category);
   const showNotifyAlert = isComingSoon && (!user || !isOroUser);
 
