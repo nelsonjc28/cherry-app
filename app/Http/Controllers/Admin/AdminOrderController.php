@@ -3,23 +3,32 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Detalle;
 use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Producto;
 use App\Models\User;
 use App\Models\Notification;
 use App\Services\UserSellerCategoryActivityService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class AdminOrderController extends Controller
 {
+    /** @var array<string, Producto|null> */
+    private array $orderItemProductCache = [];
+    /** @var array<string, float> */
+    private array $productStockCache = [];
+
     /**
      * Get all orders for admin dashboard
      */
     public function index()
     {
         try {
-            $orders = Order::with(['user', 'items.product', 'address'])
+            $orders = Order::with(['user', 'items', 'address'])
                 ->orderBy('created_at', 'desc')
                 ->get();
 
@@ -70,92 +79,24 @@ class AdminOrderController extends Controller
                     'customerLastName' => $order->user ? $order->user->last_name : null,
                     'customerMiddleName' => $order->user ? $order->user->middle_name : null,
                     'created_at' => $order->created_at->toISOString(),
+                    'shipping_method_label' => $order->shipping_method_label,
+                    'address_id' => $order->address_id,
+                    // Listado rápido: no enriquecer con consultas extra (se hace en show)
                     'items' => $order->items->map(function ($item) {
-                        // Obtener información del producto para calcular descuento
-                        // El product_id en order_items es el ID de Shopify, necesitamos buscar en detalles por idShopify
-                        $product = null;
-                        $originalPrice = null;
-                        $detalle = null;
-                        
-                        // Estrategia 1: Buscar el detalle por idShopify (más común)
-                        // Intentar con diferentes formatos del ID
-                        $shopifyId = (string) $item->product_id;
-                        $detalle = \App\Models\Detalle::where('idShopify', $shopifyId)->first();
-                        
-                        // Si no se encuentra, intentar sin conversión de tipo
-                        if (!$detalle) {
-                            $detalle = \App\Models\Detalle::whereRaw('CAST(idShopify AS CHAR) = ?', [$shopifyId])->first();
-                        }
-                        
-                        // Si aún no se encuentra, buscar cualquier detalle que contenga este ID
-                        if (!$detalle) {
-                            $detalle = \App\Models\Detalle::where('idShopify', 'LIKE', "%{$shopifyId}%")->first();
-                        }
-                        
-                        if ($detalle && $detalle->producto_id) {
-                            // Buscar el producto usando el producto_id del detalle
-                            $product = \App\Models\Producto::find($detalle->producto_id);
-                        }
-                        
-                        // Estrategia 2: Si no se encontró por idShopify, intentar buscar directamente
-                        // El ID del producto puede tener un cero al inicio (ej: 07422442106)
-                        if (!$product) {
-                            // Intentar con el ID tal cual
-                            $product = \App\Models\Producto::find((string) $item->product_id);
-                            
-                            // Si no se encuentra, intentar con un cero al inicio
-                            if (!$product) {
-                                $productIdWithZero = '0' . (string) $item->product_id;
-                                $product = \App\Models\Producto::find($productIdWithZero);
-                            }
-                            
-                            // Si aún no se encuentra, intentar con padding a 6 dígitos (para IDs cortos)
-                            if (!$product) {
-                                $productIdNormalized = str_pad((string) $item->product_id, 6, '0', STR_PAD_LEFT);
-                                $product = \App\Models\Producto::find($productIdNormalized);
-                            }
-                            
-                            // Si aún no se encuentra, buscar con LIKE (para IDs que contengan el product_id)
-                            if (!$product) {
-                                $product = \App\Models\Producto::where('id', 'LIKE', '%' . $item->product_id . '%')->first();
-                            }
-                        }
-                        
-                        // Obtener precio original del producto
-                        $originalPrice = $product ? (float) ($product->precio1 ?? 0) : null;
-                        
-                        // Calcular descuento: comparar precio original con precio pagado
-                        // Siempre mostrar precio original si existe, incluso si no hay descuento
-                        $hasDiscount = false;
-                        $discountPercentage = 0;
-                        
-                        if ($originalPrice && $originalPrice > 0) {
-                            // Hay descuento si el precio pagado es menor al precio original
-                            if ($originalPrice > $item->price) {
-                                $hasDiscount = true;
-                                $discountPercentage = round((($originalPrice - $item->price) / $originalPrice) * 100);
-                            }
-                        }
-
                         return [
                             'id' => $item->id,
                             'product_id' => $item->product_id,
-                            'detalle_id' => $item->detalle_id,
                             'title' => $item->name ?? 'Producto',
                             'quantity' => (int) $item->quantity,
                             'price' => (float) $item->price,
-                            'original_price' => $originalPrice, // Siempre incluir precio original si existe
-                            'has_discount' => $hasDiscount,
-                            'discount_percentage' => $hasDiscount ? $discountPercentage : 0,
                             'subtotal' => (float) $item->subtotal,
                             'image' => $this->getProductImageUrl($item->product_id),
-                            'size' => $item->size,
-                            'color' => $item->color,
-                            'barcode' => $item->barcode
                         ];
                     }),
                     'address' => $order->address ? [
                         'street_address' => $order->address->street_address,
+                        'street_number_ext' => $order->address->street_number_ext,
+                        'street_number_int' => $order->address->street_number_int,
                         'city' => $order->address->city,
                         'municipality' => $order->address->municipality,
                         'colonia' => $order->address->colonia,
@@ -163,7 +104,7 @@ class AdminOrderController extends Controller
                         'postal_code' => $order->address->postal_code,
                         'country' => $order->address->country,
                         'additional_info' => $order->address->additional_info,
-                        'name' => $order->address->name
+                        'full_address' => $order->address->admin_formatted_address,
                     ] : null,
                     'credit_used' => (float) ($order->credit_used ?? 0),
                     'amount_paid' => (float) ($order->amount_paid ?? $order->total_amount),
@@ -310,7 +251,7 @@ class AdminOrderController extends Controller
     public function show($orderId)
     {
         try {
-            $order = Order::with(['user', 'items.product', 'address'])->findOrFail($orderId);
+            $order = Order::with(['user', 'items', 'address'])->findOrFail($orderId);
 
             // Calcular costo de envío
             $paymentData = is_array($order->payment_data) ? $order->payment_data : (is_string($order->payment_data) ? json_decode($order->payment_data, true) : []);
@@ -357,23 +298,13 @@ class AdminOrderController extends Controller
                 'customerLastName' => $order->user ? $order->user->last_name : null,
                 'customerMiddleName' => $order->user ? $order->user->middle_name : null,
                 'created_at' => $order->created_at->toISOString(),
-                'items' => $order->items->map(function ($item) {
-                    return [
-                        'id' => $item->id,
-                        'product_id' => $item->product_id,
-                        'detalle_id' => $item->detalle_id,
-                        'title' => $item->name ?? 'Producto',
-                        'quantity' => (int) $item->quantity,
-                        'price' => (float) $item->price,
-                        'subtotal' => (float) $item->subtotal,
-                        'image' => $this->getProductImageUrl($item->product_id),
-                        'size' => $item->size,
-                        'color' => $item->color,
-                        'barcode' => $item->barcode
-                    ];
-                }),
+                'shipping_method_label' => $order->shipping_method_label,
+                'address_id' => $order->address_id,
+                'items' => $order->items->map(fn ($item) => $this->formatOrderItemForAdmin($item)),
                 'address' => $order->address ? [
                     'street_address' => $order->address->street_address,
+                    'street_number_ext' => $order->address->street_number_ext,
+                    'street_number_int' => $order->address->street_number_int,
                     'city' => $order->address->city,
                     'municipality' => $order->address->municipality,
                     'colonia' => $order->address->colonia,
@@ -381,16 +312,16 @@ class AdminOrderController extends Controller
                     'postal_code' => $order->address->postal_code,
                     'country' => $order->address->country,
                     'additional_info' => $order->address->additional_info,
-                        'name' => $order->address->name
-                    ] : null,
-                    'credit_used' => (float) ($order->credit_used ?? 0),
-                    'amount_paid' => (float) ($order->amount_paid ?? $order->total_amount),
-                    'amount_pending' => (float) ($order->amount_pending ?? 0),
-                    'paid_with_credit' => (bool) ($order->paid_with_credit ?? false),
-                    'is_advance_order' => (bool) ($order->is_advance_order ?? false),
-                    'is_prepared' => (bool) ($order->is_prepared ?? false),
-                    'tracking_number' => $order->tracking_number ?? null
-                ];
+                    'full_address' => $order->address->admin_formatted_address,
+                ] : null,
+                'credit_used' => (float) ($order->credit_used ?? 0),
+                'amount_paid' => (float) ($order->amount_paid ?? $order->total_amount),
+                'amount_pending' => (float) ($order->amount_pending ?? 0),
+                'paid_with_credit' => (bool) ($order->paid_with_credit ?? false),
+                'is_advance_order' => (bool) ($order->is_advance_order ?? false),
+                'is_prepared' => (bool) ($order->is_prepared ?? false),
+                'tracking_number' => $order->tracking_number ?? null,
+            ];
 
             return response()->json([
                 'success' => true,
@@ -442,6 +373,157 @@ class AdminOrderController extends Controller
         // Construir URL directamente como en el frontend
         // El frontend usa: https://cherry-fotos.s3.amazonaws.com/shopify/${externalProductId}/${externalProductId}_1.jpg
         return "https://cherry-fotos.s3.amazonaws.com/shopify/{$productIdStr}/{$productIdStr}_1.jpg";
+    }
+
+    private function formatOrderItemForAdmin(OrderItem $item): array
+    {
+        $product = $this->findProductForOrderItem($item);
+        $stockTotal = $this->resolveProductStockTotal($item, $product);
+
+        $originalPrice = $product ? (float) ($product->precio1 ?? 0) : null;
+        $finalUnitPrice = (float) $item->price;
+        $discountAmount = 0.0;
+        $discountPercentage = 0;
+        $hasDiscount = false;
+
+        if ($originalPrice !== null && $originalPrice > 0 && $originalPrice > $finalUnitPrice) {
+            $hasDiscount = true;
+            $discountAmount = round($originalPrice - $finalUnitPrice, 2);
+            $discountPercentage = (int) round((($originalPrice - $finalUnitPrice) / $originalPrice) * 100);
+        }
+
+        return [
+            'id' => $item->id,
+            'product_id' => $item->product_id,
+            'detalle_id' => $item->detalle_id,
+            'title' => $item->name ?? 'Producto',
+            'quantity' => (int) $item->quantity,
+            'price' => $finalUnitPrice,
+            'final_unit_price' => $finalUnitPrice,
+            'original_price' => $originalPrice,
+            'discount_amount' => $discountAmount,
+            'has_discount' => $hasDiscount,
+            'discount_percentage' => $hasDiscount ? $discountPercentage : 0,
+            'subtotal' => (float) $item->subtotal,
+            'image' => $this->getProductImageUrl($item->product_id),
+            'size' => $item->size,
+            'color' => $item->color,
+            'barcode' => $item->barcode,
+            'stock_total' => $stockTotal,
+            'desc_promo' => $product ? $product->desc_promo : null,
+            'opc_nuevo' => $product ? $product->opc_nuevo : null,
+            'fecha_alta' => $product && $product->fecha_alta
+                ? Carbon::parse($product->fecha_alta)->toDateString()
+                : null,
+            'product_labels' => $this->buildProductLabelsForOrderItem($product, $stockTotal),
+        ];
+    }
+
+    private function findProductForOrderItem(OrderItem $item): ?Producto
+    {
+        $cacheKey = (string) $item->product_id . '|' . (string) ($item->detalle_id ?? '');
+        if (array_key_exists($cacheKey, $this->orderItemProductCache)) {
+            return $this->orderItemProductCache[$cacheKey];
+        }
+
+        // Fast path: detalle_id persistido en la línea
+        if (! empty($item->detalle_id)) {
+            $detalleById = Detalle::find($item->detalle_id);
+            if ($detalleById && ! empty($detalleById->producto_id)) {
+                $productByDetalle = Producto::find((string) $detalleById->producto_id);
+                if ($productByDetalle) {
+                    $this->orderItemProductCache[$cacheKey] = $productByDetalle;
+                    return $productByDetalle;
+                }
+            }
+        }
+
+        $product = null;
+        $shopifyId = (string) $item->product_id;
+        $detalle = Detalle::where('idShopify', $shopifyId)->first();
+
+        if (! $detalle) {
+            $detalle = Detalle::whereRaw('CAST(idShopify AS CHAR) = ?', [$shopifyId])->first();
+        }
+        if (! $detalle) {
+            $detalle = Detalle::where('idShopify', 'LIKE', "%{$shopifyId}%")->first();
+        }
+        if ($detalle && $detalle->producto_id) {
+            $product = Producto::find($detalle->producto_id);
+        }
+
+        if (! $product) {
+            $product = Producto::find((string) $item->product_id);
+            if (! $product) {
+                $product = Producto::find('0' . (string) $item->product_id);
+            }
+            if (! $product) {
+                $product = Producto::find(str_pad((string) $item->product_id, 6, '0', STR_PAD_LEFT));
+            }
+            if (! $product) {
+                $product = Producto::where('id', 'LIKE', '%' . $item->product_id . '%')->first();
+            }
+        }
+
+        $this->orderItemProductCache[$cacheKey] = $product;
+        return $product;
+    }
+
+    private function resolveProductStockTotal(OrderItem $item, ?Producto $product): float
+    {
+        if ($product) {
+            $productCacheKey = (string) $product->id;
+            if (array_key_exists($productCacheKey, $this->productStockCache)) {
+                return $this->productStockCache[$productCacheKey];
+            }
+
+            $sumDetalles = (float) Detalle::where('producto_id', $product->id)->sum('inventario_d');
+            if ($sumDetalles > 0.00001) {
+                $stock = round($sumDetalles, 2);
+                $this->productStockCache[$productCacheKey] = $stock;
+                return $stock;
+            }
+
+            $stock = round((float) ($product->inventario ?? 0), 2);
+            $this->productStockCache[$productCacheKey] = $stock;
+            return $stock;
+        }
+
+        if (! empty($item->detalle_id)) {
+            $detalle = Detalle::find($item->detalle_id);
+            if ($detalle) {
+                return round((float) ($detalle->inventario_d ?? 0), 2);
+            }
+        }
+
+        return 0.0;
+    }
+
+    private function buildProductLabelsForOrderItem(?Producto $product, float $stockTotal): array
+    {
+        $labels = [];
+        $descPromoRaw = $product?->desc_promo;
+        $hasRebaja = $descPromoRaw !== null
+            && $descPromoRaw !== ''
+            && (float) $descPromoRaw > 0.0001;
+
+        if ($hasRebaja) {
+            $labels[] = 'REBAJA';
+        }
+
+        $fechaAlta = $product?->fecha_alta ? Carbon::parse($product->fecha_alta) : null;
+        $isNuevo = (($product?->opc_nuevo ?? 'N') === 'S')
+            || ($fechaAlta && $fechaAlta->greaterThanOrEqualTo(now()->subDays(30)));
+        if ($isNuevo) {
+            $labels[] = 'NUEVO';
+        }
+
+        $isProximamente = ! $hasRebaja && ($fechaAlta === null || $stockTotal <= 0.0001);
+        if ($isProximamente) {
+            $labels[] = 'PRÓXIMAMENTE';
+        }
+
+        return $labels;
     }
 
     /**

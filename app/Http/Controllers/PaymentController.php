@@ -3918,10 +3918,22 @@ class PaymentController extends Controller
             $totalAmount = (float) $order->total_amount;
             $totalPieces = $order->items->sum('quantity');
 
-            // Agrupar por producto con desglose color / talla / cantidad (misma estructura que OrderDetailModal)
+            // Agrupar por producto con desglose color / talla / cantidad + etiquetas y precios de variante
             $groupedItems = [];
             foreach ($order->items as $item) {
                 $productId = (string) $item->product_id;
+                $product = $this->findProductForPrintOrderItem($item);
+                $stockTotal = $this->resolveProductStockTotalForPrint($item, $product);
+                $labels = $this->buildProductLabelsForPrint($product, $stockTotal);
+                $originalPrice = $product ? (float) ($product->precio1 ?? 0) : null;
+                $finalUnitPrice = (float) $item->price;
+                $discountAmount = 0.0;
+                $discountPercentage = 0;
+                if ($originalPrice !== null && $originalPrice > 0 && $originalPrice > $finalUnitPrice) {
+                    $discountAmount = round($originalPrice - $finalUnitPrice, 2);
+                    $discountPercentage = (int) round((($originalPrice - $finalUnitPrice) / $originalPrice) * 100);
+                }
+
                 if (! isset($groupedItems[$productId])) {
                     $groupedItems[$productId] = [
                         'product_id' => $productId,
@@ -3930,17 +3942,27 @@ class PaymentController extends Controller
                         'variants' => [],
                         'total_quantity' => 0,
                         'total_subtotal' => 0.0,
+                        'labels' => [],
                     ];
                 }
                 $groupedItems[$productId]['variants'][] = [
                     'color' => $item->color,
                     'size' => $item->size,
                     'quantity' => (int) $item->quantity,
-                    'price' => (float) $item->price,
+                    'price' => $finalUnitPrice,
+                    'final_unit_price' => $finalUnitPrice,
+                    'original_price' => ($originalPrice !== null && $originalPrice > 0) ? $originalPrice : $finalUnitPrice,
+                    'discount_amount' => $discountAmount,
+                    'discount_percentage' => $discountPercentage,
                     'subtotal' => (float) $item->subtotal,
+                    'labels' => $labels,
                 ];
                 $groupedItems[$productId]['total_quantity'] += (int) $item->quantity;
                 $groupedItems[$productId]['total_subtotal'] += (float) $item->subtotal;
+                $groupedItems[$productId]['labels'] = array_values(array_unique(array_merge(
+                    $groupedItems[$productId]['labels'],
+                    $labels
+                )));
             }
 
             foreach ($groupedItems as $key => $row) {
@@ -3960,7 +3982,9 @@ class PaymentController extends Controller
                 'shippingAmount' => $shippingAmount,
                 'totalAmount' => $totalAmount,
                 'totalPieces' => $totalPieces,
-                'user' => $order->user
+                'user' => $order->user,
+                'shippingMethodLabel' => $order->shipping_method_label,
+                'addressFull' => $order->address?->admin_formatted_address,
             ]);
         } catch (\Exception $e) {
             Log::error('Error al imprimir orden', [
@@ -3974,6 +3998,81 @@ class PaymentController extends Controller
                 'message' => 'Error al generar la vista de impresión: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    private function findProductForPrintOrderItem(OrderItem $item): ?\App\Models\Producto
+    {
+        $product = null;
+        $shopifyId = (string) $item->product_id;
+        $detalle = \App\Models\Detalle::where('idShopify', $shopifyId)->first();
+        if (! $detalle) {
+            $detalle = \App\Models\Detalle::whereRaw('CAST(idShopify AS CHAR) = ?', [$shopifyId])->first();
+        }
+        if (! $detalle) {
+            $detalle = \App\Models\Detalle::where('idShopify', 'LIKE', "%{$shopifyId}%")->first();
+        }
+        if ($detalle && $detalle->producto_id) {
+            $product = \App\Models\Producto::find($detalle->producto_id);
+        }
+
+        if (! $product) {
+            $product = \App\Models\Producto::find((string) $item->product_id);
+            if (! $product) {
+                $product = \App\Models\Producto::find('0' . (string) $item->product_id);
+            }
+            if (! $product) {
+                $product = \App\Models\Producto::find(str_pad((string) $item->product_id, 6, '0', STR_PAD_LEFT));
+            }
+            if (! $product) {
+                $product = \App\Models\Producto::where('id', 'LIKE', '%' . $item->product_id . '%')->first();
+            }
+        }
+
+        return $product;
+    }
+
+    private function resolveProductStockTotalForPrint(OrderItem $item, ?\App\Models\Producto $product): float
+    {
+        if ($product) {
+            $sumDetalles = (float) \App\Models\Detalle::where('producto_id', $product->id)->sum('inventario_d');
+            if ($sumDetalles > 0.00001) {
+                return round($sumDetalles, 2);
+            }
+            return round((float) ($product->inventario ?? 0), 2);
+        }
+
+        if (! empty($item->detalle_id)) {
+            $detalle = \App\Models\Detalle::find($item->detalle_id);
+            if ($detalle) {
+                return round((float) ($detalle->inventario_d ?? 0), 2);
+            }
+        }
+        return 0.0;
+    }
+
+    private function buildProductLabelsForPrint(?\App\Models\Producto $product, float $stockTotal): array
+    {
+        $labels = [];
+        $descPromoRaw = $product?->desc_promo;
+        $hasRebaja = $descPromoRaw !== null
+            && $descPromoRaw !== ''
+            && (float) $descPromoRaw > 0.0001;
+        if ($hasRebaja) {
+            $labels[] = 'REBAJA';
+        }
+
+        $fechaAlta = $product?->fecha_alta ? Carbon::parse($product->fecha_alta) : null;
+        $isNuevo = (($product?->opc_nuevo ?? 'N') === 'S')
+            || ($fechaAlta && $fechaAlta->greaterThanOrEqualTo(now()->subDays(30)));
+        if ($isNuevo) {
+            $labels[] = 'NUEVO';
+        }
+
+        $isProximamente = ! $hasRebaja && ($fechaAlta === null || $stockTotal <= 0.0001);
+        if ($isProximamente) {
+            $labels[] = 'PRÓXIMAMENTE';
+        }
+        return $labels;
     }
 
     /**

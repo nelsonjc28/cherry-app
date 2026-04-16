@@ -55,6 +55,11 @@
   font-weight: 600;
 }
 
+.cart-order-summary__discount-line span:last-child {
+  color: #27ae60;
+  font-weight: 600;
+}
+
 .cart-order-summary__divider {
   border-bottom: 1px solid #ececec;
   margin: 8px 0 8px 0;

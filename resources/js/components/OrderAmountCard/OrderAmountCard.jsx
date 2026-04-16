@@ -9,20 +9,31 @@ const formatMoney = (value) => {
 const OrderAmountCard = ({
   pieces = 0,
   subtotal = 0,
-  discount = 0,
-  discountThirtyAmount = 0,
-  discountAdditionalTenAmount = 0,
-  /** Porcentaje del primer tramo de volumen (30 oro/no-diamante, 33 diamante); por defecto 30 */
+  subtotalBase = 0,
+  /** Ahorro lista→precio en líneas sin rebaja (opcional; suele ser 0 si precio1 = price) */
+  discountLineMayoreo = 0,
+  discountRebaja = 0,
+  /** Mercancía a precio carrito antes del descuento por volumen (30%/+10%) */
+  subtotalMerchandise = 0,
+  /** Descuento por volumen (PriceService / summarizeVolumeFromCartItems) */
+  discountVolumeTotal = 0,
+  discountVolumeMain = 0,
+  discountVolumeExtra = 0,
+  /** Porcentaje del primer tramo de volumen (30 oro / 33 diamante) */
   volumeMainPercent = null,
   shipping = 0,
   isFreeShipping = false,
   total = 0,
   deliveryType = 'envio' // 'envio' or 'retiro'
 }) => {
-  // Convertir a número para asegurar comparación correcta
-  const discount30 = Number(discountThirtyAmount) || 0;
-  const discount10 = Number(discountAdditionalTenAmount) || 0;
-  const has30Percent = discount30 > 0;
+  const discount30 = Number(discountVolumeMain) || 0;
+  const discount10 = Number(discountVolumeExtra) || 0;
+  const baseSubtotalNum = Number(subtotalBase) || 0;
+  const lineMayoreoNum = Number(discountLineMayoreo) || 0;
+  const rebajaDiscountNum = Number(discountRebaja) || 0;
+  const merchandiseNum = Number(subtotalMerchandise) || 0;
+  const volumeTotalNum = Number(discountVolumeTotal) || 0;
+  const hasVolumeDiscount = volumeTotalNum > 0.0001;
   const has40Percent = discount30 > 0 && discount10 > 0;
   const mainPercentLabel = volumeMainPercent != null ? volumeMainPercent : 30;
 
@@ -35,16 +46,30 @@ const OrderAmountCard = ({
           <span>{pieces}</span>
         </div>
         <div className="cart-order-summary__row">
-          <span>Sub-Total</span>
-          <span>${formatMoney(subtotal)}</span>
+          <span>Subtotal Base</span>
+          <span>${formatMoney(baseSubtotalNum)}</span>
         </div>
-        {/* Descuento volumen: primer tramo (30% oro / 33% diamante) y opcional +10% sobre remanente */}
-        {has30Percent && (
+        {lineMayoreoNum > 0.0001 && (
+          <div className="cart-order-summary__row cart-order-summary__discount-line">
+            <span>Descuento precio lista / mayoreo (línea)</span>
+            <span className="cart-order-summary__free-shipping">-{formatMoney(lineMayoreoNum)}</span>
+          </div>
+        )}
+        <div className="cart-order-summary__row cart-order-summary__discount-line">
+          <span>Descuento por Rebaja</span>
+          <span className="cart-order-summary__free-shipping">-{formatMoney(rebajaDiscountNum)}</span>
+        </div>
+        <div className="cart-order-summary__row">
+          <span>Subtotal con rebaja</span>
+          <span>${formatMoney(merchandiseNum)}</span>
+        </div>
+        {/* Descuento por volumen (mismo cálculo que el backend / CartOrderSummary) */}
+        {hasVolumeDiscount && (
           <>
             {has40Percent ? (
               <>
                 <div className="cart-order-summary__row">
-                  <span>Descuento</span>
+                  <span>Descuento Mayoreo</span>
                   <span className="cart-order-summary__free-shipping">{mainPercentLabel}%</span>
                 </div>
                 <div className="cart-order-summary__row">
@@ -52,19 +77,19 @@ const OrderAmountCard = ({
                   <span className="cart-order-summary__free-shipping">10%</span>
                 </div>
                 <div className="cart-order-summary__row">
-                  <span>Total descuento</span>
-                  <span className="cart-order-summary__free-shipping">-${formatMoney(discount)}</span>
+                  <span>Total descuento por volumen</span>
+                  <span className="cart-order-summary__free-shipping">-${formatMoney(volumeTotalNum)}</span>
                 </div>
               </>
             ) : (
               <>
                 <div className="cart-order-summary__row">
-                  <span>Descuento</span>
+                  <span>Descuento Mayoreo</span>
                   <span className="cart-order-summary__free-shipping">{mainPercentLabel}%</span>
                 </div>
                 <div className="cart-order-summary__row">
-                  <span>Total descuento</span>
-                  <span className="cart-order-summary__free-shipping">-${formatMoney(discount30)}</span>
+                  <span>Total descuento por volumen</span>
+                  <span className="cart-order-summary__free-shipping">-${formatMoney(volumeTotalNum)}</span>
                 </div>
               </>
             )}
@@ -92,9 +117,13 @@ const OrderAmountCard = ({
 OrderAmountCard.propTypes = {
   pieces: PropTypes.number,
   subtotal: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  discount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  discountThirtyAmount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  discountAdditionalTenAmount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  subtotalBase: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  discountLineMayoreo: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  discountRebaja: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  subtotalMerchandise: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  discountVolumeTotal: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  discountVolumeMain: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  discountVolumeExtra: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   volumeMainPercent: PropTypes.number,
   shipping: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   isFreeShipping: PropTypes.bool,
@@ -103,5 +132,4 @@ OrderAmountCard.propTypes = {
 };
 
 export default OrderAmountCard;
-
 

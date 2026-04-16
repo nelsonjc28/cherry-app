@@ -75,6 +75,33 @@ class Address extends Model
     }
 
     /**
+     * Formato completo de dirección para panel administrativo.
+     */
+    public function getAdminFormattedAddressAttribute(): string
+    {
+        $street = trim((string) ($this->street_address ?? ''));
+        $noExt = trim((string) ($this->street_number_ext ?? ''));
+        $noInt = trim((string) ($this->street_number_int ?? ''));
+        $colonia = trim((string) ($this->colonia ?? ''));
+        $cp = trim((string) ($this->postal_code ?? ''));
+        $city = trim((string) ($this->city ?? ''));
+        $state = trim((string) ($this->state ?? ''));
+        $reference = trim((string) ($this->additional_info ?? ''));
+
+        return sprintf(
+            '%s No. Ext: %s, No. Int: %s, Col: %s, CP: %s, %s, %s. Ref: %s',
+            $street !== '' ? $street : 'Sin calle',
+            $noExt !== '' ? $noExt : 'S/N',
+            $noInt !== '' ? $noInt : 'S/N',
+            $colonia !== '' ? $colonia : 'Sin colonia',
+            $cp !== '' ? $cp : 'Sin CP',
+            $city !== '' ? $city : 'Sin ciudad',
+            $state !== '' ? $state : 'Sin estado',
+            $reference !== '' ? $reference : 'Sin referencias'
+        );
+    }
+
+    /**
      * Set this address as default and unset others for the same user.
      */
     public function setAsDefault()

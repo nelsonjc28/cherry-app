@@ -73,6 +73,17 @@ class Order extends Model
     }
 
     /**
+     * Etiqueta de método de entrega para admin y APIs.
+     * Con address_id → envío; sin address_id → retiro en tienda.
+     */
+    public function getShippingMethodLabelAttribute(): string
+    {
+        return $this->address_id !== null
+            ? 'Envío a Domicilio'
+            : 'Retiro en Tienda';
+    }
+
+    /**
      * Get the order items.
      */
     public function items(): HasMany

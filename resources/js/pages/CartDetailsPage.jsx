@@ -71,6 +71,8 @@ const CartDetailsPage = () => {
     clearCart,
     initCart
   } = useCartStore();
+  const getPricingSummary = useCartStore((state) => state.getPricingSummary);
+  const pricingSummary = getPricingSummary();
 
 
   const { user, fetchUser } = useUserStore();
@@ -1287,9 +1289,13 @@ const CartDetailsPage = () => {
             <OrderAmountCard
               pieces={totalItems}
               subtotal={baseTotal}
-              discount={dayFortyFiveDiscountAmount}
-              discountThirtyAmount={discountTwentyAmount}
-              discountAdditionalTenAmount={discountAdditionalTenAmount}
+              subtotalBase={pricingSummary.subtotalOriginal}
+              discountLineMayoreo={pricingSummary.ahorroMayoreoLinea ?? pricingSummary.ahorroMayoreo}
+              discountRebaja={pricingSummary.ahorroRebaja}
+              subtotalMerchandise={pricingSummary.merchandiseSubtotal}
+              discountVolumeTotal={dayFortyFiveDiscountAmount}
+              discountVolumeMain={discountTwentyAmount}
+              discountVolumeExtra={discountAdditionalTenAmount}
               volumeMainPercent={mainDiscountPercent}
               shipping={shippingAmount}
               isFreeShipping={isFreeShippingApplied}

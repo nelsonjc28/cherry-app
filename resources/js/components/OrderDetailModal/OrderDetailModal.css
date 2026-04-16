@@ -114,6 +114,32 @@
   font-weight: 600;
 }
 
+.order-detail-modal__pickup-banner {
+  margin: 0 0 20px;
+  padding: 14px 18px;
+  background: #e3f2fd;
+  border: 1px solid #2196f3;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 15px;
+  color: #0d47a1;
+  text-align: center;
+}
+
+.order-detail-modal__no-delivery-address {
+  margin: 0 0 20px;
+  padding: 12px 16px;
+  background: #fff8e1;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #5d4037;
+}
+
+.order-info-grid--delivery-address {
+  margin-bottom: 20px;
+}
+
 .info-label {
   font-weight: bold;
   margin-right: 10px;
@@ -154,6 +180,10 @@
   align-items: center;
   padding: 0.5rem 0;
   border-bottom: 1px solid #f1f3f4;
+}
+
+.info-row--full-width {
+  align-items: flex-start;
 }
 
 .info-row:last-child {
@@ -327,6 +357,37 @@
   margin-top: 3px;
 }
 
+.product-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.product-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+}
+
+.product-tag--rebaja {
+  background: #ffebee;
+  color: #b71c1c;
+}
+
+.product-tag--nuevo {
+  background: #e8f5e9;
+  color: #1b5e20;
+}
+
+.product-tag--proximamente {
+  background: #fff3e0;
+  color: #e65100;
+}
+
 .product-quantity,
 .product-price,
 .product-subtotal {
@@ -336,6 +397,27 @@
 
 .product-subtotal {
   font-weight: bold;
+}
+
+.product-price-breakdown {
+  grid-column: 1 / -1;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #d9d9d9;
+  display: grid;
+  gap: 8px;
+}
+
+.product-price-breakdown__line {
+  display: grid;
+  gap: 2px;
+  font-size: 12px;
+  color: #444;
+}
+
+.product-price-breakdown__variant {
+  font-weight: 600;
+  color: #222;
 }
 
 /* Breakdown table */

@@ -73,6 +73,7 @@ const AdminOrders = () => {
   const [highlightedOrderId, setHighlightedOrderId] = useState(null);
   const [selectedOrderForDetail, setSelectedOrderForDetail] = useState(null);
   const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
+  const [loadingOrderDetail, setLoadingOrderDetail] = useState(false);
   const [expandedRows, setExpandedRows] = useState(new Set());
   const [markingAsPaid, setMarkingAsPaid] = useState(false);
   const [orderToMarkAsPaid, setOrderToMarkAsPaid] = useState(null);
@@ -280,9 +281,22 @@ const AdminOrders = () => {
     }).format(amount);
   };
 
-  const handleViewOrderDetails = (order) => {
-    setSelectedOrderForDetail(order);
-    setShowOrderDetailModal(true);
+  const handleViewOrderDetails = async (order) => {
+    try {
+      setLoadingOrderDetail(true);
+      const response = await adminOrderService.getOrderDetails(order.id);
+      const detailedOrder = response?.data?.success ? response.data.order : order;
+      setSelectedOrderForDetail(detailedOrder);
+      setShowOrderDetailModal(true);
+    } catch (err) {
+      if (window.showToast) {
+        window.showToast('No se pudo cargar el detalle completo de la orden', 'warning');
+      }
+      setSelectedOrderForDetail(order);
+      setShowOrderDetailModal(true);
+    } finally {
+      setLoadingOrderDetail(false);
+    }
   };
 
   const handleCloseOrderDetailModal = () => {
@@ -459,6 +473,7 @@ const AdminOrders = () => {
                   <th>Fecha</th>
                   <th>Hora</th>
                   <th>Cliente</th>
+                  <th>Método de entrega</th>
                   <th>Cant. piezas</th>
                   <th>Total</th>
                   <th>Estado</th>
@@ -478,7 +493,10 @@ const AdminOrders = () => {
                     minute: '2-digit' 
                   });
                   const totalPieces = order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
-                  
+                  const deliveryLabel =
+                    order.shipping_method_label
+                    || (order.address ? 'Envío a Domicilio' : 'Retiro en Tienda');
+
                   // Obtener las primeras 3 imágenes de productos para mostrar como miniaturas
                   const productImages = order.items?.slice(0, 3).map(item => item.image).filter(Boolean) || [];
                   
@@ -521,6 +539,7 @@ const AdminOrders = () => {
                       <td className="order-date-cell">{dateStr}</td>
                       <td className="order-time-cell">{timeStr}</td>
                       <td className="order-customer-cell">{order.customerName || 'N/A'}</td>
+                      <td className="order-delivery-cell">{deliveryLabel}</td>
                       <td className="order-pieces-cell">{totalPieces}</td>
                       <td className="order-total-cell">{formatCurrency(order.totalAmount)}</td>
                       <td className="order-status-cell">
@@ -533,6 +552,7 @@ const AdminOrders = () => {
                           <button
                             className="order-action-btn order-action-btn--detail"
                             onClick={() => handleViewOrderDetails(order)}
+                            disabled={loadingOrderDetail}
                             data-tooltip="Ver Detalle"
                             onMouseEnter={(e) => {
                               const button = e.currentTarget;
@@ -556,7 +576,7 @@ const AdminOrders = () => {
                               if (tooltip) tooltip.style.display = 'none';
                             }}
                           >
-                            👁️
+                            {loadingOrderDetail ? '⏳' : '👁️'}
                           </button>
                           {!isOperator && ((order.paid_with_credit && order.credit_used > 0) || (order.is_advance_order && order.status !== 'pagado')) && (
                             <button

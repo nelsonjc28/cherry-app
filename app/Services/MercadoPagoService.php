@@ -153,6 +153,14 @@ class MercadoPagoService
                 'expiration_date_from' => now()->toISOString(),
                 'expiration_date_to' => now()->addHours(24)->toISOString()
             ];
+
+            // Checkout Pro: permitir métodos offline (ticket/OXXO).
+            // Si algún flujo inyecta exclusiones, nunca excluir "ticket".
+            $excludedTypes = $preferenceData['payment_methods']['excluded_payment_types'] ?? [];
+            $preferenceData['payment_methods']['excluded_payment_types'] = array_values(array_filter(
+                $excludedTypes,
+                fn ($type) => (($type['id'] ?? null) !== 'ticket')
+            ));
             
             // Agregar notification_url solo si tenemos URL pública (real o ngrok)
             // Si es localhost sin ngrok, el webhook se deshabilita (se procesa al regresar)

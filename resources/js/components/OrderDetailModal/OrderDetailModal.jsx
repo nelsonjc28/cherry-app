@@ -171,6 +171,10 @@ const groupOrderItemsByProduct = (items) => {
       hasDiscount: !!item.has_discount,
       originalPrice: orig,
       discountPercentage: item.discount_percentage || 0,
+      discountAmount: parseFloat(item.discount_amount) || 0,
+      finalUnitPrice: parseFloat(item.final_unit_price ?? item.price) || 0,
+      productLabels: Array.isArray(item.product_labels) ? item.product_labels : [],
+      descPromo: item.desc_promo ?? null,
       barcode: item.barcode || null
     });
     row.totalQuantity += qty;
@@ -180,6 +184,17 @@ const groupOrderItemsByProduct = (items) => {
   return Array.from(map.values());
 };
 
+const buildStreetWithNumbers = (addr) => {
+  if (!addr) return '';
+  const base = (addr.street_address || '').trim();
+  const ext = addr.street_number_ext ? `Ext. ${String(addr.street_number_ext).trim()}` : '';
+  const intl = addr.street_number_int ? `Int. ${String(addr.street_number_int).trim()}` : '';
+  const nums = [ext, intl].filter(Boolean).join(' · ');
+  return nums ? `${base} ${nums}`.trim() : base;
+};
+
+const formatMoney = (value) => `$${(parseFloat(value) || 0).toFixed(2)}`;
+
 const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, isAdmin = false }) => {
   if (!isOpen || !order) return null;
 
@@ -187,6 +202,11 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
     () => groupOrderItemsByProduct(order.items),
     [order.items]
   );
+
+  const shippingMethodLabel =
+    order.shipping_method_label ||
+    (order.address ? 'Envío a Domicilio' : 'Retiro en Tienda');
+  const isPickup = shippingMethodLabel === 'Retiro en Tienda';
 
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
@@ -255,15 +275,39 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
               </div>
             )}
 
-            {/* Dirección de envío */}
-            {order.address && (
-              <div className="info-section">
-                <h3>Dirección de Envío</h3>
+            {/* Método de entrega (admin / cliente) */}
+            <div className="info-section">
+              <h3>Método de entrega</h3>
+              <div className="order-detail-info">
+                <div className="info-row">
+                  <span className="info-label">Tipo:</span>
+                  <span>{shippingMethodLabel}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {isPickup && (
+            <div className="order-detail-modal__pickup-banner" role="status">
+              Cliente retira en sucursal
+            </div>
+          )}
+
+          {!isPickup && order.address && (
+            <div className="order-info-grid order-info-grid--delivery-address">
+              <div className="info-section" style={{ gridColumn: '1 / -1' }}>
+                <h3>Dirección de envío</h3>
                 <div className="order-detail-info">
-                  {order.address.street_address && (
+                  {order.address.full_address && (
+                    <div className="info-row info-row--full-width">
+                      <span className="info-label">Dirección completa:</span>
+                      <span>{order.address.full_address}</span>
+                    </div>
+                  )}
+                  {(order.address.street_address || order.address.street_number_ext || order.address.street_number_int) && (
                     <div className="info-row">
-                      <span className="info-label">Dirección:</span>
-                      <span>{order.address.street_address}</span>
+                      <span className="info-label">Calle y número:</span>
+                      <span>{buildStreetWithNumbers(order.address) || order.address.street_address}</span>
                     </div>
                   )}
                   {order.address.colonia && (
@@ -298,8 +342,14 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
                   )}
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {!isPickup && !order.address && (
+            <div className="order-detail-modal__no-delivery-address">
+              Envío a domicilio: no hay dirección registrada en esta orden.
+            </div>
+          )}
 
           {/* Total de piezas */}
           <div className="total-pieces">
@@ -483,6 +533,7 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
                 const anyDiscount = row.variants.some(
                   (v) => v.hasDiscount && v.originalPrice != null && v.originalPrice > v.price
                 );
+                const rowLabels = [...new Set(row.variants.flatMap((v) => v.productLabels || []))];
 
                 return (
                   <div key={row.key} className="product-item">
@@ -500,6 +551,15 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
                       <div className="product-details__main">
                         <div className="product-name">{row.title}</div>
                         <div className="product-id">ID: {row.productId}</div>
+                        {rowLabels.length > 0 && (
+                          <div className="product-tags">
+                            {rowLabels.map((label) => (
+                              <span key={`${row.key}-${label}`} className={`product-tag product-tag--${label.toLowerCase().replace('ó', 'o').replace('á', 'a')}`}>
+                                {label}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div className="product-variant-col">
                         <span className="product-variant-col__label">Color</span>
@@ -536,13 +596,46 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
                                 (mismo precio en todas las líneas)
                               </span>
                             ) : null}
-                            <span>Precio: ${singleUnitPrice.toFixed(2)}</span>
+                            <span>Precio final: {formatMoney(singleUnitPrice)}</span>
                           </>
                         ) : (
                           <span style={{ fontSize: '12px', color: '#555' }}>Varios precios</span>
                         )}
                       </div>
                       <div className="product-subtotal">${row.totalSubtotal.toFixed(2)}</div>
+                      <div className="product-price-breakdown">
+                        <div className="product-item__breakdown-table-wrapper">
+                          <table className="product-item__breakdown-table">
+                            <thead>
+                              <tr>
+                                <th>Variante</th>
+                                <th>Precio original</th>
+                                <th>Descuento aplicado</th>
+                                <th>Precio final pagado</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {row.variants.map((v) => (
+                                <tr key={`${v.key}-price-breakdown`}>
+                                  <td className="product-price-breakdown__variant">
+                                    {(v.color || '—')} / {(v.size || '—')} x {v.quantity}
+                                  </td>
+                                  <td>
+                                    {v.originalPrice != null && v.originalPrice > 0
+                                      ? formatMoney(v.originalPrice)
+                                      : formatMoney(v.finalUnitPrice)}
+                                  </td>
+                                  <td>
+                                    {formatMoney(v.discountAmount)}
+                                    {v.discountPercentage > 0 ? ` (${v.discountPercentage}%)` : ''}
+                                  </td>
+                                  <td>{formatMoney(v.finalUnitPrice)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );

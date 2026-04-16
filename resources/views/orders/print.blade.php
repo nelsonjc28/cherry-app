@@ -159,6 +159,37 @@
             margin-top: 3px;
         }
 
+        .product-tags {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .product-tag {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 999px;
+            text-transform: uppercase;
+            letter-spacing: 0.2px;
+        }
+
+        .product-tag--rebaja {
+            background: #ffebee;
+            color: #b71c1c;
+        }
+
+        .product-tag--nuevo {
+            background: #e8f5e9;
+            color: #1b5e20;
+        }
+
+        .product-tag--proximamente {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
         .product-quantity,
         .product-price,
         .product-subtotal {
@@ -168,6 +199,59 @@
 
         .product-subtotal {
             font-weight: bold;
+        }
+
+        .product-item__breakdown-table-wrapper {
+            grid-column: 1 / -1;
+            overflow-x: auto;
+            margin-top: 8px;
+            border: 1px solid #e9ecef;
+            border-radius: 0.5rem;
+            background: white;
+        }
+
+        .product-item__breakdown-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .product-item__breakdown-table thead {
+            background-color: #f8f9fa;
+        }
+
+        .product-item__breakdown-table th {
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #e9ecef;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .product-item__breakdown-table td {
+            padding: 0.55rem 0.8rem;
+            border-bottom: 1px solid #f1f3f4;
+            color: #444;
+            vertical-align: top;
+            font-size: 12px;
+        }
+
+        .product-item__breakdown-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .delivery-pickup-notice {
+            margin-top: 8px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            background: #fff3e0;
+            color: #e65100;
+            font-weight: 700;
+            font-size: 12px;
+            border: 1px solid #ffd9b0;
         }
 
         .summary-section {
@@ -271,25 +355,42 @@
             @endif
         </div>
 
+        <div class="info-section">
+            <h3>Método de Entrega</h3>
+            <div class="info-row">
+                <span class="info-label">Método:</span>
+                <span>{{ $shippingMethodLabel }}</span>
+            </div>
+            @if(!$order->address)
+            <div class="delivery-pickup-notice">Cliente retira en sucursal</div>
+            @endif
+        </div>
+
         @if($order->address)
         <div class="info-section">
             <h3>Dirección de Envío</h3>
+            @if($addressFull)
+            <div class="info-row">
+                <span class="info-label">Completa:</span>
+                <span>{{ $addressFull }}</span>
+            </div>
+            @endif
             @if($order->address->street_address)
             <div class="info-row">
-                <span class="info-label">Dirección:</span>
+                <span class="info-label">Calle:</span>
                 <span>{{ $order->address->street_address }}</span>
+            </div>
+            @endif
+            @if($order->address->street_number_ext || $order->address->street_number_int)
+            <div class="info-row">
+                <span class="info-label">Número:</span>
+                <span>Ext: {{ $order->address->street_number_ext ?: 'S/N' }}, Int: {{ $order->address->street_number_int ?: 'S/N' }}</span>
             </div>
             @endif
             @if($order->address->colonia)
             <div class="info-row">
                 <span class="info-label">Colonia:</span>
                 <span>{{ $order->address->colonia }}</span>
-            </div>
-            @endif
-            @if($order->address->municipality)
-            <div class="info-row">
-                <span class="info-label">Municipio:</span>
-                <span>{{ $order->address->municipality }}</span>
             </div>
             @endif
             @if($order->address->city)
@@ -327,6 +428,15 @@
                 <div class="product-details__main">
                     <div class="product-name">{{ $item['name'] }}</div>
                     <div class="product-id">ID: {{ $item['product_id'] }}</div>
+                    @if(!empty($item['labels']))
+                    <div class="product-tags">
+                        @foreach($item['labels'] as $label)
+                        <span class="product-tag product-tag--{{ strtolower(str_replace(['Ó','Á','É','Í','Ú','ó','á','é','í','ú'], ['o','a','e','i','u','o','a','e','i','u'], $label)) }}">
+                            {{ $label }}
+                        </span>
+                        @endforeach
+                    </div>
+                    @endif
                 </div>
                 <div class="product-variant-col">
                     <span class="product-variant-col__label">Color</span>
@@ -364,6 +474,33 @@
                 </div>
                 <div class="product-subtotal">
                     ${{ number_format($item['total_subtotal'], 2) }}
+                </div>
+                <div class="product-item__breakdown-table-wrapper">
+                    <table class="product-item__breakdown-table">
+                        <thead>
+                            <tr>
+                                <th>Variante</th>
+                                <th>Precio original</th>
+                                <th>Descuento aplicado</th>
+                                <th>Precio final pagado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($item['variants'] as $v)
+                            <tr>
+                                <td>{{ ($v['color'] ?? '—') }} / {{ ($v['size'] ?? '—') }} x {{ $v['quantity'] }}</td>
+                                <td>${{ number_format((float) ($v['original_price'] ?? 0), 2) }}</td>
+                                <td>
+                                    ${{ number_format((float) ($v['discount_amount'] ?? 0), 2) }}
+                                    @if(!empty($v['discount_percentage']))
+                                        ({{ (int) $v['discount_percentage'] }}%)
+                                    @endif
+                                </td>
+                                <td>${{ number_format((float) ($v['final_unit_price'] ?? $v['price'] ?? 0), 2) }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

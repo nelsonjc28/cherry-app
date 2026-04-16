@@ -35,6 +35,29 @@ const calculateItemPrice = (item) => {
   return itemPrice * quantity;
 };
 
+const getPaidQuantity = (item) => {
+  if (item?._paidQuantity !== undefined && item?._paidQuantity !== null) {
+    const paid = Number(item._paidQuantity);
+    return Number.isFinite(paid) ? Math.max(0, paid) : 0;
+  }
+  const qty = Number(item?.quantity ?? 0);
+  return Number.isFinite(qty) ? Math.max(0, qty) : 0;
+};
+
+const hasPromoDiscount = (item) => {
+  const promoCandidates = [
+    item?.desc_promo,
+    item?.descPromo,
+    item?.catalog_offer_discount,
+    item?.catalogOffer?.discount_percentage,
+  ];
+  return promoCandidates.some((raw) => {
+    if (raw === null || raw === undefined || raw === '') return false;
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0.0001;
+  });
+};
+
 /**
  * Helper function to check if user is authenticated
  */
@@ -796,7 +819,63 @@ const useCartStore = create(
           // Si no hay sesión, guardar inmediatamente en localStorage
           saveCartToLocalStorage(items, totalItems, totalPrice, get().couponCode, get().discount);
         }
-      }
+      },
+
+      // Resumen de precios para totalizer (carrito/checkout)
+      getPricingSummary: () => {
+        const { items } = get();
+        let subtotalOriginal = 0;
+        /** Ahorro lista → precio unitario en carrito (items sin desc_promo / oferta catálogo) */
+        let ahorroMayoreoLinea = 0;
+        /** Ahorro por rebaja (desc_promo u ofertas de catálogo en la línea) */
+        let ahorroRebaja = 0;
+        /** Subtotal de mercancía a precio de carrito (antes del descuento por volumen global) */
+        let merchandiseSubtotal = 0;
+
+        items.forEach((item) => {
+          merchandiseSubtotal += calculateItemPrice(item);
+
+          const quantity = Number(item?.quantity ?? 0);
+          if (!Number.isFinite(quantity) || quantity <= 0) return;
+
+          const paidQty = getPaidQuantity(item);
+          const listUnitPrice = Number(item?.precio1 ?? item?.originalPrice ?? item?.price ?? item?.precio ?? 0);
+          const finalUnitPrice = Number(item?.price ?? item?.precio ?? 0);
+
+          if (!Number.isFinite(listUnitPrice) || listUnitPrice <= 0) return;
+
+          subtotalOriginal += listUnitPrice * quantity;
+
+          const pricedQty = paidQty > 0 ? paidQty : quantity;
+          const perUnitSaving = Math.max(0, listUnitPrice - (Number.isFinite(finalUnitPrice) ? finalUnitPrice : 0));
+          const lineSaving = perUnitSaving * pricedQty;
+
+          if (lineSaving > 0) {
+            if (hasPromoDiscount(item)) {
+              ahorroRebaja += lineSaving;
+            } else {
+              ahorroMayoreoLinea += lineSaving;
+            }
+          }
+        });
+
+        const round2 = (v) => Math.round((Number(v) + Number.EPSILON) * 100) / 100;
+        subtotalOriginal = round2(subtotalOriginal);
+        ahorroMayoreoLinea = round2(ahorroMayoreoLinea);
+        ahorroRebaja = round2(ahorroRebaja);
+        merchandiseSubtotal = round2(merchandiseSubtotal);
+
+        return {
+          subtotalOriginal,
+          /** Compat: antes se llamaba ahorroMayoreo (solo línea lista→precio, sin tramo volumen 30%) */
+          ahorroMayoreo: ahorroMayoreoLinea,
+          ahorroMayoreoLinea,
+          ahorroRebaja,
+          /** Precio carrito antes del % de volumen (coincide con totalPrice del store) */
+          merchandiseSubtotal,
+          subtotalFinal: merchandiseSubtotal,
+        };
+      },
     }),
     {
       name: 'cherry-central-cart',
