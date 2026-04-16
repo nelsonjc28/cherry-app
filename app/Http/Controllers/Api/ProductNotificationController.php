@@ -23,10 +23,9 @@ class ProductNotificationController extends Controller
             return response()->json(['message' => 'Producto no encontrado.'], 404);
         }
 
-        $inventario = (float) $producto->inventario;
-        $isComingSoon = $producto->fecha_alta === null || $inventario <= 0;
+        $producto->loadMissing('detalles');
 
-        if (! $isComingSoon) {
+        if (! $producto->is_coming_soon) {
             return response()->json([
                 'message' => 'Este producto ya está disponible; no es necesario registrarte.',
             ], 422);

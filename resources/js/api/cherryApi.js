@@ -1,6 +1,7 @@
 import axios from 'axios';
 import api from '../config/axios';
 import productCache from '../utils/productCacheInMemory';
+import { getProductCardStockStatus } from '../utils/productUtils';
 
 const CHERRY_API_URL = 'https://cherryapi.estrategiadmgs.com.mx/cherryApi/';
 
@@ -413,6 +414,7 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
     colors: colors,
     sizes: sizes,
     stock: apiProduct.inventario || apiProduct.stock || 0,
+    stock_received_count: apiProduct.stock_received_count ?? 0,
     isActive: apiProduct.activo === 1 || apiProduct.active === true,
     isNew: isProductNew(apiProduct),
     isPromo: apiProduct.opc_promo === 'S' || apiProduct.is_promo === true,
@@ -425,7 +427,10 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
     // Mantener detalles originales para filtros
     detalles: apiProduct.detalles || []
   };
-  
+
+  mappedProduct.isComingSoon =
+    getProductCardStockStatus(mappedProduct) === 'coming-soon';
+
   return mappedProduct;
 };
 

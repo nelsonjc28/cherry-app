@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import FavoriteButton from '../../FavoriteButton/FavoriteButton';
 import StarRating from '../../StarRating/StarRating';
 import { formatPrice } from '../../../utils/formatters';
+import { hasActiveDescPromo } from '../../../utils/productUtils';
 import './BestSellerCard.css';
 
 const BestSellerCard = ({ id, title, image, price, originalPrice, discount, userOffer, hasUserOffer, rating, totalRatings, description, stock = 0, isNew = false, onFavoriteToggle, product, stock_received_count = 0, stockReceivedCount = 0 }) => {
@@ -56,8 +57,9 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
   if (stockReceivedCountValue > 0 && stock === 0) {
     // Si stock_received_count > 0, nunca mostrar "Próximamente"
     shouldShowComingSoon = false;
+  } else if (hasActiveDescPromo(product)) {
+    shouldShowComingSoon = false;
   } else {
-    // Solo verificar "Próximamente" si stock_received_count === 0
     const productId = String(id || '');
     const tercerDigito = productId.length > 2 ? productId[2] : null;
     const currentYearLastDigit = String(new Date().getFullYear() % 10);

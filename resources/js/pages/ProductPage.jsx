@@ -33,6 +33,7 @@ import { favoriteService } from '../services/api';
 
 // Utils
 import { formatPrice } from '../utils/formatters';
+import { hasActiveDescPromo } from '../utils/productUtils';
 import useHorizontalDragScroll from '../hooks/useHorizontalDragScroll';
 import colorConverter from '../services/colorConverter';
 import { validateStock, getProductStock } from '../services/inventoryService';

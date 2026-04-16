@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import FavoriteButton from '../FavoriteButton/FavoriteButton';
 import StarRating from '../StarRating/StarRating';
 import { formatPrice } from '../../utils/formatters';
+import { getProductCardStockStatus } from '../../utils/productUtils';
 import './CatalogProductCard.css';
 import { getIconPath } from '../../utils/assetPaths';
 import colorConverter from '../../services/colorConverter';
@@ -95,48 +96,15 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
     return parseFloat(stock || inventario || 0);
   };
 
-  // Función para determinar si debe mostrar "Próximamente" o "Agotado"
-  // REGLA DE NEGOCIO GLOBAL: Lógica de Etiquetas de Disponibilidad
-  // - "Próximamente": Si el tercer dígito del ID (índice 2) coincide con el último dígito del año actual
-  //   Y stock === 0 Y stock_received_count === 0
-  // - "Agotado": Si stock === 0 Y (el tercer dígito del ID NO coincide con el último dígito del año actual O stock_received_count > 0)
-  const getStockStatus = () => {
-    const totalStock = calculateTotalStock();
-    
-    // Obtener stock_received_count del producto y asegurar que sea un número
-    const stockReceivedCountValue = parseInt(product?.stock_received_count || stockReceivedCount || 0, 10);
-    
-    // REGLA CRÍTICA: Si stock_received_count > 0 y stock === 0, SIEMPRE mostrar "Agotado"
-    // independientemente del tercer dígito del ID
-    if (stockReceivedCountValue > 0 && totalStock === 0) {
-      return 'out-of-stock';
-    }
-    
-    // Si tiene stock, no mostrar badge de stock
-    if (totalStock > 0) {
-      return null;
-    }
-    
-    // Obtener el ID del producto como string y calcular el último dígito del año actual
-    const productId = String(id || '');
-    const tercerDigito = productId.length > 2 ? productId[2] : null;
-    const currentYearLastDigit = String(new Date().getFullYear() % 10);
-    const isComingSoon = tercerDigito === currentYearLastDigit;
-    
-    // PRIORIDAD 1: Si el tercer dígito del ID coincide con el último dígito del año actual
-    // Y stock === 0 Y stock_received_count === 0, mostrar "Próximamente"
-    if (isComingSoon && totalStock === 0 && stockReceivedCountValue === 0) {
-      return 'coming-soon';
-    }
-    
-    // PRIORIDAD 2: Si stock === 0 Y (el tercer dígito NO coincide con el último dígito del año actual O stock_received_count > 0), mostrar "Agotado"
-    if (totalStock === 0 && (!isComingSoon || stockReceivedCountValue > 0)) {
-      return 'out-of-stock';
-    }
-    
-    // Fallback: Sin stock disponible - mostrar "Agotado"
-    return 'out-of-stock';
-  };
+  const getStockStatus = () =>
+    getProductCardStockStatus({
+      ...product,
+      id: id ?? product?.id,
+      stock,
+      inventario,
+      stock_received_count,
+      stockReceivedCount
+    });
 
   const stockStatus = getStockStatus();
 

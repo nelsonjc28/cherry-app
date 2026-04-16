@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -122,6 +123,7 @@ class Producto extends Model
         'opcinsert',
         'cantidad',
         'inventario',
+        'stock_received_count',
         'idTienda',
         'descuento'
     ];
@@ -166,6 +168,7 @@ class Producto extends Model
         'cantidad' => 'decimal:2',
         'inventario' => 'decimal:2',
         'descuento' => 'decimal:2',
+        'stock_received_count' => 'integer',
     ];
 
     /**
@@ -203,5 +206,104 @@ class Producto extends Model
     public function productNotifications(): HasMany
     {
         return $this->hasMany(ProductNotification::class, 'producto_id', 'id');
+    }
+
+    /**
+     * Oferta por desc_promo (valor numérico > 0). Si aplica, el producto no debe tratarse como "Próximamente".
+     */
+    public function hasActiveDescPromoOffer(): bool
+    {
+        $raw = $this->attributes['desc_promo'] ?? null;
+        if ($raw === null || $raw === '') {
+            return false;
+        }
+
+        return (float) $raw > 0.00001;
+    }
+
+    /**
+     * Inventario total: suma de detalles si están cargados; si no, campo inventario/piezas.
+     */
+    public function computeTotalInventoryQuantity(): float
+    {
+        if ($this->relationLoaded('detalles') && $this->detalles->isNotEmpty()) {
+            return (float) $this->detalles->sum('inventario_d');
+        }
+
+        return (float) ($this->inventario ?? $this->piezas ?? 0);
+    }
+
+    /**
+     * Próximamente: candidato por año + sin stock + sin recepciones previas, y SIN oferta desc_promo.
+     * Además: (fecha_alta es null o stock total <= 0), alineado con reglas de negocio y listados.
+     */
+    public function getIsComingSoonAttribute(): bool
+    {
+        if ($this->hasActiveDescPromoOffer()) {
+            return false;
+        }
+
+        $total = $this->computeTotalInventoryQuantity();
+        if ($total > 0.00001) {
+            return false;
+        }
+
+        if ((int) ($this->stock_received_count ?? 0) > 0) {
+            return false;
+        }
+
+        $idStr = (string) $this->getKey();
+        if (strlen($idStr) < 3) {
+            return false;
+        }
+
+        return (int) $idStr[2] === ((int) date('Y') % 10);
+    }
+
+    /**
+     * Misma lógica que {@see getIsComingSoonAttribute()} para filas stdClass/array (ProductController con DB::table).
+     *
+     * @param  object|array<string, mixed>  $row
+     */
+    public static function evaluateIsComingSoonFromRow(object|array $row, float $inventoryTotal): bool
+    {
+        $desc = (float) (is_array($row) ? ($row['desc_promo'] ?? 0) : ($row->desc_promo ?? 0));
+        if ($desc > 0.00001) {
+            return false;
+        }
+
+        if ($inventoryTotal > 0.00001) {
+            return false;
+        }
+
+        $idStr = (string) (is_array($row) ? ($row['id'] ?? '') : ($row->id ?? ''));
+        if (strlen($idStr) < 3) {
+            return false;
+        }
+
+        if ((int) $idStr[2] !== ((int) date('Y') % 10)) {
+            return false;
+        }
+
+        $received = (int) (is_array($row) ? ($row['stock_received_count'] ?? 0) : ($row->stock_received_count ?? 0));
+        if ($received > 0) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Filtro SQL para listados "Próximamente": sin oferta activa en desc_promo.
+     *
+     * @param  Builder<\App\Models\Producto>  $query
+     * @return Builder<\App\Models\Producto>
+     */
+    public function scopeWithoutActiveDescPromo(Builder $query): Builder
+    {
+        return $query->where(function (Builder $w) {
+            $w->whereNull('desc_promo')
+                ->orWhere('desc_promo', '<=', 0);
+        });
     }
 }

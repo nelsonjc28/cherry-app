@@ -112,6 +112,12 @@ class ProductController extends Controller
                 $rating = round($sumRatings / $ratingCount, 2);
             }
 
+            $inventarioSumDetalles = collect($detalles)->sum(fn (array $d) => (float) ($d['inventario_d'] ?? 0));
+            $inventarioTotalProducto = $inventarioSumDetalles > 0.00001
+                ? $inventarioSumDetalles
+                : (float) ($producto->inventario ?? 0);
+            $isComingSoon = Producto::evaluateIsComingSoonFromRow($producto, $inventarioTotalProducto);
+
             // Obtener reseñas aprobadas con información del usuario
             $approvedReviews = Review::where('product_id', $id)
                 ->where('is_approved', true)
@@ -187,7 +193,8 @@ class ProductController extends Controller
                     'opc_nuevo' => $producto->opc_nuevo ?? 'N',
                     'opc_promo' => $producto->opc_promo ?? 'N',
                     'desc_promo' => (float) ($producto->desc_promo ?? 0),
-                    
+                    'is_coming_soon' => $isComingSoon,
+
                     // Campos calculados
                     'price' => $finalPrice, // Precio final con descuento reducido aplicado
                     'precio1' => $precio1, // Precio base original
@@ -425,6 +432,10 @@ class ProductController extends Controller
                 )
                 ->whereRaw('SUBSTRING(productos.id, 3, 1) = ?', [$currentYearLastDigit]) // Condición 2: Tercer dígito debe coincidir con último dígito del año
                 ->where('productos.stock_received_count', '=', 0) // Condición 3: stock_received_count debe ser 0
+                ->where(function ($q) {
+                    $q->whereNull('productos.desc_promo')
+                        ->orWhere('productos.desc_promo', '<=', 0);
+                })
                 ->inRandomOrder()
                 ->distinct();
             
