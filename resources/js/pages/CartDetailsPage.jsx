@@ -1127,10 +1127,14 @@ const CartDetailsPage = () => {
       ? '¡Felicidades! Has alcanzado el descuento máximo disponible'
       : `¡Increíble! Tienes el descuento máximo del ${mainDiscountPercent}% + 10% adicional`;
     
-    if (eligibleTotal < DISCOUNT_30_THRESHOLD) {
+    // Bronce sin beneficio 45 días: el mensaje "falta $X para el 30%" ya va arriba (💡); no duplicar con el tramo genérico.
+    const skipFirstVolumeTier =
+      isBronzeUser && !bronzeBenefitActive && eligibleTotal < DISCOUNT_30_THRESHOLD;
+
+    if (eligibleTotal < DISCOUNT_30_THRESHOLD && !skipFirstVolumeTier) {
       const remaining = DISCOUNT_30_THRESHOLD - eligibleTotal;
       const isNear = eligibleTotal >= (DISCOUNT_30_THRESHOLD * NEAR_THRESHOLD_PERCENT);
-      
+
       if (isNear) {
         alerts.push({
           type: 'near',
