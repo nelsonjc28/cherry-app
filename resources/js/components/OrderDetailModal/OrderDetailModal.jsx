@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import CherryButton from '../CherryButton/CherryButton';
 import api from '../../config/axios';
+import useUserStore from '../../store/userStore';
 import './OrderDetailModal.css';
 import { buildStreetWithNumbers } from '../../utils/addressDisplay';
 
@@ -188,12 +189,17 @@ const groupOrderItemsByProduct = (items) => {
 const formatMoney = (value) => `$${(parseFloat(value) || 0).toFixed(2)}`;
 
 const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, isAdmin = false }) => {
-  if (!isOpen || !order) return null;
+  const viewerUser = useUserStore((s) => s.user);
+  const showMercadoPagoPayActions =
+    isAdmin ||
+    !['oro', 'diamante'].includes(String(viewerUser?.seller_category || '').toLowerCase());
 
   const groupedRows = React.useMemo(
-    () => groupOrderItemsByProduct(order.items),
-    [order.items]
+    () => (order?.items?.length ? groupOrderItemsByProduct(order.items) : []),
+    [order?.items]
   );
+
+  if (!isOpen || !order) return null;
 
   const shippingMethodLabel =
     order.shipping_method_label ||
@@ -396,7 +402,9 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
                         </span>
                       </div>
                     )}
-                    {order.amount_pending > 0 && order.statusRaw === 'pendiente_pago' && (
+                    {showMercadoPagoPayActions &&
+                      order.amount_pending > 0 &&
+                      order.statusRaw === 'pendiente_pago' && (
                       <div className="info-row" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e0e0e0' }}>
                         <RetryRemainderPaymentButton orderId={order.id} />
                       </div>
@@ -404,7 +412,8 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
                   </>
                 )}
                 {/* Split crédito + MP: la orden del faltante no lleva paid_with_credit pero sí pendiente_pago */}
-                {!order.paid_with_credit &&
+                {showMercadoPagoPayActions &&
+                  !order.paid_with_credit &&
                   order.statusRaw === 'pendiente_pago' &&
                   parseFloat(order.amount_pending ?? order.totalAmount ?? 0) > 0.01 && (
                     <div className="info-row" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e0e0e0' }}>

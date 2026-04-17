@@ -4,6 +4,7 @@ import CherryButton from '../../components/CherryButton/CherryButton';
 import OrderDetailModal from '../../components/OrderDetailModal/OrderDetailModal';
 import { orderService } from '../../services/api';
 import api from '../../config/axios';
+import useUserStore from '../../store/userStore';
 import './MyOrders.css';
 
 const mercadoPagoUrlFromPayload = (d) => {
@@ -25,6 +26,11 @@ const formatOrderNumber = (order) => {
 };
 
 const MyOrders = () => {
+  const user = useUserStore((s) => s.user);
+  const showMercadoPagoPayActions = !['oro', 'diamante'].includes(
+    String(user?.seller_category || '').toLowerCase()
+  );
+
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -318,8 +324,9 @@ const MyOrders = () => {
                       </td>
                       <td className="order-actions-cell">
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
-                          {/* Botón para pagar saldo pendiente (cuando se pagó parcialmente con crédito) */}
-                          {order.paid_with_credit &&
+                          {/* Botón para pagar saldo pendiente (cuando se pagó parcialmente con crédito); no aplica a Oro/Diamante (liquidación admin / pedido directo) */}
+                          {showMercadoPagoPayActions &&
+                           order.paid_with_credit &&
                            parseFloat(order.amount_pending || 0) > 0 &&
                            order.statusRaw === 'pendiente_pago' && (
                             <button
@@ -351,8 +358,9 @@ const MyOrders = () => {
                               💳
                             </button>
                           )}
-                          {/* Botón para pagar orden pendiente completa */}
-                          {(order.statusRaw === 'pending' || order.statusRaw === 'pendiente_pago') &&
+                          {/* Botón para pagar orden pendiente completa; no aplica a Oro/Diamante */}
+                          {showMercadoPagoPayActions &&
+                           (order.statusRaw === 'pending' || order.statusRaw === 'pendiente_pago') &&
                            !order.paid_with_credit && (
                             <button
                               className="order-action-btn order-action-btn--pay"

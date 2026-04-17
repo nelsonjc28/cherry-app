@@ -273,6 +273,20 @@ const AdminOrders = () => {
     return getStatusColor(st);
   };
 
+  const isPendingPaymentStatus = (order) => {
+    const s = (order?.status || '').toString().toLowerCase();
+    return s === 'pendiente_pago' || s === 'pending_payment';
+  };
+
+  /** Flujo que usa POST mark-credit-paid (anticipo / crédito Oro-Diamante). Resto: PUT status pagado. */
+  const shouldUseMarkCreditPaidEndpoint = (order) => {
+    if (!order) return false;
+    const isAdvance = !!order.is_advance_order;
+    const creditUsed = parseFloat(order.credit_used ?? 0);
+    const isCredit = !!order.paid_with_credit && creditUsed > 0.0001;
+    return isAdvance || isCredit;
+  };
+
   const getStatusOptions = (currentStatus) => {
     const statusFlow = {
       'pending': ['pagado'],
@@ -329,45 +343,52 @@ const AdminOrders = () => {
 
     try {
       setMarkingAsPaid(true);
-      const response = await adminOrderService.markCreditOrderAsPaid(orderToMarkAsPaid.id);
-      
+      const useCreditEndpoint = shouldUseMarkCreditPaidEndpoint(orderToMarkAsPaid);
+      const response = useCreditEndpoint
+        ? await adminOrderService.markCreditOrderAsPaid(orderToMarkAsPaid.id)
+        : await adminOrderService.updateOrderStatus(orderToMarkAsPaid.id, 'pagado');
+
       if (response.data.success) {
-        // Actualizar la orden en el estado local
-        setOrders(orders.map(order => 
-          order.id === orderToMarkAsPaid.id 
-            ? { 
-                ...order, 
-                status: 'pagado',
-                statusDisplay: 'Pagado',
-                amount_pending: 0,
-                amount_paid: order.total_amount,
-                credit_used: 0 // Establecer crédito usado en 0 cuando se marca como pagada
-              }
-            : order
-        ));
-        
-        // Si el modal de detalles está abierto para esta orden, actualizarlo también
+        const statusDisplay = response.data.statusDisplay || 'Pagado';
+        setOrders(
+          orders.map((order) =>
+            order.id === orderToMarkAsPaid.id
+              ? {
+                  ...order,
+                  status: 'pagado',
+                  statusDisplay,
+                  amount_pending: 0,
+                  amount_paid: order.total_amount ?? orderToMarkAsPaid.total_amount,
+                  credit_used: useCreditEndpoint ? 0 : order.credit_used,
+                }
+              : order
+          )
+        );
+
         if (selectedOrderForDetail && selectedOrderForDetail.id === orderToMarkAsPaid.id) {
           setSelectedOrderForDetail({
             ...selectedOrderForDetail,
             amount_pending: 0,
             amount_paid: orderToMarkAsPaid.total_amount,
             status: 'pagado',
-            statusDisplay: 'Pagado',
-            credit_used: 0 // Establecer crédito usado en 0 cuando se marca como pagada
+            statusDisplay,
+            statusRaw: 'pagado',
+            credit_used: useCreditEndpoint ? 0 : selectedOrderForDetail.credit_used,
           });
         }
-        
+
         if (window.showToast) {
-          window.showToast(
-            `Orden marcada como pagada. Crédito restaurado: ${formatCurrency(response.data.data?.credit_restored || 0)}`,
-            'success'
-          );
+          if (useCreditEndpoint) {
+            window.showToast(
+              `Orden marcada como pagada. Crédito restaurado: ${formatCurrency(response.data.data?.credit_restored || 0)}`,
+              'success'
+            );
+          } else {
+            window.showToast('Orden marcada como pagada', 'success');
+          }
         }
-      } else {
-        if (window.showToast) {
-          window.showToast(response.data.message || 'Error al marcar la orden como pagada', 'error');
-        }
+      } else if (window.showToast) {
+        window.showToast(response.data.message || 'Error al marcar la orden como pagada', 'error');
       }
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'Error de conexión al marcar la orden como pagada';
@@ -599,7 +620,7 @@ const AdminOrders = () => {
                           >
                             {loadingOrderDetail ? '⏳' : '👁️'}
                           </button>
-                          {!isOperator && order.is_advance_order && order.status !== 'pagado' && (
+                          {!isOperator && isPendingPaymentStatus(order) && (
                             <button
                               className="order-action-btn order-action-btn--mark-paid"
                               onClick={() => handleMarkCreditAsPaid(order)}
@@ -729,8 +750,12 @@ const AdminOrders = () => {
               <p>Esta acción:</p>
               <ul style={{ textAlign: 'left', marginTop: '10px' }}>
                 <li>Marcará la orden como <strong>pagada</strong></li>
-                <li>Restaurará <strong>{formatCurrency(orderToMarkAsPaid.credit_used || 0)}</strong> al crédito disponible del cliente</li>
-                <li>Enviará una notificación al cliente</li>
+                {shouldUseMarkCreditPaidEndpoint(orderToMarkAsPaid) ? (
+                  <li>
+                    Restaurará <strong>{formatCurrency(orderToMarkAsPaid.credit_used || 0)}</strong> al crédito disponible del cliente (cuando aplique)
+                  </li>
+                ) : null}
+                <li>Notificará al cliente el cambio de estado</li>
               </ul>
             </div>
             <div className="modal-footer">
