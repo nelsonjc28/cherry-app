@@ -328,6 +328,11 @@
         <div style="margin-top: 5px; font-size: 11px;">
             Fecha: {{ \Carbon\Carbon::parse($order->created_at)->format('d/m/Y H:i') }}
         </div>
+        @if(!empty($orderStatusDisplay))
+        <div style="margin-top: 8px; font-size: 12px; font-weight: bold;">
+            Estado del pedido: {{ $orderStatusDisplay }}
+        </div>
+        @endif
     </div>
 
     <div class="order-info">

@@ -456,6 +456,17 @@
   color: #856404;
 }
 
+.status-badge--credit-pending {
+  background: #ffe8a3;
+  color: #8a5b00;
+  border: 1px solid #f0c040;
+  font-weight: 600;
+}
+
+.admin-orders__row--credit-pending {
+  background: #fffbf0;
+}
+
 .status-badge--red {
   background: #f8d7da;
   color: #721c24;

@@ -573,9 +573,19 @@ class ExternalSalesService
      */
     private function prepareClienteData(User $user, $address, string $deliveryType = 'envio'): array
     {
-        // Separar dirección en componentes
-        $streetAddress = $address->street_address ?? '';
-        $streetParts = $this->parseStreetAddress($streetAddress);
+        $streetAddress = (string) data_get($address, 'street_address', '');
+        $noExtColumn = trim((string) data_get($address, 'street_number_ext', ''));
+        $noIntColumn = trim((string) data_get($address, 'street_number_int', ''));
+
+        if ($noExtColumn !== '' || $noIntColumn !== '') {
+            $streetParts = [
+                'street' => trim($streetAddress),
+                'no_ext' => $noExtColumn !== '' ? $noExtColumn : null,
+                'no_int' => $noIntColumn !== '' ? $noIntColumn : null,
+            ];
+        } else {
+            $streetParts = $this->parseStreetAddress($streetAddress);
+        }
         
         // Nombre del cliente sin concatenar método de envío (ya va en campo separado)
         $nombre = trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? ''));
@@ -591,12 +601,12 @@ class ExternalSalesService
             'calle' => $streetParts['street'] ?? $streetAddress,
             'no_int' => $streetParts['no_int'] ?? null,
             'no_ext' => $streetParts['no_ext'] ?? null,
-            'municipio' => $address->municipality ?? $address->city ?? '',
-            'colonia' => $address->colonia ?? null,
-            'estado' => $address->state ?? '',
-            'ciudad' => $this->normalizeCity($address->city ?? ''),
-            'pais' => $address->country ?? 'México',
-            'codpos' => $address->postal_code ?? '',
+            'municipio' => (string) data_get($address, 'municipality', data_get($address, 'city', '')),
+            'colonia' => data_get($address, 'colonia'),
+            'estado' => (string) data_get($address, 'state', ''),
+            'ciudad' => $this->normalizeCity((string) data_get($address, 'city', '')),
+            'pais' => (string) data_get($address, 'country', 'México'),
+            'codpos' => (string) data_get($address, 'postal_code', ''),
             'contacto1' => null,
             'telefono1' => $user->phone ?? null,
             'email1' => $user->email ?? null,

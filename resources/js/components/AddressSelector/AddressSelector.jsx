@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { buildStreetWithNumbers } from '../../utils/addressDisplay';
 import { useNavigate } from 'react-router-dom';
 import api from '../../config/axios';
 import useUserStore from '../../store/userStore';
@@ -128,7 +129,8 @@ const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' })
 
   const formatAddressForSelect = (address) => {
     const parts = [];
-    if (address.street_address) parts.push(address.street_address);
+    const streetLine = buildStreetWithNumbers(address) || address.street_address;
+    if (streetLine) parts.push(streetLine);
     if (address.city) parts.push(address.city);
     if (address.state) parts.push(address.state);
     if (address.postal_code) parts.push(`CP: ${address.postal_code}`);

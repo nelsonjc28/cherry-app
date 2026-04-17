@@ -83,7 +83,8 @@ const MyOrders = () => {
 
   // Filtrar y ordenar órdenes
   const filteredOrders = orders.filter(order => {
-    const matchesStatus = statusFilter === 'all' || order.status.toLowerCase() === statusFilter.toLowerCase();
+    const raw = (order.statusRaw || order.status || '').toString().toLowerCase();
+    const matchesStatus = statusFilter === 'all' || raw === statusFilter.toLowerCase();
     const matchesSearch = order.orderNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          order.customerEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          order.customerName?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -107,6 +108,15 @@ const MyOrders = () => {
       'pago_rechazado': 'red'
     };
     return colorMap[status] || 'gray';
+  };
+
+  const getStatusBadgeVariant = (order) => {
+    const raw = (order.statusRaw || order.status || '').toString().toLowerCase();
+    const pm = (order.payment_method || '').toString().toLowerCase();
+    if (raw === 'pendiente_pago' && order.paid_with_credit && pm === 'credito') {
+      return 'credit-pending';
+    }
+    return getStatusColor(raw);
   };
 
   const formatCurrency = (amount) => {
@@ -241,6 +251,7 @@ const MyOrders = () => {
             <option value="en_espera_envio">En espera de envío</option>
             <option value="enviado">Enviado</option>
             <option value="cancelled">Cancelado</option>
+            <option value="pendiente_pago">Por pagar</option>
           </select>
         </div>
         
@@ -301,7 +312,7 @@ const MyOrders = () => {
                       <td className="order-pieces-cell">{totalPieces}</td>
                       <td className="order-total-cell">{formatCurrency(order.totalAmount)}</td>
                       <td className="order-status-cell">
-                        <span className={`status-badge status-badge--${getStatusColor(order.statusRaw || order.status)}`}>
+                        <span className={`status-badge status-badge--${getStatusBadgeVariant(order)}`}>
                           {order.statusDisplay || order.status}
                         </span>
                       </td>
@@ -440,7 +451,7 @@ const MyOrders = () => {
       <OrderDetailModal
           order={{
             ...selectedOrderForDetail,
-            statusColor: getStatusColor(selectedOrderForDetail.statusRaw || selectedOrderForDetail.status),
+            statusColor: getStatusBadgeVariant(selectedOrderForDetail),
             status: selectedOrderForDetail.statusDisplay || selectedOrderForDetail.status
           }}
           isOpen={showOrderDetailModal}

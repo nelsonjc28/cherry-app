@@ -104,6 +104,15 @@ class MercadoPagoService
             $isLocalhost = $this->isLocalhost($appUrl);
             $hasNgrok = !empty(env('NGROK_URL'));
             
+            $addr = $orderData['address'] ?? [];
+            $streetName = trim((string) ($addr['street_address'] ?? ''));
+            $noExt = trim((string) ($addr['street_number_ext'] ?? ''));
+            $noInt = trim((string) ($addr['street_number_int'] ?? ''));
+            if ($noInt !== '') {
+                $streetName = trim($streetName.' Int. '.$noInt);
+            }
+            $streetNumber = $noExt;
+
             $preferenceData = [
                 'items' => $items,
                 'payer' => [
@@ -114,9 +123,9 @@ class MercadoPagoService
                         'number' => $orderData['user']['phone'] ?? ''
                     ],
                     'address' => [
-                        'street_name' => $orderData['address']['street_address'] ?? '',
-                        'street_number' => '',
-                        'zip_code' => $orderData['address']['postal_code'] ?? '',
+                        'street_name' => $streetName,
+                        'street_number' => $streetNumber,
+                        'zip_code' => $addr['postal_code'] ?? '',
                         'country' => 'MX' // Código ISO de México
                     ],
                     'identification' => [
@@ -138,11 +147,11 @@ class MercadoPagoService
                 ],
                 'shipments' => ($orderData['delivery_type'] ?? 'envio') === 'retiro' ? null : [
                     'receiver_address' => [
-                        'street_name' => $orderData['address']['street_address'] ?? '',
-                        'street_number' => '',
-                        'zip_code' => $orderData['address']['postal_code'] ?? '',
-                        'city_name' => $orderData['address']['city'] ?? '',
-                        'state_name' => $orderData['address']['state'] ?? '',
+                        'street_name' => $streetName,
+                        'street_number' => $streetNumber,
+                        'zip_code' => $addr['postal_code'] ?? '',
+                        'city_name' => $addr['city'] ?? '',
+                        'state_name' => $addr['state'] ?? '',
                         'country_name' => 'México',
                         'country_id' => 'MX' // Código ISO de México para habilitar OXXO
                     ]

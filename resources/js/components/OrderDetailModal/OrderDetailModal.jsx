@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import CherryButton from '../CherryButton/CherryButton';
 import api from '../../config/axios';
 import './OrderDetailModal.css';
+import { buildStreetWithNumbers } from '../../utils/addressDisplay';
 
 /** URL de checkout (MP devuelve init_point o podemos armar redirect con preference_id). */
 const mercadoPagoUrlFromPayload = (d) => {
@@ -184,15 +185,6 @@ const groupOrderItemsByProduct = (items) => {
   return Array.from(map.values());
 };
 
-const buildStreetWithNumbers = (addr) => {
-  if (!addr) return '';
-  const base = (addr.street_address || '').trim();
-  const ext = addr.street_number_ext ? `Ext. ${String(addr.street_number_ext).trim()}` : '';
-  const intl = addr.street_number_int ? `Int. ${String(addr.street_number_int).trim()}` : '';
-  const nums = [ext, intl].filter(Boolean).join(' · ');
-  return nums ? `${base} ${nums}`.trim() : base;
-};
-
 const formatMoney = (value) => `$${(parseFloat(value) || 0).toFixed(2)}`;
 
 const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, isAdmin = false }) => {
@@ -356,6 +348,16 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
             Total de Piezas: {totalPieces}
           </div>
 
+          {isAdmin &&
+            order.paid_with_credit &&
+            /credito|crédito/i.test(String(order.payment_method || order.paymentMethod || '')) &&
+            ['pendiente_pago', 'pending_payment'].includes(
+              String(order.statusRaw || '').toLowerCase()
+            ) && (
+              <div className="order-detail-modal__credit-liquidation-notice" role="note">
+                Pago mediante Crédito Cherry — Pendiente de liquidación.
+              </div>
+            )}
 
           {/* Información adicional (Estado, Pago, Surtido) */}
           <div className="order-info-grid">

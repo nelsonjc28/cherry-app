@@ -9,6 +9,7 @@ import api from '../../config/axios';
 import { validateStock } from '../../services/inventoryService';
 import useCartStore from '../../store/cartStore';
 import { cartItemToPricingLine } from '../../utils/cartVolumePricing';
+import { buildStreetWithNumbers } from '../../utils/addressDisplay';
 
 const CartOrderSummary = ({
   creditDays,
@@ -916,7 +917,7 @@ const CartOrderSummary = ({
     if (isDirectOrderSeller && hasRegularItems && onGenerateOrder) {
       setIsProcessingPayment(true);
       try {
-        await onGenerateOrder();
+        await onGenerateOrder({ paymentMethod });
       } finally {
         setIsProcessingPayment(false);
       }
@@ -1017,7 +1018,7 @@ const CartOrderSummary = ({
               ) : (
                 <>
                   <div className="cart-order-summary__address-street">
-                    {selectedAddress.street_address}
+                    {buildStreetWithNumbers(selectedAddress) || selectedAddress.street_address}
                   </div>
                   <div className="cart-order-summary__address-location">
                     {selectedAddress.city}
@@ -1040,7 +1041,7 @@ const CartOrderSummary = ({
                 <div className="cart-order-summary__google-maps-button cart-order-summary__google-maps-button--mobile">
                   <a
                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                      `${selectedAddress.street_address || ''} ${selectedAddress.city || ''} ${selectedAddress.country || ''}`.trim()
+                      `${buildStreetWithNumbers(selectedAddress) || selectedAddress.street_address || ''} ${selectedAddress.city || ''} ${selectedAddress.country || ''}`.trim()
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -1058,7 +1059,7 @@ const CartOrderSummary = ({
       <div className="cart-order-summary__divider" />
         </>
       )}
-      {/* Método de pago: Bronce → solo Mercado Pago. Oro/Diamante → pedido directo (sin selectores). */}
+      {/* Método de pago: Bronce → solo Mercado Pago. Oro/Diamante → Confirmar pedido (pedido directo, pendiente de pago en sistema). */}
       {hasRegularItems && !isDirectOrderSeller && (
         <div className="cart-order-summary__section payment-method-section">
           <div className="cart-order-summary__section-title section-title-flex">
@@ -1082,7 +1083,6 @@ const CartOrderSummary = ({
           </div>
         </div>
       )}
-      
       {/* Mensaje informativo si hay productos adelantados */}
       {hasAdvanceOrders && (
         <div className="cart-order-summary__section" style={{ backgroundColor: '#fff3cd', padding: '16px', borderRadius: '8px', marginTop: '16px' }}>
@@ -1091,7 +1091,7 @@ const CartOrderSummary = ({
           </div>
           <div style={{ fontSize: '12px', color: '#856404' }}>
             {isDirectOrderSeller
-              ? 'Los artículos "Próximamente" se incluyen en el mismo pedido; al confirmar queda registrado como venta en firme (sin pago en línea).'
+              ? 'Los artículos "Próximamente" se incluyen en el mismo pedido; al confirmar el pedido queda registrado como pendiente de pago hasta liquidación.'
               : 'Los productos marcados como "Próximamente" se crearán como pedido adelantado y quedarán pendientes de pago. El administrador los marcará como pagados cuando el cliente haya pagado el total con el administrador.'}
           </div>
         </div>

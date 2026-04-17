@@ -809,7 +809,7 @@ const ProductPage = () => {
           } : null
         };
 
-        addToCart(productToAdd, cantidad, product);
+        await addToCart(productToAdd, cantidad, product);
 
         // La lógica de Buy X Get Y ahora se maneja automáticamente en el cartStore
       }

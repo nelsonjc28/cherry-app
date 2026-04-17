@@ -67,10 +67,12 @@ class AdminOrderController extends Controller
                     'orderNumber' => str_pad($order->id, 8, '0', STR_PAD_LEFT),
                     'date' => $order->created_at->format('d \d\e F Y'),
                     'status' => $order->status,
+                    'statusRaw' => $order->status,
                     'statusDisplay' => $this->mapOrderStatus($order->status),
                     'totalAmount' => (float) $totalAmount,
                     'shipping_cost' => (float) $shippingCost,
-                    'paymentMethod' => ucfirst($order->payment_method),
+                    'paymentMethod' => ucfirst($order->payment_method ?? ''),
+                    'payment_method' => $order->payment_method,
                     'paymentId' => $order->mercadopago_payment_id,
                     'customerName' => $order->user ? $order->user->first_name . ' ' . $order->user->last_name : 'Usuario eliminado',
                     'customerEmail' => $order->user ? $order->user->email : 'N/A',
@@ -135,7 +137,7 @@ class AdminOrderController extends Controller
     public function updateStatus(Request $request, $orderId)
     {
         $validator = Validator::make($request->all(), [
-            'status' => 'required|string|in:pending,pagado,en_espera_envio,enviado,cancelled,failed'
+            'status' => 'required|string|in:pending,pendiente_pago,pending_payment,pagado,en_espera_envio,enviado,cancelled,cancelado,failed,pago_rechazado'
         ]);
 
         if ($validator->fails()) {
@@ -180,49 +182,48 @@ class AdminOrderController extends Controller
             // Si el estado es 'pagado', notificar al admin
             if ($newStatus === 'pagado') {
                 $this->notifyAdminPaymentReceived($order);
-                
-                // Los pedidos anticipados ya se envían inmediatamente al crearse
-                // Solo verificar si es otro tipo de pedido que necesita enviarse cuando se marca como pagado
-                if ($oldStatus !== 'pagado' && !$order->is_advance_order) {
-                    try {
-                        // Verificar si ya se envió antes de enviar
-                        $paymentData = $order->payment_data ?? [];
-                        if (is_string($paymentData)) {
-                            $paymentData = json_decode($paymentData, true) ?? [];
-                        }
-                        
-                        $alreadySent = isset($paymentData['external_api_sent']) && $paymentData['external_api_sent'] === true;
-                        
-                        if (!$alreadySent) {
-                            $externalSalesService = app(\App\Services\ExternalSalesService::class);
-                            $externalSalesService->sendSaleToExternalApi($order);
-                            
-                            // Marcar que ya se envió
-                            $paymentData['external_api_sent'] = true;
-                            $paymentData['external_api_sent_at'] = now()->toIso8601String();
-                            $order->update(['payment_data' => json_encode($paymentData)]);
-                            
-                            \Illuminate\Support\Facades\Log::info('Pedido enviado a API externa desde AdminOrderController', [
-                                'order_id' => $order->id,
-                                'is_advance_order' => $order->is_advance_order
-                            ]);
-                        } else {
-                            \Illuminate\Support\Facades\Log::info('Pedido ya fue enviado a API externa anteriormente, omitiendo duplicado', [
-                                'order_id' => $order->id
-                            ]);
-                        }
-                    } catch (\Exception $e) {
-                        \Illuminate\Support\Facades\Log::error('Error al enviar pedido a API externa', [
+
+                if ($oldStatus !== 'pagado') {
+                    // Pedido directo (Oro/Diamante): la venta ya se envía al confirmar (pendiente_pago); no reenviar al liquidar.
+                    if ($order->payment_method === 'pedido_directo') {
+                        \Illuminate\Support\Facades\Log::info('Pedido directo: omitir API externa al marcar pagado (venta registrada al crear el pedido).', [
                             'order_id' => $order->id,
-                            'error' => $e->getMessage(),
-                            'trace' => $e->getTraceAsString()
                         ]);
-                        // No lanzar excepción para no bloquear la actualización del estado
+                    } else {
+                        // Otros: enviar al pasar a pagado si aún no se envió (p. ej. algunos anticipados).
+                        try {
+                            $paymentData = $order->payment_data ?? [];
+                            if (is_string($paymentData)) {
+                                $paymentData = json_decode($paymentData, true) ?? [];
+                            }
+
+                            $alreadySent = isset($paymentData['external_api_sent']) && $paymentData['external_api_sent'] === true;
+
+                            if (! $alreadySent) {
+                                $externalSalesService = app(\App\Services\ExternalSalesService::class);
+                                $externalSalesService->sendSaleToExternalApi($order);
+
+                                $paymentData['external_api_sent'] = true;
+                                $paymentData['external_api_sent_at'] = now()->toIso8601String();
+                                $order->update(['payment_data' => json_encode($paymentData)]);
+
+                                \Illuminate\Support\Facades\Log::info('Pedido enviado a API externa desde AdminOrderController', [
+                                    'order_id' => $order->id,
+                                    'is_advance_order' => $order->is_advance_order,
+                                ]);
+                            } else {
+                                \Illuminate\Support\Facades\Log::info('Pedido ya fue enviado a API externa anteriormente, omitiendo duplicado', [
+                                    'order_id' => $order->id,
+                                ]);
+                            }
+                        } catch (\Exception $e) {
+                            \Illuminate\Support\Facades\Log::error('Error al enviar pedido a API externa', [
+                                'order_id' => $order->id,
+                                'error' => $e->getMessage(),
+                                'trace' => $e->getTraceAsString(),
+                            ]);
+                        }
                     }
-                } elseif ($order->is_advance_order) {
-                    \Illuminate\Support\Facades\Log::info('Pedido anticipado marcado como pagado - ya fue enviado al crearse', [
-                        'order_id' => $order->id
-                    ]);
                 }
             }
 
@@ -281,15 +282,17 @@ class AdminOrderController extends Controller
                 $shippingCost = 0;
             }
 
-            $formattedOrder = [
+                $formattedOrder = [
                 'id' => $order->id,
                 'orderNumber' => str_pad($order->id, 8, '0', STR_PAD_LEFT),
                 'date' => $order->created_at->format('d \d\e F Y'),
                 'status' => $order->status,
+                'statusRaw' => $order->status,
                 'statusDisplay' => $this->mapOrderStatus($order->status),
                 'totalAmount' => $totalAmount,
                 'shipping_cost' => (float) $shippingCost,
-                'paymentMethod' => ucfirst($order->payment_method),
+                'paymentMethod' => ucfirst($order->payment_method ?? ''),
+                'payment_method' => $order->payment_method,
                 'paymentId' => $order->mercadopago_payment_id,
                 'customerName' => $order->user ? $order->user->first_name . ' ' . $order->user->last_name : 'Usuario eliminado',
                 'customerEmail' => $order->user ? $order->user->email : 'N/A',
@@ -343,14 +346,18 @@ class AdminOrderController extends Controller
     {
         $statusMap = [
             'pending' => 'Pendiente',
+            'pendiente_pago' => 'Por Pagar',
+            'pending_payment' => 'Por Pagar',
             'processing' => 'Procesando',
             'shipped' => 'En vía',
             'delivered' => 'Entregado',
             'cancelled' => 'Cancelado',
+            'cancelado' => 'Cancelado',
             'failed' => 'Fallido',
             'pagado' => 'Pagado',
             'en_espera_envio' => 'En espera de envío',
             'enviado' => 'Enviado',
+            'pago_rechazado' => 'Pago Rechazado',
         ];
 
         return $statusMap[$status] ?? ucfirst($status);
@@ -700,30 +707,30 @@ class AdminOrderController extends Controller
                 $oldStatus = $order->getOriginal('status') ?? $order->status;
                 $this->notifyCustomerStatusChange($order, $oldStatus, 'pagado');
                 
-                // Intentar enviar a API externa si no se ha enviado antes
-                try {
-                    $paymentData = $order->payment_data ?? [];
-                    if (is_string($paymentData)) {
-                        $paymentData = json_decode($paymentData, true) ?? [];
+                // Intentar enviar a API externa si no se ha enviado antes (no aplica a pedido directo Oro/Diamante: ya se envió al registrar).
+                if ($order->payment_method !== 'pedido_directo') {
+                    try {
+                        $paymentData = $order->payment_data ?? [];
+                        if (is_string($paymentData)) {
+                            $paymentData = json_decode($paymentData, true) ?? [];
+                        }
+
+                        $alreadySent = isset($paymentData['external_api_sent']) && $paymentData['external_api_sent'] === true;
+
+                        if (! $alreadySent) {
+                            $externalSalesService = app(\App\Services\ExternalSalesService::class);
+                            $externalSalesService->sendSaleToExternalApi($order);
+
+                            $paymentData['external_api_sent'] = true;
+                            $paymentData['external_api_sent_at'] = now()->toIso8601String();
+                            $order->update(['payment_data' => json_encode($paymentData)]);
+                        }
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::error('Error al enviar pedido a crédito pagado a API externa', [
+                            'order_id' => $order->id,
+                            'error' => $e->getMessage(),
+                        ]);
                     }
-                    
-                    $alreadySent = isset($paymentData['external_api_sent']) && $paymentData['external_api_sent'] === true;
-                    
-                    if (!$alreadySent) {
-                        $externalSalesService = app(\App\Services\ExternalSalesService::class);
-                        $externalSalesService->sendSaleToExternalApi($order);
-                        
-                        // Marcar que ya se envió
-                        $paymentData['external_api_sent'] = true;
-                        $paymentData['external_api_sent_at'] = now()->toIso8601String();
-                        $order->update(['payment_data' => json_encode($paymentData)]);
-                    }
-                } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::error('Error al enviar pedido a crédito pagado a API externa', [
-                        'order_id' => $order->id,
-                        'error' => $e->getMessage()
-                    ]);
-                    // No bloquear la operación si falla el envío a API externa
                 }
                 
                 return response()->json([

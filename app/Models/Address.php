@@ -63,12 +63,27 @@ class Address extends Model
      */
     public function getFullAddressAttribute()
     {
+        $streetBase = trim((string) ($this->street_address ?? ''));
+        $ext = trim((string) ($this->street_number_ext ?? ''));
+        $intl = trim((string) ($this->street_number_int ?? ''));
+        $streetLine = $streetBase;
+        $numParts = [];
+        if ($ext !== '') {
+            $numParts[] = 'Ext. '.$ext;
+        }
+        if ($intl !== '') {
+            $numParts[] = 'Int. '.$intl;
+        }
+        if ($numParts !== []) {
+            $streetLine = trim($streetBase.' '.implode(' ', $numParts));
+        }
+
         $parts = [
-            $this->street_address,
+            $streetLine,
             $this->city,
             $this->state,
             $this->postal_code,
-            $this->country
+            $this->country,
         ];
 
         return implode(', ', array_filter($parts));

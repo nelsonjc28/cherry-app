@@ -356,9 +356,21 @@
           <td style="padding:14px 16px;font-family:{{ $sans }};font-size:14px;color:#333;">
             <strong>Entrega</strong><br>
             @if($order->address)
-              {{ $order->address->street_address }}<br>
-              {{ $order->address->city }}, {{ $order->address->state }} — C.P. {{ $order->address->postal_code }}<br>
-              {{ $order->address->country }}
+              @php
+                $a = $order->address;
+                $streetLine = trim((string) ($a->street_address ?? ''));
+                $ext = trim((string) ($a->street_number_ext ?? ''));
+                $int = trim((string) ($a->street_number_int ?? ''));
+                if ($ext !== '' || $int !== '') {
+                    $bits = [];
+                    if ($ext !== '') { $bits[] = 'Ext. '.$ext; }
+                    if ($int !== '') { $bits[] = 'Int. '.$int; }
+                    $streetLine = trim($streetLine.' '.implode(' ', $bits));
+                }
+              @endphp
+              {{ $streetLine }}<br>
+              {{ $a->city }}, {{ $a->state }} — C.P. {{ $a->postal_code }}<br>
+              {{ $a->country }}
             @else
               <strong>Retiro en tienda</strong>
             @endif

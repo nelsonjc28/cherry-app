@@ -4,6 +4,7 @@ import api from '../../config/axios';
 import './Addresses.css';
 import CherryButton from '../../components/CherryButton/CherryButton';
 import { getIconPath } from '../../utils/assetPaths';
+import { buildStreetWithNumbers } from '../../utils/addressDisplay';
 import useUserStore from '../../store/userStore';
 // Removed AddressMapSelector import - mapa no funciona
 
@@ -500,7 +501,7 @@ const Addresses = () => {
                 {/* Address Content */}
                 <div className="address-card__content">
                   <div className="address-card__street">
-                    {address.street_address}
+                    {buildStreetWithNumbers(address) || address.street_address}
                   </div>
                   <div className="address-card__city">
                     {address.city}

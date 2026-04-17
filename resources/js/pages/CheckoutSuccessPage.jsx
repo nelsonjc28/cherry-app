@@ -125,22 +125,59 @@ export default function CheckoutSuccessPage() {
       if (stateOrderInfo?.orderId) {
         setPaymentStatus('approved');
         const amountPendingNum = Number(stateOrderInfo.amountPending ?? 0);
-        setStatusHeadline(
-          amountPendingNum > 0
-            ? 'Pago parcial con crédito'
-            : 'Pago con crédito de cuenta confirmado'
-        );
-        const creditUsed = Number(stateOrderInfo.creditUsed || 0);
-        if (amountPendingNum > 0) {
+        const creditPendingLiquidation = !!stateOrderInfo.creditPendingLiquidation;
+        const directOrderPendingPayment = !!stateOrderInfo.directOrderPendingPayment;
+        const pm = (stateOrderInfo.paymentMethod || '').toString().toLowerCase();
+        if (directOrderPendingPayment) {
+          setStatusHeadline('Pedido registrado');
           setMessage(
-            `${THANK_YOU_DESCRIPTION} Usaste $${creditUsed.toFixed(2)} de crédito; completa el saldo pendiente con Mercado Pago cuando se abra la pasarela.`
+            'Tu pedido fue confirmado y figura como «Por pagar» hasta la liquidación administrativa.'
+          );
+          try {
+            const res = await api.get(`/payment/status/${stateOrderInfo.orderId}`);
+            if (res.data?.success && res.data?.order) {
+              setOrderData(res.data.order);
+            } else {
+              setOrderData({
+                id: stateOrderInfo.orderId,
+                total_amount: stateOrderInfo.totalAmount ?? stateOrderInfo.total ?? 0,
+                created_at: new Date().toISOString(),
+              });
+            }
+          } catch {
+            setOrderData({
+              id: stateOrderInfo.orderId,
+              total_amount: stateOrderInfo.totalAmount ?? stateOrderInfo.total ?? 0,
+              created_at: new Date().toISOString(),
+            });
+          }
+          setLoading(false);
+          return;
+        }
+        if (creditPendingLiquidation || (pm === 'credito' || pm === 'credit') && amountPendingNum <= 0.01) {
+          setStatusHeadline('Pedido registrado');
+          setMessage(
+            'Pedido realizado con éxito. Tu saldo pendiente se ha actualizado. ' +
+              'Tu pedido figura como «Por pagar» hasta la liquidación administrativa del crédito Cherry.'
           );
         } else {
-          setMessage(
-            creditUsed > 0
-              ? `${THANK_YOU_DESCRIPTION} Crédito utilizado: $${creditUsed.toFixed(2)}.`
-              : THANK_YOU_DESCRIPTION
+          setStatusHeadline(
+            amountPendingNum > 0
+              ? 'Pago parcial con crédito'
+              : 'Pago con crédito de cuenta confirmado'
           );
+          const creditUsed = Number(stateOrderInfo.creditUsed || 0);
+          if (amountPendingNum > 0) {
+            setMessage(
+              `${THANK_YOU_DESCRIPTION} Usaste $${creditUsed.toFixed(2)} de crédito; completa el saldo pendiente con Mercado Pago cuando se abra la pasarela.`
+            );
+          } else {
+            setMessage(
+              creditUsed > 0
+                ? `${THANK_YOU_DESCRIPTION} Crédito utilizado: $${creditUsed.toFixed(2)}.`
+                : THANK_YOU_DESCRIPTION
+            );
+          }
         }
         try {
           const res = await api.get(`/payment/status/${stateOrderInfo.orderId}`);

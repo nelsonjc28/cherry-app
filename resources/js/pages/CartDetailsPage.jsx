@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import useCartStore from '../store/cartStore';
@@ -146,6 +146,22 @@ const CartDetailsPage = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [fetchUser]);
+
+  const didDefaultPremiumPaymentRef = useRef(false);
+  useEffect(() => {
+    if (!user) {
+      didDefaultPremiumPaymentRef.current = false;
+      return;
+    }
+    if (!isDirectOrderSellerCategory(user)) {
+      didDefaultPremiumPaymentRef.current = false;
+      return;
+    }
+    if (!didDefaultPremiumPaymentRef.current) {
+      didDefaultPremiumPaymentRef.current = true;
+      setPaymentMethod('credit');
+    }
+  }, [user]);
 
   // Fetch store address from contact_info
   useEffect(() => {
@@ -445,8 +461,7 @@ const CartDetailsPage = () => {
     }
   }, [deliveryType, storeAddress, selectedAddress]);
 
-  // Handle generate order with MercadoPago or Credit
-  // options.paymentMethod: 'credit' | 'mercadopago' — debe coincidir con el radio del resumen (evita desfase con state del padre)
+  // Handle generate order with MercadoPago or Credit (Bronce). Oro/Diamante: solo pedido directo vía /orders/direct.
   const handleGenerateOrder = async (options = {}) => {
     const pm = options.paymentMethod ?? paymentMethod;
 
@@ -493,11 +508,11 @@ const CartDetailsPage = () => {
         }
       }
 
+      // Pedido directo (Oro/Diamante): POST /orders/direct — backend deja la orden en pendiente_pago hasta liquidación admin.
       const paymentLineItems = cartItems;
       const volSummary = summarizeVolumeFromCartItems(user, paymentLineItems);
       const paymentDescuento1 = volSummary.descuento1;
       const paymentDescuento2 = volSummary.descuento2;
-      const regularDayFortyFiveDiscountAmount = volSummary.volume_discount;
       const lineItemsGrossTotal = volSummary.lines_sum;
       const regularTotalAfterDiscount = volSummary.discounted_merchandise;
 
@@ -550,10 +565,13 @@ const CartDetailsPage = () => {
         const response = await api.post('/orders/direct', directData, longTimeout);
         if (response.data.success) {
           void clearCart();
-          if (window.showToast) {
-            window.showToast('¡Pedido confirmado!', 'success');
-          }
           const payload = response.data.data ?? response.data;
+          const okMsg =
+            response.data?.message ||
+            'Pedido registrado. Queda pendiente de pago hasta liquidación.';
+          if (window.showToast) {
+            window.showToast(okMsg, 'success');
+          }
           setTimeout(() => {
             navigate('/compra-exitosa', {
               state: {
@@ -561,6 +579,7 @@ const CartDetailsPage = () => {
                   orderId: payload?.order_id,
                   totalAmount: regularFinalTotal,
                   directOrder: true,
+                  directOrderPendingPayment: true,
                 },
               },
             });
@@ -916,10 +935,14 @@ const CartDetailsPage = () => {
             return;
           }
 
-          // Pago completo con crédito
+          // Pago completo con crédito (orden en pendiente_pago hasta liquidación admin)
           void clearCart();
           if (window.showToast) {
-            window.showToast('¡Gracias por tu compra!', 'success');
+            window.showToast(
+              response.data?.message ||
+                'Pedido realizado con éxito. Tu saldo pendiente se ha actualizado.',
+              'success'
+            );
           }
 
           setTimeout(() => {
@@ -930,6 +953,8 @@ const CartDetailsPage = () => {
                   creditUsed: payload?.credit_used,
                   amountPending: 0,
                   totalAmount: regularFinalTotal,
+                  paymentMethod: 'credito',
+                  creditPendingLiquidation: true,
                 },
               },
             });

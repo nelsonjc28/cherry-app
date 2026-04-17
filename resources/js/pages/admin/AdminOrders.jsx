@@ -252,22 +252,37 @@ const AdminOrders = () => {
   const getStatusColor = (status) => {
     const colorMap = {
       'pending': 'yellow',
+      'pendiente_pago': 'yellow',
+      'pending_payment': 'yellow',
       'pagado': 'green',
       'en_espera_envio': 'blue',
       'enviado': 'green',
       'cancelled': 'red',
+      'cancelado': 'red',
       'failed': 'red'
     };
     return colorMap[status] || 'gray';
   };
 
+  const getAdminStatusBadgeVariant = (order) => {
+    const st = (order.status || '').toString().toLowerCase();
+    const pm = (order.payment_method || '').toString().toLowerCase();
+    if (st === 'pendiente_pago' && order.paid_with_credit && pm === 'credito') {
+      return 'credit-pending';
+    }
+    return getStatusColor(st);
+  };
+
   const getStatusOptions = (currentStatus) => {
     const statusFlow = {
       'pending': ['pagado'],
+      'pendiente_pago': ['pagado', 'cancelled'],
+      'pending_payment': ['pagado', 'cancelled'],
       'pagado': ['en_espera_envio'],
       'en_espera_envio': ['enviado'],
       'enviado': [], // Estado final - cliente puede calificar
       'cancelled': [],
+      'cancelado': [],
       'failed': ['pending']
     };
     
@@ -441,6 +456,7 @@ const AdminOrders = () => {
             <option value="en_espera_envio">En espera de envío</option>
             <option value="enviado">Enviado</option>
             <option value="cancelled">Cancelado</option>
+            <option value="pendiente_pago">Por pagar</option>
           </select>
         </div>
         
@@ -500,10 +516,15 @@ const AdminOrders = () => {
                   // Obtener las primeras 3 imágenes de productos para mostrar como miniaturas
                   const productImages = order.items?.slice(0, 3).map(item => item.image).filter(Boolean) || [];
                   
+                  const isCreditPorPagar =
+                    order.status === 'pendiente_pago' &&
+                    order.paid_with_credit &&
+                    (order.payment_method || '').toString().toLowerCase() === 'credito';
+
                   return (
                     <tr 
                       key={order.id}
-                      className={`${highlightedOrderId === order.id ? 'highlighted' : ''}`}
+                      className={`${highlightedOrderId === order.id ? 'highlighted' : ''}${isCreditPorPagar ? ' admin-orders__row--credit-pending' : ''}`}
                     >
                       <td className="order-number-cell">#{formatOrderNumber(order)}</td>
                       <td className="order-products-cell">
@@ -543,7 +564,7 @@ const AdminOrders = () => {
                       <td className="order-pieces-cell">{totalPieces}</td>
                       <td className="order-total-cell">{formatCurrency(order.totalAmount)}</td>
                       <td className="order-status-cell">
-                        <span className={`status-badge status-badge--${getStatusColor(order.status)}`}>
+                        <span className={`status-badge status-badge--${getAdminStatusBadgeVariant(order)}`}>
                           {order.statusDisplay || order.status}
                         </span>
                       </td>
@@ -578,7 +599,7 @@ const AdminOrders = () => {
                           >
                             {loadingOrderDetail ? '⏳' : '👁️'}
                           </button>
-                          {!isOperator && ((order.paid_with_credit && order.credit_used > 0) || (order.is_advance_order && order.status !== 'pagado')) && (
+                          {!isOperator && order.is_advance_order && order.status !== 'pagado' && (
                             <button
                               className="order-action-btn order-action-btn--mark-paid"
                               onClick={() => handleMarkCreditAsPaid(order)}
@@ -737,7 +758,8 @@ const AdminOrders = () => {
         <OrderDetailModal
           order={{
             ...selectedOrderForDetail,
-            statusColor: getStatusColor(selectedOrderForDetail.status),
+            statusColor: getAdminStatusBadgeVariant(selectedOrderForDetail),
+            statusRaw: selectedOrderForDetail.statusRaw || selectedOrderForDetail.status,
             status: selectedOrderForDetail.statusDisplay || selectedOrderForDetail.status
           }}
           isOpen={showOrderDetailModal}

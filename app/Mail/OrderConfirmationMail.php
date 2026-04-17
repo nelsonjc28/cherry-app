@@ -266,6 +266,7 @@ class OrderConfirmationMail extends Mailable
 
         return match (true) {
             str_contains($m, 'mercado') => 'Mercado Pago',
+            str_contains($m, 'credito') => 'Crédito Cherry',
             str_contains($m, 'credit') => 'Crédito Cherry',
             str_contains($m, 'integrated') => 'Pago integrado',
             $m === '' => 'No especificado',

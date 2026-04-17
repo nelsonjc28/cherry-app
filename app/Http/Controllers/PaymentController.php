@@ -208,7 +208,7 @@ class PaymentController extends Controller
     }
 
     /**
-     * Pedido directo (Oro / Diamante): sin Mercado Pago ni validación de crédito; venta en firme.
+     * Pedido directo (Oro / Diamante): sin Mercado Pago; queda pendiente de liquidación administrativa.
      */
     public function createDirectOrder(Request $request)
     {
@@ -348,10 +348,10 @@ class PaymentController extends Controller
                     'descuento1' => $descuento1,
                     'descuento2' => $descuento2,
                     'credit_used' => 0,
-                    'amount_paid' => $totalAmountReq,
-                    'amount_pending' => 0,
+                    'amount_paid' => 0,
+                    'amount_pending' => $totalAmountReq,
                     'paid_with_credit' => false,
-                    'status' => 'pagado',
+                    'status' => 'pendiente_pago',
                     'payment_method' => 'pedido_directo',
                     'external_reference' => uniqid('order_'.$user->id.'_'),
                     'payment_data' => json_encode($initialPaymentData),
@@ -375,45 +375,41 @@ class PaymentController extends Controller
                 ]);
             }
 
+            // API externa: enviar al registrar el pedido (pendiente_pago), igual que pedido anticipado.
+            // Vigencia de categoría sigue al marcar «pagado» (admin). external_api_sent evita duplicado al liquidar.
             try {
+                $order->load(['user', 'items', 'address']);
+                $this->externalSalesService->sendSaleToExternalApi($order);
+
                 $paymentData = $order->payment_data ?? [];
                 if (is_string($paymentData)) {
                     $paymentData = json_decode($paymentData, true) ?? [];
                 }
-                $alreadySent = isset($paymentData['external_api_sent']) && $paymentData['external_api_sent'] === true;
-
-                if (! $alreadySent) {
-                    $this->externalSalesService->sendSaleToExternalApi($order);
-                    $paymentData['external_api_sent'] = true;
-                    $paymentData['external_api_sent_at'] = now()->toIso8601String();
-                    $order->update(['payment_data' => json_encode($paymentData)]);
-
-                    Log::info('Pedido directo enviado a API externa', ['order_id' => $order->id]);
+                if (! is_array($paymentData)) {
+                    $paymentData = [];
                 }
+                $paymentData['external_api_sent'] = true;
+                $paymentData['external_api_sent_at'] = now()->toIso8601String();
+                $order->update(['payment_data' => json_encode($paymentData)]);
+
+                Log::info('Pedido directo (pendiente_pago) enviado a API externa', ['order_id' => $order->id]);
             } catch (\Exception $e) {
                 Log::error('Error al enviar pedido directo a API externa', [
                     'order_id' => $order->id,
                     'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
                 ]);
-            }
-
-            try {
-                $this->sellerCategoryActivityService->recordSuccessfulPurchase($user, (float) ($order->subtotal ?? $order->total_amount));
-            } catch (\Throwable $e) {
-                Log::error('No se pudo actualizar vigencia de categoría (pedido directo)', [
-                    'order_id' => $order->id,
-                    'user_id' => $user->id,
-                    'error' => $e->getMessage(),
-                ]);
+                // No bloquear la confirmación; reintento con `orders:resend-external-api` u otro flujo manual (no al marcar pagado).
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Pedido confirmado',
+                'message' => 'Pedido registrado. Queda pendiente de pago hasta liquidación.',
                 'data' => [
                     'order_id' => $order->id,
                     'external_reference' => $order->external_reference,
                     'payment_method' => 'pedido_directo',
+                    'order_status' => 'pendiente_pago',
                 ],
             ]);
         } catch (\Exception $e) {
@@ -1885,16 +1881,21 @@ class PaymentController extends Controller
                     'amount_paid' => (float) ($order->amount_paid ?? $order->total_amount),
                     'amount_pending' => (float) ($order->amount_pending ?? 0),
                     'paid_with_credit' => (bool) ($order->paid_with_credit ?? false),
+                    'payment_method' => $order->payment_method,
                     'is_advance_order' => (bool) ($order->is_advance_order ?? false),
                     'address' => $order->address ? [
                         'street_address' => $order->address->street_address,
+                        'street_number_ext' => $order->address->street_number_ext,
+                        'street_number_int' => $order->address->street_number_int,
+                        'colonia' => $order->address->colonia,
                         'city' => $order->address->city,
                         'municipality' => $order->address->municipality,
                         'state' => $order->address->state,
                         'postal_code' => $order->address->postal_code,
                         'country' => $order->address->country,
                         'additional_info' => $order->address->additional_info,
-                        'name' => $order->address->name
+                        'full_address' => $order->address->full_address,
+                        'name' => $order->address->name ?? null,
                     ] : null
                 ];
             });
@@ -1918,7 +1919,8 @@ class PaymentController extends Controller
     {
         $statusMap = [
             'pending' => 'Pendiente',
-            'pendiente_pago' => 'Pago Pendiente',
+            'pendiente_pago' => 'Por Pagar',
+            'pending_payment' => 'Por Pagar',
             'processing' => 'Procesando',
             'shipped' => 'En vía',
             'delivered' => 'Entregado',
@@ -1941,7 +1943,8 @@ class PaymentController extends Controller
     {
         $colorMap = [
             'pending' => 'yellow',
-            'pendiente_pago' => 'yellow',
+            'pendiente_pago' => 'credit-pending',
+            'pending_payment' => 'credit-pending',
             'processing' => 'blue',
             'shipped' => 'orange',
             'delivered' => 'green',
@@ -2880,7 +2883,7 @@ class PaymentController extends Controller
                         'amount_paid' => 0.0,
                         'amount_pending' => 0.0,
                         'paid_with_credit' => $creditToUse > 0,
-                        'status' => 'pagado',
+                        'status' => 'pendiente_pago',
                         'payment_method' => 'credito',
                         'external_reference' => uniqid('order_'.$lockedUser->id.'_'),
                         'payment_data' => json_encode($initialPaymentData),
@@ -3069,7 +3072,7 @@ class PaymentController extends Controller
                         'amount_paid' => 0.0,
                         'amount_pending' => 0.0,
                         'paid_with_credit' => true,
-                        'status' => 'pagado',
+                        'status' => 'pendiente_pago',
                         'payment_method' => 'credito',
                         'external_reference' => uniqid('order_'.$lockedUser->id.'_cr_'),
                         'payment_data' => json_encode($pdA),
@@ -3132,67 +3135,25 @@ class PaymentController extends Controller
                     ]);
                 }
 
-                try {
-                    $paymentData = $order->payment_data ?? [];
-                    if (is_string($paymentData)) {
-                        $paymentData = json_decode($paymentData, true) ?? [];
-                    }
+                // API externa: se envía cuando la orden pase a «pagado» (liquidación admin o pago MP aprobado), no al crear en pendiente_pago con crédito.
 
-                    $alreadySent = isset($paymentData['external_api_sent']) && $paymentData['external_api_sent'] === true;
-
-                    if (! $alreadySent) {
-                        $this->externalSalesService->sendSaleToExternalApi($order);
-
-                        $paymentData['external_api_sent'] = true;
-                        $paymentData['external_api_sent_at'] = now()->toIso8601String();
-                        $order->update(['payment_data' => json_encode($paymentData)]);
-
-                        Log::info('Pedido con crédito completo enviado a API externa inmediatamente', [
-                            'order_id' => $order->id,
-                            'paid_with_credit' => true,
-                            'amount_pending' => 0
-                        ]);
-                    }
-                } catch (\Exception $e) {
-                    Log::error('Error al enviar pedido con crédito completo a API externa', [
-                        'order_id' => $order->id,
-                        'error' => $e->getMessage(),
-                        'trace' => $e->getTraceAsString()
-                    ]);
-                }
-
-                try {
-                    $this->sellerCategoryActivityService->recordSuccessfulPurchase($user, (float) ($order->subtotal ?? $order->total_amount));
-                } catch (\Throwable $e) {
-                    Log::error('No se pudo actualizar vigencia de categoría (crédito completo)', [
-                        'order_id' => $order->id,
-                        'user_id' => $user->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
+                // Vigencia categoría: se registra al marcar la orden como pagada (admin o MP), no al crear con crédito pendiente de liquidación.
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Orden pagada completamente con crédito',
+                    'message' => 'Pedido realizado con éxito. Tu saldo pendiente se ha actualizado.',
                     'data' => [
                         'order_split' => false,
                         'order_id' => $order->id,
                         'credit_used' => $creditToUse,
-                        'amount_pending' => 0
+                        'amount_pending' => 0,
+                        'payment_method' => 'credito',
+                        'order_status' => 'pendiente_pago',
                     ]
                 ]);
             }
 
-            if (! empty($tx['order_credit'])) {
-                try {
-                    $this->sellerCategoryActivityService->recordSuccessfulPurchase($user, (float) ($tx['credit_subtotal'] ?? 0));
-                } catch (\Throwable $e) {
-                    Log::error('No se pudo actualizar vigencia de categoría (split crédito + MP)', [
-                        'user_id' => $user->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-            }
+            // Split: la parte Mercado Pago sigue pendiente_pago hasta aprobación; la parte crédito queda pendiente_pago hasta liquidación admin.
 
             /** @var Order|null $orderCredit */
             $orderCredit = $tx['order_credit'];
@@ -3296,23 +3257,7 @@ class PaymentController extends Controller
                     Log::error('Email orden crédito (split)', ['order_id' => $orderCredit->id, 'error' => $e->getMessage()]);
                 }
 
-                try {
-                    $paymentData = $orderCredit->payment_data ?? [];
-                    if (is_string($paymentData)) {
-                        $paymentData = json_decode($paymentData, true) ?? [];
-                    }
-                    if (empty($paymentData['external_api_sent'])) {
-                        $this->externalSalesService->sendSaleToExternalApi($orderCredit);
-                        $paymentData['external_api_sent'] = true;
-                        $paymentData['external_api_sent_at'] = now()->toIso8601String();
-                        $orderCredit->update(['payment_data' => json_encode($paymentData)]);
-                    }
-                } catch (\Exception $e) {
-                    Log::error('API externa orden crédito (split)', [
-                        'order_id' => $orderCredit->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
+                // API externa (parte crédito del split): al liquidar como «pagado» desde admin o flujo equivalente.
             }
 
             try {
@@ -3977,6 +3922,7 @@ class PaymentController extends Controller
             return view('orders.print', [
                 'order' => $order,
                 'orderNumber' => $orderNumber,
+                'orderStatusDisplay' => $order->status_display,
                 'groupedItems' => $groupedItems,
                 'subtotal' => $subtotal,
                 'shippingAmount' => $shippingAmount,

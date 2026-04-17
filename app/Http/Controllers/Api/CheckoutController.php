@@ -34,15 +34,18 @@ class CheckoutController extends Controller
             ->map(function ($address) {
                 return [
                     'id' => $address->id,
-                    'name' => $address->name,
+                    'name' => $address->name ?? null,
                     'street_address' => $address->street_address,
+                    'street_number_ext' => $address->street_number_ext,
+                    'street_number_int' => $address->street_number_int,
+                    'colonia' => $address->colonia,
                     'city' => $address->city,
                     'state' => $address->state,
                     'postal_code' => $address->postal_code,
                     'country' => $address->country,
                     'additional_info' => $address->additional_info,
                     'is_default' => $address->is_default,
-                    'full_address' => $address->full_address
+                    'full_address' => $address->full_address,
                 ];
             });
 

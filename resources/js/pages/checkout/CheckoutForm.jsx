@@ -3,6 +3,7 @@ import Swal from 'sweetalert2';
 import api from '../../config/axios';
 import CustomButton from '../../components/CustomButton';
 import { getIconPath } from '../../utils/assetPaths';
+import { buildStreetWithNumbers } from '../../utils/addressDisplay';
 import useUserStore from '../../store/userStore';
 
 const CheckoutForm = ({ cartItems = [], totalAmount = 0, onPaymentSuccess, onPaymentError }) => {
@@ -309,7 +310,7 @@ const CheckoutForm = ({ cartItems = [], totalAmount = 0, onPaymentSuccess, onPay
                     return selectedAddress ? (
                       <div className="address-card">
                         <h4>{selectedAddress.name}</h4>
-                        <p>{selectedAddress.street_address}</p>
+                        <p>{buildStreetWithNumbers(selectedAddress) || selectedAddress.street_address}</p>
                         <p>{selectedAddress.city}, {selectedAddress.state} {selectedAddress.postal_code}</p>
                         <p>{selectedAddress.country}</p>
                         {selectedAddress.additional_info && (

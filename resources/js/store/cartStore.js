@@ -102,6 +102,18 @@ const resolveDetalleIdFromCatalog = (productDetaill, color, size) => {
   return Number.isFinite(n) ? n : null;
 };
 
+/**
+ * Serializa addToCart para que el estado y el guardado en BD/localStorage no se pisen
+ * (p. ej. varias tallas en un solo clic o doble clic rápido).
+ */
+let addToCartSerial = Promise.resolve();
+
+const enqueueAddToCart = (fn) => {
+  const run = addToCartSerial.then(() => fn());
+  addToCartSerial = run.catch(() => {});
+  return run;
+};
+
 const saveCartToLocalStorage = (items, totalItems, totalPrice, couponCode = null, discount = 0) => {
   if (isAuthenticated()) {
     return; // No guardar en localStorage si hay sesión
@@ -430,7 +442,8 @@ const useCartStore = create(
       },
 
       // Add product to cart (con stock por talla y color)
-      addToCart: async (product, quantity = 1, productDetaill) => {
+      addToCart: (product, quantity = 1, productDetaill) =>
+        enqueueAddToCart(async () => {
         const { items } = get();
 
         // Función para obtener stock de un producto específico
@@ -556,7 +569,7 @@ const useCartStore = create(
           } else {
           }
         }
-      },
+      }),
 
       // El resto de tu store permanece intacto...
       updateQuantity: async (productId, newQuantity, color, size) => {

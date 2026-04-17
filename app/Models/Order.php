@@ -98,7 +98,8 @@ class Order extends Model
     {
         return match($this->status) {
             'pending' => 'Pendiente',
-            'pendiente_pago' => 'Pendiente de Pago',
+            'pendiente_pago' => 'Por Pagar',
+            'pending_payment' => 'Por Pagar',
             'pagado' => 'Pagado',
             'en_espera_envio' => 'En Espera de Envío',
             'enviado' => 'Enviado',
@@ -127,7 +128,7 @@ class Order extends Model
      */
     public function isPaymentPending(): bool
     {
-        return in_array($this->status, ['pendiente_pago', 'pending']);
+        return in_array($this->status, ['pendiente_pago', 'pending_payment', 'pending'], true);
     }
 
     /**
@@ -160,6 +161,8 @@ class Order extends Model
     public function getNextPossibleStatuses(): array
     {
         return match($this->status) {
+            'pendiente_pago' => ['pagado', 'cancelado', 'cancelled'],
+            'pending_payment' => ['pagado', 'cancelado', 'cancelled'],
             'pagado' => ['en_espera_envio'],
             'en_espera_envio' => ['enviado'],
             'enviado' => [], // Estado final - cliente puede calificar
