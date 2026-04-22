@@ -3,6 +3,7 @@ import Swal from 'sweetalert2';
 import CherryButton from '../CherryButton/CherryButton';
 import AccountStatementModal from '../AccountStatementModal/AccountStatementModal';
 import useUserStore from '../../store/userStore';
+import { fetchSepomexPostalCode } from '../../utils/sepomexPostal';
 import './ClientManager.css';
 
 // Función helper para formatear ID de cliente: DM + 5 dígitos (con ceros a la izquierda)
@@ -19,7 +20,9 @@ const emptyAddressForm = (address, defaultIfFirst) => ({
   municipality: address?.municipality ?? '',
   colonia: address?.colonia ?? '',
   state: address?.state ?? '',
-  postal_code: address?.postal_code ?? '',
+  postal_code: String(address?.postal_code ?? '')
+    .replace(/\D/g, '')
+    .slice(0, 5),
   country: address?.country || 'México',
   additional_info: address?.additional_info ?? '',
   is_default: address ? Boolean(address.is_default) : Boolean(defaultIfFirst),
@@ -27,102 +30,161 @@ const emptyAddressForm = (address, defaultIfFirst) => ({
 
 const ReqStar = () => <span className="client-manager__req">*</span>;
 
-/** Campos de dirección dentro del mismo formulario que el perfil */
-const AdminClientAddressFields = ({ form, onChange }) => (
-  <div className="client-manager__addresses-wrap client-manager__addresses-wrap--in-form">
-    <div className="client-manager__form-row client-manager__form-row--grid-12">
-      <div className="client-manager__form-group client-manager__form-col-6">
-        <label htmlFor="addr_street_address">
-          Calle / vialidad <ReqStar />
+/**
+ * Dirección admin: mismo flujo que perfil (CP → SEPOMEX → colonia / estado / municipio).
+ * `city` queda alineado con colonia (asentamiento), requerido por el backend.
+ */
+const AdminClientAddressFields = ({ form, onAddressChange, settlements, loadingPostal }) => {
+  const fromSepomex = settlements.length > 0;
+  return (
+    <div className="client-manager__addresses-wrap client-manager__addresses-wrap--in-form">
+      <div className="client-manager__form-row client-manager__form-row--grid-12">
+        <div className="client-manager__form-group client-manager__form-col-6">
+          <label htmlFor="addr_street_address">
+            Calle / vialidad <ReqStar />
+          </label>
+          <input
+            id="addr_street_address"
+            name="street_address"
+            value={form.street_address}
+            onChange={onAddressChange}
+            required
+            maxLength={500}
+          />
+        </div>
+      </div>
+      <div className="client-manager__form-row">
+        <div className="client-manager__form-group">
+          <label htmlFor="addr_street_number_ext">No. exterior</label>
+          <input
+            id="addr_street_number_ext"
+            name="street_number_ext"
+            value={form.street_number_ext}
+            onChange={onAddressChange}
+            maxLength={20}
+            inputMode="numeric"
+          />
+        </div>
+        <div className="client-manager__form-group">
+          <label htmlFor="addr_street_number_int">No. interior</label>
+          <input
+            id="addr_street_number_int"
+            name="street_number_int"
+            value={form.street_number_int}
+            onChange={onAddressChange}
+            maxLength={20}
+            inputMode="numeric"
+          />
+        </div>
+      </div>
+      <div className="client-manager__form-group">
+        <label htmlFor="addr_postal_code">
+          Código postal <ReqStar />
         </label>
         <input
-          id="addr_street_address"
-          name="street_address"
-          value={form.street_address}
-          onChange={onChange}
+          id="addr_postal_code"
+          name="postal_code"
+          value={form.postal_code}
+          onChange={onAddressChange}
+          placeholder="CP (5 dígitos)"
+          maxLength={5}
+          inputMode="numeric"
+          autoComplete="postal-code"
           required
-          maxLength={500}
         />
-      </div>
-    </div>
-    <div className="client-manager__form-row">
-      <div className="client-manager__form-group">
-        <label htmlFor="addr_street_number_ext">No. exterior</label>
-        <input
-          id="addr_street_number_ext"
-          name="street_number_ext"
-          value={form.street_number_ext}
-          onChange={onChange}
-          maxLength={20}
-        />
+        {loadingPostal && (
+          <span className="client-manager__postal-loading">Consultando SEPOMEX…</span>
+        )}
       </div>
       <div className="client-manager__form-group">
-        <label htmlFor="addr_street_number_int">No. interior</label>
-        <input
-          id="addr_street_number_int"
-          name="street_number_int"
-          value={form.street_number_int}
-          onChange={onChange}
-          maxLength={20}
-        />
+        <label htmlFor="addr_settlement_picker">Colonia</label>
+        {fromSepomex ? (
+          <select
+            id="addr_settlement_picker"
+            name="settlement_picker"
+            value={form.colonia || form.city || ''}
+            onChange={onAddressChange}
+            required
+          >
+            <option value="">Selecciona una colonia</option>
+            {settlements.map((s, i) => (
+              <option key={`${i}-${s}`} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            id="addr_settlement_picker"
+            name="colonia"
+            value={form.colonia}
+            onChange={onAddressChange}
+            placeholder="Colonia"
+            maxLength={255}
+            required
+            disabled={!form.postal_code || form.postal_code.length !== 5}
+          />
+        )}
       </div>
-    </div>
-    <div className="client-manager__form-row">
-      <div className="client-manager__form-group">
-        <label htmlFor="addr_colonia">Colonia</label>
-        <input id="addr_colonia" name="colonia" value={form.colonia} onChange={onChange} maxLength={255} />
-      </div>
-      <div className="client-manager__form-group">
-        <label htmlFor="addr_municipality">Alcaldía / municipio</label>
-        <input
-          id="addr_municipality"
-          name="municipality"
-          value={form.municipality}
-          onChange={onChange}
-          maxLength={255}
-        />
-      </div>
-    </div>
-    <div className="client-manager__form-row">
-      <div className="client-manager__form-group">
-        <label htmlFor="addr_city">
-          Ciudad <ReqStar />
-        </label>
-        <input id="addr_city" name="city" value={form.city} onChange={onChange} required maxLength={255} />
-      </div>
-      <div className="client-manager__form-group">
-        <label htmlFor="addr_state">Estado</label>
-        <input id="addr_state" name="state" value={form.state} onChange={onChange} maxLength={255} />
-      </div>
-    </div>
-    <div className="client-manager__form-row">
-      <div className="client-manager__form-group">
-        <label htmlFor="addr_postal_code">Código postal</label>
-        <input id="addr_postal_code" name="postal_code" value={form.postal_code} onChange={onChange} maxLength={20} />
+      <div className="client-manager__form-row">
+        <div className="client-manager__form-group">
+          <label htmlFor="addr_municipality">Alcaldía / municipio</label>
+          <input
+            id="addr_municipality"
+            name="municipality"
+            value={form.municipality}
+            onChange={onAddressChange}
+            maxLength={255}
+            readOnly={fromSepomex}
+            className={fromSepomex ? 'client-manager__input-readonly' : undefined}
+            placeholder="Municipio"
+          />
+        </div>
+        <div className="client-manager__form-group">
+          <label htmlFor="addr_state">Estado</label>
+          <input
+            id="addr_state"
+            name="state"
+            value={form.state}
+            onChange={onAddressChange}
+            maxLength={255}
+            readOnly={fromSepomex}
+            className={fromSepomex ? 'client-manager__input-readonly' : undefined}
+            placeholder="Estado"
+          />
+        </div>
       </div>
       <div className="client-manager__form-group">
         <label htmlFor="addr_country">País</label>
-        <input id="addr_country" name="country" value={form.country} onChange={onChange} maxLength={255} />
+        <input
+          id="addr_country"
+          name="country"
+          value={form.country}
+          onChange={onAddressChange}
+          maxLength={255}
+          readOnly={fromSepomex}
+          className={fromSepomex ? 'client-manager__input-readonly' : undefined}
+        />
       </div>
+      <div className="client-manager__form-group">
+        <label htmlFor="addr_additional_info">Referencias / piso / entre calles</label>
+        <textarea
+          id="addr_additional_info"
+          name="additional_info"
+          value={form.additional_info}
+          onChange={onAddressChange}
+          rows={2}
+          maxLength={1000}
+          className="client-manager__textarea"
+        />
+      </div>
+      <label className="client-manager__checkbox-row">
+        <input type="checkbox" name="is_default" checked={form.is_default} onChange={onAddressChange} />
+        <span>Marcar como dirección predeterminada</span>
+      </label>
     </div>
-    <div className="client-manager__form-group">
-      <label htmlFor="addr_additional_info">Referencias / piso / entre calles</label>
-      <textarea
-        id="addr_additional_info"
-        name="additional_info"
-        value={form.additional_info}
-        onChange={onChange}
-        rows={2}
-        maxLength={1000}
-        className="client-manager__textarea"
-      />
-    </div>
-    <label className="client-manager__checkbox-row">
-      <input type="checkbox" name="is_default" checked={form.is_default} onChange={onChange} />
-      <span>Marcar como dirección predeterminada</span>
-    </label>
-  </div>
-);
+  );
+};
 
 const ClientManager = () => {
   const { user } = useUserStore();
@@ -137,6 +199,8 @@ const ClientManager = () => {
   const [showAccountStatementModal, setShowAccountStatementModal] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState(null);
   const [addressForm, setAddressForm] = useState(() => emptyAddressForm(null, true));
+  const [postalSettlements, setPostalSettlements] = useState([]);
+  const [loadingPostal, setLoadingPostal] = useState(false);
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -155,12 +219,48 @@ const ClientManager = () => {
   useEffect(() => {
     if (!editingClient) {
       setAddressForm(emptyAddressForm(null, true));
+      setPostalSettlements([]);
+      setLoadingPostal(false);
       return;
     }
     const addrList = editingClient.addresses || [];
     const defaultAddr =
       addrList.find((a) => a.is_default) ?? (addrList.length ? addrList[0] : null);
     setAddressForm(emptyAddressForm(defaultAddr, !defaultAddr));
+    const cp = String(defaultAddr?.postal_code || '')
+      .replace(/\D/g, '')
+      .slice(0, 5);
+    if (cp.length === 5) {
+      setLoadingPostal(true);
+      (async () => {
+        try {
+          const result = await fetchSepomexPostalCode(cp);
+          if (result.ok) {
+            setPostalSettlements(result.settlements);
+            setAddressForm((prev) => {
+              const c = (prev.colonia || prev.city || '').trim();
+              const pick = result.settlements.includes(c) ? c : result.firstSettlement;
+              return {
+                ...prev,
+                postal_code: cp,
+                state: result.state,
+                municipality: result.municipality,
+                city: pick,
+                colonia: pick,
+              };
+            });
+          } else {
+            setPostalSettlements([]);
+          }
+        } catch {
+          setPostalSettlements([]);
+        } finally {
+          setLoadingPostal(false);
+        }
+      })();
+    } else {
+      setPostalSettlements([]);
+    }
   }, [editingClient]);
 
   const fetchClients = async () => {
@@ -209,10 +309,92 @@ const ClientManager = () => {
   };
 
   const handleAddressChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value, type, checked, tagName } = e.target;
+
+    if (name === 'is_default' && type === 'checkbox') {
+      setAddressForm((prev) => ({ ...prev, is_default: checked }));
+      return;
+    }
+
+    if (name === 'settlement_picker' && tagName === 'SELECT') {
+      setAddressForm((prev) => ({ ...prev, colonia: value, city: value }));
+      return;
+    }
+
+    if (name === 'colonia' && tagName === 'INPUT') {
+      setAddressForm((prev) => ({ ...prev, colonia: value, city: value }));
+      return;
+    }
+
+    if (name === 'street_number_ext' || name === 'street_number_int') {
+      const nums = value.replace(/[^0-9]/g, '');
+      setAddressForm((prev) => ({ ...prev, [name]: nums }));
+      return;
+    }
+
+    if (name === 'postal_code') {
+      const digits = value.replace(/\D/g, '').slice(0, 5);
+      if (digits.length < 5) {
+        setPostalSettlements([]);
+        setAddressForm((prev) => ({
+          ...prev,
+          postal_code: digits,
+          state: '',
+          municipality: '',
+          city: '',
+          colonia: '',
+        }));
+        return;
+      }
+      setAddressForm((prev) => ({ ...prev, postal_code: digits }));
+      setLoadingPostal(true);
+      (async () => {
+        try {
+          const result = await fetchSepomexPostalCode(digits);
+          if (result.ok) {
+            setPostalSettlements(result.settlements);
+            setAddressForm((prev) => ({
+              ...prev,
+              state: result.state,
+              municipality: result.municipality,
+              city: result.firstSettlement,
+              colonia: result.firstSettlement,
+            }));
+          } else {
+            setPostalSettlements([]);
+            if (window.showToast) {
+              window.showToast('Código postal no encontrado', 'warning');
+            }
+            setAddressForm((prev) => ({
+              ...prev,
+              state: '',
+              municipality: '',
+              city: '',
+              colonia: '',
+            }));
+          }
+        } catch {
+          setPostalSettlements([]);
+          if (window.showToast) {
+            window.showToast('Error al consultar el código postal', 'error');
+          }
+        } finally {
+          setLoadingPostal(false);
+        }
+      })();
+      return;
+    }
+
+    if (
+      (name === 'municipality' || name === 'state' || name === 'country') &&
+      postalSettlements.length > 0
+    ) {
+      return;
+    }
+
     setAddressForm((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: value,
     }));
   };
 
@@ -229,6 +411,8 @@ const ClientManager = () => {
     setEditingClient(null);
     setShowForm(false);
     setAddressForm(emptyAddressForm(null, true));
+    setPostalSettlements([]);
+    setLoadingPostal(false);
   };
 
   const handleSubmit = async (e) => {
@@ -239,13 +423,30 @@ const ClientManager = () => {
         ? `/api/admin/clients/${editingClient.id}`
         : '/api/admin/clients';
 
+      const payload = { ...formData };
+      if (editingClient) {
+        payload.default_address = {
+          street_address: addressForm.street_address,
+          street_number_ext: addressForm.street_number_ext || null,
+          street_number_int: addressForm.street_number_int || null,
+          city: addressForm.city,
+          municipality: addressForm.municipality || null,
+          colonia: addressForm.colonia || null,
+          state: addressForm.state || null,
+          postal_code: addressForm.postal_code || null,
+          country: addressForm.country || 'México',
+          additional_info: addressForm.additional_info || null,
+          is_default: Boolean(addressForm.is_default),
+        };
+      }
+
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -258,52 +459,6 @@ const ClientManager = () => {
           window.showToast(data.message || 'Error en la operación', 'error');
         }
         return;
-      }
-
-      const clientId = editingClient?.id ?? data.user?.id;
-
-      if (editingClient && clientId) {
-        const preList = editingClient.addresses || [];
-        const existing =
-          preList.find((a) => a.is_default) ?? (preList.length ? preList[0] : null);
-        const isNewAddress = !existing;
-        const addrUrl = isNewAddress
-          ? `/api/admin/clients/${clientId}/addresses`
-          : `/api/admin/clients/${clientId}/addresses/${existing.id}`;
-
-        const addrRes = await fetch(addrUrl, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            street_address: addressForm.street_address,
-            street_number_ext: addressForm.street_number_ext || null,
-            street_number_int: addressForm.street_number_int || null,
-            city: addressForm.city,
-            municipality: addressForm.municipality || null,
-            colonia: addressForm.colonia || null,
-            state: addressForm.state || null,
-            postal_code: addressForm.postal_code || null,
-            country: addressForm.country || 'México',
-            additional_info: addressForm.additional_info || null,
-            is_default: Boolean(addressForm.is_default),
-          }),
-        });
-        const addrData = await addrRes.json();
-        if (!addrRes.ok) {
-          const msg = addrData.errors
-            ? Object.values(addrData.errors).flat().join(', ')
-            : addrData.message || 'Error al guardar la dirección';
-          window.showToast(`Datos del cliente guardados. ${msg}`, 'warning', 5000);
-          const users = await fetchClients();
-          if (users) {
-            const u = users.find((x) => x.id === clientId);
-            if (u) setEditingClient(u);
-          }
-          return;
-        }
       }
 
       await fetchClients();
@@ -695,7 +850,12 @@ const ClientManager = () => {
               </div>
 
               {editingClient && (
-                <AdminClientAddressFields form={addressForm} onChange={handleAddressChange} />
+                <AdminClientAddressFields
+                  form={addressForm}
+                  onAddressChange={handleAddressChange}
+                  settlements={postalSettlements}
+                  loadingPostal={loadingPostal}
+                />
               )}
 
               <div className="client-manager__form-actions client-manager__form-actions--modal-footer">

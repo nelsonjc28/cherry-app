@@ -178,6 +178,23 @@ class ClientController extends Controller
                 ], 422);
             }
 
+            if ($request->has('default_address')) {
+                if (! is_array($request->input('default_address'))) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'default_address debe ser un objeto con los campos de dirección',
+                    ], 422);
+                }
+                $addrRequest = Request::create('/', 'POST', $request->input('default_address', []));
+                $addrValidator = $this->clientAddressValidator($addrRequest);
+                if ($addrValidator->fails()) {
+                    return response()->json([
+                        'success' => false,
+                        'errors' => $addrValidator->errors(),
+                    ], 422);
+                }
+            }
+
             $userData = [
                 'first_name' => $request->first_name,
                 'last_name' => $request->last_name,
@@ -194,10 +211,14 @@ class ClientController extends Controller
 
             $user->update($userData);
 
+            if ($request->has('default_address') && is_array($request->input('default_address'))) {
+                $this->upsertDefaultClientAddress($user, $request->input('default_address', []));
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Cliente actualizado exitosamente',
-                'user' => $user->load('role')
+                'user' => $user->fresh()->load(['role', 'addresses'])
             ]);
 
         } catch (\Exception $e) {
@@ -228,6 +249,50 @@ class ClientController extends Controller
             'additional_info' => 'nullable|string|max:1000',
             'is_default' => 'boolean',
         ]);
+    }
+
+    /**
+     * Crea o actualiza la dirección predeterminada del cliente (misma lógica que store/update por ID).
+     *
+     * @param  array<string, mixed>  $a
+     */
+    protected function upsertDefaultClientAddress(User $user, array $a): void
+    {
+        $isDefault = filter_var($a['is_default'] ?? true, FILTER_VALIDATE_BOOLEAN);
+
+        $address = $user->addresses()->where('is_default', true)->first()
+            ?? $user->addresses()->orderBy('id')->first();
+
+        $row = [
+            'street_address' => $a['street_address'],
+            'street_number_ext' => $a['street_number_ext'] ?? null,
+            'street_number_int' => $a['street_number_int'] ?? null,
+            'city' => $a['city'],
+            'municipality' => $a['municipality'] ?? null,
+            'colonia' => $a['colonia'] ?? null,
+            'state' => $a['state'] ?? null,
+            'postal_code' => $a['postal_code'] ?? null,
+            'country' => $a['country'] ?? 'México',
+            'additional_info' => $a['additional_info'] ?? null,
+        ];
+
+        if (! $address) {
+            $hadNoAddresses = $user->addresses()->count() === 0;
+            $makeDefault = $isDefault || $hadNoAddresses;
+            if ($makeDefault) {
+                $user->addresses()->update(['is_default' => false]);
+            }
+            $row['is_default'] = $makeDefault;
+            $user->addresses()->create($row);
+
+            return;
+        }
+
+        if ($isDefault) {
+            $user->addresses()->where('id', '!=', $address->id)->update(['is_default' => false]);
+        }
+        $row['is_default'] = $isDefault;
+        $address->update($row);
     }
 
     /**
