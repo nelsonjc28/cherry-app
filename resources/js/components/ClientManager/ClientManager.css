@@ -42,6 +42,55 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
+.client-manager__form--with-addresses {
+  max-width: 720px;
+}
+
+.client-manager__req {
+  color: var(--color-primary, #ea2630);
+  font-weight: 700;
+}
+
+.client-manager__form-row.client-manager__form-row--grid-12 {
+  grid-template-columns: repeat(12, 1fr);
+}
+
+.client-manager__form-col-6 {
+  grid-column: span 6;
+}
+
+.client-manager__addresses-wrap {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--color-border, #e0e0e0);
+}
+
+.client-manager__textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 1rem;
+  resize: vertical;
+  min-height: 48px;
+  box-sizing: border-box;
+}
+
+.client-manager__textarea:focus {
+  outline: none;
+  border-color: var(--color-primary, #ea2630);
+}
+
+.client-manager__checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
 .client-manager__form-header {
   display: flex;
   justify-content: space-between;
@@ -96,7 +145,8 @@
 }
 
 .client-manager__form-group input,
-.client-manager__form-group select {
+.client-manager__form-group select,
+.client-manager__form-group textarea {
   padding: 0.75rem;
   border: 1px solid var(--color-border, #e0e0e0);
   border-radius: 4px;
@@ -105,7 +155,8 @@
 }
 
 .client-manager__form-group input:focus,
-.client-manager__form-group select:focus {
+.client-manager__form-group select:focus,
+.client-manager__form-group textarea:focus {
   outline: none;
   border-color: var(--color-primary, #EA2630);
 }
@@ -116,6 +167,10 @@
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid var(--color-border, #e0e0e0);
+}
+
+.client-manager__form-actions--modal-footer {
+  margin-top: 1.25rem;
 }
 
 /* Search Styles */
@@ -334,8 +389,16 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-  .client-manager__form-row {
+  .client-manager__form-row:not(.client-manager__form-row--grid-12) {
     grid-template-columns: 1fr;
+  }
+
+  .client-manager__form-row.client-manager__form-row--grid-12 {
+    grid-template-columns: 1fr;
+  }
+
+  .client-manager__form-col-6 {
+    grid-column: span 1;
   }
   
   .client-manager__form {

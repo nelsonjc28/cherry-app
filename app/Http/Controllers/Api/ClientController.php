@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\Order;
+use App\Models\Address;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -19,7 +20,7 @@ class ClientController extends Controller
     public function getClients()
     {
         try {
-            $users = User::with('role')->where('role_id', 2)->get();
+            $users = User::with(['role', 'addresses'])->where('role_id', 2)->get();
             return response()->json([
                 'success' => true,
                 'users' => $users
@@ -38,7 +39,7 @@ class ClientController extends Controller
     public function getClient($id)
     {
         try {
-            $user = User::with('role')->where('role_id', 2)->find($id);
+            $user = User::with(['role', 'addresses'])->where('role_id', 2)->find($id);
             
             if (!$user) {
                 return response()->json([
@@ -203,6 +204,153 @@ class ClientController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al actualizar cliente: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Validación de payload de dirección (misma regla que AddressController).
+     *
+     * @return \Illuminate\Contracts\Validation\Validator
+     */
+    protected function clientAddressValidator(Request $request)
+    {
+        return Validator::make($request->all(), [
+            'street_address' => 'required|string|max:500',
+            'street_number_ext' => 'nullable|string|max:20',
+            'street_number_int' => 'nullable|string|max:20',
+            'city' => 'required|string|max:255',
+            'municipality' => 'nullable|string|max:255',
+            'colonia' => 'nullable|string|max:255',
+            'state' => 'nullable|string|max:255',
+            'postal_code' => 'nullable|string|max:20',
+            'country' => 'nullable|string|max:255',
+            'additional_info' => 'nullable|string|max:1000',
+            'is_default' => 'boolean',
+        ]);
+    }
+
+    /**
+     * Crear una dirección para un cliente (desde admin).
+     */
+    public function storeClientAddress(Request $request, $id)
+    {
+        try {
+            $user = User::where('role_id', 2)->find($id);
+
+            if (! $user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cliente no encontrado',
+                ], 404);
+            }
+
+            $validator = $this->clientAddressValidator($request);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $isDefault = $request->boolean('is_default');
+            $hadNoAddresses = $user->addresses()->count() === 0;
+            $makeDefault = $isDefault || $hadNoAddresses;
+            if ($makeDefault) {
+                $user->addresses()->update(['is_default' => false]);
+            }
+
+            $address = $user->addresses()->create([
+                'street_address' => $request->street_address,
+                'street_number_ext' => $request->street_number_ext,
+                'street_number_int' => $request->street_number_int,
+                'city' => $request->city,
+                'municipality' => $request->municipality,
+                'colonia' => $request->colonia,
+                'state' => $request->state,
+                'postal_code' => $request->postal_code,
+                'country' => $request->country ?? 'México',
+                'additional_info' => $request->additional_info,
+                'is_default' => $makeDefault,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Dirección creada correctamente',
+                'address' => $address,
+                'user' => $user->load(['role', 'addresses']),
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear la dirección: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Actualizar una dirección de un cliente (desde admin).
+     */
+    public function updateClientAddress(Request $request, $id, $addressId)
+    {
+        try {
+            $user = User::where('role_id', 2)->find($id);
+
+            if (! $user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cliente no encontrado',
+                ], 404);
+            }
+
+            $address = Address::where('user_id', $user->id)->where('id', $addressId)->first();
+
+            if (! $address) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dirección no encontrada',
+                ], 404);
+            }
+
+            $validator = $this->clientAddressValidator($request);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $isDefault = $request->boolean('is_default');
+            if ($isDefault) {
+                $user->addresses()->where('id', '!=', $address->id)->update(['is_default' => false]);
+            }
+
+            $address->update([
+                'street_address' => $request->street_address,
+                'street_number_ext' => $request->street_number_ext,
+                'street_number_int' => $request->street_number_int,
+                'city' => $request->city,
+                'municipality' => $request->municipality,
+                'colonia' => $request->colonia,
+                'state' => $request->state,
+                'postal_code' => $request->postal_code,
+                'country' => $request->country ?? 'México',
+                'additional_info' => $request->additional_info,
+                'is_default' => $isDefault,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Dirección actualizada correctamente',
+                'address' => $address->fresh(),
+                'user' => $user->load(['role', 'addresses']),
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar la dirección: '.$e->getMessage(),
             ], 500);
         }
     }

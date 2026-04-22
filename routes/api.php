@@ -202,6 +202,8 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/admin/clients/{id}', [ClientController::class, 'getClient']);
     Route::get('/admin/clients/{id}/account-statements', [ClientController::class, 'getClientAccountStatements']);
     Route::post('/admin/clients', [ClientController::class, 'createClient']);
+    Route::post('/admin/clients/{id}/addresses/{addressId}', [ClientController::class, 'updateClientAddress']);
+    Route::post('/admin/clients/{id}/addresses', [ClientController::class, 'storeClientAddress']);
     Route::post('/admin/clients/{id}', [ClientController::class, 'updateClient']);
     Route::delete('/admin/clients/{id}', [ClientController::class, 'deleteClient']);
     Route::patch('/admin/clients/{id}/seller-category', [ClientController::class, 'updateSellerCategory']);

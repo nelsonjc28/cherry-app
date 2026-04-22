@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import CherryButton from '../CherryButton/CherryButton';
 import AccountStatementModal from '../AccountStatementModal/AccountStatementModal';
-import { getIconPath } from '../../utils/assetPaths';
 import useUserStore from '../../store/userStore';
 import './ClientManager.css';
 
@@ -11,6 +10,119 @@ const formatClientId = (clientId) => {
   if (!clientId) return '';
   return 'DM' + String(clientId).padStart(5, '0');
 };
+
+const emptyAddressForm = (address, defaultIfFirst) => ({
+  street_address: address?.street_address ?? '',
+  street_number_ext: address?.street_number_ext ?? '',
+  street_number_int: address?.street_number_int ?? '',
+  city: address?.city ?? '',
+  municipality: address?.municipality ?? '',
+  colonia: address?.colonia ?? '',
+  state: address?.state ?? '',
+  postal_code: address?.postal_code ?? '',
+  country: address?.country || 'México',
+  additional_info: address?.additional_info ?? '',
+  is_default: address ? Boolean(address.is_default) : Boolean(defaultIfFirst),
+});
+
+const ReqStar = () => <span className="client-manager__req">*</span>;
+
+/** Campos de dirección dentro del mismo formulario que el perfil */
+const AdminClientAddressFields = ({ form, onChange }) => (
+  <div className="client-manager__addresses-wrap client-manager__addresses-wrap--in-form">
+    <div className="client-manager__form-row client-manager__form-row--grid-12">
+      <div className="client-manager__form-group client-manager__form-col-6">
+        <label htmlFor="addr_street_address">
+          Calle / vialidad <ReqStar />
+        </label>
+        <input
+          id="addr_street_address"
+          name="street_address"
+          value={form.street_address}
+          onChange={onChange}
+          required
+          maxLength={500}
+        />
+      </div>
+    </div>
+    <div className="client-manager__form-row">
+      <div className="client-manager__form-group">
+        <label htmlFor="addr_street_number_ext">No. exterior</label>
+        <input
+          id="addr_street_number_ext"
+          name="street_number_ext"
+          value={form.street_number_ext}
+          onChange={onChange}
+          maxLength={20}
+        />
+      </div>
+      <div className="client-manager__form-group">
+        <label htmlFor="addr_street_number_int">No. interior</label>
+        <input
+          id="addr_street_number_int"
+          name="street_number_int"
+          value={form.street_number_int}
+          onChange={onChange}
+          maxLength={20}
+        />
+      </div>
+    </div>
+    <div className="client-manager__form-row">
+      <div className="client-manager__form-group">
+        <label htmlFor="addr_colonia">Colonia</label>
+        <input id="addr_colonia" name="colonia" value={form.colonia} onChange={onChange} maxLength={255} />
+      </div>
+      <div className="client-manager__form-group">
+        <label htmlFor="addr_municipality">Alcaldía / municipio</label>
+        <input
+          id="addr_municipality"
+          name="municipality"
+          value={form.municipality}
+          onChange={onChange}
+          maxLength={255}
+        />
+      </div>
+    </div>
+    <div className="client-manager__form-row">
+      <div className="client-manager__form-group">
+        <label htmlFor="addr_city">
+          Ciudad <ReqStar />
+        </label>
+        <input id="addr_city" name="city" value={form.city} onChange={onChange} required maxLength={255} />
+      </div>
+      <div className="client-manager__form-group">
+        <label htmlFor="addr_state">Estado</label>
+        <input id="addr_state" name="state" value={form.state} onChange={onChange} maxLength={255} />
+      </div>
+    </div>
+    <div className="client-manager__form-row">
+      <div className="client-manager__form-group">
+        <label htmlFor="addr_postal_code">Código postal</label>
+        <input id="addr_postal_code" name="postal_code" value={form.postal_code} onChange={onChange} maxLength={20} />
+      </div>
+      <div className="client-manager__form-group">
+        <label htmlFor="addr_country">País</label>
+        <input id="addr_country" name="country" value={form.country} onChange={onChange} maxLength={255} />
+      </div>
+    </div>
+    <div className="client-manager__form-group">
+      <label htmlFor="addr_additional_info">Referencias / piso / entre calles</label>
+      <textarea
+        id="addr_additional_info"
+        name="additional_info"
+        value={form.additional_info}
+        onChange={onChange}
+        rows={2}
+        maxLength={1000}
+        className="client-manager__textarea"
+      />
+    </div>
+    <label className="client-manager__checkbox-row">
+      <input type="checkbox" name="is_default" checked={form.is_default} onChange={onChange} />
+      <span>Marcar como dirección predeterminada</span>
+    </label>
+  </div>
+);
 
 const ClientManager = () => {
   const { user } = useUserStore();
@@ -24,6 +136,7 @@ const ClientManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAccountStatementModal, setShowAccountStatementModal] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState(null);
+  const [addressForm, setAddressForm] = useState(() => emptyAddressForm(null, true));
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -38,6 +151,17 @@ const ClientManager = () => {
   useEffect(() => {
     fetchClients();
   }, []);
+
+  useEffect(() => {
+    if (!editingClient) {
+      setAddressForm(emptyAddressForm(null, true));
+      return;
+    }
+    const addrList = editingClient.addresses || [];
+    const defaultAddr =
+      addrList.find((a) => a.is_default) ?? (addrList.length ? addrList[0] : null);
+    setAddressForm(emptyAddressForm(defaultAddr, !defaultAddr));
+  }, [editingClient]);
 
   const fetchClients = async () => {
     try {
@@ -55,9 +179,11 @@ const ClientManager = () => {
       const data = await response.json();
       setClients(data.users);
       setAllClients(data.users);
+      return data.users;
     } catch (err) {
       setError(err.message);
       window.showToast('Error al cargar clientes: ' + err.message, 'error');
+      return null;
     } finally {
       setLoading(false);
     }
@@ -82,6 +208,14 @@ const ClientManager = () => {
     }));
   };
 
+  const handleAddressChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setAddressForm((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
+  };
+
   const resetForm = () => {
     setFormData({
       first_name: '',
@@ -94,31 +228,29 @@ const ClientManager = () => {
     });
     setEditingClient(null);
     setShowForm(false);
+    setAddressForm(emptyAddressForm(null, true));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     try {
-      const url = editingClient 
+      const url = editingClient
         ? `/api/admin/clients/${editingClient.id}`
         : '/api/admin/clients';
-      
-      const method = 'POST';
-      
+
       const response = await fetch(url, {
-        method,
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
-        // Handle validation errors
         if (data.errors) {
           const errorMessages = Object.values(data.errors).flat().join(', ');
           window.showToast(errorMessages, 'error');
@@ -127,12 +259,57 @@ const ClientManager = () => {
         }
         return;
       }
-      
-      // Refresh clients list
+
+      const clientId = editingClient?.id ?? data.user?.id;
+
+      if (editingClient && clientId) {
+        const preList = editingClient.addresses || [];
+        const existing =
+          preList.find((a) => a.is_default) ?? (preList.length ? preList[0] : null);
+        const isNewAddress = !existing;
+        const addrUrl = isNewAddress
+          ? `/api/admin/clients/${clientId}/addresses`
+          : `/api/admin/clients/${clientId}/addresses/${existing.id}`;
+
+        const addrRes = await fetch(addrUrl, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            street_address: addressForm.street_address,
+            street_number_ext: addressForm.street_number_ext || null,
+            street_number_int: addressForm.street_number_int || null,
+            city: addressForm.city,
+            municipality: addressForm.municipality || null,
+            colonia: addressForm.colonia || null,
+            state: addressForm.state || null,
+            postal_code: addressForm.postal_code || null,
+            country: addressForm.country || 'México',
+            additional_info: addressForm.additional_info || null,
+            is_default: Boolean(addressForm.is_default),
+          }),
+        });
+        const addrData = await addrRes.json();
+        if (!addrRes.ok) {
+          const msg = addrData.errors
+            ? Object.values(addrData.errors).flat().join(', ')
+            : addrData.message || 'Error al guardar la dirección';
+          window.showToast(`Datos del cliente guardados. ${msg}`, 'warning', 5000);
+          const users = await fetchClients();
+          if (users) {
+            const u = users.find((x) => x.id === clientId);
+            if (u) setEditingClient(u);
+          }
+          return;
+        }
+      }
+
       await fetchClients();
       resetForm();
-      setSearchTerm(''); // Limpiar búsqueda después de crear/editar
-      
+      setSearchTerm('');
+
       window.showToast(
         editingClient ? 'Cliente actualizado exitosamente' : 'Cliente registrado exitosamente',
         'success',
@@ -143,8 +320,8 @@ const ClientManager = () => {
     }
   };
 
-  const handleEdit = (client) => {
-    setEditingClient(client);
+  const handleEdit = async (client) => {
+    setEditingClient({ ...client, addresses: client.addresses || [] });
     setFormData({
       first_name: client.first_name,
       last_name: client.last_name,
@@ -155,6 +332,20 @@ const ClientManager = () => {
       role_id: client.role_id
     });
     setShowForm(true);
+    try {
+      const response = await fetch(`/api/admin/clients/${client.id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const data = await response.json();
+      if (response.ok && data.success && data.user) {
+        setEditingClient(data.user);
+      }
+    } catch {
+      /* mantener datos del listado */
+    }
   };
 
   // Filtrar clientes según el término de búsqueda
@@ -357,7 +548,19 @@ const ClientManager = () => {
       <div className="client-manager__header">
         <h2>Gestión de Clientes</h2>
         <CherryButton 
-          onClick={() => setShowForm(true)}
+          onClick={() => {
+            setEditingClient(null);
+            setFormData({
+              first_name: '',
+              last_name: '',
+              middle_name: '',
+              email: '',
+              phone: '',
+              password: '',
+              role_id: '2',
+            });
+            setShowForm(true);
+          }}
           variant="red"
           size="medium"
         >
@@ -368,7 +571,9 @@ const ClientManager = () => {
       {/* Client Form */}
       {showForm && (
         <div className="client-manager__form-overlay">
-          <div className="client-manager__form">
+          <div
+            className={`client-manager__form${editingClient ? ' client-manager__form--with-addresses' : ''}`}
+          >
             <div className="client-manager__form-header">
               <h3>{editingClient ? 'Editar Cliente' : 'Crear Nuevo Cliente'}</h3>
               <button 
@@ -379,10 +584,16 @@ const ClientManager = () => {
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="client-manager__form-content">
+            <form
+              id="client-manager-client-form"
+              onSubmit={handleSubmit}
+              className="client-manager__form-content"
+            >
               <div className="client-manager__form-row">
                 <div className="client-manager__form-group">
-                  <label htmlFor="first_name">Nombre *</label>
+                  <label htmlFor="first_name">
+                    Nombre <ReqStar />
+                  </label>
                   <input
                     type="text"
                     id="first_name"
@@ -405,7 +616,9 @@ const ClientManager = () => {
               </div>
               
               <div className="client-manager__form-group">
-                <label htmlFor="last_name">Apellido *</label>
+                <label htmlFor="last_name">
+                  Apellido <ReqStar />
+                </label>
                 <input
                   type="text"
                   id="last_name"
@@ -418,7 +631,9 @@ const ClientManager = () => {
               
               <div className="client-manager__form-row">
                 <div className="client-manager__form-group">
-                  <label htmlFor="email">Email *</label>
+                  <label htmlFor="email">
+                    Email <ReqStar />
+                  </label>
                   <input
                     type="email"
                     id="email"
@@ -429,7 +644,9 @@ const ClientManager = () => {
                   />
                 </div>
                 <div className="client-manager__form-group">
-                  <label htmlFor="phone">Teléfono *</label>
+                  <label htmlFor="phone">
+                    Teléfono <ReqStar />
+                  </label>
                   <input
                     type="tel"
                     id="phone"
@@ -452,7 +669,13 @@ const ClientManager = () => {
               <div className="client-manager__form-row">
                 <div className="client-manager__form-group">
                   <label htmlFor="password">
-                    {editingClient ? 'Nueva Contraseña (dejar vacío para mantener)' : 'Contraseña *'}
+                    {editingClient ? (
+                      'Nueva Contraseña (dejar vacío para mantener)'
+                    ) : (
+                      <>
+                        Contraseña <ReqStar />
+                      </>
+                    )}
                   </label>
                   <input
                     type="password"
@@ -470,16 +693,16 @@ const ClientManager = () => {
                   )}
                 </div>
               </div>
-              
-              <div className="client-manager__form-actions">
-                <CherryButton 
-                  type="submit"
-                  variant="red"
-                  size="medium"
-                >
+
+              {editingClient && (
+                <AdminClientAddressFields form={addressForm} onChange={handleAddressChange} />
+              )}
+
+              <div className="client-manager__form-actions client-manager__form-actions--modal-footer">
+                <CherryButton type="submit" variant="red" size="medium">
                   {editingClient ? 'Actualizar' : 'Crear'}
                 </CherryButton>
-                <CherryButton 
+                <CherryButton
                   type="button"
                   variant="outline"
                   size="medium"

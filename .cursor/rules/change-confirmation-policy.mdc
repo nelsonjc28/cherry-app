@@ -1,0 +1,24 @@
+---
+description: Require confirmation before making extra changes
+alwaysApply: true
+---
+
+# Change Confirmation Policy
+
+- Do not modify anything the user did not explicitly request.
+- If a related change seems necessary, stop and ask for confirmation before making it.
+- Distinguish clearly between:
+  - requested changes
+  - recommended changes
+  - optional follow-up improvements
+- Before making any extra change, explain:
+  - why it may be needed
+  - what files or areas would be affected
+  - what risk or benefit it addresses
+- Offer concise suggestions for additional system changes that may be needed, but do not implement them without approval.
+- Never bundle unrelated cleanup, refactors, renames, formatting-only edits, or UI tweaks unless the user asked for them.
+
+## Examples
+
+- If the user asks to hide one button, do not also rename labels or refactor nearby logic without confirmation.
+- If fixing one flow reveals another impacted flow, describe it and ask whether to include it before editing.
