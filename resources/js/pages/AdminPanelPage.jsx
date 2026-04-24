@@ -36,11 +36,11 @@ function AdminPanelPage() {
   const [selectedMenu, setSelectedMenu] = useState('home');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState({
-    usuarios: false,
-    categorias: false,
-    catalogos: false
+    usuarios: true,
+    categorias: true,
+    catalogos: true
   });
-  const { user, isAdmin } = useUserStore();
+  const { user } = useUserStore();
   
   // Helper para verificar si el usuario es admin o operador
   const isAdminOrOperator = () => {
@@ -220,7 +220,7 @@ function AdminPanelPage() {
       <aside className={`admin-panel__sidebar${sidebarOpen ? ' open' : ''}`}>
         <div className="admin-panel__sidebar-header">
           <span className="admin-panel__sidebar-title">
-            {isAdmin() ? 'Admin Panel' : 'Dashboard'}
+            {isAdminOrOperatorRole ? 'Admin Panel' : 'Dashboard'}
           </span>
           <button className="admin-panel__sidebar-toggle" onClick={()=>setSidebarOpen(v=>!v)} aria-label="Abrir/cerrar menú">
             <span>{sidebarOpen ? '✕' : '☰'}</span>
@@ -354,14 +354,14 @@ function AdminPanelPage() {
           <button className="admin-panel__sidebar-link" onClick={handleLogout}>Volver al sitio</button>
         </nav>
       </aside>
-      <main className={`admin-panel__main-content ${selectedMenu === 'home' && isAdmin() ? 'admin-panel__main-content--dashboard' : ''}`}>
+      <main className={`admin-panel__main-content ${selectedMenu === 'home' && isAdminOrOperatorRole ? 'admin-panel__main-content--dashboard' : ''}`}>
         {selectedMenu === 'home' && (
           <section>
-            {isAdmin() ? (
-              // Dashboard con gráficas para administradores
+            {isAdminOrOperatorRole ? (
+              // Dashboard con gráficas: administradores y operadores
               <AdminDashboard />
             ) : (
-              // Contenido para clientes
+              // Contenido de respaldo (no debería mostrarse: AdminRoute ya filtra)
               <>
                 <h2 className="section-title mb-3">Dashboard de Usuario</h2>
                 <div className="admin-panel__welcome mb-4">

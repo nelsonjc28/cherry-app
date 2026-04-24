@@ -14,8 +14,10 @@ return new class extends Migration
     {
         // Insertar el rol de operador si no existe
         $operatorRole = DB::table('roles')->where('name', 'operador')->first();
-        if (!$operatorRole) {
+        if (! $operatorRole) {
+            // id 1 y 2 reservados para admin/cliente (RoleSeeder)
             DB::table('roles')->insert([
+                'id' => 3,
                 'name' => 'operador',
                 'description' => 'Usuario operador con permisos limitados',
                 'created_at' => now(),

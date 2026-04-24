@@ -210,6 +210,12 @@ const ClientManager = () => {
     password: '',
     role_id: '2' // Default to client role (ID: 2)
   });
+  /** Descuentos informativos desde la API externa (solo al editar). */
+  const [externalApiDiscounts, setExternalApiDiscounts] = useState({
+    loading: false,
+    descuento1: '',
+    descuento2: '',
+  });
 
   // Fetch clients on component mount
   useEffect(() => {
@@ -413,6 +419,7 @@ const ClientManager = () => {
     setAddressForm(emptyAddressForm(null, true));
     setPostalSettlements([]);
     setLoadingPostal(false);
+    setExternalApiDiscounts({ loading: false, descuento1: '', descuento2: '' });
   };
 
   const handleSubmit = async (e) => {
@@ -476,6 +483,7 @@ const ClientManager = () => {
   };
 
   const handleEdit = async (client) => {
+    setExternalApiDiscounts({ loading: true, descuento1: '', descuento2: '' });
     setEditingClient({ ...client, addresses: client.addresses || [] });
     setFormData({
       first_name: client.first_name,
@@ -487,19 +495,49 @@ const ClientManager = () => {
       role_id: client.role_id
     });
     setShowForm(true);
+    const token = localStorage.getItem('token');
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
+
     try {
-      const response = await fetch(`/api/admin/clients/${client.id}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(`/api/admin/clients/${client.id}`, { headers });
       const data = await response.json();
       if (response.ok && data.success && data.user) {
         setEditingClient(data.user);
       }
     } catch {
       /* mantener datos del listado */
+    }
+
+    try {
+      const discRes = await fetch(
+        `/api/admin/clients/${client.id}/external-discounts`,
+        { headers }
+      );
+      const discData = await discRes.json();
+      if (discRes.ok && discData.success) {
+        const d1 = discData.descuento1;
+        const d2 = discData.descuento2;
+        setExternalApiDiscounts({
+          loading: false,
+          descuento1: d1 != null && String(d1) !== '' ? String(d1) : '—',
+          descuento2: d2 != null && String(d2) !== '' ? String(d2) : '—',
+        });
+      } else {
+        setExternalApiDiscounts({
+          loading: false,
+          descuento1: '—',
+          descuento2: '—',
+        });
+      }
+    } catch {
+      setExternalApiDiscounts({
+        loading: false,
+        descuento1: '—',
+        descuento2: '—',
+      });
     }
   };
 
@@ -578,78 +616,6 @@ const ClientManager = () => {
     }
   };
 
-  const handleUpdateCredit = async (clientId) => {
-    const client = clients.find(c => c.id === clientId);
-    if (!client || !['oro', 'diamante'].includes(client.seller_category)) {
-      window.showToast('Solo los clientes con categoría Oro o Diamante pueden tener crédito', 'warning');
-      return;
-    }
-
-    // Calcular crédito usado
-    const creditLimit = parseFloat(client.credit_limit || 0);
-    const creditBalance = parseFloat(client.credit_balance || 0);
-    const creditUsed = creditLimit - creditBalance;
-    
-    const { value: creditAmount } = await Swal.fire({
-      title: 'Asignar Crédito',
-      text: `Cliente: ${client.first_name} ${client.last_name}`,
-      html: `
-        <div style="text-align: left;">
-          <p><strong>Crédito total asignado:</strong> $${creditLimit.toFixed(2)}</p>
-          <p><strong>Crédito disponible:</strong> $${creditBalance.toFixed(2)}</p>
-          ${creditUsed > 0 ? `<p><strong>Crédito usado:</strong> $${creditUsed.toFixed(2)}</p>` : ''}
-          <p style="color: #666; font-size: 12px; margin-top: 10px;">Ingresa el nuevo crédito total asignado. El crédito disponible se calculará automáticamente restando lo usado.</p>
-        </div>
-      `,
-      input: 'number',
-      inputLabel: 'Crédito total asignado',
-      inputValue: creditLimit, // Mostrar el límite total, no el disponible
-      inputAttributes: {
-        min: 0,
-        step: 0.01
-      },
-      showCancelButton: true,
-      confirmButtonText: 'Asignar',
-      cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#d32f2f',
-      cancelButtonColor: '#6c757d',
-      inputValidator: (value) => {
-        const numValue = parseFloat(value);
-        if (isNaN(numValue) || numValue < 0) {
-          return 'El monto debe ser mayor o igual a 0';
-        }
-      }
-    });
-
-    if (creditAmount === undefined) return;
-
-    try {
-      // Actualizar el crédito disponible (el backend también actualizará el límite al mismo valor)
-      const creditValue = parseFloat(creditAmount);
-      
-      const response = await fetch(`/api/admin/clients/${clientId}/credit-balance`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ credit_balance: creditValue })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        window.showToast(data.message || 'Error al actualizar crédito', 'error');
-        return;
-      }
-
-      await fetchClients();
-      window.showToast(`Crédito asignado: $${creditValue.toFixed(2)}`, 'success');
-    } catch (err) {
-      window.showToast('Error: ' + err.message, 'error');
-    }
-  };
-
   const handleDelete = async (clientId) => {
     const result = await Swal.fire({
       title: '¿Estás seguro?',
@@ -705,6 +671,7 @@ const ClientManager = () => {
         <CherryButton 
           onClick={() => {
             setEditingClient(null);
+            setExternalApiDiscounts({ loading: false, descuento1: '', descuento2: '' });
             setFormData({
               first_name: '',
               last_name: '',
@@ -848,6 +815,35 @@ const ClientManager = () => {
                   )}
                 </div>
               </div>
+
+              {editingClient && (
+                <div className="client-manager__external-api-discounts" aria-live="polite">
+                  <div className="client-manager__form-row">
+                    <div className="client-manager__form-group">
+                      <label htmlFor="external_descuento1">descuento1</label>
+                      <input
+                        id="external_descuento1"
+                        type="text"
+                        readOnly
+                        tabIndex={-1}
+                        value={externalApiDiscounts.loading ? 'Consultando…' : externalApiDiscounts.descuento1}
+                        className="client-manager__input-readonly"
+                      />
+                    </div>
+                    <div className="client-manager__form-group">
+                      <label htmlFor="external_descuento2">descuento2</label>
+                      <input
+                        id="external_descuento2"
+                        type="text"
+                        readOnly
+                        tabIndex={-1}
+                        value={externalApiDiscounts.loading ? 'Consultando…' : externalApiDiscounts.descuento2}
+                        className="client-manager__input-readonly"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {editingClient && (
                 <AdminClientAddressFields
@@ -1011,37 +1007,6 @@ const ClientManager = () => {
                     <span className="client-manager__btn-icon">📊</span>
                     <span className="client-manager__btn-text">Estados de Cuenta</span>
                   </button>
-                  {!isOperator && ['oro', 'diamante'].includes(client.seller_category) && (
-                    <button
-                      className="client-manager__action-btn client-manager__action-btn--red"
-                      onClick={() => handleUpdateCredit(client.id)}
-                      data-tooltip="Asignar Crédito"
-                      onMouseEnter={(e) => {
-                        const button = e.currentTarget;
-                        const tooltipText = button.getAttribute('data-tooltip');
-                        let tooltip = document.querySelector('.client-tooltip');
-                        if (!tooltip) {
-                          tooltip = document.createElement('div');
-                          tooltip.className = 'client-tooltip';
-                          document.body.appendChild(tooltip);
-                        }
-                        tooltip.textContent = tooltipText;
-                        tooltip.style.display = 'block';
-                        
-                        const rect = button.getBoundingClientRect();
-                        const tooltipRect = tooltip.getBoundingClientRect();
-                        tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
-                        tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
-                      }}
-                      onMouseLeave={() => {
-                        const tooltip = document.querySelector('.client-tooltip');
-                        if (tooltip) tooltip.style.display = 'none';
-                      }}
-                    >
-                      <span className="client-manager__btn-icon">💰</span>
-                      <span className="client-manager__btn-text">Asignar Crédito</span>
-                    </button>
-                  )}
                   <button
                     className="client-manager__action-btn client-manager__action-btn--outline"
                     onClick={() => handleEdit(client)}

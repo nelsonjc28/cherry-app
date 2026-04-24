@@ -17,7 +17,7 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { user, fetchUser, logout, isAdmin } = useUserStore();
+  const { user, fetchUser, logout, isAdmin, isAdminOrOperator } = useUserStore();
   const cartStore = useCartStore();
   const cartItems = cartStore?.items || [];
   const totalItems = cartStore?.totalItems || 0;
@@ -107,7 +107,7 @@ const Header = () => {
     const interval = setInterval(fetchUnreadNotifications, 30000);
 
     return () => clearInterval(interval);
-  }, [user, isAdmin]);
+  }, [user, isAdminOrOperator]);
 
   // Organizar categorías en grupos para el menú
   const getCategoryGroups = () => {
@@ -1059,7 +1059,7 @@ const Header = () => {
         onViewCart={() => { setCartModalOpen(false); navigate('/carrito-detalle'); }}
       />
 
-      {user && isAdmin() && (
+      {user && isAdminOrOperator() && (
         <AdminNotifications
           isOpen={notificationsOpen}
           onClose={() => setNotificationsOpen(false)}

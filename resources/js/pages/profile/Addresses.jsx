@@ -595,16 +595,32 @@ const Addresses = () => {
             </div>
             <div className="modal-body">
               <form onSubmit={(e) => { e.preventDefault(); handleSaveAddress(); }}>
-                <div className="form-group form-group--full">
-                  <label>Dirección (Calle):</label>
-                  <input
-                    type="text"
-                    name="street_address"
-                    value={formData.street_address}
-                    onChange={handleInputChange}
-                    placeholder="Calle"
-                    required
-                  />
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Código Postal:</label>
+                    <input
+                      type="text"
+                      name="postal_code"
+                      value={formData.postal_code}
+                      onChange={handleInputChange}
+                      placeholder="CP (5 dígitos)"
+                      maxLength="5"
+                      pattern="[0-9]{5}"
+                      required
+                    />
+                    {loadingPostalCode && <small style={{ color: '#666' }}>Consultando SEPOMEX...</small>}
+                  </div>
+                  <div className="form-group">
+                    <label>Dirección (Calle):</label>
+                    <input
+                      type="text"
+                      name="street_address"
+                      value={formData.street_address}
+                      onChange={handleInputChange}
+                      placeholder="Calle"
+                      required
+                    />
+                  </div>
                 </div>
                 <div className="form-row">
                   <div className="form-group">
@@ -633,20 +649,6 @@ const Addresses = () => {
                       placeholder="Número interior"
                     />
                   </div>
-                </div>
-                <div className="form-group form-group--full">
-                  <label>Código Postal:</label>
-                  <input
-                    type="text"
-                    name="postal_code"
-                    value={formData.postal_code}
-                    onChange={handleInputChange}
-                    placeholder="CP (5 dígitos)"
-                    maxLength="5"
-                    pattern="[0-9]{5}"
-                    required
-                  />
-                  {loadingPostalCode && <small style={{ color: '#666' }}>Consultando SEPOMEX...</small>}
                 </div>
                 <div className="form-group form-group--full">
                   <label>Colonia:</label>
@@ -765,16 +767,32 @@ const Addresses = () => {
             </div>
             <div className="modal-body">
               <form onSubmit={(e) => { e.preventDefault(); handleSaveAddress(); }}>
-                <div className="form-group form-group--full">
-                  <label>Dirección (Calle):</label>
-                  <input
-                    type="text"
-                    name="street_address"
-                    value={formData.street_address}
-                    onChange={handleInputChange}
-                    placeholder="Calle"
-                    required
-                  />
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Código Postal:</label>
+                    <input
+                      type="text"
+                      name="postal_code"
+                      value={formData.postal_code}
+                      onChange={handleInputChange}
+                      placeholder="CP (5 dígitos)"
+                      maxLength="5"
+                      pattern="[0-9]{5}"
+                      required
+                    />
+                    {loadingPostalCode && <small style={{ color: '#666' }}>Consultando SEPOMEX...</small>}
+                  </div>
+                  <div className="form-group">
+                    <label>Dirección (Calle):</label>
+                    <input
+                      type="text"
+                      name="street_address"
+                      value={formData.street_address}
+                      onChange={handleInputChange}
+                      placeholder="Calle"
+                      required
+                    />
+                  </div>
                 </div>
                 <div className="form-row">
                   <div className="form-group">
@@ -803,20 +821,6 @@ const Addresses = () => {
                       placeholder="Número interior"
                     />
                   </div>
-                </div>
-                <div className="form-group form-group--full">
-                  <label>Código Postal:</label>
-                  <input
-                    type="text"
-                    name="postal_code"
-                    value={formData.postal_code}
-                    onChange={handleInputChange}
-                    placeholder="CP (5 dígitos)"
-                    maxLength="5"
-                    pattern="[0-9]{5}"
-                    required
-                  />
-                  {loadingPostalCode && <small style={{ color: '#666' }}>Consultando SEPOMEX...</small>}
                 </div>
                 <div className="form-group form-group--full">
                   <label>Colonia:</label>

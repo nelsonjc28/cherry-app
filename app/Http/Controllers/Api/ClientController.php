@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Role;
 use App\Models\Order;
 use App\Models\Address;
+use App\Services\ExternalClienteDiscountService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -56,6 +57,34 @@ class ClientController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener cliente: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Descuentos informativos desde la API externa de clientes (id DM + 5 dígitos).
+     */
+    public function getExternalClientDiscounts($id, ExternalClienteDiscountService $service)
+    {
+        try {
+            $user = User::where('role_id', 2)->find($id);
+            if (! $user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cliente no encontrado',
+                ], 404);
+            }
+
+            $result = $service->fetchByUserId((int) $user->id);
+
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al consultar la API: '.$e->getMessage(),
+                'external_client_id' => ExternalClienteDiscountService::formatExternalClienteId((int) $id),
+                'descuento1' => null,
+                'descuento2' => null,
             ], 500);
         }
     }

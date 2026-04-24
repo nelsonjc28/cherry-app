@@ -2,6 +2,26 @@
 
 return [
 
+    /**
+     * Catálogo remoto (PHP/cron, proxy). Mismo valor que usaba el front (sin depender de CORS).
+     * Sin barra final: se añade en el proxy.
+     */
+    'catalog_api_upstream' => rtrim(env('CHERRY_CATALOG_API_UPSTREAM', 'https://cherryapi.estrategiadmgs.com.mx/cherryApi'), '/'),
+
+    /**
+     * Consulta informativa de descuentos por cliente (mismo id externo que ventas: DM + 5 dígitos).
+     * Base sin barra final; se llama GET {base}/{DM00000}.
+     * Si en .env CHERRY_CLIENTE_API_BASE= queda vacío, env() devuelve '' (no el default) — normalizamos aquí.
+     */
+    'cliente_api_base' => (function () {
+        $u = (string) env('CHERRY_CLIENTE_API_BASE', 'https://cherryapi.estrategiadmgs.com.mx/789/cliente');
+        if ($u === '') {
+            $u = 'https://cherryapi.estrategiadmgs.com.mx/789/cliente';
+        }
+
+        return rtrim($u, '/');
+    })(),
+
     'orders_web_base' => rtrim(env('CHERRY_ORDERS_WEB_URL', 'https://cherrydev.789.com.mx'), '/'),
 
     /** URL absoluta del logo para correos (S3 o CDN). Si vacío, se usa asset público. */

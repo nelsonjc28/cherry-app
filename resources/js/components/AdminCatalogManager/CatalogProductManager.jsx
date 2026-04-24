@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { catalogService } from '../../services/api';
+import { getCherryCatalogBaseUrl, unwrapCatalogProductList } from '../../config/cherryCatalogBaseUrl';
 import './CatalogProductManager.css';
 
 const CatalogProductManager = ({ catalog, onClose, onProductsUpdated }) => {
@@ -31,7 +32,7 @@ const CatalogProductManager = ({ catalog, onClose, onProductsUpdated }) => {
       // Obtener productos de la API externa y filtrar localmente
       try {
         // 1. Obtener productos de la API externa
-        const externalApiResponse = await axios.get('https://cherryapi.estrategiadmgs.com.mx/cherryApi/', {
+        const externalApiResponse = await axios.get(getCherryCatalogBaseUrl(), {
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
@@ -43,7 +44,7 @@ const CatalogProductManager = ({ catalog, onClose, onProductsUpdated }) => {
           throw new Error(`Error al conectar con la API externa: ${externalApiResponse.status}`);
         }
         
-        const externalProducts = externalApiResponse.data;
+        const externalProducts = unwrapCatalogProductList(externalApiResponse.data);
         
         // 2. Obtener IDs de productos que ya están en catálogos
         const catalogIdsResponse = await catalogService.getCatalogProductIds();

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getCachedProducts, saveProductsToCache, isCacheExpired } from '../utils/productCache';
 import { mapApiProductToAppProduct, getBulkRatings } from '../api/cherryApi';
 import { applyUserOffersToProducts } from '../api/userOffers';
+import { getCherryCatalogBaseUrl, unwrapCatalogProductList } from '../config/cherryCatalogBaseUrl';
 import axios from 'axios';
 
 /**
@@ -46,9 +47,8 @@ const useProductPreload = () => {
         // 2. Si no hay caché o está expirado, cargar TODOS los productos sin filtros
         
         // Obtener TODOS los productos directamente de la API externa (sin filtros de catálogo)
-        const CHERRY_API_URL = 'https://cherryapi.estrategiadmgs.com.mx/cherryApi/';
-        const response = await axios.get(CHERRY_API_URL);
-        const rawProducts = response.data || [];
+        const response = await axios.get(getCherryCatalogBaseUrl());
+        const rawProducts = unwrapCatalogProductList(response.data);
         
         
         if (rawProducts.length === 0) {

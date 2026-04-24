@@ -1,9 +1,10 @@
 import axios from 'axios';
 import api from '../config/axios';
+import { getCherryCatalogBaseUrl, unwrapCatalogProductList } from '../config/cherryCatalogBaseUrl';
 import productCache from '../utils/productCacheInMemory';
 import { getProductCardStockStatus } from '../utils/productUtils';
 
-const CHERRY_API_URL = 'https://cherryapi.estrategiadmgs.com.mx/cherryApi/';
+const CHERRY_API_URL = getCherryCatalogBaseUrl();
 
 // Cache for products to avoid multiple API calls
 let productsCache = null;
@@ -30,13 +31,8 @@ export const testApiConnection = async () => {
 
 // Función para probar diferentes endpoints
 export const testMultipleEndpoints = async () => {
-  const endpoints = [
-    'https://cherryapi.estrategiadmgs.com.mx/cherryApi/',
-    'https://cherryapi.estrategiadmgs.com.mx/cherryApi/products',
-    'https://cherryapi.estrategiadmgs.com.mx/cherryApi/items',
-    'https://cherryapi.estrategiadmgs.com.mx/cherryApi/data',
-    'https://cherryapi.estrategiadmgs.com.mx/cherryApi/catalog'
-  ];
+  const base = getCherryCatalogBaseUrl();
+  const endpoints = [base];
 
   for (const endpoint of endpoints) {
     try {
@@ -456,14 +452,11 @@ export const getRandomProducts = async (limit = 5) => {
     // Llamar directamente a la API en lugar de usar getAllProducts para evitar bucles
     const response = await axios.get(CHERRY_API_URL);
     const data = response.data;
-    
-    // La API devuelve un array directo, no un objeto con clave 'productos'
-    let products = [];
-    if (Array.isArray(data)) {
-      products = data;
-    } else if (data && data.productos && Array.isArray(data.productos)) {
+    let products = unwrapCatalogProductList(data);
+    if (products.length === 0 && data && data.productos && Array.isArray(data.productos)) {
       products = data.productos;
-    } else {
+    }
+    if (products.length === 0) {
       return [];
     }
     
@@ -532,16 +525,10 @@ export const getNewProducts = async (limit = 5) => {
   try {
     const response = await axios.get(CHERRY_API_URL);
     const data = response.data;
-    
-    let products = [];
-    if (Array.isArray(data)) {
-      products = data;
-    } else if (data && data.productos && Array.isArray(data.productos)) {
+    let products = unwrapCatalogProductList(data);
+    if (products.length === 0 && data && data.productos && Array.isArray(data.productos)) {
       products = data.productos;
-    } else {
-      return [];
     }
-    
     if (products.length === 0) {
       return [];
     }
@@ -1140,8 +1127,8 @@ export const getAvailableCategoriesFromAPI = async (catalog = 'Cherry 2025 - 202
 export const getProductById = async (productId) => {
   try {
     // Make direct API call with specific product ID
-    const response = await axios.get(`https://cherryapi.estrategiadmgs.com.mx/cherryApi/?id_articulo=${productId}`);
-    const data = response.data;
+    const response = await axios.get(`${getCherryCatalogBaseUrl()}?id_articulo=${productId}`);
+    const data = unwrapCatalogProductList(response.data);
     
     if (!data || data.length === 0) {
       throw new Error(`Producto con ID ${productId} no encontrado`);
@@ -1329,13 +1316,11 @@ export const getExternalPromoProducts = async (limit = 50, includeAll = false) =
     
     const response = await axios.get(CHERRY_API_URL);
     const data = response.data;
-    
-    let allProducts = [];
-    if (Array.isArray(data)) {
-      allProducts = data;
-    } else if (data && data.productos && Array.isArray(data.productos)) {
+    let allProducts = unwrapCatalogProductList(data);
+    if (allProducts.length === 0 && data && data.productos && Array.isArray(data.productos)) {
       allProducts = data.productos;
-    } else {
+    }
+    if (allProducts.length === 0) {
       return [];
     }
 
@@ -1507,14 +1492,10 @@ export const getUserOfferProducts = async () => {
     // Obtener datos completos de la API externa
     const apiResponse = await axios.get(CHERRY_API_URL);
     const apiData = apiResponse.data;
-    
-    let allApiProducts = [];
-    if (Array.isArray(apiData)) {
-      allApiProducts = apiData;
-    } else if (apiData && apiData.productos && Array.isArray(apiData.productos)) {
+    let allApiProducts = unwrapCatalogProductList(apiData);
+    if (allApiProducts.length === 0 && apiData && apiData.productos && Array.isArray(apiData.productos)) {
       allApiProducts = apiData.productos;
     }
-    
 
     // Filtrar productos que coincidan con los IDs de ofertas
     const userOfferProducts = [];;;;

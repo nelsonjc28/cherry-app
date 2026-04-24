@@ -24,6 +24,7 @@ use App\Mail\OrderConfirmationMail;
 use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
 use App\Support\OrderItemDetalleResolver;
+use Illuminate\Support\Str;
 
 class PaymentController extends Controller
 {
@@ -102,6 +103,453 @@ class PaymentController extends Controller
         }
 
         return $out;
+    }
+
+    /**
+     * "En oferta": precio oferta de catálogo o oferta de usuario.
+     */
+    protected function lineRequestIsOnPromo(array $item): bool
+    {
+        $d = (float) ($item['desc_promo'] ?? 0);
+
+        if ($d > 0.0001) {
+            return true;
+        }
+
+        return filter_var($item['user_offer_applies'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $items
+     */
+    protected function requestItemsHavePromoAndRegularMix(array $items): bool
+    {
+        $nPromo = 0;
+        $nReg = 0;
+        foreach ($items as $item) {
+            if ($this->lineRequestIsOnPromo($item)) {
+                $nPromo++;
+            } else {
+                $nReg++;
+            }
+        }
+
+        return $nPromo > 0 && $nReg > 0;
+    }
+
+    /**
+     * Items hacia Mercado Pago: ajusta por la diferencia entre total_amount y suma de ítems (envío o factor).
+     */
+    protected function buildItemsForMercadoPagoForCheckout(Request $request): array
+    {
+        $itemsTotal = 0;
+        foreach ($request->items as $item) {
+            $itemsTotal += ((float) $item['price'] * (int) $item['quantity']);
+        }
+        $totalAmount = (float) $request->total_amount;
+        $difference = $totalAmount - $itemsTotal;
+
+        Log::info('Cálculo de totales para Mercado Pago', [
+            'items_total' => $itemsTotal,
+            'total_amount_recibido' => $totalAmount,
+            'diferencia' => $difference,
+        ]);
+
+        $itemsForMercadoPago = $request->items;
+        if (abs($difference) > 0.01) {
+            if ($difference > 0) {
+                $itemsForMercadoPago[] = [
+                    'product_id' => 0,
+                    'name' => 'Envío',
+                    'quantity' => 1,
+                    'price' => $difference,
+                    'size' => null,
+                    'color' => null,
+                    'barcode' => null,
+                ];
+            } else {
+                $adjustmentFactor = $totalAmount / $itemsTotal;
+                foreach ($itemsForMercadoPago as &$item) {
+                    $item['price'] = round((float) $item['price'] * $adjustmentFactor, 2);
+                }
+                unset($item);
+                Log::info('Ajuste de precios aplicado', [
+                    'factor_ajuste' => $adjustmentFactor,
+                    'total_original_items' => $itemsTotal,
+                    'total_ajustado' => array_sum(array_map(function ($item) {
+                        return (float) $item['price'] * (int) $item['quantity'];
+                    }, $itemsForMercadoPago)),
+                ]);
+            }
+        }
+
+        return $itemsForMercadoPago;
+    }
+
+    /**
+     * Fusiona el payload del webhook con payment_data del pedido (delivery, envío, metadatos de order_group).
+     */
+    protected function paymentDataArrayAfterWebhookMerge(Order $order, $rawFromResult): array
+    {
+        $previousPaymentData = $order->payment_data ?? [];
+        if (is_string($previousPaymentData)) {
+            $previousPaymentData = json_decode($previousPaymentData, true) ?? [];
+        }
+        $newPaymentData = $rawFromResult;
+        if (is_string($newPaymentData)) {
+            $newPaymentData = json_decode($newPaymentData, true) ?? [];
+        }
+        if (is_object($newPaymentData)) {
+            $newPaymentData = (array) $newPaymentData;
+        }
+        if (isset($previousPaymentData['delivery_type'])) {
+            $newPaymentData['delivery_type'] = $previousPaymentData['delivery_type'];
+        }
+        if ($order->shipping_amount !== null) {
+            $newPaymentData['shipping_amount'] = (float) $order->shipping_amount;
+        } elseif (isset($previousPaymentData['shipping_amount'])) {
+            $newPaymentData['shipping_amount'] = $previousPaymentData['shipping_amount'];
+        }
+        if (isset($previousPaymentData['order_group_id'])) {
+            $newPaymentData['order_group_id'] = $previousPaymentData['order_group_id'];
+        }
+        if (isset($previousPaymentData['order_group_sibling_ids'])) {
+            $newPaymentData['order_group_sibling_ids'] = $previousPaymentData['order_group_sibling_ids'];
+        }
+        if (array_key_exists('order_group', $previousPaymentData)) {
+            $newPaymentData['order_group'] = $previousPaymentData['order_group'];
+        }
+        if (array_key_exists('order_group_is_mp_primary', $previousPaymentData)) {
+            $newPaymentData['order_group_is_mp_primary'] = $previousPaymentData['order_group_is_mp_primary'];
+        }
+        if (array_key_exists('order_group_sibling_id', $previousPaymentData)) {
+            $newPaymentData['order_group_sibling_id'] = $previousPaymentData['order_group_sibling_id'];
+        }
+
+        return is_array($newPaymentData) ? $newPaymentData : [];
+    }
+
+    /**
+     * Misma base que {@see createOfferSplitMercadoPagoPaymentPreference} / pedido directo oro-diamante con split.
+     */
+    protected function requestVolumePricingLineCountInvalidResponse(Request $request): ?\Illuminate\Http\JsonResponse
+    {
+        $allItems = $request->items;
+        $volRaw = $request->input('items_for_volume_pricing');
+        if (is_array($volRaw) && count($volRaw) > 0 && count($volRaw) !== count($allItems)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'items_for_volume_pricing debe tener la misma cantidad de líneas que items para el split oferta/regular.',
+            ], 422);
+        }
+
+        return null;
+    }
+
+    /**
+     * Totales por mitad (oferta vs precio de lista) para mezcla promo + regular.
+     *
+     * @param  array<int, array<string, mixed>>  $itemsForPricing
+     * @param  array<int, array<string, mixed>>|null  $fullItemsForPricing
+     * @return array{
+     *   onPromoItems: array,
+     *   regularItems: array,
+     *   mPromo: float,
+     *   mReg: float,
+     *   totalA: float,
+     *   totalB: float,
+     *   shipP: float,
+     *   shipR: float,
+     *   grossPromo: float,
+     *   grossReg: float
+     * }
+     */
+    protected function computePromoRegularSplitFromRequest(
+        Request $request,
+        User $user,
+        array $itemsForPricing,
+        ?array $fullItemsForPricing
+    ): array {
+        $onPromoItems = [];
+        $regularItems = [];
+        foreach ($request->items as $row) {
+            if ($this->lineRequestIsOnPromo($row)) {
+                $onPromoItems[] = $row;
+            } else {
+                $regularItems[] = $row;
+            }
+        }
+
+        $linesFull = $fullItemsForPricing !== null
+            ? $fullItemsForPricing
+            : $itemsForPricing;
+
+        $onPromoPricing = $this->pricingLinesFromRequestItems($onPromoItems);
+        $regularPricing = $this->pricingLinesFromRequestItems($regularItems);
+
+        $mPromo0 = $this->orderPricingService->discountedMerchandiseForSubset(
+            $user,
+            $linesFull,
+            $onPromoPricing
+        );
+        $mReg0 = $this->orderPricingService->discountedMerchandiseForSubset(
+            $user,
+            $linesFull,
+            $regularPricing
+        );
+
+        $targetMerc = round((float) $request->input('discounted_total'), 2);
+        $mPromo = (float) $mPromo0;
+        $mReg = (float) $mReg0;
+        $drift = round($targetMerc - ($mPromo + $mReg), 2);
+        if (abs($drift) > 0.0001) {
+            if ($mPromo >= $mReg) {
+                $mPromo = round($mPromo + $drift, 2);
+            } else {
+                $mReg = round($mReg + $drift, 2);
+            }
+        }
+
+        $shipping = (float) $request->input('shipping_amount', 0);
+        $mercSum = $mPromo + $mReg;
+        if ($mercSum <= 0.0) {
+            $shipP = 0.0;
+            $shipR = 0.0;
+        } else {
+            $shipP = round($shipping * ($mPromo / $mercSum), 2);
+            $shipR = round($shipping - $shipP, 2);
+        }
+
+        $totalA = round($mPromo + $shipP, 2);
+        $totalB = round($mReg + $shipR, 2);
+        $taTarget = round((float) $request->input('total_amount'), 2);
+        $tsum = $totalA + $totalB;
+        $cfix = round($taTarget - $tsum, 2);
+        if (abs($cfix) > 0.0001) {
+            if ($totalA >= $totalB) {
+                $totalA = round($totalA + $cfix, 2);
+            } else {
+                $totalB = round($totalB + $cfix, 2);
+            }
+        }
+
+        $grossPromo = 0.0;
+        foreach ($onPromoItems as $it) {
+            $grossPromo += round((float) $it['price'] * (int) $it['quantity'], 2);
+        }
+        $grossReg = 0.0;
+        foreach ($regularItems as $it) {
+            $grossReg += round((float) $it['price'] * (int) $it['quantity'], 2);
+        }
+
+        return [
+            'onPromoItems' => $onPromoItems,
+            'regularItems' => $regularItems,
+            'mPromo' => $mPromo,
+            'mReg' => $mReg,
+            'totalA' => $totalA,
+            'totalB' => $totalB,
+            'shipP' => $shipP,
+            'shipR' => $shipR,
+            'grossPromo' => $grossPromo,
+            'grossReg' => $grossReg,
+        ];
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $itemsForPricing
+     * @param  array<int, array<string, mixed>>|null  $fullItemsForPricing
+     */
+    protected function createOfferSplitMercadoPagoPaymentPreference(
+        Request $request,
+        User $user,
+        $address,
+        ?int $addressId,
+        string $deliveryType,
+        array $itemsForPricing,
+        ?array $fullItemsForPricing
+    ) {
+        $err = $this->requestVolumePricingLineCountInvalidResponse($request);
+        if ($err !== null) {
+            return $err;
+        }
+
+        $split = $this->computePromoRegularSplitFromRequest($request, $user, $itemsForPricing, $fullItemsForPricing);
+        $onPromoItems = $split['onPromoItems'];
+        $regularItems = $split['regularItems'];
+        $mPromo = $split['mPromo'];
+        $mReg = $split['mReg'];
+        $totalA = $split['totalA'];
+        $totalB = $split['totalB'];
+        $shipP = $split['shipP'];
+        $shipR = $split['shipR'];
+        $grossPromo = $split['grossPromo'];
+        $grossReg = $split['grossReg'];
+
+        $d1 = (float) $request->input('descuento1', 0);
+        $d2 = (float) $request->input('descuento2', 0);
+
+        $orderGroupId = (string) Str::uuid();
+        $refOnPromo = uniqid('order_' . $user->id . '_oferta_');
+        $refReg = uniqid('order_' . $user->id . '_reg_');
+
+        $orderOnPromo = null;
+        $orderReg = null;
+        $preference = null;
+
+        try {
+            DB::beginTransaction();
+
+            $orderOnPromo = Order::create([
+                'user_id' => $user->id,
+                'address_id' => $addressId,
+                'order_group_id' => $orderGroupId,
+                'total_amount' => $totalA,
+                'subtotal' => (float) $grossPromo,
+                'discounted_total' => (float) $mPromo,
+                'shipping_amount' => (float) $shipP,
+                'descuento1' => $d1,
+                'descuento2' => $d2,
+                'status' => 'pending',
+                'payment_method' => 'mercadopago',
+                'external_reference' => $refOnPromo,
+            ]);
+            $orderReg = Order::create([
+                'user_id' => $user->id,
+                'address_id' => $addressId,
+                'order_group_id' => $orderGroupId,
+                'total_amount' => $totalB,
+                'subtotal' => (float) $grossReg,
+                'discounted_total' => (float) $mReg,
+                'shipping_amount' => (float) $shipR,
+                'descuento1' => $d1,
+                'descuento2' => $d2,
+                'status' => 'pending',
+                'payment_method' => 'mercadopago',
+                'external_reference' => $refReg,
+            ]);
+
+            foreach ($onPromoItems as $item) {
+                OrderItem::create($this->orderItemPayloadFromLine($orderOnPromo->id, $item));
+            }
+            foreach ($regularItems as $item) {
+                OrderItem::create($this->orderItemPayloadFromLine($orderReg->id, $item));
+            }
+
+            $siblingIds = [$orderOnPromo->id, $orderReg->id];
+            $primaryOrder = $orderOnPromo;
+
+            $itemsForMercadoPago = $this->buildItemsForMercadoPagoForCheckout($request);
+            $orderData = [
+                'order_id' => $primaryOrder->external_reference,
+                'user' => [
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                ],
+                'address' => $addressId && $address ? [
+                    'street_address' => $address->street_address,
+                    'city' => $address->city,
+                    'state' => $address->state,
+                    'postal_code' => $address->postal_code,
+                    'country' => $address->country,
+                ] : [
+                    'street_address' => '',
+                    'city' => '',
+                    'state' => '',
+                    'postal_code' => '',
+                    'country' => 'México',
+                ],
+                'items' => $itemsForMercadoPago,
+                'delivery_type' => $deliveryType,
+                'shipping_amount' => $request->input('shipping_amount', 0),
+            ];
+
+            Log::info('Creando preferencia MercadoPago (split oferta/regular)', [
+                'order_on_promo_id' => $orderOnPromo->id,
+                'order_regular_id' => $orderReg->id,
+                'order_group_id' => $orderGroupId,
+                'external_reference' => $primaryOrder->external_reference,
+            ]);
+
+            $preference = $this->mercadoPagoService->createPreference($orderData);
+
+            $basePd = [
+                'delivery_type' => $deliveryType,
+                'shipping_amount' => (float) $request->input('shipping_amount', 0),
+                'order_group_id' => $orderGroupId,
+                'order_group' => true,
+                'order_group_sibling_ids' => $siblingIds,
+                'order_group_is_mp_primary' => true,
+                'order_group_sibling_id' => $orderReg->id,
+            ];
+            $pdPrimary = $basePd;
+            $pdSib = [
+                'delivery_type' => $deliveryType,
+                'shipping_amount' => (float) $orderReg->shipping_amount,
+                'order_group_id' => $orderGroupId,
+                'order_group' => true,
+                'order_group_sibling_ids' => $siblingIds,
+                'order_group_is_mp_primary' => false,
+                'order_group_sibling_id' => $orderOnPromo->id,
+            ];
+
+            $orderOnPromo->update([
+                'mercadopago_preference_id' => $preference->id,
+                'payment_data' => json_encode($pdPrimary),
+            ]);
+            $orderReg->update([
+                'payment_data' => json_encode($pdSib),
+            ]);
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al crear preferencia de MercadoPago (split oferta)', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear la preferencia de pago: ' . $e->getMessage(),
+            ], 500);
+        }
+
+        $primaryOrder = $orderOnPromo;
+        $primaryOrder->load(['user', 'address', 'items']);
+        $orderReg->load(['user', 'address', 'items']);
+        $mpUrls = $this->mercadoPagoCheckoutUrlsFromPreference($preference);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Preferencia de pago creada correctamente (pedido dividido: oferta + regular).',
+            'data' => [
+                'order_id' => $primaryOrder->id,
+                'order_group_id' => $orderGroupId,
+                'order_split' => true,
+                'orders' => [
+                    [
+                        'id' => $orderOnPromo->id,
+                        'type' => 'on_promo',
+                        'external_reference' => $orderOnPromo->external_reference,
+                    ],
+                    [
+                        'id' => $orderReg->id,
+                        'type' => 'regular',
+                        'external_reference' => $orderReg->external_reference,
+                    ],
+                ],
+                'external_reference' => $primaryOrder->external_reference,
+                'preference_id' => $preference->id,
+                'redirect_url' => $mpUrls['redirect_url'],
+                'payment_url' => $mpUrls['pay_url'],
+                'sandbox_payment_url' => $mpUrls['sandbox_url'],
+                'init_point' => $mpUrls['init_point'],
+                'sandbox_init_point' => $mpUrls['sandbox_init_point'],
+            ],
+        ]);
     }
 
     /**
@@ -227,6 +675,11 @@ class PaymentController extends Controller
             'items.*.is_coming_soon' => 'nullable|boolean',
             'items.*.desc_promo' => 'nullable|numeric',
             'items.*.user_offer_applies' => 'nullable|boolean',
+            'items_for_volume_pricing' => 'nullable|array',
+            'items_for_volume_pricing.*.price' => 'required|numeric|min:0',
+            'items_for_volume_pricing.*.quantity' => 'required|integer|min:1',
+            'items_for_volume_pricing.*.desc_promo' => 'nullable|numeric',
+            'items_for_volume_pricing.*.user_offer_applies' => 'nullable|boolean',
             'delivery_type' => 'nullable|string|in:envio,retiro',
             'shipping_amount' => 'nullable|numeric|min:0',
             'total_amount' => 'required|numeric|min:0.01',
@@ -292,23 +745,30 @@ class PaymentController extends Controller
             $addressId = $request->address_id;
         }
 
-        $itemsForPricing = [];
-        foreach ($request->items as $item) {
-            $itemsForPricing[] = [
-                'price' => $item['price'],
-                'quantity' => $item['quantity'],
-                'desc_promo' => $item['desc_promo'] ?? null,
-                'user_offer_applies' => filter_var($item['user_offer_applies'] ?? false, FILTER_VALIDATE_BOOLEAN),
-            ];
+        $itemsForPricing = $this->pricingLinesFromRequestItems($request->items);
+        $fullRaw = $request->input('items_for_volume_pricing');
+        $fullItemsForPricing = is_array($fullRaw) && count($fullRaw) > 0
+            ? $this->pricingLinesFromRequestItems($fullRaw)
+            : null;
+
+        if ($fullItemsForPricing !== null) {
+            $expectedMerchandise = $this->orderPricingService->discountedMerchandiseForSubset(
+                $user,
+                $fullItemsForPricing,
+                $itemsForPricing
+            );
+        } else {
+            $summary = $this->orderPricingService->summarizeVolumeFromItems($user, $itemsForPricing);
+            $expectedMerchandise = $summary['discounted_merchandise'];
         }
 
-        $summary = $this->orderPricingService->summarizeVolumeFromItems($user, $itemsForPricing);
+        $summaryLines = $this->orderPricingService->summarizeVolumeFromItems($user, $itemsForPricing);
         $shippingAmount = (float) $request->input('shipping_amount', 0);
         $discountedTotalReq = round((float) $request->input('discounted_total'), 2);
         $totalAmountReq = round((float) $request->input('total_amount'), 2);
 
         if (! $this->orderPricingService->totalsMatchRequest(
-            $summary['discounted_merchandise'],
+            $expectedMerchandise,
             $discountedTotalReq,
             $totalAmountReq,
             $shippingAmount,
@@ -319,15 +779,31 @@ class PaymentController extends Controller
                 'message' => 'Los totales no coinciden con el cálculo del servidor. Actualiza el carrito e intenta de nuevo.',
             ];
             if (config('app.debug')) {
-                $payload['expected_discounted_merchandise'] = $summary['discounted_merchandise'];
+                $payload['expected_discounted_merchandise'] = $expectedMerchandise;
             }
 
             return response()->json($payload, 422);
         }
 
+        if ($this->requestItemsHavePromoAndRegularMix($request->items)) {
+            $err = $this->requestVolumePricingLineCountInvalidResponse($request);
+            if ($err !== null) {
+                return $err;
+            }
+
+            return $this->createDirectOrderWithPromoRegularSplit(
+                $request,
+                $user,
+                $addressId,
+                $deliveryType,
+                $itemsForPricing,
+                $fullItemsForPricing
+            );
+        }
+
         $descuento1 = (float) $request->input('descuento1', 0);
         $descuento2 = (float) $request->input('descuento2', 0);
-        $subtotal = (float) $request->input('subtotal', $summary['lines_sum']);
+        $subtotal = (float) $request->input('subtotal', $summaryLines['lines_sum']);
         $sortedItems = $this->sortItemsForCreditSplit($request->items);
 
         try {
@@ -423,6 +899,194 @@ class PaymentController extends Controller
                 'message' => 'No se pudo confirmar el pedido: '.$e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Pedido directo (oro / diamante) con mezcla oferta + a precio de lista: dos órdenes y mismo order_group_id.
+     *
+     * @param  array<int, array<string, mixed>>  $itemsForPricing
+     * @param  array<int, array<string, mixed>>|null  $fullItemsForPricing
+     */
+    protected function createDirectOrderWithPromoRegularSplit(
+        Request $request,
+        User $user,
+        ?int $addressId,
+        string $deliveryType,
+        array $itemsForPricing,
+        ?array $fullItemsForPricing
+    ) {
+        $split = $this->computePromoRegularSplitFromRequest($request, $user, $itemsForPricing, $fullItemsForPricing);
+        $onPromoItems = $this->sortItemsForCreditSplit($split['onPromoItems']);
+        $regularItems = $this->sortItemsForCreditSplit($split['regularItems']);
+        $mPromo = $split['mPromo'];
+        $mReg = $split['mReg'];
+        $totalA = $split['totalA'];
+        $totalB = $split['totalB'];
+        $shipP = $split['shipP'];
+        $shipR = $split['shipR'];
+        $grossPromo = $split['grossPromo'];
+        $grossReg = $split['grossReg'];
+
+        $d1 = (float) $request->input('descuento1', 0);
+        $d2 = (float) $request->input('descuento2', 0);
+        $orderGroupId = (string) Str::uuid();
+        $refOnPromo = uniqid('order_'.$user->id.'_oferta_');
+        $refReg = uniqid('order_'.$user->id.'_reg_');
+
+        try {
+            $orders = DB::transaction(function () use ($user, $addressId, $deliveryType, $onPromoItems, $regularItems, $orderGroupId, $refOnPromo, $refReg, $d1, $d2, $grossPromo, $grossReg, $mPromo, $mReg, $shipP, $shipR, $totalA, $totalB) {
+                $orderOnPromo = Order::create([
+                    'user_id' => $user->id,
+                    'address_id' => $addressId,
+                    'order_group_id' => $orderGroupId,
+                    'total_amount' => $totalA,
+                    'subtotal' => (float) $grossPromo,
+                    'discounted_total' => (float) $mPromo,
+                    'shipping_amount' => (float) $shipP,
+                    'descuento1' => $d1,
+                    'descuento2' => $d2,
+                    'credit_used' => 0,
+                    'amount_paid' => 0,
+                    'amount_pending' => $totalA,
+                    'paid_with_credit' => false,
+                    'status' => 'pendiente_pago',
+                    'payment_method' => 'pedido_directo',
+                    'external_reference' => $refOnPromo,
+                    'is_advance_order' => $this->orderLinesContainComingSoon($onPromoItems),
+                ]);
+
+                $orderReg = Order::create([
+                    'user_id' => $user->id,
+                    'address_id' => $addressId,
+                    'order_group_id' => $orderGroupId,
+                    'total_amount' => $totalB,
+                    'subtotal' => (float) $grossReg,
+                    'discounted_total' => (float) $mReg,
+                    'shipping_amount' => (float) $shipR,
+                    'descuento1' => $d1,
+                    'descuento2' => $d2,
+                    'credit_used' => 0,
+                    'amount_paid' => 0,
+                    'amount_pending' => $totalB,
+                    'paid_with_credit' => false,
+                    'status' => 'pendiente_pago',
+                    'payment_method' => 'pedido_directo',
+                    'external_reference' => $refReg,
+                    'is_advance_order' => $this->orderLinesContainComingSoon($regularItems),
+                ]);
+
+                $siblingIds = [$orderOnPromo->id, $orderReg->id];
+
+                $pdPromo = [
+                    'delivery_type' => $deliveryType,
+                    'shipping_amount' => (float) $shipP,
+                    'order_group_id' => $orderGroupId,
+                    'order_group' => true,
+                    'order_group_sibling_ids' => $siblingIds,
+                    'order_group_sibling_id' => $orderReg->id,
+                ];
+                $pdReg = [
+                    'delivery_type' => $deliveryType,
+                    'shipping_amount' => (float) $shipR,
+                    'order_group_id' => $orderGroupId,
+                    'order_group' => true,
+                    'order_group_sibling_ids' => $siblingIds,
+                    'order_group_sibling_id' => $orderOnPromo->id,
+                ];
+
+                $orderOnPromo->update(['payment_data' => json_encode($pdPromo)]);
+                $orderReg->update(['payment_data' => json_encode($pdReg)]);
+
+                foreach ($onPromoItems as $item) {
+                    OrderItem::create($this->orderItemPayloadFromLine($orderOnPromo->id, $item));
+                }
+                foreach ($regularItems as $item) {
+                    OrderItem::create($this->orderItemPayloadFromLine($orderReg->id, $item));
+                }
+
+                return [
+                    $orderOnPromo->fresh(['user', 'items', 'address']),
+                    $orderReg->fresh(['user', 'items', 'address']),
+                ];
+            });
+        } catch (\Exception $e) {
+            Log::error('Error en createDirectOrderWithPromoRegularSplit', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'No se pudo confirmar el pedido: '.$e->getMessage(),
+            ], 500);
+        }
+
+        [$orderOnPromo, $orderReg] = $orders;
+
+        Log::info('Pedido directo (split oferta/regular oro-diamante)', [
+            'order_oferta_id' => $orderOnPromo->id,
+            'order_regular_id' => $orderReg->id,
+            'order_group_id' => $orderGroupId,
+        ]);
+
+        foreach ([$orderOnPromo, $orderReg] as $ord) {
+            try {
+                Mail::to($user->email)->send(new OrderConfirmationMail($ord->load(['user', 'items', 'address'])));
+            } catch (\Exception $e) {
+                Log::error('Error al enviar email de confirmación (pedido directo split)', [
+                    'order_id' => $ord->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        foreach ([$orderOnPromo, $orderReg] as $ord) {
+            try {
+                $ord->load(['user', 'items', 'address']);
+                $this->externalSalesService->sendSaleToExternalApi($ord);
+                $paymentData = $ord->payment_data ?? [];
+                if (is_string($paymentData)) {
+                    $paymentData = json_decode($paymentData, true) ?? [];
+                }
+                if (! is_array($paymentData)) {
+                    $paymentData = [];
+                }
+                $paymentData['external_api_sent'] = true;
+                $paymentData['external_api_sent_at'] = now()->toIso8601String();
+                $ord->update(['payment_data' => json_encode($paymentData)]);
+            } catch (\Exception $e) {
+                Log::error('Error al enviar pedido directo (split) a API externa', [
+                    'order_id' => $ord->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pedido registrado (dividido: oferta y precio de lista). Queda pendiente de pago hasta liquidación.',
+            'data' => [
+                'order_id' => $orderOnPromo->id,
+                'order_group_id' => $orderGroupId,
+                'order_split' => true,
+                'orders' => [
+                    [
+                        'id' => $orderOnPromo->id,
+                        'type' => 'on_promo',
+                        'external_reference' => $orderOnPromo->external_reference,
+                    ],
+                    [
+                        'id' => $orderReg->id,
+                        'type' => 'regular',
+                        'external_reference' => $orderReg->external_reference,
+                    ],
+                ],
+                'external_reference' => $orderOnPromo->external_reference,
+                'payment_method' => 'pedido_directo',
+                'order_status' => 'pendiente_pago',
+            ],
+        ]);
     }
 
     /**
@@ -565,6 +1229,18 @@ class PaymentController extends Controller
             return response()->json($payload, 422);
         }
 
+        if ($this->requestItemsHavePromoAndRegularMix($request->items)) {
+            return $this->createOfferSplitMercadoPagoPaymentPreference(
+                $request,
+                $user,
+                $address,
+                $addressId,
+                $deliveryType,
+                $itemsForPricing,
+                $fullItemsForPricing
+            );
+        }
+
         DB::beginTransaction();
 
         // Obtener descuentos del request (20% y 10% adicional)
@@ -604,55 +1280,7 @@ class PaymentController extends Controller
         // Esto evita envíos duplicados de correo
 
         try {
-            // Calcular suma de items para verificar diferencia con total_amount
-            $itemsTotal = 0;
-            foreach ($request->items as $item) {
-                $itemsTotal += ($item['price'] * $item['quantity']);
-            }
-            
-            $totalAmount = (float) $request->total_amount;
-            $difference = $totalAmount - $itemsTotal;
-            
-            Log::info('Cálculo de totales para Mercado Pago', [
-                'items_total' => $itemsTotal,
-                'total_amount_recibido' => $totalAmount,
-                'diferencia' => $difference
-            ]);
-            
-            // Si hay diferencia, ajustar items para que sumen el total_amount
-            $itemsForMercadoPago = $request->items;
-            if (abs($difference) > 0.01) {
-                if ($difference > 0) {
-                    // Diferencia positiva (envío agregado) - agregar item de envío
-                    $itemsForMercadoPago[] = [
-                        'product_id' => 0,
-                        'name' => 'Envío',
-                        'quantity' => 1,
-                        'price' => $difference,
-                        'size' => null,
-                        'color' => null,
-                        'barcode' => null
-                    ];
-                } else {
-                    // Diferencia negativa (descuento adicional) - ajustar precios proporcionalmente
-                    // Calcular factor de ajuste
-                    $adjustmentFactor = $totalAmount / $itemsTotal;
-                    
-                    // Aplicar factor a cada item para que sumen el total_amount
-                    foreach ($itemsForMercadoPago as &$item) {
-                        $item['price'] = round($item['price'] * $adjustmentFactor, 2);
-                    }
-                    unset($item); // Liberar referencia
-                    
-                    Log::info('Ajuste de precios aplicado', [
-                        'factor_ajuste' => $adjustmentFactor,
-                        'total_original_items' => $itemsTotal,
-                        'total_ajustado' => array_sum(array_map(function($item) {
-                            return $item['price'] * $item['quantity'];
-                        }, $itemsForMercadoPago))
-                    ]);
-                }
-        }
+            $itemsForMercadoPago = $this->buildItemsForMercadoPagoForCheckout($request);
 
         // Preparar datos para MercadoPago
         $orderData = [
@@ -782,6 +1410,9 @@ class PaymentController extends Controller
 
                 if ($order) {
                     $previousStatus = $order->status;
+                    $groupStatusBefore = $order->order_group_id
+                        ? Order::where('order_group_id', $order->order_group_id)->pluck('status', 'id')->all()
+                        : [$order->id => $order->status];
                     $newStatus = $this->mapPaymentStatus($result['status']);
 
                     Log::info('Procesando webhook para orden', [
@@ -791,28 +1422,8 @@ class PaymentController extends Controller
                         'new_order_status' => $newStatus
                     ]);
 
-                    // Preservar delivery_type si existe en payment_data anterior
-                    $previousPaymentData = $order->payment_data ?? [];
-                    $newPaymentData = $result['payment_data'] ?? [];
-                    if (is_string($previousPaymentData)) {
-                        $previousPaymentData = json_decode($previousPaymentData, true) ?? [];
-                    }
-                    if (is_string($newPaymentData)) {
-                        $newPaymentData = json_decode($newPaymentData, true) ?? [];
-                    }
-                    if (is_object($newPaymentData)) {
-                        $newPaymentData = (array) $newPaymentData;
-                    }
-                    if (isset($previousPaymentData['delivery_type'])) {
-                        $newPaymentData['delivery_type'] = $previousPaymentData['delivery_type'];
-                    }
-                    // Preservar shipping_amount desde el campo dedicado o desde payment_data anterior
-                    if ($order->shipping_amount !== null) {
-                        $newPaymentData['shipping_amount'] = (float) $order->shipping_amount;
-                    } elseif (isset($previousPaymentData['shipping_amount'])) {
-                        $newPaymentData['shipping_amount'] = $previousPaymentData['shipping_amount'];
-                    }
-                    
+                    $newPaymentData = $this->paymentDataArrayAfterWebhookMerge($order, $result['payment_data'] ?? []);
+
                     // Obtener payment_method_id del pago y mapearlo
                     $paymentMethodId = null;
                     if (is_object($result['payment_data'])) {
@@ -864,10 +1475,36 @@ class PaymentController extends Controller
                     // Actualizar estado del pedido
                     $order->update($updateData);
 
+                    if (! $isRemainderPayment && $order->order_group_id) {
+                        $siblingOrders = Order::where('order_group_id', $order->order_group_id)
+                            ->where('id', '!=', $order->id)
+                            ->get();
+                        foreach ($siblingOrders as $sibling) {
+                            $pdSib = $this->paymentDataArrayAfterWebhookMerge(
+                                $sibling,
+                                $result['payment_data'] ?? []
+                            );
+                            $sibling->update([
+                                'status' => $newStatus,
+                                'mercadopago_payment_id' => $result['payment_id'],
+                                'payment_method' => $paymentMethod,
+                                'payment_data' => json_encode($pdSib),
+                            ]);
+                        }
+                    }
+
                     // === PAGO APROBADO ===
-                    // Solo procesar si cambió de estado (evitar duplicados)
-                    if ($result['status'] === 'approved' && $newStatus === 'pagado' && $previousStatus !== 'pagado') {
-                        $this->handleApprovedPayment($order, $previousStatus);
+                    // Procesa cada pedido del grupo (oferta + regular) o solo el principal
+                    if ($result['status'] === 'approved' && $newStatus === 'pagado') {
+                        $toApprove = ! $isRemainderPayment && $order->order_group_id
+                            ? Order::where('order_group_id', $order->order_group_id)->get()
+                            : collect([$order]);
+                        foreach ($toApprove as $orderInGroup) {
+                            $ps = $groupStatusBefore[$orderInGroup->id] ?? 'pending';
+                            if ($ps !== 'pagado') {
+                                $this->handleApprovedPayment($orderInGroup, $ps);
+                            }
+                        }
                     }
                     
                     // === PAGO RECHAZADO ===
@@ -900,6 +1537,26 @@ class PaymentController extends Controller
     }
 
     /**
+     * En split oferta+regular, solo el pedido vinculado a Mercado Pago debe gatillar
+     * correo, notificación a usuario y aviso a admin; el hermano solo API externa + registro.
+     */
+    private function isOfferSplitSiblingOrderForApproval(Order $order): bool
+    {
+        $pd = $order->payment_data;
+        if (is_string($pd)) {
+            $pd = json_decode($pd, true) ?? [];
+        }
+        if (! is_array($pd)) {
+            $pd = [];
+        }
+        if (empty($pd['order_group_id'])) {
+            return false;
+        }
+
+        return array_key_exists('order_group_is_mp_primary', $pd) && $pd['order_group_is_mp_primary'] === false;
+    }
+
+    /**
      * Manejar pago aprobado
      * El inventario se descuenta desde la API externa al sincronizar productos
      */
@@ -919,6 +1576,8 @@ class PaymentController extends Controller
             return;
         }
         
+        $siblingInOfferSplit = $this->isOfferSplitSiblingOrderForApproval($order);
+
         // Verificar si ya se envió a la API externa revisando payment_data
         $paymentData = $order->payment_data ?? [];
         if (is_string($paymentData)) {
@@ -965,59 +1624,65 @@ class PaymentController extends Controller
             ]);
         }
         
-        // 2. Enviar email de confirmación al cliente
-        // Solo si aún no se ha enviado
-        if (!$emailAlreadySent) {
-            // Recargar el pedido con relaciones para el email
-            $order->load(['user', 'address', 'items']);
+        // 2. Enviar email de confirmación al cliente (un solo envío: pedido vinculado a MP, no el hermano de grupo)
+        // 3. Notificación al usuario y 4. admin: mismo criterio
+        if (! $siblingInOfferSplit) {
+            if (! $emailAlreadySent) {
+                $order->load(['user', 'address', 'items']);
+                try {
+                    Mail::to($order->user->email)->send(new OrderConfirmationMail($order));
+                    $paymentData['confirmation_email_sent'] = true;
+                    $paymentData['confirmation_email_sent_at'] = now()->toIso8601String();
+                    $order->update(['payment_data' => json_encode($paymentData)]);
+                    Log::info('Email de confirmación enviado al cliente (webhook - approved)', ['order_id' => $order->id]);
+                } catch (\Exception $e) {
+                    Log::error('Error al enviar email de confirmación (webhook - approved)', [
+                        'order_id' => $order->id,
+                        'user_email' => $order->user->email ?? 'N/A',
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            } else {
+                Log::info('Email de confirmación ya fue enviado anteriormente, omitiendo envío duplicado', [
+                    'order_id' => $order->id
+                ]);
+            }
+
             try {
-                Mail::to($order->user->email)->send(new OrderConfirmationMail($order));
-                
-                // Marcar en payment_data que el correo fue enviado para evitar duplicados
-                $paymentData['confirmation_email_sent'] = true;
-                $paymentData['confirmation_email_sent_at'] = now()->toIso8601String();
-                $order->update(['payment_data' => json_encode($paymentData)]);
-                
-                Log::info('Email de confirmación enviado al cliente (webhook - approved)', ['order_id' => $order->id]);
+                Notification::create([
+                    'user_id' => $order->user_id,
+                    'type' => 'payment_approved',
+                    'title' => '¡Pago aprobado!',
+                    'message' => "Tu pago para el pedido #{$order->id} ha sido aprobado. Estamos preparando tu envío.",
+                    'data' => json_encode([
+                        'order_id' => $order->id,
+                        'amount' => $order->total_amount
+                    ]),
+                    'read' => false
+                ]);
             } catch (\Exception $e) {
-                Log::error('Error al enviar email de confirmación (webhook - approved)', [
+                Log::error('Error al crear notificación de pago aprobado', [
                     'order_id' => $order->id,
-                    'user_email' => $order->user->email ?? 'N/A',
                     'error' => $e->getMessage()
                 ]);
             }
-        } else {
-            Log::info('Email de confirmación ya fue enviado anteriormente, omitiendo envío duplicado', [
-                'order_id' => $order->id
-            ]);
-        }
-        
-        // 3. Crear notificación para el usuario
-        try {
-            Notification::create([
-                'user_id' => $order->user_id,
-                'type' => 'payment_approved',
-                'title' => '¡Pago aprobado!',
-                'message' => "Tu pago para el pedido #{$order->id} ha sido aprobado. Estamos preparando tu envío.",
-                'data' => json_encode([
-                    'order_id' => $order->id,
-                    'amount' => $order->total_amount
-                ]),
-                'read' => false
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Error al crear notificación de pago aprobado', [
-                'order_id' => $order->id,
-                'error' => $e->getMessage()
-            ]);
-        }
-        
-        // 4. Notificar al admin
-        $this->notifyAdminPaymentReceived($order, $order->user);
 
-        if ($order->user) {
+            $this->notifyAdminPaymentReceived($order, $order->user);
+        }
+
+        if ($order->user && ! $siblingInOfferSplit) {
             try {
-                $this->sellerCategoryActivityService->recordSuccessfulPurchase($order->user, (float) ($order->subtotal ?? $order->total_amount));
+                $subForCategory = (float) ($order->subtotal ?? $order->total_amount);
+                if (! empty($paymentData['order_group_id']) && ($paymentData['order_group_is_mp_primary'] ?? null) === true) {
+                    $sibO = Order::query()
+                        ->where('order_group_id', $paymentData['order_group_id'])
+                        ->where('id', '!=', $order->id)
+                        ->first();
+                    if ($sibO) {
+                        $subForCategory += (float) ($sibO->subtotal ?? 0);
+                    }
+                }
+                $this->sellerCategoryActivityService->recordSuccessfulPurchase($order->user, $subForCategory);
             } catch (\Throwable $e) {
                 Log::error('No se pudo actualizar vigencia de categoría tras pago aprobado', [
                     'order_id' => $order->id,

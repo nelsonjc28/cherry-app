@@ -3,7 +3,6 @@ import { buildStreetWithNumbers } from '../../utils/addressDisplay';
 import { useNavigate } from 'react-router-dom';
 import api from '../../config/axios';
 import useUserStore from '../../store/userStore';
-import AddressMapSelector from '../AddressMapSelector/AddressMapSelector';
 import './AddressSelector.css';
 
 const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' }) => {
@@ -153,15 +152,15 @@ const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' })
 
   const [formData, setFormData] = useState({
     street_address: '',
+    street_number_ext: '',
+    street_number_int: '',
     city: '',
     municipality: '',
     state: '',
     postal_code: '',
     country: 'México',
     additional_info: '',
-    is_default: false,
-    latitude: null,
-    longitude: null
+    is_default: false
   });
 
   // State for modal
@@ -227,6 +226,8 @@ const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' })
 
     setFormData({
       street_address: '',
+      street_number_ext: '',
+      street_number_int: '',
       city: '',
       municipality: '',
       state: '',
@@ -347,26 +348,61 @@ const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' })
               <form onSubmit={(e) => { e.preventDefault(); handleSaveAddress(); }}>
                 <div className="form-row">
                   <div className="form-group">
+                    <label className="address-modal-label" htmlFor="addr-modal-cp">Código postal</label>
                     <input
+                      id="addr-modal-cp"
                       type="text"
                       name="postal_code"
                       value={formData.postal_code}
                       onChange={handleInputChange}
-                      placeholder="Código Postal (5 dígitos)"
+                      placeholder="5 dígitos"
                       maxLength="5"
                       pattern="[0-9]{5}"
+                      inputMode="numeric"
                       required
                     />
-                    {loadingPostalCode && <small style={{ color: '#666' }}>Consultando...</small>}
+                    {loadingPostalCode && <small style={{ color: '#666' }}>Consultando…</small>}
                   </div>
                   <div className="form-group">
+                    <label className="address-modal-label" htmlFor="addr-modal-calle">Calle</label>
                     <input
+                      id="addr-modal-calle"
                       type="text"
                       name="street_address"
                       value={formData.street_address}
                       onChange={handleInputChange}
-                      placeholder="Calle y número"
+                      placeholder="Nombre de calle, avenida, etc."
                       required
+                    />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="address-modal-label" htmlFor="addr-modal-ext">Núm. exterior</label>
+                    <input
+                      id="addr-modal-ext"
+                      type="text"
+                      name="street_number_ext"
+                      value={formData.street_number_ext}
+                      onChange={handleInputChange}
+                      placeholder="Ej. 123"
+                      maxLength="20"
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="address-modal-label" htmlFor="addr-modal-int">
+                      Núm. interior <span className="address-modal-label-optional">(opcional)</span>
+                    </label>
+                    <input
+                      id="addr-modal-int"
+                      type="text"
+                      name="street_number_int"
+                      value={formData.street_number_int}
+                      onChange={handleInputChange}
+                      placeholder="Depto., local, etc."
+                      maxLength="20"
+                      autoComplete="off"
                     />
                   </div>
                 </div>
@@ -412,24 +448,6 @@ const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' })
                     />
                   </div>
                 </div>
-                {/* Mapa de Google Maps para seleccionar ubicación exacta */}
-                {formData.city && formData.municipality && formData.state && (
-                  <AddressMapSelector
-                    settlement={formData.city}
-                    municipality={formData.municipality}
-                    state={formData.state}
-                    postalCode={formData.postal_code}
-                    initialLat={formData.latitude}
-                    initialLng={formData.longitude}
-                    onLocationSelect={(location) => {
-                      setFormData(prev => ({
-                        ...prev,
-                        latitude: location.lat,
-                        longitude: location.lng
-                      }));
-                    }}
-                  />
-                )}
                 <div className="form-row">
                   <div className="form-group">
                     <input

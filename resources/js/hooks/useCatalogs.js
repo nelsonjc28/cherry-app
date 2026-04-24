@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getCherryCatalogBaseUrl, unwrapCatalogProductList } from '../config/cherryCatalogBaseUrl';
 import { generateS3ImageUrl } from '../api/cherryApi';
 
 const useCatalogs = () => {
@@ -10,7 +11,7 @@ const useCatalogs = () => {
   const fetchCatalogs = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://cherryapi.estrategiadmgs.com.mx/cherryApi/');
+      const response = await fetch(getCherryCatalogBaseUrl());
       
       if (!response.ok) {
         // Silenciar error 404 - el endpoint puede no existir
@@ -22,7 +23,7 @@ const useCatalogs = () => {
         throw new Error('Error al cargar los catálogos desde la API externa');
       }
       
-      const data = await response.json();
+      const data = unwrapCatalogProductList(await response.json());
       
       // Process the data to extract unique catalogs by temporada
       const catalogMap = new Map();
@@ -70,7 +71,7 @@ const useCatalogs = () => {
   const fetchProductsByCatalog = async (catalogSlug) => {
     try {
       setLoading(true);
-      const response = await fetch('https://cherryapi.estrategiadmgs.com.mx/cherryApi/');
+      const response = await fetch(getCherryCatalogBaseUrl());
       
       if (!response.ok) {
         // Silenciar error 404 - el endpoint puede no existir
@@ -81,7 +82,7 @@ const useCatalogs = () => {
         throw new Error('Error al cargar los productos del catálogo');
       }
       
-      const data = await response.json();
+      const data = unwrapCatalogProductList(await response.json());
       
       // Filter products by catalog/temporada
       const catalogProducts = data.filter(product => {
@@ -122,7 +123,7 @@ const useCatalogs = () => {
   const fetchCatalogDetails = async (catalogSlug) => {
     try {
       setLoading(true);
-      const response = await fetch('https://cherryapi.estrategiadmgs.com.mx/cherryApi/');
+      const response = await fetch(getCherryCatalogBaseUrl());
       
       if (!response.ok) {
         // Silenciar error 404 - el endpoint puede no existir
@@ -133,7 +134,7 @@ const useCatalogs = () => {
         throw new Error('Error al cargar los detalles del catálogo');
       }
       
-      const data = await response.json();
+      const data = unwrapCatalogProductList(await response.json());
       
       // Find the catalog
       const catalogData = data.find(product => {
@@ -180,7 +181,7 @@ const useCatalogs = () => {
   const fetchProductsBySeasonalCatalog = async (seasonalCatalog) => {
     try {
       setLoading(true);
-      const response = await fetch('https://cherryapi.estrategiadmgs.com.mx/cherryApi/');
+      const response = await fetch(getCherryCatalogBaseUrl());
       
       if (!response.ok) {
         // Silenciar error 404 - el endpoint puede no existir
@@ -191,7 +192,7 @@ const useCatalogs = () => {
         throw new Error('Error al cargar los productos del catálogo de temporada');
       }
       
-      const data = await response.json();
+      const data = unwrapCatalogProductList(await response.json());
       
       const seasonalMapping = getSeasonalCatalogMapping();
       const targetSeason = seasonalMapping[seasonalCatalog];

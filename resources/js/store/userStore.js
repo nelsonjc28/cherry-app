@@ -30,6 +30,12 @@ const useUserStore = create((set, get) => ({
     return user?.role?.name === 'admin';
   },
 
+  /** Admin u operador: personal de panel (no cliente). */
+  isAdminOrOperator: () => {
+    const n = get().user?.role?.name;
+    return n === 'admin' || n === 'operador';
+  },
+
   // Helper function to check if user is cliente
   isCliente: () => {
     const { user } = get();

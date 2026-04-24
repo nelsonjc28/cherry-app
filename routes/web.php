@@ -5,6 +5,7 @@ use App\Models\Order;
 use App\Models\User;
 use App\Services\CartEmailPricingService;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\CherryCatalogProxyController;
 use App\Http\Controllers\Api\ProductSyncController;
 use App\Http\Controllers\MailPublicAssetController;
 
@@ -99,8 +100,12 @@ Route::get('/mail-assets/{filename}', [MailPublicAssetController::class, 'show']
     ->where('filename', '[^/]+')
     ->name('mail-assets.file');
 
+// Mismo origen: el navegador pega a /cherry-api/*; Laravel hace de proxy hacia el catálogo (evita CORS en local).
+Route::any('cherry-api', CherryCatalogProxyController::class);
+Route::any('cherry-api/{path}', CherryCatalogProxyController::class)->where('path', '.*');
+
 // Ruta para todas las demás páginas (SPA)
 // Excluir rutas backend (/api/*), mail-assets y utilitarias.
 Route::get('/{any}', function () {
     return view('app');
-})->where('any', '^(?!(api/|mail-assets/|products/(sync|replace-all))).*');
+})->where('any', '^(?!(api/|cherry-api|mail-assets/|products/(sync|replace-all))).*');

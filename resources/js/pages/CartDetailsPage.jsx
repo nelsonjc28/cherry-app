@@ -554,6 +554,12 @@ const CartDetailsPage = () => {
         discounted_total: regularDiscountedTotal,
         descuento1: paymentDescuento1,
         descuento2: paymentDescuento2,
+        items_for_volume_pricing: fullCartPricingLinesSnapshot.map((line) => ({
+          price: line.price,
+          quantity: line.quantity,
+          desc_promo: line.desc_promo,
+          user_offer_applies: line.user_offer_applies,
+        })),
       };
 
       const longTimeout = { timeout: 120000 };

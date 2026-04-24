@@ -199,6 +199,7 @@ Route::middleware(['auth:api'])->group(function () {
     
     // Client routes - require authentication and admin role
     Route::get('/admin/clients', [ClientController::class, 'getClients']);
+    Route::get('/admin/clients/{id}/external-discounts', [ClientController::class, 'getExternalClientDiscounts']);
     Route::get('/admin/clients/{id}', [ClientController::class, 'getClient']);
     Route::get('/admin/clients/{id}/account-statements', [ClientController::class, 'getClientAccountStatements']);
     Route::post('/admin/clients', [ClientController::class, 'createClient']);

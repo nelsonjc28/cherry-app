@@ -296,12 +296,6 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
               <div className="info-section" style={{ gridColumn: '1 / -1' }}>
                 <h3>Dirección de envío</h3>
                 <div className="order-detail-info">
-                  {order.address.full_address && (
-                    <div className="info-row info-row--full-width">
-                      <span className="info-label">Dirección completa:</span>
-                      <span>{order.address.full_address}</span>
-                    </div>
-                  )}
                   {(order.address.street_address || order.address.street_number_ext || order.address.street_number_int) && (
                     <div className="info-row">
                       <span className="info-label">Calle y número:</span>

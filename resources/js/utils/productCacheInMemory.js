@@ -12,8 +12,9 @@
  */
 
 import axios from 'axios';
+import { getCherryCatalogBaseUrl, unwrapCatalogProductList } from '../config/cherryCatalogBaseUrl';
 
-const CHERRY_API_URL = 'https://cherryapi.estrategiadmgs.com.mx/cherryApi/';
+const CHERRY_API_URL = getCherryCatalogBaseUrl();
 const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutos
 
 class ProductCacheManager {
@@ -76,9 +77,8 @@ class ProductCacheManager {
         timeout: 30000 // 30 segundos timeout
       });
 
-      const products = response.data || [];
-
-      if (!Array.isArray(products)) {
+      const products = unwrapCatalogProductList(response.data);
+      if (products.length === 0) {
         return [];
       }
 
