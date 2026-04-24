@@ -70,6 +70,10 @@ class AdminOrderController extends Controller
                     'statusRaw' => $order->status,
                     'statusDisplay' => $this->mapOrderStatus($order->status),
                     'totalAmount' => (float) $totalAmount,
+                    'subtotal' => (float) ($order->subtotal !== null ? $order->subtotal : $subtotalProducts),
+                    'discounted_total' => (float) ($order->discounted_total !== null ? $order->discounted_total : $subtotalProducts),
+                    'descuento1' => (float) ($order->descuento1 ?? 0),
+                    'descuento2' => (float) ($order->descuento2 ?? 0),
                     'shipping_cost' => (float) $shippingCost,
                     'paymentMethod' => ucfirst($order->payment_method ?? ''),
                     'payment_method' => $order->payment_method,
@@ -113,6 +117,7 @@ class AdminOrderController extends Controller
                     'amount_pending' => (float) ($order->amount_pending ?? 0),
                     'paid_with_credit' => (bool) ($order->paid_with_credit ?? false),
                     'is_advance_order' => (bool) ($order->is_advance_order ?? false),
+                    'order_number_prefix' => $order->orderNumberPrefixForDisplay(),
                     'is_prepared' => (bool) ($order->is_prepared ?? false),
                     'tracking_number' => $order->tracking_number ?? null
                 ];
@@ -290,6 +295,10 @@ class AdminOrderController extends Controller
                 'statusRaw' => $order->status,
                 'statusDisplay' => $this->mapOrderStatus($order->status),
                 'totalAmount' => $totalAmount,
+                'subtotal' => (float) ($order->subtotal !== null ? $order->subtotal : $subtotalProducts),
+                'discounted_total' => (float) ($order->discounted_total !== null ? $order->discounted_total : $subtotalProducts),
+                'descuento1' => (float) ($order->descuento1 ?? 0),
+                'descuento2' => (float) ($order->descuento2 ?? 0),
                 'shipping_cost' => (float) $shippingCost,
                 'paymentMethod' => ucfirst($order->payment_method ?? ''),
                 'payment_method' => $order->payment_method,
@@ -322,6 +331,7 @@ class AdminOrderController extends Controller
                 'amount_pending' => (float) ($order->amount_pending ?? 0),
                 'paid_with_credit' => (bool) ($order->paid_with_credit ?? false),
                 'is_advance_order' => (bool) ($order->is_advance_order ?? false),
+                'order_number_prefix' => $order->orderNumberPrefixForDisplay(),
                 'is_prepared' => (bool) ($order->is_prepared ?? false),
                 'tracking_number' => $order->tracking_number ?? null,
             ];

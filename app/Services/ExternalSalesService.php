@@ -64,8 +64,10 @@ class ExternalSalesService
         
         // Obtener número de pedido (usar el ID del pedido)
         $numeroPedido = $order->id;
-        // Usar formato "CD" para pedidos normales, "PD" para pedidos anticipados
-        $prefijo = ($order->is_advance_order ?? false) ? 'PD' : 'CD';
+        if (! $order->relationLoaded('user') && $order->user_id) {
+            $order->load('user');
+        }
+        $prefijo = $order->orderNumberPrefixForDisplay();
         $nombrePedido = $prefijo . str_pad($numeroPedido, 4, '0', STR_PAD_LEFT);
         
         // Preparar items con idArtd e idArticulo

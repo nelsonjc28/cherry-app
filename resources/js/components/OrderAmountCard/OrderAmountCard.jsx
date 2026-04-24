@@ -33,6 +33,7 @@ const OrderAmountCard = ({
   const rebajaDiscountNum = Number(discountRebaja) || 0;
   const merchandiseNum = Number(subtotalMerchandise) || 0;
   const volumeTotalNum = Number(discountVolumeTotal) || 0;
+  const hasRebajaDiscount = Math.abs(rebajaDiscountNum) > 0.0001;
   const hasVolumeDiscount = volumeTotalNum > 0.0001;
   const has40Percent = discount30 > 0 && discount10 > 0;
   const mainPercentLabel = volumeMainPercent != null ? volumeMainPercent : 30;
@@ -55,10 +56,12 @@ const OrderAmountCard = ({
             <span className="cart-order-summary__free-shipping">-{formatMoney(lineMayoreoNum)}</span>
           </div>
         )}
-        <div className="cart-order-summary__row cart-order-summary__discount-line">
-          <span>Descuento por Rebaja</span>
-          <span className="cart-order-summary__free-shipping">-{formatMoney(rebajaDiscountNum)}</span>
-        </div>
+        {hasRebajaDiscount && (
+          <div className="cart-order-summary__row cart-order-summary__discount-line">
+            <span>Descuento por Rebaja</span>
+            <span className="cart-order-summary__free-shipping">-{formatMoney(rebajaDiscountNum)}</span>
+          </div>
+        )}
         <div className="cart-order-summary__row">
           <span>Subtotal con rebaja</span>
           <span>${formatMoney(merchandiseNum)}</span>

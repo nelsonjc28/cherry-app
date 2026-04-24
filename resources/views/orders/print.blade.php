@@ -496,9 +496,10 @@
                                 <td>{{ ($v['color'] ?? '—') }} / {{ ($v['size'] ?? '—') }} x {{ $v['quantity'] }}</td>
                                 <td>${{ number_format((float) ($v['original_price'] ?? 0), 2) }}</td>
                                 <td>
-                                    ${{ number_format((float) ($v['discount_amount'] ?? 0), 2) }}
-                                    @if(!empty($v['discount_percentage']))
-                                        ({{ (int) $v['discount_percentage'] }}%)
+                                    @if(!empty($v['discount_percentage']) && (float) $v['discount_percentage'] > 0)
+                                        {{ (int) $v['discount_percentage'] }}%
+                                    @else
+                                        —
                                     @endif
                                 </td>
                                 <td>${{ number_format((float) ($v['final_unit_price'] ?? $v['price'] ?? 0), 2) }}</td>

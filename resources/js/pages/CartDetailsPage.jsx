@@ -1164,15 +1164,18 @@ const CartDetailsPage = () => {
     else if (eligibleTotal >= DISCOUNT_30_THRESHOLD && eligibleTotal < DISCOUNT_40_THRESHOLD) {
       const remaining = DISCOUNT_40_THRESHOLD - eligibleTotal;
       const isNear = eligibleTotal >= (DISCOUNT_40_THRESHOLD * NEAR_THRESHOLD_PERCENT);
-      
-      alerts.push({
-        type: 'success',
-        icon: '✅',
-        message: isDiamanteUser
-          ? '¡Felicidades! Ya tienes tu descuento activado'
-          : `¡Felicidades! Ya tienes ${discountLabel}`,
-        color: '#4caf50'
-      });
+
+      // Oro y diamante: no mostrar "¡Felicidades! … descuento del 30% / descuento activado" al entrar al carrito
+      if (!isDirectOrderSellerCategory(user)) {
+        alerts.push({
+          type: 'success',
+          icon: '✅',
+          message: isDiamanteUser
+            ? '¡Felicidades! Ya tienes tu descuento activado'
+            : `¡Felicidades! Ya tienes ${discountLabel}`,
+          color: '#4caf50'
+        });
+      }
       
       if (isNear) {
         alerts.push({

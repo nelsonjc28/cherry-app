@@ -531,6 +531,9 @@ const CartOrderSummary = ({
             is_coming_soon: item.isComingSoon === true,
             desc_promo: item.desc_promo ?? null,
             user_offer_applies: !!(item.userOffer && item.userOffer.discount_category),
+            image: item.image && item.image !== '/images/placeholder.jpg' && item.image !== '/images/catalogProductImages/Rectangle 4922.png'
+              ? item.image
+              : null,
           };
 
           return mappedItem;
@@ -802,6 +805,9 @@ const CartOrderSummary = ({
           is_coming_soon: item.isComingSoon === true,
           desc_promo: item.desc_promo ?? null,
           user_offer_applies: !!(item.userOffer && item.userOffer.discount_category),
+          image: item.image && item.image !== '/images/placeholder.jpg' && item.image !== '/images/catalogProductImages/Rectangle 4922.png'
+            ? item.image
+            : null,
         })),
         items_for_volume_pricing: itemsForVolumePricing,
         address_id: deliveryType === 'envio' && selectedAddress ? parseInt(selectedAddress.id, 10) : null,

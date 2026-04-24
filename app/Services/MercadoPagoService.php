@@ -13,6 +13,18 @@ class MercadoPagoService
     protected $client;
     protected $paymentClient;
 
+    private const PREFERENCE_TITLE_MAX = 256;
+
+    private const PREFERENCE_ITEM_DESCRIPTION_MAX = 256;
+
+    private const PREFERENCE_ADDITIONAL_INFO_MAX = 600;
+
+    private const PAYMENT_DESCRIPTION_MAX = 256;
+
+    private const METADATA_VALUE_MAX = 220;
+
+    private const METADATA_MAX_KEYS = 10;
+
     public function __construct()
     {
         try {
@@ -60,30 +72,129 @@ class MercadoPagoService
     }
 
     /**
+     * Línea de pago con tarjeta (API Pagos, sin carrito de ítems en MP): resumen estilo e‑commerce.
+     *
+     * @param  array<int, array<string, mixed>>  $items
+     */
+    public function buildDirectPaymentDescription(
+        \App\Models\User $user,
+        array $items,
+    ): string {
+        $bits = ['Cherry Central'];
+        $sc = trim((string) ($user->seller_category ?? ''));
+        if ($sc !== '') {
+            $bits[] = 'Vendedor: '.$sc;
+        }
+        $lineParts = [];
+        foreach ($items as $it) {
+            $lineParts[] = $this->oneLineItemSummary($it, false);
+        }
+        $lineParts = array_values(array_filter($lineParts, static fn ($s) => $s !== ''));
+        $summary = implode(' | ', $lineParts);
+        $base = implode(' — ', $bits);
+        if ($summary !== '') {
+            $base .= ' — '.$this->truncateUtf8String($summary, 180);
+        }
+        if (mb_strlen($base) > self::PAYMENT_DESCRIPTION_MAX) {
+            $base = mb_substr($base, 0, self::PAYMENT_DESCRIPTION_MAX - 1).'…';
+        }
+        return $base;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $items
+     * @return array<string, string>
+     */
+    public function buildDirectPaymentMetadata(\App\Models\User $user, array $items): array
+    {
+        $pids = [];
+        foreach (array_slice($items, 0, 8) as $it) {
+            $pids[] = (string) ($it['product_id'] ?? $it['id'] ?? '0');
+        }
+        $meta = array_filter(['app' => 'cherry', 'c_uid' => (string) $user->id, 'c_sc' => (string) ($user->seller_category ?? ''), 'c_n' => (string) count($items), 'c_skus' => implode(',', $pids)]);
+
+        return $this->normalizeMetadataForApi($meta, self::METADATA_MAX_KEYS);
+    }
+
+    /**
+     * Normaliza inputs de ítem (name/title, price, etc.) y envía título, descripción, picture_url, category_id.
+     */
+    public function lineItemToPreferenceRow(array $raw, ?string $appBaseUrl = null): array
+    {
+        $appBase = $appBaseUrl ?? rtrim((string) config('app.url', ''), '/');
+        $n = $this->normalizeLineItem($raw);
+        $title = $this->truncateUtf8String($n['name'] ?? 'Producto', self::PREFERENCE_TITLE_MAX);
+        $desc = $this->lineDescriptionFromNormalizedItem($n);
+        if ($desc !== '') {
+            $desc = $this->truncateUtf8String($desc, self::PREFERENCE_ITEM_DESCRIPTION_MAX);
+        }
+        $row = [
+            'id' => (string) ($n['product_id'] ?? '0'),
+            'title' => $title,
+            'quantity' => (int) ($n['quantity'] ?? 0),
+            'unit_price' => (float) ($n['price'] ?? 0),
+            'currency_id' => $this->getCurrencyId(),
+        ];
+        if ($desc !== '') {
+            $row['description'] = $desc;
+        }
+        $pic = $this->absolutePictureUrl($n['image'] ?? $n['picture_url'] ?? null, $appBase);
+        if ($pic !== null) {
+            $row['picture_url'] = $pic;
+        }
+        if (! empty($n['category_id'])) {
+            $row['category_id'] = $this->truncateUtf8String((string) $n['category_id'], 256);
+        }
+        return $row;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $rawItems
+     * @return array<int, array<string, mixed>>
+     */
+    public function preferenceItemsFromOrderLines(array $rawItems, ?string $appBaseUrl = null): array
+    {
+        $out = [];
+        foreach ($rawItems as $it) {
+            $out[] = $this->lineItemToPreferenceRow($it, $appBaseUrl);
+        }
+        return $out;
+    }
+
+    /**
      * Crear una preferencia de pago
      */
     public function createPreference(array $orderData)
     {
+        $p = is_array($orderData['payer'] ?? null) ? $orderData['payer'] : [];
+        $orderData['user'] = array_merge(
+            [
+                'first_name' => (string) ($p['name'] ?? ''),
+                'last_name' => (string) ($p['surname'] ?? ''),
+                'email' => (string) ($p['email'] ?? ''),
+                'phone' => (string) (is_array($p['phone'] ?? null) ? ($p['phone']['number'] ?? '') : ($p['phone'] ?? '')),
+            ],
+            $orderData['user'] ?? []
+        );
+        if (($orderData['user']['email'] ?? '') === '' && $p && ! empty($p['email'] ?? null)) {
+            $orderData['user']['email'] = (string) $p['email'];
+        }
+
         try {
             Log::info('Iniciando creación de preferencia MercadoPago', [
                 'external_reference' => $orderData['order_id'] ?? 'N/A',
-                'items_count' => count($orderData['items'] ?? [])
+                'items_count' => count($orderData['items'] ?? []),
             ]);
 
-            $items = [];
-            
-            // Procesar items del pedido
-            foreach ($orderData['items'] as $item) {
-                $items[] = [
-                    'id' => (string) $item['product_id'],
-                    'title' => $item['name'],
-                    'quantity' => (int) $item['quantity'],
-                    'unit_price' => (float) $item['price'],
-                    'currency_id' => $this->getCurrencyId()
-                ];
+            $appBase = rtrim((string) config('app.url', ''), '/');
+            $items = $this->preferenceItemsFromOrderLines($orderData['items'] ?? [], $appBase);
+            if ($items === []) {
+                $items = [];
             }
+            $meta = $this->metadataFromOrderDataForPreference($orderData, $items);
+            $addInfo = $this->additionalInfoFromOrderData($orderData, $items);
 
-            Log::debug('Items procesados para preferencia', ['items' => $items]);
+            Log::debug('Items procesados para preferencia', ['items' => $items, 'has_metadata' => $meta !== null]);
 
             $montoEnviadoMp = 0.0;
             foreach ($items as $row) {
@@ -162,6 +273,13 @@ class MercadoPagoService
                 'expiration_date_from' => now()->toISOString(),
                 'expiration_date_to' => now()->addHours(24)->toISOString()
             ];
+
+            if (! empty($meta) && is_array($meta)) {
+                $preferenceData['metadata'] = $meta;
+            }
+            if ($addInfo !== '') {
+                $preferenceData['additional_info'] = $addInfo;
+            }
 
             // Checkout Pro: permitir métodos offline (ticket/OXXO).
             // Si algún flujo inyecta exclusiones, nunca excluir "ticket".
@@ -406,10 +524,12 @@ class MercadoPagoService
     public function createPayment(array $paymentData)
     {
         // ⚠️ SIN TRY-CATCH PARA VER ERRORES EXACTOS DE MERCADOPAGO
+        $rawDesc = (string) ($paymentData['description'] ?? 'Compra en Cherry Central');
+        $description = $this->truncateUtf8String($rawDesc, self::PAYMENT_DESCRIPTION_MAX);
         $paymentRequest = [
             'transaction_amount' => (float) $paymentData['transaction_amount'],
             'token' => $paymentData['token'], // Token de la tarjeta generado por MercadoPago JS
-            'description' => $paymentData['description'] ?? 'Compra en Cherry Central',
+            'description' => $description,
             'installments' => (int) ($paymentData['installments'] ?? 1),
             'payment_method_id' => $paymentData['payment_method_id'],
             'payer' => [
@@ -419,7 +539,12 @@ class MercadoPagoService
             ],
             'external_reference' => $paymentData['external_reference'] ?? uniqid('payment_'),
         ];
-
+        if (! empty($paymentData['metadata']) && is_array($paymentData['metadata'])) {
+            $paymentRequest['metadata'] = $this->normalizeMetadataForApi(
+                $paymentData['metadata'],
+                self::METADATA_MAX_KEYS
+            );
+        }
 
         // ⚠️ SIN TRY-CATCH - Esto permitirá ver el error exacto de MercadoPago
         $payment = $this->paymentClient->create($paymentRequest);
@@ -437,6 +562,234 @@ class MercadoPagoService
         // Siempre usar MXN para México (OXXO solo está disponible en México)
         // Si necesitas otro país, configúralo en MERCADOPAGO_CURRENCY_ID
         return config('services.mercadopago.currency_id', 'MXN');
+    }
+
+    private function truncateUtf8String(string $s, int $max): string
+    {
+        if (mb_strlen($s) <= $max) {
+            return $s;
+        }
+        if ($max <= 1) {
+            return '…';
+        }
+        return mb_substr($s, 0, $max - 1).'…';
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     * @return array<string, mixed>
+     */
+    private function normalizeLineItem(array $item): array
+    {
+        $name = $item['name'] ?? $item['title'] ?? 'Producto';
+
+        return [
+            'name' => (string) $name,
+            'product_id' => (string) ($item['product_id'] ?? $item['id'] ?? '0'),
+            'price' => (float) ($item['price'] ?? $item['unit_price'] ?? 0),
+            'quantity' => (int) ($item['quantity'] ?? 0),
+            'size' => $item['size'] ?? null,
+            'color' => $item['color'] ?? null,
+            'barcode' => $item['barcode'] ?? null,
+            'detalle_id' => $item['detalle_id'] ?? null,
+            'is_coming_soon' => filter_var($item['is_coming_soon'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'desc_promo' => (float) ($item['desc_promo'] ?? 0),
+            'user_offer_applies' => filter_var($item['user_offer_applies'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'image' => $item['image'] ?? $item['imagen'] ?? null,
+            'category_id' => $item['category_id'] ?? null,
+            'picture_url' => $item['picture_url'] ?? null,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $i
+     */
+    private function lineDescriptionFromNormalizedItem(array $i): string
+    {
+        $nm = mb_strtolower((string) ($i['name'] ?? ''));
+        if ((string) ($i['product_id'] ?? '') === '0') {
+            if (str_contains($nm, 'ajuste') || str_contains($nm, 'diferenc')) {
+                return 'Ajuste de monto del pedido';
+            }
+            return 'Entrega o envío (servicio de envío)';
+        }
+        $bits = [];
+        if (! empty($i['size'])) {
+            $bits[] = 'T: '.(string) $i['size'];
+        }
+        if (! empty($i['color'])) {
+            $bits[] = 'C: '.(string) $i['color'];
+        }
+        if (! empty($i['barcode'])) {
+            $bits[] = 'Cód. '.(string) $i['barcode'];
+        }
+        if (! empty($i['detalle_id'])) {
+            $bits[] = 'IdRef '.(string) $i['detalle_id'];
+        }
+        if (($i['desc_promo'] ?? 0) > 0.0001) {
+            $bits[] = 'En oferta catálogo';
+        } elseif (filter_var($i['user_offer_applies'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            $bits[] = 'Oferta usuario';
+        }
+        if (! empty($i['is_coming_soon'])) {
+            $bits[] = 'Anticipado';
+        }
+
+        return implode(' · ', $bits);
+    }
+
+    private function oneLineItemSummary(array $it, bool $isNormalized): string
+    {
+        $n = $isNormalized ? $it : $this->normalizeLineItem($it);
+        $name = $this->truncateUtf8String($n['name'] ?? 'Producto', 64);
+        $q = (int) ($n['quantity'] ?? 0);
+        if ($q < 1) {
+            $q = 1;
+        }
+        $d = $this->lineDescriptionFromNormalizedItem($n);
+        if ($d !== '' && (string) $n['name'] !== 'Envío') {
+            $d2 = $this->truncateUtf8String($d, 80);
+            if ($d2 !== '') {
+                return "{$name} x{$q} ({$d2})";
+            }
+        }
+
+        return "{$name} x{$q}";
+    }
+
+    private function absolutePictureUrl(mixed $url, string $appBase): ?string
+    {
+        if ($url === null || $url === '') {
+            return null;
+        }
+        if (is_string($url) === false) {
+            return null;
+        }
+        if (str_contains($url, 'placeholder') || str_contains($url, 'Rectangle 4922')) {
+            return null;
+        }
+        if (str_starts_with($url, 'https://') || str_starts_with($url, 'http://')) {
+            return $url;
+        }
+        if (str_starts_with($url, '//')) {
+            return 'https:'.$url;
+        }
+        $p = (string) $url;
+        if (trim($p) === '') {
+            return null;
+        }
+        if ($p[0] !== '/') {
+            $p = '/'.$p;
+        }
+
+        return rtrim($appBase, '/').$p;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $mpItems
+     */
+    private function metadataFromOrderDataForPreference(array $orderData, array $mpItems): array
+    {
+        $m = array_filter(
+            [
+                'app' => 'cherry',
+            ],
+            static fn ($v) => $v !== null && $v !== ''
+        );
+        if (isset($orderData['cherry_user_id'])) {
+            $m['c_uid'] = (string) $orderData['cherry_user_id'];
+        }
+        if (isset($orderData['cherry_order_id'])) {
+            $m['c_oid'] = (string) $orderData['cherry_order_id'];
+        }
+        if (isset($orderData['cherry_order_number'])) {
+            $m['c_oref'] = (string) $orderData['cherry_order_number'];
+        }
+        if (isset($orderData['cherry_seller_category']) && (string) $orderData['cherry_seller_category'] !== '') {
+            $m['c_scat'] = (string) $orderData['cherry_seller_category'];
+        }
+        if (isset($orderData['cherry_order_group_id']) && (string) $orderData['cherry_order_group_id'] !== '') {
+            $m['c_group'] = (string) $orderData['cherry_order_group_id'];
+        }
+        if (isset($orderData['cherry_sibling_order_id']) && (string) $orderData['cherry_sibling_order_id'] !== '') {
+            $m['c_sib'] = (string) $orderData['cherry_sibling_order_id'];
+        }
+        if (isset($orderData['cherry_is_split']) && (string) $orderData['cherry_is_split'] !== '') {
+            $m['c_split'] = (string) $orderData['cherry_is_split'];
+        }
+        $m['c_nlines'] = (string) count($orderData['items'] ?? []);
+
+        return $this->normalizeMetadataForApi($m, self::METADATA_MAX_KEYS);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $mpItems
+     */
+    private function additionalInfoFromOrderData(array $orderData, array $mpItems): string
+    {
+        $parts = ['Plataforma Cherry', 'Líneas: '.(string) count($orderData['items'] ?? [])];
+        $u = (string) ($orderData['cherry_order_number'] ?? '');
+        if ($u !== '') {
+            $parts[] = 'Pedido '.$u;
+        }
+        $em = (string) ($orderData['user']['email'] ?? '');
+        if ($em !== '') {
+            $parts[] = $em;
+        }
+        $sc = (string) ($orderData['cherry_seller_category'] ?? '');
+        if ($sc !== '') {
+            $parts[] = 'Categoría vendedor: '.$sc;
+        }
+        $sib = (string) ($orderData['cherry_sibling_order_id'] ?? '');
+        if ($sib !== '' && (string) ($orderData['cherry_is_split'] ?? '') === '1') {
+            $parts[] = 'Pedido vinculado: '.$sib;
+        }
+        $titles = [];
+        foreach (array_slice($mpItems, 0, 4) as $r) {
+            if (! empty($r['title']) && (string) $r['title'] !== 'Envío') {
+                $titles[] = (string) $r['title'].' x'.(string) ($r['quantity'] ?? 0);
+            }
+        }
+        if (! empty($titles)) {
+            $parts[] = implode(' · ', $titles);
+        }
+
+        $s = implode(' | ', $parts);
+        if (mb_strlen($s) > self::PREFERENCE_ADDITIONAL_INFO_MAX) {
+            return $this->truncateUtf8String($s, self::PREFERENCE_ADDITIONAL_INFO_MAX);
+        }
+
+        return $s;
+    }
+
+    /**
+     * @param  array<string, mixed>  $metadata
+     * @return array<string, string>
+     */
+    private function normalizeMetadataForApi(array $metadata, int $maxKeys = 10): array
+    {
+        $out = [];
+        $i = 0;
+        foreach ($metadata as $key => $v) {
+            if ($i >= $maxKeys) {
+                break;
+            }
+            if ($v === null) {
+                continue;
+            }
+            $sk = (string) $key;
+            if (mb_strlen($sk) > 32) {
+                $sk = mb_substr($sk, 0, 32);
+            }
+            $sv = mb_substr(preg_replace('/\s+/', ' ', trim((string) $v)), 0, self::METADATA_VALUE_MAX);
+            if ($sv === '') {
+                continue;
+            }
+            $out[$sk] = $sv;
+            $i++;
+        }
+
+        return $out;
     }
 
     /**

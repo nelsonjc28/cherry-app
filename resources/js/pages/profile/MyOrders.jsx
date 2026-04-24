@@ -6,6 +6,7 @@ import { orderService } from '../../services/api';
 import api from '../../config/axios';
 import useUserStore from '../../store/userStore';
 import './MyOrders.css';
+import { formatOrderNumberDisplay } from '../../utils/orderDisplayNumber';
 
 const mercadoPagoUrlFromPayload = (d) => {
   if (!d || typeof d !== 'object') return null;
@@ -18,15 +19,13 @@ const mercadoPagoUrlFromPayload = (d) => {
   ].find((u) => typeof u === 'string' && u.trim().length > 0) || null;
 };
 
-// Función helper para formatear el número de orden igual que en API externa
-const formatOrderNumber = (order) => {
-  const prefix = (order.is_advance_order ?? false) ? 'PD' : 'CD';
-  const orderId = order.id || parseInt(order.orderNumber) || 0;
-  return prefix + String(orderId).padStart(4, '0');
-};
-
 const MyOrders = () => {
   const user = useUserStore((s) => s.user);
+  const isViewerOroDiamante = ['oro', 'diamante'].includes(
+    String(user?.seller_category || '').toLowerCase()
+  );
+  const formatOrderNumber = (order) =>
+    formatOrderNumberDisplay(order, { isViewerOroDiamante });
   const showMercadoPagoPayActions = !['oro', 'diamante'].includes(
     String(user?.seller_category || '').toLowerCase()
   );

@@ -177,7 +177,13 @@ const IntegratedCheckout = ({
           size: item.selectedSize || item.size || null,
           color: item.selectedColor || item.color || null,
           barcode: item.barcode || null,
-          detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null
+          detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null,
+          desc_promo: item.desc_promo ?? null,
+          is_coming_soon: item.isComingSoon === true,
+          user_offer_applies: !!(item.userOffer && item.userOffer.discount_category),
+          image: item.image && item.image !== '/images/placeholder.jpg' && item.image !== '/images/catalogProductImages/Rectangle 4922.png'
+            ? item.image
+            : null
         })),
         address_id: selectedAddress.id
       };;

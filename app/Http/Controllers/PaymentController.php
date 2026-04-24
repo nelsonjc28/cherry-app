@@ -60,6 +60,49 @@ class PaymentController extends Controller
      * @param  array<string, mixed>  $item
      * @return array<string, mixed>
      */
+    /**
+     * Añade contexto tipo e‑commerce (id interno, categoría, grupo) a la carga hacia {@see MercadoPagoService::createPreference}.
+     *
+     * @param  array{
+     *   order_group_id?: string|null,
+     *   sibling_order_id?: int|string|null,
+     *   is_split?: bool
+     * }  $options
+     * @return array<string, mixed>
+     */
+    protected function withMercadopagoCherryOrderContext(array $orderData, User $user, ?Order $order, array $options = []): array
+    {
+        if ($order) {
+            $order->loadMissing('user');
+            if ($order->user) {
+                $user = $order->user;
+            }
+        }
+        $orderData['cherry_user_id'] = (int) $user->id;
+        $orderData['cherry_seller_category'] = (string) ($user->seller_category ?? '');
+
+        if ($order) {
+            $orderData['cherry_order_id'] = (int) $order->id;
+            $prefix = $order->orderNumberPrefixForDisplay();
+            $orderData['cherry_order_number'] = $prefix.str_pad((string) $order->id, 4, '0', STR_PAD_LEFT);
+        }
+
+        $g = $options['order_group_id'] ?? $order?->order_group_id;
+        if (! empty($g)) {
+            $orderData['cherry_order_group_id'] = (string) $g;
+        }
+
+        if (! empty($options['sibling_order_id'])) {
+            $orderData['cherry_sibling_order_id'] = (string) $options['sibling_order_id'];
+        }
+
+        if (! empty($options['is_split'])) {
+            $orderData['cherry_is_split'] = '1';
+        }
+
+        return $orderData;
+    }
+
     protected function orderItemPayloadFromLine(int $orderId, array $item): array
     {
         $qty = (int) ($item['quantity'] ?? 0);
@@ -465,6 +508,16 @@ class PaymentController extends Controller
                 'delivery_type' => $deliveryType,
                 'shipping_amount' => $request->input('shipping_amount', 0),
             ];
+            $orderData = $this->withMercadopagoCherryOrderContext(
+                $orderData,
+                $user,
+                $orderOnPromo,
+                [
+                    'order_group_id' => $orderGroupId,
+                    'sibling_order_id' => $orderReg->id,
+                    'is_split' => true,
+                ]
+            );
 
             Log::info('Creando preferencia MercadoPago (split oferta/regular)', [
                 'order_on_promo_id' => $orderOnPromo->id,
@@ -1308,6 +1361,7 @@ class PaymentController extends Controller
                 'delivery_type' => $deliveryType,
                 'shipping_amount' => $request->input('shipping_amount', 0)
             ];
+            $orderData = $this->withMercadopagoCherryOrderContext($orderData, $user, $order);
 
             Log::info('Creando preferencia de MercadoPago', [
                 'order_id' => $order->id,
@@ -1979,7 +2033,14 @@ class PaymentController extends Controller
                 'payment_method_id' => $requestData['payment_method_id'],
                 'transaction_amount' => $requestData['transaction_amount'],
                 'installments' => $requestData['installments'] ?? 1,
-                'description' => 'Compra en Cherry Central - Usuario #' . $user->id,
+                'description' => $this->mercadoPagoService->buildDirectPaymentDescription(
+                    $user,
+                    $requestData['items']
+                ),
+                'metadata' => $this->mercadoPagoService->buildDirectPaymentMetadata(
+                    $user,
+                    $requestData['items']
+                ),
                 'external_reference' => $externalReference,
                 'payer' => [
                     'email' => $user->email,
@@ -2390,7 +2451,7 @@ class PaymentController extends Controller
 
             // Obtener órdenes del usuario con items y productos relacionados (igual que AdminOrderController)
             $orders = Order::where('user_id', $user->id)
-                ->with(['items.product', 'address'])
+                ->with(['items.product', 'address', 'user'])
                 ->orderBy('created_at', 'desc')
                 ->get();
 
@@ -2427,7 +2488,8 @@ class PaymentController extends Controller
                     'id' => $order->id,
                     'date' => $order->created_at->format('d \d\e F Y'),
                     'created_at' => $order->created_at->toISOString(),
-                    'orderNumber' => ($order->is_advance_order ?? false ? 'PD' : 'CD') . str_pad($order->id, 4, '0', STR_PAD_LEFT),
+                    'orderNumber' => $order->orderNumberPrefixForDisplay() . str_pad($order->id, 4, '0', STR_PAD_LEFT),
+                    'order_number_prefix' => $order->orderNumberPrefixForDisplay(),
                     'status' => $this->mapOrderStatus($order->status),
                     'statusDisplay' => $order->statusDisplay ?? $this->mapOrderStatus($order->status),
                     'statusRaw' => $order->status,
@@ -2542,6 +2604,10 @@ class PaymentController extends Controller
                         ];
                     }),
                     'totalAmount' => (float) $totalAmount,
+                    'subtotal' => (float) ($order->subtotal !== null ? $order->subtotal : $subtotalProducts),
+                    'discounted_total' => (float) ($order->discounted_total !== null ? $order->discounted_total : $subtotalProducts),
+                    'descuento1' => (float) ($order->descuento1 ?? 0),
+                    'descuento2' => (float) ($order->descuento2 ?? 0),
                     'credit_used' => (float) ($order->credit_used ?? 0),
                     'amount_paid' => (float) ($order->amount_paid ?? $order->total_amount),
                     'amount_pending' => (float) ($order->amount_pending ?? 0),
@@ -2644,7 +2710,7 @@ class PaymentController extends Controller
             // Obtener órdenes enviadas que no han sido calificadas con productos relacionados
             $orders = Order::where('user_id', $user->id)
                 ->where('status', 'enviado')
-                ->with(['items.product'])
+                ->with(['items.product', 'user'])
                 ->orderBy('created_at', 'desc')
                 ->get();
 
@@ -2667,7 +2733,8 @@ class PaymentController extends Controller
             $formattedOrders = $pendingOrders->map(function ($order) {
                 return [
                     'id' => $order->id,
-                    'orderNumber' => ($order->is_advance_order ?? false ? 'PD' : 'CD') . str_pad($order->id, 4, '0', STR_PAD_LEFT),
+                    'orderNumber' => $order->orderNumberPrefixForDisplay() . str_pad($order->id, 4, '0', STR_PAD_LEFT),
+                    'order_number_prefix' => $order->orderNumberPrefixForDisplay(),
                     'date' => $order->created_at->format('d/m/Y'),
                     'totalAmount' => (float) $order->total_amount,
                     'items' => $order->items->map(function ($item) {
@@ -3886,6 +3953,12 @@ class PaymentController extends Controller
                 'items' => $prefLineItems,
                 'delivery_type' => $deliveryType
             ];
+            $orderData = $this->withMercadopagoCherryOrderContext(
+                $orderData,
+                $user,
+                $orderPayment,
+                $orderPayment->order_group_id ? ['order_group_id' => (string) $orderPayment->order_group_id] : []
+            );
 
             Log::info('Crédito mixto: creando preferencia Mercado Pago (orden secundaria)', [
                 'total_pedido' => round($totalAmount, 2),
@@ -4263,6 +4336,7 @@ class PaymentController extends Controller
                 ]],
                 'delivery_type' => $order->address_id ? 'envio' : 'retiro'
             ];
+            $orderData = $this->withMercadopagoCherryOrderContext($orderData, $order->user, $order, []);
 
             $preference = $this->mercadoPagoService->createPreference($orderData);
             
@@ -4407,6 +4481,7 @@ class PaymentController extends Controller
                 'items' => $items,
                 'delivery_type' => $order->address_id ? 'envio' : 'retiro'
             ];
+            $orderData = $this->withMercadopagoCherryOrderContext($orderData, $order->user, $order, []);
 
             $preference = $this->mercadoPagoService->createPreference($orderData);
             
@@ -4520,7 +4595,7 @@ class PaymentController extends Controller
             // Permitir imprimir todas las órdenes (no solo las pagadas)
 
             // Formatear número de orden
-            $orderNumber = ($order->is_advance_order ?? false ? 'PD' : 'CD') . str_pad($order->id, 4, '0', STR_PAD_LEFT);
+            $orderNumber = $order->orderNumberPrefixForDisplay() . str_pad($order->id, 4, '0', STR_PAD_LEFT);
 
             // Calcular totales
             $subtotal = $order->items->sum('subtotal');
@@ -4713,7 +4788,7 @@ class PaymentController extends Controller
         $pendingOrders = Order::where('user_id', $userId)
             ->whereIn('status', ['pending', 'pendiente_pago'])
             ->whereDate('created_at', $today) // Solo órdenes del mismo día
-            ->with('items')
+            ->with(['items', 'user'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -4745,7 +4820,7 @@ class PaymentController extends Controller
             // Comparar si son exactamente iguales (mismos productos y mismas cantidades)
             if ($newItemsNormalized === $orderItemsNormalized) {
                 // Las órdenes son exactamente iguales
-                $orderNumber = ($order->is_advance_order ?? false ? 'PD' : 'CD') . str_pad($order->id, 4, '0', STR_PAD_LEFT);
+                $orderNumber = $order->orderNumberPrefixForDisplay() . str_pad($order->id, 4, '0', STR_PAD_LEFT);
                 
                 // Obtener nombres de productos para el mensaje
                 $productNames = $order->items->pluck('name')

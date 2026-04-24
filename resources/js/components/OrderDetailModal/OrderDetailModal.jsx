@@ -5,6 +5,7 @@ import api from '../../config/axios';
 import useUserStore from '../../store/userStore';
 import './OrderDetailModal.css';
 import { buildStreetWithNumbers } from '../../utils/addressDisplay';
+import { formatOrderNumberDisplay } from '../../utils/orderDisplayNumber';
 
 /** URL de checkout (MP devuelve init_point o podemos armar redirect con preference_id). */
 const mercadoPagoUrlFromPayload = (d) => {
@@ -123,13 +124,6 @@ PayPendingOrderButton.propTypes = {
   orderId: PropTypes.number.isRequired
 };
 
-// Función helper para formatear el número de orden igual que en API externa
-const formatOrderNumber = (order) => {
-  const prefix = (order.is_advance_order ?? false) ? 'PD' : 'CD';
-  const orderId = order.id || parseInt(order.orderNumber) || 0;
-  return prefix + String(orderId).padStart(4, '0');
-};
-
 /** Agrupa ítems por producto; el desglose talla/color/cantidad va en la misma fila. */
 const groupOrderItemsByProduct = (items) => {
   if (!items?.length) return [];
@@ -188,11 +182,43 @@ const groupOrderItemsByProduct = (items) => {
 
 const formatMoney = (value) => `$${(parseFloat(value) || 0).toFixed(2)}`;
 
+/**
+ * Desglose del descuento por volumen (misma lógica que carrito / PriceService).
+ * @returns {null | { total: number, main: number, extra: number, d1: number, d2: number }}
+ */
+const getVolumeBreakdown = (gross, net, d1Raw, d2Raw) => {
+  const g = Math.max(0, parseFloat(gross) || 0);
+  const n = net != null && net !== '' && !Number.isNaN(parseFloat(net)) ? Math.max(0, parseFloat(net)) : g;
+  const d1n = Math.max(0, parseFloat(d1Raw) || 0);
+  const d2n = Math.max(0, parseFloat(d2Raw) || 0);
+  const V = Math.max(0, g - n);
+  if (V < 0.009) return null;
+  if (d2n > 0.0001 && d1n > 0.0001) {
+    const r1 = d1n / 100;
+    const denom = r1 + (1 - r1) * 0.1;
+    if (denom < 0.0001) return { total: V, main: V, extra: 0, d1: d1n, d2: d2n };
+    const e = V / denom;
+    const main = e * r1;
+    const extra = Math.max(0, V - main);
+    return { total: V, main, extra, d1: d1n, d2: d2n };
+  }
+  if (d1n > 0.0001) {
+    return { total: V, main: V, extra: 0, d1: d1n, d2: 0 };
+  }
+  return { total: V, main: V, extra: 0, d1: 30, d2: 0 };
+};
+
 const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, isAdmin = false }) => {
   const viewerUser = useUserStore((s) => s.user);
+  const isViewerOroDiamante = ['oro', 'diamante'].includes(
+    String(viewerUser?.seller_category || '').toLowerCase()
+  );
   const showMercadoPagoPayActions =
     isAdmin ||
     !['oro', 'diamante'].includes(String(viewerUser?.seller_category || '').toLowerCase());
+
+  const formatOrderNumber = (o) =>
+    formatOrderNumberDisplay(o, { isViewerOroDiamante: !isAdmin && isViewerOroDiamante });
 
   const groupedRows = React.useMemo(
     () => (order?.items?.length ? groupOrderItemsByProduct(order.items) : []),
@@ -221,6 +247,22 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
   const summarySubtotal =
     Math.abs(linesSubtotalSum + shippingNum - totalNum) > 0.05 ? netMerchandise : linesSubtotalSum;
 
+  const grossMerch =
+    order.subtotal != null && order.subtotal !== '' && !Number.isNaN(parseFloat(order.subtotal))
+      ? parseFloat(order.subtotal)
+      : linesSubtotalSum;
+  const netMerchFromOrder =
+    order.discounted_total != null && order.discounted_total !== '' && !Number.isNaN(parseFloat(order.discounted_total))
+      ? parseFloat(order.discounted_total)
+      : null;
+  const volBreak = getVolumeBreakdown(
+    grossMerch,
+    netMerchFromOrder,
+    order.descuento1,
+    order.descuento2
+  );
+  const netMerchDisplay = netMerchFromOrder != null ? netMerchFromOrder : (volBreak ? Math.max(0, grossMerch - volBreak.total) : summarySubtotal);
+
   return (
     <div className="order-detail-modal-overlay" onClick={handleBackdropClick}>
       <div className="order-detail-modal">
@@ -240,10 +282,10 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
         </div>
 
         <div className="order-detail-modal__content">
-          <div className="order-info-grid">
+          <div className="order-info-grid order-info-grid--tight">
             {/* Información del Cliente */}
             {(order.customerName || order.customerEmail || order.customerPhone) && (
-              <div className="info-section">
+              <div className="info-section info-section--compact info-section--tight-title">
                 <h3>Información del Cliente</h3>
                 <div className="order-detail-info">
                   {order.customerName && (
@@ -274,7 +316,7 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
             )}
 
             {/* Método de entrega (admin / cliente) */}
-            <div className="info-section">
+            <div className="info-section info-section--compact info-section--tight-title">
               <h3>Método de entrega</h3>
               <div className="order-detail-info">
                 <div className="info-row">
@@ -293,7 +335,7 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
 
           {!isPickup && order.address && (
             <div className="order-info-grid order-info-grid--delivery-address">
-              <div className="info-section" style={{ gridColumn: '1 / -1' }}>
+              <div className="info-section info-section--compact info-section--tight-title" style={{ gridColumn: '1 / -1' }}>
                 <h3>Dirección de envío</h3>
                 <div className="order-detail-info">
                   {(order.address.street_address || order.address.street_number_ext || order.address.street_number_int) && (
@@ -360,9 +402,9 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
             )}
 
           {/* Información adicional (Estado, Pago, Surtido) */}
-          <div className="order-info-grid">
+          <div className="order-info-grid order-info-grid--tight">
             {/* Estado y Total */}
-            <div className="info-section">
+            <div className="info-section info-section--compact info-section--tight-title">
               <h3>Información General</h3>
               <div className="order-detail-info">
                 <div className="info-row">
@@ -381,7 +423,7 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
                 {order.paid_with_credit && (
                   <>
                     {order.amount_paid > 0 && (
-                      <div className="info-row" style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e0e0e0' }}>
+                      <div className="info-row" style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #e0e0e0' }}>
                         <span className="info-label">Monto pagado con dinero:</span>
                         <span className="value" style={{ color: '#28a745', fontWeight: '600' }}>
                           ${(parseFloat(order.amount_paid || 0)).toFixed(2)}
@@ -389,9 +431,9 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
                       </div>
                     )}
                     {(order.credit_used > 0 || order.amount_pending > 0) && (
-                      <div className="info-row info-row--full-width" style={{ marginTop: order.amount_paid > 0 ? '8px' : '12px', paddingTop: order.amount_paid > 0 ? '0' : '12px', borderTop: order.amount_paid > 0 ? 'none' : '1px solid #e0e0e0' }}>
-                        <span className="info-label" style={{ fontWeight: '700', fontSize: '14px' }}>Crédito pendiente:</span>
-                        <span className="value" style={{ color: '#d32f2f', fontWeight: '700', fontSize: '18px' }}>
+                      <div className="info-row info-row--full-width" style={{ marginTop: order.amount_paid > 0 ? '4px' : '6px', paddingTop: order.amount_paid > 0 ? '0' : '6px', borderTop: order.amount_paid > 0 ? 'none' : '1px solid #e0e0e0' }}>
+                        <span className="info-label" style={{ fontWeight: '700', fontSize: '13px' }}>Crédito pendiente:</span>
+                        <span className="value" style={{ color: '#d32f2f', fontWeight: '700', fontSize: '16px' }}>
                           ${((parseFloat(order.credit_used || 0)) + (parseFloat(order.amount_pending || 0))).toFixed(2)}
                         </span>
                       </div>
@@ -399,7 +441,7 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
                     {showMercadoPagoPayActions &&
                       order.amount_pending > 0 &&
                       order.statusRaw === 'pendiente_pago' && (
-                      <div className="info-row" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e0e0e0' }}>
+                      <div className="info-row" style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #e0e0e0' }}>
                         <RetryRemainderPaymentButton orderId={order.id} />
                       </div>
                     )}
@@ -410,7 +452,7 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
                   !order.paid_with_credit &&
                   order.statusRaw === 'pendiente_pago' &&
                   parseFloat(order.amount_pending ?? order.totalAmount ?? 0) > 0.01 && (
-                    <div className="info-row" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e0e0e0' }}>
+                    <div className="info-row" style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #e0e0e0' }}>
                       <PayPendingOrderButton orderId={order.id} />
                     </div>
                   )}
@@ -419,7 +461,7 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
 
             {/* Información de pago */}
             {(order.paymentMethod || order.paymentId) && (
-              <div className="info-section">
+              <div className="info-section info-section--compact info-section--tight-title">
                 <h3>Información de Pago</h3>
                 <div className="order-detail-info">
                   {order.paymentMethod && (
@@ -440,12 +482,12 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
 
             {/* Información de surtido (solo admin) */}
             {isAdmin && (
-              <div className="info-section">
+              <div className="info-section info-section--compact info-section--tight-title">
                 <h3>Información de Surtido</h3>
                 <div className="order-detail-info">
                   <div className="info-row">
                     <span className="info-label">Preparado:</span>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
                       <input
                         type="checkbox"
                         checked={order.is_prepared || false}
@@ -486,7 +528,7 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
                       value={order.tracking_number || ''}
                       placeholder="Ingrese el número de guía"
                       style={{ 
-                        padding: '6px 10px', 
+                        padding: '4px 8px', 
                         border: '1px solid #ddd', 
                         borderRadius: '4px',
                         width: '100%',
@@ -535,9 +577,6 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
               {groupedRows.map((row) => {
                 const unitKeys = [...new Set(row.variants.map((v) => v.price.toFixed(2)))];
                 const singleUnitPrice = unitKeys.length === 1 ? parseFloat(unitKeys[0], 10) : null;
-                const anyDiscount = row.variants.some(
-                  (v) => v.hasDiscount && v.originalPrice != null && v.originalPrice > v.price
-                );
                 const rowLabels = [...new Set(row.variants.flatMap((v) => v.productLabels || []))];
 
                 return (
@@ -595,14 +634,7 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
                       </div>
                       <div className="product-price">
                         {singleUnitPrice != null ? (
-                          <>
-                            {anyDiscount ? (
-                              <span style={{ fontSize: '11px', color: '#666', display: 'block' }}>
-                                (mismo precio en todas las líneas)
-                              </span>
-                            ) : null}
-                            <span>Precio final: {formatMoney(singleUnitPrice)}</span>
-                          </>
+                          <span>Precio final: {formatMoney(singleUnitPrice)}</span>
                         ) : (
                           <span style={{ fontSize: '12px', color: '#555' }}>Varios precios</span>
                         )}
@@ -631,8 +663,9 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
                                       : formatMoney(v.finalUnitPrice)}
                                   </td>
                                   <td>
-                                    {formatMoney(v.discountAmount)}
-                                    {v.discountPercentage > 0 ? ` (${v.discountPercentage}%)` : ''}
+                                    {v.discountPercentage > 0
+                                      ? `${Math.round(v.discountPercentage)}%`
+                                      : '—'}
                                   </td>
                                   <td>{formatMoney(v.finalUnitPrice)}</td>
                                 </tr>
@@ -650,10 +683,41 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
 
           {/* Resumen de precios */}
           <div className="summary-section">
+            {volBreak && (
+              <>
+                <div className="summary-row">
+                  <span className="summary-label">Mercancía (antes de desc. mayoreo):</span>
+                  <span>${grossMerch.toFixed(2)}</span>
+                </div>
+                {volBreak.extra > 0.009 ? (
+                  <>
+                    <div className="summary-row" style={{ color: '#1b5e20' }}>
+                      <span className="summary-label">Descuento mayoreo ({volBreak.d1}%):</span>
+                      <span>-${volBreak.main.toFixed(2)}</span>
+                    </div>
+                    <div className="summary-row" style={{ color: '#1b5e20' }}>
+                      <span className="summary-label">Descuento adicional (10%):</span>
+                      <span>-${volBreak.extra.toFixed(2)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="summary-row" style={{ color: '#1b5e20' }}>
+                    <span className="summary-label">Descuento mayoreo{volBreak.d1 ? ` (${volBreak.d1}%)` : ''}:</span>
+                    <span>-${volBreak.main.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="summary-row">
+                  <span className="summary-label">Mercancía neta:</span>
+                  <span>${netMerchDisplay.toFixed(2)}</span>
+                </div>
+              </>
+            )}
+            {!volBreak && (
             <div className="summary-row">
               <span className="summary-label">Subtotal:</span>
               <span>${summarySubtotal.toFixed(2)}</span>
             </div>
+            )}
             <div className="summary-row">
               <span className="summary-label">Envío:</span>
               {parseFloat(order.shipping_cost || 0) === 0 ? (

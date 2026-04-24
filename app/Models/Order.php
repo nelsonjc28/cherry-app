@@ -85,6 +85,28 @@ class Order extends Model
     }
 
     /**
+     * PD: pedido anticipado (is_advance_order) o comprador con categoría de vendedor oro/diamante.
+     * CD: resto. Alineado con la API de ventas externa (nombre de pedido).
+     */
+    public function orderNumberPrefixForDisplay(): string
+    {
+        if ($this->is_advance_order) {
+            return 'PD';
+        }
+        if ($this->user_id) {
+            if (! $this->relationLoaded('user')) {
+                $this->load('user');
+            }
+            $c = strtolower(trim((string) ($this->user?->seller_category ?? '')));
+            if (in_array($c, ['oro', 'diamante', 'gold', 'diamond'], true)) {
+                return 'PD';
+            }
+        }
+
+        return 'CD';
+    }
+
+    /**
      * Get the order items.
      */
     public function items(): HasMany

@@ -5,6 +5,7 @@ import AdminNotifications from '../../components/AdminNotifications/AdminNotific
 import OrderDetailModal from '../../components/OrderDetailModal/OrderDetailModal';
 import { adminOrderService, adminNotificationService } from '../../services/api';
 import { getIconPath } from '../../utils/assetPaths';
+import { formatOrderNumberDisplay } from '../../utils/orderDisplayNumber';
 import useUserStore from '../../store/userStore';
 import './AdminOrders.css';
 
@@ -27,16 +28,10 @@ const getContrastColor = (hexColor) => {
   return luminance > 0.5 ? '#000' : '#fff';
 };
 
-// Función helper para formatear el número de orden igual que en API externa
-const formatOrderNumber = (order) => {
-  const prefix = (order.is_advance_order ?? false) ? 'PD' : 'CD';
-  const orderId = order.id || parseInt(order.orderNumber) || 0;
-  return prefix + String(orderId).padStart(4, '0');
-};
-
 const AdminOrders = () => {
   const { user } = useUserStore();
   const isOperator = user?.role?.name === 'operador';
+  const formatOrderNumber = (order) => formatOrderNumberDisplay(order);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
