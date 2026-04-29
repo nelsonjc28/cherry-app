@@ -6,7 +6,7 @@ import useUserStore from './userStore';
 /**
  * Helper function to calculate item price considering Buy X Get Y offers
  */
-const calculateItemPrice = (item) => {
+export const calculateItemPrice = (item) => {
   if (item.isFreeItem) return 0;
   
   const itemPrice = item.price || item.precio || 0;
@@ -35,7 +35,7 @@ const calculateItemPrice = (item) => {
   return itemPrice * quantity;
 };
 
-const getPaidQuantity = (item) => {
+export const getPaidQuantity = (item) => {
   if (item?._paidQuantity !== undefined && item?._paidQuantity !== null) {
     const paid = Number(item._paidQuantity);
     return Number.isFinite(paid) ? Math.max(0, paid) : 0;

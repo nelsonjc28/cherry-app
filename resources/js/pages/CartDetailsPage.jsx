@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import useCartStore from '../store/cartStore';
@@ -23,6 +23,7 @@ import {
   summarizeVolumeFromPricingLines,
   discountedMerchandiseForSubset,
 } from '../utils/cartVolumePricing';
+import { buildCartAmountBreakdown } from '../utils/cartCheckoutBreakdown';
 
 
 
@@ -1267,6 +1268,11 @@ const CartDetailsPage = () => {
   const shippingAlerts = getShippingAlerts();
   const allAlerts = [...discountWarningAlert, ...discountAlerts, ...shippingAlerts];
 
+  const orderAmountBreakdown = useMemo(
+    () => buildCartAmountBreakdown(user, cartItems, volumeSummary),
+    [user, cartItems, volumeSummary]
+  );
+
   return (
     <div className="container cart-details__container">
       <header className="cart-details__header">
@@ -1325,20 +1331,12 @@ const CartDetailsPage = () => {
           <div className="cart-details__summary-col">
             {/* Card 1: Monto del pedido */}
             <OrderAmountCard
-              pieces={totalItems}
-              subtotal={baseTotal}
-              subtotalBase={pricingSummary.subtotalOriginal}
-              discountLineMayoreo={pricingSummary.ahorroMayoreoLinea ?? pricingSummary.ahorroMayoreo}
-              discountRebaja={pricingSummary.ahorroRebaja}
-              subtotalMerchandise={pricingSummary.merchandiseSubtotal}
-              discountVolumeTotal={dayFortyFiveDiscountAmount}
-              discountVolumeMain={discountTwentyAmount}
-              discountVolumeExtra={discountAdditionalTenAmount}
-              volumeMainPercent={mainDiscountPercent}
+              breakdown={orderAmountBreakdown}
+              mainPercent={mainDiscountPercent}
               shipping={shippingAmount}
-              isFreeShipping={isFreeShippingApplied}
               total={parseFloat(finalTotalWithShipping)}
               deliveryType={deliveryType}
+              isFreeShipping={isFreeShippingApplied}
             />
             {/* Datos del comprador (debajo de Monto del pedido) */}
             <BuyerInfo className="cart-details__buyer-info" />
