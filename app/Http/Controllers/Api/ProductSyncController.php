@@ -162,7 +162,8 @@ class ProductSyncController extends Controller
                         'composicion' => $externalProduct['composicion'] ?? null,
                         'notas' => $externalProduct['notas'] ?? null,
                         'imagen' => $externalProduct['imagen'] ?? null,
-                        'fecha_alta' => $externalProduct['fechaCompra'] ?? null,
+                        'fecha_alta' => $externalProduct['fecha_alta'] ?? null,
+                        'fecha_compra' => $externalProduct['fechaCompra'] ?? null,
                         'activo' => $externalProduct['activo'] ?? 0,
                         'bandvend' => $externalProduct['bandvend'] ?? 0,
                         'presel' => $externalProduct['presel'] ?? 0,
@@ -250,10 +251,27 @@ class ProductSyncController extends Controller
                         continue;
                     }
 
+                    // Próximamente + inventario entrante neto negativo: no pisar inventario (igual que reglas de negocio acordadas)
+                    $productoExistente = Producto::find($productData['id']);
+                    $incomingInventoryTotal = $this->computeIncomingInventoryTotal($externalProduct);
+                    $preserveComingSoonNegativeInventory = false;
+                    if ($productoExistente) {
+                        $existingInventoryTotal = $this->computeExistingInventoryTotalForProductId($productData['id']);
+                        if (Producto::evaluateIsComingSoonFromRow($productoExistente, $existingInventoryTotal)
+                            && $incomingInventoryTotal < -0.00001) {
+                            $preserveComingSoonNegativeInventory = true;
+                            $productData['inventario'] = (float) ($productoExistente->inventario ?? 0);
+                            Log::info('Sync: inventario entrante negativo omitido para producto próximamente', [
+                                'producto_id' => $productData['id'],
+                                'incoming_total' => $incomingInventoryTotal,
+                                'existing_total' => $existingInventoryTotal,
+                            ]);
+                        }
+                    }
+
                     // 4. Crear o actualizar producto
                     // Guardar inventario anterior para detectar cambios
                     $oldInventario = 0;
-                    $productoExistente = Producto::find($productData['id']);
                     if ($productoExistente) {
                         $oldInventario = (float) ($productoExistente->inventario ?? 0);
                     }
@@ -329,18 +347,18 @@ class ProductSyncController extends Controller
                             $detalle = Detalle::find($detalleId);
 
                             if ($detalle) {
-                                // Actualizar detalle existente
+                                if ($preserveComingSoonNegativeInventory) {
+                                    unset($detalleData['inventario_d']);
+                                }
                                 $detalle->update($detalleData);
                                 $stats['detalles_actualizados']++;
                             } else {
-                                // Crear nuevo detalle
                                 Detalle::create($detalleData);
                                 $stats['detalles_creados']++;
                             }
-                            
-                            // Verificar si esta talla tiene stock DESPUÉS de actualizar con valores de la API externa
-                            // Solo considerar stock > 0 (no negativo ni cero)
-                            $inventarioDespues = (float) ($detalleData['inventario_d'] ?? 0);
+
+                            $detalleRefrescado = Detalle::find($detalleId);
+                            $inventarioDespues = (float) ($detalleRefrescado->inventario_d ?? 0);
                             if ($inventarioDespues > 0) {
                                 $alMenosUnaTallaConStockDespues = true;
                             }
@@ -585,7 +603,8 @@ class ProductSyncController extends Controller
                         'composicion' => $externalProduct['composicion'] ?? null,
                         'notas' => $externalProduct['notas'] ?? null,
                         'imagen' => $externalProduct['imagen'] ?? null,
-                        'fecha_alta' => $externalProduct['fechaCompra'] ?? null,
+                        'fecha_alta' => $externalProduct['fecha_alta'] ?? null,
+                        'fecha_compra' => $externalProduct['fechaCompra'] ?? null,
                         'activo' => $externalProduct['activo'] ?? 0,
                         'bandvend' => $externalProduct['bandvend'] ?? 0,
                         'presel' => $externalProduct['presel'] ?? 0,
@@ -813,6 +832,40 @@ class ProductSyncController extends Controller
                 'message' => 'Error al reemplazar productos: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Total inventario según payload externo (alineado a getTotalInventoryFromProduct en el front).
+     */
+    private function computeIncomingInventoryTotal(array $externalProduct): float
+    {
+        if (! empty($externalProduct['detalles']) && is_array($externalProduct['detalles'])) {
+            $sum = 0.0;
+            foreach ($externalProduct['detalles'] as $d) {
+                $sum += (float) ($d['inventario_d'] ?? 0);
+            }
+
+            return $sum;
+        }
+
+        return (float) ($externalProduct['inventario'] ?? $externalProduct['stock'] ?? 0);
+    }
+
+    /**
+     * Total inventario actual en BD: suma de detalles si hay filas; si no, cabecera.
+     */
+    private function computeExistingInventoryTotalForProductId(string $productoId): float
+    {
+        if (Detalle::where('producto_id', $productoId)->exists()) {
+            return (float) Detalle::where('producto_id', $productoId)->sum('inventario_d');
+        }
+
+        $p = Producto::find($productoId);
+        if (! $p) {
+            return 0.0;
+        }
+
+        return (float) ($p->inventario ?? $p->piezas ?? 0);
     }
 
     /**

@@ -46,6 +46,7 @@ class Producto extends Model
         'notas',
         'imagen',
         'fecha_alta',
+        'fecha_compra',
         'activo',
         'bandvend',
         'presel',
@@ -130,6 +131,7 @@ class Producto extends Model
 
     protected $casts = [
         'fecha_alta' => 'date',
+        'fecha_compra' => 'date',
         'costo' => 'decimal:2',
         'precio1' => 'decimal:2',
         'precio2' => 'decimal:2',
