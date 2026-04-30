@@ -380,7 +380,7 @@ class ProductController extends Controller
      * Obtener productos próximamente
      * REGLA DE NEGOCIO GLOBAL: Un producto es "Próximamente" SOLO si cumple TODAS las condiciones:
      * 1. El tercer dígito del ID (índice 2) coincide con el último dígito del año actual
-     * 2. Su stock es exactamente 0 (suma de inventario_d de detalles O inventario general)
+     * 2. Inventario total exactamente 0 (si hay detalles: suma de inventario_d; si no: inventario de cabecera; ver computeTotalInventoryLikeFrontend)
      * 3. stock_received_count = 0 (el producto nunca ha recibido stock)
      * 
      * Limitado a 4 productos para la sección "Próximamente" (por defecto)
@@ -396,7 +396,7 @@ class ProductController extends Controller
 
             // Obtener productos próximamente con sus detalles
             // FILTRO CRÍTICO: Un producto SOLO puede mostrarse en "Próximamente" si cumple TODAS las condiciones:
-            // 1. Su stock es exactamente 0 (suma de inventario_d de detalles O inventario general)
+            // 1. Inventario total exactamente 0 (ver computeTotalInventoryLikeFrontend)
             // 2. El tercer carácter de su ID (id[2]) coincide con el último dígito del año actual
             // 3. stock_received_count = 0 (el producto nunca ha recibido stock)
             $query = DB::table('productos')
@@ -426,6 +426,8 @@ class ProductController extends Controller
                     'productos.sector_id',
                     'productos.genero_id',
                     'productos.stock_received_count',
+                    'detalles.id as detalle_id',
+                    'detalles.producto_id',
                     'detalles.nombreColor',
                     'detalles.detalle',
                     'detalles.inventario_d'
@@ -480,13 +482,11 @@ class ProductController extends Controller
                         ->values()
                         ->toArray();
 
-                    // Calcular inventario total
-                    $inventarioTotal = $productGroup->sum('inventario_d') ?: (float) ($producto->inventario ?? 0);
-                    
-                    // FILTRO CRÍTICO Condición 1: El stock debe ser exactamente 0
-                    // Si el producto tiene stock > 0, excluirlo de "Próximamente"
-                    if ($inventarioTotal > 0) {
-                        return null; // Excluir productos con stock > 0
+                    // Inventario total alineado al frontend (getTotalInventoryFromProduct): la suma de inventario_d con detalles debe ser exactamente 0 para próximamente
+                    $inventarioTotal = $this->computeTotalInventoryLikeFrontend($productGroup, $producto);
+
+                    if (abs($inventarioTotal) > 0.00001) {
+                        return null;
                     }
                     
                     // FILTRO CRÍTICO Condición 3: stock_received_count debe ser 0
@@ -507,16 +507,20 @@ class ProductController extends Controller
                         $rating = round($reviews->sum('rating') / $ratingCount, 2);
                     }
 
-                    // Mapear detalles
-                    $detalles = $productGroup->map(function ($detalle) {
-                        return [
-                            'id' => $detalle->id ?? null,
-                            'producto_id' => $detalle->producto_id ?? null,
-                            'nombreColor' => $detalle->nombreColor ?? null,
-                            'detalle' => $detalle->detalle ?? null,
-                            'inventario_d' => (float) ($detalle->inventario_d ?? 0)
-                        ];
-                    })->values()->toArray();
+                    // Mapear detalles (solo filas reales; coherente con computeTotalInventoryLikeFrontend)
+                    $detalles = $productGroup
+                        ->filter(function ($detalle) {
+                            return isset($detalle->detalle_id) && $detalle->detalle_id !== null;
+                        })
+                        ->map(function ($detalle) {
+                            return [
+                                'id' => $detalle->detalle_id,
+                                'producto_id' => $detalle->producto_id ?? null,
+                                'nombreColor' => $detalle->nombreColor ?? null,
+                                'detalle' => $detalle->detalle ?? null,
+                                'inventario_d' => (float) ($detalle->inventario_d ?? 0)
+                            ];
+                        })->values()->toArray();
 
                     return [
                         'id' => $producto->id,
@@ -795,6 +799,26 @@ class ProductController extends Controller
                 'error' => 'Error al obtener productos sugeridos: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Igual que resources/js/utils/productUtils.js getTotalInventoryFromProduct (lista próximamente).
+     *
+     * @param \Illuminate\Support\Collection<int, object> $productGroup Filas del join agrupadas por producto
+     */
+    private function computeTotalInventoryLikeFrontend($productGroup, object $producto): float
+    {
+        $detailRows = $productGroup->filter(function ($row) {
+            return isset($row->detalle_id) && $row->detalle_id !== null;
+        });
+
+        if ($detailRows->isNotEmpty()) {
+            return (float) $detailRows->sum(function ($row) {
+                return (float) ($row->inventario_d ?? 0);
+            });
+        }
+
+        return (float) ($producto->inventario ?? 0);
     }
 
     /**

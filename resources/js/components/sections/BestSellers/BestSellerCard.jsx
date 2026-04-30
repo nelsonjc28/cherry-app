@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import FavoriteButton from '../../FavoriteButton/FavoriteButton';
 import StarRating from '../../StarRating/StarRating';
 import { formatPrice } from '../../../utils/formatters';
-import { hasActiveDescPromo } from '../../../utils/productUtils';
+import { getProductCardStockStatus, getTotalInventoryFromProduct } from '../../../utils/productUtils';
 import './BestSellerCard.css';
 
 const BestSellerCard = ({ id, title, image, price, originalPrice, discount, userOffer, hasUserOffer, rating, totalRatings, description, stock = 0, isNew = false, onFavoriteToggle, product, stock_received_count = 0, stockReceivedCount = 0 }) => {
@@ -41,31 +41,18 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
   const discountPercentage = calculateDiscountPercentage();
   const hasOffer = discountPercentage > 0;
 
-  // REGLA DE NEGOCIO GLOBAL: Lógica de Etiquetas de Disponibilidad
-  // - "Próximamente": Si el tercer dígito del ID (índice 2) coincide con el último dígito del año actual
-  //   Y stock === 0 Y stock_received_count === 0
-  // - "Agotado": Si stock === 0 Y (el tercer dígito del ID NO coincide con el último dígito del año actual O stock_received_count > 0)
-  
-  // Obtener stock_received_count del producto y asegurar que sea un número
-  const stockReceivedCountValue = parseInt(product?.stock_received_count || stock_received_count || stockReceivedCount || 0, 10);
-  
-  // REGLA CRÍTICA: Si stock_received_count > 0 y stock === 0, SIEMPRE mostrar "Agotado"
-  // independientemente del tercer dígito del ID
-  const isOutOfStock = stock === 0;
-  let shouldShowComingSoon = false;
-  
-  if (stockReceivedCountValue > 0 && stock === 0) {
-    // Si stock_received_count > 0, nunca mostrar "Próximamente"
-    shouldShowComingSoon = false;
-  } else if (hasActiveDescPromo(product)) {
-    shouldShowComingSoon = false;
-  } else {
-    const productId = String(id || '');
-    const tercerDigito = productId.length > 2 ? productId[2] : null;
-    const currentYearLastDigit = String(new Date().getFullYear() % 10);
-    const isComingSoon = tercerDigito === currentYearLastDigit;
-    shouldShowComingSoon = isComingSoon && stock === 0 && stockReceivedCountValue === 0;
-  }
+  const cardProduct = {
+    ...product,
+    id: product?.id ?? id,
+    id_articulo: String(product?.id_articulo ?? id),
+    stock: product?.stock ?? stock,
+    inventario: product?.inventario ?? product?.stock ?? stock,
+    stock_received_count: product?.stock_received_count ?? stock_received_count ?? stockReceivedCount,
+    desc_promo: product?.desc_promo,
+    detalles: product?.detalles,
+  };
+  const stockStatus = getProductCardStockStatus(cardProduct);
+  const totalInv = getTotalInventoryFromProduct(cardProduct);
 
   const handleCardClick = (e) => {
     // No navegar si se hace clic en el botón de favoritos
@@ -87,23 +74,23 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
           loading="lazy"
         />
 
-        {/* New badge - highest priority if product is new */}
-        {isNew && (
-          <span className="best-seller-new-badge">Nuevo</span>
-        )}
-
-        {/* Próximamente badge - si cumple las 3 condiciones */}
-        {!isNew && shouldShowComingSoon && (
+        {/* Próximamente: misma regla que ficha / ProductCard */}
+        {stockStatus === 'coming-soon' && (
           <span className="catalog-offer-badge catalog-out-of-stock-badge catalog-coming-soon-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
         )}
 
+        {/* Nuevo: no mostrar si es "Próximamente" (como ProductCard) */}
+        {isNew && stockStatus !== 'coming-soon' && (
+          <span className="best-seller-new-badge">Nuevo</span>
+        )}
+
         {/* Out of stock badge - solo si NO es nuevo y NO es "Próximamente" */}
-        {!isNew && !shouldShowComingSoon && isOutOfStock && (
+        {!isNew && stockStatus === 'out-of-stock' && (
           <span className="best-seller-out-of-stock-badge">Agotado</span>
         )}
 
         {/* Offer badge if product has discount (and is not new) */}
-        {!isNew && stock > 0 && hasOffer && (
+        {!isNew && stockStatus !== 'coming-soon' && totalInv > 0 && hasOffer && (
           <span className="best-seller-offer-badge">
             {!isMobile && "Rebaja "}{discountPercentage}%
           </span>

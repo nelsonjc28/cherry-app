@@ -11,6 +11,7 @@ import { applyUserOffersToProducts } from '../api/userOffers';
 import { publicCatalogService } from '../services/api';
 import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
+import { getTotalInventoryFromProduct } from '../utils/productUtils';
 
 const shuffleArray = (array) => {
   const shuffled = [...array];
@@ -396,33 +397,16 @@ const NuevosPage = () => {
           const localProducts = searchResponse.data.data.products;
           
           // FILTRO CRÍTICO: Un producto SOLO puede mostrarse en "Próximamente" si cumple TODAS las condiciones simultáneamente (AND):
-          // 1. Su stock es exactamente 0 (suma de inventario_d de detalles O inventario general)
+          // 1. Inventario total exactamente 0 (getTotalInventoryFromProduct: con detalles = suma inventario_d)
           // 2. El tercer carácter de su ID (id[2]) coincide con el último dígito del año actual
           // 3. stock_received_count = 0 (el producto nunca ha recibido stock)
           const currentYearLastDigit = String(new Date().getFullYear() % 10);
           
           const comingSoonProductsRaw = localProducts.filter(product => {
-            // Calcular stock total igual que en ProductCard (suma de inventario_d de detalles)
-            let totalStock = 0;
-            if (product.detalles && product.detalles.length > 0) {
-              const totalFromDetails = product.detalles.reduce((total, detalle) => {
-                return total + (parseFloat(detalle.inventario_d) || 0);
-              }, 0);
-              // Si la suma de detalles es > 0, usar ese valor
-              if (totalFromDetails > 0) {
-                totalStock = totalFromDetails;
-              } else {
-                // Si no hay detalles o la suma es 0, usar el inventario general
-                totalStock = parseFloat(product.stock || product.inventario || 0);
-              }
-            } else {
-              // Si no hay detalles, usar el inventario general
-              totalStock = parseFloat(product.stock || product.inventario || 0);
-            }
-            
-            // Condición 1: El stock debe ser exactamente 0
-            if (totalStock !== 0) {
-              return false; // Excluir productos con stock > 0
+            const totalStock = getTotalInventoryFromProduct(product);
+
+            if (Math.abs(totalStock) > 1e-9) {
+              return false;
             }
             
             // Condición 2: El tercer dígito del ID debe coincidir con el último dígito del año actual
