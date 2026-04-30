@@ -4,6 +4,7 @@ import CherryButton from '../CherryButton/CherryButton';
 import AccountStatementModal from '../AccountStatementModal/AccountStatementModal';
 import useUserStore from '../../store/userStore';
 import { fetchSepomexPostalCode } from '../../utils/sepomexPostal';
+import { sanitizeStreetNumberDigits } from '../../utils/addressDisplay';
 import './ClientManager.css';
 
 // Función helper para formatear ID de cliente: DM + 5 dígitos (con ceros a la izquierda)
@@ -14,8 +15,8 @@ const formatClientId = (clientId) => {
 
 const emptyAddressForm = (address, defaultIfFirst) => ({
   street_address: address?.street_address ?? '',
-  street_number_ext: address?.street_number_ext ?? '',
-  street_number_int: address?.street_number_int ?? '',
+  street_number_ext: sanitizeStreetNumberDigits(address?.street_number_ext ?? ''),
+  street_number_int: sanitizeStreetNumberDigits(address?.street_number_int ?? ''),
   city: address?.city ?? '',
   municipality: address?.municipality ?? '',
   colonia: address?.colonia ?? '',
@@ -333,7 +334,7 @@ const ClientManager = () => {
     }
 
     if (name === 'street_number_ext' || name === 'street_number_int') {
-      const nums = value.replace(/[^0-9]/g, '');
+      const nums = sanitizeStreetNumberDigits(value);
       setAddressForm((prev) => ({ ...prev, [name]: nums }));
       return;
     }

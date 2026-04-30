@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use App\Mail\WelcomeEmail;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use App\Services\ExternalClienteDiscountService;
+use Illuminate\Support\Facades\Log;
 
 
 class AuthController extends Controller
@@ -174,13 +176,26 @@ class AuthController extends Controller
             // Cargar la relación role
             $userWithRole = User::with('role')->find($user->id);
 
+            try {
+                $ext = app(ExternalClienteDiscountService::class)->fetchDiscountPercents((int) $userWithRole->id);
+                if ($ext['success']) {
+                    $userWithRole->setAttribute('volume_descuento1', $ext['descuento1']);
+                    $userWithRole->setAttribute('volume_descuento2', $ext['descuento2']);
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Login: no se pudieron obtener descuentos API cliente', [
+                    'user_id' => $userWithRole->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             return response()->json([
                 'user' => $userWithRole,
                 'token' => $token,
             ]);
         } catch (\Exception $e) {
-            \Log::error('Login error: ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            Log::error('Login error: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
             return response()->json([
                 'error' => 'Error interno del servidor',
                 'message' => $e->getMessage(),
@@ -211,6 +226,19 @@ class AuthController extends Controller
 
             // Cargar la relación role usando fresh
             $userWithRole = User::with('role')->find($user->id);
+
+            try {
+                $ext = app(ExternalClienteDiscountService::class)->fetchDiscountPercents((int) $userWithRole->id);
+                if ($ext['success']) {
+                    $userWithRole->setAttribute('volume_descuento1', $ext['descuento1']);
+                    $userWithRole->setAttribute('volume_descuento2', $ext['descuento2']);
+                }
+            } catch (\Throwable $e) {
+                Log::warning('me(): no se pudieron obtener descuentos API cliente', [
+                    'user_id' => $userWithRole->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             return response()->json($userWithRole);
         } catch (\Exception $e) {

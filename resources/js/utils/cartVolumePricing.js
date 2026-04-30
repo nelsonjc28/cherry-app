@@ -1,11 +1,12 @@
 /**
  * Alineado con {@see App\Services\PriceService::summarizeVolumeFromItems} (PHP).
- * Segundo tramo (+10%): elegible total ≥ $15,000 (sobre el neto tras el primer descuento).
+ * Sin descuento1 en usuario: reglas tipo bronce para todos (≥ $7k / 45 días) y 30 %+10 %. Con API: los % del usuario.
  */
 
 import {
   canApplyMainDiscount,
   getVolumeDiscountMainTier,
+  getVolumeDiscountExtraPercent,
 } from './sellerVolumeDiscount';
 
 export const SECOND_TIER_ELIGIBLE_MIN = 15000;
@@ -43,6 +44,8 @@ export function summarizeVolumeFromPricingLines(user, lines) {
   eligibleTotal = round2(eligibleTotal);
 
   const { mainRate, mainPercent } = getVolumeDiscountMainTier(user);
+  const extraPercent = getVolumeDiscountExtraPercent(user);
+  const extraRate = extraPercent / 100;
   let volMain = 0;
   let volExtra = 0;
   let descuento1 = 0;
@@ -54,8 +57,8 @@ export function summarizeVolumeFromPricingLines(user, lines) {
     const afterMain = round2(eligibleTotal - volMain);
 
     if (eligibleTotal >= SECOND_TIER_ELIGIBLE_MIN) {
-      volExtra = round2(afterMain * 0.1);
-      descuento2 = 10;
+      volExtra = round2(afterMain * extraRate);
+      descuento2 = extraPercent;
     }
   }
 

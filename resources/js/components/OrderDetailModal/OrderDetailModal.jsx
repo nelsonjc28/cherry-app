@@ -6,6 +6,10 @@ import useUserStore from '../../store/userStore';
 import './OrderDetailModal.css';
 import { buildStreetWithNumbers } from '../../utils/addressDisplay';
 import { formatOrderNumberDisplay } from '../../utils/orderDisplayNumber';
+import {
+  getVolumeDiscountMainTier,
+  getVolumeDiscountExtraPercent,
+} from '../../utils/sellerVolumeDiscount';
 
 /** URL de checkout (MP devuelve init_point o podemos armar redirect con preference_id). */
 const mercadoPagoUrlFromPayload = (d) => {
@@ -186,16 +190,29 @@ const formatMoney = (value) => `$${(parseFloat(value) || 0).toFixed(2)}`;
  * Desglose del descuento por volumen (misma lógica que carrito / PriceService).
  * @returns {null | { total: number, main: number, extra: number, d1: number, d2: number }}
  */
-const getVolumeBreakdown = (gross, net, d1Raw, d2Raw) => {
+const getVolumeBreakdown = (gross, net, d1Raw, d2Raw, userForFallback) => {
   const g = Math.max(0, parseFloat(gross) || 0);
   const n = net != null && net !== '' && !Number.isNaN(parseFloat(net)) ? Math.max(0, parseFloat(net)) : g;
-  const d1n = Math.max(0, parseFloat(d1Raw) || 0);
-  const d2n = Math.max(0, parseFloat(d2Raw) || 0);
   const V = Math.max(0, g - n);
   if (V < 0.009) return null;
+
+  const d1Parsed = d1Raw != null && d1Raw !== '' ? parseFloat(d1Raw) : NaN;
+  let d1n = !Number.isNaN(d1Parsed) ? Math.max(0, d1Parsed) : 0;
+  const d2Explicit = d2Raw != null && d2Raw !== '';
+  const d2Parsed = d2Explicit ? parseFloat(d2Raw) : NaN;
+  let d2n = !Number.isNaN(d2Parsed) ? Math.max(0, d2Parsed) : 0;
+
+  if (d1n <= 0.0001 && userForFallback) {
+    d1n = getVolumeDiscountMainTier(userForFallback).mainPercent;
+  }
+  if (!d2Explicit && userForFallback) {
+    d2n = getVolumeDiscountExtraPercent(userForFallback);
+  }
+
   if (d2n > 0.0001 && d1n > 0.0001) {
     const r1 = d1n / 100;
-    const denom = r1 + (1 - r1) * 0.1;
+    const r2 = d2n / 100;
+    const denom = r1 + (1 - r1) * r2;
     if (denom < 0.0001) return { total: V, main: V, extra: 0, d1: d1n, d2: d2n };
     const e = V / denom;
     const main = e * r1;
@@ -205,7 +222,8 @@ const getVolumeBreakdown = (gross, net, d1Raw, d2Raw) => {
   if (d1n > 0.0001) {
     return { total: V, main: V, extra: 0, d1: d1n, d2: 0 };
   }
-  return { total: V, main: V, extra: 0, d1: 30, d2: 0 };
+  const fbD1 = userForFallback ? getVolumeDiscountMainTier(userForFallback).mainPercent : 30;
+  return { total: V, main: V, extra: 0, d1: fbD1, d2: 0 };
 };
 
 const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, isAdmin = false }) => {
@@ -259,7 +277,8 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
     grossMerch,
     netMerchFromOrder,
     order.descuento1,
-    order.descuento2
+    order.descuento2,
+    viewerUser
   );
   const netMerchDisplay = netMerchFromOrder != null ? netMerchFromOrder : (volBreak ? Math.max(0, grossMerch - volBreak.total) : summarySubtotal);
 

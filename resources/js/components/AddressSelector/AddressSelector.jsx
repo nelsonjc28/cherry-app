@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { buildStreetWithNumbers } from '../../utils/addressDisplay';
+import { buildStreetWithNumbers, sanitizeStreetNumberDigits } from '../../utils/addressDisplay';
 import { useNavigate } from 'react-router-dom';
 import api from '../../config/axios';
 import useUserStore from '../../store/userStore';
@@ -245,9 +245,13 @@ const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' })
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    let fieldValue = type === 'checkbox' ? checked : value;
+    if (name === 'street_number_ext' || name === 'street_number_int') {
+      fieldValue = sanitizeStreetNumberDigits(value);
+    }
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: fieldValue
     }));
 
     // Si el código postal cambia y tiene 5 dígitos, buscar en SEPOMEX
@@ -385,8 +389,9 @@ const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' })
                       name="street_number_ext"
                       value={formData.street_number_ext}
                       onChange={handleInputChange}
-                      placeholder="Ej. 123"
+                      placeholder="Solo números, ej. 123"
                       maxLength="20"
+                      inputMode="numeric"
                       autoComplete="off"
                     />
                   </div>
@@ -400,8 +405,9 @@ const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' })
                       name="street_number_int"
                       value={formData.street_number_int}
                       onChange={handleInputChange}
-                      placeholder="Depto., local, etc."
+                      placeholder="Opcional, solo números"
                       maxLength="20"
+                      inputMode="numeric"
                       autoComplete="off"
                     />
                   </div>

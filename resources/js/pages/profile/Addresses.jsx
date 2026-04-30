@@ -4,7 +4,7 @@ import api from '../../config/axios';
 import './Addresses.css';
 import CherryButton from '../../components/CherryButton/CherryButton';
 import { getIconPath } from '../../utils/assetPaths';
-import { buildStreetWithNumbers } from '../../utils/addressDisplay';
+import { buildStreetWithNumbers, sanitizeStreetNumberDigits } from '../../utils/addressDisplay';
 import useUserStore from '../../store/userStore';
 // Removed AddressMapSelector import - mapa no funciona
 
@@ -188,8 +188,8 @@ const Addresses = () => {
     setEditingAddress(address);
     setFormData({
       street_address: address.street_address || '',
-      street_number_ext: address.street_number_ext || '',
-      street_number_int: address.street_number_int || '',
+      street_number_ext: sanitizeStreetNumberDigits(address.street_number_ext || ''),
+      street_number_int: sanitizeStreetNumberDigits(address.street_number_int || ''),
       city: address.city || '',
       municipality: address.municipality || '',
       colonia: address.colonia || '',
@@ -630,10 +630,12 @@ const Addresses = () => {
                       name="street_number_ext"
                       value={formData.street_number_ext}
                       onChange={(e) => {
-                        const value = e.target.value.replace(/[^0-9]/g, '');
+                        const value = sanitizeStreetNumberDigits(e.target.value);
                         handleInputChange({ target: { name: 'street_number_ext', value } });
                       }}
-                      placeholder="Número exterior"
+                      placeholder="Solo números"
+                      maxLength={20}
+                      inputMode="numeric"
                     />
                   </div>
                   <div className="form-group">
@@ -643,10 +645,12 @@ const Addresses = () => {
                       name="street_number_int"
                       value={formData.street_number_int}
                       onChange={(e) => {
-                        const value = e.target.value.replace(/[^0-9]/g, '');
+                        const value = sanitizeStreetNumberDigits(e.target.value);
                         handleInputChange({ target: { name: 'street_number_int', value } });
                       }}
-                      placeholder="Número interior"
+                      placeholder="Opcional, solo números"
+                      maxLength={20}
+                      inputMode="numeric"
                     />
                   </div>
                 </div>
@@ -802,10 +806,12 @@ const Addresses = () => {
                       name="street_number_ext"
                       value={formData.street_number_ext}
                       onChange={(e) => {
-                        const value = e.target.value.replace(/[^0-9]/g, '');
+                        const value = sanitizeStreetNumberDigits(e.target.value);
                         handleInputChange({ target: { name: 'street_number_ext', value } });
                       }}
-                      placeholder="Número exterior"
+                      placeholder="Solo números"
+                      maxLength={20}
+                      inputMode="numeric"
                     />
                   </div>
                   <div className="form-group">
@@ -815,10 +821,12 @@ const Addresses = () => {
                       name="street_number_int"
                       value={formData.street_number_int}
                       onChange={(e) => {
-                        const value = e.target.value.replace(/[^0-9]/g, '');
+                        const value = sanitizeStreetNumberDigits(e.target.value);
                         handleInputChange({ target: { name: 'street_number_int', value } });
                       }}
-                      placeholder="Número interior"
+                      placeholder="Opcional, solo números"
+                      maxLength={20}
+                      inputMode="numeric"
                     />
                   </div>
                 </div>

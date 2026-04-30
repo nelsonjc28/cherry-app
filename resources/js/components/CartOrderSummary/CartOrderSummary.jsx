@@ -10,6 +10,7 @@ import { validateStock } from '../../services/inventoryService';
 import useCartStore from '../../store/cartStore';
 import { cartItemToPricingLine } from '../../utils/cartVolumePricing';
 import { buildStreetWithNumbers } from '../../utils/addressDisplay';
+import { hasApiVolumeMainPercent } from '../../utils/sellerVolumeDiscount';
 
 const CartOrderSummary = ({
   creditDays,
@@ -40,9 +41,8 @@ const CartOrderSummary = ({
   hasRegularItems = true // Si hay productos regulares (con stock)
 }) => {
   const navigate = useNavigate();
-  // Estado para método de pago seleccionado
-  const sellerCategory = (user?.seller_category ?? '').toString().toLowerCase();
-  const isDirectOrderSeller = sellerCategory === 'oro' || sellerCategory === 'diamante';
+  // Pedido directo (sin MP) solo si la API de clientes expone descuento1 en el usuario
+  const usesDirectOrderPayment = hasApiVolumeMainPercent(user);
   
   const [paymentCards, setPaymentCards] = useState([]);
   const [isLoadingCards, setIsLoadingCards] = useState(true);
@@ -920,7 +920,7 @@ const CartOrderSummary = ({
   };
 
   const handleProcessPayment = async () => {
-    if (isDirectOrderSeller && hasRegularItems && onGenerateOrder) {
+    if (usesDirectOrderPayment && hasRegularItems && onGenerateOrder) {
       setIsProcessingPayment(true);
       try {
         await onGenerateOrder({ paymentMethod });
@@ -948,7 +948,7 @@ const CartOrderSummary = ({
       const requestedQuantity = item.quantity;
       
       const isComingSoon = item.isComingSoon === true;
-      const isPremiumUser = isDirectOrderSeller;
+      const isPremiumUser = usesDirectOrderPayment;
       
       if (isComingSoon && isPremiumUser) {
         continue;
@@ -1065,8 +1065,8 @@ const CartOrderSummary = ({
       <div className="cart-order-summary__divider" />
         </>
       )}
-      {/* Método de pago: Bronce → solo Mercado Pago. Oro/Diamante → Confirmar pedido (pedido directo, pendiente de pago en sistema). */}
-      {hasRegularItems && !isDirectOrderSeller && (
+      {/* Sin descuento API → Mercado Pago. Con volume_descuento1 en API → Confirmar pedido (pedido directo). */}
+      {hasRegularItems && !usesDirectOrderPayment && (
         <div className="cart-order-summary__section payment-method-section">
           <div className="cart-order-summary__section-title section-title-flex">
             <img
@@ -1096,7 +1096,7 @@ const CartOrderSummary = ({
             📦 Productos Adelantados
           </div>
           <div style={{ fontSize: '12px', color: '#856404' }}>
-            {isDirectOrderSeller
+            {usesDirectOrderPayment
               ? 'Los artículos "Próximamente" se incluyen en el mismo pedido; al confirmar el pedido queda registrado como pendiente de pago hasta liquidación.'
               : 'Los productos marcados como "Próximamente" se crearán como pedido adelantado y quedarán pendientes de pago. El administrador los marcará como pagados cuando el cliente haya pagado el total con el administrador.'}
           </div>
@@ -1218,8 +1218,8 @@ const CartOrderSummary = ({
             style={{ backgroundColor: '#d32f2f', color: 'white' }}
           >
             {isProcessingPayment
-              ? (isDirectOrderSeller ? 'Confirmando pedido...' : 'Generando pedido...')
-              : isDirectOrderSeller
+              ? (usesDirectOrderPayment ? 'Confirmando pedido...' : 'Generando pedido...')
+              : usesDirectOrderPayment
                 ? 'Confirmar Pedido'
                 : 'Generar Pedido Adelantado'}
           </CustomButton>
@@ -1233,8 +1233,8 @@ const CartOrderSummary = ({
             className="cart-order-summary__summary-btn"
           >
             {isProcessingPayment
-              ? (isDirectOrderSeller && hasRegularItems ? 'Confirmando pedido...' : 'Procesando pago...')
-              : isDirectOrderSeller && hasRegularItems
+              ? (usesDirectOrderPayment && hasRegularItems ? 'Confirmando pedido...' : 'Procesando pago...')
+              : usesDirectOrderPayment && hasRegularItems
                 ? 'Confirmar Pedido'
                 : 'Pagar con Mercado Pago'}
           </CustomButton>

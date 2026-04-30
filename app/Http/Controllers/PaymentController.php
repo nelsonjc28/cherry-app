@@ -19,6 +19,7 @@ use App\Services\ExternalSalesService;
 use App\Services\CreditAvailabilityService;
 use App\Services\OrderCreditSplitService;
 use App\Services\OrderPricingService;
+use App\Services\ExternalClienteDiscountService;
 use App\Services\UserSellerCategoryActivityService;
 use App\Mail\OrderConfirmationMail;
 use Illuminate\Support\Facades\Mail;
@@ -36,6 +37,8 @@ class PaymentController extends Controller
 
     protected OrderPricingService $orderPricingService;
 
+    protected ExternalClienteDiscountService $externalClienteDiscountService;
+
     protected UserSellerCategoryActivityService $sellerCategoryActivityService;
 
     public function __construct(
@@ -44,6 +47,7 @@ class PaymentController extends Controller
         CreditAvailabilityService $creditAvailabilityService,
         OrderCreditSplitService $orderCreditSplitService,
         OrderPricingService $orderPricingService,
+        ExternalClienteDiscountService $externalClienteDiscountService,
         UserSellerCategoryActivityService $sellerCategoryActivityService
     ) {
         $this->mercadoPagoService = $mercadoPagoService;
@@ -51,7 +55,26 @@ class PaymentController extends Controller
         $this->creditAvailabilityService = $creditAvailabilityService;
         $this->orderCreditSplitService = $orderCreditSplitService;
         $this->orderPricingService = $orderPricingService;
+        $this->externalClienteDiscountService = $externalClienteDiscountService;
         $this->sellerCategoryActivityService = $sellerCategoryActivityService;
+    }
+
+    /**
+     * Misma noción que el front {@see hasApiVolumeMainPercent}: descuento1 de la API de clientes presente y &gt; 0.
+     * Usa `users.volume_descuento1` si ya está sincronizado; si no, consulta la API externa.
+     */
+    protected function userHasApiVolumeMainPercent(User $user): bool
+    {
+        $raw = $user->getAttribute('volume_descuento1');
+        if ($raw !== null && $raw !== '' && (float) $raw > 0) {
+            return true;
+        }
+
+        $r = $this->externalClienteDiscountService->fetchDiscountPercents((int) $user->id);
+
+        return $r['success']
+            && $r['descuento1'] !== null
+            && (float) $r['descuento1'] > 0;
     }
 
     /**
@@ -709,7 +732,7 @@ class PaymentController extends Controller
     }
 
     /**
-     * Pedido directo (Oro / Diamante): sin Mercado Pago; queda pendiente de liquidación administrativa.
+     * Pedido directo (descuento por volumen desde API de clientes): sin Mercado Pago; pendiente de liquidación administrativa.
      */
     public function createDirectOrder(Request $request)
     {
@@ -768,11 +791,10 @@ class PaymentController extends Controller
             ], 401);
         }
 
-        $cat = strtolower((string) ($user->seller_category ?? ''));
-        if (! in_array($cat, ['oro', 'diamante'], true)) {
+        if (! $this->userHasApiVolumeMainPercent($user)) {
             return response()->json([
                 'success' => false,
-                'message' => 'El pedido directo solo está disponible para categorías Oro y Diamante.',
+                'message' => 'El pedido directo solo está disponible cuando tu cuenta tiene descuento por volumen en la API de clientes.',
             ], 403);
         }
 
@@ -1201,11 +1223,10 @@ class PaymentController extends Controller
             ], 401);
         }
 
-        $sellerCat = strtolower((string) ($user->seller_category ?? ''));
-        if (in_array($sellerCat, ['oro', 'diamante'], true)) {
+        if ($this->userHasApiVolumeMainPercent($user)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Tu categoría confirma el pedido sin Mercado Pago ni crédito. Usa el botón Confirmar pedido en el carrito.',
+                'message' => 'Tu cuenta confirma el pedido sin Mercado Pago ni crédito. Usa el botón Confirmar pedido en el carrito.',
             ], 422);
         }
 
@@ -4074,6 +4095,13 @@ class PaymentController extends Controller
                 'success' => false,
                 'message' => 'Usuario no autenticado'
             ], 401);
+        }
+
+        if (! $this->userHasApiVolumeMainPercent($user)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Los pedidos de productos "Próximamente" solo están disponibles cuando tu cuenta tiene descuento por volumen en la API de clientes.',
+            ], 403);
         }
 
         // Validar datos

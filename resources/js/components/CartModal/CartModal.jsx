@@ -5,7 +5,11 @@ import './CartModal.css';
 import { getIconPath } from '../../utils/assetPaths';
 import { useEffect, useMemo } from 'react';
 import useUserStore from '../../store/userStore';
-import { getVolumeDiscountMainTier, getSellerCategoryFromUser } from '../../utils/sellerVolumeDiscount';
+import {
+  getVolumeDiscountMainTier,
+  getVolumeDiscountExtraPercent,
+  getSellerCategoryFromUser,
+} from '../../utils/sellerVolumeDiscount';
 
 const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout }) => {   
   const { user } = useUserStore();
@@ -55,15 +59,16 @@ const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout 
     }, 0);
 
     const { mainRate: volMainRate } = getVolumeDiscountMainTier(user);
+    const extraRate = getVolumeDiscountExtraPercent(user) / 100;
 
-    // Calcular total después de descuentos para envío gratis (misma regla que checkout: 30% no-diamante / 33% diamante + 10%)
+    // Calcular total después de descuentos para envío gratis (misma regla que checkout: tramos API o categoría)
     let discountAmount = 0;
     if (eligibleTotal >= 7000) {
       if (eligibleTotal >= 15000) {
         const discountMain = eligibleTotal * volMainRate;
         const totalAfterMain = eligibleTotal - discountMain;
-        const discount10 = totalAfterMain * 0.10;
-        discountAmount = discountMain + discount10;
+        const discountExtra = totalAfterMain * extraRate;
+        discountAmount = discountMain + discountExtra;
       } else {
         discountAmount = eligibleTotal * volMainRate;
       }

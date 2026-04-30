@@ -13,3 +13,8 @@ export function buildStreetWithNumbers(addr) {
   const nums = [ext, intl].filter(Boolean).join(' · ');
   return nums ? `${base} ${nums}`.trim() : base;
 }
+
+/** Núm. exterior / interior: solo dígitos, máx. 20 (alineado a validación API). */
+export function sanitizeStreetNumberDigits(value, maxLen = 20) {
+  return String(value ?? '').replace(/\D/g, '').slice(0, maxLen);
+}

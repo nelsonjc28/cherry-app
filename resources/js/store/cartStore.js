@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { cartApi } from '../api/cartApi';
 import useUserStore from './userStore';
+import { hasApiVolumeMainPercent } from '../utils/sellerVolumeDiscount';
 
 /**
  * Helper function to calculate item price considering Buy X Get Y offers
@@ -455,10 +456,10 @@ const useCartStore = create(
 
         const maxStock = getStockForVariant(product, product.selectedColor, product.selectedSize);
         
-        // Verificar si es producto "Próximamente" y usuario premium (oro/diamante)
+        // Próximamente: solo si el usuario tiene descuento por volumen en API (mismo criterio que pedido)
         const isComingSoon = product.isComingSoon === true;
         const user = useUserStore.getState?.()?.user;
-        const isPremiumUser = user && ['oro', 'diamante'].includes(user.seller_category);
+        const isPremiumUser = user && hasApiVolumeMainPercent(user);
         
         if (maxStock === 0 && !(isComingSoon && isPremiumUser)) {
            window.showToast("No hay stock para esta combinación de color y talla.",'error');
@@ -492,7 +493,7 @@ const useCartStore = create(
 
           const isComingSoon = product.isComingSoon === true || existing.isComingSoon === true;
           const user = useUserStore.getState?.()?.user;
-          const isPremiumUser = user && ['oro', 'diamante'].includes(user.seller_category);
+          const isPremiumUser = user && hasApiVolumeMainPercent(user);
           
           const maxAllowed = (isComingSoon && isPremiumUser) ? 9999 : maxStock;
 
@@ -520,7 +521,7 @@ const useCartStore = create(
         } else {
           const isComingSoon = product.isComingSoon === true;
           const user = useUserStore.getState?.()?.user;
-          const isPremiumUser = user && ['oro', 'diamante'].includes(user.seller_category);
+          const isPremiumUser = user && hasApiVolumeMainPercent(user);
           
           const maxAllowed = (isComingSoon && isPremiumUser) ? 9999 : maxStock;
           const qty = quantity > maxAllowed ? maxAllowed : quantity;

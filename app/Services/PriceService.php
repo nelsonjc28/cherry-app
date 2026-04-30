@@ -5,11 +5,15 @@ namespace App\Services;
 use App\Models\User;
 
 /**
- * Precios y descuentos por volumen según categoría de vendedor.
+ * Precios y descuentos por volumen.
  *
- * BRONCE: 30 % solo si subtotal elegible ≥ $7,000; si elegible ≥ $15,000, +10 % sobre el monto tras el primer descuento.
- * ORO: 30 % desde pieza 1 (elegible > 0); mismo +10 % si elegible ≥ $15,000.
- * DIAMANTE: 33 % desde pieza 1; mismo +10 % si elegible ≥ $15,000.
+ * descuento1 / descuento2 desde la API de clientes (consulta por cálculo).
+ *
+ * Si la API devuelve descuento1 usable: ese % y las reglas habituales de quién aplica (no-bronce con
+ * elegible > 0; bronce con ≥ $7.000 o beneficio temporal).
+ *
+ * Si la API no devuelve descuento1: se aplica a **todos** el mismo criterio que antes era solo bronce
+ * (≥ $7.000 elegible o ventana de 45 días con bronze_benefit_active) y porcentajes 30 % + 10 % segundo tramo.
  */
 class PriceService
 {
@@ -17,13 +21,39 @@ class PriceService
 
     public const SECOND_TIER_ELIGIBLE_MIN = 15000.0;
 
-    public function isBronzeBenefitActive(User $user): bool
+    public function __construct(
+        protected ExternalClienteDiscountService $externalClienteDiscountService
+    ) {}
+
+    /**
+     * Una sola llamada HTTP a la API de clientes por invocación.
+     *
+     * @return array{d1: ?float, d2: ?float}
+     */
+    private function fetchVolumePercentsFromExternalApi(User $user): array
     {
-        $cat = strtolower((string) ($user->seller_category ?? 'bronce'));
-        if ($cat !== 'bronce') {
-            return false;
+        $r = $this->externalClienteDiscountService->fetchDiscountPercents((int) $user->id);
+        if (! $r['success']) {
+            return ['d1' => null, 'd2' => null];
         }
 
+        return [
+            'd1' => $r['descuento1'],
+            'd2' => $r['descuento2'],
+        ];
+    }
+
+    private function apiProvidedMainPercent(?float $d1): bool
+    {
+        return $d1 !== null && (float) $d1 > 0.00001;
+    }
+
+    /**
+     * Ventana de beneficio temporal (45 días): flags en usuario, sin filtrar por categoría.
+     * Usada cuando la API no define descuento1: todos quedan sujetos al mismo umbral que bronce.
+     */
+    public function isVolumeBenefitWindowActive(User $user): bool
+    {
         if (! (bool) ($user->bronze_benefit_active ?? false)) {
             return false;
         }
@@ -34,6 +64,29 @@ class PriceService
         }
 
         return now()->lt($expiresAt);
+    }
+
+    public function isBronzeBenefitActive(User $user): bool
+    {
+        $cat = strtolower((string) ($user->seller_category ?? 'bronce'));
+        if ($cat !== 'bronce') {
+            return false;
+        }
+
+        return $this->isVolumeBenefitWindowActive($user);
+    }
+
+    /**
+     * Cuando la API no trae descuento1: mismas reglas de elegibilidad que bronce para cualquier usuario.
+     */
+    public function shouldApplyMainDiscountWhenNoApiMain(User $user, float $eligibleTotal): bool
+    {
+        if ($eligibleTotal <= 0) {
+            return false;
+        }
+
+        return $this->isVolumeBenefitWindowActive($user)
+            || $eligibleTotal >= self::BRONCE_MAIN_ELIGIBLE_MIN;
     }
 
     public function shouldApplyMainDiscount(User $user, float $eligibleTotal): bool
@@ -56,13 +109,44 @@ class PriceService
      */
     public function volumeMainTier(User $user): array
     {
-        $cat = strtolower((string) ($user->seller_category ?? 'bronce'));
+        $p = $this->fetchVolumePercentsFromExternalApi($user);
 
-        if ($cat === 'diamante') {
-            return ['rate' => 0.33, 'percent' => 33];
+        return $this->volumeMainTierFromApiPercent($p['d1']);
+    }
+
+    /**
+     * Sin descuento1 en API: 30 % (regla “modo bronce” para todos).
+     *
+     * @return array{rate: float, percent: int}
+     */
+    private function volumeMainTierFromApiPercent(?float $apiPct): array
+    {
+        if ($apiPct !== null && (float) $apiPct > 0.00001) {
+            $p = (float) $apiPct;
+
+            return ['rate' => round($p / 100.0, 4), 'percent' => (int) round($p)];
         }
 
         return ['rate' => 0.30, 'percent' => 30];
+    }
+
+    /**
+     * Segundo tramo: API si viene descuento2 (≥ 0); si no, 10 % (misma regla que modo bronce).
+     */
+    public function volumeExtraPercent(User $user): float
+    {
+        $p = $this->fetchVolumePercentsFromExternalApi($user);
+
+        return $this->volumeExtraPercentFromApiPercent($p['d2']);
+    }
+
+    private function volumeExtraPercentFromApiPercent(?float $p): float
+    {
+        if ($p !== null && (float) $p >= 0) {
+            return (float) $p;
+        }
+
+        return 10.0;
     }
 
     /**
@@ -96,17 +180,22 @@ class PriceService
         }
         $eligibleTotal = round($eligibleTotal, 2);
 
-        $tier = $this->volumeMainTier($user);
+        $percents = $this->fetchVolumePercentsFromExternalApi($user);
+        $hasApiMain = $this->apiProvidedMainPercent($percents['d1']);
+        $tier = $this->volumeMainTierFromApiPercent($percents['d1']);
         $mainRate = $tier['rate'];
         $mainPercent = (float) $tier['percent'];
-        $cat = strtolower((string) ($user->seller_category ?? 'bronce'));
+        $extraPercent = $this->volumeExtraPercentFromApiPercent($percents['d2']);
+        $extraRate = round($extraPercent / 100.0, 4);
 
         $volMain = 0.0;
         $volExtra = 0.0;
         $descuento1 = 0.0;
         $descuento2 = 0.0;
 
-        $appliesMain = $this->shouldApplyMainDiscount($user, $eligibleTotal);
+        $appliesMain = $hasApiMain
+            ? $this->shouldApplyMainDiscount($user, $eligibleTotal)
+            : $this->shouldApplyMainDiscountWhenNoApiMain($user, $eligibleTotal);
 
         if ($appliesMain) {
             $descuento1 = $mainPercent;
@@ -114,8 +203,8 @@ class PriceService
             $afterMain = round($eligibleTotal - $volMain, 2);
 
             if ($eligibleTotal >= self::SECOND_TIER_ELIGIBLE_MIN) {
-                $volExtra = round($afterMain * 0.10, 2);
-                $descuento2 = 10.0;
+                $volExtra = round($afterMain * $extraRate, 2);
+                $descuento2 = $extraPercent;
             }
         }
 

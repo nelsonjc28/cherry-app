@@ -123,7 +123,7 @@ class ProductSearchController extends Controller
             $coloresPorProducto = [];
             if (!empty($productIds)) {
                 $detalles = DB::table('detalles')
-                    ->select('producto_id', 'nombreColor', 'detalle', 'fechaMovimiento')
+                    ->select('producto_id', 'nombreColor', 'detalle', 'fechaMovimiento', 'inventario_d')
                     ->whereIn('producto_id', $productIds)
                     ->whereNotNull('nombreColor')
                     ->where('nombreColor', '!=', '')
@@ -135,11 +135,12 @@ class ProductSearchController extends Controller
                         $coloresPorProducto[$detalle->producto_id] = [];
                     }
                     
-                    // Agregar detalle completo
+                    // Agregar detalle completo (inventario_d: front suma stock en listados / badges)
                     $detallesPorProducto[$detalle->producto_id][] = [
                         'nombreColor' => $detalle->nombreColor,
                         'detalle' => $detalle->detalle,
-                        'fechaMovimiento' => $detalle->fechaMovimiento ? date('Y-m-d', strtotime($detalle->fechaMovimiento)) : null
+                        'fechaMovimiento' => $detalle->fechaMovimiento ? date('Y-m-d', strtotime($detalle->fechaMovimiento)) : null,
+                        'inventario_d' => (float) ($detalle->inventario_d ?? 0),
                     ];
                     
                     // Agregar color único
@@ -325,7 +326,7 @@ class ProductSearchController extends Controller
             $coloresPorProducto = [];
             if (!empty($productIds)) {
                 $detalles = DB::table('detalles')
-                    ->select('producto_id', 'nombreColor', 'detalle', 'fechaMovimiento')
+                    ->select('producto_id', 'nombreColor', 'detalle', 'fechaMovimiento', 'inventario_d')
                     ->whereIn('producto_id', $productIds)
                     ->whereNotNull('nombreColor')
                     ->where('nombreColor', '!=', '')
@@ -340,7 +341,8 @@ class ProductSearchController extends Controller
                     $detallesPorProducto[$detalle->producto_id][] = [
                         'nombreColor' => $detalle->nombreColor,
                         'detalle' => $detalle->detalle,
-                        'fechaMovimiento' => $detalle->fechaMovimiento ? date('Y-m-d', strtotime($detalle->fechaMovimiento)) : null
+                        'fechaMovimiento' => $detalle->fechaMovimiento ? date('Y-m-d', strtotime($detalle->fechaMovimiento)) : null,
+                        'inventario_d' => (float) ($detalle->inventario_d ?? 0),
                     ];
                     
                     if (!in_array($detalle->nombreColor, $coloresPorProducto[$detalle->producto_id])) {
@@ -679,7 +681,7 @@ class ProductSearchController extends Controller
             $coloresPorProducto = [];
             if (!empty($productIds)) {
                 $detalles = DB::table('detalles')
-                    ->select('producto_id', 'nombreColor', 'detalle', 'fechaMovimiento')
+                    ->select('producto_id', 'nombreColor', 'detalle', 'fechaMovimiento', 'inventario_d')
                     ->whereIn('producto_id', $productIds)
                     ->whereNotNull('nombreColor')
                     ->where('nombreColor', '!=', '')
@@ -694,7 +696,8 @@ class ProductSearchController extends Controller
                     $detallesPorProducto[$detalle->producto_id][] = [
                         'nombreColor' => $detalle->nombreColor,
                         'detalle' => $detalle->detalle,
-                        'fechaMovimiento' => $detalle->fechaMovimiento ? date('Y-m-d', strtotime($detalle->fechaMovimiento)) : null
+                        'fechaMovimiento' => $detalle->fechaMovimiento ? date('Y-m-d', strtotime($detalle->fechaMovimiento)) : null,
+                        'inventario_d' => (float) ($detalle->inventario_d ?? 0),
                     ];
                     
                     if (!in_array($detalle->nombreColor, $coloresPorProducto[$detalle->producto_id])) {

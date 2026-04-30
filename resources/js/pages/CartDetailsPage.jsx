@@ -16,6 +16,7 @@ import {
   getSellerCategoryFromUser,
   isBronzeBenefitActive,
   getBronzeBenefitRemainingDays,
+  hasApiVolumeMainPercent,
 } from '../utils/sellerVolumeDiscount';
 import {
   cartItemToPricingLine,
@@ -36,7 +37,8 @@ const formatMoney = (value) => {
 };
 
 /** MP a veces manda init_point ""; el backend ya corrige, pero aquí reforzamos + armamos URL con preference_id. */
-const isDirectOrderSellerCategory = (u) => {
+/** Pago con crédito: sigue limitado a categoría oro/diamante (regla de negocio aparte). */
+const isOroDiamanteCategory = (u) => {
   const c = getSellerCategoryFromUser(u);
   return c === 'oro' || c === 'diamante';
 };
@@ -154,7 +156,7 @@ const CartDetailsPage = () => {
       didDefaultPremiumPaymentRef.current = false;
       return;
     }
-    if (!isDirectOrderSellerCategory(user)) {
+    if (!isOroDiamanteCategory(user)) {
       didDefaultPremiumPaymentRef.current = false;
       return;
     }
@@ -386,10 +388,10 @@ const CartDetailsPage = () => {
 
     if (!itemToUpdate) return;
 
-    // Si el producto es "Próximamente" y el usuario es "oro" o "diamante", saltar validación de stock
+    // Próximamente + descuento API: sin validar stock
     const isComingSoon = itemToUpdate.isComingSoon === true;
     const { user } = useUserStore.getState();
-    const isPremiumUser = isDirectOrderSellerCategory(user);
+    const isPremiumUser = hasApiVolumeMainPercent(user);
     
     if (isComingSoon && isPremiumUser) {
       updateQuantity(itemToUpdate.id_articulo, newQty, itemToUpdate.selectedColor, itemToUpdate.selectedSize);
@@ -462,7 +464,7 @@ const CartDetailsPage = () => {
     }
   }, [deliveryType, storeAddress, selectedAddress]);
 
-  // Handle generate order with MercadoPago or Credit (Bronce). Oro/Diamante: solo pedido directo vía /orders/direct.
+  // MercadoPago o crédito; con descuento por volumen en API → pedido directo vía /orders/direct.
   const handleGenerateOrder = async (options = {}) => {
     const pm = options.paymentMethod ?? paymentMethod;
 
@@ -476,7 +478,7 @@ const CartDetailsPage = () => {
     /** Snapshot del carrito completo (disponibles + anticipados) para volumen y validación en servidor. */
     const fullCartPricingLinesSnapshot = cartItems.map(cartItemToPricingLine);
 
-    const isDirectCategory = isDirectOrderSellerCategory(user);
+    const isDirectCategory = hasApiVolumeMainPercent(user);
 
     if (isDirectCategory) {
       if (deliveryType === 'envio' && !selectedAddress) {
@@ -509,7 +511,7 @@ const CartDetailsPage = () => {
         }
       }
 
-      // Pedido directo (Oro/Diamante): POST /orders/direct — backend deja la orden en pendiente_pago hasta liquidación admin.
+      // Pedido directo (API volume discount): POST /orders/direct — pendiente_pago hasta liquidación admin.
       const paymentLineItems = cartItems;
       const volSummary = summarizeVolumeFromCartItems(user, paymentLineItems);
       const paymentDescuento1 = volSummary.descuento1;
@@ -629,13 +631,23 @@ const CartDetailsPage = () => {
       return;
     }
 
+    if (hasAdvanceOrders && !hasApiVolumeMainPercent(user)) {
+      if (window.showToast) {
+        window.showToast(
+          'Los productos "Próximamente" solo pueden pedirse si tu cuenta tiene descuento por volumen en la API de clientes (mayor a 0%).',
+          'error'
+        );
+      }
+      return;
+    }
+
     // Carrito mixto (disponible + próximamente) + crédito: un solo create-preference con todo el carrito
     // para que Total − Crédito = saldo MP y siempre se genere preferencia/URL si hay excedente.
     const skipSeparateAdvanceOrder =
       pm === 'credit' &&
       hasAdvanceOrders &&
       hasRegularItems &&
-      isDirectOrderSellerCategory(user);
+      hasApiVolumeMainPercent(user);
 
     // Si hay productos adelantados, crear pedido adelantado primero (excepto el caso unificado arriba)
     if (hasAdvanceOrders && !skipSeparateAdvanceOrder) {
@@ -769,7 +781,7 @@ const CartDetailsPage = () => {
 
     // Si es pago con crédito, validar que el usuario tenga categoría oro o diamante
     if (pm === 'credit') {
-      if (!isDirectOrderSellerCategory(user)) {
+      if (!isOroDiamanteCategory(user)) {
         if (window.showToast) {
           window.showToast('Solo los usuarios con categoría Oro pueden pagar con crédito', 'error');
         }
@@ -1167,7 +1179,7 @@ const CartDetailsPage = () => {
       const isNear = eligibleTotal >= (DISCOUNT_40_THRESHOLD * NEAR_THRESHOLD_PERCENT);
 
       // Oro y diamante: no mostrar "¡Felicidades! … descuento del 30% / descuento activado" al entrar al carrito
-      if (!isDirectOrderSellerCategory(user)) {
+      if (!hasApiVolumeMainPercent(user)) {
         alerts.push({
           type: 'success',
           icon: '✅',

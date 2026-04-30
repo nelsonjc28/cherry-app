@@ -94,6 +94,56 @@ class ExternalClienteDiscountService
     }
 
     /**
+     * Mismos campos que {@see fetchByUserId} pero como porcentajes numéricos para precios.
+     *
+     * @return array{
+     *   success: bool,
+     *   message?: string,
+     *   external_client_id: string,
+     *   descuento1: float|null,
+     *   descuento2: float|null
+     * }
+     */
+    public function fetchDiscountPercents(int $userId): array
+    {
+        $r = $this->fetchByUserId($userId);
+
+        if (! $r['success']) {
+            return [
+                'success' => false,
+                'message' => $r['message'] ?? null,
+                'external_client_id' => $r['external_client_id'],
+                'descuento1' => null,
+                'descuento2' => null,
+            ];
+        }
+
+        return [
+            'success' => true,
+            'external_client_id' => $r['external_client_id'],
+            'descuento1' => $this->normalizePercentDisplayValue($r['descuento1']),
+            'descuento2' => $this->normalizePercentDisplayValue($r['descuento2']),
+        ];
+    }
+
+    private function normalizePercentDisplayValue(?string $s): ?float
+    {
+        if ($s === null || $s === '') {
+            return null;
+        }
+        $t = trim($s);
+        if ($t === '' || $t === '—') {
+            return null;
+        }
+        $n = (float) str_replace(',', '', $t);
+        if ($n < 0 || $n > 100) {
+            return null;
+        }
+
+        return $n;
+    }
+
+    /**
      * @param  array<string, mixed>  $json
      */
     private function pickDiscountValue(array $json, int $n): ?string

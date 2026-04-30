@@ -267,8 +267,8 @@ class ClientController extends Controller
     {
         return Validator::make($request->all(), [
             'street_address' => 'required|string|max:500',
-            'street_number_ext' => 'nullable|string|max:20',
-            'street_number_int' => 'nullable|string|max:20',
+            'street_number_ext' => ['nullable', 'regex:/^[0-9]{0,20}$/'],
+            'street_number_int' => ['nullable', 'regex:/^[0-9]{0,20}$/'],
             'city' => 'required|string|max:255',
             'municipality' => 'nullable|string|max:255',
             'colonia' => 'nullable|string|max:255',
