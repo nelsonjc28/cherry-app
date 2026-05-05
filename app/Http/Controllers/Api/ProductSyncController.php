@@ -294,27 +294,9 @@ class ProductSyncController extends Controller
                         $this->notifyUsersProductAvailable($producto->id, $producto->descripcion ?? 'Producto');
                     }
 
-                    // 5. Verificar estado de stock antes de sincronizar detalles (para contador)
-                    // Obtener todos los detalles existentes del producto ANTES de actualizar
-                    // Verificar si TODAS las tallas del producto en la BD estaban en 0 o negativo (sin stock)
-                    $detallesAntes = Detalle::where('producto_id', $producto->id)->get();
-                    $todasTallasEnCeroAntes = true;
-                    
-                    // Si no hay detalles, se considera que estaba todo en 0 (producto nuevo)
-                    if ($detallesAntes->count() > 0) {
-                        // Verificar si todas las tallas estaban en 0 o negativo (sin stock disponible)
-                        foreach ($detallesAntes as $detalleAntes) {
-                            $inventarioAntes = (float) ($detalleAntes->inventario_d ?? 0);
-                            // Si alguna talla tiene stock > 0, entonces NO estaba todo en cero
-                            if ($inventarioAntes > 0) {
-                                $todasTallasEnCeroAntes = false;
-                                break;
-                            }
-                        }
-                    }
+                    $prevInventoryByDetalleId = Producto::snapshotInventoryByDetalleIdForProduct((string) $producto->id);
 
-                    // 6. Sincronizar detalles
-                    $alMenosUnaTallaConStockDespues = false;
+                    // 5. Sincronizar detalles
                     if (isset($externalProduct['detalles']) && is_array($externalProduct['detalles'])) {
                         foreach ($externalProduct['detalles'] as $externalDetalle) {
                             $detalleData = [
@@ -357,25 +339,17 @@ class ProductSyncController extends Controller
                                 $stats['detalles_creados']++;
                             }
 
-                            $detalleRefrescado = Detalle::find($detalleId);
-                            $inventarioDespues = (float) ($detalleRefrescado->inventario_d ?? 0);
-                            if ($inventarioDespues > 0) {
-                                $alMenosUnaTallaConStockDespues = true;
-                            }
                         }
                     }
-                    
-                    // 6.5. Incrementar contador si el producto pasó de todas las tallas en 0/negativo a al menos una con stock
-                    // Condición: El producto en la BD tenía TODAS las tallas sin stock (0 o negativo)
-                    // Y después de sincronizar con la API externa, AL MENOS UNA talla tiene stock > 0
-                    if ($todasTallasEnCeroAntes && $alMenosUnaTallaConStockDespues) {
-                        $producto->increment('stock_received_count');
-                        Log::info('Contador de stock incrementado - Producto recibió stock nuevo', [
+
+                    $stockReceivedIncremented = Producto::incrementStockReceivedWhenTotalPiecesIncreasedAfterSync(
+                        $producto,
+                        $prevInventoryByDetalleId
+                    );
+                    if ($stockReceivedIncremented) {
+                        Log::info('Sincronización HTTP: stock_received_count +1 (total piezas aumentó tras sync)', [
                             'producto_id' => $producto->id,
                             'stock_received_count' => $producto->fresh()->stock_received_count,
-                            'detalles_antes' => $detallesAntes->count(),
-                            'todas_en_cero_antes' => $todasTallasEnCeroAntes,
-                            'al_menos_una_con_stock_despues' => $alMenosUnaTallaConStockDespues
                         ]);
                     }
 
@@ -842,13 +816,13 @@ class ProductSyncController extends Controller
         if (! empty($externalProduct['detalles']) && is_array($externalProduct['detalles'])) {
             $sum = 0.0;
             foreach ($externalProduct['detalles'] as $d) {
-                $sum += (float) ($d['inventario_d'] ?? 0);
+                $sum += Producto::effectiveDetailInventoryContribution($d['inventario_d'] ?? null);
             }
 
             return $sum;
         }
 
-        return (float) ($externalProduct['inventario'] ?? $externalProduct['stock'] ?? 0);
+        return Producto::effectiveDetailInventoryContribution($externalProduct['inventario'] ?? $externalProduct['stock'] ?? 0);
     }
 
     /**
@@ -857,7 +831,8 @@ class ProductSyncController extends Controller
     private function computeExistingInventoryTotalForProductId(string $productoId): float
     {
         if (Detalle::where('producto_id', $productoId)->exists()) {
-            return (float) Detalle::where('producto_id', $productoId)->sum('inventario_d');
+            return (float) Detalle::where('producto_id', $productoId)
+                ->sum(DB::raw('GREATEST(IFNULL(inventario_d, 0), 0)'));
         }
 
         $p = Producto::find($productoId);
@@ -865,7 +840,7 @@ class ProductSyncController extends Controller
             return 0.0;
         }
 
-        return (float) ($p->inventario ?? $p->piezas ?? 0);
+        return Producto::effectiveDetailInventoryContribution($p->inventario ?? $p->piezas ?? 0);
     }
 
     /**

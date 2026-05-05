@@ -155,9 +155,9 @@ const NuevosPage = () => {
 
     // Filter by availability
     if (currentFilters.availability === 'con-existencia') {
-      filtered = filtered.filter(product => (product.stock || product.inventario || 0) > 0);
+      filtered = filtered.filter(product => getTotalInventoryFromProduct(product) > 0);
     } else if (currentFilters.availability === 'sin-existencia') {
-      filtered = filtered.filter(product => (product.stock || product.inventario || 0) === 0);
+      filtered = filtered.filter(product => getTotalInventoryFromProduct(product) <= 0.00001);
     }
 
     // Filter by colors
@@ -397,7 +397,7 @@ const NuevosPage = () => {
           const localProducts = searchResponse.data.data.products;
           
           // FILTRO CRÍTICO: Un producto SOLO puede mostrarse en "Próximamente" si cumple TODAS las condiciones simultáneamente (AND):
-          // 1. Inventario total exactamente 0 (getTotalInventoryFromProduct: con detalles = suma inventario_d)
+          // 1. Inventario total exactamente 0 (getTotalInventoryFromProduct: suma inventario_d solo si > 0 por talla)
           // 2. El tercer carácter de su ID (id[2]) coincide con el último dígito del año actual
           // 3. stock_received_count = 0 (el producto nunca ha recibido stock)
           const currentYearLastDigit = String(new Date().getFullYear() % 10);
@@ -405,7 +405,7 @@ const NuevosPage = () => {
           const comingSoonProductsRaw = localProducts.filter(product => {
             const totalStock = getTotalInventoryFromProduct(product);
 
-            if (Math.abs(totalStock) > 1e-9) {
+            if (totalStock > 1e-9) {
               return false;
             }
             

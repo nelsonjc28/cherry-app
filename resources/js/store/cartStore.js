@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { cartApi } from '../api/cartApi';
 import useUserStore from './userStore';
 import { hasApiVolumeMainPercent } from '../utils/sellerVolumeDiscount';
+import { effectiveDetailInventoryContribution } from '../utils/productUtils';
 
 /**
  * Helper function to calculate item price considering Buy X Get Y offers
@@ -451,7 +452,7 @@ const useCartStore = create(
         const getStockForVariant = (product, color, size) => {
           if (!productDetaill?.detalles) return 0;
           const variant = productDetaill.detalles.find(v => v.nombreColor === color && v.detalle === size);
-          return variant ? variant.inventario_d : 0;
+          return variant ? effectiveDetailInventoryContribution(variant.inventario_d) : 0;
         };
 
         const maxStock = getStockForVariant(product, product.selectedColor, product.selectedSize);

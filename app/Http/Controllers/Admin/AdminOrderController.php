@@ -13,6 +13,7 @@ use App\Services\UserSellerCategoryActivityService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class AdminOrderController extends Controller
@@ -494,14 +495,15 @@ class AdminOrderController extends Controller
                 return $this->productStockCache[$productCacheKey];
             }
 
-            $sumDetalles = (float) Detalle::where('producto_id', $product->id)->sum('inventario_d');
+            $sumDetalles = (float) Detalle::where('producto_id', $product->id)
+                ->sum(DB::raw('GREATEST(IFNULL(inventario_d, 0), 0)'));
             if ($sumDetalles > 0.00001) {
                 $stock = round($sumDetalles, 2);
                 $this->productStockCache[$productCacheKey] = $stock;
                 return $stock;
             }
 
-            $stock = round((float) ($product->inventario ?? 0), 2);
+            $stock = round(Producto::effectiveDetailInventoryContribution($product->inventario ?? 0), 2);
             $this->productStockCache[$productCacheKey] = $stock;
             return $stock;
         }
@@ -509,7 +511,7 @@ class AdminOrderController extends Controller
         if (! empty($item->detalle_id)) {
             $detalle = Detalle::find($item->detalle_id);
             if ($detalle) {
-                return round((float) ($detalle->inventario_d ?? 0), 2);
+                return round(Producto::effectiveDetailInventoryContribution($detalle->inventario_d ?? null), 2);
             }
         }
 

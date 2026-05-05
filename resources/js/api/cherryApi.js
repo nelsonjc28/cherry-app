@@ -2,7 +2,7 @@ import axios from 'axios';
 import api from '../config/axios';
 import { getCherryCatalogBaseUrl, unwrapCatalogProductList } from '../config/cherryCatalogBaseUrl';
 import productCache from '../utils/productCacheInMemory';
-import { getProductCardStockStatus } from '../utils/productUtils';
+import { getProductCardStockStatus, getTotalInventoryFromProduct } from '../utils/productUtils';
 
 const CHERRY_API_URL = getCherryCatalogBaseUrl();
 
@@ -1220,14 +1220,8 @@ export const getTopSellingProducts = async (limit = 20) => {
     // Los productos ya vienen con el formato correcto desde TopSellingController
     // Solo necesitamos mapearlos al formato esperado por el frontend
     const mappedProducts = products.map(product => {
-      // Calcular stock total desde detalles si está disponible
-      let stock = product.inventario || 0;
+      const stock = getTotalInventoryFromProduct(product);
       const detallesArr = product.detalles && Array.isArray(product.detalles) ? product.detalles : [];
-      if (detallesArr.length > 0) {
-        stock = detallesArr.reduce((total, detalle) => {
-          return total + (detalle.inventario_d || 0);
-        }, 0);
-      }
 
       // Extraer tallas desde detalles si no vienen como campo separado
       let sizes = product.sizes || [];

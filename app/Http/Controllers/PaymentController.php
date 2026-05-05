@@ -4748,17 +4748,18 @@ class PaymentController extends Controller
     private function resolveProductStockTotalForPrint(OrderItem $item, ?\App\Models\Producto $product): float
     {
         if ($product) {
-            $sumDetalles = (float) \App\Models\Detalle::where('producto_id', $product->id)->sum('inventario_d');
+            $sumDetalles = (float) \App\Models\Detalle::where('producto_id', $product->id)
+                ->sum(DB::raw('GREATEST(IFNULL(inventario_d, 0), 0)'));
             if ($sumDetalles > 0.00001) {
                 return round($sumDetalles, 2);
             }
-            return round((float) ($product->inventario ?? 0), 2);
+            return round(\App\Models\Producto::effectiveDetailInventoryContribution($product->inventario ?? 0), 2);
         }
 
         if (! empty($item->detalle_id)) {
             $detalle = \App\Models\Detalle::find($item->detalle_id);
             if ($detalle) {
-                return round((float) ($detalle->inventario_d ?? 0), 2);
+                return round(\App\Models\Producto::effectiveDetailInventoryContribution($detalle->inventario_d ?? null), 2);
             }
         }
         return 0.0;

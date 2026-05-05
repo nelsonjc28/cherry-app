@@ -112,10 +112,10 @@ class ProductController extends Controller
                 $rating = round($sumRatings / $ratingCount, 2);
             }
 
-            $inventarioSumDetalles = collect($detalles)->sum(fn (array $d) => (float) ($d['inventario_d'] ?? 0));
+            $inventarioSumDetalles = collect($detalles)->sum(fn (array $d) => Producto::effectiveDetailInventoryContribution($d['inventario_d'] ?? null));
             $inventarioTotalProducto = $inventarioSumDetalles > 0.00001
                 ? $inventarioSumDetalles
-                : (float) ($producto->inventario ?? 0);
+                : Producto::effectiveDetailInventoryContribution($producto->inventario ?? 0);
             $isComingSoon = Producto::evaluateIsComingSoonFromRow($producto, $inventarioTotalProducto);
 
             // Obtener reseñas aprobadas con información del usuario
@@ -315,8 +315,10 @@ class ProductController extends Controller
                         ->values()
                         ->toArray();
 
-                    // Calcular inventario total (suma de inventario_d de detalles O inventario general)
-                    $inventarioTotal = $productGroup->sum('inventario_d') ?: (float) ($producto->inventario ?? 0);
+                    $sumDet = $productGroup->sum(fn ($row) => Producto::effectiveDetailInventoryContribution($row->inventario_d ?? null));
+                    $inventarioTotal = $sumDet > 0.00001
+                        ? $sumDet
+                        : Producto::effectiveDetailInventoryContribution($producto->inventario ?? 0);
 
                     // Obtener rating
                     $reviews = Review::where('product_id', $producto->id)
@@ -612,7 +614,7 @@ class ProductController extends Controller
             // Calcular stock total por producto (suma de inventario_d)
             $productStocks = DB::table('detalles')
                 ->whereIn('producto_id', $allProductIds)
-                ->select('producto_id', DB::raw('SUM(inventario_d) as total_stock'))
+                ->select('producto_id', DB::raw('SUM(GREATEST(IFNULL(inventario_d, 0), 0)) as total_stock'))
                 ->groupBy('producto_id')
                 ->pluck('total_stock', 'producto_id')
                 ->toArray();
@@ -627,8 +629,8 @@ class ProductController extends Controller
             $productsWithStock = [];
             foreach ($allProductIds as $productId) {
                 $stockFromDetails = (float) ($productStocks[$productId] ?? 0);
-                $stockFromProduct = (float) ($productInventories[$productId] ?? 0);
-                $totalStock = $stockFromDetails > 0 ? $stockFromDetails : $stockFromProduct;
+                $stockFromProduct = Producto::effectiveDetailInventoryContribution($productInventories[$productId] ?? 0);
+                $totalStock = $stockFromDetails > 0.00001 ? $stockFromDetails : $stockFromProduct;
                 
                 if ($totalStock > 0) {
                     $productsWithStock[] = $productId;
@@ -723,8 +725,10 @@ class ProductController extends Controller
                         ->values()
                         ->toArray();
 
-                    // Calcular inventario total (suma de inventario_d)
-                    $inventarioTotal = $productGroup->sum('inventario_d') ?: (float) ($producto->inventario ?? 0);
+                    $sumDet = $productGroup->sum(fn ($row) => Producto::effectiveDetailInventoryContribution($row->inventario_d ?? null));
+                    $inventarioTotal = $sumDet > 0.00001
+                        ? $sumDet
+                        : Producto::effectiveDetailInventoryContribution($producto->inventario ?? 0);
 
                     // Obtener rating
                     $reviews = Review::where('product_id', $producto->id)
@@ -814,11 +818,11 @@ class ProductController extends Controller
 
         if ($detailRows->isNotEmpty()) {
             return (float) $detailRows->sum(function ($row) {
-                return (float) ($row->inventario_d ?? 0);
+                return Producto::effectiveDetailInventoryContribution($row->inventario_d ?? null);
             });
         }
 
-        return (float) ($producto->inventario ?? 0);
+        return Producto::effectiveDetailInventoryContribution($producto->inventario ?? 0);
     }
 
     /**

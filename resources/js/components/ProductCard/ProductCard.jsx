@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import FavoriteButton from '../FavoriteButton/FavoriteButton';
 import StarRating from '../StarRating/StarRating';
 import { formatPrice } from '../../utils/formatters';
-import { getProductCardStockStatus } from '../../utils/productUtils';
+import { getProductCardStockStatus, getTotalInventoryFromProduct } from '../../utils/productUtils';
 import { getIconPath } from '../../utils/assetPaths';
 import colorConverter from '../../services/colorConverter';
 import { useUserDiscounts } from '../../hooks/useUserDiscounts';
@@ -85,22 +85,13 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
     }
   };
 
-  // Función para calcular el stock total del producto
-  const calculateTotalStock = () => {
-    // Si hay detalles, sumar todo el inventario de los detalles
-    if (product?.detalles && product.detalles.length > 0) {
-      const totalFromDetails = product.detalles.reduce((total, detalle) => {
-        return total + (parseFloat(detalle.inventario_d) || 0);
-      }, 0);
-      // Si la suma de detalles es > 0, usar ese valor
-      if (totalFromDetails > 0) {
-        return totalFromDetails;
-      }
-    }
-    
-    // Si no hay detalles o la suma es 0, usar el inventario general del producto
-    return parseFloat(stock || inventario || 0);
-  };
+  const calculateTotalStock = () =>
+    getTotalInventoryFromProduct({
+      ...product,
+      stock,
+      inventario,
+      detalles: product?.detalles,
+    });
 
   const getStockStatus = () =>
     getProductCardStockStatus({

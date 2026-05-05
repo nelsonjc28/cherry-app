@@ -33,7 +33,7 @@ import { favoriteService } from '../services/api';
 
 // Utils
 import { formatPrice } from '../utils/formatters';
-import { getTotalInventoryFromProduct, getProductInventoryStatusKind } from '../utils/productUtils';
+import { getTotalInventoryFromProduct, getProductInventoryStatusKind, effectiveDetailInventoryContribution } from '../utils/productUtils';
 import useHorizontalDragScroll from '../hooks/useHorizontalDragScroll';
 import colorConverter from '../services/colorConverter';
 import { validateStock, getProductStock } from '../services/inventoryService';
@@ -1253,8 +1253,7 @@ const ProductPage = () => {
       return product.inventario || product.stock || 0;
     }
 
-    // Usar inventario_d del detalle específico
-    return detalle.inventario_d || 0;
+    return effectiveDetailInventoryContribution(detalle.inventario_d);
   };
 
   // Función para obtener el código de barras por talla y color

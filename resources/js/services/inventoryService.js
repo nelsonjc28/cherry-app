@@ -1,4 +1,5 @@
 import api from '../services/api';
+import { effectiveDetailInventoryContribution } from '../utils/productUtils';
 
 /**
  * Servicio para gestionar y validar inventario de productos
@@ -47,13 +48,11 @@ export const getProductStock = async (productId, size, color) => {
     let stock = 0;
     
     if (detalle && detalle.inventario_d !== undefined) {
-      stock = parseFloat(detalle.inventario_d) || 0;
+      stock = effectiveDetailInventoryContribution(detalle.inventario_d);
     } else if (product.inventario !== undefined) {
-      // Fallback al inventario general del producto
-      stock = parseFloat(product.inventario) || 0;
+      stock = effectiveDetailInventoryContribution(product.inventario);
     } else if (product.stock !== undefined) {
-      // Segundo fallback
-      stock = parseFloat(product.stock) || 0;
+      stock = effectiveDetailInventoryContribution(product.stock);
     }
 
     // Guardar en caché

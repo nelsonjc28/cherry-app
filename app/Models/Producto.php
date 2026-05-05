@@ -224,15 +224,62 @@ class Producto extends Model
     }
 
     /**
+     * Contribución de una talla al stock total: inventario_d negativo no resta (no cuenta).
+     * Alineado con getTotalInventoryFromProduct (resources/js/utils/productUtils.js).
+     */
+    public static function effectiveDetailInventoryContribution(mixed $raw): float
+    {
+        $n = (float) ($raw ?? 0);
+
+        return $n > 0.0000001 ? $n : 0.0;
+    }
+
+    /**
      * Inventario total: suma de detalles si están cargados; si no, campo inventario/piezas.
+     * Por talla solo se suman cantidades > 0 en inventario_d.
      */
     public function computeTotalInventoryQuantity(): float
     {
         if ($this->relationLoaded('detalles') && $this->detalles->isNotEmpty()) {
-            return (float) $this->detalles->sum('inventario_d');
+            return (float) $this->detalles->sum(fn ($d) => self::effectiveDetailInventoryContribution($d->inventario_d ?? null));
         }
 
-        return (float) ($this->inventario ?? $this->piezas ?? 0);
+        return self::effectiveDetailInventoryContribution($this->inventario ?? $this->piezas ?? 0);
+    }
+
+    /**
+     * Inventario por talla antes de aplicar un payload de sincronización (id detalle => cantidad).
+     *
+     * @return array<string, float>
+     */
+    public static function snapshotInventoryByDetalleIdForProduct(string $productoId): array
+    {
+        return Detalle::query()
+            ->where('producto_id', $productoId)
+            ->get()
+            ->mapWithKeys(fn (Detalle $d) => [(string) $d->id => (float) ($d->inventario_d ?? 0)])
+            ->all();
+    }
+
+    /**
+     * Tras aplicar sync: si el total de piezas (suma de inventario_d de todas las tallas en BD) es mayor que antes del sync,
+     * incrementa stock_received_count exactamente en 1 (ej. total 6 → 8: contador sube un paso, no por la diferencia de piezas).
+     */
+    public static function incrementStockReceivedWhenTotalPiecesIncreasedAfterSync(self $producto, array $previousInventoryByDetalleId): bool
+    {
+        $beforeTotal = (float) array_sum($previousInventoryByDetalleId);
+
+        $afterTotal = (float) Detalle::query()
+            ->where('producto_id', $producto->id)
+            ->sum('inventario_d');
+
+        if ($afterTotal <= $beforeTotal + 0.00001) {
+            return false;
+        }
+
+        $producto->increment('stock_received_count');
+
+        return true;
     }
 
     /**

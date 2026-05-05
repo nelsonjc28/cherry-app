@@ -11,6 +11,7 @@ import { applyUserOffersToProducts } from '../api/userOffers';
 import { publicCatalogService } from '../services/api';
 import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
+import { getTotalInventoryFromProduct } from '../utils/productUtils';
 
 const shuffleArray = (array) => {
   const shuffled = [...array];
@@ -405,23 +406,7 @@ const NuevosPage = () => {
           // REGLA CORREGIDA: Excluir SOLO si el tercer dígito coincide con el año Y el stock es 0
           let excluidosEnFiltroFinal = 0;
           const productosSinProximamente = productsWithOffers.filter(product => {
-            // Calcular stock total igual que en ProductCard (suma de inventario_d de detalles)
-            let totalStock = 0;
-            if (product.detalles && product.detalles.length > 0) {
-              const totalFromDetails = product.detalles.reduce((total, detalle) => {
-                return total + (parseFloat(detalle.inventario_d) || 0);
-              }, 0);
-              // Si la suma de detalles es > 0, usar ese valor
-              if (totalFromDetails > 0) {
-                totalStock = totalFromDetails;
-              } else {
-                // Si no hay detalles o la suma es 0, usar el inventario general
-                totalStock = parseFloat(product.stock || product.inventario || 0);
-              }
-            } else {
-              // Si no hay detalles, usar el inventario general
-              totalStock = parseFloat(product.stock || product.inventario || 0);
-            }
+            const totalStock = getTotalInventoryFromProduct(product);
             
             // Verificar si el tercer dígito del ID coincide con el último dígito del año actual
             const productId = String(product.id || product.id_articulo || '');

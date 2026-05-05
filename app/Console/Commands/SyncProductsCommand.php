@@ -297,6 +297,8 @@ class SyncProductsCommand extends Command
                         $stats['productos_actualizados']++;
                     }
 
+                    $prevInventoryByDetalleId = Producto::snapshotInventoryByDetalleIdForProduct((string) $producto->id);
+
                     // 5. Sincronizar detalles
                     if (isset($externalProduct['detalles']) && is_array($externalProduct['detalles'])) {
                         foreach ($externalProduct['detalles'] as $externalDetalle) {
@@ -333,6 +335,17 @@ class SyncProductsCommand extends Command
                                 $stats['detalles_creados']++;
                             }
                         }
+                    }
+
+                    $stockReceivedIncremented = Producto::incrementStockReceivedWhenTotalPiecesIncreasedAfterSync(
+                        $producto,
+                        $prevInventoryByDetalleId
+                    );
+                    if ($stockReceivedIncremented) {
+                        Log::info('products:sync: stock_received_count +1 (total piezas aumentó tras sync)', [
+                            'producto_id' => $producto->id,
+                            'stock_received_count' => $producto->fresh()->stock_received_count,
+                        ]);
                     }
 
                     $bar->advance();
