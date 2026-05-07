@@ -262,8 +262,10 @@ class Producto extends Model
     }
 
     /**
-     * Tras aplicar sync: si el total de piezas (suma de inventario_d de todas las tallas en BD) es mayor que antes del sync,
-     * incrementa stock_received_count exactamente en 1 (ej. total 6 → 8: contador sube un paso, no por la diferencia de piezas).
+     * Tras aplicar sync: incrementa stock_received_count en 1 si la suma de inventario_d cambió respecto al snapshot.
+     * - Sube o baja el stock: +1 siempre que el total final sea ≥ 0 y no sea el mismo total (epsilon).
+     * - Si el total final es menor que 0: no se toca el contador (ni sube ni baja).
+     * - Si antes y después son ≤ 0 (ambos lados): no se toca el contador.
      */
     public static function incrementStockReceivedWhenTotalPiecesIncreasedAfterSync(self $producto, array $previousInventoryByDetalleId): bool
     {
@@ -273,7 +275,15 @@ class Producto extends Model
             ->where('producto_id', $producto->id)
             ->sum('inventario_d');
 
-        if ($afterTotal <= $beforeTotal + 0.00001) {
+        if ($afterTotal < 0) {
+            return false;
+        }
+
+        if ($beforeTotal <= 0 && $afterTotal <= 0) {
+            return false;
+        }
+
+        if (abs($afterTotal - $beforeTotal) <= 0.00001) {
             return false;
         }
 

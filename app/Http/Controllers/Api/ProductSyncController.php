@@ -347,7 +347,7 @@ class ProductSyncController extends Controller
                         $prevInventoryByDetalleId
                     );
                     if ($stockReceivedIncremented) {
-                        Log::info('Sincronización HTTP: stock_received_count +1 (total piezas aumentó tras sync)', [
+                        Log::info('Sincronización HTTP: stock_received_count +1 (total piezas cambió tras sync; final >= 0)', [
                             'producto_id' => $producto->id,
                             'stock_received_count' => $producto->fresh()->stock_received_count,
                         ]);
