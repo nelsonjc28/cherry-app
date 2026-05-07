@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import useCartStore from '../store/cartStore';
+import useCartStore, { cartLineMatches } from '../store/cartStore';
 import api from '../config/axios';
 import './CartDetailsPage.css';
 import CartDetailsProductCard from '../components/CartDetailsProductCard';
@@ -70,6 +70,7 @@ const CartDetailsPage = () => {
     totalItems,
     totalPrice,
     removeItem,
+    removeItemUsingClearThenSync,
     updateQuantity,
     clearCart,
     initCart
@@ -361,15 +362,30 @@ const CartDetailsPage = () => {
     const variant = product.variants[variantIdx];
 
     // Find and remove the specific item from cart
-    const itemToRemove = cartItems.find(item =>
-      item.id_articulo === product.sku &&
-      item.selectedColor === variant.color &&
-      item.selectedSize === variant.size
+    const itemToRemove = cartItems.find((item) =>
+      cartLineMatches(item, product.sku, variant.color, variant.size)
     );
 
-    if (itemToRemove) {
-      removeItem(itemToRemove.id_articulo, itemToRemove.selectedColor, itemToRemove.selectedSize);
+    if (!itemToRemove) return;
+
+    const onlyVariantOnCard = product.variants.length === 1;
+
+    // Una sola talla en la tarjeta: mismo truco que "Limpiar carrito" (DELETE) + volver a subir lo que queda (sync).
+    if (onlyVariantOnCard && cartItems.length === 1) {
+      clearCart();
+      return;
     }
+
+    if (onlyVariantOnCard) {
+      removeItemUsingClearThenSync(
+        itemToRemove.id_articulo,
+        itemToRemove.selectedColor,
+        itemToRemove.selectedSize
+      );
+      return;
+    }
+
+    removeItem(itemToRemove.id_articulo, itemToRemove.selectedColor, itemToRemove.selectedSize);
   };
 
   // Handle quantity change for specific variant
@@ -380,10 +396,8 @@ const CartDetailsPage = () => {
     if (newQty < 1) return;
 
     // Find the specific item in cart
-    const itemToUpdate = cartItems.find(item =>
-      item.id_articulo === product.sku &&
-      item.selectedColor === variant.color &&
-      item.selectedSize === variant.size
+    const itemToUpdate = cartItems.find((item) =>
+      cartLineMatches(item, product.sku, variant.color, variant.size)
     );
 
     if (!itemToUpdate) return;
@@ -1333,7 +1347,7 @@ const CartDetailsPage = () => {
             
             {productsForDisplay.map((product, idx) => (
               <CartDetailsProductCard
-                key={`${product.sku}-${product.variants[0].color}`}
+                key={`${String(product.sku)}-${product.variants.map((v) => `${v.color}:${v.size}`).join('|')}`}
                 {...product}
                 onRemove={variantIdx => handleRemoveVariant(idx, variantIdx)}
                 onQuantityChange={(variantIdx, newQty) => handleQuantityChange(idx, variantIdx, newQty)}

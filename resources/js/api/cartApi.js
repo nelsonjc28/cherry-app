@@ -1,3 +1,4 @@
+// Ruta absoluta desde la raíz del sitio (evita resolución relativa bajo URLs tipo /carrito-detalle/).
 const API_BASE_URL = '/api';
 
 // Cart API functions
@@ -43,7 +44,7 @@ export const cartApi = {
 
     try {
       const response = await fetch(`${API_BASE_URL}/cart`, {
-        method: 'PUT',
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

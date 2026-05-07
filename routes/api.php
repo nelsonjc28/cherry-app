@@ -43,7 +43,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api'
 // Cart routes (requires authentication)
 Route::middleware('auth:api')->group(function () {
     Route::get('/cart', [CartController::class, 'index']);
-    Route::put('/cart', [CartController::class, 'update']);
+    // POST además de PUT: algunos servidores/proxies devuelven 405 a PUT; el cliente usa POST.
+    Route::match(['put', 'post'], '/cart', [CartController::class, 'update']);
     Route::delete('/cart', [CartController::class, 'destroy']);
     Route::post('/cart/sync', [CartController::class, 'sync']);
     

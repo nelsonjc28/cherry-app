@@ -46,6 +46,19 @@ export const getPaidQuantity = (item) => {
   return Number.isFinite(qty) ? Math.max(0, qty) : 0;
 };
 
+/**
+ * Comparación estable entre líneas de carrito (p. ej. id numérico vs string con ceros a la izquierda;
+ * espacios en color/talla). Evita que remove/update no encuentren la línea al borrar la última talla.
+ */
+export const cartLineMatches = (item, productId, color, size) => {
+  const pid = item?.id_articulo ?? item?.product_id ?? item?.id ?? '';
+  return (
+    String(pid) === String(productId ?? '') &&
+    String(item?.selectedColor ?? '').trim() === String(color ?? '').trim() &&
+    String(item?.selectedSize ?? '').trim() === String(size ?? '').trim()
+  );
+};
+
 const hasPromoDiscount = (item) => {
   const promoCandidates = [
     item?.desc_promo,
@@ -474,10 +487,8 @@ const useCartStore = create(
         }
 
         // Crear un item key único
-        const existingIndex = items.findIndex(item =>
-          item.id_articulo === product.id_articulo &&
-          item.selectedColor === product.selectedColor &&
-          item.selectedSize === product.selectedSize
+        const existingIndex = items.findIndex((item) =>
+          cartLineMatches(item, product.id_articulo, product.selectedColor, product.selectedSize)
         );
 
         let updatedItems = [...items];
@@ -578,10 +589,8 @@ const useCartStore = create(
         if (newQuantity < 1) return;
 
         const { items } = get();
-        let updatedItems = items.map(item =>
-          (item.id_articulo === productId &&
-            item.selectedColor === color &&
-            item.selectedSize === size)
+        let updatedItems = items.map((item) =>
+          cartLineMatches(item, productId, color, size)
             ? { ...item, quantity: newQuantity }
             : item
         );
@@ -625,10 +634,8 @@ const useCartStore = create(
 
       removeItem: async (productId, color, size) => {
         const { items } = get();
-        const updatedItems = items.filter(item =>
-          !(item.id_articulo === productId &&
-            item.selectedColor === color &&
-            item.selectedSize === size)
+        const updatedItems = items.filter(
+          (item) => !cartLineMatches(item, productId, color, size)
         );
 
         const totalItems = updatedItems.reduce((sum, item) => sum + (item.quantity || 0) + (item.freeItemsCount || 0), 0);
@@ -653,6 +660,44 @@ const useCartStore = create(
             const parsed = JSON.parse(verifySaved);
           } else {
           }
+        }
+      },
+
+      /**
+       * Cuando solo queda una talla en el producto y falla el guardado normal: misma idea que "Limpiar carrito"
+       * (DELETE en servidor) y luego POST /cart/sync con las líneas que deben quedar.
+       */
+      removeItemUsingClearThenSync: async (productId, color, size) => {
+        const { items, couponCode, discount } = get();
+        const updatedItems = items.filter(
+          (item) => !cartLineMatches(item, productId, color, size)
+        );
+
+        const totalItems = updatedItems.reduce(
+          (sum, item) => sum + (item.quantity || 0) + (item.freeItemsCount || 0),
+          0
+        );
+        const totalPrice = updatedItems.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+
+        const newState = { items: updatedItems, totalItems, totalPrice };
+        set(newState);
+
+        if (isAuthenticated()) {
+          try {
+            await cartApi.clearCart();
+            await cartApi.syncCart({
+              items: updatedItems,
+              total_items: totalItems,
+              total_price: totalPrice,
+              coupon_code: couponCode,
+              discount: discount ?? 0,
+            });
+          } catch (error) {
+            // errores ya silenciados en cartApi
+          }
+          localStorage.removeItem('cherry-central-cart');
+        } else {
+          saveCartToLocalStorage(updatedItems, totalItems, totalPrice, couponCode, discount ?? 0);
         }
       },
 
