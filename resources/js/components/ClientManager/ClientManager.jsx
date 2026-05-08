@@ -5,13 +5,8 @@ import AccountStatementModal from '../AccountStatementModal/AccountStatementModa
 import useUserStore from '../../store/userStore';
 import { fetchSepomexPostalCode } from '../../utils/sepomexPostal';
 import { sanitizeStreetNumberDigits } from '../../utils/addressDisplay';
+import { formatExternalClienteId } from '../../utils/externalClienteId';
 import './ClientManager.css';
-
-// Función helper para formatear ID de cliente: DM + 5 dígitos (con ceros a la izquierda)
-const formatClientId = (clientId) => {
-  if (!clientId) return '';
-  return 'DM' + String(clientId).padStart(5, '0');
-};
 
 const emptyAddressForm = (address, defaultIfFirst) => ({
   street_address: address?.street_address ?? '',
@@ -909,7 +904,7 @@ const ClientManager = () => {
                     marginBottom: '4px',
                     fontWeight: '500'
                   }}>
-                    ID: {formatClientId(client.id)}
+                    ID: {formatExternalClienteId(client.id)}
                   </div>
                   <div className="client-manager__client-name">
                     {client.first_name} {client.last_name}

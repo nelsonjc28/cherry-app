@@ -7,6 +7,7 @@ import useRecentProductsStore from '../../store/recentProductsStore';
 import useUserStore from '../../store/userStore';
 import productCache from '../../utils/productCacheInMemory';
 import api from '../../services/api';
+import { isProductNewLikeNuevosPage } from '../../utils/productNewRules';
 import './RecentlyViewedSection.css';
 
 const RecentlyViewedSection = ({ currentProductId }) => {
@@ -205,8 +206,7 @@ const RecentlyViewedSection = ({ currentProductId }) => {
             ? [...new Set(detalles.map(d => d.detalle).filter(Boolean))]
             : sizes;
 
-          // Determinar si es nuevo
-          const isNewProduct = product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+          const isNewProduct = isProductNewLikeNuevosPage(product);
 
           return {
             id: productId,
@@ -233,6 +233,8 @@ const RecentlyViewedSection = ({ currentProductId }) => {
             catalog: product.catalogoId || product.catalog || null,
             fecha_alta: product.fecha_alta,
             fechaAlta: product.fecha_alta,
+            fecha_compra: product.fecha_compra ?? product.fechaCompra,
+            fechaCompra: product.fecha_compra ?? product.fechaCompra,
             opcNuevo: product.opc_nuevo,
             opcPromo: product.opc_promo,
             descPromo: product.desc_promo,

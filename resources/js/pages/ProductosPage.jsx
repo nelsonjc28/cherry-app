@@ -11,6 +11,7 @@ import { applyUserOffersToProducts } from '../api/userOffers';
 import { publicCatalogService } from '../services/api';
 import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
+import { isProductNewLikeNuevosPage, sortKeyFechaCompra } from '../utils/productNewRules';
 import './ProductosPage.css';
 
 const ProductosPage = () => {
@@ -160,7 +161,7 @@ const ProductosPage = () => {
               : [];
             const availableSizes = productSizes.length > 0 ? productSizes : ['M'];
             
-            const isNewProduct = product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+            const isNewProduct = isProductNewLikeNuevosPage(product);
             
             let finalPrice = product.price;
             let originalPrice = product.originalPrice;
@@ -203,6 +204,8 @@ const ProductosPage = () => {
               catalogoId: product.catalogoId,
               fechaAlta: product.fecha_alta,
               fecha_alta: product.fecha_alta,
+              fechaCompra: product.fecha_compra,
+              fecha_compra: product.fecha_compra,
               stock_received_count: product.stock_received_count || 0,
               stockReceivedCount: product.stock_received_count || 0,
               temporada: product.temporada,
@@ -397,10 +400,10 @@ const ProductosPage = () => {
     if (filters.sortBy) {
       filtered = [...filtered].sort((a, b) => {
         switch (filters.sortBy) {
-          case 'Más recientes':
-            const dateA = new Date(a.fechaAlta || a.fecha_alta || a.created_at || 0);
-            const dateB = new Date(b.fechaAlta || b.fecha_alta || b.created_at || 0);
-            return dateB - dateA;
+          case 'Más recientes': {
+            const ts = (p) => sortKeyFechaCompra(p) || new Date(p.fechaAlta || p.fecha_alta || p.created_at || 0).getTime();
+            return ts(b) - ts(a);
+          }
           
           case 'Precio: menor a mayor':
             return parseFloat(a.price || a.precio1 || 0) - parseFloat(b.price || b.precio1 || 0);

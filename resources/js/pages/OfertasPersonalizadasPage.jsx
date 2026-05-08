@@ -10,6 +10,7 @@ import { getIconPath } from '../utils/assetPaths';
 import { publicCatalogService } from '../services/api';
 import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
+import { isProductNewLikeNuevosPage } from '../utils/productNewRules';
 import useUserStore from '../store/userStore';
 import './PromocionesPage.css';
 
@@ -100,9 +101,9 @@ const OfertasPersonalizadasPage = () => {
               [];
             const availableSizes = productSizes.length > 0 ? productSizes : ['M'];
             
-            // Determinar si es nuevo (45 días)
-            const isNewProduct = product.isNew || 
-                               (product.fechaAlta && new Date(product.fechaAlta) > new Date(Date.now() - 45 * 24 * 60 * 60 * 1000));
+            const isNewProduct = product.isNew !== undefined && product.isNew !== null
+              ? product.isNew
+              : isProductNewLikeNuevosPage(product);
             
             // Usar SOLO los valores de la oferta personalizada que vienen del backend
             // El backend ya calculó el precio usando solo el discount_percentage de la oferta personalizada
@@ -131,7 +132,10 @@ const OfertasPersonalizadasPage = () => {
               linea: product.id_linea,
               id_linea: product.id_linea,
               catalogoId: product.catalogoId,
-              fechaAlta: product.fechaAlta,
+              fechaAlta: product.fechaAlta ?? product.fecha_alta,
+              fecha_alta: product.fecha_alta ?? product.fechaAlta,
+              fecha_compra: product.fecha_compra ?? product.fechaCompra,
+              fechaCompra: product.fecha_compra ?? product.fechaCompra,
               detalles: product.detalles,
               codigo: product.id_articulo || product.id,
               id_articulo: product.id_articulo || product.id,

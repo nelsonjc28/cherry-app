@@ -3,6 +3,7 @@ import HorizontalProductCarousel from '../../HorizontalProductCarousel/Horizonta
 import api from '../../../services/api';
 import { getProductImageUrl } from '../../../utils/productImageUtils';
 import { applyUserOffersToProducts } from '../../../api/userOffers';
+import { isProductNewLikeNuevosPage } from '../../../utils/productNewRules';
 import './FeaturedProducts.css';
 
 const FeaturedProducts = ({ 
@@ -30,8 +31,7 @@ const FeaturedProducts = ({
     const productSizes = product.sizes || [];
     const availableSizes = productSizes.length > 0 ? productSizes : [];
     
-    const isNewProduct = product.isNew !== undefined ? product.isNew : 
-      (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+    const isNewProduct = product.isNew !== undefined ? product.isNew : isProductNewLikeNuevosPage(product);
     
     return {
       id: product.id,
@@ -57,6 +57,8 @@ const FeaturedProducts = ({
       catalogoId: product.catalogoId,
       fecha_alta: product.fecha_alta,
       fechaAlta: product.fecha_alta,
+      fecha_compra: product.fecha_compra ?? product.fechaCompra,
+      fechaCompra: product.fecha_compra ?? product.fechaCompra,
       opcNuevo: product.opc_nuevo,
       opcPromo: product.opc_promo,
       descPromo: product.desc_promo,

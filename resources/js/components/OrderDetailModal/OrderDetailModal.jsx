@@ -617,9 +617,15 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
                         {rowLabels.length > 0 && (
                           <div className="product-tags">
                             {rowLabels.map((label) => (
-                              <span key={`${row.key}-${label}`} className={`product-tag product-tag--${label.toLowerCase().replace('ó', 'o').replace('á', 'a')}`}>
-                                {label}
-                              </span>
+                              label === 'NUEVO' ? (
+                                <span key={`${row.key}-${label}`} className="catalog-offer-badge catalog-new-badge">
+                                  Nuevo
+                                </span>
+                              ) : (
+                                <span key={`${row.key}-${label}`} className={`product-tag product-tag--${label.toLowerCase().replace('ó', 'o').replace('á', 'a')}`}>
+                                  {label}
+                                </span>
+                              )
                             ))}
                           </div>
                         )}

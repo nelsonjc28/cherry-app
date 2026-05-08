@@ -7,6 +7,45 @@
   margin-bottom: 32px;
 }
 
+/* Código de cliente en API Cherry (DM + id) */
+.personal-data__platform-client-section {
+  margin-bottom: 28px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.personal-data__platform-client-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 14px 0;
+}
+
+.personal-data__platform-client-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.personal-data__platform-client-code {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #111;
+  background: #fff;
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.personal-data__platform-client-copy {
+  flex-shrink: 0;
+}
+
 .personal-data__title {
   font-size: 28px;
   font-weight: 600;

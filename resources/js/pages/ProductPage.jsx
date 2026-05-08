@@ -34,6 +34,7 @@ import { favoriteService } from '../services/api';
 // Utils
 import { formatPrice } from '../utils/formatters';
 import { getTotalInventoryFromProduct, getProductInventoryStatusKind, effectiveDetailInventoryContribution } from '../utils/productUtils';
+import { isProductNewLikeNuevosPage } from '../utils/productNewRules';
 import useHorizontalDragScroll from '../hooks/useHorizontalDragScroll';
 import colorConverter from '../services/colorConverter';
 import { validateStock, getProductStock } from '../services/inventoryService';
@@ -1329,15 +1330,7 @@ const ProductPage = () => {
 
   const inventoryStatusData = getInventoryStatus();
 
-  const isNewProduct = (() => {
-    const fa = fecha_alta || product?.fechaAlta;
-    if (!fa) return false;
-    try {
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      const d = new Date(fa);
-      return !isNaN(d.getTime()) && d >= thirtyDaysAgo;
-    } catch { return false; }
-  })();
+  const isNewProduct = isProductNewLikeNuevosPage(product);
 
   // Agregar alerta de "próximamente" si aplica (después de que getInventoryStatus esté definida)
   const isComingSoon = inventoryStatusData.status === 'coming-soon';

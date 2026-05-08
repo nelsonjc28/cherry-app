@@ -9,6 +9,7 @@ import { getIconPath } from '../utils/assetPaths';
 import { applyUserOffersToProducts } from '../api/userOffers';
 import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
+import { isProductNewLikeNuevosPage, sortKeyFechaCompra } from '../utils/productNewRules';
 import './ExplorarPage.css';
 
 const ExplorarPage = () => {
@@ -53,9 +54,7 @@ const ExplorarPage = () => {
               ? [...new Set(product.detalles.map(d => d.detalle).filter(Boolean))] 
               : [];
             
-            // Determinar si es nuevo (30 días)
-            const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-            const isNewProduct = product.fecha_alta && new Date(product.fecha_alta) > thirtyDaysAgo;
+            const isNewProduct = isProductNewLikeNuevosPage(product);
             
             let finalPrice = product.price;
             let originalPrice = product.originalPrice;
@@ -92,6 +91,9 @@ const ExplorarPage = () => {
               id_linea: product.id_linea,
               catalogoId: product.catalogoId,
               fechaAlta: product.fecha_alta,
+              fecha_compra: product.fecha_compra,
+              fechaCompra: product.fecha_compra,
+              inventario: product.inventario,
               detalles: product.detalles
             };
           });
@@ -137,7 +139,11 @@ const ExplorarPage = () => {
         break;
       case 'newest':
       default:
-        filtered.sort((a, b) => new Date(b.fechaAlta || 0) - new Date(a.fechaAlta || 0));
+        filtered.sort((a, b) => {
+          const tb = sortKeyFechaCompra(b) || new Date(b.fechaAlta || 0).getTime();
+          const ta = sortKeyFechaCompra(a) || new Date(a.fechaAlta || 0).getTime();
+          return tb - ta;
+        });
         break;
     }
 

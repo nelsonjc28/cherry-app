@@ -12,7 +12,7 @@ import { applyUserOffersToProducts } from '../api/userOffers';
 import { publicCatalogService } from '../services/api';
 import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
-
+import { isProductNewLikeNuevosPage } from '../utils/productNewRules';
 
 import './PromocionesPage.css';
 
@@ -100,7 +100,7 @@ const PromocionesPage = () => {
               const availableSizes = productSizes.length > 0 ? productSizes : ['M'];
               
               // Determinar si es nuevo (30 días)
-              const isNewProduct = product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+              const isNewProduct = isProductNewLikeNuevosPage(product);
               
               // Usar los valores que ya vienen calculados del backend
               let finalPrice = product.price;
@@ -143,6 +143,9 @@ const PromocionesPage = () => {
                 id_linea: product.id_linea || product.linea, // Para filtro de categoría
                 catalogoId: product.catalogoId, // Para filtro de catálogo
                 fechaAlta: product.fecha_alta,
+                fecha_alta: product.fecha_alta,
+                fechaCompra: product.fecha_compra,
+                fecha_compra: product.fecha_compra,
                 temporada: product.temporada,
                 opcNuevo: product.opc_nuevo,
                 opcPromo: product.opc_promo,

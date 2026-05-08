@@ -81,7 +81,7 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
 
         {/* Nuevo: no mostrar si es "Próximamente" (como ProductCard) */}
         {isNew && stockStatus !== 'coming-soon' && (
-          <span className="best-seller-new-badge">Nuevo</span>
+          <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
         )}
 
         {/* Out of stock badge - solo si NO es nuevo y NO es "Próximamente" */}

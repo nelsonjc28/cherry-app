@@ -190,6 +190,19 @@
             color: #e65100;
         }
 
+        .product-tags .catalog-offer-badge.catalog-new-badge {
+            display: inline-block;
+            background: #000000;
+            color: #ffffff;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: none;
+            letter-spacing: 0.2px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+        }
+
         .product-quantity,
         .product-price,
         .product-subtotal {
@@ -436,9 +449,13 @@
                     @if(!empty($item['labels']))
                     <div class="product-tags">
                         @foreach($item['labels'] as $label)
+                        @if(strtoupper($label) === 'NUEVO')
+                        <span class="catalog-offer-badge catalog-new-badge">Nuevo</span>
+                        @else
                         <span class="product-tag product-tag--{{ strtolower(str_replace(['Ó','Á','É','Í','Ú','ó','á','é','í','ú'], ['o','a','e','i','u','o','a','e','i','u'], $label)) }}">
                             {{ $label }}
                         </span>
+                        @endif
                         @endforeach
                     </div>
                     @endif

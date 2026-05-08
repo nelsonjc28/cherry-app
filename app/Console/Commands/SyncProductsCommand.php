@@ -173,7 +173,7 @@ class SyncProductsCommand extends Command
                         'composicion' => $externalProduct['composicion'] ?? null,
                         'notas' => $externalProduct['notas'] ?? null,
                         'imagen' => $externalProduct['imagen'] ?? null,
-                        'fecha_alta' => $externalProduct['fecha_alta'] ?? $externalProduct['fechaCompra'] ?? null,
+                        'fecha_alta' => $externalProduct['fecha_alta'] ?? null,
                         'fecha_compra' => $externalProduct['fechaCompra'] ?? null,
                         'activo' => $externalProduct['activo'] ?? 0,
                         'bandvend' => $externalProduct['bandvend'] ?? 0,

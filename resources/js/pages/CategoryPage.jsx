@@ -12,6 +12,7 @@ import { publicCategoryService } from '../services/api';
 import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
 import { applyUserOffersToProducts } from '../api/userOffers';
+import { isProductNewLikeNuevosPage } from '../utils/productNewRules';
 
 // Función para mezclar array de forma aleatoria (Fisher-Yates shuffle)
 const shuffleArray = (array) => {
@@ -389,8 +390,7 @@ const CategoryPage = ({ categorySlug }) => {
                       [];
                     const availableSizes = productSizes.length > 0 ? productSizes : ['M']; // Talla por defecto
                     
-                    // Determinar si el producto es nuevo basado en propiedades reales (30 días)
-                    const isNewProduct = product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+                    const isNewProduct = isProductNewLikeNuevosPage(product);
                     
                     // Calcular descuento si existe
                     const hasDiscount = product.opc_promo === 'S' && product.desc_promo > 0;
@@ -408,6 +408,7 @@ const CategoryPage = ({ categorySlug }) => {
                       brand: product.marca || 'Sin marca',
                       category: categoryData.name,
                       stock: product.inventario || 0,
+                      inventario: product.inventario || 0,
                       colors: availableColors,
                       colores: productColors,
                       sizes: availableSizes,
@@ -417,6 +418,10 @@ const CategoryPage = ({ categorySlug }) => {
                       ratingCount: 0,
                       linea: product.linea,
                       fechaAlta: product.fecha_alta,
+                      fecha_alta: product.fecha_alta,
+                      fechaCompra: product.fecha_compra,
+                      fecha_compra: product.fecha_compra,
+                      detalles: product.detalles,
                       fechaAct: product.fechaAct,
                       temporada: product.temporada,
                       opcNuevo: product.opc_nuevo,
@@ -479,7 +484,6 @@ const CategoryPage = ({ categorySlug }) => {
 
             if (searchResponse.data.success && searchResponse.data.data.products) {
               const localProducts = searchResponse.data.data.products;
-              const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
               
               // Mapear productos
               productsData = localProducts.map(product => {
@@ -496,7 +500,7 @@ const CategoryPage = ({ categorySlug }) => {
                   ? [...new Set(product.detalles.map(d => d.detalle).filter(Boolean))] 
                   : [];
                 
-                const isNewProduct = product.fecha_alta && new Date(product.fecha_alta) > thirtyDaysAgo;
+                const isNewProduct = isProductNewLikeNuevosPage(product);
                 
                 let finalPrice = product.price;
                 let originalPrice = product.originalPrice;
@@ -525,6 +529,7 @@ const CategoryPage = ({ categorySlug }) => {
                   brand: product.marca || 'Sin marca',
                   category: product.linea || '',
                   stock: product.inventario || 0,
+                  inventario: product.inventario || 0,
                   colors: productColors.length > 0 ? productColors : ['black'],
                   sizes: productSizes.length > 0 ? productSizes : ['M'],
                   isNew: isNewProduct,
@@ -535,6 +540,8 @@ const CategoryPage = ({ categorySlug }) => {
                   catalogoId: product.catalogoId,
                   fechaAlta: product.fecha_alta,
                   fecha_alta: product.fecha_alta,
+                  fechaCompra: product.fecha_compra,
+                  fecha_compra: product.fecha_compra,
                   stock_received_count: product.stock_received_count || 0,
                   stockReceivedCount: product.stock_received_count || 0,
                   detalles: product.detalles

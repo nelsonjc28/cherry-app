@@ -13,6 +13,7 @@
 
 import axios from 'axios';
 import { getCherryCatalogBaseUrl, unwrapCatalogProductList } from '../config/cherryCatalogBaseUrl';
+import { isProductNewLikeNuevosPage } from './productNewRules';
 
 const CHERRY_API_URL = getCherryCatalogBaseUrl();
 const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutos
@@ -134,34 +135,10 @@ class ProductCacheManager {
   }
 
   /**
-   * Filtra solo productos nuevos
-   * Un producto es considerado nuevo si alguno de sus detalles
-   * tiene una fechaMovimiento menor a 45 días desde hoy
+   * Filtra solo productos nuevos (misma regla que /nuevos).
    */
   filterOnlyNew(products) {
-    const now = new Date();
-    const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
-    return products.filter(p => {
-      if (!p.fecha_alta) return false;
-      const [year, month, day] = p.fecha_alta.split('-').map(Number);
-      const fechaMovimiento = new Date(year, month - 1, day);
-      return !isNaN(fechaMovimiento.getTime()) && fechaMovimiento >= thirtyDaysAgo;
-      // Revisar cada detalle del producto
-      /* return p.detalles.some(detalle => {
-        if (!detalle.fechaMovimiento) return false;
-
-        try {
-          // Parsear la fecha (formato: "YYYY-MM-DD")
-          const [year, month, day] = detalle.fechaMovimiento.split('-').map(Number);
-          const fechaMovimiento = new Date(year, month - 1, day);
-
-          // Si la fecha es válida y es menor a 60 días, el producto es nuevo
-          return !isNaN(fechaMovimiento.getTime()) && fechaMovimiento >= sixtyDaysAgo;
-        } catch (error) {
-          return false;
-        }
-      }); */
-    });
+    return products.filter(p => isProductNewLikeNuevosPage(p));
   }
 
   /**

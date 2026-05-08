@@ -11,6 +11,7 @@ import { applyUserOffersToProducts } from '../api/userOffers';
 import { publicCatalogService } from '../services/api';
 import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
+import { isProductNewLikeNuevosPage, sortKeyFechaCompra } from '../utils/productNewRules';
 import './DestacadosOfertasPage.css';
 
 const DestacadosOfertasPage = () => {
@@ -197,7 +198,7 @@ const DestacadosOfertasPage = () => {
               const availableSizes = productSizes.length > 0 ? productSizes : ['M'];
               
               // Determinar si es nuevo (30 días)
-              const isNewProduct = product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+              const isNewProduct = isProductNewLikeNuevosPage(product);
               
               // Usar los valores que ya vienen calculados del backend
               let finalPrice = product.price;
@@ -240,6 +241,9 @@ const DestacadosOfertasPage = () => {
                 id_linea: product.id_linea || product.linea,
                 catalogoId: product.catalogoId,
                 fechaAlta: product.fecha_alta,
+                fecha_alta: product.fecha_alta,
+                fechaCompra: product.fecha_compra,
+                fecha_compra: product.fecha_compra,
                 temporada: product.temporada,
                 opcNuevo: product.opc_nuevo,
                 opcPromo: product.opc_promo,
@@ -467,10 +471,10 @@ const DestacadosOfertasPage = () => {
       filtered = [...filtered].sort((a, b) => {
         switch (filters.sortBy) {
           case 'Más recientes':
-          case 'más recientes':
-            const dateA = new Date(a.fechaAlta || a.fecha_alta || a.created_at || 0);
-            const dateB = new Date(b.fechaAlta || b.fecha_alta || b.created_at || 0);
-            return dateB - dateA;
+          case 'más recientes': {
+            const ts = (p) => sortKeyFechaCompra(p) || new Date(p.fechaAlta || p.fecha_alta || p.created_at || 0).getTime();
+            return ts(b) - ts(a);
+          }
 
           case 'Precio: menor a mayor':
           case 'precio-menor':

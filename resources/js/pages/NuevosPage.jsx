@@ -12,6 +12,7 @@ import { publicCatalogService } from '../services/api';
 import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
 import { getTotalInventoryFromProduct } from '../utils/productUtils';
+import { isProductNewLikeNuevosPage, sortKeyFechaCompra } from '../utils/productNewRules';
 
 const shuffleArray = (array) => {
   const shuffled = [...array];
@@ -225,9 +226,10 @@ const NuevosPage = () => {
         return sorted.sort((a, b) => (b.price || 0) - (a.price || 0));
       case 'más-recientes':
       case 'más recientes':
-        return sorted.sort((a, b) => new Date(b.fechaAlta || b.fecha_alta || 0) - new Date(a.fechaAlta || a.fecha_alta || 0));
+        return sorted.sort((a, b) => sortKeyFechaCompra(b) - sortKeyFechaCompra(a));
       case 'más-antiguos':
-        return sorted.sort((a, b) => new Date(a.fechaAlta || a.fecha_alta || 0) - new Date(b.fechaAlta || b.fecha_alta || 0));
+      case 'más antiguos':
+        return sorted.sort((a, b) => sortKeyFechaCompra(a) - sortKeyFechaCompra(b));
       case 'nombre-a-z':
         return sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
       case 'nombre-z-a':
@@ -282,28 +284,8 @@ const NuevosPage = () => {
         if (searchResponse.data.success && searchResponse.data.data.products) {
           const localProducts = searchResponse.data.data.products;
           
-          // Usar la misma lógica que "todos los productos" para identificar productos nuevos:
-          // fecha_alta dentro de los últimos 30 días
-          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
-          // FILTRO EXCLUSIVO PARA MÓDULO "NUEVOS":
-          // Un producto SOLO debe renderizarse si cumple AMBAS condiciones:
-          // 1. Es nuevo: fecha_alta dentro de los últimos 30 días
-          // 2. Tiene stock > 0 (usando inventario directamente, como en ProductosPage)
-          const newProductsRaw = localProducts.filter(product => {
-            // Condición 1: Verificar si es nuevo (misma lógica que ProductosPage/ExplorarPage)
-            const isNewProduct = product.fecha_alta && new Date(product.fecha_alta) > thirtyDaysAgo;
-
-            if (!isNewProduct) {
-              return false; // Excluir productos que no son nuevos
-            }
-
-            // Condición 2: Stock > 0 (usando inventario directamente, como en ProductosPage)
-            const totalStock = parseFloat(product.inventario || product.stock || 0);
-
-            // Excluir productos con stock === 0
-            return totalStock > 0;
-          });
+          // Misma regla global que el resto del front: fecha_compra ≤30 días y stock > 0
+          const newProductsRaw = localProducts.filter(product => isProductNewLikeNuevosPage(product));
           
           
           // Mapear productos al formato esperado
@@ -363,6 +345,8 @@ const NuevosPage = () => {
               catalog: product.catalogoId || product.catalog || null,
               fechaAlta: product.fecha_alta,
               fecha_alta: product.fecha_alta,
+              fechaCompra: product.fecha_compra,
+              fecha_compra: product.fecha_compra,
               stock_received_count: product.stock_received_count || 0,
               stockReceivedCount: product.stock_received_count || 0,
               detalles: product.detalles,

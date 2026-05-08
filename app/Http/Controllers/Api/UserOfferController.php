@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\CatalogOffer;
+use App\Support\ProductNewEvaluator;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -316,6 +317,7 @@ class UserOfferController extends Controller
                     'productos.opc_promo',
                     'productos.desc_promo',
                     'productos.fecha_alta',
+                    'productos.fecha_compra',
                     'productos.marca',
                     'productos.inventario'
                 ])
@@ -328,7 +330,7 @@ class UserOfferController extends Controller
             if ($productos->isNotEmpty()) {
                 $productIdsArray = $productos->pluck('id')->toArray();
                 $detalles = \DB::table('detalles')
-                    ->select('producto_id', 'nombreColor', 'detalle')
+                    ->select('producto_id', 'nombreColor', 'detalle', 'inventario_d')
                     ->whereIn('producto_id', $productIdsArray)
                     ->whereNotNull('nombreColor')
                     ->where('nombreColor', '!=', '')
@@ -342,7 +344,8 @@ class UserOfferController extends Controller
                     
                     $detallesPorProducto[$detalle->producto_id][] = [
                         'nombreColor' => $detalle->nombreColor,
-                        'detalle' => $detalle->detalle
+                        'detalle' => $detalle->detalle,
+                        'inventario_d' => (float) ($detalle->inventario_d ?? 0),
                     ];
                     
                     if (!in_array($detalle->nombreColor, $coloresPorProducto[$detalle->producto_id])) {
@@ -353,8 +356,6 @@ class UserOfferController extends Controller
 
             // Formatear productos usando SOLO el descuento de la oferta personalizada
             $products = [];
-            $now = time();
-            $thirtyDaysAgo = $now - (30 * 24 * 60 * 60);
             
             foreach ($productos as $producto) {
                 $precio1Raw = $producto->precio1;
@@ -400,17 +401,13 @@ class UserOfferController extends Controller
                     }
                 }
                 
-                $isNew = false;
-                if ($producto->fecha_alta) {
-                    $fechaAltaTimestamp = strtotime($producto->fecha_alta);
-                    $thirtyDaysAgo = time() - (30 * 24 * 60 * 60);
-                    if ($fechaAltaTimestamp && $fechaAltaTimestamp > $thirtyDaysAgo) {
-                        $isNew = true;
-                    }
-                }
-                
                 $colors = $coloresPorProducto[$producto->id] ?? [];
                 $detalles = $detallesPorProducto[$producto->id] ?? [];
+                $isNew = ProductNewEvaluator::isNewLikeNuevosPage(
+                    $producto->fecha_compra ?? null,
+                    (float) ($producto->inventario ?? 0),
+                    $detalles
+                );
                 
                 $products[] = [
                     'id' => $producto->id,
@@ -428,6 +425,9 @@ class UserOfferController extends Controller
                     'hasDiscount' => $hasDiscount,
                     'discountPercentage' => $discountPercentage,
                     'isNew' => $isNew,
+                    'fecha_alta' => $producto->fecha_alta ? date('Y-m-d', strtotime($producto->fecha_alta)) : null,
+                    'fecha_compra' => ProductNewEvaluator::formatFechaCompraForApi($producto->fecha_compra ?? null),
+                    'fechaAlta' => $producto->fecha_alta ? date('Y-m-d', strtotime($producto->fecha_alta)) : null,
                     'marca' => $producto->marca,
                     'inventario' => $producto->inventario,
                     'colors' => $colors,

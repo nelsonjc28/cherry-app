@@ -3,6 +3,7 @@ import CherryButton from '../../components/CherryButton/CherryButton';
 import AccountStatementModal from '../../components/AccountStatementModal/AccountStatementModal';
 import useUserStore from '../../store/userStore';
 import { getIconPath } from '../../utils/assetPaths';
+import { formatExternalClienteId } from '../../utils/externalClienteId';
 import './PersonalData.css';
 
 const PersonalData = () => {
@@ -191,6 +192,34 @@ const PersonalData = () => {
       <div className="personal-data__header">
         <h1 className="personal-data__title">Datos Personales</h1>
       </div>
+
+      {user?.id != null && (
+        <div className="personal-data__platform-client-section">
+          <h2 className="personal-data__platform-client-title">Tu código en la plataforma</h2>
+          <div className="personal-data__platform-client-row">
+            <code className="personal-data__platform-client-code" translate="no">
+              {formatExternalClienteId(user.id)}
+            </code>
+            <CherryButton
+              type="button"
+              variant="outline"
+              size="small"
+              className="personal-data__platform-client-copy"
+              onClick={() => {
+                const code = formatExternalClienteId(user.id);
+                if (!code) return;
+                navigator.clipboard?.writeText(code).then(() => {
+                  if (window.showToast) window.showToast('Código copiado', 'success');
+                }).catch(() => {
+                  if (window.showToast) window.showToast('No se pudo copiar', 'error');
+                });
+              }}
+            >
+              Copiar
+            </CherryButton>
+          </div>
+        </div>
+      )}
 
       <div className="personal-data__form">
         <div className="personal-data__row">

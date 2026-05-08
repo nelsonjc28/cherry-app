@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Producto;
 use App\Models\Review;
+use App\Support\ProductNewEvaluator;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -80,14 +81,11 @@ class ProductController extends Controller
                 ? ($precio1 - ($precio1 * ($discountPercentage / 100))) 
                 : $precio1;
 
-            $isNew = false;
-            if ($producto->fecha_alta) {
-                $fechaAltaTimestamp = strtotime($producto->fecha_alta);
-                $thirtyDaysAgo = time() - (30 * 24 * 60 * 60);
-                if ($fechaAltaTimestamp && $fechaAltaTimestamp > $thirtyDaysAgo) {
-                    $isNew = true;
-                }
-            }
+            $isNew = ProductNewEvaluator::isNewLikeNuevosPage(
+                $producto->fecha_compra ?? null,
+                (float) ($producto->inventario ?? 0),
+                $detalles
+            );
 
             // Obtener colores únicos
             $colors = [];
@@ -180,6 +178,7 @@ class ProductController extends Controller
                     'ean' => $producto->ean ?? null,
                     'codbarra' => $producto->codbarra ?? null,
                     'fecha_alta' => $producto->fecha_alta ? date('Y-m-d', strtotime($producto->fecha_alta)) : null,
+                    'fecha_compra' => ProductNewEvaluator::formatFechaCompraForApi($producto->fecha_compra ?? null),
                     'activo' => $producto->activo ?? 1,
                     'tipoart' => $producto->tipoart ?? null,
                     'url_video' => $producto->url_video ?? null,
@@ -243,7 +242,7 @@ class ProductController extends Controller
             // Calcular fecha límite (30 días atrás desde hoy)
             $thirtyDaysAgoDate = now()->subDays(30)->format('Y-m-d');
 
-            $productos = DB::table('productos')
+            $rows = DB::table('productos')
                 ->leftJoin('detalles', 'productos.id', '=', 'detalles.producto_id')
                 ->select(
                     'productos.id',
@@ -262,6 +261,7 @@ class ProductController extends Controller
                     'productos.imagen',
                     'productos.inventario',
                     'productos.fecha_alta',
+                    'productos.fecha_compra',
                     'productos.opc_nuevo',
                     'productos.opc_promo',
                     'productos.desc_promo',
@@ -274,13 +274,11 @@ class ProductController extends Controller
                     'detalles.detalle',
                     'detalles.inventario_d'
                 )
-                ->whereNotNull('productos.fecha_alta')
-                ->where('productos.fecha_alta', '>=', $thirtyDaysAgoDate)
-                ->inRandomOrder()
-                ->distinct()
-                ->limit($limit)
-                ->get()
-                ->groupBy('id')
+                ->whereNotNull('productos.fecha_compra')
+                ->where('productos.fecha_compra', '>=', $thirtyDaysAgoDate)
+                ->get();
+
+            $productos = $rows->groupBy('id')
                 ->map(function ($productGroup) {
                     $producto = $productGroup->first();
                     
@@ -320,6 +318,13 @@ class ProductController extends Controller
                         ? $sumDet
                         : Producto::effectiveDetailInventoryContribution($producto->inventario ?? 0);
 
+                    $detalleRowsInv = $productGroup->map(fn ($row) => ['inventario_d' => $row->inventario_d ?? null])->all();
+                    $isNewComputed = ProductNewEvaluator::isNewLikeNuevosPage(
+                        $producto->fecha_compra ?? null,
+                        (float) ($producto->inventario ?? 0),
+                        $detalleRowsInv
+                    );
+
                     // Obtener rating
                     $reviews = Review::where('product_id', $producto->id)
                         ->where('is_approved', true)
@@ -345,13 +350,14 @@ class ProductController extends Controller
                         'inventario' => $inventarioTotal,
                         'colors' => $colors,
                         'sizes' => $sizes,
-                        'isNew' => true,
+                        'isNew' => $isNewComputed,
                         'rating' => $rating,
                         'ratingCount' => $ratingCount,
                         'id_linea' => $producto->id_linea,
                         'category_id' => $producto->id_linea,
                         'catalogoId' => $producto->catalogoId,
                         'fecha_alta' => $producto->fecha_alta ? date('Y-m-d', strtotime($producto->fecha_alta)) : null,
+                        'fecha_compra' => ProductNewEvaluator::formatFechaCompraForApi($producto->fecha_compra ?? null),
                         'opc_nuevo' => $producto->opc_nuevo ?? 'N',
                         'opc_promo' => $producto->opc_promo ?? 'N',
                         'desc_promo' => $descPromoValue,
@@ -359,9 +365,10 @@ class ProductController extends Controller
                     ];
                 })
                 ->filter(function ($producto) {
-                    // Filtrar productos null (por si acaso)
-                    return $producto !== null;
+                    return $producto !== null && ($producto['stock'] ?? 0) > 0.00001;
                 })
+                ->shuffle()
+                ->take((int) $limit)
                 ->values()
                 ->toArray();
 

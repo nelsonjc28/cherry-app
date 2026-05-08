@@ -3,6 +3,7 @@ import api from '../config/axios';
 import { getCherryCatalogBaseUrl, unwrapCatalogProductList } from '../config/cherryCatalogBaseUrl';
 import productCache from '../utils/productCacheInMemory';
 import { getProductCardStockStatus, getTotalInventoryFromProduct } from '../utils/productUtils';
+import { isProductNewLikeNuevosPage } from '../utils/productNewRules';
 
 const CHERRY_API_URL = getCherryCatalogBaseUrl();
 
@@ -79,21 +80,16 @@ const CATALOG_MAPPING = {
 };
 
 /**
- * Verifica si un producto es nuevo basándose exclusivamente en fecha_alta.
- * Un producto es nuevo si fecha_alta está dentro de los últimos 30 días.
+ * Misma regla que /nuevos: fecha_compra ≤30 días y stock > 0 (catálogo externo puede traer fechaCompra).
  */
 const isProductNew = (apiProduct) => {
-  const fechaAlta = apiProduct.fecha_alta || apiProduct.fechaAlta;
-  if (!fechaAlta) return false;
-
-  try {
-    const now = new Date();
-    const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
-    const fecha = new Date(fechaAlta);
-    return !isNaN(fecha.getTime()) && fecha >= thirtyDaysAgo;
-  } catch {
-    return false;
-  }
+  const normalized = {
+    ...apiProduct,
+    fecha_compra: apiProduct.fecha_compra ?? apiProduct.fechaCompra,
+    inventario: apiProduct.inventario ?? apiProduct.stock,
+    detalles: apiProduct.detalles,
+  };
+  return isProductNewLikeNuevosPage(normalized);
 };
 
 // Función para obtener todos los productos
@@ -410,7 +406,10 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
     colors: colors,
     sizes: sizes,
     stock: apiProduct.inventario || apiProduct.stock || 0,
+    inventario: apiProduct.inventario ?? apiProduct.stock ?? 0,
     stock_received_count: apiProduct.stock_received_count ?? 0,
+    fecha_alta: apiProduct.fecha_alta ?? apiProduct.fechaAlta,
+    fecha_compra: apiProduct.fecha_compra ?? apiProduct.fechaCompra,
     isActive: apiProduct.activo === 1 || apiProduct.active === true,
     isNew: isProductNew(apiProduct),
     isPromo: apiProduct.opc_promo === 'S' || apiProduct.is_promo === true,
@@ -1249,7 +1248,7 @@ export const getTopSellingProducts = async (limit = 20) => {
         colores: product.colores || product.colors || [],
         sizes: sizes,
         tallas: sizes,
-        isNew: product.isNew || false,
+        isNew: product.isNew !== undefined && product.isNew !== null ? product.isNew : isProductNewLikeNuevosPage(product),
         rating: product.rating || 0,
         ratingCount: product.ratingCount || product.totalRatings || 0,
         totalRatings: product.totalRatings || product.ratingCount || 0,
@@ -1257,6 +1256,7 @@ export const getTopSellingProducts = async (limit = 20) => {
         opc_promo: product.opc_promo,
         desc_promo: product.desc_promo,
         fecha_alta: product.fecha_alta,
+        fecha_compra: product.fecha_compra ?? product.fechaCompra,
         detalles: product.detalles || [],
         ranking: product.ranking || null,
         // Campos de categoría para filtros

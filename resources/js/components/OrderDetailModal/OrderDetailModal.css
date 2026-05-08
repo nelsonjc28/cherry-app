@@ -446,6 +446,21 @@
   color: #1b5e20;
 }
 
+/* Etiqueta Nuevo alineada con catálogo (mismas clases que tarjetas de producto) */
+.product-tags .catalog-offer-badge.catalog-new-badge {
+  position: static;
+  display: inline-block;
+  background: #000000 !important;
+  color: #ffffff !important;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0.2px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
 .product-tag--proximamente {
   background: #fff3e0;
   color: #e65100;

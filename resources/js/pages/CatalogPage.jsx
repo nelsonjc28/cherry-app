@@ -13,6 +13,7 @@ import { applyUserOffersToProducts } from '../api/userOffers';
 import { catalogService, publicCatalogService } from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
 import { shareCatalogPdf } from '../utils/shareProductUtils';
+import { isProductNewLikeNuevosPage } from '../utils/productNewRules';
 
 // Función para mezclar array de forma aleatoria (Fisher-Yates shuffle)
 const shuffleArray = (array) => {
@@ -416,8 +417,7 @@ const CatalogPage = ({ catalogId }) => {
                     [];
                   const availableSizes = productSizes.length > 0 ? productSizes : ['M'];
 
-                  // Determinar si es nuevo (30 días)
-                  const isNewProduct = product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+                  const isNewProduct = isProductNewLikeNuevosPage(product);
 
                   // Usar los valores que ya vienen calculados del backend (con descuento reducido del 10% aplicado)
                   let finalPrice = product.price;
@@ -462,6 +462,8 @@ const CatalogPage = ({ catalogId }) => {
                     catalogoId: product.catalogoId, // Para filtro de catálogo
                     fechaAlta: product.fecha_alta,
                     fecha_alta: product.fecha_alta,
+                    fechaCompra: product.fecha_compra,
+                    fecha_compra: product.fecha_compra,
                     stock_received_count: product.stock_received_count || 0,
                     stockReceivedCount: product.stock_received_count || 0,
                     temporada: product.temporada,
@@ -508,7 +510,7 @@ const CatalogPage = ({ catalogId }) => {
                   [];
                 const availableSizes = productSizes.length > 0 ? productSizes : ['M'];
 
-                const isNewProduct = product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+                const isNewProduct = isProductNewLikeNuevosPage(product);
 
                 let finalPrice = product.price;
                 let originalPrice = product.originalPrice;
@@ -549,6 +551,8 @@ const CatalogPage = ({ catalogId }) => {
                   catalogoId: product.catalogoId,
                   fechaAlta: product.fecha_alta,
                   fecha_alta: product.fecha_alta,
+                  fechaCompra: product.fecha_compra,
+                  fecha_compra: product.fecha_compra,
                   stock_received_count: product.stock_received_count || 0,
                   stockReceivedCount: product.stock_received_count || 0,
                   temporada: product.temporada,

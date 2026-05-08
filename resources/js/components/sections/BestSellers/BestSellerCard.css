@@ -71,6 +71,22 @@
   letter-spacing: 0.5px;
 }
 
+/* Nuevo — mismas clases que CatalogProductCard */
+.best-seller-image-container .catalog-offer-badge.catalog-new-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background: #000000 !important;
+  color: white !important;
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  z-index: 2;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  display: inline-block;
+}
+
 /* Span Próximamente igual que en /proximamente (mismo estilo gris que la sección) */
 .best-seller-card .catalog-offer-badge.catalog-out-of-stock-badge.catalog-coming-soon-badge {
   position: absolute;

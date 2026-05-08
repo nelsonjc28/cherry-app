@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use App\Models\OrderItem;
+use App\Support\ProductNewEvaluator;
 
 class TopSellingController extends Controller
 {
@@ -88,6 +89,7 @@ class TopSellingController extends Controller
                     'productos.opc_promo',
                     'productos.desc_promo',
                     'productos.fecha_alta',
+                    'productos.fecha_compra',
                     'productos.marca',
                     'productos.inventario',
                     'productos.sku',
@@ -196,8 +198,6 @@ class TopSellingController extends Controller
 
             // 5. Formatear productos en el mismo formato que ProductSearchController
             $products = [];
-            $now = time();
-            $thirtyDaysAgo = $now - (30 * 24 * 60 * 60);
             
             foreach ($productosOrdenados as $producto) {
                 // Convertir precio correctamente
@@ -221,18 +221,14 @@ class TopSellingController extends Controller
                     ? ($precio1 - ($precio1 * ($discountPercentage / 100))) 
                     : $precio1;
                 
-                $isNew = false;
-                if ($producto->fecha_alta) {
-                    $fechaAltaTimestamp = strtotime($producto->fecha_alta);
-                    $thirtyDaysAgo = time() - (30 * 24 * 60 * 60);
-                    if ($fechaAltaTimestamp && $fechaAltaTimestamp > $thirtyDaysAgo) {
-                        $isNew = true;
-                    }
-                }
-                
                 // Obtener colores y detalles del producto
                 $colors = $coloresPorProducto[$producto->id] ?? [];
                 $detalles = $detallesPorProducto[$producto->id] ?? [];
+                $isNew = ProductNewEvaluator::isNewLikeNuevosPage(
+                    $producto->fecha_compra ?? null,
+                    (float) ($producto->inventario ?? 0),
+                    $detalles
+                );
                 
                 // Obtener rating del producto
                 $ratingData = $ratingsPorProducto[$producto->id] ?? ['rating' => 0, 'count' => 0];
@@ -260,6 +256,7 @@ class TopSellingController extends Controller
                     'opc_promo' => $producto->opc_promo,
                     'desc_promo' => $producto->desc_promo,
                     'fecha_alta' => $producto->fecha_alta ? date('Y-m-d', strtotime($producto->fecha_alta)) : null,
+                    'fecha_compra' => ProductNewEvaluator::formatFechaCompraForApi($producto->fecha_compra ?? null),
                     'marca' => $producto->marca,
                     'inventario' => (float) $producto->inventario,
                     'stock_received_count' => (int) ($producto->stock_received_count ?? 0),

@@ -225,7 +225,7 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
 
         {/* Nuevo: no mostrar si el producto es "Próximamente" */}
         {isNew && stockStatus !== 'coming-soon' && (
-          <span className="new-badge">Nuevo</span>
+          <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
         )}
 
         {/* Out of stock badge - solo si no es nuevo y no es "Próximamente" */}
@@ -315,7 +315,7 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
 
         {/* Nuevo: no mostrar si el producto es "Próximamente" */}
         {isNew && stockStatus !== 'coming-soon' && (
-          <span className="new-badge">Nuevo</span>
+          <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
         )}
 
         {/* Out of stock badge - solo si no es nuevo y no es "Próximamente" */}

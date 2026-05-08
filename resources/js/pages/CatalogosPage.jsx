@@ -6,6 +6,7 @@ import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
 import { publicCatalogService } from '../services/api';
 import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
+import { isProductNewLikeNuevosPage } from '../utils/productNewRules';
 import './CatalogosPage.css';
 
 const CatalogosPage = () => {
@@ -134,8 +135,6 @@ const CatalogosPage = () => {
 
         if (searchResponse.data.success && searchResponse.data.data.products) {
           const localProducts = searchResponse.data.data.products;
-          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-          
           // Mapear productos al formato esperado
           const mappedProducts = localProducts.map(product => {
             const rawPrice = product.precio1;
@@ -151,7 +150,7 @@ const CatalogosPage = () => {
               ? [...new Set(product.detalles.map(d => d.detalle).filter(Boolean))] 
               : [];
             
-            const isNewProduct = product.fecha_alta && new Date(product.fecha_alta) > thirtyDaysAgo;
+            const isNewProduct = isProductNewLikeNuevosPage(product);
             
             let finalPrice = product.price;
             let originalPrice = product.originalPrice;
@@ -179,6 +178,9 @@ const CatalogosPage = () => {
               image: getProductImageUrl(product.id_articulo || product.id),
               brand: product.marca || 'Sin marca',
               stock: product.inventario || 0,
+              inventario: product.inventario || 0,
+              fecha_compra: product.fecha_compra,
+              fechaCompra: product.fecha_compra,
               colors: productColors.length > 0 ? productColors : ['black'],
               sizes: productSizes.length > 0 ? productSizes : ['M'],
               isNew: isNewProduct,

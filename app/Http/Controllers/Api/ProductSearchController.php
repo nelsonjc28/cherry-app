@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Review;
 use App\Models\CatalogOffer;
+use App\Support\ProductNewEvaluator;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -102,6 +103,7 @@ class ProductSearchController extends Controller
                     'productos.opc_promo',
                     'productos.desc_promo',
                     'productos.fecha_alta',
+                    'productos.fecha_compra',
                     'productos.opc_nuevo',
                     'productos.marca',
                     'productos.inventario',
@@ -212,17 +214,14 @@ class ProductSearchController extends Controller
                     ? ($precio1 - ($precio1 * ($discountPercentage / 100))) 
                     : $precio1;
                 
-                $isNew = false;
-                if ($producto->fecha_alta) {
-                    $fechaAltaTimestamp = strtotime($producto->fecha_alta);
-                    $thirtyDaysAgo = time() - (30 * 24 * 60 * 60);
-                    if ($fechaAltaTimestamp && $fechaAltaTimestamp > $thirtyDaysAgo) {
-                        $isNew = true;
-                    }
-                }
-                
                 $colors = $coloresPorProducto[$producto->id] ?? [];
                 $detalles = $detallesPorProducto[$producto->id] ?? [];
+                
+                $isNew = ProductNewEvaluator::isNewLikeNuevosPage(
+                    $producto->fecha_compra ?? null,
+                    (float) ($producto->inventario ?? 0),
+                    $detalles
+                );
                 
                 $ratingData = $ratingsPorProducto[$producto->id] ?? ['rating' => 0, 'count' => 0];
                 $ratingData = $ratingsPorProducto[$producto->id] ?? ['rating' => 0, 'count' => 0];
@@ -246,6 +245,7 @@ class ProductSearchController extends Controller
                     'opc_promo' => $producto->opc_promo,
                     'desc_promo' => $producto->desc_promo,
                     'fecha_alta' => $producto->fecha_alta ? date('Y-m-d', strtotime($producto->fecha_alta)) : null,
+                    'fecha_compra' => $this->formatProductDateForApi($producto->fecha_compra ?? null),
                     'marca' => $producto->marca,
                     'inventario' => (float) $producto->inventario,
                     'stock_received_count' => (int) ($producto->stock_received_count ?? 0),
@@ -306,6 +306,7 @@ class ProductSearchController extends Controller
                     'productos.opc_promo',
                     'productos.desc_promo',
                     'productos.fecha_alta',
+                    'productos.fecha_compra',
                     'productos.marca',
                     'productos.inventario',
                     'productos.stock_received_count'
@@ -408,17 +409,13 @@ class ProductSearchController extends Controller
                     ? ($precio1 - ($precio1 * ($discountPercentage / 100))) 
                     : $precio1;
                 
-                $isNew = false;
-                if ($producto->fecha_alta) {
-                    $fechaAltaTimestamp = strtotime($producto->fecha_alta);
-                    $thirtyDaysAgo = time() - (30 * 24 * 60 * 60);
-                    if ($fechaAltaTimestamp && $fechaAltaTimestamp > $thirtyDaysAgo) {
-                        $isNew = true;
-                    }
-                }
-                
                 $colors = $coloresPorProducto[$producto->id] ?? [];
                 $detalles = $detallesPorProducto[$producto->id] ?? [];
+                $isNew = ProductNewEvaluator::isNewLikeNuevosPage(
+                    $producto->fecha_compra ?? null,
+                    (float) ($producto->inventario ?? 0),
+                    $detalles
+                );
                 $ratingData = $ratingsPorProducto[$producto->id] ?? ['rating' => 0, 'count' => 0];
                 
                 $products[] = [
@@ -440,6 +437,7 @@ class ProductSearchController extends Controller
                     'opc_promo' => $producto->opc_promo,
                     'desc_promo' => $producto->desc_promo,
                     'fecha_alta' => $producto->fecha_alta ? date('Y-m-d', strtotime($producto->fecha_alta)) : null,
+                    'fecha_compra' => $this->formatProductDateForApi($producto->fecha_compra ?? null),
                     'marca' => $producto->marca,
                     'inventario' => (float) $producto->inventario,
                     'stock_received_count' => (int) ($producto->stock_received_count ?? 0),
@@ -521,6 +519,7 @@ class ProductSearchController extends Controller
                     'productos.opc_promo',
                     'productos.desc_promo',
                     'productos.fecha_alta',
+                    'productos.fecha_compra',
                     'productos.opc_nuevo',
                     'productos.marca',
                     'productos.inventario',
@@ -626,6 +625,7 @@ class ProductSearchController extends Controller
                             'productos.opc_promo',
                             'productos.desc_promo',
                             'productos.fecha_alta',
+                            'productos.fecha_compra',
                             'productos.opc_nuevo',
                             'productos.marca',
                             'productos.inventario',
@@ -751,17 +751,13 @@ class ProductSearchController extends Controller
                     ? ($precio1 - ($precio1 * ($discountPercentage / 100))) 
                     : $precio1;
                 
-                $isNew = false;
-                if ($producto->fecha_alta) {
-                    $fechaAltaTimestamp = strtotime($producto->fecha_alta);
-                    $thirtyDaysAgo = time() - (30 * 24 * 60 * 60);
-                    if ($fechaAltaTimestamp && $fechaAltaTimestamp > $thirtyDaysAgo) {
-                        $isNew = true;
-                    }
-                }
-                
                 $colors = $coloresPorProducto[$producto->id] ?? [];
                 $detalles = $detallesPorProducto[$producto->id] ?? [];
+                $isNew = ProductNewEvaluator::isNewLikeNuevosPage(
+                    $producto->fecha_compra ?? null,
+                    (float) ($producto->inventario ?? 0),
+                    $detalles
+                );
                 $ratingData = $ratingsPorProducto[$producto->id] ?? ['rating' => 0, 'count' => 0];
                 
                 $products[] = [
@@ -783,6 +779,7 @@ class ProductSearchController extends Controller
                     'opc_promo' => $producto->opc_promo,
                     'desc_promo' => $producto->desc_promo,
                     'fecha_alta' => $producto->fecha_alta ? date('Y-m-d', strtotime($producto->fecha_alta)) : null,
+                    'fecha_compra' => $this->formatProductDateForApi($producto->fecha_compra ?? null),
                     'marca' => $producto->marca,
                     'inventario' => (float) $producto->inventario,
                     'detalles' => $detalles,
@@ -856,6 +853,29 @@ class ProductSearchController extends Controller
     }
 
     /**
+     * Normaliza fechas de producto (Y-m-d, d-m-Y desde API/sync) a Y-m-d para JSON.
+     */
+    private function formatProductDateForApi($value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+        $s = trim((string) $value);
+        foreach (['Y-m-d', 'd-m-Y', 'd/m/Y', 'Y/m/d'] as $fmt) {
+            $dt = \DateTime::createFromFormat($fmt, $s);
+            if ($dt instanceof \DateTimeInterface) {
+                return $dt->format('Y-m-d');
+            }
+        }
+        $ts = strtotime($s);
+
+        return $ts ? date('Y-m-d', $ts) : null;
+    }
+
+    /**
      * Genera la URL de imagen principal de un producto desde AWS S3.
      */
     private function getProductImageUrl(string $productId, int $imageNumber = 1): string
@@ -886,12 +906,12 @@ class ProductSearchController extends Controller
             case 'más-recientes':
             case 'más recientes':
             case 'Más recientes':
-                $query->orderByRaw('CASE WHEN productos.fecha_alta IS NOT NULL THEN productos.fecha_alta ELSE "1970-01-01" END DESC')
+                $query->orderByRaw('CASE WHEN productos.fecha_compra IS NOT NULL THEN productos.fecha_compra ELSE "1970-01-01" END DESC')
                       ->orderBy('productos.id', 'desc');
                 break;
             
             case 'más-antiguos':
-                $query->orderByRaw('CASE WHEN productos.fecha_alta IS NOT NULL THEN productos.fecha_alta ELSE "1970-01-01" END ASC')
+                $query->orderByRaw('CASE WHEN productos.fecha_compra IS NOT NULL THEN productos.fecha_compra ELSE "1970-01-01" END ASC')
                       ->orderBy('productos.id', 'asc');
                 break;
             
@@ -906,8 +926,8 @@ class ProductSearchController extends Controller
                 break;
             
             default:
-                // Por defecto: más recientes
-                $query->orderByRaw('CASE WHEN productos.fecha_alta IS NOT NULL THEN productos.fecha_alta ELSE "1970-01-01" END DESC')
+                // Por defecto: más recientes por fecha_compra
+                $query->orderByRaw('CASE WHEN productos.fecha_compra IS NOT NULL THEN productos.fecha_compra ELSE "1970-01-01" END DESC')
                       ->orderBy('productos.id', 'desc');
                 break;
         }

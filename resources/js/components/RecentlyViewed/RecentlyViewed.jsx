@@ -6,6 +6,7 @@ import productCache from '../../utils/productCacheInMemory';
 import { applyUserOffersToProducts } from '../../api/userOffers';
 import { isUserSessionActive } from '../../api/cherryApi';
 import { getProductImageUrl } from '../../utils/productImageUtils';
+import { isProductNewLikeNuevosPage } from '../../utils/productNewRules';
 import './RecentlyViewed.css';
 
 const RecentlyViewed = ({ currentProductId }) => {
@@ -115,9 +116,11 @@ const RecentlyViewed = ({ currentProductId }) => {
             sizes: productSizes.length > 0 ? productSizes : ['M'],
             rating: product.rating || 0,
             ratingCount: product.ratingCount || product.totalRatings || 0,
-            isNew: (product.fecha_alta && new Date(product.fecha_alta) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)) || false,
+            isNew: isProductNewLikeNuevosPage(product),
             fecha_alta: product.fecha_alta || null,
             fechaAlta: product.fecha_alta || null,
+            fecha_compra: product.fecha_compra ?? product.fechaCompra,
+            fechaCompra: product.fecha_compra ?? product.fechaCompra,
             inventario: product.inventario || 0,
             stock: product.inventario || 0,
             detalles: detalles,

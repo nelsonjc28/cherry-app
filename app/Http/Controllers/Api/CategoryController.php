@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Support\ProductNewEvaluator;
 use App\Models\CategoryProduct;
 use App\Models\Review;
 use Illuminate\Http\Request;
@@ -167,6 +168,7 @@ class CategoryController extends Controller
                     'productos.opc_promo',
                     'productos.desc_promo',
                     'productos.fecha_alta',
+                    'productos.fecha_compra',
                     'productos.opc_nuevo',
                     'productos.marca',
                     'productos.inventario'
@@ -183,7 +185,7 @@ class CategoryController extends Controller
             $coloresPorProducto = [];
             if (!empty($productIds)) {
                 $detalles = DB::table('detalles')
-                    ->select('producto_id', 'nombreColor', 'detalle')
+                    ->select('producto_id', 'nombreColor', 'detalle', 'inventario_d')
                     ->whereIn('producto_id', $productIds)
                     ->whereNotNull('nombreColor')
                     ->where('nombreColor', '!=', '')
@@ -198,7 +200,8 @@ class CategoryController extends Controller
                     // Agregar detalle completo
                     $detallesPorProducto[$detalle->producto_id][] = [
                         'nombreColor' => $detalle->nombreColor,
-                        'detalle' => $detalle->detalle
+                        'detalle' => $detalle->detalle,
+                        'inventario_d' => (float) ($detalle->inventario_d ?? 0),
                     ];
                     
                     // Agregar color único
@@ -243,8 +246,6 @@ class CategoryController extends Controller
 
             // Construir respuesta directamente sin map()
             $formattedProducts = [];
-            $now = time();
-            $thirtyDaysAgo = $now - (30 * 24 * 60 * 60);
             
             foreach ($productos as $producto) {
                 // Convertir precio correctamente (puede venir como string o decimal)
@@ -270,18 +271,14 @@ class CategoryController extends Controller
                     ? ($precio1 - ($precio1 * ($discountPercentage / 100))) 
                     : $precio1;
                 
-                $isNew = false;
-                if ($producto->fecha_alta) {
-                    $fechaAltaTimestamp = strtotime($producto->fecha_alta);
-                    $thirtyDaysAgo = time() - (30 * 24 * 60 * 60);
-                    if ($fechaAltaTimestamp && $fechaAltaTimestamp > $thirtyDaysAgo) {
-                        $isNew = true;
-                    }
-                }
-                
                 // Obtener colores y detalles del producto
                 $colors = $coloresPorProducto[$producto->id] ?? [];
                 $detalles = $detallesPorProducto[$producto->id] ?? [];
+                $isNew = ProductNewEvaluator::isNewLikeNuevosPage(
+                    $producto->fecha_compra ?? null,
+                    (float) ($producto->inventario ?? 0),
+                    $detalles
+                );
                 
                 // Obtener rating del producto
                 $ratingData = $ratingsPorProducto[$producto->id] ?? ['rating' => 0, 'count' => 0];
@@ -305,6 +302,7 @@ class CategoryController extends Controller
                     'opc_promo' => $producto->opc_promo,
                     'desc_promo' => $producto->desc_promo,
                     'fecha_alta' => $producto->fecha_alta ? date('Y-m-d', strtotime($producto->fecha_alta)) : null,
+                    'fecha_compra' => ProductNewEvaluator::formatFechaCompraForApi($producto->fecha_compra ?? null),
                     'marca' => $producto->marca,
                     'inventario' => (float) $producto->inventario,
                     'stock_received_count' => (int) ($producto->stock_received_count ?? 0),
