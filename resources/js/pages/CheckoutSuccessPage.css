@@ -38,6 +38,26 @@
   line-height: 22px;
 }
 
+.checkout-order-info-group {
+  width: 100%;
+  max-width: 360px;
+  margin-bottom: 8px;
+}
+
+.checkout-order-split-note {
+  color: #7b7b7b;
+  font-size: 15px;
+  text-align: center;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.checkout-order-info-group .checkout-order-info + .checkout-order-info {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #eee;
+}
+
 .checkout-success-link {
   color: var(--color-primary);
   font-size: 16px;

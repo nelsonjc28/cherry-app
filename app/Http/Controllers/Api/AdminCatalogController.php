@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Catalog;
 use App\Models\CatalogPdf;
 use App\Models\CatalogProduct;
+use App\Models\Producto;
 use App\Models\CatalogImageGroup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -783,7 +784,7 @@ class AdminCatalogController extends Controller
 
             // Sin caché - siempre obtener datos frescos de la BD
             // Buscar productos en la tabla productos donde catalogoId = code del catálogo
-            $productos = DB::table('productos')
+            $productosQuery = DB::table('productos')
                 ->select([
                     'productos.id',
                     'productos.id_linea',
@@ -799,8 +800,9 @@ class AdminCatalogController extends Controller
                     'productos.inventario',
                     'productos.sku'
                 ])
-                ->where('productos.catalogoId', $catalogCode)
-                ->get();
+                ->where('productos.catalogoId', $catalogCode);
+            Producto::applyFechaAgotadoVisibilityToProductosQuery($productosQuery);
+            $productos = $productosQuery->get();
 
             if ($productos->isEmpty()) {
                 $response = [

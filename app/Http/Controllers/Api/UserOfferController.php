@@ -305,7 +305,7 @@ class UserOfferController extends Controller
             $productIds = array_keys($offersByProduct);
 
             // Obtener productos completos desde la base de datos
-            $productos = \DB::table('productos')
+            $productosQuery = \DB::table('productos')
                 ->select([
                     'productos.id',
                     'productos.id_linea',
@@ -321,8 +321,9 @@ class UserOfferController extends Controller
                     'productos.marca',
                     'productos.inventario'
                 ])
-                ->whereIn('productos.id', $productIds)
-                ->get();
+                ->whereIn('productos.id', $productIds);
+            \App\Models\Producto::applyFechaAgotadoVisibilityToProductosQuery($productosQuery);
+            $productos = $productosQuery->get();
 
             // Obtener detalles (colores y tallas) para cada producto
             $detallesPorProducto = [];

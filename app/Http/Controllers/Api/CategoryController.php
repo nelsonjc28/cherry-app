@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Support\ProductNewEvaluator;
+use App\Models\Producto;
 use App\Models\CategoryProduct;
 use App\Models\Review;
 use Illuminate\Http\Request;
@@ -157,7 +158,7 @@ class CategoryController extends Controller
             // Cache key para esta categoría
             // Sin caché - siempre obtener datos frescos de la BD
             // Usar Query Builder para mejor rendimiento - solo campos necesarios para ProductCard
-            $productos = DB::table('productos')
+            $productosQuery = DB::table('productos')
                 ->select([
                     'productos.id',
                     'productos.id_linea',
@@ -173,9 +174,9 @@ class CategoryController extends Controller
                     'productos.marca',
                     'productos.inventario'
                 ])
-                ->where('productos.id_linea', $category->code)
-                ->inRandomOrder()
-                ->get();
+                ->where('productos.id_linea', $category->code);
+            Producto::applyFechaAgotadoVisibilityToProductosQuery($productosQuery);
+            $productos = $productosQuery->inRandomOrder()->get();
 
             // Obtener IDs de productos para buscar colores y detalles
             $productIds = $productos->pluck('id')->toArray();
@@ -342,13 +343,14 @@ class CategoryController extends Controller
             $userId = auth('api')->id() ?? auth('web')->id() ?? auth()->id();
             // Sin caché - siempre obtener datos frescos de la BD
             // 1. Obtener productos con desc_promo > 0
-            $productsWithGeneralDiscount = DB::table('productos')
-                ->select('id', 'id_linea')
-                ->where('desc_promo', '>', 0)
-                ->whereNotNull('id_linea')
-                ->where('id_linea', '!=', '')
-                ->distinct()
-                ->get();
+            $productsWithGeneralDiscountQuery = DB::table('productos')
+                ->select('productos.id', 'productos.id_linea')
+                ->where('productos.desc_promo', '>', 0)
+                ->whereNotNull('productos.id_linea')
+                ->where('productos.id_linea', '!=', '')
+                ->distinct();
+            Producto::applyFechaAgotadoVisibilityToProductosQuery($productsWithGeneralDiscountQuery);
+            $productsWithGeneralDiscount = $productsWithGeneralDiscountQuery->get();
 
             // 2. Obtener productos con ofertas personalizadas para el usuario logueado
             $productsWithUserOffers = collect([]);
@@ -374,25 +376,25 @@ class CategoryController extends Controller
             // Obtener id_linea únicos de productos con ofertas
             $uniqueIdLineas = [];
             if (!empty($allOfferProductIds)) {
-                $uniqueIdLineas = DB::table('productos')
-                    ->select('id_linea')
-                    ->whereIn('id', $allOfferProductIds)
-                    ->whereNotNull('id_linea')
-                    ->where('id_linea', '!=', '')
-                    ->distinct()
-                    ->pluck('id_linea')
-                    ->toArray();
+                $uniqueIdLineasQuery = DB::table('productos')
+                    ->select('productos.id_linea')
+                    ->whereIn('productos.id', $allOfferProductIds)
+                    ->whereNotNull('productos.id_linea')
+                    ->where('productos.id_linea', '!=', '')
+                    ->distinct();
+                Producto::applyFechaAgotadoVisibilityToProductosQuery($uniqueIdLineasQuery);
+                $uniqueIdLineas = $uniqueIdLineasQuery->pluck('id_linea')->toArray();
             }
 
             // También obtener id_linea de productos con desc_promo > 0 directamente
-            $idLineasFromDiscount = DB::table('productos')
-                ->select('id_linea')
-                ->where('desc_promo', '>', 0)
-                ->whereNotNull('id_linea')
-                ->where('id_linea', '!=', '')
-                ->distinct()
-                ->pluck('id_linea')
-                ->toArray();
+            $idLineasFromDiscountQuery = DB::table('productos')
+                ->select('productos.id_linea')
+                ->where('productos.desc_promo', '>', 0)
+                ->whereNotNull('productos.id_linea')
+                ->where('productos.id_linea', '!=', '')
+                ->distinct();
+            Producto::applyFechaAgotadoVisibilityToProductosQuery($idLineasFromDiscountQuery);
+            $idLineasFromDiscount = $idLineasFromDiscountQuery->pluck('id_linea')->toArray();
 
             // Combinar y obtener únicos
             $allIdLineas = array_unique(array_merge($uniqueIdLineas, $idLineasFromDiscount));

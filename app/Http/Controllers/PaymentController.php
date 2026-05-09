@@ -314,6 +314,7 @@ class PaymentController extends Controller
 
     /**
      * Totales por mitad (oferta vs precio de lista) para mezcla promo + regular.
+     * El envío del request se asigna por completo a la orden de oferta (shipP); la de lista queda en 0 (shipR).
      *
      * @param  array<int, array<string, mixed>>  $itemsForPricing
      * @param  array<int, array<string, mixed>>|null  $fullItemsForPricing
@@ -377,14 +378,9 @@ class PaymentController extends Controller
         }
 
         $shipping = (float) $request->input('shipping_amount', 0);
-        $mercSum = $mPromo + $mReg;
-        if ($mercSum <= 0.0) {
-            $shipP = 0.0;
-            $shipR = 0.0;
-        } else {
-            $shipP = round($shipping * ($mPromo / $mercSum), 2);
-            $shipR = round($shipping - $shipP, 2);
-        }
+        // Split oferta/lista: el envío va entero a la orden de oferta (primary MP); la otra queda en 0.
+        $shipP = round($shipping, 2);
+        $shipR = 0.0;
 
         $totalA = round($mPromo + $shipP, 2);
         $totalB = round($mReg + $shipR, 2);
@@ -2298,6 +2294,97 @@ class PaymentController extends Controller
 
 
     /**
+     * Pedidos del mismo checkout (split oferta/lista, crédito + MP, etc.) para el mismo usuario.
+     *
+     * @return \Illuminate\Support\Collection<int, Order>
+     */
+    protected function resolveCheckoutGroupOrders(Order $order): \Illuminate\Support\Collection
+    {
+        $userId = (int) $order->user_id;
+
+        if (! empty($order->order_group_id)) {
+            $group = Order::query()
+                ->where('user_id', $userId)
+                ->where('order_group_id', $order->order_group_id)
+                ->with(['items', 'address'])
+                ->orderBy('id')
+                ->get();
+            if ($group->count() > 1) {
+                return $group;
+            }
+        }
+
+        $pd = $order->payment_data;
+        if (is_string($pd)) {
+            $pd = json_decode($pd, true) ?? [];
+        }
+        $pd = is_array($pd) ? $pd : [];
+
+        $extraIds = [];
+        if (! empty($pd['order_group_sibling_ids']) && is_array($pd['order_group_sibling_ids'])) {
+            foreach ($pd['order_group_sibling_ids'] as $sid) {
+                $i = (int) $sid;
+                if ($i > 0) {
+                    $extraIds[] = $i;
+                }
+            }
+        }
+        if (! empty($pd['order_group_sibling_id'])) {
+            $i = (int) $pd['order_group_sibling_id'];
+            if ($i > 0) {
+                $extraIds[] = $i;
+            }
+        }
+        if (! empty($pd['split_paired_order_id'])) {
+            $i = (int) $pd['split_paired_order_id'];
+            if ($i > 0) {
+                $extraIds[] = $i;
+            }
+        }
+
+        $extraIds = array_values(array_unique($extraIds));
+        $allIds = array_values(array_unique(array_merge([(int) $order->id], $extraIds)));
+
+        if (count($allIds) <= 1) {
+            return collect([$order]);
+        }
+
+        $group = Order::query()
+            ->where('user_id', $userId)
+            ->whereIn('id', $allIds)
+            ->with(['items', 'address'])
+            ->orderBy('id')
+            ->get();
+
+        return $group->count() > 1 ? $group : collect([$order]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $paymentDataArray
+     * @param  array<string, mixed>  $previousPaymentData
+     * @return array<string, mixed>
+     */
+    protected function mergePreviousCheckoutGroupIntoPaymentData(array $paymentDataArray, array $previousPaymentData): array
+    {
+        foreach ([
+            'order_group_id',
+            'order_group_sibling_ids',
+            'order_group',
+            'order_group_is_mp_primary',
+            'order_group_sibling_id',
+            'split_group_id',
+            'split_role',
+            'split_paired_order_id',
+        ] as $key) {
+            if (array_key_exists($key, $previousPaymentData)) {
+                $paymentDataArray[$key] = $previousPaymentData[$key];
+            }
+        }
+
+        return $paymentDataArray;
+    }
+
+    /**
      * Obtener estado del pago
      */
     public function getPaymentStatus($orderId)
@@ -2323,10 +2410,16 @@ class PaymentController extends Controller
             ], 404);
         }
 
-        return response()->json([
+        $group = $this->resolveCheckoutGroupOrders($order);
+        $payload = [
             'success' => true,
-            'order' => $order
-        ]);
+            'order' => $order,
+        ];
+        if ($group->count() > 1) {
+            $payload['group_orders'] = $group->values()->all();
+        }
+
+        return response()->json($payload);
     }
 
     /**
@@ -3126,6 +3219,7 @@ class PaymentController extends Controller
                 } elseif (isset($previousPaymentData['shipping_amount'])) {
                     $paymentDataArray['shipping_amount'] = $previousPaymentData['shipping_amount'];
                 }
+                $paymentDataArray = $this->mergePreviousCheckoutGroupIntoPaymentData($paymentDataArray, $previousPaymentData);
                 $updateData['payment_data'] = json_encode($paymentDataArray);
             }
             
@@ -3156,21 +3250,24 @@ class PaymentController extends Controller
                 $message = 'Estado del pago: ' . $realStatus;
             }
 
-            return response()->json([
+            $order->refresh();
+            $order->load(['items', 'address']);
+            $groupOrders = $this->resolveCheckoutGroupOrders($order);
+
+            $payload = [
                 'success' => true,
                 'payment_status' => $realStatus,
                 'order_status' => $newStatus,
                 'order_id' => $order->id,
                 'processed' => $processed,
                 'message' => $message,
-                'order' => [
-                    'id' => $order->id,
-                    'total_amount' => $order->total_amount,
-                    'status' => $newStatus,
-                    'payment_method' => $order->payment_method,
-                    'created_at' => $order->created_at->format('d/m/Y H:i')
-                ]
-            ]);
+                'order' => $order,
+            ];
+            if ($groupOrders->count() > 1) {
+                $payload['group_orders'] = $groupOrders->values()->all();
+            }
+
+            return response()->json($payload);
 
         } catch (\Exception $e) {
             Log::error('Error verificando pago de MercadoPago', [

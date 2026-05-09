@@ -17,7 +17,7 @@ function num(v) {
 }
 
 /** Fecha local en formato dd/mm/yyyy */
-function formatOrderDate(isoOrString) {
+export function formatOrderDate(isoOrString) {
   if (isoOrString == null || isoOrString === '') return '—';
   const d = new Date(isoOrString);
   if (Number.isNaN(d.getTime())) return String(isoOrString);
@@ -31,7 +31,7 @@ function formatOrderDate(isoOrString) {
  * Total mostrado al cliente (con descuentos y envío según la orden).
  * Cubre casos donde total_amount llega en 0 pero el pedido sí tiene montos en otros campos.
  */
-function getOrderDisplayTotal(order, orderInfoFallback) {
+export function getOrderDisplayTotal(order, orderInfoFallback) {
   if (!order && orderInfoFallback) {
     const t = num(orderInfoFallback.totalAmount ?? orderInfoFallback.total);
     if (t != null && t > 0) return t;
@@ -77,6 +77,54 @@ function getOrderDisplayTotal(order, orderInfoFallback) {
   return t ?? 0;
 }
 
+/** Aplica respuesta de GET /payment/status o /payment/verify con group_orders opcional. */
+function ingestOrderStatusResponse(res, setOrderData, setGroupOrders) {
+  const g = res.data?.group_orders;
+  const o = res.data?.order;
+  if (Array.isArray(g) && g.length > 1) {
+    setGroupOrders(g);
+    const primary =
+      o?.id != null ? g.find((x) => Number(x.id) === Number(o.id)) : null;
+    setOrderData(primary ?? g[0]);
+    return;
+  }
+  setGroupOrders(null);
+  if (o) {
+    setOrderData(o);
+  }
+}
+
+export function OrderSummaryBlocks({ orders, orderInfoFallback }) {
+  if (!orders.length) return null;
+  const split = orders.length > 1;
+  return (
+    <div className="checkout-order-info-group">
+      {split && (
+        <p className="checkout-order-split-note">
+          Tu compra quedó registrada en {orders.length} pedidos vinculados:
+        </p>
+      )}
+      {orders.map((ord, idx) => (
+        <div key={ord.id ?? idx} className="checkout-order-info">
+          <p>
+            <strong>Pedido{split ? ` ${idx + 1}` : ''}:</strong> #{ord.id}
+          </p>
+          <p>
+            <strong>Total:</strong> $
+            {getOrderDisplayTotal(ord, idx === 0 ? orderInfoFallback : null).toLocaleString(
+              'es-MX',
+              { minimumFractionDigits: 2 }
+            )}
+          </p>
+          <p>
+            <strong>Fecha:</strong> {formatOrderDate(ord.created_at)}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function CheckoutSuccessPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -91,6 +139,8 @@ export default function CheckoutSuccessPage() {
   const [statusHeadline, setStatusHeadline] = useState('Compra confirmada');
   const [error, setError] = useState(null);
   const [missingPurchaseContext, setMissingPurchaseContext] = useState(false);
+  /** Respuesta API: varias órdenes del mismo checkout (split). */
+  const [groupOrders, setGroupOrders] = useState(null);
 
   // Obtener datos del pago desde el state de navegación (pago con tarjeta)
   const stateOrderData = location.state?.orderData;
@@ -100,19 +150,22 @@ export default function CheckoutSuccessPage() {
   const stateOrderIdOnly = location.state?.orderId;
 
   const orderInfoFallback = location.state?.orderInfo;
-  const displayTotal = useMemo(
-    () => getOrderDisplayTotal(orderData, orderInfoFallback),
-    [orderData, orderInfoFallback]
-  );
-  const displayDate = useMemo(
-    () => formatOrderDate(orderData?.created_at),
-    [orderData?.created_at]
-  );
+
+  const ordersToShow = useMemo(() => {
+    if (Array.isArray(groupOrders) && groupOrders.length > 1) {
+      return groupOrders;
+    }
+    if (orderData) {
+      return [orderData];
+    }
+    return [];
+  }, [groupOrders, orderData]);
 
   useEffect(() => {
     const verifyPayment = async () => {
       // Si viene de pago con tarjeta / checkout integrado (tiene orderData en state)
       if (stateOrderData) {
+        setGroupOrders(null);
         setOrderData(stateOrderData);
         setPaymentStatus(statePaymentStatus || 'approved');
         setStatusHeadline('Pago realizado con éxito');
@@ -136,8 +189,9 @@ export default function CheckoutSuccessPage() {
           try {
             const res = await api.get(`/payment/status/${stateOrderInfo.orderId}`);
             if (res.data?.success && res.data?.order) {
-              setOrderData(res.data.order);
+              ingestOrderStatusResponse(res, setOrderData, setGroupOrders);
             } else {
+              setGroupOrders(null);
               setOrderData({
                 id: stateOrderInfo.orderId,
                 total_amount: stateOrderInfo.totalAmount ?? stateOrderInfo.total ?? 0,
@@ -145,6 +199,7 @@ export default function CheckoutSuccessPage() {
               });
             }
           } catch {
+            setGroupOrders(null);
             setOrderData({
               id: stateOrderInfo.orderId,
               total_amount: stateOrderInfo.totalAmount ?? stateOrderInfo.total ?? 0,
@@ -182,8 +237,9 @@ export default function CheckoutSuccessPage() {
         try {
           const res = await api.get(`/payment/status/${stateOrderInfo.orderId}`);
           if (res.data?.success && res.data?.order) {
-            setOrderData(res.data.order);
+            ingestOrderStatusResponse(res, setOrderData, setGroupOrders);
           } else {
+            setGroupOrders(null);
             setOrderData({
               id: stateOrderInfo.orderId,
               total_amount: stateOrderInfo.totalAmount ?? stateOrderInfo.total ?? 0,
@@ -191,6 +247,7 @@ export default function CheckoutSuccessPage() {
             });
           }
         } catch {
+          setGroupOrders(null);
           setOrderData({
             id: stateOrderInfo.orderId,
             total_amount: stateOrderInfo.totalAmount ?? stateOrderInfo.total ?? 0,
@@ -207,8 +264,9 @@ export default function CheckoutSuccessPage() {
         try {
           const res = await api.get(`/payment/status/${d.order_id}`);
           if (res.data?.success && res.data?.order) {
-            setOrderData(res.data.order);
+            ingestOrderStatusResponse(res, setOrderData, setGroupOrders);
           } else {
+            setGroupOrders(null);
             setOrderData({
               id: d.order_id,
               total_amount: 0,
@@ -216,6 +274,7 @@ export default function CheckoutSuccessPage() {
             });
           }
         } catch {
+          setGroupOrders(null);
           setOrderData({
             id: d.order_id,
             total_amount: 0,
@@ -234,15 +293,17 @@ export default function CheckoutSuccessPage() {
         try {
           const res = await api.get(`/payment/status/${stateOrderIdOnly}`);
           if (res.data?.success && res.data?.order) {
-            setOrderData(res.data.order);
+            ingestOrderStatusResponse(res, setOrderData, setGroupOrders);
             setPaymentStatus('approved');
             setStatusHeadline('Pago confirmado');
             setMessage(THANK_YOU_DESCRIPTION);
           } else {
+            setGroupOrders(null);
             setError('No se encontró el pedido');
             setPaymentStatus('error');
           }
         } catch (e) {
+          setGroupOrders(null);
           setError(e.response?.data?.message || 'No se pudo cargar el pedido');
           setPaymentStatus('error');
         } finally {
@@ -283,7 +344,7 @@ export default function CheckoutSuccessPage() {
 
         if (response.data.success) {
           setPaymentStatus(response.data.payment_status);
-          setOrderData(response.data.order);
+          ingestOrderStatusResponse(response, setOrderData, setGroupOrders);
           if (response.data.payment_status === 'approved') {
             setStatusHeadline('Pago con Mercado Pago confirmado');
             setMessage(THANK_YOU_DESCRIPTION);
@@ -291,11 +352,12 @@ export default function CheckoutSuccessPage() {
             setMessage(response.data.message || '');
           }
         } else {
+          setGroupOrders(null);
           setError(response.data.message || 'Error al verificar el pago');
           setPaymentStatus('error');
         }
       } catch (err) {
-        
+        setGroupOrders(null);
         // Si hay external_reference o preference_id válidos pero el error es de conexión,
         // probablemente es porque estamos en localhost y Mercado Pago no puede acceder
         if ((cleanExternalRef || cleanPreferenceId) && 
@@ -456,13 +518,7 @@ export default function CheckoutSuccessPage() {
           <p className="checkout-success-desc">
             {message || 'Tu pago está pendiente de confirmación. Te notificaremos cuando se complete.'}
           </p>
-          {orderData && (
-            <div className="checkout-order-info">
-              <p><strong>Pedido:</strong> #{orderData.id}</p>
-              <p><strong>Total:</strong> ${displayTotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
-              <p><strong>Fecha:</strong> {displayDate}</p>
-            </div>
-          )}
+          <OrderSummaryBlocks orders={ordersToShow} orderInfoFallback={orderInfoFallback} />
           <div className="checkout-success-actions">
             <CustomButton 
               variant="filled" 
@@ -498,13 +554,7 @@ export default function CheckoutSuccessPage() {
         <p className="checkout-success-desc">
           {message || 'Tu pedido se está procesando. Recibirás un correo con los detalles de tu compra.'}
         </p>
-        {orderData && (
-          <div className="checkout-order-info">
-            <p><strong>Pedido:</strong> #{orderData.id}</p>
-            <p><strong>Total:</strong> ${displayTotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
-            <p><strong>Fecha:</strong> {displayDate}</p>
-          </div>
-        )}
+        <OrderSummaryBlocks orders={ordersToShow} orderInfoFallback={orderInfoFallback} />
         <div className="checkout-success-social-box">
           <div className="checkout-success-social-title">Síguenos también en nuestras redes sociales</div>
           <div className="checkout-success-social-icons">

@@ -99,3 +99,36 @@ export function getProductCardStockStatus(product) {
   }
   return 'out-of-stock';
 }
+
+/**
+ * Oculta en catálogo externo los que tienen fecha_agotado en BD con más de 30 días (alineado a Laravel).
+ * @param {Array<object>} products
+ * @param {Record<string, string|null|undefined>} metaMap id → 'Y-m-d' | null
+ */
+export function filterProductsByFechaAgotadoMeta(products, metaMap) {
+  if (!Array.isArray(products) || products.length === 0) {
+    return products || [];
+  }
+  if (!metaMap || typeof metaMap !== 'object') {
+    return products;
+  }
+
+  const cutoff = new Date();
+  cutoff.setHours(0, 0, 0, 0);
+  cutoff.setDate(cutoff.getDate() - 30);
+
+  return products.filter((p) => {
+    const id = String(p.id_articulo ?? p.id ?? '');
+    const fecha = metaMap[id];
+    if (fecha == null || fecha === '') {
+      return true;
+    }
+    const day = String(fecha).slice(0, 10);
+    const d = new Date(`${day}T12:00:00`);
+    if (Number.isNaN(d.getTime())) {
+      return true;
+    }
+    d.setHours(0, 0, 0, 0);
+    return d >= cutoff;
+  });
+}

@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use App\Models\OrderItem;
+use App\Models\Producto;
 use App\Support\ProductNewEvaluator;
 
 class TopSellingController extends Controller
@@ -77,7 +78,7 @@ class TopSellingController extends Controller
 
             // 2. Obtener productos de la tabla productos usando los IDs del ranking
             // Obtener todos los productos y filtrar por IDs normalizados para evitar problemas de tipo
-            $allProductos = DB::table('productos')
+            $allProductosQuery = DB::table('productos')
                 ->select([
                     'productos.id',
                     'productos.id_linea',
@@ -94,8 +95,9 @@ class TopSellingController extends Controller
                     'productos.inventario',
                     'productos.sku',
                     'productos.stock_received_count'
-                ])
-                ->get();
+                ]);
+            Producto::applyFechaAgotadoVisibilityToProductosQuery($allProductosQuery);
+            $allProductos = $allProductosQuery->get();
             
             // Normalizar IDs eliminando ceros a la izquierda para comparación
             $normalizeId = function($id) {

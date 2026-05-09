@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Producto;
 use App\Models\RecentProduct;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class RecentProductController extends Controller
 {
@@ -83,20 +85,26 @@ class RecentProductController extends Controller
         }
 
         try {
-            // Obtener productos ordenados por fecha (más reciente primero)
-            $recentProducts = RecentProduct::where('user_id', $user->id)
+            $orderedIds = RecentProduct::where('user_id', $user->id)
                 ->orderBy('updated_at', 'desc')
-                ->get()
-                ->map(function ($recentProduct) {
-                    return [
-                        'product_id' => $recentProduct->product_id,
-                        'updated_at' => $recentProduct->updated_at->toIso8601String(),
-                    ];
-                });
+                ->pluck('product_id');
+
+            if ($orderedIds->isEmpty()) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [],
+                ], 200);
+            }
+
+            $visibleQuery = DB::table('productos')->whereIn('productos.id', $orderedIds);
+            Producto::applyFechaAgotadoVisibilityToProductosQuery($visibleQuery);
+            $visibleSet = $visibleQuery->pluck('id')->flip()->all();
+
+            $filteredIds = $orderedIds->filter(fn ($id) => isset($visibleSet[$id]))->values()->toArray();
 
             return response()->json([
                 'success' => true,
-                'data' => $recentProducts->pluck('product_id')->toArray(), // Solo retornar IDs
+                'data' => $filteredIds,
             ], 200);
 
         } catch (\Exception $e) {

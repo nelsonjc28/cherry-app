@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { getCachedProducts, saveProductsToCache, isCacheExpired } from '../utils/productCache';
 import { mapApiProductToAppProduct, getBulkRatings } from '../api/cherryApi';
+import { fetchFechaAgotadoMetaMap } from '../api/fechaAgotadoMeta';
 import { applyUserOffersToProducts } from '../api/userOffers';
+import { filterProductsByFechaAgotadoMeta } from '../utils/productUtils';
 import { getCherryCatalogBaseUrl, unwrapCatalogProductList } from '../config/cherryCatalogBaseUrl';
 import axios from 'axios';
 
@@ -79,7 +81,15 @@ const useProductPreload = () => {
         
         
         // Aplicar ofertas de usuario a los productos
-        const productsWithOffers = await applyUserOffersToProducts(allProducts);
+        let productsWithOffers = await applyUserOffersToProducts(allProducts);
+
+        try {
+          const idsForMeta = productsWithOffers.map((p) => p.id_articulo ?? p.id).filter(Boolean);
+          const meta = await fetchFechaAgotadoMetaMap(idsForMeta);
+          productsWithOffers = filterProductsByFechaAgotadoMeta(productsWithOffers, meta);
+        } catch (metaErr) {
+          console.warn('[preload] fecha_agotado meta omitido', metaErr);
+        }
 
         if (productsWithOffers.length > 0) {
           // 3. Guardar en caché

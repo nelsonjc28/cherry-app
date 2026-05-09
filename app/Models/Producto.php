@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -125,6 +126,7 @@ class Producto extends Model
         'cantidad',
         'inventario',
         'stock_received_count',
+        'fecha_agotado',
         'idTienda',
         'descuento'
     ];
@@ -171,6 +173,7 @@ class Producto extends Model
         'inventario' => 'decimal:2',
         'descuento' => 'decimal:2',
         'stock_received_count' => 'integer',
+        'fecha_agotado' => 'date',
     ];
 
     /**
@@ -350,6 +353,96 @@ class Producto extends Model
         }
 
         return true;
+    }
+
+    /**
+     * Alineado con getProductInventoryStatusKind en resources/js/utils/productUtils.js.
+     *
+     * @param  object|array<string, mixed>  $row
+     * @return 'in-stock'|'coming-soon'|'out-of-stock'
+     */
+    public static function evaluateInventoryStatusKindFromRow(object|array $row, float $inventoryTotal): string
+    {
+        $stockReceived = (int) (is_array($row) ? ($row['stock_received_count'] ?? 0) : ($row->stock_received_count ?? 0));
+
+        if ($inventoryTotal > 0.00001) {
+            return 'in-stock';
+        }
+
+        if ($stockReceived > 0 && $inventoryTotal <= 0.00001) {
+            return 'out-of-stock';
+        }
+
+        $descPromo = (float) (is_array($row) ? ($row['desc_promo'] ?? 0) : ($row->desc_promo ?? 0));
+        $hasActiveDescPromo = $descPromo > 0.00001;
+
+        $idStr = (string) (is_array($row) ? ($row['id'] ?? '') : ($row->id ?? ''));
+        $tercerDigito = strlen($idStr) > 2 ? $idStr[2] : null;
+        $currentYearLastDigit = (string) ((int) date('Y') % 10);
+        $isComingSoon = $tercerDigito !== null && $tercerDigito === $currentYearLastDigit;
+
+        if ($isComingSoon && $inventoryTotal <= 0.00001 && $stockReceived === 0 && ! $hasActiveDescPromo) {
+            return 'coming-soon';
+        }
+
+        if ($inventoryTotal <= 0.00001 && (! $isComingSoon || $stockReceived > 0)) {
+            return 'out-of-stock';
+        }
+
+        return 'out-of-stock';
+    }
+
+    /**
+     * Tras sync: si está agotado y no tenía fecha, guarda hoy; si ya tenía fecha, no la mueve;
+     * si recupera disponibilidad (no agotado), limpia la fecha.
+     */
+    public static function syncFechaAgotadoForProductId(string $productId): void
+    {
+        $producto = static::query()
+            ->whereKey($productId)
+            ->first(['id', 'desc_promo', 'stock_received_count', 'fecha_agotado', 'inventario']);
+
+        if ($producto === null) {
+            return;
+        }
+
+        $sumDetails = (float) Detalle::query()
+            ->where('producto_id', $productId)
+            ->pluck('inventario_d')
+            ->sum(fn ($v) => self::effectiveDetailInventoryContribution($v));
+
+        $inventoryTotal = $sumDetails > 0.00001
+            ? $sumDetails
+            : self::effectiveDetailInventoryContribution($producto->inventario ?? null);
+
+        $kind = self::evaluateInventoryStatusKindFromRow($producto, $inventoryTotal);
+        $isAgotado = ($kind === 'out-of-stock');
+
+        if ($isAgotado) {
+            if (! $producto->fecha_agotado) {
+                static::query()->whereKey($productId)->update([
+                    'fecha_agotado' => now()->toDateString(),
+                ]);
+            }
+
+            return;
+        }
+
+        if ($producto->fecha_agotado) {
+            static::query()->whereKey($productId)->update(['fecha_agotado' => null]);
+        }
+    }
+
+    /**
+     * Tienda: ocultar agotados con más de 30 días desde fecha_agotado.
+     */
+    public static function applyFechaAgotadoVisibilityToProductosQuery(QueryBuilder $query): void
+    {
+        $cutoff = now()->subDays(30)->startOfDay()->toDateString();
+        $query->where(function (QueryBuilder $q) use ($cutoff) {
+            $q->whereNull('productos.fecha_agotado')
+                ->orWhere('productos.fecha_agotado', '>=', $cutoff);
+        });
     }
 
     /**

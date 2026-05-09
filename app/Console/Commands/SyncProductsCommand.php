@@ -348,6 +348,8 @@ class SyncProductsCommand extends Command
                         ]);
                     }
 
+                    Producto::syncFechaAgotadoForProductId((string) $producto->id);
+
                     $bar->advance();
 
                 } catch (\Exception $e) {

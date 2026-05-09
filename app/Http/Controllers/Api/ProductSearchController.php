@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Producto;
 use App\Models\Review;
 use App\Models\CatalogOffer;
 use App\Support\ProductNewEvaluator;
@@ -48,16 +49,16 @@ class ProductSearchController extends Controller
             // 5. Talla (detalle en detalles)
             
             // Obtener IDs de productos que coincidan en la tabla productos
-            $productIdsFromProducts = DB::table('productos')
+            $productIdsFromProductsQuery = DB::table('productos')
                 ->select('productos.id')
                 ->where(function($q) use ($queryLower, $queryParam) {
                     // Buscar en productos: ID, descripción, SKU
                     $q->whereRaw('LOWER(productos.id) LIKE ?', [$queryParam])
                       ->orWhereRaw('LOWER(productos.descripcion) LIKE ?', [$queryParam])
                       ->orWhereRaw('LOWER(productos.sku) LIKE ?', [$queryParam]);
-                })
-                ->pluck('id')
-                ->toArray();
+                });
+            Producto::applyFechaAgotadoVisibilityToProductosQuery($productIdsFromProductsQuery);
+            $productIdsFromProducts = $productIdsFromProductsQuery->pluck('id')->toArray();
             
             // Obtener IDs de productos que coincidan en detalles (color, talla, SKU)
             $productIdsFromDetails = DB::table('detalles')
@@ -111,6 +112,7 @@ class ProductSearchController extends Controller
                     'productos.stock_received_count'
                 ])
                 ->whereIn('productos.id', $paginatedIds);
+            Producto::applyFechaAgotadoVisibilityToProductosQuery($productosQuery);
             
             // Aplicar ordenamiento según el parámetro sort
             $this->applySorting($productosQuery, $sort);
@@ -311,6 +313,7 @@ class ProductSearchController extends Controller
                     'productos.inventario',
                     'productos.stock_received_count'
                 ]);
+            Producto::applyFechaAgotadoVisibilityToProductosQuery($productosQuery);
             
             // Aplicar ordenamiento según el parámetro sort
             $this->applySorting($productosQuery, $sort);
@@ -508,7 +511,7 @@ class ProductSearchController extends Controller
             Log::info('🔍 getProductsWithOffers - Usuario ID: ' . ($userId ?? 'no autenticado'));
 
             // 1. Obtener productos con desc_promo > 0
-            $productosConDescuento = DB::table('productos')
+            $productosConDescuentoQuery = DB::table('productos')
                 ->select([
                     'productos.id',
                     'productos.id_linea',
@@ -526,9 +529,9 @@ class ProductSearchController extends Controller
                     'productos.sku',
                     'productos.stock_received_count'
                 ])
-                ->where('productos.desc_promo', '>', 0)
-                ->inRandomOrder()
-                ->get();
+                ->where('productos.desc_promo', '>', 0);
+            Producto::applyFechaAgotadoVisibilityToProductosQuery($productosConDescuentoQuery);
+            $productosConDescuento = $productosConDescuentoQuery->inRandomOrder()->get();
 
             $productIds = $productosConDescuento->pluck('id')->toArray();
             Log::info('Productos con desc_promo > 0: ' . count($productIds));
@@ -614,7 +617,7 @@ class ProductSearchController extends Controller
                     
                     // Obtener productos usando whereIn con CAST explícito para asegurar comparación correcta
                     // productos.id es string, así que comparamos directamente pero con CAST para seguridad
-                    $productosConOfertasPersonalizadas = DB::table('productos')
+                    $productosConOfertasPersonalizadasQuery = DB::table('productos')
                         ->select([
                             'productos.id',
                             'productos.id_linea',
@@ -632,8 +635,9 @@ class ProductSearchController extends Controller
                             'productos.sku',
                             'productos.stock_received_count'
                         ])
-                        ->whereIn(DB::raw('CAST(productos.id AS CHAR)'), $productIdsConOfertasNormalized)
-                        ->get();
+                        ->whereIn(DB::raw('CAST(productos.id AS CHAR)'), $productIdsConOfertasNormalized);
+                    Producto::applyFechaAgotadoVisibilityToProductosQuery($productosConOfertasPersonalizadasQuery);
+                    $productosConOfertasPersonalizadas = $productosConOfertasPersonalizadasQuery->get();
                     
                     Log::info('🔍 Productos completos encontrados en tabla productos para ofertas personalizadas: ' . $productosConOfertasPersonalizadas->count());
                     

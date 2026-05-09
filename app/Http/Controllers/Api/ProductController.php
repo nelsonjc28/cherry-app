@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Producto;
 use App\Models\Review;
 use App\Support\ProductNewEvaluator;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +31,16 @@ class ProductController extends Controller
                     'success' => false,
                     'error' => 'Producto no encontrado'
                 ], 404);
+            }
+
+            if (! empty($producto->fecha_agotado)) {
+                $cutoff = now()->subDays(30)->startOfDay();
+                if (Carbon::parse($producto->fecha_agotado)->startOfDay()->lt($cutoff)) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Producto no encontrado',
+                    ], 404);
+                }
             }
 
             // Obtener todos los detalles del producto
@@ -275,8 +286,9 @@ class ProductController extends Controller
                     'detalles.inventario_d'
                 )
                 ->whereNotNull('productos.fecha_compra')
-                ->where('productos.fecha_compra', '>=', $thirtyDaysAgoDate)
-                ->get();
+                ->where('productos.fecha_compra', '>=', $thirtyDaysAgoDate);
+            Producto::applyFechaAgotadoVisibilityToProductosQuery($rows);
+            $rows = $rows->get();
 
             $productos = $rows->groupBy('id')
                 ->map(function ($productGroup) {
@@ -446,9 +458,11 @@ class ProductController extends Controller
                 ->where(function ($q) {
                     $q->whereNull('productos.desc_promo')
                         ->orWhere('productos.desc_promo', '<=', 0);
-                })
-                ->inRandomOrder()
-                ->distinct();
+                });
+
+            Producto::applyFechaAgotadoVisibilityToProductosQuery($query);
+
+            $query = $query->inRandomOrder()->distinct();
             
             // Aplicar límite solo si se especifica y es menor a 10000
             if ($limit !== null && $limit < 10000) {
@@ -606,10 +620,10 @@ class ProductController extends Controller
             
             // Obtener todos los IDs de productos con stock disponible (excluyendo el actual)
             // Primero obtener todos los productos
-            $allProductIds = DB::table('productos')
-                ->where('productos.id', '!=', $id) // Excluir el producto actual
-                ->pluck('id')
-                ->toArray();
+            $allProductIdsQuery = DB::table('productos')
+                ->where('productos.id', '!=', $id); // Excluir el producto actual
+            Producto::applyFechaAgotadoVisibilityToProductosQuery($allProductIdsQuery);
+            $allProductIds = $allProductIdsQuery->pluck('id')->toArray();
             
             if (empty($allProductIds)) {
                 return response()->json([
@@ -852,6 +866,50 @@ class ProductController extends Controller
         // Siempre generar URL de S3 basada en el ID del producto
         // Formato: https://cherry-fotos.s3.amazonaws.com/shopify/{productId}/{productId}_1.jpg
         return "https://cherry-fotos.s3.amazonaws.com/shopify/{$productIdStr}/{$productIdStr}_1.jpg";
+    }
+
+    /**
+     * Mapa id → fecha_agotado (Y-m-d o null) para filtrar en cliente catálogo externo.
+     */
+    public function fechaAgotadoMeta(Request $request): JsonResponse
+    {
+        $ids = $request->input('ids', []);
+        if (! is_array($ids)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ids debe ser un arreglo',
+            ], 422);
+        }
+
+        $ids = array_values(array_unique(array_filter(array_map('strval', $ids))));
+        if (count($ids) > 800) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Máximo 800 ids por solicitud',
+            ], 422);
+        }
+
+        if (count($ids) === 0) {
+            return response()->json([
+                'success' => true,
+                'data' => new \stdClass(),
+            ]);
+        }
+
+        $rows = DB::table('productos')
+            ->whereIn('id', $ids)
+            ->select(['id', 'fecha_agotado'])
+            ->get();
+
+        $data = [];
+        foreach ($rows as $r) {
+            $data[$r->id] = $r->fecha_agotado ? date('Y-m-d', strtotime((string) $r->fecha_agotado)) : null;
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+        ]);
     }
 }
 

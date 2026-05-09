@@ -13,6 +13,8 @@
 
 import axios from 'axios';
 import { getCherryCatalogBaseUrl, unwrapCatalogProductList } from '../config/cherryCatalogBaseUrl';
+import { fetchFechaAgotadoMetaMap } from '../api/fechaAgotadoMeta';
+import { filterProductsByFechaAgotadoMeta } from './productUtils';
 import { isProductNewLikeNuevosPage } from './productNewRules';
 
 const CHERRY_API_URL = getCherryCatalogBaseUrl();
@@ -78,9 +80,17 @@ class ProductCacheManager {
         timeout: 30000 // 30 segundos timeout
       });
 
-      const products = unwrapCatalogProductList(response.data);
+      let products = unwrapCatalogProductList(response.data);
       if (products.length === 0) {
         return [];
+      }
+
+      try {
+        const ids = products.map((p) => p.id_articulo ?? p.id).filter(Boolean);
+        const meta = await fetchFechaAgotadoMetaMap(ids);
+        products = filterProductsByFechaAgotadoMeta(products, meta);
+      } catch (e) {
+        console.warn('[productCacheInMemory] fecha_agotado meta omitido', e);
       }
 
       // Guardar en caché

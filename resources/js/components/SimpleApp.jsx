@@ -17,6 +17,7 @@ import RegisterPage from '../pages/auth/RegisterPage';
 import ForgotPasswordPage from '../pages/ForgotPasswordPage';
 import CartDetailsPage from '../pages/CartDetailsPage';
 import CheckoutSuccessPage from '../pages/CheckoutSuccessPage';
+import CheckoutSuccessDemoPage from '../pages/CheckoutSuccessDemoPage';
 import CarritoPage from '../pages/CarritoPage';
 import BuscarPage from '../pages/BuscarPage';
 import CategoriasPage from '../pages/CategoriasPage';
@@ -104,6 +105,7 @@ const SimpleApp = () => {
                   {/* Shopping routes */}
                   <Route path="/carrito-detalle" element={<CartDetailsPage />} />
                   <Route path="/compra-exitosa" element={<CheckoutSuccessPage />} />
+                  <Route path="/compra-exitosa-demo" element={<CheckoutSuccessDemoPage />} />
                   <Route path="/pago-pendiente" element={<PaymentPendingPage />} />
                   <Route path="/carrito" element={<CarritoPage />} />
                   <Route path="/buscar" element={<BuscarPage />} />

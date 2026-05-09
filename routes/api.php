@@ -339,6 +339,8 @@ Route::get('/products/with-offers', [ProductSearchController::class, 'getProduct
 // IMPORTANTE: Esta ruta debe estar ANTES de /products/{id} para evitar conflictos
 Route::get('/products/top-selling', [TopSellingController::class, 'index']);
 
+Route::post('/products/fecha-agotado-meta', [ProductController::class, 'fechaAgotadoMeta']);
+
 Route::get('/products/new', [ProductController::class, 'getNewProducts']);
 Route::get('/products/coming-soon', [ProductController::class, 'getComingSoonProducts']);
 Route::get('/products/{id}/suggested', [ProductController::class, 'suggested']);

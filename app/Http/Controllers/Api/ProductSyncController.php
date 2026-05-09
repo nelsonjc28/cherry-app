@@ -353,6 +353,8 @@ class ProductSyncController extends Controller
                         ]);
                     }
 
+                    Producto::syncFechaAgotadoForProductId((string) $producto->id);
+
                 } catch (\Exception $e) {
                     Log::error('Error procesando producto: ' . $e->getMessage(), [
                         'product_id' => $externalProduct['id_articulo'] ?? 'unknown',
@@ -723,6 +725,8 @@ class ProductSyncController extends Controller
                             }
                         }
                     }
+
+                    Producto::syncFechaAgotadoForProductId((string) $producto->id);
 
                 } catch (\Exception $e) {
                     Log::error('Error procesando producto: ' . $e->getMessage(), [
