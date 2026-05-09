@@ -7,6 +7,11 @@
         $respondIoWidgetSrc = 'https://cdn.respond.io/webchat/widget/' . rawurlencode($respondChannelId) . '.js';
     }
     $respondIoLoadWidget = $respondIoEnabled && ! empty($respondIoWidgetSrc);
+    $respondIoGrowthEnabled = filter_var($respondIo['growth_tool_enabled'] ?? true, FILTER_VALIDATE_BOOLEAN);
+    $respondIoGrowthWid = trim((string) ($respondIo['growth_tool_wid'] ?? 'fef1dbec-7474-4fcb-8761-a89344af5ff1'));
+    $respondIoGrowthScriptSrc = ($respondIoGrowthEnabled && $respondIoGrowthWid !== '')
+        ? 'https://cdn.respond.io/widget/widget.js?wId=' . rawurlencode($respondIoGrowthWid)
+        : null;
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -358,11 +363,15 @@
         </script>
     @endif
 
+    @if ($respondIoGrowthScriptSrc)
+        <meta name="respond-io-growth-src" content="{{ $respondIoGrowthScriptSrc }}">
+    @endif
+
     <!-- Vite Assets -->
     @viteReactRefresh
     @vite(['resources/css/app.css', 'resources/js/main.jsx'])
 </head>
-<body class="{{ $respondIoLoadWidget ? 'has-respond-io-widget' : '' }}">
+<body class="{{ trim(($respondIoLoadWidget ? 'has-respond-io-widget ' : '') . ($respondIoGrowthScriptSrc ? 'has-respond-io-growth-tool' : '')) }}">
     <div id="root"></div>
     
     <!-- Toast Container -->

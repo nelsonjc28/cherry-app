@@ -61,6 +61,7 @@ import SimplePWAInstaller from './PWAInstaller/SimplePWAInstaller';
 import PWAInstallAlerts from './PWAInstaller/PWAInstallAlerts';
 import PWADiagnostics from './PWAInstaller/PWADiagnostics';
 import RespondIoBootstrap from './RespondIoBootstrap';
+import RespondIoGrowthBootstrap from './RespondIoGrowthBootstrap';
 
 const SimpleApp = () => {
   return (
@@ -68,6 +69,7 @@ const SimpleApp = () => {
       <FavoritesProvider>
         <Router>
           <ScrollToTop />
+          <RespondIoGrowthBootstrap />
           <RespondIoBootstrap />
           <ExternalApiProvider>
             <div className="App app-container">

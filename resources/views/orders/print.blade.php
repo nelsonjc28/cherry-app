@@ -548,5 +548,7 @@
             <span>${{ number_format($totalAmount, 2) }}</span>
         </div>
     </div>
+
+    @include('partials.respond-io-growth-tool')
 </body>
 </html>

@@ -50,6 +50,16 @@ return [
         'enabled' => filter_var(env('RESPOND_IO_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
         'channel_id' => trim((string) env('RESPOND_IO_CHANNEL_ID', 'YOUR_RESPOND_IO_CHANNEL_ID')),
         'widget_script_url' => ($u = trim((string) env('RESPOND_IO_WIDGET_SCRIPT_URL', ''))) !== '' ? $u : null,
+        /** Widget growth tool (todas las páginas que usan app.blade.php). Vacío en .env = activado (evita “no se ve” con KEY= sin valor). */
+        'growth_tool_enabled' => (function () {
+            $raw = env('RESPOND_IO_GROWTH_TOOL_ENABLED');
+            if ($raw === null || $raw === '') {
+                return true;
+            }
+
+            return filter_var($raw, FILTER_VALIDATE_BOOLEAN);
+        })(),
+        'growth_tool_wid' => trim((string) (env('RESPOND_IO_GROWTH_TOOL_WID') ?: 'fef1dbec-7474-4fcb-8761-a89344af5ff1')),
     ],
 
 ];
