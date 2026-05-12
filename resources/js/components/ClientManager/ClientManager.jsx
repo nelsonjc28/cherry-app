@@ -946,6 +946,13 @@ const ClientManager = () => {
                 <tbody>
                   {clients.map((client) => {
                     const cat = client.seller_category || 'bronce';
+                    const creditBal = parseFloat(client.credit_balance || 0);
+                    const creditLim = parseFloat(client.credit_limit || 0);
+                    const creditOrLimitNonZero =
+                      Math.round(creditBal * 100) !== 0 ||
+                      Math.round(creditLim * 100) !== 0;
+                    const showCreditBlock =
+                      ['oro', 'diamante'].includes(cat) && creditOrLimitNonZero;
                     return (
                       <tr key={client.id}>
                         <td className="client-manager__id-cell">
@@ -987,13 +994,11 @@ const ClientManager = () => {
                               {cat === 'diamante' ? 'Diamante' : cat === 'oro' ? 'Oro' : 'Bronce'}
                             </span>
                           )}
-                          {['oro', 'diamante'].includes(cat) && (
+                          {showCreditBlock && (
                             <div className="client-manager__credit-inline">
-                              <span>
-                                {`Crédito: $${parseFloat(client.credit_balance || 0).toFixed(2)}`}
-                              </span>
+                              <span>{`Crédito: $${creditBal.toFixed(2)}`}</span>
                               <span className="client-manager__credit-inline-limit">
-                                {`Límite: $${parseFloat(client.credit_limit || 0).toFixed(2)}`}
+                                {`Límite: $${creditLim.toFixed(2)}`}
                               </span>
                             </div>
                           )}
