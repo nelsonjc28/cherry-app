@@ -517,6 +517,9 @@
 }
 
 .admin-panel__submenu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
   padding-left: 16px;
   margin-top: 0.125rem;
   margin-bottom: 0.25rem;
@@ -532,6 +535,12 @@
     opacity: 1;
     max-height: 500px;
   }
+}
+
+.admin-panel__submenu > .admin-panel__sidebar-link {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .admin-panel__submenu-link {
