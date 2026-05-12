@@ -26,6 +26,33 @@ const emptyAddressForm = (address, defaultIfFirst) => ({
 
 const ReqStar = () => <span className="client-manager__req">*</span>;
 
+function formatClientDisplayName(client) {
+  return [client.first_name, client.middle_name, client.last_name].filter(Boolean).join(' ').trim();
+}
+
+const showClientActionTooltip = (e) => {
+  const button = e.currentTarget;
+  const tooltipText = button.getAttribute('data-tooltip') || button.getAttribute('aria-label');
+  if (!tooltipText) return;
+  let tooltip = document.querySelector('.client-tooltip');
+  if (!tooltip) {
+    tooltip = document.createElement('div');
+    tooltip.className = 'client-tooltip';
+    document.body.appendChild(tooltip);
+  }
+  tooltip.textContent = tooltipText;
+  tooltip.style.display = 'block';
+  const rect = button.getBoundingClientRect();
+  const tooltipRect = tooltip.getBoundingClientRect();
+  tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
+  tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
+};
+
+const hideClientActionTooltip = () => {
+  const tooltip = document.querySelector('.client-tooltip');
+  if (tooltip) tooltip.style.display = 'none';
+};
+
 /**
  * Dirección admin: mismo flujo que perfil (CP → SEPOMEX → colonia / estado / municipio).
  * `city` queda alineado con colonia (asentamiento), requerido por el backend.
@@ -537,22 +564,32 @@ const ClientManager = () => {
     }
   };
 
-  // Filtrar clientes según el término de búsqueda
+  // Filtrar clientes según el término de búsqueda (nombre, email, teléfono, id numérico, id DM00004)
   useEffect(() => {
-    if (!searchTerm.trim()) {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) {
       setClients(allClients);
       return;
     }
 
-    const filtered = allClients.filter(client => {
-      const searchLower = searchTerm.toLowerCase();
+    const qCompact = q.replace(/\s+/g, '');
+
+    const filtered = allClients.filter((client) => {
       const fullName = `${client.first_name} ${client.last_name} ${client.middle_name || ''}`.toLowerCase();
       const email = (client.email || '').toLowerCase();
       const phone = (client.phone || '').toLowerCase();
-      
-      return fullName.includes(searchLower) || 
-             email.includes(searchLower) || 
-             phone.includes(searchLower);
+      const externalId = formatExternalClienteId(client.id).toLowerCase();
+      const idStr = String(client.id);
+
+      return (
+        fullName.includes(q) ||
+        email.includes(q) ||
+        phone.includes(q) ||
+        externalId.includes(q) ||
+        externalId.includes(qCompact) ||
+        idStr.includes(q) ||
+        idStr.includes(qCompact)
+      );
     });
 
     setClients(filtered);
@@ -877,7 +914,7 @@ const ClientManager = () => {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar por nombre, email o teléfono..."
+            placeholder="Buscar por nombre, email, teléfono o ID (ej. DM00004)..."
             className="client-manager__search-input"
           />
         </div>
@@ -894,176 +931,116 @@ const ClientManager = () => {
             No hay clientes registrados
           </div>
         ) : (
-          <div className="client-manager__clients">
-            {clients.map(client => (
-              <div key={client.id} className="client-manager__client-card">
-                <div className="client-manager__client-info">
-                  <div className="client-manager__client-id" style={{
-                    fontSize: '12px',
-                    color: '#666',
-                    marginBottom: '4px',
-                    fontWeight: '500'
-                  }}>
-                    ID: {formatExternalClienteId(client.id)}
-                  </div>
-                  <div className="client-manager__client-name">
-                    {client.first_name} {client.last_name}
-                  </div>
-                  <div className="client-manager__client-email">
-                    {client.email}
-                  </div>
-                  <div className="client-manager__client-role">
-                    Cliente
-                  </div>
-                  {!isOperator ? (
-                    <select
-                      value={client.seller_category}
-                      onChange={(e) => handleCategoryChangeWithConfirm(client.id, e.target.value, client.seller_category)}
-                      style={{
-                        marginTop: '8px',
-                        padding: '4px 6px',
-                        borderRadius: '4px',
-                        display: 'inline-block',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        border: '1px solid',
-                        borderColor: client.seller_category === 'diamante' ? '#00BCD4' : client.seller_category === 'oro' ? '#FFD700' : '#CD7F32',
-                        backgroundColor: client.seller_category === 'diamante' ? '#00BCD4' : client.seller_category === 'oro' ? '#FFD700' : '#CD7F32',
-                        color: '#fff',
-                        cursor: 'pointer',
-                        outline: 'none',
-                      }}
-                    >
-                      <option value="bronce">🥉 Bronce</option>
-                      <option value="oro">🥇 Oro</option>
-                      <option value="diamante">💎 Diamante</option>
-                    </select>
-                  ) : (
-                    <div className="client-manager__client-category" style={{
-                      marginTop: '8px',
-                      padding: '3px 4px',
-                      borderRadius: '4px',
-                      display: 'inline-block',
-                      fontSize: '12px',
-                      fontWeight: '600',
-                      backgroundColor: client.seller_category === 'diamante' ? '#00BCD4' : client.seller_category === 'oro' ? '#FFD700' : '#CD7F32',
-                      color: '#fff',
-                      whiteSpace: 'nowrap',
-                      lineHeight: '1.2'
-                    }}>
-                      {client.seller_category === 'diamante' ? '💎 Diamante' : client.seller_category === 'oro' ? '🥇 Oro' : '🥉 Bronce'}
-                    </div>
-                  )}
-                  {['oro', 'diamante'].includes(client.seller_category) && (
-                    <div style={{ marginTop: '4px' }}>
-                      <div className="client-manager__client-credit" style={{
-                        fontSize: '12px',
-                        color: '#28a745',
-                        fontWeight: '600'
-                      }}>
-                        Crédito: ${parseFloat(client.credit_balance || 0).toFixed(2)}
-                      </div>
-                      <div className="client-manager__client-credit-limit" style={{
-                        fontSize: '11px',
-                        color: '#666',
-                        marginTop: '2px'
-                      }}>
-                        Límite: ${parseFloat(client.credit_limit || 0).toFixed(2)}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="client-manager__client-actions">
-                  <button
-                    className="client-manager__action-btn client-manager__action-btn--outline"
-                    onClick={() => handleViewAccountStatement(client.id)}
-                    data-tooltip="Estados de Cuenta"
-                    onMouseEnter={(e) => {
-                      const button = e.currentTarget;
-                      const tooltipText = button.getAttribute('data-tooltip');
-                      let tooltip = document.querySelector('.client-tooltip');
-                      if (!tooltip) {
-                        tooltip = document.createElement('div');
-                        tooltip.className = 'client-tooltip';
-                        document.body.appendChild(tooltip);
-                      }
-                      tooltip.textContent = tooltipText;
-                      tooltip.style.display = 'block';
-                      
-                      const rect = button.getBoundingClientRect();
-                      const tooltipRect = tooltip.getBoundingClientRect();
-                      tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
-                      tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
-                    }}
-                    onMouseLeave={() => {
-                      const tooltip = document.querySelector('.client-tooltip');
-                      if (tooltip) tooltip.style.display = 'none';
-                    }}
-                  >
-                    <span className="client-manager__btn-icon">📊</span>
-                    <span className="client-manager__btn-text">Estados de Cuenta</span>
-                  </button>
-                  <button
-                    className="client-manager__action-btn client-manager__action-btn--outline"
-                    onClick={() => handleEdit(client)}
-                    data-tooltip="Editar"
-                    onMouseEnter={(e) => {
-                      const button = e.currentTarget;
-                      const tooltipText = button.getAttribute('data-tooltip');
-                      let tooltip = document.querySelector('.client-tooltip');
-                      if (!tooltip) {
-                        tooltip = document.createElement('div');
-                        tooltip.className = 'client-tooltip';
-                        document.body.appendChild(tooltip);
-                      }
-                      tooltip.textContent = tooltipText;
-                      tooltip.style.display = 'block';
-                      
-                      const rect = button.getBoundingClientRect();
-                      const tooltipRect = tooltip.getBoundingClientRect();
-                      tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
-                      tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
-                    }}
-                    onMouseLeave={() => {
-                      const tooltip = document.querySelector('.client-tooltip');
-                      if (tooltip) tooltip.style.display = 'none';
-                    }}
-                  >
-                    <span className="client-manager__btn-icon">✏️</span>
-                    <span className="client-manager__btn-text">Editar</span>
-                  </button>
-                  <button
-                    className="client-manager__action-btn client-manager__action-btn--red"
-                    onClick={() => handleDelete(client.id)}
-                    data-tooltip="Eliminar"
-                    onMouseEnter={(e) => {
-                      const button = e.currentTarget;
-                      const tooltipText = button.getAttribute('data-tooltip');
-                      let tooltip = document.querySelector('.client-tooltip');
-                      if (!tooltip) {
-                        tooltip = document.createElement('div');
-                        tooltip.className = 'client-tooltip';
-                        document.body.appendChild(tooltip);
-                      }
-                      tooltip.textContent = tooltipText;
-                      tooltip.style.display = 'block';
-                      
-                      const rect = button.getBoundingClientRect();
-                      const tooltipRect = tooltip.getBoundingClientRect();
-                      tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
-                      tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
-                    }}
-                    onMouseLeave={() => {
-                      const tooltip = document.querySelector('.client-tooltip');
-                      if (tooltip) tooltip.style.display = 'none';
-                    }}
-                  >
-                    <span className="client-manager__btn-icon">🗑️</span>
-                    <span className="client-manager__btn-text">Eliminar</span>
-                  </button>
-                </div>
-              </div>
-            ))}
+          <div className="admin-orders__table-container">
+            <div className="table-scroll-wrapper">
+              <table className="admin-orders__table client-manager__data-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Correo</th>
+                    <th>Categoría</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {clients.map((client) => {
+                    const cat = client.seller_category || 'bronce';
+                    return (
+                      <tr key={client.id}>
+                        <td className="client-manager__id-cell">
+                          <span
+                            className="client-manager__external-client-id"
+                            title="ID cliente (API / ventas)"
+                          >
+                            {formatExternalClienteId(client.id)}
+                          </span>
+                        </td>
+                        <td className="order-customer-cell client-manager__name-cell">
+                          {formatClientDisplayName(client) || '—'}
+                        </td>
+                        <td className="client-manager__email-cell" title={client.email || ''}>
+                          {client.email || '—'}
+                        </td>
+                        <td className="client-manager__category-cell">
+                          {!isOperator ? (
+                            <select
+                              className={`client-manager__category-select client-manager__category-select--${cat}`}
+                              value={cat}
+                              onChange={(e) =>
+                                handleCategoryChangeWithConfirm(
+                                  client.id,
+                                  e.target.value,
+                                  client.seller_category || 'bronce'
+                                )
+                              }
+                              aria-label="Categoría del cliente"
+                            >
+                              <option value="bronce">Bronce</option>
+                              <option value="oro">Oro</option>
+                              <option value="diamante">Diamante</option>
+                            </select>
+                          ) : (
+                            <span
+                              className={`client-manager__category-badge client-manager__category-badge--${cat}`}
+                            >
+                              {cat === 'diamante' ? 'Diamante' : cat === 'oro' ? 'Oro' : 'Bronce'}
+                            </span>
+                          )}
+                          {['oro', 'diamante'].includes(cat) && (
+                            <div className="client-manager__credit-inline">
+                              <span>
+                                {`Crédito: $${parseFloat(client.credit_balance || 0).toFixed(2)}`}
+                              </span>
+                              <span className="client-manager__credit-inline-limit">
+                                {`Límite: $${parseFloat(client.credit_limit || 0).toFixed(2)}`}
+                              </span>
+                            </div>
+                          )}
+                        </td>
+                        <td className="order-actions-cell">
+                          <div className="client-manager__table-actions">
+                            <button
+                              type="button"
+                              className="order-action-btn order-action-btn--detail client-manager__table-icon-btn"
+                              onClick={() => handleViewAccountStatement(client.id)}
+                              data-tooltip="Estados de cuenta"
+                              aria-label="Estados de cuenta"
+                              onMouseEnter={showClientActionTooltip}
+                              onMouseLeave={hideClientActionTooltip}
+                            >
+                              📊
+                            </button>
+                            <button
+                              type="button"
+                              className="order-action-btn client-manager__table-icon-btn client-manager__table-icon-btn--edit"
+                              onClick={() => handleEdit(client)}
+                              data-tooltip="Editar"
+                              aria-label="Editar"
+                              onMouseEnter={showClientActionTooltip}
+                              onMouseLeave={hideClientActionTooltip}
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              type="button"
+                              className="order-action-btn client-manager__table-icon-btn client-manager__table-icon-btn--delete"
+                              onClick={() => handleDelete(client.id)}
+                              data-tooltip="Eliminar"
+                              aria-label="Eliminar"
+                              onMouseEnter={showClientActionTooltip}
+                              onMouseLeave={hideClientActionTooltip}
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
