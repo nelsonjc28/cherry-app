@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { catalogService } from '../../services/api';
 import CatalogProductManager from './CatalogProductManager';
 import CatalogPdfManager from './CatalogPdfManager';
@@ -29,6 +29,13 @@ const AdminCatalogManager = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [catalogPdfFile, setCatalogPdfFile] = useState(null);
+  const [nameFilter, setNameFilter] = useState('');
+
+  const filteredCatalogs = useMemo(() => {
+    const q = nameFilter.trim().toLowerCase();
+    if (!q) return catalogs;
+    return catalogs.filter((c) => (c.name || '').toLowerCase().includes(q));
+  }, [catalogs, nameFilter]);
 
   useEffect(() => {
 
@@ -40,12 +47,13 @@ const AdminCatalogManager = () => {
       setLoading(true);
       const response = await catalogService.getAll();
       if (response.data.success) {
-        // Ordenar catálogos por code (ascendente)
-        // Los catálogos sin code se colocan al final
         const sortedCatalogs = [...response.data.data].sort((a, b) => {
-          const codeA = parseInt(a.code) || 999999;
-          const codeB = parseInt(b.code) || 999999;
-          return codeA - codeB;
+          const activeA = a.is_active ? 1 : 0;
+          const activeB = b.is_active ? 1 : 0;
+          if (activeA !== activeB) {
+            return activeB - activeA;
+          }
+          return (b.id ?? 0) - (a.id ?? 0);
         });
         setCatalogs(sortedCatalogs);
       }
@@ -596,7 +604,7 @@ const AdminCatalogManager = () => {
             
             <div className="admin-catalog-manager__form-note">
               <small>
-                ℹ️ El orden de visualización se determina por el código (ascendente). Los catálogos sin código se mostrarán al final.
+                ℹ️ El orden de la lista es: primero catálogos activos, luego inactivos; dentro de cada grupo, del más reciente al más antiguo (id descendente).
               </small>
             </div>
 
@@ -628,13 +636,40 @@ const AdminCatalogManager = () => {
       )}
 
       <div className="admin-catalog-manager__catalogs">
+        {catalogs.length > 0 && (
+          <div className="admin-catalog-manager__filter-row">
+            <label htmlFor="catalog-name-filter" className="admin-catalog-manager__filter-label">
+              Filtrar por nombre
+            </label>
+            <input
+              id="catalog-name-filter"
+              type="search"
+              value={nameFilter}
+              onChange={(e) => setNameFilter(e.target.value)}
+              placeholder="Escribe parte del nombre del catálogo…"
+              className="admin-catalog-manager__filter-input"
+              autoComplete="off"
+            />
+          </div>
+        )}
         {catalogs.length === 0 ? (
           <div className="admin-catalog-manager__empty">
             <p>No hay catálogos creados</p>
           </div>
+        ) : filteredCatalogs.length === 0 ? (
+          <div className="admin-catalog-manager__empty admin-catalog-manager__empty--filter">
+            <p>No hay catálogos que coincidan con la búsqueda.</p>
+            <button
+              type="button"
+              className="admin-catalog-manager__filter-clear"
+              onClick={() => setNameFilter('')}
+            >
+              Limpiar filtro
+            </button>
+          </div>
         ) : (
           <div className="admin-catalog-manager__catalogs-grid">
-            {catalogs.map((catalog) => (
+            {filteredCatalogs.map((catalog) => (
               <div key={catalog.id} className="admin-catalog-manager__catalog-card">
                                  <div className="admin-catalog-manager__catalog-image">
                    {catalog.image_url && !catalog.image_url.includes('placeholder') ? (

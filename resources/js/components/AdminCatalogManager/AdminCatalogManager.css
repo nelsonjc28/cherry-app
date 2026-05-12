@@ -267,6 +267,65 @@
   background: #5a6268;
 }
 
+.admin-catalog-manager__catalogs {
+  margin-bottom: 24px;
+}
+
+.admin-catalog-manager__filter-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+  max-width: 420px;
+}
+
+.admin-catalog-manager__filter-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.admin-catalog-manager__filter-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.admin-catalog-manager__filter-input:focus {
+  outline: none;
+  border-color: var(--color-primary, #ea2630);
+  box-shadow: 0 0 0 3px rgba(234, 38, 48, 0.12);
+}
+
+.admin-catalog-manager__empty--filter {
+  padding: 40px 20px;
+}
+
+.admin-catalog-manager__empty--filter p {
+  margin: 0 0 16px;
+}
+
+.admin-catalog-manager__filter-clear {
+  padding: 8px 18px;
+  border-radius: 6px;
+  border: 1px solid #6c757d;
+  background: #fff;
+  color: #495057;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.admin-catalog-manager__filter-clear:hover {
+  background: #f8f9fa;
+  border-color: #495057;
+}
+
 .admin-catalog-manager__catalogs-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));

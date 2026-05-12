@@ -86,11 +86,13 @@ class Catalog extends Model
     }
 
     /**
-     * Obtener catálogos ordenados por código (ascendente)
+     * Orden de listados: primero activos, luego por id descendente (más recientes primero).
      */
     public function scopeOrdered($query)
     {
-        return $query->orderByRaw('CAST(code AS UNSIGNED) ASC');
+        return $query
+            ->orderByDesc('is_active')
+            ->orderByDesc('id');
     }
 
     /**
