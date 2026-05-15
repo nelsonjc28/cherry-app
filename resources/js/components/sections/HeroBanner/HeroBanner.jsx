@@ -334,9 +334,10 @@ const HeroBanner = () => {
               <span className="title-part2">{currentBanner.titlePart2}</span>
             </h1>
 
-            <p className="banner-description">
-              {currentBanner.description}
-            </p>
+            <div
+              className="banner-description banner-description--html"
+              dangerouslySetInnerHTML={{ __html: currentBanner.description }}
+            />
 
             <div className="banner-actions">
               <a

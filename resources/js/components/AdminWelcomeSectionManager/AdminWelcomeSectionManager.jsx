@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Swal from 'sweetalert2';
 import { welcomeSectionService, formDataUtils } from '../../services/api';
+import AdminRichTextEditor from '../AdminRichTextEditor';
+import { isRichTextBodyEmpty } from '../../utils/richTextUtils';
 import './AdminWelcomeSectionManager.css';
 
 const AdminWelcomeSectionManager = () => {
@@ -60,10 +62,18 @@ const AdminWelcomeSectionManager = () => {
         return;
       }
       
-      // Validar campos requeridos usando las utilidades
+      if (isRichTextBodyEmpty(formData.subtitle)) {
+        setError('El subtítulo / descripción es obligatorio');
+        if (window.showToast) {
+          window.showToast('El subtítulo / descripción es obligatorio', 'error');
+        }
+        return;
+      }
+
+      // Validar campos requeridos usando las utilidades (subtitle es HTML: se valida arriba)
       try {
         const tempFormData = formDataUtils.createFromObject(formData, { trim: true });
-        formDataUtils.validateRequired(tempFormData, ['title', 'subtitle', 'button_text', 'button_url']);
+        formDataUtils.validateRequired(tempFormData, ['title', 'button_text', 'button_url']);
       } catch (validationError) {
         setError(validationError.message);
         if (window.showToast) {
@@ -424,7 +434,10 @@ const AdminWelcomeSectionManager = () => {
                       </div>
                       <div className="admin-welcome-manager__section-details">
                         <h4>{section.title}</h4>
-                        <p>{section.subtitle}</p>
+                        <div
+                          className="admin-welcome-manager__section-subtitle-html"
+                          dangerouslySetInnerHTML={{ __html: section.subtitle || '' }}
+                        />
                         <div className="admin-welcome-manager__section-meta">
                           <span className={`status-badge ${section.is_active ? 'active' : 'inactive'}`}>
                             {section.is_active ? 'Activa' : 'Inactiva'}
@@ -495,17 +508,15 @@ const AdminWelcomeSectionManager = () => {
                   />
                 </div>
 
-                <div className="form-group">
+                <div className="form-group admin-welcome-manager__richtext-group">
                   <label htmlFor="subtitle">Subtítulo/Descripción *</label>
-                  <textarea
-                    id="subtitle"
-                    name="subtitle"
+                  <small className="form-text text-muted d-block mb-2">
+                    Mismo editor que en Términos y condiciones (negritas, listas, enlaces, etc.). Se mostrará en el inicio tal como lo guardes.
+                  </small>
+                  <AdminRichTextEditor
                     value={formData.subtitle}
-                    onChange={handleInputChange}
-                    className="form-control"
-                    rows="3"
-                    required
-                    placeholder="Ej: Explora nuestra colección única y actualizada que resalta tu estilo personal..."
+                    onChange={(html) => setFormData((prev) => ({ ...prev, subtitle: html }))}
+                    height={380}
                   />
                 </div>
 

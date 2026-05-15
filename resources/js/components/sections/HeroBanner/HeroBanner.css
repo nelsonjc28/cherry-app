@@ -79,6 +79,31 @@
   font-weight: 400;
 }
 
+/* HTML del subtítulo (TinyMCE): respetar contenido del cliente y permitir selección de texto */
+.banner-description.banner-description--html {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.banner-description.banner-description--html p {
+  margin: 0 0 0.5em 0;
+}
+
+.banner-description.banner-description--html p:last-child {
+  margin-bottom: 0;
+}
+
+.banner-description.banner-description--html a {
+  color: var(--color-primary, #ea2630);
+  text-decoration: underline;
+}
+
+.banner-description.banner-description--html ul,
+.banner-description.banner-description--html ol {
+  margin: 0.35em 0 0.5em 1.1em;
+  padding: 0;
+}
+
 /* Botones de acción */
 .banner-actions {
   display: flex;

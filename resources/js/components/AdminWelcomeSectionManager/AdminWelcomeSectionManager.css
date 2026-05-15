@@ -563,4 +563,26 @@
     margin: 10px;
     max-height: 95vh;
   }
+}
+
+/* Vista previa HTML del subtítulo en tarjetas */
+.admin-welcome-manager__section-subtitle-html {
+  font-size: 0.95rem;
+  color: #555;
+  max-height: 140px;
+  overflow-y: auto;
+  line-height: 1.45;
+  margin: 0.25rem 0 0.5rem;
+}
+
+.admin-welcome-manager__section-subtitle-html p {
+  margin: 0 0 0.35em 0;
+}
+
+.admin-welcome-manager__section-subtitle-html p:last-child {
+  margin-bottom: 0;
+}
+
+.admin-welcome-manager__richtext-group .tox-tinymce {
+  border-radius: 6px;
 } 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Editor } from '@tinymce/tinymce-react';
+import AdminRichTextEditor from '../AdminRichTextEditor';
 import apiClient from '../../api/config/apiConfig';
 import Swal from 'sweetalert2';
 import './AdminPrivacyPolicyManager.css';
@@ -277,41 +277,11 @@ const AdminPrivacyPolicyManager = () => {
                     </small>
                   </div>
 
-                                 {/* Editor TinyMCE */}
-                 <Editor
-                   apiKey="uhtywi0yqpomfyb0hr8tkly5wd3qg1b2j856pe4wz4f3zh1q"
-                   value={editorState.content}
-                   onEditorChange={handleEditorChange}
-                   init={{
-                     height: 500,
-                     menubar: false,
-                     plugins: [
-                       'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-                       'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                       'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
-                     ],
-                     toolbar: 'undo redo | blocks | ' +
-                       'bold italic forecolor | alignleft aligncenter ' +
-                       'alignright alignjustify | bullist numlist outdent indent | ' +
-                       'removeformat | help',
-                     content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
-                     language: 'es',
-                     branding: false,
-                     elementpath: false,
-                     statusbar: true,
-                     resize: true,
-                     paste_as_text: true,
-                     paste_enable_default_filters: true,
-                     paste_word_valid_elements: 'b,strong,i,em,h1,h2,h3,h4,h5,h6,p,br,ul,ol,li',
-                     paste_retain_style_properties: 'none',
-                     paste_remove_styles_if_webkit: true,
-                     paste_remove_styles: true,
-                     paste_filter_drop: true,
-                     paste_convert_word_fake_lists: true,
-                     paste_remove_styles_selector: 'b,strong,i,em,h1,h2,h3,h4,h5,h6',
-                     paste_auto_cleanup_on_paste: true
-                   }}
-                 />
+                <AdminRichTextEditor
+                  value={editorState.content}
+                  onChange={handleEditorChange}
+                  height={500}
+                />
               </div>
 
               <div className="admin-privacy-manager__form-actions">
