@@ -9,6 +9,8 @@ import {
   getVolumeDiscountMainTier,
   getVolumeDiscountExtraPercent,
   getSellerCategoryFromUser,
+  hasApiVolumeMainPercent,
+  canApplyMainDiscount,
 } from '../../utils/sellerVolumeDiscount';
 
 const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout }) => {   
@@ -60,17 +62,18 @@ const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout 
 
     const { mainRate: volMainRate } = getVolumeDiscountMainTier(user);
     const extraRate = getVolumeDiscountExtraPercent(user) / 100;
+    const hasApiMain = hasApiVolumeMainPercent(user);
+    const mainApplies = canApplyMainDiscount(user, eligibleTotal);
+    const applySecondTier = hasApiMain || eligibleTotal >= 15000;
 
-    // Calcular total después de descuentos para envío gratis (misma regla que checkout: tramos API o categoría)
     let discountAmount = 0;
-    if (eligibleTotal >= 7000) {
-      if (eligibleTotal >= 15000) {
-        const discountMain = eligibleTotal * volMainRate;
-        const totalAfterMain = eligibleTotal - discountMain;
-        const discountExtra = totalAfterMain * extraRate;
-        discountAmount = discountMain + discountExtra;
+    if (mainApplies) {
+      const discountMain = eligibleTotal * volMainRate;
+      const totalAfterMain = eligibleTotal - discountMain;
+      if (applySecondTier) {
+        discountAmount = discountMain + totalAfterMain * extraRate;
       } else {
-        discountAmount = eligibleTotal * volMainRate;
+        discountAmount = discountMain;
       }
     }
 
@@ -81,12 +84,12 @@ const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout 
       : totalAfterDiscount >= 3000;
 
     return {
-      discount30: eligibleTotal >= 7000,
-      discount40: eligibleTotal >= 15000,
+      discount30: mainApplies,
+      discount40: mainApplies && applySecondTier,
       freeShipping: hasFreeShipping,
       eligibleTotal,
-      remainingForDiscount30: eligibleTotal < 7000 ? 7000 - eligibleTotal : 0,
-      remainingForDiscount40: eligibleTotal >= 7000 && eligibleTotal < 15000 ? 15000 - eligibleTotal : 0,
+      remainingForDiscount30: !mainApplies && eligibleTotal < 7000 ? Math.max(0, 7000 - eligibleTotal) : 0,
+      remainingForDiscount40: hasApiMain ? 0 : (mainApplies && eligibleTotal < 15000 ? 15000 - eligibleTotal : 0),
       remainingForFreeShipping: !hasFreeShipping ? Math.max(0, freeShippingMin - totalAfterDiscount) : 0
     };
   }, [cartItems, user]);

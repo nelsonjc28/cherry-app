@@ -38,7 +38,8 @@ import { isProductNewLikeNuevosPage } from '../utils/productNewRules';
 import useHorizontalDragScroll from '../hooks/useHorizontalDragScroll';
 import colorConverter from '../services/colorConverter';
 import { validateStock, getProductStock } from '../services/inventoryService';
-import { getVolumeDiscountMainTier, getSellerCategoryFromUser, hasApiVolumeMainPercent } from '../utils/sellerVolumeDiscount';
+import { getVolumeDiscountMainTier, getSellerCategoryFromUser, hasApiVolumeMainPercent, canApplyMainDiscount } from '../utils/sellerVolumeDiscount';
+import { summarizeVolumeFromCartItems } from '../utils/cartVolumePricing';
 
 // Función para formatear montos con separador de miles
 const formatMoneyWithCommas = (value) => {
@@ -1008,6 +1009,15 @@ const ProductPage = () => {
     // Alertas para descuentos (solo si hay items elegibles o el producto actual es elegible)
     const productHasNoPromo = !product?.desc_promo || product.desc_promo === 0;
 
+    const volSummary = user && (cartItems || []).length
+      ? summarizeVolumeFromCartItems(user, cartItems)
+      : null;
+    const desc2 = volSummary ? Number(volSummary.descuento2) : 0;
+    const apiSecondTierActive = hasApiVolumeMainPercent(user)
+      && canApplyMainDiscount(user, eligibleCartTotal)
+      && desc2 > 0
+      && eligibleCartTotal < DISCOUNT_40_THRESHOLD;
+
     if (productHasNoPromo || eligibleCartTotal > 0) {
       if (eligibleCartTotal < DISCOUNT_30_THRESHOLD) {
         const remaining = DISCOUNT_30_THRESHOLD - eligibleCartTotal;
@@ -1040,29 +1050,40 @@ const ProductPage = () => {
         const remaining = DISCOUNT_40_THRESHOLD - eligibleCartTotal;
         const isNear = eligibleCartTotal >= (DISCOUNT_40_THRESHOLD * NEAR_THRESHOLD_PERCENT);
 
-        alerts.push({
-          type: 'success',
-          icon: '✅',
-          message: isDiamanteUser
-            ? '¡Tienes tu descuento por volumen activado!'
-            : `¡Tienes ${volMainPercent}% de descuento!`,
-          color: '#4caf50'
-        });
-
-        if (isNear) {
+        if (apiSecondTierActive) {
           alerts.push({
-            type: 'near',
-            icon: '🔥',
-            message: `¡Ya casi! Te faltan $${formatMoneyWithCommas(remaining)} para un 10% adicional`,
-            color: '#ff9800'
+            type: 'success',
+            icon: '🎉',
+            message: isDiamanteUser
+              ? '¡Tienes el descuento máximo por volumen (incluye 10% adicional)!'
+              : `¡Tienes el descuento máximo del ${volMainPercent}% + 10% adicional!`,
+            color: '#4caf50',
           });
         } else {
           alerts.push({
-            type: 'info',
-            icon: '🎯',
-            message: `Te faltan $${formatMoneyWithCommas(remaining)} para un 10% adicional`,
-            color: '#2196f3'
+            type: 'success',
+            icon: '✅',
+            message: isDiamanteUser
+              ? '¡Tienes tu descuento por volumen activado!'
+              : `¡Tienes ${volMainPercent}% de descuento!`,
+            color: '#4caf50',
           });
+
+          if (isNear) {
+            alerts.push({
+              type: 'near',
+              icon: '🔥',
+              message: `¡Ya casi! Te faltan $${formatMoneyWithCommas(remaining)} para un 10% adicional`,
+              color: '#ff9800',
+            });
+          } else {
+            alerts.push({
+              type: 'info',
+              icon: '🎯',
+              message: `Te faltan $${formatMoneyWithCommas(remaining)} para un 10% adicional`,
+              color: '#2196f3',
+            });
+          }
         }
       } else if (eligibleCartTotal >= DISCOUNT_40_THRESHOLD) {
         alerts.push({

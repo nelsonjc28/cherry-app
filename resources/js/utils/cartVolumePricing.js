@@ -1,12 +1,14 @@
 /**
  * Alineado con {@see App\Services\PriceService::summarizeVolumeFromItems} (PHP).
- * Sin descuento1 en usuario: reglas tipo bronce para todos (≥ $7k / 45 días) y 30 %+10 %. Con API: los % del usuario.
+ * Sin descuento1 en usuario: reglas tipo bronce para todos (≥ $7k / 45 días) y 30 % + 10 % si ≥ $15k elegible.
+ * Con descuento1 desde API: los % del usuario; el segundo tramo aplica junto al primero (sin umbral $15k).
  */
 
 import {
   canApplyMainDiscount,
   getVolumeDiscountMainTier,
   getVolumeDiscountExtraPercent,
+  hasApiVolumeMainPercent,
 } from './sellerVolumeDiscount';
 
 export const SECOND_TIER_ELIGIBLE_MIN = 15000;
@@ -56,7 +58,10 @@ export function summarizeVolumeFromPricingLines(user, lines) {
     volMain = round2(eligibleTotal * mainRate);
     const afterMain = round2(eligibleTotal - volMain);
 
-    if (eligibleTotal >= SECOND_TIER_ELIGIBLE_MIN) {
+    const hasApiMain = hasApiVolumeMainPercent(user);
+    const applySecondTier = hasApiMain || eligibleTotal >= SECOND_TIER_ELIGIBLE_MIN;
+
+    if (applySecondTier) {
       volExtra = round2(afterMain * extraRate);
       descuento2 = extraPercent;
     }

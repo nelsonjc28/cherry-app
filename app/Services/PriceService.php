@@ -10,10 +10,12 @@ use App\Models\User;
  * descuento1 / descuento2 desde la API de clientes (consulta por cálculo).
  *
  * Si la API devuelve descuento1 usable: ese % y las reglas habituales de quién aplica (no-bronce con
- * elegible > 0; bronce con ≥ $7.000 o beneficio temporal).
+ * elegible > 0; bronce con ≥ $7.000 o beneficio temporal). El segundo tramo (descuento2) aplica junto al
+ * primero, sin exigir $15k elegible.
  *
  * Si la API no devuelve descuento1: se aplica a **todos** el mismo criterio que antes era solo bronce
- * (≥ $7.000 elegible o ventana de 45 días con bronze_benefit_active) y porcentajes 30 % + 10 % segundo tramo.
+ * (≥ $7.000 elegible o ventana de 45 días con bronze_benefit_active) y porcentajes 30 % + segundo tramo
+ * solo si el elegible ≥ $15.000.
  */
 class PriceService
 {
@@ -202,7 +204,13 @@ class PriceService
             $volMain = round($eligibleTotal * $mainRate, 2);
             $afterMain = round($eligibleTotal - $volMain, 2);
 
-            if ($eligibleTotal >= self::SECOND_TIER_ELIGIBLE_MIN) {
+            // Con descuento1 desde API: segundo tramo aplica junto al primero (sin umbral $15k).
+            // Sin API: se mantiene el umbral de $15k elegible para el segundo tramo.
+            $applySecondTier = $hasApiMain
+                ? true
+                : ($eligibleTotal >= self::SECOND_TIER_ELIGIBLE_MIN);
+
+            if ($applySecondTier) {
                 $volExtra = round($afterMain * $extraRate, 2);
                 $descuento2 = $extraPercent;
             }

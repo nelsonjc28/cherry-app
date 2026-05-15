@@ -17,6 +17,7 @@ import {
   isBronzeBenefitActive,
   getBronzeBenefitRemainingDays,
   hasApiVolumeMainPercent,
+  canApplyMainDiscount,
 } from '../utils/sellerVolumeDiscount';
 import {
   cartItemToPricingLine,
@@ -1062,7 +1063,7 @@ const CartDetailsPage = () => {
     // El error ya se maneja en el componente IntegratedCheckout
   };
 
-  // Descuento por volumen alineado con PriceService (elegible total ≥ $15k para +10% adicional)
+  // Descuento por volumen alineado con PriceService (sin API: +10 % adicional si elegible ≥ $15k; con API: segundo tramo sin $15k)
   const volumeSummary = summarizeVolumeFromCartItems(user, cartItems);
   const eligibleTotal = volumeSummary.eligible_total;
   const dayFortyFiveDiscountAmount = volumeSummary.volume_discount;
@@ -1105,7 +1106,7 @@ const CartDetailsPage = () => {
   const orderSummary = {
     creditDays: '',
     discount1: descuento1, // 30 u 33 si hay productos elegibles; 0 si no
-    discount2: descuento2, // 10 si el neto tras primer descuento supera 15,000; 0 si no
+    discount2: descuento2, // 10 u otro % del segundo tramo; sin API solo si elegible ≥ 15k; con API junto al primero
     pieces: totalItems,
     subtotal: baseTotal.toFixed(2),
     discountTotal: dayFortyFiveDiscountAmount > 0 ? dayFortyFiveDiscountAmount.toFixed(2) : '0.00',
@@ -1130,6 +1131,12 @@ const CartDetailsPage = () => {
     
     // Solo mostrar alertas si hay productos elegibles (sin rebaja)
     if (eligibleTotal <= 0) return alerts;
+
+    const hasApiMain = hasApiVolumeMainPercent(user);
+    const apiSecondTierActive = hasApiMain
+      && canApplyMainDiscount(user, eligibleTotal)
+      && Number(descuento2) > 0
+      && eligibleTotal < DISCOUNT_40_THRESHOLD;
 
     if (isBronzeUser) {
       if (bronzeBenefitActive) {
@@ -1187,40 +1194,47 @@ const CartDetailsPage = () => {
           color: '#2196f3'
         });
       }
-    }
-    else if (eligibleTotal >= DISCOUNT_30_THRESHOLD && eligibleTotal < DISCOUNT_40_THRESHOLD) {
+    } else if (eligibleTotal >= DISCOUNT_30_THRESHOLD && eligibleTotal < DISCOUNT_40_THRESHOLD) {
       const remaining = DISCOUNT_40_THRESHOLD - eligibleTotal;
       const isNear = eligibleTotal >= (DISCOUNT_40_THRESHOLD * NEAR_THRESHOLD_PERCENT);
 
-      // Oro y diamante: no mostrar "¡Felicidades! … descuento del 30% / descuento activado" al entrar al carrito
-      if (!hasApiVolumeMainPercent(user)) {
+      if (apiSecondTierActive) {
         alerts.push({
           type: 'success',
-          icon: '✅',
-          message: isDiamanteUser
-            ? '¡Felicidades! Ya tienes tu descuento activado'
-            : `¡Felicidades! Ya tienes ${discountLabel}`,
-          color: '#4caf50'
-        });
-      }
-      
-      if (isNear) {
-        alerts.push({
-          type: 'near',
-          icon: '🔥',
-          message: `¡Ya casi! Te faltan $${formatMoney(remaining)} para obtener un 10% adicional`,
-          color: '#ff9800'
+          icon: '🎉',
+          message: maxDiscountLabel,
+          color: '#4caf50',
         });
       } else {
-        alerts.push({
-          type: 'info',
-          icon: '🎯',
-          message: `Te faltan $${formatMoney(remaining)} para obtener un 10% adicional`,
-          color: '#2196f3'
-        });
+        // Oro y diamante: no mostrar "¡Felicidades! … descuento del 30% / descuento activado" al entrar al carrito
+        if (!hasApiVolumeMainPercent(user)) {
+          alerts.push({
+            type: 'success',
+            icon: '✅',
+            message: isDiamanteUser
+              ? '¡Felicidades! Ya tienes tu descuento activado'
+              : `¡Felicidades! Ya tienes ${discountLabel}`,
+            color: '#4caf50'
+          });
+        }
+
+        if (isNear) {
+          alerts.push({
+            type: 'near',
+            icon: '🔥',
+            message: `¡Ya casi! Te faltan $${formatMoney(remaining)} para obtener un 10% adicional`,
+            color: '#ff9800'
+          });
+        } else {
+          alerts.push({
+            type: 'info',
+            icon: '🎯',
+            message: `Te faltan $${formatMoney(remaining)} para obtener un 10% adicional`,
+            color: '#2196f3'
+          });
+        }
       }
-    }
-    else if (eligibleTotal >= DISCOUNT_40_THRESHOLD) {
+    } else if (eligibleTotal >= DISCOUNT_40_THRESHOLD) {
       alerts.push({
         type: 'success',
         icon: '🎉',
