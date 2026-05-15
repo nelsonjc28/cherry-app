@@ -21,7 +21,10 @@ class ClientController extends Controller
     public function getClients()
     {
         try {
-            $users = User::with(['role', 'addresses'])->where('role_id', 2)->get();
+            $users = User::with(['role', 'addresses'])
+                ->where('role_id', 2)
+                ->orderBy('id', 'desc')
+                ->get();
             return response()->json([
                 'success' => true,
                 'users' => $users
