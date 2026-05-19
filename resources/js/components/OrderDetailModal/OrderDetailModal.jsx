@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import CherryButton from '../CherryButton/CherryButton';
 import api from '../../config/axios';
+import { adminOrderService } from '../../services/api';
 import useUserStore from '../../store/userStore';
 import './OrderDetailModal.css';
 import { buildStreetWithNumbers } from '../../utils/addressDisplay';
@@ -73,6 +74,64 @@ const RetryRemainderPaymentButton = ({ orderId }) => {
 
 RetryRemainderPaymentButton.propTypes = {
   orderId: PropTypes.number.isRequired
+};
+
+const ResendExternalApiButton = ({ orderId, externalApiSent, onSuccess }) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleResend = async () => {
+    const confirmMsg = externalApiSent
+      ? 'Este pedido ya está marcado como enviado a la API externa. ¿Reenviar de todos modos?'
+      : '¿Enviar este pedido a la API externa del almacén?';
+    if (!window.confirm(confirmMsg)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await adminOrderService.resendToExternalApi(orderId);
+
+      if (response.data?.success) {
+        if (window.showToast) {
+          window.showToast(response.data.message || 'Pedido enviado a la API externa', 'success');
+        }
+        onSuccess?.(response.data.order);
+      } else {
+        setError(response.data?.message || 'No se pudo enviar el pedido');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Error al enviar a la API externa');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ width: '100%' }}>
+      {error && (
+        <div style={{ color: '#d32f2f', marginBottom: '8px', fontSize: '14px' }}>
+          {error}
+        </div>
+      )}
+      <CherryButton
+        variant="outline"
+        size="medium"
+        onClick={handleResend}
+        disabled={loading}
+        style={{ width: '100%' }}
+      >
+        {loading ? 'Enviando…' : externalApiSent ? '↻ Reenviar a API externa' : '↑ Enviar a API externa'}
+      </CherryButton>
+    </div>
+  );
+};
+
+ResendExternalApiButton.propTypes = {
+  orderId: PropTypes.number.isRequired,
+  externalApiSent: PropTypes.bool,
+  onSuccess: PropTypes.func,
 };
 
 /** Orden completa pendiente en MP (incluye la parte “faltante” de un split crédito + MP). */
@@ -226,7 +285,14 @@ const getVolumeBreakdown = (gross, net, d1Raw, d2Raw, userForFallback) => {
   return { total: V, main: V, extra: 0, d1: fbD1, d2: 0 };
 };
 
-const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, isAdmin = false }) => {
+const OrderDetailModal = ({
+  order,
+  isOpen,
+  onClose,
+  showReviewButton = false,
+  isAdmin = false,
+  onOrderUpdated,
+}) => {
   const viewerUser = useUserStore((s) => s.user);
   const isViewerOroDiamante = ['oro', 'diamante'].includes(
     String(viewerUser?.seller_category || '').toLowerCase()
@@ -495,6 +561,54 @@ const OrderDetailModal = ({ order, isOpen, onClose, showReviewButton = false, is
                       <span>{order.paymentId}</span>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* API externa (solo admin) */}
+            {isAdmin && (
+              <div className="info-section info-section--compact info-section--tight-title">
+                <h3>API externa (almacén)</h3>
+                <div className="order-detail-info">
+                  <div className="info-row">
+                    <span className="info-label">Estado envío:</span>
+                    <span
+                      className={
+                        order.external_api_sent
+                          ? 'external-api-badge external-api-badge--sent'
+                          : order.should_send_to_external_api
+                            ? 'external-api-badge external-api-badge--pending'
+                            : 'external-api-badge external-api-badge--na'
+                      }
+                      style={{ display: 'inline-flex', width: 'auto', height: 'auto', padding: '2px 8px', borderRadius: '4px', fontSize: '12px' }}
+                    >
+                      {order.external_api_sent
+                        ? 'Enviado'
+                        : order.should_send_to_external_api
+                          ? 'Pendiente'
+                          : 'No aplica'}
+                    </span>
+                  </div>
+                  {order.external_api_sent_at && (
+                    <div className="info-row">
+                      <span className="info-label">Fecha envío:</span>
+                      <span>{new Date(order.external_api_sent_at).toLocaleString('es-MX')}</span>
+                    </div>
+                  )}
+                  <div className="info-row" style={{ marginTop: '8px' }}>
+                    <ResendExternalApiButton
+                      orderId={order.id}
+                      externalApiSent={!!order.external_api_sent}
+                      onSuccess={(updated) => {
+                        onOrderUpdated?.({
+                          ...order,
+                          external_api_sent: updated?.external_api_sent ?? true,
+                          external_api_sent_at: updated?.external_api_sent_at ?? new Date().toISOString(),
+                          should_send_to_external_api: updated?.should_send_to_external_api ?? false,
+                        });
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -806,7 +920,9 @@ OrderDetailModal.propTypes = {
   order: PropTypes.object,
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
-  showReviewButton: PropTypes.bool
+  showReviewButton: PropTypes.bool,
+  isAdmin: PropTypes.bool,
+  onOrderUpdated: PropTypes.func,
 };
 
 export default OrderDetailModal;

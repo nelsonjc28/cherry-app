@@ -9,6 +9,7 @@ use App\Models\OrderItem;
 use App\Models\Producto;
 use App\Models\User;
 use App\Models\Notification;
+use App\Services\ExternalSalesService;
 use App\Services\UserSellerCategoryActivityService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -120,7 +121,10 @@ class AdminOrderController extends Controller
                     'is_advance_order' => (bool) ($order->is_advance_order ?? false),
                     'order_number_prefix' => $order->orderNumberPrefixForDisplay(),
                     'is_prepared' => (bool) ($order->is_prepared ?? false),
-                    'tracking_number' => $order->tracking_number ?? null
+                    'tracking_number' => $order->tracking_number ?? null,
+                    'external_api_sent' => (bool) ($order->external_api_sent ?? false),
+                    'external_api_sent_at' => $order->external_api_sent_at?->toIso8601String(),
+                    'should_send_to_external_api' => $order->shouldSendToExternalApi(),
                 ];
             });
 
@@ -203,15 +207,9 @@ class AdminOrderController extends Controller
                                 $paymentData = json_decode($paymentData, true) ?? [];
                             }
 
-                            $alreadySent = isset($paymentData['external_api_sent']) && $paymentData['external_api_sent'] === true;
-
-                            if (! $alreadySent) {
+                            if (! $order->external_api_sent) {
                                 $externalSalesService = app(\App\Services\ExternalSalesService::class);
                                 $externalSalesService->sendSaleToExternalApi($order);
-
-                                $paymentData['external_api_sent'] = true;
-                                $paymentData['external_api_sent_at'] = now()->toIso8601String();
-                                $order->update(['payment_data' => json_encode($paymentData)]);
 
                                 \Illuminate\Support\Facades\Log::info('Pedido enviado a API externa desde AdminOrderController', [
                                     'order_id' => $order->id,
@@ -335,6 +333,9 @@ class AdminOrderController extends Controller
                 'order_number_prefix' => $order->orderNumberPrefixForDisplay(),
                 'is_prepared' => (bool) ($order->is_prepared ?? false),
                 'tracking_number' => $order->tracking_number ?? null,
+                'external_api_sent' => (bool) ($order->external_api_sent ?? false),
+                'external_api_sent_at' => $order->external_api_sent_at?->toIso8601String(),
+                'should_send_to_external_api' => $order->shouldSendToExternalApi(),
             ];
 
             return response()->json([
@@ -347,6 +348,44 @@ class AdminOrderController extends Controller
                 'success' => false,
                 'message' => 'Error al obtener la orden: ' . $e->getMessage()
             ], 404);
+        }
+    }
+
+    /**
+     * Reenvío manual de la venta a la API externa (admin).
+     */
+    public function resendToExternalApi($orderId, ExternalSalesService $externalSalesService)
+    {
+        try {
+            $order = Order::with(['user', 'items', 'address'])->findOrFail($orderId);
+
+            $wasAlreadySent = (bool) $order->external_api_sent;
+
+            $externalSalesService->sendSaleToExternalApi($order);
+            $order->refresh();
+
+            return response()->json([
+                'success' => true,
+                'message' => $wasAlreadySent
+                    ? 'Pedido reenviado a la API externa (ya estaba marcado como enviado).'
+                    : 'Pedido enviado a la API externa correctamente.',
+                'order' => [
+                    'id' => $order->id,
+                    'external_api_sent' => (bool) $order->external_api_sent,
+                    'external_api_sent_at' => $order->external_api_sent_at?->toIso8601String(),
+                    'should_send_to_external_api' => $order->shouldSendToExternalApi(),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error en reenvío manual a API externa', [
+                'order_id' => $orderId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage() ?: 'No se pudo enviar el pedido a la API externa.',
+            ], 500);
         }
     }
 
@@ -727,15 +766,9 @@ class AdminOrderController extends Controller
                             $paymentData = json_decode($paymentData, true) ?? [];
                         }
 
-                        $alreadySent = isset($paymentData['external_api_sent']) && $paymentData['external_api_sent'] === true;
-
-                        if (! $alreadySent) {
+                        if (! $order->external_api_sent) {
                             $externalSalesService = app(\App\Services\ExternalSalesService::class);
                             $externalSalesService->sendSaleToExternalApi($order);
-
-                            $paymentData['external_api_sent'] = true;
-                            $paymentData['external_api_sent_at'] = now()->toIso8601String();
-                            $order->update(['payment_data' => json_encode($paymentData)]);
                         }
                     } catch (\Exception $e) {
                         \Illuminate\Support\Facades\Log::error('Error al enviar pedido a crédito pagado a API externa', [

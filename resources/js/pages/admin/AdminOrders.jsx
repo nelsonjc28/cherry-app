@@ -73,6 +73,7 @@ const AdminOrders = () => {
   const [markingAsPaid, setMarkingAsPaid] = useState(false);
   const [orderToMarkAsPaid, setOrderToMarkAsPaid] = useState(null);
   const [showMarkAsPaidModal, setShowMarkAsPaidModal] = useState(false);
+  const [resendingExternalApiOrderId, setResendingExternalApiOrderId] = useState(null);
 
   // Función para actualizar filtros y guardarlos
   const updateStatusFilter = (value) => {
@@ -328,6 +329,61 @@ const AdminOrders = () => {
     setSelectedOrderForDetail(null);
   };
 
+  const patchOrderExternalApiFlags = (orderId, flags) => {
+    const patch = (order) =>
+      order.id === orderId
+        ? {
+            ...order,
+            external_api_sent: flags.external_api_sent ?? order.external_api_sent,
+            external_api_sent_at: flags.external_api_sent_at ?? order.external_api_sent_at,
+            should_send_to_external_api:
+              flags.should_send_to_external_api ?? order.should_send_to_external_api,
+          }
+        : order;
+
+    setOrders((prev) => prev.map(patch));
+    setSelectedOrderForDetail((prev) => (prev && prev.id === orderId ? patch(prev) : prev));
+  };
+
+  const handleResendExternalApi = async (order, e) => {
+    e?.stopPropagation?.();
+
+    const confirmMsg = order.external_api_sent
+      ? `El pedido #${formatOrderNumber(order)} ya está marcado como enviado. ¿Reenviar a la API externa?`
+      : `¿Enviar el pedido #${formatOrderNumber(order)} a la API externa del almacén?`;
+    if (!window.confirm(confirmMsg)) {
+      return;
+    }
+
+    try {
+      setResendingExternalApiOrderId(order.id);
+      const response = await adminOrderService.resendToExternalApi(order.id);
+
+      if (response.data?.success) {
+        const updated = response.data.order || {};
+        patchOrderExternalApiFlags(order.id, {
+          external_api_sent: updated.external_api_sent ?? true,
+          external_api_sent_at: updated.external_api_sent_at ?? new Date().toISOString(),
+          should_send_to_external_api: updated.should_send_to_external_api ?? false,
+        });
+        if (window.showToast) {
+          window.showToast(response.data.message || 'Pedido enviado a la API externa', 'success');
+        }
+      } else if (window.showToast) {
+        window.showToast(response.data?.message || 'No se pudo enviar', 'error');
+      }
+    } catch (err) {
+      if (window.showToast) {
+        window.showToast(
+          err.response?.data?.message || 'Error al enviar a la API externa',
+          'error'
+        );
+      }
+    } finally {
+      setResendingExternalApiOrderId(null);
+    }
+  };
+
   const handleMarkCreditAsPaid = (order) => {
     setOrderToMarkAsPaid(order);
     setShowMarkAsPaidModal(true);
@@ -509,6 +565,7 @@ const AdminOrders = () => {
                   <th>Cant. piezas</th>
                   <th>Total</th>
                   <th>Estado</th>
+                  <th className="admin-orders__th-api" title="Envío a API externa">API</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
@@ -584,6 +641,32 @@ const AdminOrders = () => {
                           {order.statusDisplay || order.status}
                         </span>
                       </td>
+                      <td className="order-api-cell">
+                        {order.external_api_sent ? (
+                          <span
+                            className="external-api-badge external-api-badge--sent"
+                            title={order.external_api_sent_at
+                              ? `Enviado a API externa: ${new Date(order.external_api_sent_at).toLocaleString('es-MX')}`
+                              : 'Enviado a API externa'}
+                          >
+                            ✓
+                          </span>
+                        ) : order.should_send_to_external_api ? (
+                          <span
+                            className="external-api-badge external-api-badge--pending"
+                            title="Pendiente de envío a API externa"
+                          >
+                            !
+                          </span>
+                        ) : (
+                          <span
+                            className="external-api-badge external-api-badge--na"
+                            title="Aún no debe enviarse a la API externa"
+                          >
+                            —
+                          </span>
+                        )}
+                      </td>
                       <td className="order-actions-cell">
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
                           <button
@@ -615,6 +698,41 @@ const AdminOrders = () => {
                           >
                             {loadingOrderDetail ? '⏳' : '👁️'}
                           </button>
+                          {!isOperator && (
+                            <button
+                              type="button"
+                              className="order-action-btn order-action-btn--resend-api"
+                              onClick={(e) => handleResendExternalApi(order, e)}
+                              disabled={resendingExternalApiOrderId === order.id}
+                              data-tooltip={
+                                order.external_api_sent
+                                  ? 'Reenviar a API externa'
+                                  : 'Enviar a API externa'
+                              }
+                              onMouseEnter={(e) => {
+                                const button = e.currentTarget;
+                                const tooltipText = button.getAttribute('data-tooltip');
+                                let tooltip = document.querySelector('.order-tooltip');
+                                if (!tooltip) {
+                                  tooltip = document.createElement('div');
+                                  tooltip.className = 'order-tooltip';
+                                  document.body.appendChild(tooltip);
+                                }
+                                tooltip.textContent = tooltipText;
+                                tooltip.style.display = 'block';
+                                const rect = button.getBoundingClientRect();
+                                const tooltipRect = tooltip.getBoundingClientRect();
+                                tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
+                                tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
+                              }}
+                              onMouseLeave={() => {
+                                const tooltip = document.querySelector('.order-tooltip');
+                                if (tooltip) tooltip.style.display = 'none';
+                              }}
+                            >
+                              {resendingExternalApiOrderId === order.id ? '⏳' : '↻'}
+                            </button>
+                          )}
                           {!isOperator && isPendingPaymentStatus(order) && (
                             <button
                               className="order-action-btn order-action-btn--mark-paid"
@@ -785,6 +903,13 @@ const AdminOrders = () => {
           isOpen={showOrderDetailModal}
           onClose={handleCloseOrderDetailModal}
           isAdmin={true}
+          onOrderUpdated={(updatedOrder) => {
+            patchOrderExternalApiFlags(updatedOrder.id, {
+              external_api_sent: updatedOrder.external_api_sent,
+              external_api_sent_at: updatedOrder.external_api_sent_at,
+              should_send_to_external_api: updatedOrder.should_send_to_external_api,
+            });
+          }}
         />
       )}
     </div>

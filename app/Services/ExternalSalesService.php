@@ -467,40 +467,74 @@ class ExternalSalesService
         $response = Http::timeout(30)
             ->withoutVerifying()
             ->post(self::EXTERNAL_API_URL, $payload);
-        
-        if ($response->successful()) {
+
+        if ($this->isSuccessfulExternalApiResponse($response)) {
+            $order->markExternalApiSent();
+
             Log::info('Venta enviada exitosamente a API externa', [
                 'order_id' => $order->id,
                 'status' => $response->status(),
-                'response' => $response->json()
+                'response' => $response->json(),
             ]);
+
             return;
-        } else {
-            $errorBody = $response->body();
-            $errorJson = $response->json();
-            Log::error('Error al enviar venta a API externa', [
-                'order_id' => $order->id,
-                'status' => $response->status(),
-                'response_body' => $errorBody,
-                'response_json' => $errorJson,
-                'url' => self::EXTERNAL_API_URL,
-                'payload_sent' => $payload
-            ]);
-            
-            // Lanzar excepción con el mensaje original de la API externa y el payload enviado
-            $errorMessage = $errorJson['error'] ?? $errorBody ?? 'Error desconocido';
-            
-            // Crear una excepción personalizada que incluya el payload
-            $exception = new \Exception($errorMessage, $response->status());
-            $exception->payload = $payload;
-            $exception->response = [
-                'status' => $response->status(),
-                'body' => $errorBody,
-                'json' => $errorJson
-            ];
-            
-            throw $exception;
         }
+
+        $errorBody = $response->body();
+        $errorJson = $response->json();
+        Log::error('Error al enviar venta a API externa', [
+            'order_id' => $order->id,
+            'status' => $response->status(),
+            'response_body' => $errorBody,
+            'response_json' => $errorJson,
+            'url' => self::EXTERNAL_API_URL,
+            'payload_sent' => $payload,
+        ]);
+
+        $errorMessage = is_array($errorJson) ? ($errorJson['error'] ?? $errorBody) : $errorBody;
+        $errorMessage = $errorMessage ?: 'Error desconocido';
+
+        $exception = new \Exception($errorMessage, $response->status());
+        $exception->payload = $payload;
+        $exception->response = [
+            'status' => $response->status(),
+            'body' => $errorBody,
+            'json' => $errorJson,
+        ];
+
+        throw $exception;
+    }
+
+    /**
+     * Determina si la respuesta de la API externa confirma que el pedido quedó registrado.
+     */
+    public function isSuccessfulExternalApiResponse($response): bool
+    {
+        if (! $response->successful()) {
+            return false;
+        }
+
+        $json = $response->json();
+        if (! is_array($json)) {
+            return true;
+        }
+
+        $error = strtolower((string) ($json['error'] ?? ''));
+        $success = strtolower((string) ($json['success'] ?? ''));
+
+        if (str_contains($error, 'ya existe') || str_contains($error, 'ya exist')) {
+            return true;
+        }
+
+        if (isset($json['noPedido']) || str_contains($success, 'grabado')) {
+            return true;
+        }
+
+        if ($error !== '') {
+            return false;
+        }
+
+        return true;
     }
     
     /**

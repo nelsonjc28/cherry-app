@@ -1443,7 +1443,17 @@ export const adminOrderService = {
     } catch (error) {
       throw error;
     }
-  }
+  },
+
+  // Reenvío manual a API externa de ventas (admin)
+  resendToExternalApi: async (orderId) => {
+    try {
+      const response = await api.post(`/admin/orders/${orderId}/resend-external-api`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 // Servicios para notificaciones del admin

@@ -35,6 +35,8 @@ class Order extends Model
         'mercadopago_preference_id',
         'mercadopago_payment_id',
         'payment_data',
+        'external_api_sent',
+        'external_api_sent_at',
         'delivered_at'
     ];
 
@@ -52,6 +54,8 @@ class Order extends Model
         'is_advance_order' => 'boolean',
         'is_prepared' => 'boolean',
         'payment_data' => 'array',
+        'external_api_sent' => 'boolean',
+        'external_api_sent_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'delivered_at' => 'datetime'
@@ -104,6 +108,44 @@ class Order extends Model
         }
 
         return 'CD';
+    }
+
+    /**
+     * Indica si este pedido debe enviarse (o reenviarse) a la API externa de ventas.
+     */
+    public function shouldSendToExternalApi(): bool
+    {
+        if ($this->external_api_sent) {
+            return false;
+        }
+
+        $paymentMethod = strtolower((string) ($this->payment_method ?? ''));
+        $amountPending = (float) ($this->amount_pending ?? 0);
+
+        if ($paymentMethod === 'pedido_directo' || $this->is_advance_order) {
+            return true;
+        }
+
+        if ($this->paid_with_credit && $amountPending > 0.009) {
+            return false;
+        }
+
+        if ($this->status === 'pagado') {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Marca el pedido como enviado exitosamente a la API externa.
+     */
+    public function markExternalApiSent(): void
+    {
+        $this->forceFill([
+            'external_api_sent' => true,
+            'external_api_sent_at' => now(),
+        ])->save();
     }
 
     /**
