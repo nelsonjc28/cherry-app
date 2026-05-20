@@ -16,10 +16,12 @@ class ExternalSalesService
     private const EXTERNAL_API_URL = 'https://cherryapi.estrategiadmgs.com.mx/cherryApi/789/venta';
 
     /**
-     * Enviar información de venta al endpoint externo
-     * Lanza excepciones si hay errores para que se muestren completos
+     * Enviar información de venta al endpoint externo.
+     * Lanza excepción si la API no confirma grabado o duplicado verificable.
+     *
+     * @return array{ok: bool, kind: string, message: string, no_pedido: ?string, raw: ?array}
      */
-    public function sendSaleToExternalApi(Order $order): void
+    public function sendSaleToExternalApi(Order $order): array
     {
         $user = $order->user;
         $address = $order->address;
@@ -468,73 +470,148 @@ class ExternalSalesService
             ->withoutVerifying()
             ->post(self::EXTERNAL_API_URL, $payload);
 
-        if ($this->isSuccessfulExternalApiResponse($response)) {
-            $order->markExternalApiSent();
+        $parsed = $this->parseExternalApiSaleResponse($response);
 
-            Log::info('Venta enviada exitosamente a API externa', [
+        if (! $parsed['ok']) {
+            $errorBody = $response->body();
+            Log::error('Error al enviar venta a API externa', [
                 'order_id' => $order->id,
                 'status' => $response->status(),
-                'response' => $response->json(),
+                'response_body' => $errorBody,
+                'response_json' => $parsed['raw'],
+                'confirmation_kind' => $parsed['kind'],
+                'url' => self::EXTERNAL_API_URL,
+                'payload_sent' => $payload,
             ]);
 
-            return;
+            $exception = new \Exception($parsed['message'], $response->status());
+            $exception->payload = $payload;
+            $exception->response = [
+                'status' => $response->status(),
+                'body' => $errorBody,
+                'json' => $parsed['raw'],
+            ];
+
+            throw $exception;
         }
 
-        $errorBody = $response->body();
-        $errorJson = $response->json();
-        Log::error('Error al enviar venta a API externa', [
+        $order->markExternalApiSent();
+
+        $logLevel = $parsed['kind'] === 'duplicado' ? 'warning' : 'info';
+        Log::{$logLevel}('Venta registrada en API externa', [
             'order_id' => $order->id,
             'status' => $response->status(),
-            'response_body' => $errorBody,
-            'response_json' => $errorJson,
-            'url' => self::EXTERNAL_API_URL,
-            'payload_sent' => $payload,
+            'confirmation_kind' => $parsed['kind'],
+            'no_pedido' => $parsed['no_pedido'],
+            'message' => $parsed['message'],
+            'response' => $parsed['raw'],
         ]);
 
-        $errorMessage = is_array($errorJson) ? ($errorJson['error'] ?? $errorBody) : $errorBody;
-        $errorMessage = $errorMessage ?: 'Error desconocido';
-
-        $exception = new \Exception($errorMessage, $response->status());
-        $exception->payload = $payload;
-        $exception->response = [
-            'status' => $response->status(),
-            'body' => $errorBody,
-            'json' => $errorJson,
-        ];
-
-        throw $exception;
+        return $parsed;
     }
 
     /**
-     * Determina si la respuesta de la API externa confirma que el pedido quedó registrado.
+     * Interpreta la respuesta POST /venta de la API externa.
+     * Solo éxito real: noPedido + "Grabado", o duplicado explícito ("ya existe").
+     *
+     * @return array{ok: bool, kind: string, message: string, no_pedido: ?string, raw: ?array}
      */
-    public function isSuccessfulExternalApiResponse($response): bool
+    public function parseExternalApiSaleResponse($response): array
     {
-        if (! $response->successful()) {
-            return false;
-        }
-
+        $status = $response->status();
+        $body = $response->body();
         $json = $response->json();
-        if (! is_array($json)) {
-            return true;
+        $raw = is_array($json) ? $json : null;
+
+        if (! $response->successful()) {
+            $apiError = is_array($raw) ? (string) ($raw['error'] ?? '') : '';
+            $message = $apiError !== ''
+                ? $apiError
+                : ('La API externa respondió HTTP '.$status.($body !== '' ? ': '.$body : ''));
+
+            return [
+                'ok' => false,
+                'kind' => 'http_error',
+                'message' => $message,
+                'no_pedido' => null,
+                'raw' => $raw,
+            ];
         }
 
-        $error = strtolower((string) ($json['error'] ?? ''));
-        $success = strtolower((string) ($json['success'] ?? ''));
-
-        if (str_contains($error, 'ya existe') || str_contains($error, 'ya exist')) {
-            return true;
+        if (! is_array($raw)) {
+            return [
+                'ok' => false,
+                'kind' => 'invalid_response',
+                'message' => 'La API externa respondió HTTP 200 sin JSON válido; no se puede confirmar que el pedido se guardó.',
+                'no_pedido' => null,
+                'raw' => null,
+            ];
         }
 
-        if (isset($json['noPedido']) || str_contains($success, 'grabado')) {
-            return true;
+        $error = trim((string) ($raw['error'] ?? ''));
+        $errorLower = strtolower($error);
+        $success = strtolower(trim((string) ($raw['success'] ?? '')));
+        $noPedido = $raw['noPedido'] ?? $raw['no_pedido'] ?? null;
+        if ($noPedido !== null && $noPedido !== '') {
+            $noPedido = (string) $noPedido;
+        } else {
+            $noPedido = null;
+        }
+
+        $isGrabado = $noPedido !== null || str_contains($success, 'grabado');
+        $isDuplicado = $error !== ''
+            && (str_contains($errorLower, 'ya existe') || str_contains($errorLower, 'ya exist'));
+
+        if ($isGrabado && ! ($error !== '' && ! $isDuplicado)) {
+            return [
+                'ok' => true,
+                'kind' => 'grabado',
+                'message' => trim((string) ($raw['success'] ?? 'El pedido Grabado'))
+                    ?: 'Pedido grabado en API externa (noPedido: '.$noPedido.')',
+                'no_pedido' => $noPedido,
+                'raw' => $raw,
+            ];
+        }
+
+        if ($isDuplicado && ! $isGrabado) {
+            $pedidoRef = $raw['pedido:'] ?? $raw['pedido'] ?? $raw['789_numero_pedido'] ?? null;
+
+            return [
+                'ok' => true,
+                'kind' => 'duplicado',
+                'message' => 'La API indica que el pedido ya existe'
+                    .($pedidoRef !== null ? ' (ref. '.$pedidoRef.')' : '')
+                    .'. Verifique en el sistema 789 que aparezca completo.',
+                'no_pedido' => $noPedido,
+                'raw' => $raw,
+            ];
         }
 
         if ($error !== '') {
-            return false;
+            return [
+                'ok' => false,
+                'kind' => 'api_error',
+                'message' => $error,
+                'no_pedido' => null,
+                'raw' => $raw,
+            ];
         }
 
-        return true;
+        return [
+            'ok' => false,
+            'kind' => 'ambiguous',
+            'message' => 'La API respondió HTTP 200 sin confirmar grabación (falta noPedido o mensaje de éxito). El pedido no se marcó como enviado.',
+            'no_pedido' => null,
+            'raw' => $raw,
+        ];
+    }
+
+    /**
+     * @deprecated Use parseExternalApiSaleResponse() for explicit confirmation rules.
+     */
+    public function isSuccessfulExternalApiResponse($response): bool
+    {
+        return $this->parseExternalApiSaleResponse($response)['ok'];
     }
     
     /**

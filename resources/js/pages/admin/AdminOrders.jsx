@@ -367,7 +367,12 @@ const AdminOrders = () => {
           should_send_to_external_api: updated.should_send_to_external_api ?? false,
         });
         if (window.showToast) {
-          window.showToast(response.data.message || 'Pedido enviado a la API externa', 'success');
+          const toastType = response.data.api_confirmation === 'duplicado' ? 'warning' : 'success';
+          let msg = response.data.message || 'Pedido enviado a la API externa';
+          if (response.data.no_pedido) {
+            msg += ` (noPedido: ${response.data.no_pedido})`;
+          }
+          window.showToast(msg, toastType);
         }
       } else if (window.showToast) {
         window.showToast(response.data?.message || 'No se pudo enviar', 'error');

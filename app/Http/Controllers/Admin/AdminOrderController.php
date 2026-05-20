@@ -359,16 +359,20 @@ class AdminOrderController extends Controller
         try {
             $order = Order::with(['user', 'items', 'address'])->findOrFail($orderId);
 
-            $wasAlreadySent = (bool) $order->external_api_sent;
-
-            $externalSalesService->sendSaleToExternalApi($order);
+            $parsed = $externalSalesService->sendSaleToExternalApi($order);
             $order->refresh();
+
+            $userMessage = $parsed['message'] ?? 'Pedido procesado en API externa.';
+            if (($parsed['kind'] ?? '') === 'duplicado') {
+                $userMessage = $parsed['message'];
+            }
 
             return response()->json([
                 'success' => true,
-                'message' => $wasAlreadySent
-                    ? 'Pedido reenviado a la API externa (ya estaba marcado como enviado).'
-                    : 'Pedido enviado a la API externa correctamente.',
+                'message' => $userMessage,
+                'api_confirmation' => $parsed['kind'] ?? null,
+                'no_pedido' => $parsed['no_pedido'] ?? null,
+                'api_response' => $parsed['raw'] ?? null,
                 'order' => [
                     'id' => $order->id,
                     'external_api_sent' => (bool) $order->external_api_sent,
