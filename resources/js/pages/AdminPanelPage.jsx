@@ -19,6 +19,7 @@ import AdminCatalogOrderManager from '../components/AdminCatalogOrderManager/Adm
 import AdminOrders from './admin/AdminOrders';
 import AdminDashboard from './admin/AdminDashboard';
 import AdminHistorial from './admin/AdminHistorial';
+import AdminOrderExternalApiHistorial from './admin/AdminOrderExternalApiHistorial';
 import MailImageManager from '../components/admin/MailImageManager';
 
 import useUserStore from '../store/userStore';
@@ -107,7 +108,8 @@ function AdminPanelPage() {
       'contact-info': 'Información de Contacto - Admin - Cherry Central',
       'privacy-policy': 'Política de Privacidad - Admin - Cherry Central',
       'discounts': 'Descuentos - Admin - Cherry Central',
-      'historial': 'Historial - Admin - Cherry Central',
+      'historial': 'Historial productos - Admin - Cherry Central',
+      'order-api-historial': 'Historial envíos API - Admin - Cherry Central',
       'mail-images': 'Imágenes de correo - Admin - Cherry Central'
     };
     
@@ -136,6 +138,7 @@ function AdminPanelPage() {
     '/admin/privacidad': 'privacy-policy',
     '/admin/descuentos': 'discounts',
     '/admin/historial': 'historial',
+    '/admin/historial-pedidos-api': 'order-api-historial',
     '/admin/imagenes-correo': 'mail-images'
   };
 
@@ -158,6 +161,7 @@ function AdminPanelPage() {
     'privacy-policy': '/admin/privacidad',
     'discounts': '/admin/descuentos',
     'historial': '/admin/historial',
+    'order-api-historial': '/admin/historial-pedidos-api',
     'mail-images': '/admin/imagenes-correo'
   };
 
@@ -349,7 +353,10 @@ function AdminPanelPage() {
           <button className={`admin-panel__sidebar-link${selectedMenu==='privacy-policy'?' active':''}`} onClick={()=>handleMenuChange('privacy-policy')}>Terminos y condiciones</button>
           <button className={`admin-panel__sidebar-link${selectedMenu==='discounts'?' active':''}`} onClick={()=>handleMenuChange('discounts')}>Descuentos</button>
           {isOnlyAdmin() && (
-            <button className={`admin-panel__sidebar-link${selectedMenu==='historial'?' active':''}`} onClick={()=>handleMenuChange('historial')}>Historial</button>
+            <>
+              <button className={`admin-panel__sidebar-link${selectedMenu==='historial'?' active':''}`} onClick={()=>handleMenuChange('historial')}>Historial productos</button>
+              <button className={`admin-panel__sidebar-link${selectedMenu==='order-api-historial'?' active':''}`} onClick={()=>handleMenuChange('order-api-historial')}>Historial envíos API</button>
+            </>
           )}
           <button className="admin-panel__sidebar-link" onClick={handleLogout}>Volver al sitio</button>
         </nav>
@@ -501,6 +508,12 @@ function AdminPanelPage() {
         {selectedMenu === 'historial' && isOnlyAdmin() && (
           <section>
             <AdminHistorial />
+          </section>
+        )}
+
+        {selectedMenu === 'order-api-historial' && isOnlyAdmin() && (
+          <section>
+            <AdminOrderExternalApiHistorial />
           </section>
         )}
       </main>

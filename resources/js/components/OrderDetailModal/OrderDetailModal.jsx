@@ -600,6 +600,7 @@ const OrderDetailModal = ({
                       <span>{new Date(order.external_api_sent_at).toLocaleString('es-MX')}</span>
                     </div>
                   )}
+                  {(order.should_send_to_external_api || order.external_api_sent) && (
                   <div className="info-row" style={{ marginTop: '8px' }}>
                     <ResendExternalApiButton
                       orderId={order.id}
@@ -614,6 +615,7 @@ const OrderDetailModal = ({
                       }}
                     />
                   </div>
+                  )}
                 </div>
               </div>
             )}

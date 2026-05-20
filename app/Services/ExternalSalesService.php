@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Order;
+use App\Models\OrderExternalApiLog;
 use App\Models\OrderItem;
 use App\Models\Detalle;
 use App\Models\Producto;
@@ -21,7 +22,7 @@ class ExternalSalesService
      *
      * @return array{ok: bool, kind: string, message: string, no_pedido: ?string, raw: ?array}
      */
-    public function sendSaleToExternalApi(Order $order): array
+    public function sendSaleToExternalApi(Order $order, string $origen = 'sistema'): array
     {
         $user = $order->user;
         $address = $order->address;
@@ -471,6 +472,7 @@ class ExternalSalesService
             ->post(self::EXTERNAL_API_URL, $payload);
 
         $parsed = $this->parseExternalApiSaleResponse($response);
+        $this->recordExternalApiSendAttempt($order, $response, $parsed, $origen);
 
         if (! $parsed['ok']) {
             $errorBody = $response->body();
@@ -775,5 +777,40 @@ class ExternalSalesService
         }
         
         return $normalized;
+    }
+
+    /**
+     * Registra cada intento de envío a la API externa (éxito, error o duplicado).
+     */
+    private function recordExternalApiSendAttempt(Order $order, $response, array $parsed, string $origen): void
+    {
+        try {
+            OrderExternalApiLog::create([
+                'order_id' => $order->id,
+                'http_status' => $response->status(),
+                'estado' => $this->estadoLogFromParsed($parsed),
+                'respuesta_api' => (string) $response->body(),
+                'origen' => $origen,
+                'ejecutado_at' => now(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('No se pudo guardar historial de envío API pedido', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function estadoLogFromParsed(array $parsed): string
+    {
+        if (! ($parsed['ok'] ?? false)) {
+            return 'error';
+        }
+
+        if (($parsed['kind'] ?? '') === 'duplicado') {
+            return 'duplicado';
+        }
+
+        return 'exitoso';
     }
 }

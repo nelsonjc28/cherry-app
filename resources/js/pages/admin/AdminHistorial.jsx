@@ -203,9 +203,9 @@ const AdminHistorial = () => {
   return (
     <div className="admin-historial">
       <div className="admin-historial__header">
-        <h2>Historial de Sincronizaciones</h2>
+        <h2>Historial de sincronización de productos</h2>
         <p className="admin-historial__subtitle">
-          Registro de ejecuciones del cronjob de sincronización de productos
+          Registro de ejecuciones del cronjob de sincronización de productos desde la API externa
         </p>
       </div>
 

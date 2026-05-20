@@ -86,7 +86,7 @@ class SyncOrdersExternalApi extends Command
                         break;
                     }
 
-                    $this->externalSalesService->sendSaleToExternalApi($order);
+                    $this->externalSalesService->sendSaleToExternalApi($order, 'comando');
                     $order->refresh();
 
                     if ($order->external_api_sent) {

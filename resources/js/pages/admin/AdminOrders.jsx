@@ -306,6 +306,10 @@ const AdminOrders = () => {
     }).format(amount);
   };
 
+  /** Pedidos MP/crédito sin pagar: no mostrar reenvío. Sí pedido directo, anticipado, pagados o ya enviados. */
+  const canResendToExternalApi = (order) =>
+    Boolean(order?.should_send_to_external_api || order?.external_api_sent);
+
   const handleViewOrderDetails = async (order) => {
     try {
       setLoadingOrderDetail(true);
@@ -347,6 +351,10 @@ const AdminOrders = () => {
 
   const handleResendExternalApi = async (order, e) => {
     e?.stopPropagation?.();
+
+    if (!canResendToExternalApi(order)) {
+      return;
+    }
 
     const confirmMsg = order.external_api_sent
       ? `El pedido #${formatOrderNumber(order)} ya está marcado como enviado. ¿Reenviar a la API externa?`
@@ -703,7 +711,7 @@ const AdminOrders = () => {
                           >
                             {loadingOrderDetail ? '⏳' : '👁️'}
                           </button>
-                          {!isOperator && (
+                          {!isOperator && canResendToExternalApi(order) && (
                             <button
                               type="button"
                               className="order-action-btn order-action-btn--resend-api"

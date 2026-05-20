@@ -209,7 +209,7 @@ class AdminOrderController extends Controller
 
                             if (! $order->external_api_sent) {
                                 $externalSalesService = app(\App\Services\ExternalSalesService::class);
-                                $externalSalesService->sendSaleToExternalApi($order);
+                                $externalSalesService->sendSaleToExternalApi($order, 'admin');
 
                                 \Illuminate\Support\Facades\Log::info('Pedido enviado a API externa desde AdminOrderController', [
                                     'order_id' => $order->id,
@@ -359,7 +359,14 @@ class AdminOrderController extends Controller
         try {
             $order = Order::with(['user', 'items', 'address'])->findOrFail($orderId);
 
-            $parsed = $externalSalesService->sendSaleToExternalApi($order);
+            if (! $order->external_api_sent && ! $order->shouldSendToExternalApi()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Este pedido aún no debe enviarse a la API externa (por ejemplo, pago pendiente en Mercado Pago).',
+                ], 422);
+            }
+
+            $parsed = $externalSalesService->sendSaleToExternalApi($order, 'admin');
             $order->refresh();
 
             $userMessage = $parsed['message'] ?? 'Pedido procesado en API externa.';
@@ -772,7 +779,7 @@ class AdminOrderController extends Controller
 
                         if (! $order->external_api_sent) {
                             $externalSalesService = app(\App\Services\ExternalSalesService::class);
-                            $externalSalesService->sendSaleToExternalApi($order);
+                            $externalSalesService->sendSaleToExternalApi($order, 'admin');
                         }
                     } catch (\Exception $e) {
                         \Illuminate\Support\Facades\Log::error('Error al enviar pedido a crédito pagado a API externa', [
