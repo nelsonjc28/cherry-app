@@ -291,9 +291,9 @@ class User extends Authenticatable implements JWTSubject
     /**
      * Check if the user can make advance orders (encargos)
      */
-    public function canMakeAdvanceOrders()
+    public function canMakeAdvanceOrders(): bool
     {
-        return $this->isOroSeller();
+        return $this->isPremiumSeller();
     }
 
     /**

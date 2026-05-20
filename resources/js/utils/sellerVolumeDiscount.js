@@ -22,6 +22,12 @@ export function getSellerCategoryFromUser(user) {
   return normalizeSellerCategory(v);
 }
 
+/** Oro o Diamante: pedido directo, anticipados y crédito (reglas premium). */
+export function isOroDiamanteSeller(user) {
+  const c = getSellerCategoryFromUser(user);
+  return c === 'oro' || c === 'diamante';
+}
+
 /** La API / login expuso un descuento1 usable (> 0). */
 export function hasApiVolumeMainPercent(user) {
   if (!user || typeof user !== 'object') return false;

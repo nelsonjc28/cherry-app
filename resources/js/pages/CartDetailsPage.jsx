@@ -17,6 +17,7 @@ import {
   isBronzeBenefitActive,
   getBronzeBenefitRemainingDays,
   hasApiVolumeMainPercent,
+  isOroDiamanteSeller,
   canApplyMainDiscount,
 } from '../utils/sellerVolumeDiscount';
 import {
@@ -38,11 +39,8 @@ const formatMoney = (value) => {
 };
 
 /** MP a veces manda init_point ""; el backend ya corrige, pero aquí reforzamos + armamos URL con preference_id. */
-/** Pago con crédito: sigue limitado a categoría oro/diamante (regla de negocio aparte). */
-const isOroDiamanteCategory = (u) => {
-  const c = getSellerCategoryFromUser(u);
-  return c === 'oro' || c === 'diamante';
-};
+/** Pago con crédito, pedido directo y anticipados: categoría oro/diamante. */
+const isOroDiamanteCategory = isOroDiamanteSeller;
 
 const pickMercadoPagoCheckoutUrl = (payload) => {
   if (!payload || typeof payload !== 'object') return null;
@@ -406,9 +404,9 @@ const CartDetailsPage = () => {
     // Próximamente + descuento API: sin validar stock
     const isComingSoon = itemToUpdate.isComingSoon === true;
     const { user } = useUserStore.getState();
-    const isPremiumUser = hasApiVolumeMainPercent(user);
+    const canOrderComingSoon = isOroDiamanteSeller(user);
     
-    if (isComingSoon && isPremiumUser) {
+    if (isComingSoon && canOrderComingSoon) {
       updateQuantity(itemToUpdate.id_articulo, newQty, itemToUpdate.selectedColor, itemToUpdate.selectedSize);
       return;
     }
@@ -479,7 +477,7 @@ const CartDetailsPage = () => {
     }
   }, [deliveryType, storeAddress, selectedAddress]);
 
-  // MercadoPago o crédito; con descuento por volumen en API → pedido directo vía /orders/direct.
+  // MercadoPago o crédito; oro/diamante → pedido directo vía /orders/direct. Descuento API solo en precios.
   const handleGenerateOrder = async (options = {}) => {
     const pm = options.paymentMethod ?? paymentMethod;
 
@@ -493,7 +491,7 @@ const CartDetailsPage = () => {
     /** Snapshot del carrito completo (disponibles + anticipados) para volumen y validación en servidor. */
     const fullCartPricingLinesSnapshot = cartItems.map(cartItemToPricingLine);
 
-    const isDirectCategory = hasApiVolumeMainPercent(user);
+    const isDirectCategory = isOroDiamanteSeller(user);
 
     if (isDirectCategory) {
       if (deliveryType === 'envio' && !selectedAddress) {
@@ -646,10 +644,10 @@ const CartDetailsPage = () => {
       return;
     }
 
-    if (hasAdvanceOrders && !hasApiVolumeMainPercent(user)) {
+    if (hasAdvanceOrders && !isOroDiamanteSeller(user)) {
       if (window.showToast) {
         window.showToast(
-          'Los productos "Próximamente" solo pueden pedirse si tu cuenta tiene descuento por volumen en la API de clientes (mayor a 0%).',
+          'Los productos "Próximamente" solo están disponibles para clientes con categoría Oro o Diamante.',
           'error'
         );
       }
@@ -662,7 +660,7 @@ const CartDetailsPage = () => {
       pm === 'credit' &&
       hasAdvanceOrders &&
       hasRegularItems &&
-      hasApiVolumeMainPercent(user);
+      isOroDiamanteSeller(user);
 
     // Si hay productos adelantados, crear pedido adelantado primero (excepto el caso unificado arriba)
     if (hasAdvanceOrders && !skipSeparateAdvanceOrder) {
@@ -1121,10 +1119,12 @@ const CartDetailsPage = () => {
   };
 
   // ===== ALERTAS DE DESCUENTO =====
-  const DISCOUNT_30_THRESHOLD = isBronzeUser && !bronzeBenefitActive ? 7000 : 0;
+  const VOLUME_MAIN_THRESHOLD = 7000;
   const DISCOUNT_40_THRESHOLD = 15000;
   const NEAR_THRESHOLD_PERCENT = 0.7; // 70% del umbral = "ya casi"
-  
+  /** Descuento realmente aplicado en este carrito (no solo categoría oro/diamante). */
+  const hasActiveVolumeDiscount = dayFortyFiveDiscountAmount > 0.009;
+
   // Calcular alertas para descuentos
   const getDiscountAlerts = () => {
     const alerts = [];
@@ -1133,7 +1133,16 @@ const CartDetailsPage = () => {
     if (eligibleTotal <= 0) return alerts;
 
     const hasApiMain = hasApiVolumeMainPercent(user);
-    const apiSecondTierActive = hasApiMain
+    const progressThreshold =
+      isBronzeUser && !bronzeBenefitActive
+        ? VOLUME_MAIN_THRESHOLD
+        : hasActiveVolumeDiscount
+          ? 0
+          : VOLUME_MAIN_THRESHOLD;
+
+    const apiSecondTierActive =
+      hasActiveVolumeDiscount
+      && hasApiMain
       && canApplyMainDiscount(user, eligibleTotal)
       && Number(descuento2) > 0
       && eligibleTotal < DISCOUNT_40_THRESHOLD;
@@ -1169,11 +1178,11 @@ const CartDetailsPage = () => {
     
     // Bronce sin beneficio 45 días: el mensaje "falta $X para el 30%" ya va arriba (💡); no duplicar con el tramo genérico.
     const skipFirstVolumeTier =
-      isBronzeUser && !bronzeBenefitActive && eligibleTotal < DISCOUNT_30_THRESHOLD;
+      isBronzeUser && !bronzeBenefitActive && eligibleTotal < progressThreshold;
 
-    if (eligibleTotal < DISCOUNT_30_THRESHOLD && !skipFirstVolumeTier) {
-      const remaining = DISCOUNT_30_THRESHOLD - eligibleTotal;
-      const isNear = eligibleTotal >= (DISCOUNT_30_THRESHOLD * NEAR_THRESHOLD_PERCENT);
+    if (eligibleTotal < progressThreshold && !skipFirstVolumeTier) {
+      const remaining = progressThreshold - eligibleTotal;
+      const isNear = progressThreshold > 0 && eligibleTotal >= progressThreshold * NEAR_THRESHOLD_PERCENT;
 
       if (isNear) {
         alerts.push({
@@ -1194,9 +1203,9 @@ const CartDetailsPage = () => {
           color: '#2196f3'
         });
       }
-    } else if (eligibleTotal >= DISCOUNT_30_THRESHOLD && eligibleTotal < DISCOUNT_40_THRESHOLD) {
+    } else if (hasActiveVolumeDiscount && eligibleTotal < DISCOUNT_40_THRESHOLD) {
       const remaining = DISCOUNT_40_THRESHOLD - eligibleTotal;
-      const isNear = eligibleTotal >= (DISCOUNT_40_THRESHOLD * NEAR_THRESHOLD_PERCENT);
+      const isNear = eligibleTotal >= DISCOUNT_40_THRESHOLD * NEAR_THRESHOLD_PERCENT;
 
       if (apiSecondTierActive) {
         alerts.push({
@@ -1206,8 +1215,7 @@ const CartDetailsPage = () => {
           color: '#4caf50',
         });
       } else {
-        // Oro y diamante: no mostrar "¡Felicidades! … descuento del 30% / descuento activado" al entrar al carrito
-        if (!hasApiVolumeMainPercent(user)) {
+        if (!hasApiMain) {
           alerts.push({
             type: 'success',
             icon: '✅',
@@ -1218,23 +1226,25 @@ const CartDetailsPage = () => {
           });
         }
 
-        if (isNear) {
-          alerts.push({
-            type: 'near',
-            icon: '🔥',
-            message: `¡Ya casi! Te faltan $${formatMoney(remaining)} para obtener un 10% adicional`,
-            color: '#ff9800'
-          });
-        } else {
-          alerts.push({
-            type: 'info',
-            icon: '🎯',
-            message: `Te faltan $${formatMoney(remaining)} para obtener un 10% adicional`,
-            color: '#2196f3'
-          });
+        if (!hasApiMain) {
+          if (isNear) {
+            alerts.push({
+              type: 'near',
+              icon: '🔥',
+              message: `¡Ya casi! Te faltan $${formatMoney(remaining)} para obtener un 10% adicional`,
+              color: '#ff9800'
+            });
+          } else {
+            alerts.push({
+              type: 'info',
+              icon: '🎯',
+              message: `Te faltan $${formatMoney(remaining)} para obtener un 10% adicional`,
+              color: '#2196f3'
+            });
+          }
         }
       }
-    } else if (eligibleTotal >= DISCOUNT_40_THRESHOLD) {
+    } else if (hasActiveVolumeDiscount && eligibleTotal >= DISCOUNT_40_THRESHOLD) {
       alerts.push({
         type: 'success',
         icon: '🎉',

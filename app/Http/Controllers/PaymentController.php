@@ -787,10 +787,10 @@ class PaymentController extends Controller
             ], 401);
         }
 
-        if (! $this->userHasApiVolumeMainPercent($user)) {
+        if (! $user->isPremiumSeller()) {
             return response()->json([
                 'success' => false,
-                'message' => 'El pedido directo solo está disponible cuando tu cuenta tiene descuento por volumen en la API de clientes.',
+                'message' => 'El pedido directo solo está disponible para clientes con categoría Oro o Diamante.',
             ], 403);
         }
 
@@ -1198,10 +1198,10 @@ class PaymentController extends Controller
             ], 401);
         }
 
-        if ($this->userHasApiVolumeMainPercent($user)) {
+        if ($user->isPremiumSeller()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Tu cuenta confirma el pedido sin Mercado Pago ni crédito. Usa el botón Confirmar pedido en el carrito.',
+                'message' => 'Tu cuenta confirma el pedido sin Mercado Pago. Usa el botón Confirmar pedido en el carrito.',
             ], 422);
         }
 
@@ -4163,10 +4163,10 @@ class PaymentController extends Controller
             ], 401);
         }
 
-        if (! $this->userHasApiVolumeMainPercent($user)) {
+        if (! $user->canMakeAdvanceOrders()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Los pedidos de productos "Próximamente" solo están disponibles cuando tu cuenta tiene descuento por volumen en la API de clientes.',
+                'message' => 'Los pedidos de productos "Próximamente" solo están disponibles para clientes con categoría Oro o Diamante.',
             ], 403);
         }
 

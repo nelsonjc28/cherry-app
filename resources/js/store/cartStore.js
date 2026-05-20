@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { cartApi } from '../api/cartApi';
 import useUserStore from './userStore';
-import { hasApiVolumeMainPercent } from '../utils/sellerVolumeDiscount';
+import { isOroDiamanteSeller } from '../utils/sellerVolumeDiscount';
 import { effectiveDetailInventoryContribution } from '../utils/productUtils';
 
 /**
@@ -470,10 +470,10 @@ const useCartStore = create(
 
         const maxStock = getStockForVariant(product, product.selectedColor, product.selectedSize);
         
-        // Próximamente: solo si el usuario tiene descuento por volumen en API (mismo criterio que pedido)
+        // Próximamente: solo categoría Oro o Diamante
         const isComingSoon = product.isComingSoon === true;
         const user = useUserStore.getState?.()?.user;
-        const isPremiumUser = user && hasApiVolumeMainPercent(user);
+        const isPremiumUser = user && isOroDiamanteSeller(user);
         
         if (maxStock === 0 && !(isComingSoon && isPremiumUser)) {
            window.showToast("No hay stock para esta combinación de color y talla.",'error');
@@ -505,7 +505,7 @@ const useCartStore = create(
 
           const isComingSoon = product.isComingSoon === true || existing.isComingSoon === true;
           const user = useUserStore.getState?.()?.user;
-          const isPremiumUser = user && hasApiVolumeMainPercent(user);
+          const isPremiumUser = user && isOroDiamanteSeller(user);
           
           const maxAllowed = (isComingSoon && isPremiumUser) ? 9999 : maxStock;
 
@@ -533,7 +533,7 @@ const useCartStore = create(
         } else {
           const isComingSoon = product.isComingSoon === true;
           const user = useUserStore.getState?.()?.user;
-          const isPremiumUser = user && hasApiVolumeMainPercent(user);
+          const isPremiumUser = user && isOroDiamanteSeller(user);
           
           const maxAllowed = (isComingSoon && isPremiumUser) ? 9999 : maxStock;
           const qty = quantity > maxAllowed ? maxAllowed : quantity;

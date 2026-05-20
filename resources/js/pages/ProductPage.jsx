@@ -38,7 +38,7 @@ import { isProductNewLikeNuevosPage } from '../utils/productNewRules';
 import useHorizontalDragScroll from '../hooks/useHorizontalDragScroll';
 import colorConverter from '../services/colorConverter';
 import { validateStock, getProductStock } from '../services/inventoryService';
-import { getVolumeDiscountMainTier, getSellerCategoryFromUser, hasApiVolumeMainPercent, canApplyMainDiscount } from '../utils/sellerVolumeDiscount';
+import { getVolumeDiscountMainTier, getSellerCategoryFromUser, hasApiVolumeMainPercent, isOroDiamanteSeller, canApplyMainDiscount } from '../utils/sellerVolumeDiscount';
 import { summarizeVolumeFromCartItems } from '../utils/cartVolumePricing';
 
 // Función para formatear montos con separador de miles
@@ -600,7 +600,7 @@ const ProductPage = () => {
       // Verificar si el producto está "próximamente" y el usuario es "oro"
       const inventoryStatus = getInventoryStatus();
       const isComingSoon = inventoryStatus.status === 'coming-soon';
-      const canEncargoProximamente = user && hasApiVolumeMainPercent(user);
+      const canEncargoProximamente = user && isOroDiamanteSeller(user);
 
       const stockDisponible = getStockBySizeAndColor(selectedSize, selectedColor);
       // Si la cantidad actual excede el stock disponible, ajustarla (excepto para usuarios "oro" con productos "Próximamente")
@@ -616,7 +616,7 @@ const ProductPage = () => {
       // Verificar si el producto está "próximamente" y el usuario es "oro"
       const inventoryStatus = getInventoryStatus();
       const isComingSoon = inventoryStatus.status === 'coming-soon';
-      const canEncargoProximamente = user && hasApiVolumeMainPercent(user);
+      const canEncargoProximamente = user && isOroDiamanteSeller(user);
 
       const stockDisponible = getStockBySizeAndColor(selectedSize, selectedColor);
       // Ajustar la cantidad al stock disponible de la nueva talla (excepto para usuarios "oro" con productos "Próximamente")
@@ -632,7 +632,7 @@ const ProductPage = () => {
       // Verificar si el producto está "próximamente" y el usuario es "oro"
       const inventoryStatus = getInventoryStatus();
       const isComingSoon = inventoryStatus.status === 'coming-soon';
-      const canEncargoProximamente = user && hasApiVolumeMainPercent(user);
+      const canEncargoProximamente = user && isOroDiamanteSeller(user);
 
       const stockDisponible = getStockBySizeAndColor(selectedSize, selectedColor);
       // Si la talla seleccionada no tiene stock para el nuevo color, resetearla (excepto para usuarios "oro" con productos "Próximamente")
@@ -723,8 +723,8 @@ const ProductPage = () => {
         return;
       }
 
-      // Sin descuento por volumen en API: solo avisar interés (no encargo al carrito)
-      if (!hasApiVolumeMainPercent(user)) {
+      // Sin categoría Oro/Diamante: solo avisar interés (no encargo al carrito)
+      if (!isOroDiamanteSeller(user)) {
         try {
           // Notificar al admin
           await api.post('/api/notify-product-interest', {
@@ -896,7 +896,7 @@ const ProductPage = () => {
     // Verificar si el producto está "próximamente" y el usuario es "oro"
     const inventoryStatus = getInventoryStatus();
     const isComingSoon = inventoryStatus.status === 'coming-soon';
-    const canEncargoProximamente = user && hasApiVolumeMainPercent(user);
+    const canEncargoProximamente = user && isOroDiamanteSeller(user);
 
     const stockMaximo = getStockForSize(talla);
 
@@ -928,7 +928,7 @@ const ProductPage = () => {
     // Verificar si el producto está "próximamente" y el usuario es "oro"
     const inventoryStatus = getInventoryStatus();
     const isComingSoon = inventoryStatus.status === 'coming-soon';
-    const canEncargoProximamente = user && hasApiVolumeMainPercent(user);
+    const canEncargoProximamente = user && isOroDiamanteSeller(user);
 
     // Verificar si la talla tiene stock
     const stockDisponible = selectedColor ? getStockBySizeAndColor(talla, selectedColor) : getStockForSize(talla);
@@ -1355,7 +1355,7 @@ const ProductPage = () => {
 
   // Agregar alerta de "próximamente" si aplica (después de que getInventoryStatus esté definida)
   const isComingSoon = inventoryStatusData.status === 'coming-soon';
-  const canEncargoProximamente = user && hasApiVolumeMainPercent(user);
+  const canEncargoProximamente = user && isOroDiamanteSeller(user);
   const showNotifyAlert = isComingSoon && (!user || !canEncargoProximamente);
 
   const productPageAlerts = [...baseAlerts];
@@ -1762,7 +1762,7 @@ const ProductPage = () => {
                 // Verificar si el producto está "próximamente" y el usuario es "oro" (fuera del map para usar en el mensaje)
                 const inventoryStatus = getInventoryStatus();
                 const isComingSoon = inventoryStatus.status === 'coming-soon';
-                const canEncargoProximamente = user && hasApiVolumeMainPercent(user);
+                const canEncargoProximamente = user && isOroDiamanteSeller(user);
                 const showNotifyAlert = isComingSoon && (!user || !canEncargoProximamente);
 
                 return (
@@ -1888,7 +1888,7 @@ const ProductPage = () => {
                 {(() => {
                   const inventoryStatus = getInventoryStatus();
                   const isComingSoon = inventoryStatus.status === 'coming-soon';
-                  const canEncargoProximamente = user && hasApiVolumeMainPercent(user);
+                  const canEncargoProximamente = user && isOroDiamanteSeller(user);
                   const showNotifyAlert = isComingSoon && (!user || !canEncargoProximamente);
 
                   // Si es "próximamente" y no es usuario oro, no mostrar botón de agregar al carrito

@@ -10,7 +10,7 @@ import { validateStock } from '../../services/inventoryService';
 import useCartStore from '../../store/cartStore';
 import { cartItemToPricingLine } from '../../utils/cartVolumePricing';
 import { buildStreetWithNumbers } from '../../utils/addressDisplay';
-import { hasApiVolumeMainPercent } from '../../utils/sellerVolumeDiscount';
+import { isOroDiamanteSeller } from '../../utils/sellerVolumeDiscount';
 
 const CartOrderSummary = ({
   creditDays,
@@ -41,8 +41,8 @@ const CartOrderSummary = ({
   hasRegularItems = true // Si hay productos regulares (con stock)
 }) => {
   const navigate = useNavigate();
-  // Pedido directo (sin MP) solo si la API de clientes expone descuento1 en el usuario
-  const usesDirectOrderPayment = hasApiVolumeMainPercent(user);
+  // Pedido directo (sin MP): solo categoría Oro o Diamante
+  const usesDirectOrderPayment = isOroDiamanteSeller(user);
   
   const [paymentCards, setPaymentCards] = useState([]);
   const [isLoadingCards, setIsLoadingCards] = useState(true);
@@ -1065,7 +1065,7 @@ const CartOrderSummary = ({
       <div className="cart-order-summary__divider" />
         </>
       )}
-      {/* Sin descuento API → Mercado Pago. Con volume_descuento1 en API → Confirmar pedido (pedido directo). */}
+      {/* Bronce (con o sin descuento API) → Mercado Pago. Oro/Diamante → Confirmar pedido (pedido directo). */}
       {hasRegularItems && !usesDirectOrderPayment && (
         <div className="cart-order-summary__section payment-method-section">
           <div className="cart-order-summary__section-title section-title-flex">
