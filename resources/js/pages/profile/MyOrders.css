@@ -140,6 +140,27 @@
   white-space: nowrap;
 }
 
+.my-orders__thumb-col {
+  width: 56px;
+  min-width: 56px;
+  padding: 8px 10px !important;
+  vertical-align: middle;
+}
+
+.my-orders__thumb-col-label {
+  display: none;
+}
+
+.my-orders__thumb {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  display: block;
+  background: #f8f9fa;
+}
+
 .order-number-cell {
   font-weight: 700;
   color: var(--color-primary);
@@ -220,16 +241,44 @@
   }
   
   .my-orders__table-container {
-    width: 305px;
+    width: 100%;
+    max-width: 100%;
   }
 
   .table-scroll-wrapper {
     padding-bottom: 8px;
-    min-width: 300px;
+    min-width: 0;
   }
 
-   .my-orders__table {
+  .my-orders__table {
     width: 100%;
+    min-width: 320px;
+  }
+
+  .my-orders__date-col,
+  .my-orders__time-col {
+    display: none;
+  }
+
+  .my-orders__thumb-col {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: #fff;
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06);
+  }
+
+  .my-orders__table thead .my-orders__thumb-col {
+    background: #f8f9fa;
+  }
+
+  .my-orders__table tbody tr.highlighted .my-orders__thumb-col {
+    background: #fff8e6;
+  }
+
+  .my-orders__thumb {
+    width: 40px;
+    height: 40px;
   }
 
   .my-orders__table th {

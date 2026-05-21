@@ -14,9 +14,9 @@ return [
      * Si en .env CHERRY_CLIENTE_API_BASE= queda vacío, env() devuelve '' (no el default) — normalizamos aquí.
      */
     'cliente_api_base' => (function () {
-        $u = (string) env('CHERRY_CLIENTE_API_BASE', 'https://cherryapi.estrategiadmgs.com.mx/789/cliente');
+        $u = (string) env('CHERRY_CLIENTE_API_BASE', 'https://cherryapi.estrategiadmgs.com.mx/cherryApi/789/cliente');
         if ($u === '') {
-            $u = 'https://cherryapi.estrategiadmgs.com.mx/789/cliente';
+            $u = 'https://cherryapi.estrategiadmgs.com.mx/cherryApi/789/cliente';
         }
 
         return rtrim($u, '/');

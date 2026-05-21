@@ -7,6 +7,22 @@ import api from '../../config/axios';
 import useUserStore from '../../store/userStore';
 import './MyOrders.css';
 import { formatOrderNumberDisplay } from '../../utils/orderDisplayNumber';
+import { getProductImageUrl } from '../../utils/productImageUtils';
+
+const ORDER_THUMB_PLACEHOLDER = '/images/placeholder-catalog.png';
+
+const getOrderThumbnailUrl = (order) => {
+  const items = order?.items || [];
+  for (const item of items) {
+    if (item?.image) {
+      return item.image;
+    }
+    if (item?.product_id != null && item.product_id !== '') {
+      return getProductImageUrl(String(item.product_id));
+    }
+  }
+  return ORDER_THUMB_PLACEHOLDER;
+};
 
 const mercadoPagoUrlFromPayload = (d) => {
   if (!d || typeof d !== 'object') return null;
@@ -283,10 +299,13 @@ const MyOrders = () => {
             <table className="my-orders__table">
               <thead>
                 <tr>
+                  <th className="my-orders__thumb-col" aria-label="Producto">
+                    <span className="my-orders__thumb-col-label">Producto</span>
+                  </th>
                   <th>No. de pedido</th>
-                  <th>Fecha</th>
-                  <th>Hora</th>
-                  <th>Cant. piezas</th>
+                  <th className="my-orders__date-col">Fecha</th>
+                  <th className="my-orders__time-col">Hora</th>
+                  <th>Piezas</th>
                   <th>Total</th>
                   <th>Estado</th>
                   <th>Acciones</th>
@@ -305,15 +324,29 @@ const MyOrders = () => {
                     minute: '2-digit' 
                   });
                   const totalPieces = order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+                  const thumbUrl = getOrderThumbnailUrl(order);
                   
                   return (
                     <tr 
                       key={order.id}
                       className={`${highlightedOrderId === order.id ? 'highlighted' : ''}`}
                     >
+                      <td className="my-orders__thumb-col">
+                        <img
+                          src={thumbUrl}
+                          alt=""
+                          className="my-orders__thumb"
+                          loading="lazy"
+                          onError={(e) => {
+                            if (e.currentTarget.src !== ORDER_THUMB_PLACEHOLDER) {
+                              e.currentTarget.src = ORDER_THUMB_PLACEHOLDER;
+                            }
+                          }}
+                        />
+                      </td>
                       <td className="order-number-cell">#{formatOrderNumber(order)}</td>
-                      <td className="order-date-cell">{dateStr}</td>
-                      <td className="order-time-cell">{timeStr}</td>
+                      <td className="order-date-cell my-orders__date-col">{dateStr}</td>
+                      <td className="order-time-cell my-orders__time-col">{timeStr}</td>
                       <td className="order-pieces-cell">{totalPieces}</td>
                       <td className="order-total-cell">{formatCurrency(order.totalAmount)}</td>
                       <td className="order-status-cell">

@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
  */
 class ExternalClienteDiscountService
 {
-    private const DEFAULT_CLIENTE_API_BASE = 'https://cherryapi.estrategiadmgs.com.mx/789/cliente';
+    private const DEFAULT_CLIENTE_API_BASE = 'https://cherryapi.estrategiadmgs.com.mx/cherryApi/789/cliente';
 
     public static function formatExternalClienteId(int $userId): string
     {
