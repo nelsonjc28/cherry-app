@@ -2699,6 +2699,9 @@ class PaymentController extends Controller
                     'paid_with_credit' => (bool) ($order->paid_with_credit ?? false),
                     'payment_method' => $order->payment_method,
                     'is_advance_order' => (bool) ($order->is_advance_order ?? false),
+                    'external_api_sent' => (bool) ($order->external_api_sent ?? false),
+                    'external_api_sent_at' => $order->external_api_sent_at?->toIso8601String(),
+                    'should_send_to_external_api' => $order->shouldSendToExternalApi(),
                     'address' => $order->address ? [
                         'street_address' => $order->address->street_address,
                         'street_number_ext' => $order->address->street_number_ext,

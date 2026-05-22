@@ -13,6 +13,7 @@ import {
 } from '../../utils/sellerVolumeDiscount';
 import { shareOrderPdf } from '../../utils/shareProductUtils';
 import { getIconPath } from '../../utils/assetPaths';
+import { orderQualifiesForExternalApi } from '../../utils/orderExternalApi';
 
 /** URL de checkout (MP devuelve init_point o podemos armar redirect con preference_id). */
 const mercadoPagoUrlFromPayload = (d) => {
@@ -912,21 +913,22 @@ const OrderDetailModal = ({
           >
             Cerrar
           </CherryButton>
-          <CherryButton
-            variant="outline"
-            size="medium"
-            onClick={handleShareOrder}
-            disabled={isSharingOrder}
-          >
-            <img
-              src={getIconPath('Share Alt.svg')}
-              alt=""
-              width={16}
-              height={16}
-              style={{ marginRight: 6, verticalAlign: 'middle' }}
-            />
-            {isSharingOrder ? 'Compartiendo...' : 'Compartir pedido'}
-          </CherryButton>
+          {orderQualifiesForExternalApi(order) && (
+            <CherryButton
+              variant="outline"
+              size="medium"
+              onClick={handleShareOrder}
+              disabled={isSharingOrder}
+              title="Compartir"
+            >
+              <img
+                src={getIconPath('Share Alt.svg')}
+                alt="Compartir"
+                width={18}
+                height={18}
+              />
+            </CherryButton>
+          )}
           <CherryButton 
             variant="red" 
             size="medium"

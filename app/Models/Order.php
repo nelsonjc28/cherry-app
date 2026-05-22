@@ -40,6 +40,10 @@ class Order extends Model
         'delivered_at'
     ];
 
+    protected $appends = [
+        'should_send_to_external_api',
+    ];
+
     protected $casts = [
         'total_amount' => 'decimal:2',
         'subtotal' => 'decimal:2',
@@ -108,6 +112,14 @@ class Order extends Model
         }
 
         return 'CD';
+    }
+
+    /**
+     * Para APIs / JSON del cliente (Mis pedidos, compra exitosa).
+     */
+    public function getShouldSendToExternalApiAttribute(): bool
+    {
+        return $this->shouldSendToExternalApi();
     }
 
     /**

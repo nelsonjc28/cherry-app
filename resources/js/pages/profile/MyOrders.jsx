@@ -8,6 +8,10 @@ import useUserStore from '../../store/userStore';
 import './MyOrders.css';
 import { formatOrderNumberDisplay } from '../../utils/orderDisplayNumber';
 import { getProductImageUrl } from '../../utils/productImageUtils';
+import { getIconPath } from '../../utils/assetPaths';
+import { shareOrderPdf } from '../../utils/shareProductUtils';
+import { getOrderDisplayTotal } from '../../utils/checkoutOrderDisplay';
+import { orderQualifiesForExternalApi } from '../../utils/orderExternalApi';
 
 const ORDER_THUMB_PLACEHOLDER = '/images/placeholder-catalog.png';
 
@@ -22,6 +26,29 @@ const getOrderThumbnailUrl = (order) => {
     }
   }
   return ORDER_THUMB_PLACEHOLDER;
+};
+
+const showOrderActionTooltip = (e) => {
+  const button = e.currentTarget;
+  const tooltipText = button.getAttribute('data-tooltip');
+  if (!tooltipText) return;
+  let tooltip = document.querySelector('.order-tooltip');
+  if (!tooltip) {
+    tooltip = document.createElement('div');
+    tooltip.className = 'order-tooltip';
+    document.body.appendChild(tooltip);
+  }
+  tooltip.textContent = tooltipText;
+  tooltip.style.display = 'block';
+  const rect = button.getBoundingClientRect();
+  const tooltipRect = tooltip.getBoundingClientRect();
+  tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
+  tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
+};
+
+const hideOrderActionTooltip = () => {
+  const tooltip = document.querySelector('.order-tooltip');
+  if (tooltip) tooltip.style.display = 'none';
 };
 
 const mercadoPagoUrlFromPayload = (d) => {
@@ -55,6 +82,7 @@ const MyOrders = () => {
   const [selectedOrderForDetail, setSelectedOrderForDetail] = useState(null);
   const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
   const [highlightedOrderId, setHighlightedOrderId] = useState(null);
+  const [sharingOrderId, setSharingOrderId] = useState(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -155,6 +183,28 @@ const MyOrders = () => {
   const handleCloseOrderDetailModal = () => {
     setShowOrderDetailModal(false);
     setSelectedOrderForDetail(null);
+  };
+
+  const handleShareOrder = async (order) => {
+    if (!order?.id || sharingOrderId != null) return;
+    const orderNum = formatOrderNumber(order);
+    const total =
+      parseFloat(order.totalAmount) || getOrderDisplayTotal(order);
+    try {
+      setSharingOrderId(order.id);
+      await shareOrderPdf({
+        orderId: order.id,
+        pdf_name: `pedido-${orderNum}.pdf`,
+        orderLabel: orderNum,
+        totalFormatted: `$${Number(total).toLocaleString('es-MX', {
+          minimumFractionDigits: 2,
+        })}`,
+      });
+    } catch {
+      // shareOrderPdf ya muestra toast
+    } finally {
+      setSharingOrderId(null);
+    }
   };
 
   const handlePayRemainder = async (orderId) => {
@@ -362,30 +412,12 @@ const MyOrders = () => {
                            parseFloat(order.amount_pending || 0) > 0 &&
                            order.statusRaw === 'pendiente_pago' && (
                             <button
+                              type="button"
                               className="order-action-btn order-action-btn--pay"
                               onClick={() => handlePayRemainder(order.id)}
                               data-tooltip={`Pagar ${formatCurrency(order.amount_pending)}`}
-                              onMouseEnter={(e) => {
-                                const button = e.currentTarget;
-                                const tooltipText = button.getAttribute('data-tooltip');
-                                let tooltip = document.querySelector('.order-tooltip');
-                                if (!tooltip) {
-                                  tooltip = document.createElement('div');
-                                  tooltip.className = 'order-tooltip';
-                                  document.body.appendChild(tooltip);
-                                }
-                                tooltip.textContent = tooltipText;
-                                tooltip.style.display = 'block';
-                                
-                                const rect = button.getBoundingClientRect();
-                                const tooltipRect = tooltip.getBoundingClientRect();
-                                tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
-                                tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
-                              }}
-                              onMouseLeave={() => {
-                                const tooltip = document.querySelector('.order-tooltip');
-                                if (tooltip) tooltip.style.display = 'none';
-                              }}
+                              onMouseEnter={showOrderActionTooltip}
+                              onMouseLeave={hideOrderActionTooltip}
                             >
                               💳
                             </button>
@@ -395,59 +427,42 @@ const MyOrders = () => {
                            (order.statusRaw === 'pending' || order.statusRaw === 'pendiente_pago') &&
                            !order.paid_with_credit && (
                             <button
+                              type="button"
                               className="order-action-btn order-action-btn--pay"
                               onClick={() => handlePayPendingOrder(order.id)}
                               data-tooltip={`Pagar ${formatCurrency(order.totalAmount)}`}
-                              onMouseEnter={(e) => {
-                                const button = e.currentTarget;
-                                const tooltipText = button.getAttribute('data-tooltip');
-                                let tooltip = document.querySelector('.order-tooltip');
-                                if (!tooltip) {
-                                  tooltip = document.createElement('div');
-                                  tooltip.className = 'order-tooltip';
-                                  document.body.appendChild(tooltip);
-                                }
-                                tooltip.textContent = tooltipText;
-                                tooltip.style.display = 'block';
-                                
-                                const rect = button.getBoundingClientRect();
-                                const tooltipRect = tooltip.getBoundingClientRect();
-                                tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
-                                tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
-                              }}
-                              onMouseLeave={() => {
-                                const tooltip = document.querySelector('.order-tooltip');
-                                if (tooltip) tooltip.style.display = 'none';
-                              }}
+                              onMouseEnter={showOrderActionTooltip}
+                              onMouseLeave={hideOrderActionTooltip}
                             >
                               💳
                             </button>
                           )}
+                          {orderQualifiesForExternalApi(order) && (
+                            <button
+                              type="button"
+                              className="order-action-btn order-action-btn--share"
+                              onClick={() => handleShareOrder(order)}
+                              disabled={sharingOrderId === order.id}
+                              data-tooltip="Compartir"
+                              aria-label="Compartir"
+                              onMouseEnter={showOrderActionTooltip}
+                              onMouseLeave={hideOrderActionTooltip}
+                            >
+                              <img
+                                src={getIconPath('Share Alt.svg')}
+                                alt=""
+                                width={18}
+                                height={18}
+                              />
+                            </button>
+                          )}
                           <button
+                            type="button"
                             className="order-action-btn order-action-btn--detail"
                             onClick={() => handleViewOrderDetails(order)}
                             data-tooltip="Ver Detalle"
-                            onMouseEnter={(e) => {
-                              const button = e.currentTarget;
-                              const tooltipText = button.getAttribute('data-tooltip');
-                              let tooltip = document.querySelector('.order-tooltip');
-                              if (!tooltip) {
-                                tooltip = document.createElement('div');
-                                tooltip.className = 'order-tooltip';
-                                document.body.appendChild(tooltip);
-                              }
-                              tooltip.textContent = tooltipText;
-                              tooltip.style.display = 'block';
-                              
-                              const rect = button.getBoundingClientRect();
-                              const tooltipRect = tooltip.getBoundingClientRect();
-                              tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
-                              tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
-                            }}
-                            onMouseLeave={() => {
-                              const tooltip = document.querySelector('.order-tooltip');
-                              if (tooltip) tooltip.style.display = 'none';
-                            }}
+                            onMouseEnter={showOrderActionTooltip}
+                            onMouseLeave={hideOrderActionTooltip}
                           >
                             👁️
                           </button>

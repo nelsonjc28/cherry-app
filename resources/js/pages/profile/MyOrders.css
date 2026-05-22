@@ -306,3 +306,18 @@
     text-align: center;
   }
 }
+
+.order-actions-cell .order-action-btn--share img {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+.order-actions-cell .order-action-btn--share:hover:not(:disabled) {
+  color: var(--color-primary);
+}
+
+.order-actions-cell .order-action-btn--share:disabled {
+  opacity: 0.45;
+  cursor: wait;
+}

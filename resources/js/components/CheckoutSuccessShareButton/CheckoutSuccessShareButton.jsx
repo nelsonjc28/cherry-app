@@ -5,6 +5,7 @@ import { getIconPath } from '../../utils/assetPaths';
 import { shareOrderPdf } from '../../utils/shareProductUtils';
 import { formatOrderNumberDisplay } from '../../utils/orderDisplayNumber';
 import { getOrderDisplayTotal } from '../../utils/checkoutOrderDisplay';
+import { ordersQualifyForExternalApi } from '../../utils/orderExternalApi';
 
 /**
  * Botón compartir PDF del pedido (misma lógica que catálogo/productos).
@@ -12,7 +13,7 @@ import { getOrderDisplayTotal } from '../../utils/checkoutOrderDisplay';
 export default function CheckoutSuccessShareButton({ orders, orderInfoFallback = null }) {
   const [isSharingOrder, setIsSharingOrder] = useState(false);
 
-  if (!Array.isArray(orders) || orders.length === 0) {
+  if (!Array.isArray(orders) || orders.length === 0 || !ordersQualifyForExternalApi(orders)) {
     return null;
   }
 
