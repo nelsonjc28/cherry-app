@@ -21,6 +21,7 @@ Route::get('/products/replace-all', [ProductSyncController::class, 'replaceAll']
 
 // Ruta para imprimir orden (acepta token como parámetro para evitar redirección a login)
 Route::get('/api/orders/{orderId}/print', [\App\Http\Controllers\PaymentController::class, 'printOrder']);
+Route::get('/api/orders/{orderId}/print-pdf', [\App\Http\Controllers\PaymentController::class, 'printOrderPdf']);
 
 // Vista previa HTML del correo de confirmación (solo entorno local; no envía nada)
 if (app()->environment('local')) {

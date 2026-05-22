@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import CherryButton from '../CherryButton/CherryButton';
 import api from '../../config/axios';
@@ -11,6 +11,8 @@ import {
   getVolumeDiscountMainTier,
   getVolumeDiscountExtraPercent,
 } from '../../utils/sellerVolumeDiscount';
+import { shareOrderPdf } from '../../utils/shareProductUtils';
+import { getIconPath } from '../../utils/assetPaths';
 
 /** URL de checkout (MP devuelve init_point o podemos armar redirect con preference_id). */
 const mercadoPagoUrlFromPayload = (d) => {
@@ -313,6 +315,29 @@ const OrderDetailModal = ({
     () => (order?.items?.length ? groupOrderItemsByProduct(order.items) : []),
     [order?.items]
   );
+
+  const [isSharingOrder, setIsSharingOrder] = useState(false);
+
+  const handleShareOrder = useCallback(async () => {
+    if (!order?.id || isSharingOrder) return;
+    const orderNum = formatOrderNumberDisplay(order, {
+      isViewerOroDiamante: !isAdmin && isViewerOroDiamante,
+    });
+    const total = parseFloat(order.totalAmount) || 0;
+    try {
+      setIsSharingOrder(true);
+      await shareOrderPdf({
+        orderId: order.id,
+        pdf_name: `pedido-${orderNum}.pdf`,
+        orderLabel: orderNum,
+        totalFormatted: `$${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
+      });
+    } catch {
+      // shareOrderPdf ya muestra toast
+    } finally {
+      setIsSharingOrder(false);
+    }
+  }, [order, isSharingOrder, isAdmin, isViewerOroDiamante]);
 
   if (!isOpen || !order) return null;
 
@@ -887,13 +912,26 @@ const OrderDetailModal = ({
           >
             Cerrar
           </CherryButton>
+          <CherryButton
+            variant="outline"
+            size="medium"
+            onClick={handleShareOrder}
+            disabled={isSharingOrder}
+          >
+            <img
+              src={getIconPath('Share Alt.svg')}
+              alt=""
+              width={16}
+              height={16}
+              style={{ marginRight: 6, verticalAlign: 'middle' }}
+            />
+            {isSharingOrder ? 'Compartiendo...' : 'Compartir pedido'}
+          </CherryButton>
           <CherryButton 
             variant="red" 
             size="medium"
             onClick={() => {
-              // Obtener el token de autenticación
               const token = localStorage.getItem('token');
-              // Abrir la vista de impresión en una nueva ventana con el token como parámetro
               const url = `/api/orders/${order.id}/print${token ? `?token=${encodeURIComponent(token)}` : ''}`;
               window.open(url, '_blank');
             }}

@@ -26,6 +26,8 @@ use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
 use App\Support\OrderItemDetalleResolver;
 use Illuminate\Support\Str;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 
 class PaymentController extends Controller
 {
@@ -4610,169 +4612,248 @@ class PaymentController extends Controller
     }
 
     /**
-     * Print order as PDF/printable view
+     * Print order as HTML printable view (single order).
      */
     public function printOrder(Request $request, $orderId)
     {
         try {
-            /** @var User $user */
-            $user = Auth::user();
-
-            // Si no hay usuario autenticado, intentar autenticar con token de query string
-            if (!$user) {
-                $token = $request->query('token') ?? $request->header('Authorization');
-                
-                if ($token) {
-                    // Remover "Bearer " si está presente
-                    if (strpos($token, 'Bearer ') === 0) {
-                        $token = substr($token, 7);
-                    }
-                    
-                    try {
-                        // Intentar autenticar con el token
-                        $user = \Tymon\JWTAuth\Facades\JWTAuth::setToken($token)->authenticate();
-                        
-                        // Si la autenticación fue exitosa, establecer el usuario en Auth
-                        if ($user) {
-                            Auth::setUser($user);
-                        }
-                    } catch (\Exception $e) {
-                        Log::error('Error al autenticar con token en printOrder', [
-                            'error' => $e->getMessage(),
-                            'order_id' => $orderId
-                        ]);
-                    }
-                }
-            }
-
-            if (!$user) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Usuario no autenticado'
-                ], 401);
-            }
-
-            // Cargar el rol del usuario si no está cargado
-            if (!$user->relationLoaded('role')) {
-                $user->load('role');
+            $auth = $this->resolvePrintOrderAuth($request, $orderId, 'printOrder');
+            if ($auth['error']) {
+                return $auth['error'];
             }
 
             $order = Order::with(['user', 'items', 'address'])->findOrFail($orderId);
+            $section = $this->buildPrintSectionData($order);
 
-            // Log para debugging
-            Log::info('Verificando permisos para imprimir orden', [
-                'user_id' => $user->id,
-                'user_is_admin_or_operator' => $user->isAdminOrOperator(),
-                'order_user_id' => $order->user_id,
-                'order_id' => $orderId
-            ]);
-
-            // Verificar que el usuario tenga acceso a esta orden (dueño o personal admin/operador)
-            // Usar comparación flexible (==) para manejar tipos diferentes (int vs string)
-            if ((int)$order->user_id != (int)$user->id && !$user->isAdminOrOperator()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No tienes permiso para ver esta orden',
-                    'debug' => [
-                        'user_id' => $user->id,
-                        'order_user_id' => $order->user_id,
-                        'is_admin_or_operator' => $user->isAdminOrOperator()
-                    ]
-                ], 403);
-            }
-
-            // Permitir imprimir todas las órdenes (no solo las pagadas)
-
-            // Formatear número de orden
-            $orderNumber = $order->orderNumberPrefixForDisplay() . str_pad($order->id, 4, '0', STR_PAD_LEFT);
-
-            // Calcular totales
-            $subtotal = $order->items->sum('subtotal');
-            $shippingAmount = (float) ($order->shipping_amount ?? 0);
-            $totalAmount = (float) $order->total_amount;
-            $totalPieces = $order->items->sum('quantity');
-
-            // Agrupar por producto con desglose color / talla / cantidad + etiquetas y precios de variante
-            $groupedItems = [];
-            foreach ($order->items as $item) {
-                $productId = (string) $item->product_id;
-                $product = $this->findProductForPrintOrderItem($item);
-                $stockTotal = $this->resolveProductStockTotalForPrint($item, $product);
-                $labels = $this->buildProductLabelsForPrint($product, $stockTotal);
-                $originalPrice = $product ? (float) ($product->precio1 ?? 0) : null;
-                $finalUnitPrice = (float) $item->price;
-                $discountAmount = 0.0;
-                $discountPercentage = 0;
-                if ($originalPrice !== null && $originalPrice > 0 && $originalPrice > $finalUnitPrice) {
-                    $discountAmount = round($originalPrice - $finalUnitPrice, 2);
-                    $discountPercentage = (int) round((($originalPrice - $finalUnitPrice) / $originalPrice) * 100);
-                }
-
-                if (! isset($groupedItems[$productId])) {
-                    $groupedItems[$productId] = [
-                        'product_id' => $productId,
-                        'name' => $item->name,
-                        'image' => $this->getProductImageUrlSimple($item->product_id),
-                        'variants' => [],
-                        'total_quantity' => 0,
-                        'total_subtotal' => 0.0,
-                        'labels' => [],
-                    ];
-                }
-                $groupedItems[$productId]['variants'][] = [
-                    'color' => $item->color,
-                    'size' => $item->size,
-                    'quantity' => (int) $item->quantity,
-                    'price' => $finalUnitPrice,
-                    'final_unit_price' => $finalUnitPrice,
-                    'original_price' => ($originalPrice !== null && $originalPrice > 0) ? $originalPrice : $finalUnitPrice,
-                    'discount_amount' => $discountAmount,
-                    'discount_percentage' => $discountPercentage,
-                    'subtotal' => (float) $item->subtotal,
-                    'labels' => $labels,
-                ];
-                $groupedItems[$productId]['total_quantity'] += (int) $item->quantity;
-                $groupedItems[$productId]['total_subtotal'] += (float) $item->subtotal;
-                $groupedItems[$productId]['labels'] = array_values(array_unique(array_merge(
-                    $groupedItems[$productId]['labels'],
-                    $labels
-                )));
-            }
-
-            foreach ($groupedItems as $key => $row) {
-                $priceKeys = array_unique(array_map(function ($v) {
-                    return number_format($v['price'], 2, '.', '');
-                }, $row['variants']));
-                $groupedItems[$key]['single_unit_price'] = count($priceKeys) === 1
-                    ? (float) $row['variants'][0]['price']
-                    : null;
-            }
-
-            return view('orders.print', [
-                'order' => $order,
-                'orderNumber' => $orderNumber,
-                'orderStatusDisplay' => $order->status_display,
-                'groupedItems' => $groupedItems,
-                'subtotal' => $subtotal,
-                'shippingAmount' => $shippingAmount,
-                'totalAmount' => $totalAmount,
-                'totalPieces' => $totalPieces,
-                'user' => $order->user,
-                'shippingMethodLabel' => $order->shipping_method_label,
-                'addressFull' => $order->address?->admin_formatted_address,
-            ]);
+            return view('orders.print', $section);
         } catch (\Exception $e) {
             Log::error('Error al imprimir orden', [
                 'order_id' => $orderId,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Error al generar la vista de impresión: ' . $e->getMessage()
+                'message' => 'Error al generar la vista de impresión: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * PDF del pedido para compartir (incluye órdenes divididas del mismo checkout).
+     */
+    public function printOrderPdf(Request $request, $orderId)
+    {
+        try {
+            $auth = $this->resolvePrintOrderAuth($request, $orderId, 'printOrderPdf');
+            if ($auth['error']) {
+                return $auth['error'];
+            }
+
+            $order = Order::with(['user', 'items', 'address'])->findOrFail($orderId);
+            $group = $this->resolveCheckoutGroupOrders($order);
+
+            $orderSections = [];
+            foreach ($group as $groupOrder) {
+                if (! $groupOrder->relationLoaded('user')) {
+                    $groupOrder->load(['user', 'items', 'address']);
+                }
+                $orderSections[] = $this->buildPrintSectionData($groupOrder);
+            }
+
+            $isSplit = count($orderSections) > 1;
+            $combinedTotal = array_sum(array_column($orderSections, 'totalAmount'));
+            $combinedPieces = array_sum(array_column($orderSections, 'totalPieces'));
+
+            $orderNumbers = array_column($orderSections, 'orderNumber');
+            $filename = $isSplit
+                ? 'pedidos-' . implode('-', $orderNumbers) . '.pdf'
+                : 'pedido-' . $orderNumbers[0] . '.pdf';
+
+            $html = view('orders.print-pdf', [
+                'orderSections' => $orderSections,
+                'isSplit' => $isSplit,
+                'combinedTotal' => $combinedTotal,
+                'combinedPieces' => $combinedPieces,
+            ])->render();
+
+            $options = new Options();
+            $options->set('isRemoteEnabled', true);
+            $options->set('defaultFont', 'Arial');
+
+            $dompdf = new Dompdf($options);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            return response($dompdf->output(), 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $filename . '"',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error al generar PDF de orden', [
+                'order_id' => $orderId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al generar el PDF del pedido: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * @return array{user: User|null, error: \Illuminate\Http\JsonResponse|null}
+     */
+    private function resolvePrintOrderAuth(Request $request, $orderId, string $context): array
+    {
+        /** @var User|null $user */
+        $user = Auth::user();
+
+        if (! $user) {
+            $token = $request->query('token') ?? $request->header('Authorization');
+
+            if ($token) {
+                if (strpos($token, 'Bearer ') === 0) {
+                    $token = substr($token, 7);
+                }
+
+                try {
+                    $user = \Tymon\JWTAuth\Facades\JWTAuth::setToken($token)->authenticate();
+                    if ($user) {
+                        Auth::setUser($user);
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Error al autenticar con token en ' . $context, [
+                        'error' => $e->getMessage(),
+                        'order_id' => $orderId,
+                    ]);
+                }
+            }
+        }
+
+        if (! $user) {
+            return [
+                'user' => null,
+                'error' => response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no autenticado',
+                ], 401),
+            ];
+        }
+
+        if (! $user->relationLoaded('role')) {
+            $user->load('role');
+        }
+
+        $order = Order::find($orderId);
+        if (! $order) {
+            return [
+                'user' => $user,
+                'error' => response()->json([
+                    'success' => false,
+                    'message' => 'Orden no encontrada',
+                ], 404),
+            ];
+        }
+
+        if ((int) $order->user_id !== (int) $user->id && ! $user->isAdminOrOperator()) {
+            return [
+                'user' => $user,
+                'error' => response()->json([
+                    'success' => false,
+                    'message' => 'No tienes permiso para ver esta orden',
+                ], 403),
+            ];
+        }
+
+        return ['user' => $user, 'error' => null];
+    }
+
+    /**
+     * Datos de vista para imprimir/compartir una orden.
+     *
+     * @return array<string, mixed>
+     */
+    private function buildPrintSectionData(Order $order): array
+    {
+        $orderNumber = $order->orderNumberPrefixForDisplay() . str_pad($order->id, 4, '0', STR_PAD_LEFT);
+        $subtotal = $order->items->sum('subtotal');
+        $shippingAmount = (float) ($order->shipping_amount ?? 0);
+        $totalAmount = (float) $order->total_amount;
+        $totalPieces = $order->items->sum('quantity');
+
+        $groupedItems = [];
+        foreach ($order->items as $item) {
+            $productId = (string) $item->product_id;
+            $product = $this->findProductForPrintOrderItem($item);
+            $stockTotal = $this->resolveProductStockTotalForPrint($item, $product);
+            $labels = $this->buildProductLabelsForPrint($product, $stockTotal);
+            $originalPrice = $product ? (float) ($product->precio1 ?? 0) : null;
+            $finalUnitPrice = (float) $item->price;
+            $discountAmount = 0.0;
+            $discountPercentage = 0;
+            if ($originalPrice !== null && $originalPrice > 0 && $originalPrice > $finalUnitPrice) {
+                $discountAmount = round($originalPrice - $finalUnitPrice, 2);
+                $discountPercentage = (int) round((($originalPrice - $finalUnitPrice) / $originalPrice) * 100);
+            }
+
+            if (! isset($groupedItems[$productId])) {
+                $groupedItems[$productId] = [
+                    'product_id' => $productId,
+                    'name' => $item->name,
+                    'image' => $this->getProductImageUrlSimple($item->product_id),
+                    'variants' => [],
+                    'total_quantity' => 0,
+                    'total_subtotal' => 0.0,
+                    'labels' => [],
+                ];
+            }
+            $groupedItems[$productId]['variants'][] = [
+                'color' => $item->color,
+                'size' => $item->size,
+                'quantity' => (int) $item->quantity,
+                'price' => $finalUnitPrice,
+                'final_unit_price' => $finalUnitPrice,
+                'original_price' => ($originalPrice !== null && $originalPrice > 0) ? $originalPrice : $finalUnitPrice,
+                'discount_amount' => $discountAmount,
+                'discount_percentage' => $discountPercentage,
+                'subtotal' => (float) $item->subtotal,
+                'labels' => $labels,
+            ];
+            $groupedItems[$productId]['total_quantity'] += (int) $item->quantity;
+            $groupedItems[$productId]['total_subtotal'] += (float) $item->subtotal;
+            $groupedItems[$productId]['labels'] = array_values(array_unique(array_merge(
+                $groupedItems[$productId]['labels'],
+                $labels
+            )));
+        }
+
+        foreach ($groupedItems as $key => $row) {
+            $priceKeys = array_unique(array_map(function ($v) {
+                return number_format($v['price'], 2, '.', '');
+            }, $row['variants']));
+            $groupedItems[$key]['single_unit_price'] = count($priceKeys) === 1
+                ? (float) $row['variants'][0]['price']
+                : null;
+        }
+
+        return [
+            'order' => $order,
+            'orderNumber' => $orderNumber,
+            'orderStatusDisplay' => $order->status_display,
+            'groupedItems' => $groupedItems,
+            'subtotal' => $subtotal,
+            'shippingAmount' => $shippingAmount,
+            'totalAmount' => $totalAmount,
+            'totalPieces' => $totalPieces,
+            'user' => $order->user,
+            'shippingMethodLabel' => $order->shipping_method_label,
+            'addressFull' => $order->address?->admin_formatted_address,
+        ];
     }
 
     private function findProductForPrintOrderItem(OrderItem $item): ?\App\Models\Producto

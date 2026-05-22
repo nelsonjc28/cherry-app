@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './CheckoutSuccessPage.css';
 import { getIconPath } from '../utils/assetPaths';
 import { OrderSummaryBlocks } from './CheckoutSuccessPage';
+import CheckoutSuccessShareButton from '../components/CheckoutSuccessShareButton/CheckoutSuccessShareButton';
 
 /**
  * Datos estáticos que imitan un checkout con 2 órdenes vinculadas (split oferta / lista).
@@ -46,6 +47,7 @@ export default function CheckoutSuccessDemoPage() {
         <h1 className="checkout-success-title">¡Gracias por tu compra!</h1>
         <p className="checkout-success-desc">{THANK_YOU_DESCRIPTION}</p>
         <OrderSummaryBlocks orders={MOCK_SPLIT_ORDERS} orderInfoFallback={null} />
+        <CheckoutSuccessShareButton orders={MOCK_SPLIT_ORDERS} />
         <div className="checkout-success-social-box">
           <div className="checkout-success-social-title">Síguenos también en nuestras redes sociales</div>
           <div className="checkout-success-social-icons">

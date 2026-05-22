@@ -5,7 +5,7 @@
     "isEntry": true
   },
   "resources/js/main.jsx": {
-    "file": "assets/main-DLxwq77z.js",
+    "file": "assets/main-DwBcOcfy.js",
     "name": "main",
     "src": "resources/js/main.jsx",
     "isEntry": true,
@@ -13,7 +13,7 @@
       "resources/js/utils/searchNormalizer.js"
     ],
     "css": [
-      "assets/main-DupUqTpC.css"
+      "assets/main-xtfvVcKC.css"
     ]
   },
   "resources/js/utils/searchNormalizer.js": {

@@ -52,6 +52,16 @@
   line-height: 1.4;
 }
 
+.checkout-success-share-wrap {
+  width: 100%;
+  max-width: 360px;
+  margin: 8px 0 20px;
+}
+
+.checkout-success-share-btn {
+  width: 100%;
+}
+
 .checkout-order-info-group .checkout-order-info + .checkout-order-info {
   margin-top: 14px;
   padding-top: 14px;

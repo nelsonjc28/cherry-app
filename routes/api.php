@@ -138,6 +138,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/orders/pending-reviews', [PaymentController::class, 'getPendingReviews']); // Obtener órdenes pendientes de calificación
     Route::put('/orders/{orderId}/status', [PaymentController::class, 'updateOrderStatus']); // Solo admin
     Route::get('/orders/{orderId}/print', [PaymentController::class, 'printOrder']); // Imprimir orden
+    Route::get('/orders/{orderId}/print-pdf', [PaymentController::class, 'printOrderPdf']); // PDF para compartir (incluye split)
 
 // Admin routes - protected by admin middleware
 Route::middleware(['auth:api', 'admin'])->prefix('admin')->group(function () {

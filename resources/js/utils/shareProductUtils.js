@@ -667,3 +667,172 @@ export const shareCatalogPdf = async (pdfInfo) => {
     cleanupMemory(catalogKey);
   }
 };
+
+/**
+ * Compartir PDF de pedido (mismo contenido que imprimir; incluye órdenes divididas).
+ * @param {{ orderId: number|string, pdf_name?: string, orderLabel?: string, totalFormatted?: string }} orderInfo
+ */
+export const shareOrderPdf = async (orderInfo) => {
+  const { orderId, pdf_name, orderLabel, totalFormatted } = orderInfo;
+
+  if (!orderId) {
+    throw new Error('No hay pedido para compartir');
+  }
+
+  const shareKey = `order_${orderId}`;
+
+  if (activeShares.has(shareKey)) {
+    if (window.showToast) {
+      window.showToast('Ya se está compartiendo este pedido. Espera un momento...', 'info');
+    }
+    return;
+  }
+
+  activeShares.set(shareKey, true);
+
+  const token = localStorage.getItem('token');
+  const pdfUrl = `${window.location.origin}/api/orders/${orderId}/print-pdf${
+    token ? `?token=${encodeURIComponent(token)}` : ''
+  }`;
+
+  let blob = null;
+  let objectURL = null;
+
+  const label = orderLabel || `Pedido #${orderId}`;
+  const shareText = totalFormatted
+    ? `Te comparto mi pedido Cherry: ${label}. Total: ${totalFormatted}.`
+    : `Te comparto mi pedido Cherry: ${label}.`;
+
+  const fileName = pdf_name || `pedido-${orderId}.pdf`;
+
+  try {
+    if (window.showToast) {
+      window.showToast('Generando PDF del pedido...', 'info');
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    const headers = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(pdfUrl, {
+      signal: controller.signal,
+      headers,
+      credentials: 'same-origin',
+    });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error('Error al descargar el PDF del pedido');
+    }
+
+    blob = await response.blob();
+
+    if (!blob.type || !blob.type.includes('pdf')) {
+      blob = new Blob([blob], { type: 'application/pdf' });
+    }
+
+    const file = new File([blob], fileName, { type: 'application/pdf' });
+
+    const canShareFiles =
+      navigator.share && navigator.canShare && navigator.canShare({ files: [file] });
+
+    if (canShareFiles) {
+      try {
+        await navigator.share({
+          title: label,
+          text: shareText,
+          files: [file],
+        });
+        blob = null;
+        if (window.showToast) window.showToast('¡Pedido PDF compartido!', 'success');
+        return;
+      } catch (shareError) {
+        if (shareError.name === 'AbortError') {
+          blob = null;
+          return;
+        }
+      }
+    }
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: label,
+          text: shareText,
+        });
+        if (window.showToast) {
+          window.showToast('Compartido. Descarga el PDF desde Mis pedidos si lo necesitas.', 'info');
+        }
+        blob = null;
+        return;
+      } catch (textShareError) {
+        if (textShareError.name === 'AbortError') {
+          blob = null;
+          return;
+        }
+      }
+    }
+
+    if (window.showToast) {
+      window.showToast('Descargando PDF...', 'info');
+    }
+
+    objectURL = createTrackedObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objectURL;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    setTimeout(() => {
+      if (objectURL) {
+        try {
+          URL.revokeObjectURL(objectURL);
+          const index = createdObjectURLs.indexOf(objectURL);
+          if (index > -1) {
+            createdObjectURLs.splice(index, 1);
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+    }, 500);
+
+    blob = null;
+
+    try {
+      await navigator.clipboard.writeText(shareText);
+      if (window.showToast) {
+        window.showToast('PDF descargado. Mensaje copiado al portapapeles.', 'success');
+      }
+    } catch (clipboardError) {
+      if (window.showToast) {
+        window.showToast('PDF descargado.', 'info');
+      }
+    }
+  } catch (error) {
+    if (objectURL) {
+      try {
+        URL.revokeObjectURL(objectURL);
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    if (error.name === 'AbortError') {
+      return;
+    }
+
+    if (window.showToast) {
+      window.showToast('No se pudo compartir el pedido. Intenta nuevamente.', 'error');
+    }
+    throw error;
+  } finally {
+    cleanupMemory(shareKey);
+  }
+};
