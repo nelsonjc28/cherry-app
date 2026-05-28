@@ -51,10 +51,7 @@ class AbandonedCartEmail extends Mailable implements ShouldQueue
 
         $base = rtrim((string) config('app.url'), '/');
         $this->cartUrl = $base.'/carrito-detalle';
-        $configuredLogo = config('cherry.mail_logo_url');
-        $this->logoUrl = (is_string($configuredLogo) && $configuredLogo !== '')
-            ? $configuredLogo
-            : $base.'/images/logo.svg';
+        $this->logoUrl = MailImageService::mailLogoAbsoluteUrl();
         $this->shopUrl = $base;
         $banner = MailImageService::bannerAbsoluteUrl(MailConfig::TYPE_ABANDONED_CART);
         $this->heroImageUrl = $banner;
@@ -68,7 +65,7 @@ class AbandonedCartEmail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Tienes productos esperándote en tu carrito — '.config('app.name'),
+            subject: 'Tienes productos esperándote en tu carrito — '.MailImageService::mailBrandName(),
         );
     }
 

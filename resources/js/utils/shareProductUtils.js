@@ -11,6 +11,10 @@ const createdObjectURLs = [];
 // Map para rastrear ejecuciones en curso por ID de producto/catálogo
 const activeShares = new Map();
 
+// PDF de pedido precargado (el share en móvil debe ser inmediato tras el toque)
+const orderPdfCache = new Map();
+const orderPdfPrefetchPromises = new Map();
+
 /**
  * Limpiar todas las URLs creadas para un ID específico
  */
@@ -669,6 +673,167 @@ export const shareCatalogPdf = async (pdfInfo) => {
 };
 
 /**
+ * Descargar PDF de pedido autenticado y devolverlo como File
+ */
+const fetchOrderPdfAsFile = async (orderId, fileName, token, timeout = 10000) => {
+  const pdfUrl = `${window.location.origin}/api/orders/${orderId}/print-pdf${
+    token ? `?token=${encodeURIComponent(token)}` : ''
+  }`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  const headers = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  try {
+    const response = await fetch(pdfUrl, {
+      signal: controller.signal,
+      headers,
+      credentials: 'same-origin',
+      cache: 'force-cache',
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al descargar el PDF del pedido');
+    }
+
+    let blob = await response.blob();
+
+    if (!blob.type || !blob.type.includes('pdf')) {
+      blob = new Blob([blob], { type: 'application/pdf' });
+    }
+
+    return new File([blob], fileName, { type: 'application/pdf' });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
+/**
+ * Precargar PDF del pedido para que al tocar Compartir el archivo ya esté listo.
+ * En móvil, navigator.share exige que el toque sea casi inmediato; si hay que esperar
+ * la generación del PDF, se pierde el gesto y cae en descarga.
+ */
+export const prefetchOrderPdf = (orderId, fileName) => {
+  if (!orderId) return Promise.resolve(null);
+
+  const key = String(orderId);
+  if (orderPdfCache.has(key)) {
+    return Promise.resolve(orderPdfCache.get(key));
+  }
+  if (orderPdfPrefetchPromises.has(key)) {
+    return orderPdfPrefetchPromises.get(key);
+  }
+
+  const token = localStorage.getItem('token');
+  const promise = fetchOrderPdfAsFile(
+    orderId,
+    fileName || `pedido-${orderId}.pdf`,
+    token
+  )
+    .then((file) => {
+      orderPdfCache.set(key, file);
+      return file;
+    })
+    .catch(() => null)
+    .finally(() => {
+      orderPdfPrefetchPromises.delete(key);
+    });
+
+  orderPdfPrefetchPromises.set(key, promise);
+  return promise;
+};
+
+/**
+ * Intentar abrir el menú nativo de compartir con un PDF.
+ * iOS Safari comparte mejor con solo { files }; probamos varias combinaciones.
+ */
+const trySharePdfViaNativeApi = async (file, { title, text, url }) => {
+  if (!navigator.share) {
+    return { success: false, reason: 'unsupported' };
+  }
+
+  const filePayloads = [
+    { files: [file] },
+    { files: [file], title },
+    { files: [file], title, text },
+  ];
+
+  for (const data of filePayloads) {
+    try {
+      if (data.files && navigator.canShare && !navigator.canShare(data)) {
+        continue;
+      }
+      await navigator.share(data);
+      return { success: true, mode: 'file' };
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        return { success: false, reason: 'aborted' };
+      }
+      if (error.name === 'NotAllowedError') {
+        return { success: false, reason: 'not_allowed' };
+      }
+    }
+  }
+
+  // Algunos Android reportan canShare=false pero share({ files }) sí funciona
+  try {
+    await navigator.share({ files: [file] });
+    return { success: true, mode: 'file' };
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      return { success: false, reason: 'aborted' };
+    }
+    if (error.name === 'NotAllowedError') {
+      return { success: false, reason: 'not_allowed' };
+    }
+  }
+
+  const textPayloads = [{ title, text }];
+  if (url) {
+    textPayloads.push({ title, text, url });
+  }
+
+  for (const data of textPayloads) {
+    try {
+      await navigator.share(data);
+      return { success: true, mode: 'text' };
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        return { success: false, reason: 'aborted' };
+      }
+    }
+  }
+
+  return { success: false, reason: 'failed' };
+};
+
+const downloadPdfFile = (file, fileName) => {
+  const objectURL = createTrackedObjectURL(file);
+  const a = document.createElement('a');
+  a.href = objectURL;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  setTimeout(() => {
+    try {
+      URL.revokeObjectURL(objectURL);
+      const index = createdObjectURLs.indexOf(objectURL);
+      if (index > -1) {
+        createdObjectURLs.splice(index, 1);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, 500);
+};
+
+/**
  * Compartir PDF de pedido (mismo contenido que imprimir; incluye órdenes divididas).
  * @param {{ orderId: number|string, pdf_name?: string, orderLabel?: string, totalFormatted?: string }} orderInfo
  */
@@ -680,6 +845,7 @@ export const shareOrderPdf = async (orderInfo) => {
   }
 
   const shareKey = `order_${orderId}`;
+  const cacheKey = String(orderId);
 
   if (activeShares.has(shareKey)) {
     if (window.showToast) {
@@ -691,12 +857,8 @@ export const shareOrderPdf = async (orderInfo) => {
   activeShares.set(shareKey, true);
 
   const token = localStorage.getItem('token');
-  const pdfUrl = `${window.location.origin}/api/orders/${orderId}/print-pdf${
-    token ? `?token=${encodeURIComponent(token)}` : ''
-  }`;
-
-  let blob = null;
-  let objectURL = null;
+  const orderUrl = window.location.href;
+  const hasNativeShare = typeof navigator.share === 'function';
 
   const label = orderLabel || `Pedido #${orderId}`;
   const shareText = totalFormatted
@@ -706,125 +868,96 @@ export const shareOrderPdf = async (orderInfo) => {
   const fileName = pdf_name || `pedido-${orderId}.pdf`;
 
   try {
-    if (window.showToast) {
-      window.showToast('Generando PDF del pedido...', 'info');
+    let file = orderPdfCache.get(cacheKey);
+    const hadCachedFile = Boolean(file);
+
+    if (!file) {
+      if (window.showToast) {
+        window.showToast('Generando PDF del pedido...', 'info');
+      }
+      file = await fetchOrderPdfAsFile(orderId, fileName, token);
+      orderPdfCache.set(cacheKey, file);
     }
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-    const headers = {};
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-
-    const response = await fetch(pdfUrl, {
-      signal: controller.signal,
-      headers,
-      credentials: 'same-origin',
+    const shareResult = await trySharePdfViaNativeApi(file, {
+      title: label,
+      text: shareText,
+      url: orderUrl,
     });
-    clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      throw new Error('Error al descargar el PDF del pedido');
-    }
-
-    blob = await response.blob();
-
-    if (!blob.type || !blob.type.includes('pdf')) {
-      blob = new Blob([blob], { type: 'application/pdf' });
-    }
-
-    const file = new File([blob], fileName, { type: 'application/pdf' });
-
-    const canShareFiles =
-      navigator.share && navigator.canShare && navigator.canShare({ files: [file] });
-
-    if (canShareFiles) {
-      try {
-        await navigator.share({
-          title: label,
-          text: shareText,
-          files: [file],
-        });
-        blob = null;
-        if (window.showToast) window.showToast('¡Pedido PDF compartido!', 'success');
-        return;
-      } catch (shareError) {
-        if (shareError.name === 'AbortError') {
-          blob = null;
-          return;
-        }
+    if (shareResult.success) {
+      if (window.showToast) {
+        window.showToast(
+          shareResult.mode === 'file'
+            ? '¡Pedido PDF compartido!'
+            : 'Compartido. El PDF quedó listo si quieres adjuntarlo.',
+          'success'
+        );
       }
+      return;
     }
 
-    if (navigator.share) {
+    if (shareResult.reason === 'aborted') {
+      return;
+    }
+
+    if (shareResult.reason === 'not_allowed' && !hadCachedFile && hasNativeShare) {
+      if (window.showToast) {
+        window.showToast('PDF listo. Toca compartir otra vez.', 'info');
+      }
+      return;
+    }
+
+    if (!hasNativeShare) {
+      if (window.showToast) {
+        window.showToast('Descargando PDF...', 'info');
+      }
+      downloadPdfFile(file, fileName);
       try {
-        await navigator.share({
-          title: label,
-          text: shareText,
-        });
+        await navigator.clipboard.writeText(`${shareText}\n\n${orderUrl}`);
         if (window.showToast) {
-          window.showToast('Compartido. Descarga el PDF desde Mis pedidos si lo necesitas.', 'info');
+          window.showToast('PDF descargado. Enlace copiado al portapapeles.', 'success');
         }
-        blob = null;
-        return;
-      } catch (textShareError) {
-        if (textShareError.name === 'AbortError') {
-          blob = null;
-          return;
+      } catch (clipboardError) {
+        if (window.showToast) {
+          window.showToast('PDF descargado.', 'info');
         }
       }
+      return;
     }
 
     if (window.showToast) {
-      window.showToast('Descargando PDF...', 'info');
-    }
-
-    objectURL = createTrackedObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = objectURL;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-
-    setTimeout(() => {
-      if (objectURL) {
-        try {
-          URL.revokeObjectURL(objectURL);
-          const index = createdObjectURLs.indexOf(objectURL);
-          if (index > -1) {
-            createdObjectURLs.splice(index, 1);
-          }
-        } catch (e) {
-          // ignore
-        }
-      }
-    }, 500);
-
-    blob = null;
-
-    try {
-      await navigator.clipboard.writeText(shareText);
-      if (window.showToast) {
-        window.showToast('PDF descargado. Mensaje copiado al portapapeles.', 'success');
-      }
-    } catch (clipboardError) {
-      if (window.showToast) {
-        window.showToast('PDF descargado.', 'info');
-      }
+      window.showToast('No se pudo abrir el menú de compartir. Intenta otra vez.', 'error');
     }
   } catch (error) {
-    if (objectURL) {
-      try {
-        URL.revokeObjectURL(objectURL);
-      } catch (e) {
-        // ignore
-      }
+    if (error.name === 'AbortError') {
+      return;
     }
 
-    if (error.name === 'AbortError') {
+    if (!hasNativeShare) {
+      try {
+        if (window.showToast) {
+          window.showToast('Descargando PDF...', 'info');
+        }
+        const fallbackFile = await fetchOrderPdfAsFile(orderId, fileName, token);
+        orderPdfCache.set(cacheKey, fallbackFile);
+        downloadPdfFile(fallbackFile, fileName);
+        try {
+          await navigator.clipboard.writeText(`${shareText}\n\n${orderUrl}`);
+          if (window.showToast) {
+            window.showToast('PDF descargado. Enlace copiado.', 'info');
+          }
+        } catch (clipboardError) {
+          if (window.showToast) {
+            window.showToast('PDF descargado.', 'info');
+          }
+        }
+      } catch (fallbackError) {
+        if (window.showToast) {
+          window.showToast('No se pudo compartir el pedido. Intenta nuevamente.', 'error');
+        }
+        throw fallbackError;
+      }
       return;
     }
 

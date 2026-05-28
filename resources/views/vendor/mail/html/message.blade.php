@@ -17,7 +17,7 @@
 {{-- Footer --}}
 <x-slot:footer>
 <x-mail::footer>
-© {{ date('Y') }} {{ config('mail.from.name', config('app.name')) }}. {{ __('All rights reserved.') }}
+© {{ date('Y') }} {{ \App\Services\MailImageService::mailBrandName() }}. {{ __('All rights reserved.') }}
 </x-mail::footer>
 </x-slot:footer>
 </x-mail::layout>

@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import CustomButton from '../CustomButton';
 import { getIconPath } from '../../utils/assetPaths';
-import { shareOrderPdf } from '../../utils/shareProductUtils';
 import { formatOrderNumberDisplay } from '../../utils/orderDisplayNumber';
 import { getOrderDisplayTotal } from '../../utils/checkoutOrderDisplay';
 import { ordersQualifyForExternalApi } from '../../utils/orderExternalApi';
@@ -12,6 +11,19 @@ import { ordersQualifyForExternalApi } from '../../utils/orderExternalApi';
  */
 export default function CheckoutSuccessShareButton({ orders, orderInfoFallback = null }) {
   const [isSharingOrder, setIsSharingOrder] = useState(false);
+
+  useEffect(() => {
+    const primary = orders?.[0];
+    if (!primary?.id || !ordersQualifyForExternalApi(orders)) return;
+
+    const labels = orders.map((o) => formatOrderNumberDisplay(o));
+    const pdfBase =
+      labels.length > 1 ? `pedidos-${labels.join('-')}` : `pedido-${labels[0]}`;
+
+    import('../../utils/shareProductUtils').then(({ prefetchOrderPdf }) => {
+      prefetchOrderPdf(primary.id, `${pdfBase}.pdf`);
+    });
+  }, [orders]);
 
   if (!Array.isArray(orders) || orders.length === 0 || !ordersQualifyForExternalApi(orders)) {
     return null;
@@ -32,14 +44,17 @@ export default function CheckoutSuccessShareButton({ orders, orderInfoFallback =
 
     try {
       setIsSharingOrder(true);
+      const { shareOrderPdf } = await import('../../utils/shareProductUtils');
       await shareOrderPdf({
         orderId: primary.id,
         pdf_name: `${pdfBase}.pdf`,
         orderLabel,
         totalFormatted: `$${combinedTotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
       });
-    } catch {
-      // shareOrderPdf ya muestra toast
+    } catch (error) {
+      if (error?.name !== 'AbortError' && window.showToast) {
+        window.showToast('No se pudo compartir el pedido.', 'error');
+      }
     } finally {
       setIsSharingOrder(false);
     }

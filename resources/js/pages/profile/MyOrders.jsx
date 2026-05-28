@@ -9,7 +9,6 @@ import './MyOrders.css';
 import { formatOrderNumberDisplay } from '../../utils/orderDisplayNumber';
 import { getProductImageUrl } from '../../utils/productImageUtils';
 import { getIconPath } from '../../utils/assetPaths';
-import { shareOrderPdf } from '../../utils/shareProductUtils';
 import { getOrderDisplayTotal } from '../../utils/checkoutOrderDisplay';
 import { orderQualifiesForExternalApi } from '../../utils/orderExternalApi';
 
@@ -178,11 +177,26 @@ const MyOrders = () => {
   const handleViewOrderDetails = (order) => {
     setSelectedOrderForDetail(order);
     setShowOrderDetailModal(true);
+
+    if (order?.id && orderQualifiesForExternalApi(order)) {
+      const orderNum = formatOrderNumber(order);
+      import('../../utils/shareProductUtils').then(({ prefetchOrderPdf }) => {
+        prefetchOrderPdf(order.id, `pedido-${orderNum}.pdf`);
+      });
+    }
   };
 
   const handleCloseOrderDetailModal = () => {
     setShowOrderDetailModal(false);
     setSelectedOrderForDetail(null);
+  };
+
+  const prefetchSharePdf = (order) => {
+    if (!order?.id || !orderQualifiesForExternalApi(order)) return;
+    const orderNum = formatOrderNumber(order);
+    import('../../utils/shareProductUtils').then(({ prefetchOrderPdf }) => {
+      prefetchOrderPdf(order.id, `pedido-${orderNum}.pdf`);
+    });
   };
 
   const handleShareOrder = async (order) => {
@@ -192,6 +206,7 @@ const MyOrders = () => {
       parseFloat(order.totalAmount) || getOrderDisplayTotal(order);
     try {
       setSharingOrderId(order.id);
+      const { shareOrderPdf } = await import('../../utils/shareProductUtils');
       await shareOrderPdf({
         orderId: order.id,
         pdf_name: `pedido-${orderNum}.pdf`,
@@ -200,8 +215,10 @@ const MyOrders = () => {
           minimumFractionDigits: 2,
         })}`,
       });
-    } catch {
-      // shareOrderPdf ya muestra toast
+    } catch (error) {
+      if (error?.name !== 'AbortError' && window.showToast) {
+        window.showToast('No se pudo compartir el pedido.', 'error');
+      }
     } finally {
       setSharingOrderId(null);
     }
@@ -442,11 +459,15 @@ const MyOrders = () => {
                               type="button"
                               className="order-action-btn order-action-btn--share"
                               onClick={() => handleShareOrder(order)}
+                              onTouchStart={() => prefetchSharePdf(order)}
+                              onMouseEnter={(event) => {
+                                prefetchSharePdf(order);
+                                showOrderActionTooltip(event);
+                              }}
+                              onMouseLeave={hideOrderActionTooltip}
                               disabled={sharingOrderId === order.id}
                               data-tooltip="Compartir"
                               aria-label="Compartir"
-                              onMouseEnter={showOrderActionTooltip}
-                              onMouseLeave={hideOrderActionTooltip}
                             >
                               <img
                                 src={getIconPath('Share Alt.svg')}

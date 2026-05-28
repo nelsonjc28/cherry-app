@@ -11,7 +11,12 @@ class MailConfig extends Model
         'image_path',
     ];
 
+    /** @deprecated migrado a welcome_hero / welcome_promo */
     public const TYPE_WELCOME = 'welcome';
+
+    public const TYPE_WELCOME_HERO = 'welcome_hero';
+
+    public const TYPE_WELCOME_PROMO = 'welcome_promo';
 
     public const TYPE_ORDER_CONFIRMATION = 'order_confirmation';
 
@@ -25,7 +30,8 @@ class MailConfig extends Model
     public static function allTypes(): array
     {
         return [
-            self::TYPE_WELCOME,
+            self::TYPE_WELCOME_HERO,
+            self::TYPE_WELCOME_PROMO,
             self::TYPE_ORDER_CONFIRMATION,
             self::TYPE_ABANDONED_CART,
             self::TYPE_ORDER_STATUS,

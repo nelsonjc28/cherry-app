@@ -6,26 +6,18 @@
 @endphp
 <x-mail::message>
 {{-- Diseño tipo newsletter: tablas + estilos en línea para clientes de correo --}}
-<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;margin:0 auto;background:#ffffff;">
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;max-width:600px;margin:0 auto;background:#ffffff;">
   <tr>
     <td style="padding:24px 20px 16px;text-align:center;background:#ffffff;">
       <a href="{{ $shopUrl }}" style="text-decoration:none;display:inline-block;" target="_blank" rel="noopener">
-        <img src="{{ $logoUrl }}" alt="{{ config('app.name') }}" width="160" style="max-width:160px;height:auto;display:block;margin:0 auto;">
+        <img src="{{ $logoUrl }}" alt="Cherry" width="160" style="max-width:160px;height:auto;display:block;margin:0 auto;">
       </a>
     </td>
   </tr>
-  {{-- Hero: tres columnas (misma imagen por defecto; sustituir en servidor con fotos de lookbook si se desea) --}}
+  {{-- Hero superior: 600px ancho; puede ser collage de 3 fotos (200×400 c/u) en un solo archivo --}}
   <tr>
-    <td style="padding:0;background:#f5f5f5;">
-      <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-        <tr>
-          @foreach ([1, 2, 3] as $_)
-          <td width="33.33%" style="width:33.33%;padding:0;vertical-align:top;">
-            <img src="{{ $heroImageUrl }}" alt="" width="200" style="display:block;width:100%;max-width:200px;height:auto;min-height:160px;object-fit:cover;margin:0 auto;">
-          </td>
-          @endforeach
-        </tr>
-      </table>
+    <td style="padding:0;background:#f5f5f5;line-height:0;font-size:0;">
+      <img src="{{ $heroImageUrl }}" alt="" width="100%" style="display:block;width:100%;max-width:100%;height:auto;border:0;">
     </td>
   </tr>
   <tr>
@@ -34,11 +26,19 @@
         Bienvenido a
       </p>
       <a href="{{ $shopUrl }}" style="text-decoration:none;display:inline-block;margin-bottom:16px;" target="_blank" rel="noopener">
-        <img src="{{ $logoUrl }}" alt="{{ config('app.name') }}" width="200" style="max-width:200px;height:auto;display:block;margin:0 auto;">
+        <img src="{{ $logoUrl }}" alt="Cherry" width="200" style="max-width:200px;height:auto;display:block;margin:0 auto;">
       </a>
-      <p style="margin:0 0 20px;font-family:{{ $serif }};font-size:15px;color:#4a4a4a;font-style:italic;line-height:1.5;">
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:0 0 20px;text-align:center;background:#ffffff;width:100%;">
+      <p style="margin:0;width:100%;max-width:100%;font-family:{{ $serif }};font-size:25px;color:#4a4a4a;font-style:italic;line-height:1.5;box-sizing:border-box;">
         Conoce todos los beneficios que tenemos para ti
       </p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:0 24px 24px;text-align:center;background:#ffffff;">
       <p style="margin:0 auto;max-width:480px;font-family:{{ $sans }};font-size:15px;color:#1a1a1a;line-height:1.55;font-weight:700;">
         ¡Estamos emocionados de que te hayas unido a nosotros! Queremos mostrarte todos los beneficios que tendrás al ser uno de nuestros distribuidores.
       </p>
@@ -128,7 +128,7 @@
   </tr>
   <tr>
     <td style="padding:0;background:#eaeaea;">
-      <img src="{{ $promoBannerImageUrl }}" alt="" width="600" style="display:block;width:100%;max-width:600px;height:auto;">
+      <img src="{{ $promoBannerImageUrl }}" alt="" width="100%" style="display:block;width:100%;max-width:100%;height:auto;border:0;">
     </td>
   </tr>
   <tr>
@@ -173,7 +173,7 @@
 </table>
 
 <p style="margin:16px 0 0;font-family:{{ $sans }};font-size:13px;color:#6b7280;text-align:center;">
-  Hola {{ $firstName }}, si no creaste esta cuenta en {{ config('app.name') }}, puedes ignorar este mensaje.
+  Hola {{ $firstName }}, si no creaste esta cuenta en {{ \App\Services\MailImageService::mailBrandName() }}, puedes ignorar este mensaje.
 </p>
 
 </x-mail::message>

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import CherryButton from '../CherryButton/CherryButton';
 import api from '../../config/axios';
@@ -11,7 +11,6 @@ import {
   getVolumeDiscountMainTier,
   getVolumeDiscountExtraPercent,
 } from '../../utils/sellerVolumeDiscount';
-import { shareOrderPdf } from '../../utils/shareProductUtils';
 import { getIconPath } from '../../utils/assetPaths';
 import { orderQualifiesForExternalApi } from '../../utils/orderExternalApi';
 
@@ -319,6 +318,18 @@ const OrderDetailModal = ({
 
   const [isSharingOrder, setIsSharingOrder] = useState(false);
 
+  useEffect(() => {
+    if (!isOpen || !order?.id || !orderQualifiesForExternalApi(order)) return;
+
+    const orderNum = formatOrderNumberDisplay(order, {
+      isViewerOroDiamante: !isAdmin && isViewerOroDiamante,
+    });
+
+    import('../../utils/shareProductUtils').then(({ prefetchOrderPdf }) => {
+      prefetchOrderPdf(order.id, `pedido-${orderNum}.pdf`);
+    });
+  }, [isOpen, order, isAdmin, isViewerOroDiamante]);
+
   const handleShareOrder = useCallback(async () => {
     if (!order?.id || isSharingOrder) return;
     const orderNum = formatOrderNumberDisplay(order, {
@@ -327,14 +338,17 @@ const OrderDetailModal = ({
     const total = parseFloat(order.totalAmount) || 0;
     try {
       setIsSharingOrder(true);
+      const { shareOrderPdf } = await import('../../utils/shareProductUtils');
       await shareOrderPdf({
         orderId: order.id,
         pdf_name: `pedido-${orderNum}.pdf`,
         orderLabel: orderNum,
         totalFormatted: `$${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
       });
-    } catch {
-      // shareOrderPdf ya muestra toast
+    } catch (error) {
+      if (error?.name !== 'AbortError' && window.showToast) {
+        window.showToast('No se pudo compartir el pedido.', 'error');
+      }
     } finally {
       setIsSharingOrder(false);
     }

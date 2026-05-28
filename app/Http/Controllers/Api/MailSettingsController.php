@@ -12,13 +12,77 @@ use Illuminate\Validation\Rule;
 
 class MailSettingsController extends Controller
 {
-    /** @var array<string, string> */
-    protected array $typeLabels = [
-        MailConfig::TYPE_WELCOME => 'WelcomeEmail — Bienvenida (hero y franja promocional)',
-        MailConfig::TYPE_ORDER_CONFIRMATION => 'OrderConfirmationMail — Confirmación de pedido (hero)',
-        MailConfig::TYPE_ABANDONED_CART => 'AbandonedCartEmail — Carrito abandonado (hero y promo)',
-        MailConfig::TYPE_ORDER_STATUS => 'OrderStatusEmail — Actualización de estado (cabecera)',
-        MailConfig::TYPE_PRODUCT_AVAILABLE => 'ProductAvailableEmail — Producto disponible (banner inferior)',
+    /**
+     * @var array<string, array{
+     *   label: string,
+     *   size_hint: string,
+     *   template: string,
+     *   template_label: string,
+     *   template_description?: string,
+     *   area_label: string,
+     *   area_description: string,
+     *   sort?: int
+     * }>
+     */
+    protected array $typeMeta = [
+        MailConfig::TYPE_WELCOME_HERO => [
+            'label' => 'Hero superior',
+            'template' => 'welcome',
+            'template_label' => 'Correo de bienvenida',
+            'area_label' => 'Hero superior — Lookbook de modelos',
+            'area_description' => 'Debajo del logo Cherry. Bloque visual principal con las fotos de modelos (collage o imagen ancho completo).',
+            'size_hint' => '600 × 400 px (3:2). Collage de 3 modelos: tres fotos de 200 × 400 px sin espacio entre ellas.',
+            'sort' => 1,
+        ],
+        MailConfig::TYPE_WELCOME_PROMO => [
+            'label' => 'Banner promociones',
+            'template' => 'welcome',
+            'template_label' => 'Correo de bienvenida',
+            'area_label' => 'Banner inferior — Promociones y novedades',
+            'area_description' => 'Sobre el pie negro del correo, después de los iconos de redes sociales.',
+            'size_hint' => '600 × 200 px (3:1). Puedes incluir el texto en la imagen o dejar el texto del correo debajo.',
+            'sort' => 2,
+        ],
+        MailConfig::TYPE_ORDER_CONFIRMATION => [
+            'label' => 'Hero confirmación',
+            'template' => 'order_confirmation',
+            'template_label' => 'Confirmación de pedido',
+            'template_description' => 'Se envía al completar una compra.',
+            'area_label' => 'Cabecera — Imagen principal',
+            'area_description' => 'Parte superior del correo, debajo del encabezado.',
+            'size_hint' => '600 × 320 px recomendado.',
+            'sort' => 1,
+        ],
+        MailConfig::TYPE_ABANDONED_CART => [
+            'label' => 'Banner carrito',
+            'template' => 'abandoned_cart',
+            'template_label' => 'Carrito abandonado',
+            'template_description' => 'Recordatorio automático cuando el carrito lleva ítems sin comprar.',
+            'area_label' => 'Hero y banner promocional',
+            'area_description' => 'Por ahora una sola imagen para las zonas superior e inferior del template.',
+            'size_hint' => '600 × 400 px (hero) y 600 × 200 px (promo) en el diseño; sube la que usarás en ambas zonas.',
+            'sort' => 1,
+        ],
+        MailConfig::TYPE_ORDER_STATUS => [
+            'label' => 'Cabecera estado',
+            'template' => 'order_status',
+            'template_label' => 'Actualización de estado del pedido',
+            'template_description' => 'Se envía cuando cambia el estado de un pedido.',
+            'area_label' => 'Cabecera del correo',
+            'area_description' => 'Imagen superior que acompaña el mensaje de estado.',
+            'size_hint' => '600 × 200 px recomendado.',
+            'sort' => 1,
+        ],
+        MailConfig::TYPE_PRODUCT_AVAILABLE => [
+            'label' => 'Banner producto',
+            'template' => 'product_available',
+            'template_label' => 'Producto disponible',
+            'template_description' => 'Aviso cuando un producto vuelve a estar en stock.',
+            'area_label' => 'Banner inferior',
+            'area_description' => 'Franja visual al final del cuerpo del correo.',
+            'size_hint' => '600 × 200 px recomendado.',
+            'sort' => 1,
+        ],
     ];
 
     public function index(): JsonResponse
@@ -28,9 +92,24 @@ class MailSettingsController extends Controller
             $row = MailConfig::query()->where('mail_type', $type)->first();
             $path = $row?->image_path;
             $hasFile = is_string($path) && $path !== '' && $this->mailAssetFileOk($path);
+            $meta = $this->typeMeta[$type] ?? [
+                'label' => $type,
+                'size_hint' => '',
+                'template' => $type,
+                'template_label' => $type,
+                'area_label' => $type,
+                'area_description' => '',
+            ];
             $items[] = [
                 'mail_type' => $type,
-                'label' => $this->typeLabels[$type] ?? $type,
+                'label' => $meta['label'],
+                'size_hint' => $meta['size_hint'],
+                'template' => $meta['template'],
+                'template_label' => $meta['template_label'],
+                'template_description' => $meta['template_description'] ?? '',
+                'area_label' => $meta['area_label'],
+                'area_description' => $meta['area_description'],
+                'sort' => $meta['sort'] ?? 99,
                 'image_path' => $hasFile ? $path : null,
                 'image_url' => MailImageService::bannerAbsoluteUrl($type),
                 /** Misma ruta que el correo pero solo pathname: la vista previa usa el host de la pestaña (evita http/https distinto a APP_URL). */
@@ -42,7 +121,42 @@ class MailSettingsController extends Controller
         return response()->json([
             'success' => true,
             'configs' => $items,
+            'templates' => $this->buildTemplates($items),
         ]);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $items
+     * @return list<array<string, mixed>>
+     */
+    protected function buildTemplates(array $items): array
+    {
+        $byTemplate = [];
+        foreach ($items as $item) {
+            $templateId = (string) ($item['template'] ?? $item['mail_type']);
+            if (! isset($byTemplate[$templateId])) {
+                $byTemplate[$templateId] = [
+                    'id' => $templateId,
+                    'title' => $item['template_label'],
+                    'description' => $item['template_description'] ?? '',
+                    'slots' => [],
+                ];
+            }
+            $byTemplate[$templateId]['slots'][] = $item;
+        }
+
+        $templates = array_values($byTemplate);
+        foreach ($templates as &$template) {
+            usort($template['slots'], static fn (array $a, array $b): int => ($a['sort'] ?? 99) <=> ($b['sort'] ?? 99));
+            $template['slot_count'] = count($template['slots']);
+            $template['custom_count'] = count(array_filter(
+                $template['slots'],
+                static fn (array $s): bool => ! empty($s['uses_uploaded'])
+            ));
+        }
+        unset($template);
+
+        return $templates;
     }
 
     public function uploadImage(Request $request): JsonResponse

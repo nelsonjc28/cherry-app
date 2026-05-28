@@ -9,7 +9,7 @@
   <tr>
     <td style="padding:24px 20px 16px;text-align:center;background:#ffffff;">
       <a href="{{ $shopUrl }}" style="text-decoration:none;display:inline-block;" target="_blank" rel="noopener">
-        <img src="{{ $logoUrl }}" alt="{{ config('app.name') }}" width="160" style="max-width:160px;height:auto;display:block;margin:0 auto;">
+        <img src="{{ $logoUrl }}" alt="Cherry" width="160" style="max-width:160px;height:auto;display:block;margin:0 auto;">
       </a>
     </td>
   </tr>
@@ -32,13 +32,13 @@
         Tu carrito te espera
       </p>
       <a href="{{ $shopUrl }}" style="text-decoration:none;display:inline-block;margin-bottom:16px;" target="_blank" rel="noopener">
-        <img src="{{ $logoUrl }}" alt="{{ config('app.name') }}" width="200" style="max-width:200px;height:auto;display:block;margin:0 auto;">
+        <img src="{{ $logoUrl }}" alt="Cherry" width="200" style="max-width:200px;height:auto;display:block;margin:0 auto;">
       </a>
       <p style="margin:0 0 20px;font-family:{{ $serif }};font-size:15px;color:#4a4a4a;font-style:italic;line-height:1.5;">
         Tus productos siguen en tu carrito (sujeto a disponibilidad).
       </p>
       <p style="margin:0 auto;max-width:480px;font-family:{{ $sans }};font-size:15px;color:#1a1a1a;line-height:1.55;font-weight:700;">
-        Hola {{ $firstName }}, notamos que no terminaste tu pedido. Completa tu compra y aprovecha precios de mayoreo, envíos y los beneficios de {{ config('app.name') }}.
+        Hola {{ $firstName }}, notamos que no terminaste tu pedido. Completa tu compra y aprovecha precios de mayoreo, envíos y los beneficios de {{ \App\Services\MailImageService::mailBrandName() }}.
       </p>
     </td>
   </tr>

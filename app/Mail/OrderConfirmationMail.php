@@ -156,12 +156,12 @@ class OrderConfirmationMail extends Mailable
     {
         if ($this->isPickupOrder && ! $this->showAsShipped) {
             $subject = $this->pickupOrderReady
-                ? 'Tu pedido #'.$this->order->id.' está listo para recoger en tienda — '.config('app.name')
-                : 'Confirmación de pedido (retiro en tienda) #'.$this->order->id.' — '.config('app.name');
+                ? 'Tu pedido #'.$this->order->id.' está listo para recoger en tienda — '.MailImageService::mailBrandName()
+                : 'Confirmación de pedido (retiro en tienda) #'.$this->order->id.' — '.MailImageService::mailBrandName();
         } else {
             $subject = $this->showAsShipped
-                ? 'Tu pedido #'.$this->order->id.' ya fue enviado — '.config('app.name')
-                : 'Confirmación de pedido #'.$this->order->id.' — '.config('app.name');
+                ? 'Tu pedido #'.$this->order->id.' ya fue enviado — '.MailImageService::mailBrandName()
+                : 'Confirmación de pedido #'.$this->order->id.' — '.MailImageService::mailBrandName();
         }
 
         return new Envelope(
@@ -247,12 +247,7 @@ class OrderConfirmationMail extends Mailable
 
     protected function resolveLogoUrl(): string
     {
-        $configured = config('cherry.mail_logo_url');
-        if (is_string($configured) && $configured !== '') {
-            return $configured;
-        }
-
-        return asset('images/logo.svg');
+        return MailImageService::mailLogoAbsoluteUrl();
     }
 
     protected function resolveHeroImageUrl(): string

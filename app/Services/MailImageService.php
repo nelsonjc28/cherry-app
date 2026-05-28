@@ -9,6 +9,30 @@ use App\Models\MailConfig;
  */
 class MailImageService
 {
+    /** Logo estándar en correos: public/icons/logo-cherry.png */
+    public static function mailLogoAbsoluteUrl(): string
+    {
+        $configured = config('cherry.mail_logo_url');
+        if (is_string($configured) && trim($configured) !== '') {
+            return trim($configured);
+        }
+
+        return asset('icons/logo-cherry.png');
+    }
+
+    /** Nombre de marca en asuntos y pies (evita "Laravel" si APP_NAME no está configurado). */
+    public static function mailBrandName(): string
+    {
+        $name = (string) (config('cherry.mail_brand_name') ?: config('mail.from.name') ?: config('app.name'));
+        $name = trim($name);
+
+        if ($name === '' || strcasecmp($name, 'laravel') === 0) {
+            return 'Cherry Central';
+        }
+
+        return $name;
+    }
+
     /**
      * URL absoluta del banner para un tipo de correo. Si no hay imagen en BD o el archivo no existe, usa respaldo.
      */

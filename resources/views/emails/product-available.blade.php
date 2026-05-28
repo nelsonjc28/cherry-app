@@ -18,7 +18,7 @@
   <tr>
     <td style="padding:24px 20px 12px;text-align:center;background:#ffffff;">
       <a href="{{ $webBase }}" style="text-decoration:none;display:inline-block;" target="_blank" rel="noopener">
-        <img src="{{ $logoUrl }}" alt="{{ config('app.name') }}" width="160" style="max-width:160px;height:auto;display:block;margin:0 auto;">
+        <img src="{{ $logoUrl }}" alt="Cherry" width="160" style="max-width:160px;height:auto;display:block;margin:0 auto;">
       </a>
     </td>
   </tr>

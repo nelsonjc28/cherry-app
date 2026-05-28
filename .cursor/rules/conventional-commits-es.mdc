@@ -1,0 +1,50 @@
+---
+description: Mensajes de commit con Conventional Commits y descripción en español imperativo. Usar al crear commits, amend o redactar historial de Git.
+alwaysApply: false
+---
+
+# Conventional Commits (español imperativo)
+
+Redacta y valida mensajes de commit con historial limpio, semántico y profesional.
+
+## Formato obligatorio
+
+`<tipo>(<scope opcional>): <descripción>`
+
+- **Tipos** (minúsculas): `feat`, `fix`, `hotfix`, `merge`, `rebase`, `reset`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`, `ci`, `build`
+- **Tipo** en inglés; **descripción** 100% en español
+- Descripción en **minúscula**, **sin punto final**, concisa
+
+## Gramática de la descripción
+
+- Verbos en **imperativo**: `añade`, `corrige`, `actualiza`, `elimina`, `mejora`, `implementa`, `crea`, `modifica`, `refactoriza`, `ajusta`, `configura`
+- **Prohibido**: pasado (`añadió`), gerundio (`añadiendo`), participio (`añadido`), primera persona (`añado`, `creo`)
+
+## Mapeo de tipos
+
+| Tipo | Uso |
+|------|-----|
+| `feat` | Nueva funcionalidad |
+| `fix` | Corrección de error |
+| `hotfix` | Corrección urgente en producción |
+| `docs` | Solo documentación |
+| `style` | Formato sin cambio de lógica |
+| `refactor` | Cambio sin fix ni feat |
+| `perf` | Mejora de rendimiento |
+| `test` | Pruebas |
+| `chore` | Build, dependencias, herramientas |
+
+## Ejemplos
+
+```
+feat(auth): añade integración con Google Authenticator
+fix(api): corrige validación de tokens expirados
+docs: actualiza guía de despliegue en el README
+refactor: mejora legibilidad en el controlador de usuarios
+style: ajusta sangrías en las vistas de Blade
+```
+
+## Al ejecutar `git commit`
+
+- Usa HEREDOC para el mensaje
+- Si el usuario pide otro formato en la misma petición, prevalece lo que indique

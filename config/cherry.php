@@ -24,8 +24,11 @@ return [
 
     'orders_web_base' => rtrim(env('CHERRY_ORDERS_WEB_URL', 'https://cherrydev.789.com.mx'), '/'),
 
-    /** URL absoluta del logo para correos (S3 o CDN). Si vacío, se usa asset público. */
+    /** URL absoluta del logo para correos (S3 o CDN). Si vacío: /icons/logo-cherry.png */
     'mail_logo_url' => env('CHERRY_MAIL_LOGO_URL'),
+
+    /** Nombre en asuntos y pies de correo (no usar APP_NAME si queda "Laravel"). */
+    'mail_brand_name' => env('CHERRY_MAIL_BRAND_NAME', 'Cherry Central'),
 
     /** Imagen hero (columna izquierda) del correo de confirmación de pedido; si vacío: /images/welcome-default.jpg */
     'mail_order_confirmation_hero_url' => env('CHERRY_MAIL_ORDER_CONFIRMATION_HERO_URL', ''),

@@ -17,7 +17,7 @@
   <tr>
     <td align="center" style="padding:32px 24px 24px;background:#ffffff;">
       <a href="{{ $shopUrl }}" target="_blank" rel="noopener" style="text-decoration:none;">
-        <img src="{{ $logoUrl }}" alt="{{ config('app.name') }}" width="200" style="max-width:200px;height:auto;display:block;margin:0 auto;">
+        <img src="{{ $logoUrl }}" alt="Cherry" width="200" style="max-width:200px;height:auto;display:block;margin:0 auto;">
       </a>
     </td>
   </tr>
@@ -168,7 +168,7 @@
   <tr>
     <td align="center" style="padding:28px 20px 20px;background:#ffffff;">
       <a href="{{ rtrim(config('app.url'), '/') }}" target="_blank" rel="noopener" style="text-decoration:none;">
-        <img src="{{ $logoUrl }}" alt="{{ config('app.name') }}" width="200" style="max-width:200px;height:auto;display:block;margin:0 auto;">
+        <img src="{{ $logoUrl }}" alt="Cherry" width="200" style="max-width:200px;height:auto;display:block;margin:0 auto;">
       </a>
     </td>
   </tr>

@@ -53,7 +53,7 @@ class OrderStatusEmail extends Mailable implements ShouldQueue
         $label = $this->order->status_display ?? $this->order->status;
 
         return new Envelope(
-            subject: 'Actualización de tu pedido #'.$this->order->id.' — '.$label.' — '.config('app.name'),
+            subject: 'Actualización de tu pedido #'.$this->order->id.' — '.$label.' — '.MailImageService::mailBrandName(),
         );
     }
 

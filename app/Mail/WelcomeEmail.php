@@ -37,14 +37,10 @@ class WelcomeEmail extends Mailable implements ShouldQueue
         $this->user = $user;
 
         $base = rtrim((string) config('app.url'), '/');
-        $configuredLogo = config('cherry.mail_logo_url');
-        $this->logoUrl = (is_string($configuredLogo) && $configuredLogo !== '')
-            ? $configuredLogo
-            : $base.'/images/logo.svg';
+        $this->logoUrl = MailImageService::mailLogoAbsoluteUrl();
         $this->shopUrl = $base;
-        $banner = MailImageService::bannerAbsoluteUrl(MailConfig::TYPE_WELCOME);
-        $this->heroImageUrl = $banner;
-        $this->promoBannerImageUrl = $banner;
+        $this->heroImageUrl = MailImageService::bannerAbsoluteUrl(MailConfig::TYPE_WELCOME_HERO);
+        $this->promoBannerImageUrl = MailImageService::bannerAbsoluteUrl(MailConfig::TYPE_WELCOME_PROMO);
         $this->socialFacebook = (string) config('cherry.social_facebook');
         $this->socialInstagram = (string) config('cherry.social_instagram');
         $wa = config('cherry.social_whatsapp');
@@ -54,7 +50,7 @@ class WelcomeEmail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '¡Bienvenido a '.config('app.name').'!',
+            subject: '¡Bienvenido a '.MailImageService::mailBrandName().'!',
         );
     }
 

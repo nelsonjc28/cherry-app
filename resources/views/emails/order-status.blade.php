@@ -74,7 +74,7 @@
   <tr>
     <td style="padding:0 24px 28px;background:#ffffff;text-align:center;">
       <p style="margin:0;font-family:{{ $sans }};font-size:14px;color:{{ $muted }};">
-        Gracias por tu compra.<br>{{ config('app.name') }}
+        Gracias por tu compra.<br>{{ \App\Services\MailImageService::mailBrandName() }}
       </p>
     </td>
   </tr>

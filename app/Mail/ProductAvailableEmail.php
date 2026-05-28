@@ -67,10 +67,7 @@ class ProductAvailableEmail extends Mailable implements ShouldQueue
 
         $this->productDetailUrl = $this->webBase.'/producto/'.rawurlencode((string) ($producto?->id ?? ''));
 
-        $configuredLogo = config('cherry.mail_logo_url');
-        $this->logoUrl = (is_string($configuredLogo) && $configuredLogo !== '')
-            ? $configuredLogo
-            : $this->appBase.'/images/logo.svg';
+        $this->logoUrl = MailImageService::mailLogoAbsoluteUrl();
 
         $this->promoBannerImageUrl = MailImageService::bannerAbsoluteUrl(MailConfig::TYPE_PRODUCT_AVAILABLE);
 
@@ -105,7 +102,7 @@ class ProductAvailableEmail extends Mailable implements ShouldQueue
             : $this->productName;
 
         return new Envelope(
-            subject: '¡Está de vuelta! '.$shortName.' ya tiene stock — '.config('app.name'),
+            subject: '¡Está de vuelta! '.$shortName.' ya tiene stock — '.MailImageService::mailBrandName(),
         );
     }
 
