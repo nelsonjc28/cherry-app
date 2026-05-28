@@ -709,8 +709,8 @@ class PaymentController extends Controller
     {
         $sorted = array_values($items);
         usort($sorted, function ($a, $b) {
-            $aSoon = filter_var($a['is_coming_soon'] ?? false, FILTER_VALIDATE_BOOLEAN);
-            $bSoon = filter_var($b['is_coming_soon'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            $aSoon = $this->lineIsEncargo($a);
+            $bSoon = $this->lineIsEncargo($b);
             if ($aSoon !== $bSoon) {
                 return $aSoon <=> $bSoon;
             }
@@ -727,12 +727,26 @@ class PaymentController extends Controller
     }
 
     /**
+     * Línea de encargo: Próximamente o Agotado (Oro/Diamante).
+     *
+     * @param  array<string, mixed>  $line
+     */
+    protected function lineIsEncargo(array $line): bool
+    {
+        if (filter_var($line['is_coming_soon'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            return true;
+        }
+
+        return filter_var($line['is_out_of_stock_encargo'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /**
      * @param  array<int, array<string, mixed>>  $lines
      */
     protected function orderLinesContainComingSoon(array $lines): bool
     {
         foreach ($lines as $line) {
-            if (filter_var($line['is_coming_soon'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            if ($this->lineIsEncargo($line)) {
                 return true;
             }
         }
@@ -758,6 +772,7 @@ class PaymentController extends Controller
             'items.*.barcode' => 'nullable|string',
             'items.*.detalle_id' => 'nullable|integer|min:1',
             'items.*.is_coming_soon' => 'nullable|boolean',
+            'items.*.is_out_of_stock_encargo' => 'nullable|boolean',
             'items.*.desc_promo' => 'nullable|numeric',
             'items.*.user_offer_applies' => 'nullable|boolean',
             'items_for_volume_pricing' => 'nullable|array',
@@ -1177,6 +1192,7 @@ class PaymentController extends Controller
             'items.*.barcode' => 'nullable|string',
             'items.*.detalle_id' => 'nullable|integer|min:1',
             'items.*.is_coming_soon' => 'nullable|boolean',
+            'items.*.is_out_of_stock_encargo' => 'nullable|boolean',
             'items.*.desc_promo' => 'nullable|numeric',
             'items.*.user_offer_applies' => 'nullable|boolean',
             'items_for_volume_pricing' => 'nullable|array',
@@ -4199,7 +4215,7 @@ class PaymentController extends Controller
         if (! $user->canMakeAdvanceOrders()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Los pedidos de productos "Próximamente" solo están disponibles para clientes con categoría Oro o Diamante.',
+                'message' => 'Los pedidos de encargo (Próximamente o Agotado) solo están disponibles para clientes con categoría Oro o Diamante.',
             ], 403);
         }
 

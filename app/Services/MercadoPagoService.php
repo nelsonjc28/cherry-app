@@ -593,6 +593,7 @@ class MercadoPagoService
             'barcode' => $item['barcode'] ?? null,
             'detalle_id' => $item['detalle_id'] ?? null,
             'is_coming_soon' => filter_var($item['is_coming_soon'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'is_out_of_stock_encargo' => filter_var($item['is_out_of_stock_encargo'] ?? false, FILTER_VALIDATE_BOOLEAN),
             'desc_promo' => (float) ($item['desc_promo'] ?? 0),
             'user_offer_applies' => filter_var($item['user_offer_applies'] ?? false, FILTER_VALIDATE_BOOLEAN),
             'image' => $item['image'] ?? $item['imagen'] ?? null,
@@ -631,7 +632,7 @@ class MercadoPagoService
         } elseif (filter_var($i['user_offer_applies'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
             $bits[] = 'Oferta usuario';
         }
-        if (! empty($i['is_coming_soon'])) {
+        if (! empty($i['is_coming_soon']) || ! empty($i['is_out_of_stock_encargo'])) {
             $bits[] = 'Anticipado';
         }
 

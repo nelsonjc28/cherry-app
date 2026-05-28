@@ -27,6 +27,11 @@ import {
   discountedMerchandiseForSubset,
 } from '../utils/cartVolumePricing';
 import { buildCartAmountBreakdown } from '../utils/cartCheckoutBreakdown';
+import {
+  isEncargoCartLine,
+  itemSkipsStockValidation,
+  cartLineToApiEncargoFlags,
+} from '../utils/encargoUtils';
 
 
 
@@ -92,9 +97,9 @@ const CartDetailsPage = () => {
   // State for payment method (credit or mercadopago)
   const [paymentMethod, setPaymentMethod] = useState('mercadopago'); // 'mercadopago' or 'credit'
   
-  // Separar productos adelantados de productos con stock
-  const advanceOrderItems = cartItems.filter(item => item.isComingSoon === true);
-  const regularItems = cartItems.filter(item => !item.isComingSoon || item.isComingSoon !== true);
+  // Separar encargos (Próximamente / Agotado) de productos con stock
+  const advanceOrderItems = cartItems.filter(item => isEncargoCartLine(item));
+  const regularItems = cartItems.filter(item => !isEncargoCartLine(item));
   const hasAdvanceOrders = advanceOrderItems.length > 0;
   const hasRegularItems = regularItems.length > 0;
   
@@ -401,12 +406,8 @@ const CartDetailsPage = () => {
 
     if (!itemToUpdate) return;
 
-    // Próximamente + descuento API: sin validar stock
-    const isComingSoon = itemToUpdate.isComingSoon === true;
     const { user } = useUserStore.getState();
-    const canOrderComingSoon = isOroDiamanteSeller(user);
-    
-    if (isComingSoon && canOrderComingSoon) {
+    if (itemSkipsStockValidation(itemToUpdate, user)) {
       updateQuantity(itemToUpdate.id_articulo, newQty, itemToUpdate.selectedColor, itemToUpdate.selectedSize);
       return;
     }
@@ -502,7 +503,7 @@ const CartDetailsPage = () => {
       }
 
       for (const item of cartItems) {
-        if (item.isComingSoon === true) continue;
+        if (itemSkipsStockValidation(item, user)) continue;
         try {
           const stockValidation = await validateStock(
             item.id_articulo,
@@ -558,7 +559,7 @@ const CartDetailsPage = () => {
           color: item.selectedColor || null,
           barcode: item.barcode || null,
           detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null,
-          is_coming_soon: item.isComingSoon === true,
+          ...cartLineToApiEncargoFlags(item),
           desc_promo: item.desc_promo != null ? item.desc_promo : null,
           user_offer_applies: !!(item.userOffer && item.userOffer.discount_category),
         })),
@@ -647,7 +648,7 @@ const CartDetailsPage = () => {
     if (hasAdvanceOrders && !isOroDiamanteSeller(user)) {
       if (window.showToast) {
         window.showToast(
-          'Los productos "Próximamente" solo están disponibles para clientes con categoría Oro o Diamante.',
+          'Los productos en encargo (Próximamente o Agotado) solo están disponibles para clientes con categoría Oro o Diamante.',
           'error'
         );
       }
@@ -848,7 +849,7 @@ const CartDetailsPage = () => {
             color: item.selectedColor || null,
             barcode: item.barcode || null,
             detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null,
-            is_coming_soon: item.isComingSoon === true,
+            ...cartLineToApiEncargoFlags(item),
             desc_promo: item.desc_promo != null ? item.desc_promo : null,
             user_offer_applies: !!(item.userOffer && item.userOffer.discount_category),
           };

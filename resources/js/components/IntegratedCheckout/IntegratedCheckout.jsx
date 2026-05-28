@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import CustomButton from '../CustomButton/CustomButton';
 import api from '../../config/axios';
+import { cartLineToApiEncargoFlags } from '../../utils/encargoUtils';
 import './IntegratedCheckout.css';
 
 const IntegratedCheckout = ({ 
@@ -179,7 +180,7 @@ const IntegratedCheckout = ({
           barcode: item.barcode || null,
           detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null,
           desc_promo: item.desc_promo ?? null,
-          is_coming_soon: item.isComingSoon === true,
+          ...cartLineToApiEncargoFlags(item),
           user_offer_applies: !!(item.userOffer && item.userOffer.discount_category),
           image: item.image && item.image !== '/images/placeholder.jpg' && item.image !== '/images/catalogProductImages/Rectangle 4922.png'
             ? item.image

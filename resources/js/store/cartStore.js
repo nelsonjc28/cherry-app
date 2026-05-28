@@ -4,6 +4,7 @@ import { cartApi } from '../api/cartApi';
 import useUserStore from './userStore';
 import { isOroDiamanteSeller } from '../utils/sellerVolumeDiscount';
 import { effectiveDetailInventoryContribution } from '../utils/productUtils';
+import { isEncargoCartLine } from '../utils/encargoUtils';
 
 /**
  * Helper function to calculate item price considering Buy X Get Y offers
@@ -470,17 +471,17 @@ const useCartStore = create(
 
         const maxStock = getStockForVariant(product, product.selectedColor, product.selectedSize);
         
-        // Próximamente: solo categoría Oro o Diamante
-        const isComingSoon = product.isComingSoon === true;
+        // Encargo (Próximamente o Agotado): solo Oro o Diamante
+        const isEncargoLine = isEncargoCartLine(product);
         const user = useUserStore.getState?.()?.user;
         const isPremiumUser = user && isOroDiamanteSeller(user);
         
-        if (maxStock === 0 && !(isComingSoon && isPremiumUser)) {
+        if (maxStock === 0 && !(isEncargoLine && isPremiumUser)) {
            window.showToast("No hay stock para esta combinación de color y talla.",'error');
           return;
         }
         
-        if (maxStock === 0 && isComingSoon && isPremiumUser) {
+        if (maxStock === 0 && isEncargoLine && isPremiumUser) {
           // Continuar con el proceso de agregar al carrito
         } else if (maxStock === 0) {
           return;
@@ -503,13 +504,13 @@ const useCartStore = create(
           const existing = updatedItems[existingIndex];
           const newQuantity = existing.quantity + quantity;
 
-          const isComingSoon = product.isComingSoon === true || existing.isComingSoon === true;
+          const isEncargoLine = isEncargoCartLine(product) || isEncargoCartLine(existing);
           const user = useUserStore.getState?.()?.user;
           const isPremiumUser = user && isOroDiamanteSeller(user);
           
-          const maxAllowed = (isComingSoon && isPremiumUser) ? 9999 : maxStock;
+          const maxAllowed = (isEncargoLine && isPremiumUser) ? 9999 : maxStock;
 
-          if (newQuantity > maxAllowed && !(isComingSoon && isPremiumUser)) {
+          if (newQuantity > maxAllowed && !(isEncargoLine && isPremiumUser)) {
             // Preservar userOffer al actualizar cantidad
             updatedItems[existingIndex] = { 
               ...existing, 
@@ -531,14 +532,14 @@ const useCartStore = create(
             };
           }
         } else {
-          const isComingSoon = product.isComingSoon === true;
+          const isEncargoLine = isEncargoCartLine(product);
           const user = useUserStore.getState?.()?.user;
           const isPremiumUser = user && isOroDiamanteSeller(user);
           
-          const maxAllowed = (isComingSoon && isPremiumUser) ? 9999 : maxStock;
+          const maxAllowed = (isEncargoLine && isPremiumUser) ? 9999 : maxStock;
           const qty = quantity > maxAllowed ? maxAllowed : quantity;
           
-          if (quantity > maxStock && !(isComingSoon && isPremiumUser)) {
+          if (quantity > maxStock && !(isEncargoLine && isPremiumUser)) {
             window.showToast(`Solo hay ${maxStock} unidades disponibles para esta combinación.`, 'error')
           }
           // Asegurar que userOffer se incluya al agregar nuevo producto

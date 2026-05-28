@@ -39,6 +39,7 @@ import useHorizontalDragScroll from '../hooks/useHorizontalDragScroll';
 import colorConverter from '../services/colorConverter';
 import { validateStock, getProductStock } from '../services/inventoryService';
 import { getVolumeDiscountMainTier, getSellerCategoryFromUser, hasApiVolumeMainPercent, isOroDiamanteSeller, canApplyMainDiscount } from '../utils/sellerVolumeDiscount';
+import { canEncargoSinStock } from '../utils/encargoUtils';
 import { summarizeVolumeFromCartItems } from '../utils/cartVolumePricing';
 
 // Función para formatear montos con separador de miles
@@ -599,12 +600,10 @@ const ProductPage = () => {
     if (selectedColor && selectedSize) {
       // Verificar si el producto está "próximamente" y el usuario es "oro"
       const inventoryStatus = getInventoryStatus();
-      const isComingSoon = inventoryStatus.status === 'coming-soon';
-      const canEncargoProximamente = user && isOroDiamanteSeller(user);
+      const canEncargo = canEncargoSinStock(user, inventoryStatus.status);
 
       const stockDisponible = getStockBySizeAndColor(selectedSize, selectedColor);
-      // Si la cantidad actual excede el stock disponible, ajustarla (excepto para usuarios "oro" con productos "Próximamente")
-      if (quantity > stockDisponible && !(isComingSoon && canEncargoProximamente)) {
+      if (quantity > stockDisponible && !canEncargo) {
         setQuantity(Math.max(1, stockDisponible));
       }
     }
@@ -615,12 +614,10 @@ const ProductPage = () => {
     if (selectedColor && selectedSize) {
       // Verificar si el producto está "próximamente" y el usuario es "oro"
       const inventoryStatus = getInventoryStatus();
-      const isComingSoon = inventoryStatus.status === 'coming-soon';
-      const canEncargoProximamente = user && isOroDiamanteSeller(user);
+      const canEncargo = canEncargoSinStock(user, inventoryStatus.status);
 
       const stockDisponible = getStockBySizeAndColor(selectedSize, selectedColor);
-      // Ajustar la cantidad al stock disponible de la nueva talla (excepto para usuarios "oro" con productos "Próximamente")
-      if (quantity > stockDisponible && !(isComingSoon && canEncargoProximamente)) {
+      if (quantity > stockDisponible && !canEncargo) {
         setQuantity(Math.max(1, stockDisponible));
       }
     }
@@ -631,12 +628,10 @@ const ProductPage = () => {
     if (selectedColor && selectedSize) {
       // Verificar si el producto está "próximamente" y el usuario es "oro"
       const inventoryStatus = getInventoryStatus();
-      const isComingSoon = inventoryStatus.status === 'coming-soon';
-      const canEncargoProximamente = user && isOroDiamanteSeller(user);
+      const canEncargo = canEncargoSinStock(user, inventoryStatus.status);
 
       const stockDisponible = getStockBySizeAndColor(selectedSize, selectedColor);
-      // Si la talla seleccionada no tiene stock para el nuevo color, resetearla (excepto para usuarios "oro" con productos "Próximamente")
-      if (stockDisponible <= 0 && !(isComingSoon && canEncargoProximamente)) {
+      if (stockDisponible <= 0 && !canEncargo) {
         setSelectedSize('');
         setQuantity(1);
         setQuantitiesBySize({});
@@ -710,9 +705,18 @@ const ProductPage = () => {
       return;
     }
 
-    // Verificar si el producto está "próximamente" (coming-soon)
     const inventoryStatus = getInventoryStatus();
-    const isComingSoon = inventoryStatus.status === 'coming-soon';
+    const statusKind = inventoryStatus.status;
+    const isComingSoon = statusKind === 'coming-soon';
+    const isOutOfStock = statusKind === 'out-of-stock';
+    const canEncargo = canEncargoSinStock(user, statusKind);
+
+    if (isOutOfStock && canEncargo && !user) {
+      if (window.showToast) {
+        window.showToast('Debes iniciar sesión para hacer encargos de productos agotados.', 'error');
+      }
+      return;
+    }
 
     // Si el producto está "próximamente", manejar según categoría del usuario
     if (isComingSoon) {
@@ -765,8 +769,7 @@ const ProductPage = () => {
       return;
     }
 
-    // Verificar que todas las cantidades no excedan el stock disponible (solo si no es "próximamente")
-    if (!isComingSoon) {
+    if (!canEncargo) {
       for (const { talla, cantidad } of tallasConCantidades) {
         const stockDisponible = getStockBySizeAndColor(talla, selectedColor);
 
@@ -798,7 +801,8 @@ const ProductPage = () => {
           quantity: cantidad,
           colors: [selectedColor],
           barcode: getBarcodeBySizeAndColor(talla, selectedColor) || product.ean || product.sku || product.codigo_barras || product.id_articulo, // Código de barras específico por talla/color
-          isComingSoon: isComingSoon, // Marcar si es producto "Próximamente"
+          isComingSoon: isComingSoon,
+          isOutOfStockEncargo: isOutOfStock && canEncargo,
           // Información de ofertas especiales
           userOffer: hasUserOffer ? {
             discount_category: userOffer.discount_category, // IMPORTANTE: incluir discount_category
@@ -820,9 +824,10 @@ const ProductPage = () => {
         const totalUnidades = getTotalUnits();
         let message = `${totalUnidades} unidad${totalUnidades > 1 ? 'es' : ''} agregada${totalUnidades > 1 ? 's' : ''} al carrito`;
 
-        // Si es un producto "próximamente", indicar que es un encargo
         if (isComingSoon) {
           message += ' 📦 (Encargo - Próximamente)';
+        } else if (isOutOfStock && canEncargo) {
+          message += ' 📦 (Encargo - Agotado)';
         }
 
         if (hasOffer) {
@@ -895,13 +900,11 @@ const ProductPage = () => {
   const handleQuantityChangeForSize = (talla, newQuantity) => {
     // Verificar si el producto está "próximamente" y el usuario es "oro"
     const inventoryStatus = getInventoryStatus();
-    const isComingSoon = inventoryStatus.status === 'coming-soon';
-    const canEncargoProximamente = user && isOroDiamanteSeller(user);
+    const canEncargo = canEncargoSinStock(user, inventoryStatus.status);
 
     const stockMaximo = getStockForSize(talla);
 
-    // Para productos "Próximamente" de usuarios "oro", permitir cualquier cantidad positiva
-    const maxAllowed = (isComingSoon && canEncargoProximamente) ? 9999 : stockMaximo;
+    const maxAllowed = canEncargo ? 9999 : stockMaximo;
 
     if (newQuantity >= 0 && newQuantity <= maxAllowed) {
       // Actualizar la cantidad para la talla específica
@@ -927,15 +930,11 @@ const ProductPage = () => {
   const handleSizeSelection = (talla) => {
     // Verificar si el producto está "próximamente" y el usuario es "oro"
     const inventoryStatus = getInventoryStatus();
-    const isComingSoon = inventoryStatus.status === 'coming-soon';
-    const canEncargoProximamente = user && isOroDiamanteSeller(user);
+    const canEncargo = canEncargoSinStock(user, inventoryStatus.status);
 
-    // Verificar si la talla tiene stock
     const stockDisponible = selectedColor ? getStockBySizeAndColor(talla, selectedColor) : getStockForSize(talla);
 
-    // No permitir selección si no hay stock (excepto para usuarios "oro" con productos "Próximamente")
-    // No mostrar mensaje si es usuario "oro" con producto "Próximamente"
-    if (stockDisponible <= 0 && !(isComingSoon && canEncargoProximamente)) {
+    if (stockDisponible <= 0 && !canEncargo) {
       if (window.showToast) {
         window.showToast('Esta talla no tiene stock disponible', 'info');
       }
@@ -948,8 +947,7 @@ const ProductPage = () => {
     // Si la talla no tiene cantidad o tiene 0, inicializar con 1
     const cantidadActual = quantitiesBySize[talla] || 0;
     if (cantidadActual <= 0) {
-      // Para productos "Próximamente" de usuarios "oro", permitir seleccionar incluso sin stock
-      if (stockDisponible > 0 || (isComingSoon && canEncargoProximamente)) {
+      if (stockDisponible > 0 || canEncargo) {
         setQuantitiesBySize(prev => ({
           ...prev,
           [talla]: 1
@@ -1355,8 +1353,8 @@ const ProductPage = () => {
 
   // Agregar alerta de "próximamente" si aplica (después de que getInventoryStatus esté definida)
   const isComingSoon = inventoryStatusData.status === 'coming-soon';
-  const canEncargoProximamente = user && isOroDiamanteSeller(user);
-  const showNotifyAlert = isComingSoon && (!user || !canEncargoProximamente);
+  const canEncargo = canEncargoSinStock(user, inventoryStatusData.status);
+  const showNotifyAlert = isComingSoon && (!user || !canEncargo);
 
   const productPageAlerts = [...baseAlerts];
   if (showNotifyAlert) {
@@ -1761,9 +1759,14 @@ const ProductPage = () => {
               {tallasAMostrar.length > 0 && (() => {
                 // Verificar si el producto está "próximamente" y el usuario es "oro" (fuera del map para usar en el mensaje)
                 const inventoryStatus = getInventoryStatus();
-                const isComingSoon = inventoryStatus.status === 'coming-soon';
-                const canEncargoProximamente = user && isOroDiamanteSeller(user);
-                const showNotifyAlert = isComingSoon && (!user || !canEncargoProximamente);
+                const statusKind = inventoryStatus.status;
+                const isComingSoon = statusKind === 'coming-soon';
+                const isOutOfStock = statusKind === 'out-of-stock';
+                const canEncargo = canEncargoSinStock(user, statusKind);
+                const showNotifyAlert = isComingSoon && (!user || !canEncargo);
+                const encargoLabel = isComingSoon
+                  ? 'Encargo - Próximamente'
+                  : (isOutOfStock && canEncargo ? 'Encargo - Agotado' : null);
 
                 return (
                   <div className="product-page__option">
@@ -1807,9 +1810,9 @@ const ProductPage = () => {
                     <div className="product-page__size-options">
                       {tallasAMostrar.map((talla, index) => {
                         const stockDisponible = selectedColor ? getStockBySizeAndColor(talla, selectedColor) : getStockForSize(talla);
-                        const isDisabled = selectedColor && stockDisponible <= 0 && !(isComingSoon && canEncargoProximamente);
+                        const isDisabled = selectedColor && stockDisponible <= 0 && !canEncargo;
                         const maxStock = getStockForSize(talla);
-                        const maxAllowed = (isComingSoon && canEncargoProximamente) ? 9999 : maxStock;
+                        const maxAllowed = canEncargo ? 9999 : maxStock;
                         const canIncrease = (quantitiesBySize[talla] || 0) < maxAllowed;
 
                         return (
@@ -1820,12 +1823,12 @@ const ProductPage = () => {
                               disabled={isDisabled}
                               title={isDisabled ?
                                 'Sin stock disponible para este color' :
-                                (isComingSoon && canEncargoProximamente ? 'Seleccionar talla (Encargo - Próximamente)' : 'Seleccionar talla')
+                                (encargoLabel ? `Seleccionar talla (${encargoLabel})` : 'Seleccionar talla')
                               }
                             >
                               <span className="product-page__size-number">{talla}</span>
                               <span className="product-page__size-availability">
-                                {isComingSoon && canEncargoProximamente ?
+                                {canEncargo ?
                                   'Disponible para encargo' :
                                   (selectedColor ?
                                     `${stockDisponible} disponibles` :
@@ -1853,7 +1856,7 @@ const ProductPage = () => {
                                 onClick={() => handleQuantityChangeForSize(talla, (quantitiesBySize[talla] || 0) + 1)}
                                 disabled={!canIncrease}
                                 title={!canIncrease ?
-                                  (isComingSoon && canEncargoProximamente ? '' : `Máximo ${maxStock} unidades disponibles`) :
+                                  (canEncargo ? '' : `Máximo ${maxStock} unidades disponibles`) :
                                   'Aumentar cantidad'
                                 }
                               >
@@ -1888,10 +1891,10 @@ const ProductPage = () => {
                 {(() => {
                   const inventoryStatus = getInventoryStatus();
                   const isComingSoon = inventoryStatus.status === 'coming-soon';
-                  const canEncargoProximamente = user && isOroDiamanteSeller(user);
-                  const showNotifyAlert = isComingSoon && (!user || !canEncargoProximamente);
+                  const canEncargo = canEncargoSinStock(user, inventoryStatus.status);
+                  const showNotifyAlert = isComingSoon && (!user || !canEncargo);
 
-                  // Si es "próximamente" y no es usuario oro, no mostrar botón de agregar al carrito
+                  // Si es "próximamente" y no puede encargar, no mostrar botón de agregar al carrito
                   // (la alerta ya se muestra arriba)
                   if (showNotifyAlert) {
                     return null;

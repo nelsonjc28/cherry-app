@@ -11,6 +11,10 @@ import useCartStore from '../../store/cartStore';
 import { cartItemToPricingLine } from '../../utils/cartVolumePricing';
 import { buildStreetWithNumbers } from '../../utils/addressDisplay';
 import { isOroDiamanteSeller } from '../../utils/sellerVolumeDiscount';
+import {
+  itemSkipsStockValidation,
+  cartLineToApiEncargoFlags,
+} from '../../utils/encargoUtils';
 
 const CartOrderSummary = ({
   creditDays,
@@ -528,7 +532,7 @@ const CartOrderSummary = ({
             color: item.selectedColor || null,
             barcode: item.barcode || null,
             detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null,
-            is_coming_soon: item.isComingSoon === true,
+            ...cartLineToApiEncargoFlags(item),
             desc_promo: item.desc_promo ?? null,
             user_offer_applies: !!(item.userOffer && item.userOffer.discount_category),
             image: item.image && item.image !== '/images/placeholder.jpg' && item.image !== '/images/catalogProductImages/Rectangle 4922.png'
@@ -802,7 +806,7 @@ const CartOrderSummary = ({
           color: item.selectedColor || null,
           barcode: item.barcode || null,
           detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null,
-          is_coming_soon: item.isComingSoon === true,
+          ...cartLineToApiEncargoFlags(item),
           desc_promo: item.desc_promo ?? null,
           user_offer_applies: !!(item.userOffer && item.userOffer.discount_category),
           image: item.image && item.image !== '/images/placeholder.jpg' && item.image !== '/images/catalogProductImages/Rectangle 4922.png'
@@ -947,10 +951,7 @@ const CartOrderSummary = ({
       const color = item.selectedColor;
       const requestedQuantity = item.quantity;
       
-      const isComingSoon = item.isComingSoon === true;
-      const isPremiumUser = usesDirectOrderPayment;
-      
-      if (isComingSoon && isPremiumUser) {
+      if (itemSkipsStockValidation(item, user)) {
         continue;
       }
 
@@ -1097,8 +1098,8 @@ const CartOrderSummary = ({
           </div>
           <div style={{ fontSize: '12px', color: '#856404' }}>
             {usesDirectOrderPayment
-              ? 'Los artículos "Próximamente" se incluyen en el mismo pedido; al confirmar el pedido queda registrado como pendiente de pago hasta liquidación.'
-              : 'Los productos marcados como "Próximamente" se crearán como pedido adelantado y quedarán pendientes de pago. El administrador los marcará como pagados cuando el cliente haya pagado el total con el administrador.'}
+              ? 'Los artículos en encargo (Próximamente o Agotado) se incluyen en el mismo pedido; al confirmar queda pendiente de pago hasta liquidación.'
+              : 'Los productos en encargo (Próximamente o Agotado) se crearán como pedido adelantado y quedarán pendientes de pago hasta que el administrador registre el pago.'}
           </div>
         </div>
       )}
