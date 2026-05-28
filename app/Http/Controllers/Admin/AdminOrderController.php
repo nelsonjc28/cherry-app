@@ -10,6 +10,7 @@ use App\Models\Producto;
 use App\Models\User;
 use App\Models\Notification;
 use App\Services\ExternalSalesService;
+use App\Services\OrderSharePdfService;
 use App\Services\UserSellerCategoryActivityService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -187,6 +188,8 @@ class AdminOrderController extends Controller
                         'error' => $e->getMessage(),
                     ]);
                 }
+
+                app(OrderSharePdfService::class)->ensureStoredForOrder($order);
             }
 
             // Si el estado es 'pagado', notificar al admin
@@ -753,6 +756,8 @@ class AdminOrderController extends Controller
                             'error' => $e->getMessage(),
                         ]);
                     }
+
+                    app(OrderSharePdfService::class)->ensureStoredForOrder($order);
                 }
                 
                 // Log de la operación

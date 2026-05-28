@@ -672,6 +672,28 @@ export const shareCatalogPdf = async (pdfInfo) => {
   }
 };
 
+const isAndroidDevice = () => /Android/i.test(navigator.userAgent);
+const isMobileDevice = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+const sanitizePdfFileName = (name) => {
+  const base = String(name || 'pedido.pdf').replace(/[^\w.\-]/g, '_');
+  return base.toLowerCase().endsWith('.pdf') ? base : `${base}.pdf`;
+};
+
+const blobLooksLikePdf = async (blob) => {
+  if (!blob || blob.size < 5) return false;
+  const header = await blob.slice(0, 4).text();
+  return header === '%PDF';
+};
+
+const normalizePdfFileForShare = async (file) => {
+  const buffer = await file.arrayBuffer();
+  return new File([buffer], sanitizePdfFileName(file.name), {
+    type: 'application/pdf',
+    lastModified: Date.now(),
+  });
+};
+
 /**
  * Descargar PDF de pedido autenticado y devolverlo como File
  */
@@ -683,7 +705,7 @@ const fetchOrderPdfAsFile = async (orderId, fileName, token, timeout = 10000) =>
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-  const headers = {};
+  const headers = { Accept: 'application/pdf' };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
@@ -700,13 +722,27 @@ const fetchOrderPdfAsFile = async (orderId, fileName, token, timeout = 10000) =>
       throw new Error('Error al descargar el PDF del pedido');
     }
 
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      throw new Error('No se pudo generar el PDF del pedido');
+    }
+
     let blob = await response.blob();
+
+    if (!(await blobLooksLikePdf(blob))) {
+      throw new Error('El archivo recibido no es un PDF válido');
+    }
 
     if (!blob.type || !blob.type.includes('pdf')) {
       blob = new Blob([blob], { type: 'application/pdf' });
     }
 
-    return new File([blob], fileName, { type: 'application/pdf' });
+    const file = new File([blob], sanitizePdfFileName(fileName), {
+      type: 'application/pdf',
+      lastModified: Date.now(),
+    });
+
+    return normalizePdfFileForShare(file);
   } finally {
     clearTimeout(timeoutId);
   }
@@ -749,22 +785,27 @@ export const prefetchOrderPdf = (orderId, fileName) => {
 
 /**
  * Intentar abrir el menú nativo de compartir con un PDF.
- * iOS Safari comparte mejor con solo { files }; probamos varias combinaciones.
+ * Android: solo files primero (sin canShare); iOS: igual que catálogo.
  */
 const trySharePdfViaNativeApi = async (file, { title, text, url }) => {
   if (!navigator.share) {
     return { success: false, reason: 'unsupported' };
   }
 
-  const filePayloads = [
-    { files: [file] },
-    { files: [file], title },
-    { files: [file], title, text },
-  ];
+  const shareFile = await normalizePdfFileForShare(file);
+  const android = isAndroidDevice();
+
+  const filePayloads = android
+    ? [{ files: [shareFile] }, { files: [shareFile], title }]
+    : [
+        { files: [shareFile] },
+        { files: [shareFile], title },
+        { files: [shareFile], title, text },
+      ];
 
   for (const data of filePayloads) {
     try {
-      if (data.files && navigator.canShare && !navigator.canShare(data)) {
+      if (!android && data.files && navigator.canShare && !navigator.canShare(data)) {
         continue;
       }
       await navigator.share(data);
@@ -779,23 +820,9 @@ const trySharePdfViaNativeApi = async (file, { title, text, url }) => {
     }
   }
 
-  // Algunos Android reportan canShare=false pero share({ files }) sí funciona
-  try {
-    await navigator.share({ files: [file] });
-    return { success: true, mode: 'file' };
-  } catch (error) {
-    if (error.name === 'AbortError') {
-      return { success: false, reason: 'aborted' };
-    }
-    if (error.name === 'NotAllowedError') {
-      return { success: false, reason: 'not_allowed' };
-    }
-  }
-
-  const textPayloads = [{ title, text }];
-  if (url) {
-    textPayloads.push({ title, text, url });
-  }
+  const textPayloads = android
+    ? [{ text }, { text: `${text}\n\n${url || ''}`.trim() }, { title, text }]
+    : [{ title, text }, ...(url ? [{ title, text, url }] : [])];
 
   for (const data of textPayloads) {
     try {
@@ -809,6 +836,30 @@ const trySharePdfViaNativeApi = async (file, { title, text, url }) => {
   }
 
   return { success: false, reason: 'failed' };
+};
+
+/**
+ * Fallback móvil: guarda el PDF y abre compartir solo texto (WhatsApp, etc.).
+ * Patrón usado en detalle de producto cuando el archivo no se adjunta solo.
+ */
+const shareOrderPdfMobileFallback = async (file, fileName, shareText) => {
+  downloadPdfFile(file, fileName);
+
+  if (!navigator.share) {
+    return false;
+  }
+
+  try {
+    await navigator.share({
+      text: `${shareText}\n\nSe guardó el PDF en tu dispositivo para adjuntarlo.`,
+    });
+    return true;
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      return true;
+    }
+    return false;
+  }
 };
 
 const downloadPdfFile = (file, fileName) => {
@@ -926,6 +977,19 @@ export const shareOrderPdf = async (orderInfo) => {
       return;
     }
 
+    if (isMobileDevice()) {
+      const fallbackOk = await shareOrderPdfMobileFallback(file, fileName, shareText);
+      if (fallbackOk) {
+        if (window.showToast) {
+          window.showToast(
+            'Texto compartido. El PDF quedó en Descargas para adjuntarlo.',
+            'success'
+          );
+        }
+        return;
+      }
+    }
+
     if (window.showToast) {
       window.showToast('No se pudo abrir el menú de compartir. Intenta otra vez.', 'error');
     }
@@ -961,8 +1025,13 @@ export const shareOrderPdf = async (orderInfo) => {
       return;
     }
 
+    const message =
+      error?.message && /PDF|pedido/i.test(error.message)
+        ? error.message
+        : 'No se pudo compartir el pedido. Intenta nuevamente.';
+
     if (window.showToast) {
-      window.showToast('No se pudo compartir el pedido. Intenta nuevamente.', 'error');
+      window.showToast(message, 'error');
     }
     throw error;
   } finally {

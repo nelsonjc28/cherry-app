@@ -24,6 +24,14 @@ return [
 
     'orders_web_base' => rtrim(env('CHERRY_ORDERS_WEB_URL', 'https://cherrydev.789.com.mx'), '/'),
 
+    /**
+     * POST de pedidos a cherryapi …/venta. En local/pruebas usar CHERRY_EXTERNAL_SALES_API_ENABLED=false.
+     */
+    'external_sales_api_enabled' => filter_var(
+        env('CHERRY_EXTERNAL_SALES_API_ENABLED', true),
+        FILTER_VALIDATE_BOOLEAN
+    ),
+
     /** URL absoluta del logo para correos (S3 o CDN). Si vacío: /icons/logo-cherry.png */
     'mail_logo_url' => env('CHERRY_MAIL_LOGO_URL'),
 

@@ -24,6 +24,21 @@ class ExternalSalesService
      */
     public function sendSaleToExternalApi(Order $order, string $origen = 'sistema'): array
     {
+        if (! config('cherry.external_sales_api_enabled', true)) {
+            Log::info('API externa de ventas deshabilitada (entorno de pruebas). Pedido no enviado.', [
+                'order_id' => $order->id,
+                'origen' => $origen,
+            ]);
+
+            return [
+                'ok' => true,
+                'kind' => 'disabled',
+                'message' => 'API externa de ventas deshabilitada en este entorno',
+                'no_pedido' => null,
+                'raw' => null,
+            ];
+        }
+
         $user = $order->user;
         $address = $order->address;
         

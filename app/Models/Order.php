@@ -37,6 +37,9 @@ class Order extends Model
         'payment_data',
         'external_api_sent',
         'external_api_sent_at',
+        'share_pdf_path',
+        'share_pdf_name',
+        'share_pdf_generated_at',
         'delivered_at'
     ];
 
@@ -60,6 +63,7 @@ class Order extends Model
         'payment_data' => 'array',
         'external_api_sent' => 'boolean',
         'external_api_sent_at' => 'datetime',
+        'share_pdf_generated_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'delivered_at' => 'datetime'
