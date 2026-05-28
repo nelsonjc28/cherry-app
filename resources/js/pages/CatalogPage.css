@@ -35,10 +35,7 @@
 .catalog-page__mobile-filter-controls {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid rgba(231, 231, 231, 1);
+  flex-shrink: 0;
 }
 
 /* Mobile actions row - PDF and Share buttons */
@@ -161,11 +158,34 @@
   position: relative;
 }
 
-/* Mobile: solo título en header-row, sin borde */
+/* Mobile: título arriba; filtro + ordenar abajo (como Productos Nuevos) */
 @media (max-width: 767px) {
   .catalog-page__header-row {
     border-bottom: none;
     padding-bottom: 0;
+  }
+
+  .catalog-page__controls {
+    width: 100%;
+  }
+
+  .catalog-page__sort-section {
+    justify-content: space-between;
+    width: 100%;
+    padding-top: 0.5rem;
+    border-bottom: 1px solid rgba(231, 231, 231, 1);
+  }
+
+  .catalog-page__mobile-filter-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 0.5rem;
+    cursor: pointer;
   }
 }
 
@@ -180,10 +200,11 @@
 
 .catalog-page__sort-section {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
   gap: 0.5rem;
   flex-shrink: 0;
+  padding-top: 0.5rem;
 }
 
 .catalog-page__sort-label {

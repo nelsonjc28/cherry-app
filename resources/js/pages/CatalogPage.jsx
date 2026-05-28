@@ -761,7 +761,6 @@ const CatalogPage = ({ catalogId }) => {
         <div className="container">
           {/* Header section with title and filters  -  MOBILE */}
           <div className="catalog-page__header-mobile">
-            {/* Primera fila: Título + contador */}
             <div className="catalog-page__header-row">
               <div className="catalog-page__title-section">
                 <h1 className="catalog-page__title">
@@ -773,18 +772,21 @@ const CatalogPage = ({ catalogId }) => {
                   </span>
                 </div>
               </div>
-              <div className="catalog-page__pdf-button-wrapper">
-                {catalogId && currentCatalog?.is_active && hasImageGroups && !checkingImageGroups && (
+            </div>
+
+            <div className="catalog-page__controls">
+              <div className="catalog-page__sort-section">
+                <div className="catalog-page__mobile-filter-controls">
                   <button
                     type="button"
-                    className="custom-btn custom-btn--outlined custom-btn--medium filters-btn"
-                    onClick={handleViewCatalogPdf}
+                    className="catalog-page__mobile-filter-btn"
+                    onClick={toggleFilterModal}
+                    aria-label="Filtros"
                   >
-                    <span className="custom-btn__content">Ver catálogo PDF</span>
+                    <img src={getIconPath('Filter.svg')} alt="" />
+                    <img src={getIconPath('Chevron Down.svg')} alt="" />
                   </button>
-                )}
-              </div>
-              <div className="catalog-page__sort-section">
+                </div>
                 <label htmlFor="sort-select" className="catalog-page__sort-label">Ordenar por:</label>
                 <select
                   id="sort-select"
