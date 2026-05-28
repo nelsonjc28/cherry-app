@@ -528,6 +528,23 @@ class ExternalSalesService
     }
 
     /**
+     * Registra éxito solo si hubo envío real (no cuando la API está deshabilitada en .env).
+     */
+    public function logSendResultIfApplicable(Order $order, array $result, string $successMessage, array $context = []): void
+    {
+        if (($result['kind'] ?? '') === 'disabled') {
+            return;
+        }
+
+        if ($result['ok'] ?? false) {
+            Log::info($successMessage, array_merge([
+                'order_id' => $order->id,
+                'confirmation_kind' => $result['kind'] ?? null,
+            ], $context));
+        }
+    }
+
+    /**
      * Interpreta la respuesta POST /venta de la API externa.
      * Solo éxito real: noPedido + "Grabado", o duplicado explícito ("ya existe").
      *

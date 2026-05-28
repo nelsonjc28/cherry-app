@@ -939,9 +939,12 @@ class PaymentController extends Controller
             // Vigencia de categoría sigue al marcar «pagado» (admin). orders.external_api_sent evita duplicado al liquidar.
             try {
                 $order->load(['user', 'items', 'address']);
-                $this->externalSalesService->sendSaleToExternalApi($order);
-
-                Log::info('Pedido directo (pendiente_pago) enviado a API externa', ['order_id' => $order->id]);
+                $apiResult = $this->externalSalesService->sendSaleToExternalApi($order);
+                $this->externalSalesService->logSendResultIfApplicable(
+                    $order,
+                    $apiResult,
+                    'Pedido directo (pendiente_pago) enviado a API externa'
+                );
             } catch (\Exception $e) {
                 Log::error('Error al enviar pedido directo a API externa', [
                     'order_id' => $order->id,
@@ -1669,9 +1672,12 @@ class PaymentController extends Controller
         // Solo si aún no se ha enviado
         if (!$alreadySentToExternalApi) {
             try {
-                $this->externalSalesService->sendSaleToExternalApi($order);
-
-                Log::info('Venta enviada a API externa exitosamente', ['order_id' => $order->id]);
+                $apiResult = $this->externalSalesService->sendSaleToExternalApi($order);
+                $this->externalSalesService->logSendResultIfApplicable(
+                    $order,
+                    $apiResult,
+                    'Venta enviada a API externa exitosamente'
+                );
             } catch (\Exception $e) {
                 Log::error('Error al enviar venta a API externa', [
                     'order_id' => $order->id,
@@ -2139,9 +2145,12 @@ class PaymentController extends Controller
                         $alreadySent = (bool) $order->external_api_sent;
 
                         if (!$alreadySent) {
-                            $this->externalSalesService->sendSaleToExternalApi($order);
-
-                            Log::info('Venta enviada a API externa desde processIntegratedPayment', ['order_id' => $order->id]);
+                            $apiResult = $this->externalSalesService->sendSaleToExternalApi($order);
+                            $this->externalSalesService->logSendResultIfApplicable(
+                                $order,
+                                $apiResult,
+                                'Venta enviada a API externa desde processIntegratedPayment'
+                            );
                         } else {
                             Log::info('Venta ya fue enviada a API externa anteriormente, omitiendo duplicado', ['order_id' => $order->id]);
                         }
@@ -4327,12 +4336,13 @@ class PaymentController extends Controller
 
             // Enviar inmediatamente a la API externa
             try {
-                $this->externalSalesService->sendSaleToExternalApi($order);
-
-                Log::info('Pedido anticipado enviado a API externa inmediatamente al crearse', [
-                    'order_id' => $order->id,
-                    'is_advance_order' => true
-                ]);
+                $apiResult = $this->externalSalesService->sendSaleToExternalApi($order);
+                $this->externalSalesService->logSendResultIfApplicable(
+                    $order,
+                    $apiResult,
+                    'Pedido anticipado enviado a API externa inmediatamente al crearse',
+                    ['is_advance_order' => true]
+                );
             } catch (\Exception $e) {
                 Log::error('Error al enviar pedido anticipado a API externa al crearse', [
                     'order_id' => $order->id,
