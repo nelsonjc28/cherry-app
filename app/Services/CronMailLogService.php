@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Cart;
 use App\Models\CronMailLog;
 use App\Models\Order;
+use App\Models\User;
 use Illuminate\Support\Facades\Log;
 
 class CronMailLogService
@@ -156,6 +157,26 @@ class CronMailLogService
             ->whereHas('user', function ($q) {
                 $q->whereNotNull('email')->where('email', '!=', '');
             });
+    }
+
+    public function recordWelcome(
+        string $estado,
+        string $mensaje,
+        User $user,
+        string $comando,
+        string $origen = 'sistema',
+    ): void {
+        $this->record(
+            $comando,
+            CronMailLog::TIPO_WELCOME,
+            $estado,
+            $user->email,
+            $user->id,
+            null,
+            null,
+            $mensaje,
+            $origen,
+        );
     }
 
     /** Pedidos elegibles para mail:order-status-update. */

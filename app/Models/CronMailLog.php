@@ -11,13 +11,23 @@ class CronMailLog extends Model
 
     public const TIPO_ORDER_STATUS = 'order_status';
 
+    public const TIPO_WELCOME = 'welcome';
+
     public const TIPO_RESUMEN = 'resumen_ejecucion';
+
+    public const COMANDO_REGISTER = 'auth:register';
+
+    public const COMANDO_QUEUE_WORKER = 'queue:work';
 
     public const ESTADO_EXITOSO = 'exitoso';
 
     public const ESTADO_ERROR = 'error';
 
     public const ESTADO_OMITIDO = 'omitido';
+
+    public const ESTADO_ENCOLADO = 'encolado';
+
+    public const ESTADO_ENVIANDO = 'enviando';
 
     protected $fillable = [
         'comando',

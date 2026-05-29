@@ -12,12 +12,18 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use App\Mail\WelcomeEmail;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use App\Services\CronMailLogService;
 use App\Services\ExternalClienteDiscountService;
+use App\Models\CronMailLog;
 use Illuminate\Support\Facades\Log;
 
 
 class AuthController extends Controller
 {
+    public function __construct(
+        protected CronMailLogService $cronMailLogService
+    ) {}
+
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -66,16 +72,40 @@ class AuthController extends Controller
         $token = JWTAuth::fromUser($user);
 
         if ($user->email && ! $user->welcome_sent) {
-            // Pruebas: try/catch comentado para ver excepciones al registrar (reactivar en producción).
-             try {
-            Mail::to($user->email)->queue(new WelcomeEmail($user));
-            $user->forceFill(['welcome_sent' => true])->save();
-             } catch (\Throwable $e) {
-                 Log::error('Welcome email queue failed on register', [
-                     'user_id' => $user->id,
-                 'message' => $e->getMessage(),
-                 ]);
-             }
+            Log::info('Intentando encolar correo de bienvenida', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+            ]);
+
+            try {
+                Mail::to($user->email)->queue(new WelcomeEmail($user));
+                $user->forceFill(['welcome_sent' => true])->save();
+
+                $this->cronMailLogService->recordWelcome(
+                    CronMailLog::ESTADO_ENCOLADO,
+                    'Correo de bienvenida encolado en la cola',
+                    $user,
+                    CronMailLog::COMANDO_REGISTER,
+                );
+
+                Log::info('Correo de bienvenida encolado', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                ]);
+            } catch (\Throwable $e) {
+                $this->cronMailLogService->recordWelcome(
+                    CronMailLog::ESTADO_ERROR,
+                    'Error al encolar: '.$e->getMessage(),
+                    $user,
+                    CronMailLog::COMANDO_REGISTER,
+                );
+
+                Log::error('Welcome email queue failed on register', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'message' => $e->getMessage(),
+                ]);
+            }
         }
 
         return response()->json([

@@ -9,7 +9,16 @@ const STORAGE_KEY = 'adminCronMailHistorial_itemsPerPage';
 const TIPO_LABELS = {
   abandoned_cart: 'Carrito abandonado',
   order_status: 'Estatus pedido',
+  welcome: 'Bienvenida (registro)',
   resumen_ejecucion: 'Resumen ejecución',
+};
+
+const ESTADO_LABELS = {
+  exitoso: 'Exitoso',
+  error: 'Error',
+  omitido: 'Omitido',
+  encolado: 'Encolado',
+  enviando: 'Enviando',
 };
 
 const COMANDO_LABELS = {
@@ -158,16 +167,12 @@ const AdminCronMailHistorial = () => {
   }, [fechaInicio, fechaFin, comandoFilter, tipoFilter, estadoFilter, orderIdFilter, currentPage, itemsPerPage]);
 
   const getEstadoBadgeClass = (estado) => {
-    if (estado === 'exitoso') return 'historial-badge-success';
-    if (estado === 'omitido') return 'historial-badge-warning';
+    if (estado === 'exitoso' || estado === 'encolado') return 'historial-badge-success';
+    if (estado === 'omitido' || estado === 'enviando') return 'historial-badge-warning';
     return 'historial-badge-error';
   };
 
-  const getEstadoText = (estado) => {
-    if (estado === 'exitoso') return 'Exitoso';
-    if (estado === 'omitido') return 'Omitido';
-    return 'Error';
-  };
+  const getEstadoText = (estado) => ESTADO_LABELS[estado] || estado;
 
   const formatMensaje = (item) => {
     if (item.tipo_correo === 'resumen_ejecucion' && item.resumen) {
@@ -261,6 +266,8 @@ const AdminCronMailHistorial = () => {
               <option value="exitoso">Exitoso</option>
               <option value="error">Error</option>
               <option value="omitido">Omitido</option>
+              <option value="encolado">Encolado</option>
+              <option value="enviando">Enviando</option>
             </select>
           </div>
 

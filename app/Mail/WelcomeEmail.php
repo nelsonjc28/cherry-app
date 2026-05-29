@@ -2,10 +2,13 @@
 
 namespace App\Mail;
 
+use App\Models\CronMailLog;
 use App\Models\MailConfig;
 use App\Models\User;
+use App\Services\CronMailLogService;
 use App\Services\MailImageService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -64,5 +67,57 @@ class WelcomeEmail extends Mailable implements ShouldQueue
     public function attachments(): array
     {
         return [];
+    }
+
+    /**
+     * Registra intento de envío (log + cron_mail_logs) al procesar el job en la cola.
+     */
+    public function send($mailer)
+    {
+        $user = $this->user;
+        $logService = app(CronMailLogService::class);
+
+        Log::info('Intentando enviar correo de bienvenida', [
+            'user_id' => $user->id,
+            'email' => $user->email,
+        ]);
+
+        $logService->recordWelcome(
+            CronMailLog::ESTADO_ENVIANDO,
+            'Enviando correo de bienvenida vía transporte de mail',
+            $user,
+            CronMailLog::COMANDO_QUEUE_WORKER,
+        );
+
+        try {
+            parent::send($mailer);
+
+            $logService->recordWelcome(
+                CronMailLog::ESTADO_EXITOSO,
+                'Correo de bienvenida enviado correctamente',
+                $user,
+                CronMailLog::COMANDO_QUEUE_WORKER,
+            );
+
+            Log::info('Correo de bienvenida enviado', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+            ]);
+        } catch (\Throwable $e) {
+            $logService->recordWelcome(
+                CronMailLog::ESTADO_ERROR,
+                'Error al enviar: '.$e->getMessage(),
+                $user,
+                CronMailLog::COMANDO_QUEUE_WORKER,
+            );
+
+            Log::error('Error al enviar correo de bienvenida', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'message' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
     }
 }
