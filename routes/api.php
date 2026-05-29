@@ -33,6 +33,7 @@ use App\Http\Controllers\Api\TopSellingController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\HistorialController;
+use App\Http\Controllers\Api\CronMailLogController;
 use App\Http\Controllers\Api\OrderExternalApiLogController;
 use App\Http\Controllers\Api\RecentProductController;
 
@@ -391,6 +392,7 @@ Route::middleware(['auth:api', 'admin'])->group(function () {
     // Admin historial routes
     Route::get('/admin/historial', [HistorialController::class, 'index']);
     Route::get('/admin/order-external-api-logs', [OrderExternalApiLogController::class, 'index']);
+    Route::get('/admin/cron-mail-logs', [CronMailLogController::class, 'index']);
 
     // Imágenes de cabecera / banners de correos automáticos
     Route::get('/admin/mail-images', [MailSettingsController::class, 'index']);

@@ -20,6 +20,7 @@ import AdminOrders from './admin/AdminOrders';
 import AdminDashboard from './admin/AdminDashboard';
 import AdminHistorial from './admin/AdminHistorial';
 import AdminOrderExternalApiHistorial from './admin/AdminOrderExternalApiHistorial';
+import AdminCronMailHistorial from './admin/AdminCronMailHistorial';
 import MailImageManager from '../components/admin/MailImageManager';
 
 import useUserStore from '../store/userStore';
@@ -110,6 +111,7 @@ function AdminPanelPage() {
       'discounts': 'Descuentos - Admin - Cherry Central',
       'historial': 'Historial productos - Admin - Cherry Central',
       'order-api-historial': 'Historial envíos API - Admin - Cherry Central',
+      'cron-mail-historial': 'Historial correos cron - Admin - Cherry Central',
       'mail-images': 'Imágenes de correo - Admin - Cherry Central'
     };
     
@@ -139,6 +141,7 @@ function AdminPanelPage() {
     '/admin/descuentos': 'discounts',
     '/admin/historial': 'historial',
     '/admin/historial-pedidos-api': 'order-api-historial',
+    '/admin/historial-correos-cron': 'cron-mail-historial',
     '/admin/imagenes-correo': 'mail-images'
   };
 
@@ -162,6 +165,7 @@ function AdminPanelPage() {
     'discounts': '/admin/descuentos',
     'historial': '/admin/historial',
     'order-api-historial': '/admin/historial-pedidos-api',
+    'cron-mail-historial': '/admin/historial-correos-cron',
     'mail-images': '/admin/imagenes-correo'
   };
 
@@ -356,6 +360,7 @@ function AdminPanelPage() {
             <>
               <button className={`admin-panel__sidebar-link${selectedMenu==='historial'?' active':''}`} onClick={()=>handleMenuChange('historial')}>Historial productos</button>
               <button className={`admin-panel__sidebar-link${selectedMenu==='order-api-historial'?' active':''}`} onClick={()=>handleMenuChange('order-api-historial')}>Historial envíos API</button>
+              <button className={`admin-panel__sidebar-link${selectedMenu==='cron-mail-historial'?' active':''}`} onClick={()=>handleMenuChange('cron-mail-historial')}>Historial correos cron</button>
             </>
           )}
           <button className="admin-panel__sidebar-link" onClick={handleLogout}>Volver al sitio</button>
@@ -514,6 +519,12 @@ function AdminPanelPage() {
         {selectedMenu === 'order-api-historial' && isOnlyAdmin() && (
           <section>
             <AdminOrderExternalApiHistorial />
+          </section>
+        )}
+
+        {selectedMenu === 'cron-mail-historial' && isOnlyAdmin() && (
+          <section>
+            <AdminCronMailHistorial />
           </section>
         )}
       </main>
