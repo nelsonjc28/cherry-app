@@ -102,14 +102,34 @@
   line-height: 1.45;
 }
 
-.mail-image-manager__card--template {
-  grid-column: 1 / -1;
+.mail-image-manager__thumb-list--multi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
 }
 
-@media (min-width: 640px) {
-  .mail-image-manager__card--template {
-    grid-column: auto;
-  }
+.mail-image-manager__thumb-list--multi .mail-image-manager__thumb-wrap {
+  max-height: none;
+}
+
+.mail-image-manager__thumb-list--multi .mail-image-manager__thumb-wrap--hero {
+  max-height: 100px;
+}
+
+.mail-image-manager__thumb-list--multi .mail-image-manager__thumb-wrap--hero img {
+  height: 100px;
+  max-height: 100px;
+  object-fit: cover;
+}
+
+.mail-image-manager__thumb-list--multi .mail-image-manager__thumb-wrap--promo {
+  max-height: 72px;
+}
+
+.mail-image-manager__thumb-list--multi .mail-image-manager__thumb-wrap--promo img {
+  height: 72px;
+  max-height: 72px;
+  object-fit: cover;
 }
 
 .mail-image-manager__template-title {

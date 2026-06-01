@@ -3,20 +3,42 @@ import './MailImageManager.css';
 
 const getToken = () => localStorage.getItem('token');
 
-/** Vista previa: mismo host que el admin (evita https://localhost con APP_URL en http, etc.). */
+/** Correos con hero + promo: subida por modal (misma UX que bienvenida). */
+const MULTI_ZONE_TEMPLATE_IDS = new Set(['welcome', 'abandoned_cart']);
+
+function usesModalUpload(template) {
+  return MULTI_ZONE_TEMPLATE_IDS.has(template.id);
+}
+
+function getSlotPreviewModifier(mailType) {
+  if (mailType.endsWith('_hero')) {
+    return 'hero';
+  }
+  if (mailType.endsWith('_promo')) {
+    return 'promo';
+  }
+  return '';
+}
+
+/** Vista previa: mismo host/puerto que el admin (evita APP_URL en :8000 con pestaña en :8001). */
 function mailImagePreviewSrc(row) {
-  if (row.image_preview_path) {
-    const p = row.image_preview_path.startsWith('/') ? row.image_preview_path : `/${row.image_preview_path}`;
+  const path =
+    row.image_preview_path ||
+    (row.image_url && /^https?:\/\//i.test(row.image_url)
+      ? (() => {
+          try {
+            return new URL(row.image_url).pathname;
+          } catch {
+            return null;
+          }
+        })()
+      : null);
+
+  if (path) {
+    const p = path.startsWith('/') ? path : `/${path}`;
     return `${window.location.origin}${p}`;
   }
-  if (row.image_url && /^https?:\/\//i.test(row.image_url)) {
-    try {
-      const u = new URL(row.image_url);
-      return `${window.location.origin}${u.pathname}${u.search}`;
-    } catch {
-      return row.image_url;
-    }
-  }
+
   return row.image_url || '';
 }
 
@@ -90,6 +112,9 @@ function MailUploadModal({
             <h3 id="mail-image-modal-title" className="mail-image-modal__title">
               {template.title}
             </h3>
+            {template.description ? (
+              <p className="mail-image-modal__subtitle">{template.description}</p>
+            ) : null}
           </div>
           <button
             type="button"
@@ -108,12 +133,10 @@ function MailUploadModal({
           <ul className="mail-image-modal__slots">
             {template.slots.map((slot) => {
               const isUploading = uploadingType === slot.mail_type;
-              const previewClass =
-                slot.mail_type === 'welcome_hero'
-                  ? ' mail-image-modal__preview-wrap--hero'
-                  : slot.mail_type === 'welcome_promo'
-                    ? ' mail-image-modal__preview-wrap--promo'
-                    : '';
+              const modifier = getSlotPreviewModifier(slot.mail_type);
+              const previewClass = modifier
+                ? ` mail-image-modal__preview-wrap--${modifier}`
+                : '';
 
               return (
                 <li key={slot.mail_type} className="mail-image-modal__slot">
@@ -185,12 +208,13 @@ function MailUploadModal({
   );
 }
 
-function MailTemplateCard({ template, onOpenModal }) {
+/** Bienvenida y carrito abandonado: tarjeta + modal con varias zonas. */
+function MultiZoneTemplateCard({ template, onOpenModal }) {
   const slotCount = template.slots.length;
   const customCount = template.custom_count ?? template.slots.filter((s) => s.uses_uploaded).length;
 
   return (
-    <li className="mail-image-manager__card mail-image-manager__card--template">
+    <li className="mail-image-manager__card">
       <div className="mail-image-manager__card-header">
         <span className="mail-image-manager__badge">{template.id}</span>
         <span className="mail-image-manager__tag">
@@ -203,20 +227,95 @@ function MailTemplateCard({ template, onOpenModal }) {
         ) : null}
       </div>
       <h3 className="mail-image-manager__template-title">{template.title}</h3>
+      {template.description ? (
+        <p className="mail-image-manager__template-desc">{template.description}</p>
+      ) : null}
 
-      <ul className="mail-image-manager__thumb-list" aria-label="Vista previa de zonas">
-        {template.slots.map((slot) => (
-          <li key={slot.mail_type} className="mail-image-manager__thumb-item">
-            <span className="mail-image-manager__thumb-label">{slot.area_label}</span>
-            <div className="mail-image-manager__thumb-wrap">
-              <img src={mailImagePreviewSrc(slot)} alt="" />
-            </div>
-          </li>
-        ))}
+      <ul
+        className="mail-image-manager__thumb-list mail-image-manager__thumb-list--multi"
+        aria-label="Vista previa de zonas"
+      >
+        {template.slots.map((slot) => {
+          const modifier = getSlotPreviewModifier(slot.mail_type);
+          const thumbWrapClass = modifier
+            ? `mail-image-manager__thumb-wrap mail-image-manager__thumb-wrap--${modifier}`
+            : 'mail-image-manager__thumb-wrap';
+
+          return (
+            <li key={slot.mail_type} className="mail-image-manager__thumb-item">
+              <span className="mail-image-manager__thumb-label">{slot.area_label}</span>
+              <div className={thumbWrapClass}>
+                <img src={mailImagePreviewSrc(slot)} alt="" />
+              </div>
+            </li>
+          );
+        })}
       </ul>
 
       <button type="button" className="mail-image-manager__btn" onClick={() => onOpenModal(template)}>
         Subir nueva imagen
+      </button>
+    </li>
+  );
+}
+
+/** Otros correos (una sola imagen): subida directa en la tarjeta. */
+function SingleZoneTemplateCard({ template, uploadingType, fileInputs, onFileChange, onTriggerFile }) {
+  const slot = template.slots[0];
+  if (!slot) return null;
+
+  const isUploading = uploadingType === slot.mail_type;
+
+  return (
+    <li className="mail-image-manager__card">
+      <div className="mail-image-manager__card-header">
+        <span className="mail-image-manager__badge">{template.id}</span>
+        {slot.uses_uploaded ? (
+          <span className="mail-image-manager__tag mail-image-manager__tag--custom">Personalizada</span>
+        ) : (
+          <span className="mail-image-manager__tag">Predeterminada</span>
+        )}
+      </div>
+      <h3 className="mail-image-manager__template-title">{template.title}</h3>
+      {template.description ? (
+        <p className="mail-image-manager__template-desc">{template.description}</p>
+      ) : null}
+      <p className="mail-image-manager__label">{slot.area_label}</p>
+      {slot.size_hint ? (
+        <p className="mail-image-manager__size-hint">
+          <strong>Tamaño:</strong> {slot.size_hint}
+        </p>
+      ) : null}
+      <div className="mail-image-manager__preview-wrap">
+        <img
+          className="mail-image-manager__preview"
+          src={mailImagePreviewSrc(slot)}
+          alt={`Vista previa ${slot.mail_type}`}
+        />
+      </div>
+      <input
+        ref={(el) => {
+          fileInputs.current[slot.mail_type] = el;
+        }}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="mail-image-manager__file-input"
+        onChange={(e) => onFileChange(slot.mail_type, e)}
+      />
+      <button
+        type="button"
+        className="mail-image-manager__btn"
+        disabled={isUploading}
+        onClick={() => onTriggerFile(slot.mail_type)}
+      >
+        {isUploading ? (
+          <span className="mail-image-manager__spinner-wrap">
+            <span className="mail-image-manager__spinner" aria-hidden />
+            Subiendo…
+          </span>
+        ) : (
+          'Subir nueva imagen'
+        )}
       </button>
     </li>
   );
@@ -335,22 +434,34 @@ export default function MailImageManager() {
     <div className="mail-image-manager">
       <h2 className="mail-image-manager__title">Imágenes de correos electrónicos</h2>
       <p className="mail-image-manager__intro">
-        Cada tipo de correo tiene sus propias zonas de imagen. Pulsa <strong>Subir nueva imagen</strong>{' '}
-        para abrir el panel y elegir qué zona del correo quieres actualizar.
+        Cada tarjeta es un tipo de correo. En <strong>Bienvenida</strong> y{' '}
+        <strong>Carrito abandonado</strong>, <strong>Subir nueva imagen</strong> abre el panel para hero y
+        banner promocional.
       </p>
       {error ? <div className="mail-image-manager__error" role="alert">{error}</div> : null}
 
       <ul className="mail-image-manager__list">
-        {templates.map((template) => (
-          <MailTemplateCard
-            key={template.id}
-            template={template}
-            onOpenModal={setOpenTemplate}
-          />
-        ))}
+        {templates.map((template) =>
+          usesModalUpload(template) ? (
+            <MultiZoneTemplateCard
+              key={template.id}
+              template={template}
+              onOpenModal={setOpenTemplate}
+            />
+          ) : (
+            <SingleZoneTemplateCard
+              key={template.id}
+              template={template}
+              uploadingType={uploadingType}
+              fileInputs={fileInputs}
+              onFileChange={onFileChange}
+              onTriggerFile={triggerFile}
+            />
+          )
+        )}
       </ul>
 
-      {openTemplate ? (
+      {openTemplate && usesModalUpload(openTemplate) ? (
         <MailUploadModal
           template={openTemplate}
           uploadingType={uploadingType}

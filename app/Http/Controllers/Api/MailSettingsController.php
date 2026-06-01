@@ -53,15 +53,24 @@ class MailSettingsController extends Controller
             'size_hint' => '600 × 320 px recomendado.',
             'sort' => 1,
         ],
-        MailConfig::TYPE_ABANDONED_CART => [
-            'label' => 'Banner carrito',
+        MailConfig::TYPE_ABANDONED_CART_HERO => [
+            'label' => 'Hero superior',
             'template' => 'abandoned_cart',
             'template_label' => 'Carrito abandonado',
-            'template_description' => 'Recordatorio automático cuando el carrito lleva ítems sin comprar.',
-            'area_label' => 'Hero y banner promocional',
-            'area_description' => 'Por ahora una sola imagen para las zonas superior e inferior del template.',
-            'size_hint' => '600 × 400 px (hero) y 600 × 200 px (promo) en el diseño; sube la que usarás en ambas zonas.',
+            'template_description' => 'Recordatorio automático cuando el carrito lleva ítems sin comprar (cron diario).',
+            'area_label' => 'Hero — Debajo del logo',
+            'area_description' => 'Banner amarillo con el mensaje «¡Ups! Parece que dejaste algo en tu carrito.» Puedes incluir el texto en la imagen.',
+            'size_hint' => '600 × 320 px recomendado (ancho completo).',
             'sort' => 1,
+        ],
+        MailConfig::TYPE_ABANDONED_CART_PROMO => [
+            'label' => 'Banner promociones',
+            'template' => 'abandoned_cart',
+            'template_label' => 'Carrito abandonado',
+            'area_label' => 'Banner inferior — Promociones y novedades',
+            'area_description' => 'Sobre el pie negro del correo, después de redes sociales.',
+            'size_hint' => '600 × 200 px (3:1). Puedes incluir el texto en la imagen o dejar el texto del correo debajo.',
+            'sort' => 2,
         ],
         MailConfig::TYPE_ORDER_STATUS => [
             'label' => 'Cabecera estado',
@@ -112,8 +121,8 @@ class MailSettingsController extends Controller
                 'sort' => $meta['sort'] ?? 99,
                 'image_path' => $hasFile ? $path : null,
                 'image_url' => MailImageService::bannerAbsoluteUrl($type),
-                /** Misma ruta que el correo pero solo pathname: la vista previa usa el host de la pestaña (evita http/https distinto a APP_URL). */
-                'image_preview_path' => $hasFile && is_string($path) ? MailImageService::mailAssetWebPathFromDbPath($path) : null,
+                /** Pathname para admin: mismo host/puerto que la pestaña (mail-assets o /images/…). */
+                'image_preview_path' => MailImageService::bannerPreviewPath($type),
                 'uses_uploaded' => $hasFile,
             ];
         }

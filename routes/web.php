@@ -109,4 +109,4 @@ Route::any('cherry-api/{path}', CherryCatalogProxyController::class)->where('pat
 // Excluir rutas backend (/api/*), mail-assets y utilitarias.
 Route::get('/{any}', function () {
     return view('app');
-})->where('any', '^(?!(api/|cherry-api|mail-assets/|products/(sync|replace-all))).*');
+})->where('any', '^(?!(api/|cherry-api|mail-assets/|images/|products/(sync|replace-all))).*');

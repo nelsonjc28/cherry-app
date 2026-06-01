@@ -53,9 +53,8 @@ class AbandonedCartEmail extends Mailable implements ShouldQueue
         $this->cartUrl = $base.'/carrito-detalle';
         $this->logoUrl = MailImageService::mailLogoAbsoluteUrl();
         $this->shopUrl = $base;
-        $banner = MailImageService::bannerAbsoluteUrl(MailConfig::TYPE_ABANDONED_CART);
-        $this->heroImageUrl = $banner;
-        $this->promoBannerImageUrl = $banner;
+        $this->heroImageUrl = MailImageService::bannerAbsoluteUrl(MailConfig::TYPE_ABANDONED_CART_HERO);
+        $this->promoBannerImageUrl = MailImageService::bannerAbsoluteUrl(MailConfig::TYPE_ABANDONED_CART_PROMO);
         $this->socialFacebook = (string) config('cherry.social_facebook');
         $this->socialInstagram = (string) config('cherry.social_instagram');
         $wa = config('cherry.social_whatsapp');

@@ -51,7 +51,28 @@ class MailImageService
 
     public static function defaultBannerUrl(): string
     {
-        return rtrim((string) config('app.url'), '/').'/images/welcome-default.jpg';
+        return asset('images/welcome-default.jpg');
+    }
+
+    /**
+     * Ruta web para vista previa en admin (siempre pathname; evita APP_URL distinto al puerto del navegador).
+     */
+    public static function bannerPreviewPath(string $mailType): string
+    {
+        $path = MailConfig::query()->where('mail_type', $mailType)->value('image_path');
+        if (is_string($path) && $path !== '' && self::publicMailAssetFileExists($path)) {
+            return self::mailAssetWebPathFromDbPath($path);
+        }
+
+        $absolute = self::bannerAbsoluteUrl($mailType);
+        if (str_starts_with($absolute, '/')) {
+            return $absolute;
+        }
+
+        $parts = parse_url($absolute);
+        $pathname = isset($parts['path']) ? (string) $parts['path'] : '';
+
+        return $pathname !== '' ? $pathname : '/images/welcome-default.jpg';
     }
 
     protected static function fallbackOrderConfirmationHero(): string
