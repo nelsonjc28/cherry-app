@@ -23,7 +23,7 @@
   </tr>
   <tr>
     <td style="padding:0 28px 20px;background:#ffffff;text-align:center;">
-      <p style="margin:0 0 20px;font-family:{{ $sans }};font-size:17px;color:#1a1a1a;line-height:1.45;">
+      <p style="margin:0 0 20px;font-family:{{ $sans }};font-size:24px;color:#1a1a1a;line-height:1.35;text-align:center;">
         <strong>Hola {{ $customerDisplayName }},</strong>
       </p>
       @if($showPendingPaymentNotice)
@@ -204,7 +204,7 @@
   {{-- Cuerpo --}}
   <tr>
     <td style="padding:28px 24px 8px;background:#ffffff;text-align:left;">
-      <p style="margin:0 0 16px;font-family:{{ $sans }};font-size:15px;color:#1a1a1a;line-height:1.55;">
+      <p style="margin:0 0 16px;font-family:{{ $sans }};font-size:24px;color:#1a1a1a;line-height:1.35;text-align:center;">
         <strong>Hola {{ $customerDisplayName }},</strong>
       </p>
       @if($showAsShipped)

@@ -15,6 +15,18 @@ const THANK_YOU_DESCRIPTION =
 export { formatOrderDate, getOrderDisplayTotal } from '../utils/checkoutOrderDisplay';
 import { formatOrderDate, getOrderDisplayTotal } from '../utils/checkoutOrderDisplay';
 
+/** Pedido mínimo para compartir PDF si /payment/status aún no respondió. */
+function buildCheckoutSuccessOrderStub(orderInfo, { directOrder = false } = {}) {
+  return {
+    id: orderInfo.orderId,
+    total_amount: orderInfo.totalAmount ?? orderInfo.total ?? 0,
+    created_at: new Date().toISOString(),
+    payment_method: directOrder ? 'pedido_directo' : orderInfo.paymentMethod ?? null,
+    is_advance_order: Boolean(orderInfo.isAdvanceOrder),
+    should_send_to_external_api: directOrder || Boolean(orderInfo.isAdvanceOrder),
+  };
+}
+
 /** Aplica respuesta de GET /payment/status o /payment/verify con group_orders opcional. */
 function ingestOrderStatusResponse(res, setOrderData, setGroupOrders) {
   const g = res.data?.group_orders;
@@ -129,19 +141,11 @@ export default function CheckoutSuccessPage() {
               ingestOrderStatusResponse(res, setOrderData, setGroupOrders);
             } else {
               setGroupOrders(null);
-              setOrderData({
-                id: stateOrderInfo.orderId,
-                total_amount: stateOrderInfo.totalAmount ?? stateOrderInfo.total ?? 0,
-                created_at: new Date().toISOString(),
-              });
+              setOrderData(buildCheckoutSuccessOrderStub(stateOrderInfo, { directOrder: true }));
             }
           } catch {
             setGroupOrders(null);
-            setOrderData({
-              id: stateOrderInfo.orderId,
-              total_amount: stateOrderInfo.totalAmount ?? stateOrderInfo.total ?? 0,
-              created_at: new Date().toISOString(),
-            });
+            setOrderData(buildCheckoutSuccessOrderStub(stateOrderInfo, { directOrder: true }));
           }
           setLoading(false);
           return;
@@ -177,19 +181,11 @@ export default function CheckoutSuccessPage() {
             ingestOrderStatusResponse(res, setOrderData, setGroupOrders);
           } else {
             setGroupOrders(null);
-            setOrderData({
-              id: stateOrderInfo.orderId,
-              total_amount: stateOrderInfo.totalAmount ?? stateOrderInfo.total ?? 0,
-              created_at: new Date().toISOString(),
-            });
+            setOrderData(buildCheckoutSuccessOrderStub(stateOrderInfo));
           }
         } catch {
           setGroupOrders(null);
-          setOrderData({
-            id: stateOrderInfo.orderId,
-            total_amount: stateOrderInfo.totalAmount ?? stateOrderInfo.total ?? 0,
-            created_at: new Date().toISOString(),
-          });
+          setOrderData(buildCheckoutSuccessOrderStub(stateOrderInfo));
         }
         setLoading(false);
         return;

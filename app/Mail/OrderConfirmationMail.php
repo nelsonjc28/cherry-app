@@ -112,8 +112,11 @@ class OrderConfirmationMail extends Mailable
             $this->isSplitPayment = true;
         }
 
-        $base = config('cherry.orders_web_base', 'https://cherrydev.789.com.mx');
-        $this->orderViewUrl = $base.'/orders/'.$this->order->id;
+        $webBase = rtrim((string) config('cherry.orders_web_base'), '/');
+        if ($webBase === '') {
+            $webBase = rtrim((string) config('app.url'), '/');
+        }
+        $this->orderViewUrl = $webBase.'/perfil/mis-pedidos?order='.$this->order->id;
 
         $tn = $this->order->tracking_number;
         $this->trackingNumber = (is_string($tn) && trim($tn) !== '') ? trim($tn) : null;

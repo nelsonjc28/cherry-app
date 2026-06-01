@@ -715,14 +715,26 @@ const fetchOrderPdfAsFile = async (orderId, fileName, token, timeout = 10000) =>
       signal: controller.signal,
       headers,
       credentials: 'same-origin',
-      cache: 'force-cache',
+      cache: 'no-store',
     });
 
+    const contentType = response.headers.get('content-type') || '';
+
     if (!response.ok) {
-      throw new Error('Error al descargar el PDF del pedido');
+      let detail = 'Error al descargar el PDF del pedido';
+      if (contentType.includes('application/json')) {
+        try {
+          const body = await response.json();
+          if (body?.message) {
+            detail = String(body.message);
+          }
+        } catch (parseErr) {
+          // ignore
+        }
+      }
+      throw new Error(detail);
     }
 
-    const contentType = response.headers.get('content-type') || '';
     if (contentType.includes('application/json')) {
       throw new Error('No se pudo generar el PDF del pedido');
     }

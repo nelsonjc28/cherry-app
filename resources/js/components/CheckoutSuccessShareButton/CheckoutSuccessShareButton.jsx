@@ -4,17 +4,17 @@ import CustomButton from '../CustomButton';
 import { getIconPath } from '../../utils/assetPaths';
 import { formatOrderNumberDisplay } from '../../utils/orderDisplayNumber';
 import { getOrderDisplayTotal } from '../../utils/checkoutOrderDisplay';
-import { ordersQualifyForExternalApi } from '../../utils/orderExternalApi';
-
 /**
- * Botón compartir PDF del pedido (misma lógica que catálogo/productos).
+ * Botón compartir PDF del pedido (misma lógica que Mis pedidos / detalle de orden).
  */
 export default function CheckoutSuccessShareButton({ orders, orderInfoFallback = null }) {
   const [isSharingOrder, setIsSharingOrder] = useState(false);
 
+  const primary = orders?.[0];
+  const canShare = Boolean(primary?.id);
+
   useEffect(() => {
-    const primary = orders?.[0];
-    if (!primary?.id || !ordersQualifyForExternalApi(orders)) return;
+    if (!canShare) return;
 
     const labels = orders.map((o) => formatOrderNumberDisplay(o));
     const pdfBase =
@@ -23,9 +23,9 @@ export default function CheckoutSuccessShareButton({ orders, orderInfoFallback =
     import('../../utils/shareProductUtils').then(({ prefetchOrderPdf }) => {
       prefetchOrderPdf(primary.id, `${pdfBase}.pdf`);
     });
-  }, [orders]);
+  }, [orders, canShare, primary?.id]);
 
-  if (!Array.isArray(orders) || orders.length === 0 || !ordersQualifyForExternalApi(orders)) {
+  if (!canShare) {
     return null;
   }
 
@@ -53,7 +53,11 @@ export default function CheckoutSuccessShareButton({ orders, orderInfoFallback =
       });
     } catch (error) {
       if (error?.name !== 'AbortError' && window.showToast) {
-        window.showToast('No se pudo compartir el pedido.', 'error');
+        const msg =
+          error?.message && /PDF|pedido|Dompdf|generar/i.test(error.message)
+            ? error.message
+            : 'No se pudo compartir el pedido.';
+        window.showToast(msg, 'error');
       }
     } finally {
       setIsSharingOrder(false);

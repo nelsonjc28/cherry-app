@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import CherryButton from '../../components/CherryButton/CherryButton';
 import OrderDetailModal from '../../components/OrderDetailModal/OrderDetailModal';
@@ -84,6 +84,7 @@ const MyOrders = () => {
   const [sharingOrderId, setSharingOrderId] = useState(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const openedOrderFromQueryRef = useRef(false);
 
   const itemsPerPage = 10;
 
@@ -110,6 +111,32 @@ const MyOrders = () => {
       return () => clearTimeout(timeout);
     }
   }, [searchParams, navigate]);
+
+  /** Enlace del correo: /perfil/mis-pedidos?order={id} — abre el detalle si hay sesión. */
+  useEffect(() => {
+    if (loading) return;
+
+    const raw = searchParams.get('order');
+    if (!raw || openedOrderFromQueryRef.current) return;
+
+    const orderId = parseInt(raw, 10);
+    if (!Number.isFinite(orderId) || orderId < 1) return;
+
+    if (!localStorage.getItem('token')) return;
+
+    const order = orders.find((o) => Number(o.id) === orderId);
+    if (!order) return;
+
+    openedOrderFromQueryRef.current = true;
+    setHighlightedOrderId(orderId);
+    setSelectedOrderForDetail(order);
+    setShowOrderDetailModal(true);
+
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.delete('order');
+    const qs = newSearchParams.toString();
+    navigate(qs ? `/perfil/mis-pedidos?${qs}` : '/perfil/mis-pedidos', { replace: true });
+  }, [loading, orders, searchParams, navigate]);
 
     const fetchOrders = async () => {
       try {
