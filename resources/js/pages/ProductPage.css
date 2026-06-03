@@ -798,6 +798,16 @@
   color: #999;
 }
 
+.product-page__size-button--encargo {
+  border-color: #ff9800;
+  background: #fff8e1;
+}
+
+.product-page__size-button--encargo .product-page__size-availability {
+  color: #e65100;
+  font-weight: 600;
+}
+
 /* Product Page Quantity Controls */
 .product-page__size-quantity {
   display: flex;

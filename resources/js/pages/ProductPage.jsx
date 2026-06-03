@@ -39,7 +39,7 @@ import useHorizontalDragScroll from '../hooks/useHorizontalDragScroll';
 import colorConverter from '../services/colorConverter';
 import { validateStock, getProductStock } from '../services/inventoryService';
 import { getVolumeDiscountMainTier, getSellerCategoryFromUser, hasApiVolumeMainPercent, isOroDiamanteSeller, canApplyMainDiscount } from '../utils/sellerVolumeDiscount';
-import { canEncargoSinStock } from '../utils/encargoUtils';
+import { canEncargoSinStock, canEncargoForSize, isOutOfStockEncargoForSize } from '../utils/encargoUtils';
 import { summarizeVolumeFromCartItems } from '../utils/cartVolumePricing';
 
 // Función para formatear montos con separador de miles
@@ -600,10 +600,9 @@ const ProductPage = () => {
     if (selectedColor && selectedSize) {
       // Verificar si el producto está "próximamente" y el usuario es "oro"
       const inventoryStatus = getInventoryStatus();
-      const canEncargo = canEncargoSinStock(user, inventoryStatus.status);
-
       const stockDisponible = getStockBySizeAndColor(selectedSize, selectedColor);
-      if (quantity > stockDisponible && !canEncargo) {
+      const canEncargoTalla = canEncargoForSize(user, inventoryStatus.status, stockDisponible);
+      if (quantity > stockDisponible && !canEncargoTalla) {
         setQuantity(Math.max(1, stockDisponible));
       }
     }
@@ -612,12 +611,10 @@ const ProductPage = () => {
   // Efecto para ajustar la cantidad cuando se seleccione una talla diferente
   useEffect(() => {
     if (selectedColor && selectedSize) {
-      // Verificar si el producto está "próximamente" y el usuario es "oro"
       const inventoryStatus = getInventoryStatus();
-      const canEncargo = canEncargoSinStock(user, inventoryStatus.status);
-
       const stockDisponible = getStockBySizeAndColor(selectedSize, selectedColor);
-      if (quantity > stockDisponible && !canEncargo) {
+      const canEncargoTalla = canEncargoForSize(user, inventoryStatus.status, stockDisponible);
+      if (quantity > stockDisponible && !canEncargoTalla) {
         setQuantity(Math.max(1, stockDisponible));
       }
     }
@@ -626,12 +623,10 @@ const ProductPage = () => {
   // Efecto para resetear la talla seleccionada cuando cambie el color
   useEffect(() => {
     if (selectedColor && selectedSize) {
-      // Verificar si el producto está "próximamente" y el usuario es "oro"
       const inventoryStatus = getInventoryStatus();
-      const canEncargo = canEncargoSinStock(user, inventoryStatus.status);
-
       const stockDisponible = getStockBySizeAndColor(selectedSize, selectedColor);
-      if (stockDisponible <= 0 && !canEncargo) {
+      const canEncargoTalla = canEncargoForSize(user, inventoryStatus.status, stockDisponible);
+      if (stockDisponible <= 0 && !canEncargoTalla) {
         setSelectedSize('');
         setQuantity(1);
         setQuantitiesBySize({});
@@ -772,10 +767,35 @@ const ProductPage = () => {
     if (!canEncargo) {
       for (const { talla, cantidad } of tallasConCantidades) {
         const stockDisponible = getStockBySizeAndColor(talla, selectedColor);
+        const encargoTalla = canEncargoForSize(user, statusKind, stockDisponible);
 
-        if (cantidad > stockDisponible) {
+        if (stockDisponible <= 0 && !encargoTalla) {
+          if (window.showToast) {
+            window.showToast(`La talla ${talla} no tiene stock disponible`, 'error');
+          }
+          return;
+        }
+
+        if (stockDisponible <= 0 && encargoTalla && !user) {
+          if (window.showToast) {
+            window.showToast('Debes iniciar sesión para encargar tallas agotadas.', 'error');
+          }
+          return;
+        }
+
+        if (!encargoTalla && cantidad > stockDisponible) {
           if (window.showToast) {
             window.showToast(`Solo hay ${stockDisponible} unidades disponibles para la talla ${talla}`, 'error');
+          }
+          return;
+        }
+      }
+    } else {
+      for (const { talla } of tallasConCantidades) {
+        const stockDisponible = getStockBySizeAndColor(talla, selectedColor);
+        if (stockDisponible <= 0 && !user) {
+          if (window.showToast) {
+            window.showToast('Debes iniciar sesión para hacer encargos.', 'error');
           }
           return;
         }
@@ -784,7 +804,14 @@ const ProductPage = () => {
 
     try {
       // Agregar cada talla con su cantidad al carrito
+      let addedOutOfStockEncargo = false;
       for (const { talla, cantidad } of tallasConCantidades) {
+        const stockForLine = getStockBySizeAndColor(talla, selectedColor);
+        const lineOutOfStockEncargo = isOutOfStockEncargoForSize(user, statusKind, stockForLine);
+        if (lineOutOfStockEncargo) {
+          addedOutOfStockEncargo = true;
+        }
+
         const productToAdd = {
           id_articulo: product.id_articulo,
           title: product.descripcion,
@@ -802,7 +829,7 @@ const ProductPage = () => {
           colors: [selectedColor],
           barcode: getBarcodeBySizeAndColor(talla, selectedColor) || product.ean || product.sku || product.codigo_barras || product.id_articulo, // Código de barras específico por talla/color
           isComingSoon: isComingSoon,
-          isOutOfStockEncargo: isOutOfStock && canEncargo,
+          isOutOfStockEncargo: lineOutOfStockEncargo,
           // Información de ofertas especiales
           userOffer: hasUserOffer ? {
             discount_category: userOffer.discount_category, // IMPORTANTE: incluir discount_category
@@ -828,6 +855,8 @@ const ProductPage = () => {
           message += ' 📦 (Encargo - Próximamente)';
         } else if (isOutOfStock && canEncargo) {
           message += ' 📦 (Encargo - Agotado)';
+        } else if (addedOutOfStockEncargo) {
+          message += ' 📦 (Encargo - Talla agotada)';
         }
 
         if (hasOffer) {
@@ -898,13 +927,10 @@ const ProductPage = () => {
 
   // Handle quantity change for specific size
   const handleQuantityChangeForSize = (talla, newQuantity) => {
-    // Verificar si el producto está "próximamente" y el usuario es "oro"
     const inventoryStatus = getInventoryStatus();
-    const canEncargo = canEncargoSinStock(user, inventoryStatus.status);
-
     const stockMaximo = getStockForSize(talla);
-
-    const maxAllowed = canEncargo ? 9999 : stockMaximo;
+    const canEncargoTalla = canEncargoForSize(user, inventoryStatus.status, stockMaximo);
+    const maxAllowed = canEncargoTalla ? 9999 : stockMaximo;
 
     if (newQuantity >= 0 && newQuantity <= maxAllowed) {
       // Actualizar la cantidad para la talla específica
@@ -928,15 +954,20 @@ const ProductPage = () => {
 
   // Función para seleccionar talla e inicializar cantidad
   const handleSizeSelection = (talla) => {
-    // Verificar si el producto está "próximamente" y el usuario es "oro"
     const inventoryStatus = getInventoryStatus();
-    const canEncargo = canEncargoSinStock(user, inventoryStatus.status);
-
     const stockDisponible = selectedColor ? getStockBySizeAndColor(talla, selectedColor) : getStockForSize(talla);
+    const canEncargoTalla = canEncargoForSize(user, inventoryStatus.status, stockDisponible);
 
-    if (stockDisponible <= 0 && !canEncargo) {
+    if (stockDisponible <= 0 && !canEncargoTalla) {
       if (window.showToast) {
         window.showToast('Esta talla no tiene stock disponible', 'info');
+      }
+      return;
+    }
+
+    if (stockDisponible <= 0 && canEncargoTalla && !user) {
+      if (window.showToast) {
+        window.showToast('Debes iniciar sesión para encargar tallas agotadas.', 'error');
       }
       return;
     }
@@ -947,7 +978,7 @@ const ProductPage = () => {
     // Si la talla no tiene cantidad o tiene 0, inicializar con 1
     const cantidadActual = quantitiesBySize[talla] || 0;
     if (cantidadActual <= 0) {
-      if (stockDisponible > 0 || canEncargo) {
+      if (stockDisponible > 0 || canEncargoTalla) {
         setQuantitiesBySize(prev => ({
           ...prev,
           [talla]: 1
@@ -1810,25 +1841,29 @@ const ProductPage = () => {
                     <div className="product-page__size-options">
                       {tallasAMostrar.map((talla, index) => {
                         const stockDisponible = selectedColor ? getStockBySizeAndColor(talla, selectedColor) : getStockForSize(talla);
-                        const isDisabled = selectedColor && stockDisponible <= 0 && !canEncargo;
+                        const canEncargoTalla = canEncargoForSize(user, statusKind, stockDisponible);
+                        const isDisabled = selectedColor && stockDisponible <= 0 && !canEncargoTalla;
                         const maxStock = getStockForSize(talla);
-                        const maxAllowed = canEncargo ? 9999 : maxStock;
+                        const maxAllowed = canEncargoTalla ? 9999 : maxStock;
                         const canIncrease = (quantitiesBySize[talla] || 0) < maxAllowed;
+                        const sizeEncargoLabel = canEncargoTalla && stockDisponible <= 0 && statusKind === 'in-stock'
+                          ? 'Encargo - Talla agotada'
+                          : encargoLabel;
 
                         return (
                           <div key={talla} className={`product-page__size-item ${selectedSize === talla ? 'product-page__size-item--selected' : ''}`}>
                             <button
-                              className={`product-page__size-button ${isDisabled ? 'product-page__size-button--out-of-stock' : ''}`}
+                              className={`product-page__size-button ${isDisabled ? 'product-page__size-button--out-of-stock' : ''} ${canEncargoTalla && stockDisponible <= 0 && !isDisabled ? 'product-page__size-button--encargo' : ''}`}
                               onClick={() => handleSizeSelection(talla)}
                               disabled={isDisabled}
                               title={isDisabled ?
                                 'Sin stock disponible para este color' :
-                                (encargoLabel ? `Seleccionar talla (${encargoLabel})` : 'Seleccionar talla')
+                                (sizeEncargoLabel ? `Seleccionar talla (${sizeEncargoLabel})` : 'Seleccionar talla')
                               }
                             >
                               <span className="product-page__size-number">{talla}</span>
                               <span className="product-page__size-availability">
-                                {canEncargo ?
+                                {canEncargoTalla && stockDisponible <= 0 ?
                                   'Disponible para encargo' :
                                   (selectedColor ?
                                     `${stockDisponible} disponibles` :
@@ -1856,7 +1891,7 @@ const ProductPage = () => {
                                 onClick={() => handleQuantityChangeForSize(talla, (quantitiesBySize[talla] || 0) + 1)}
                                 disabled={!canIncrease}
                                 title={!canIncrease ?
-                                  (canEncargo ? '' : `Máximo ${maxStock} unidades disponibles`) :
+                                  (canEncargoTalla ? '' : `Máximo ${maxStock} unidades disponibles`) :
                                   'Aumentar cantidad'
                                 }
                               >
