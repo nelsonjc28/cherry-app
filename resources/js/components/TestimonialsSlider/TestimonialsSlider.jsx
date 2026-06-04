@@ -9,12 +9,15 @@ import 'swiper/css/navigation';
 import 'swiper/css/effect-coverflow';
 import './TestimonialsSlider.css';
 
-const TestimonialVideo = ({ src, fallbackSrc, label }) => {
+const TestimonialVideo = ({ src, fallbackSrc, label, setVideoRef, onEnded, onRequestPlay }) => {
   const videoRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
   const handlePlayClick = () => {
     if (!videoRef.current) return;
+    if (onRequestPlay) {
+      onRequestPlay();
+    }
     videoRef.current.play().catch(() => {
       setIsPlaying(false);
     });
@@ -24,12 +27,18 @@ const TestimonialVideo = ({ src, fallbackSrc, label }) => {
     <article className="testimonial-video-card">
       <div className="testimonial-video-media">
         <video
-          ref={videoRef}
+          ref={(node) => {
+            videoRef.current = node;
+            if (setVideoRef) {
+              setVideoRef(node);
+            }
+          }}
           className="testimonial-video-element"
           controls
           preload="metadata"
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
+          onEnded={onEnded}
           aria-label={label}
         >
           <source src={src} type="video/mp4" />
@@ -55,6 +64,10 @@ const TestimonialVideo = ({ src, fallbackSrc, label }) => {
 };
 
 const TestimonialsSlider = () => {
+  const videoSwiperRef = useRef(null);
+  const videoRefs = useRef([]);
+  const pendingPlayIndexRef = useRef(null);
+
   const testimonials = [
     {
       id: 1,
@@ -89,6 +102,54 @@ const TestimonialsSlider = () => {
     { id: 2, src: '/videos/testimonio-2.mp4', label: 'Video testimonio 2' },
   ];
 
+  const setVideoRefAt = (index, node) => {
+    videoRefs.current[index] = node;
+  };
+
+  const pauseOtherVideos = (activeIndex) => {
+    videoRefs.current.forEach((videoNode, index) => {
+      if (!videoNode || index === activeIndex) return;
+      if (!videoNode.paused) {
+        videoNode.pause();
+      }
+    });
+  };
+
+  const playVideoAt = (index) => {
+    const videoNode = videoRefs.current[index];
+    if (!videoNode) return;
+
+    pauseOtherVideos(index);
+    videoNode.play().catch(() => {});
+  };
+
+  const handleVideoEnded = (index) => {
+    const swiper = videoSwiperRef.current;
+    const nextIndex = (index + 1) % testimonialVideos.length;
+    pendingPlayIndexRef.current = nextIndex;
+
+    if (swiper) {
+      swiper.slideTo(nextIndex);
+    }
+
+    setTimeout(() => {
+      if (pendingPlayIndexRef.current === nextIndex) {
+        playVideoAt(nextIndex);
+        pendingPlayIndexRef.current = null;
+      }
+    }, 450);
+  };
+
+  const handleVideoSlideChangeEnd = (swiper) => {
+    const currentIndex = swiper.activeIndex;
+    pauseOtherVideos(currentIndex);
+
+    if (pendingPlayIndexRef.current === currentIndex) {
+      playVideoAt(currentIndex);
+      pendingPlayIndexRef.current = null;
+    }
+  };
+
   return (
     <section className="testimonials-slider-section">
       <div className="testimonials-slider-container">
@@ -96,16 +157,31 @@ const TestimonialsSlider = () => {
           <h2 className="testimonials-title">Testimonios de nuestros usuarios</h2>
         </div>
 
-        <div className="testimonials-videos-grid">
-          {testimonialVideos.map((video) => (
-            <TestimonialVideo
-              key={video.id}
-              src={video.src}
-              fallbackSrc={video.fallbackSrc}
-              label={video.label}
-            />
+        <Swiper
+          modules={[Navigation]}
+          className="testimonials-videos-grid"
+          spaceBetween={0}
+          slidesPerView={1}
+          centeredSlides={false}
+          speed={500}
+          onSwiper={(swiper) => {
+            videoSwiperRef.current = swiper;
+          }}
+          onSlideChangeTransitionEnd={handleVideoSlideChangeEnd}
+        >
+          {testimonialVideos.map((video, index) => (
+            <SwiperSlide key={video.id}>
+              <TestimonialVideo
+                src={video.src}
+                fallbackSrc={video.fallbackSrc}
+                label={video.label}
+                setVideoRef={(node) => setVideoRefAt(index, node)}
+                onEnded={() => handleVideoEnded(index)}
+                onRequestPlay={() => pauseOtherVideos(index)}
+              />
+            </SwiperSlide>
           ))}
-        </div>
+        </Swiper>
 
         <div className="testimonials-slider-wrapper">
           <Swiper
