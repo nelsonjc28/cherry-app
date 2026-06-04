@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Autoplay, EffectCoverflow } from 'swiper/modules';
 import ReviewCard from '../sections/CustomerReviews/ReviewCard';
@@ -8,6 +8,51 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/effect-coverflow';
 import './TestimonialsSlider.css';
+
+const TestimonialVideo = ({ src, fallbackSrc, label }) => {
+  const videoRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const handlePlayClick = () => {
+    if (!videoRef.current) return;
+    videoRef.current.play().catch(() => {
+      setIsPlaying(false);
+    });
+  };
+
+  return (
+    <article className="testimonial-video-card">
+      <div className="testimonial-video-media">
+        <video
+          ref={videoRef}
+          className="testimonial-video-element"
+          controls
+          preload="metadata"
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          aria-label={label}
+        >
+          <source src={src} type="video/mp4" />
+          {fallbackSrc ? <source src={fallbackSrc} type="video/mp4" /> : null}
+          Tu navegador no soporta videos HTML5.
+        </video>
+
+        {!isPlaying && (
+          <button
+            type="button"
+            className="testimonial-video-play-button"
+            onClick={handlePlayClick}
+            aria-label={`Reproducir ${label}`}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M8 5.5v13L18 12 8 5.5z" fill="#ffffff" />
+            </svg>
+          </button>
+        )}
+      </div>
+    </article>
+  );
+};
 
 const TestimonialsSlider = () => {
   const testimonials = [
@@ -34,11 +79,32 @@ const TestimonialsSlider = () => {
     }
   ];
 
+  const testimonialVideos = [
+    {
+      id: 1,
+      src: '/videos/testimonio-1.mp4',
+      fallbackSrc: '/videos/testimonios-1.mp4',
+      label: 'Video testimonio 1',
+    },
+    { id: 2, src: '/videos/testimonio-2.mp4', label: 'Video testimonio 2' },
+  ];
+
   return (
     <section className="testimonials-slider-section">
       <div className="testimonials-slider-container">
         <div className="testimonials-header">
           <h2 className="testimonials-title">Testimonios de nuestros usuarios</h2>
+        </div>
+
+        <div className="testimonials-videos-grid">
+          {testimonialVideos.map((video) => (
+            <TestimonialVideo
+              key={video.id}
+              src={video.src}
+              fallbackSrc={video.fallbackSrc}
+              label={video.label}
+            />
+          ))}
         </div>
 
         <div className="testimonials-slider-wrapper">

@@ -44,6 +44,70 @@
   line-height: 1.6;
 }
 
+.testimonials-videos-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  gap: 10px;
+  padding: 0 8px;
+  margin: 0 auto 24px;
+}
+
+.testimonial-video-card {
+  border-bottom: 3px solid #f24e75;
+  border-radius: 14px;
+  overflow: hidden;
+  background-color: #000;
+  max-width: 300px;
+  height: 150px;
+}
+
+.testimonial-video-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 14 / 9;
+  background-color: #000;
+}
+
+.testimonial-video-element {
+  width: 100%;
+  height: 85%;
+  display: block;
+  object-fit: contain;
+  background-color: #000;
+}
+
+.testimonial-video-play-button {
+  position: absolute;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background-color: #f24e75;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(242, 78, 117, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  z-index: 2;
+}
+
+.testimonial-video-play-button:hover {
+  transform: translate(-50%, -50%) scale(1.05);
+  box-shadow: 0 10px 24px rgba(242, 78, 117, 0.45);
+}
+
+.testimonial-video-play-button svg {
+  width: 25px;
+  height: 25px;
+  margin-left: 2px;
+}
+
 /* Slider Wrapper (Mobile) */
 .testimonials-slider-wrapper {
   position: relative;
@@ -170,6 +234,30 @@
 
   .testimonials-description {
     font-size: 1.1rem;
+  }
+
+  .testimonials-videos-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    padding: 0 70px;
+    margin-bottom: 36px;
+  }
+
+  .testimonial-video-element {
+    height: 80%;
+  }
+
+  .testimonial-video-card {
+    max-width: 500px;
+    height: 250px;
+  }
+  .testimonial-video-play-button {
+    width: 54px;
+    height: 54px;
+  }
+  .testimonial-video-play-button svg {
+    width: 28px;
+    height: 28px;
   }
 
   .testimonials-slider-wrapper {
