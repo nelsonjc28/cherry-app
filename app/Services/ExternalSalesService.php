@@ -8,7 +8,6 @@ use App\Models\OrderItem;
 use App\Models\Detalle;
 use App\Models\Producto;
 use App\Models\User;
-use App\Models\ContactInfo;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -56,27 +55,16 @@ class ExternalSalesService
         // 'envio' = Envío a domicilio, 'retiro' = Retiro en tienda
         $metodoEnvio = $deliveryType === 'retiro' ? 'RETIRO EN TIENDA' : 'ENVIO A DOMICILIO';
         
-        // Si es retiro en tienda y no hay address, usar dirección de la tienda
-        if ($deliveryType === 'retiro' && !$address) {
-            $contactInfo = ContactInfo::getContactInfo();
-            // Crear un objeto temporal con la dirección de la tienda
-            $address = (object) [
-                'street_address' => $contactInfo->address_street ?? '',
-                'city' => $contactInfo->address_city ?? '',
-                'state' => 'Ciudad de México',
-                'postal_code' => '06080',
-                'country' => 'México'
-            ];
-        }
-        
-        // Si aún no hay address, usar valores por defecto
-        if (!$address) {
+        // Retiro en tienda: no enviar dirección (ni de la tienda ni del cliente) a la API externa.
+        if ($deliveryType === 'retiro') {
+            $address = null;
+        } elseif (! $address) {
             $address = (object) [
                 'street_address' => '',
                 'city' => '',
                 'state' => '',
                 'postal_code' => '',
-                'country' => 'México'
+                'country' => 'México',
             ];
         }
         
@@ -720,6 +708,39 @@ class ExternalSalesService
      */
     private function prepareClienteData(User $user, $address, string $deliveryType = 'envio'): array
     {
+        $idFormatted = 'DM' . str_pad((string) $user->id, 5, '0', STR_PAD_LEFT);
+        $nombre = trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? ''));
+
+        $contactFields = [
+            'id' => $idFormatted,
+            'nombre' => $nombre,
+            'rfc' => $user->rfc ?? 'XAXX010101000',
+            'contacto1' => null,
+            'telefono1' => $user->phone ?? null,
+            'email1' => $user->email ?? null,
+            'metodopago' => '99',
+            'numctapago' => '0000',
+            'opccredito' => 'N',
+            'id_uso' => 'G01',
+            'id_metpago' => 'PPD',
+            'telefono' => $user->phone ?? null,
+            'email' => $user->email ?? null,
+        ];
+
+        if ($deliveryType === 'retiro') {
+            return array_merge($contactFields, [
+                'calle' => '',
+                'no_int' => null,
+                'no_ext' => null,
+                'municipio' => '',
+                'colonia' => null,
+                'estado' => '',
+                'ciudad' => '',
+                'pais' => '',
+                'codpos' => '',
+            ]);
+        }
+
         $streetAddress = (string) data_get($address, 'street_address', '');
         $noExtColumn = trim((string) data_get($address, 'street_number_ext', ''));
         $noIntColumn = trim((string) data_get($address, 'street_number_int', ''));
@@ -735,16 +756,10 @@ class ExternalSalesService
         }
         
         // Nombre del cliente sin concatenar método de envío (ya va en campo separado)
-        $nombre = trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? ''));
         
         // Estructura simplificada según la especificación de la API externa
         // Formato del id: "DM" + 5 dígitos con ceros a la izquierda (ej: DM00002, DM00123)
-        $idFormatted = 'DM' . str_pad((string) $user->id, 5, '0', STR_PAD_LEFT);
-        
-        return [
-            'id' => $idFormatted,
-            'nombre' => $nombre,
-            'rfc' => $user->rfc ?? 'XAXX010101000',
+        return array_merge($contactFields, [
             'calle' => $streetParts['street'] ?? $streetAddress,
             'no_int' => $streetParts['no_int'] ?? null,
             'no_ext' => $streetParts['no_ext'] ?? null,
@@ -754,17 +769,7 @@ class ExternalSalesService
             'ciudad' => $this->normalizeCity((string) data_get($address, 'city', '')),
             'pais' => (string) data_get($address, 'country', 'México'),
             'codpos' => (string) data_get($address, 'postal_code', ''),
-            'contacto1' => null,
-            'telefono1' => $user->phone ?? null,
-            'email1' => $user->email ?? null,
-            'metodopago' => '99',
-            'numctapago' => '0000',
-            'opccredito' => 'N',
-            'id_uso' => 'G01',
-            'id_metpago' => 'PPD',
-            'telefono' => $user->phone ?? null,
-            'email' => $user->email ?? null
-        ];
+        ]);
     }
     
     /**
