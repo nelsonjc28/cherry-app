@@ -4,7 +4,6 @@ namespace App\Mail;
 
 use App\Models\MailConfig;
 use App\Models\Order;
-use App\Services\CartEmailPricingService;
 use App\Services\MailImageService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -19,41 +18,55 @@ class OrderStatusEmail extends Mailable implements ShouldQueue
 
     public Order $order;
 
-    /** @var list<array<string, mixed>> */
-    public array $lines;
+    public string $logoUrl;
 
-    public string $headerImageUrl;
+    public string $heroImageUrl;
+
+    public string $customerDisplayName;
+
+    public ?string $trackingNumber;
+
+    public string $trackingUrl;
+
+    public string $ordersUrl;
+
+    public bool $isDelivered;
 
     public function __construct(Order $order)
     {
         $this->order = $order->loadMissing(['user', 'items']);
-        $this->headerImageUrl = MailImageService::bannerAbsoluteUrl(MailConfig::TYPE_ORDER_STATUS);
-        $this->lines = [];
-        foreach ($this->order->items as $item) {
-            $pid = (string) $item->product_id;
-            $lower = strtolower((string) ($item->name ?? ''));
-            if ($pid === '0' || str_contains($lower, 'envío') || str_contains($lower, 'envio') || str_contains($lower, 'ajuste')) {
-                continue;
-            }
-            $this->lines[] = [
-                'name' => $item->name,
-                'product_id' => $pid,
-                'color' => $item->color,
-                'size' => $item->size,
-                'quantity' => (int) $item->quantity,
-                'unit_price' => (float) $item->price,
-                'subtotal' => (float) $item->subtotal,
-                'image_url' => CartEmailPricingService::s3ProductImageUrl($pid),
-            ];
+
+        $fn = trim((string) ($this->order->user?->first_name ?? ''));
+        $ln = trim((string) ($this->order->user?->last_name ?? ''));
+        $fallback = (string) ($this->order->user?->first_name ?? 'Cliente');
+        $this->customerDisplayName = trim($fn.' '.$ln) !== '' ? trim($fn.' '.$ln) : $fallback;
+
+        $this->logoUrl = MailImageService::mailLogoAbsoluteUrl();
+        $this->heroImageUrl = MailImageService::bannerAbsoluteUrl(MailConfig::TYPE_ORDER_STATUS);
+
+        $webBase = rtrim((string) config('cherry.orders_web_base'), '/');
+        if ($webBase === '') {
+            $webBase = rtrim((string) config('app.url'), '/');
         }
+        $this->ordersUrl = $webBase.'/perfil/mis-pedidos?order='.$this->order->id;
+
+        $tn = $this->order->tracking_number;
+        $this->trackingNumber = (is_string($tn) && trim($tn) !== '') ? trim($tn) : null;
+        $this->trackingUrl = $this->trackingNumber !== null
+            ? 'https://www.fedex.com/fedextrack/?trknbr='.rawurlencode($this->trackingNumber)
+            : $this->ordersUrl;
+
+        $this->isDelivered = (string) $this->order->status === 'entregado';
     }
 
     public function envelope(): Envelope
     {
-        $label = $this->order->status_display ?? $this->order->status;
+        $subject = $this->isDelivered
+            ? 'Tu pedido #'.$this->order->id.' fue entregado — '.MailImageService::mailBrandName()
+            : 'Tu pedido #'.$this->order->id.' ya fue enviado — '.MailImageService::mailBrandName();
 
         return new Envelope(
-            subject: 'Actualización de tu pedido #'.$this->order->id.' — '.$label.' — '.MailImageService::mailBrandName(),
+            subject: $subject,
         );
     }
 

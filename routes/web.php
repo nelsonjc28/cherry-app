@@ -2,6 +2,8 @@
 
 use App\Models\Cart;
 use App\Models\Order;
+use App\Models\ProductNotification;
+use App\Models\Producto;
 use App\Models\User;
 use App\Services\CartEmailPricingService;
 use Illuminate\Support\Facades\Route;
@@ -91,6 +93,71 @@ if (app()->environment('local')) {
             'Content-Type' => 'text/html; charset=UTF-8',
         ]);
     })->name('dev.mail.abandoned-cart');
+
+    Route::get('/dev/mail-preview/order-status/{order?}', function (?Order $order = null) {
+        $order = $order ?? Order::query()->with(['user', 'items'])->latest('id')->first();
+        if ($order === null) {
+            abort(404, 'No hay pedidos en la base de datos. Usa /dev/mail-preview/order-status/{id}');
+        }
+        $order->loadMissing(['user', 'items']);
+        $statusOverride = request()->query('status');
+        if (is_string($statusOverride) && trim($statusOverride) !== '') {
+            $order->status = trim($statusOverride);
+        }
+        $html = (new \App\Mail\OrderStatusEmail($order))->render();
+
+        return response($html, 200, [
+            'Content-Type' => 'text/html; charset=UTF-8',
+        ]);
+    })->name('dev.mail.order-status');
+
+    Route::get('/dev/mail-preview/product-available/{notification?}', function (?ProductNotification $notification = null) {
+        if ($notification !== null) {
+            $notification->loadMissing(['user', 'producto.detalles']);
+        } else {
+            $productId = request()->query('product');
+            if (is_string($productId) && trim($productId) !== '') {
+                $producto = Producto::query()->with('detalles')->find(trim($productId));
+                $user = User::query()->first();
+                if ($producto === null || $user === null) {
+                    abort(404, 'Producto o usuario no encontrado. Usa ?product={id} con un producto válido.');
+                }
+                $notification = new ProductNotification([
+                    'user_id' => $user->id,
+                    'producto_id' => $producto->id,
+                    'is_notified' => false,
+                ]);
+                $notification->id = 0;
+                $notification->setRelation('user', $user);
+                $notification->setRelation('producto', $producto);
+            } else {
+                $notification = ProductNotification::query()
+                    ->with(['user', 'producto.detalles'])
+                    ->first();
+                if ($notification === null) {
+                    $user = User::query()->first();
+                    $producto = Producto::query()->with('detalles')->first();
+                    if ($user === null || $producto === null) {
+                        abort(404, 'No hay suscripciones de stock. Usa /dev/mail-preview/product-available?product={id}');
+                    }
+                    $notification = new ProductNotification([
+                        'user_id' => $user->id,
+                        'producto_id' => $producto->id,
+                        'is_notified' => false,
+                    ]);
+                    $notification->id = 0;
+                    $notification->setRelation('user', $user);
+                    $notification->setRelation('producto', $producto);
+                }
+            }
+        }
+
+        $html = (new \App\Mail\ProductAvailableEmail($notification))->render();
+
+        return response($html, 200, [
+            'Content-Type' => 'text/html; charset=UTF-8',
+        ]);
+    })->name('dev.mail.product-available');
 }
 
 /*
@@ -109,4 +176,4 @@ Route::any('cherry-api/{path}', CherryCatalogProxyController::class)->where('pat
 // Excluir rutas backend (/api/*), mail-assets y utilitarias.
 Route::get('/{any}', function () {
     return view('app');
-})->where('any', '^(?!(api/|cherry-api|mail-assets/|images/|products/(sync|replace-all))).*');
+})->where('any', '^(?!(api/|cherry-api|mail-assets/|images/|dev/|products/(sync|replace-all))).*');
