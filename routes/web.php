@@ -9,6 +9,7 @@ use App\Services\CartEmailPricingService;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CherryCatalogProxyController;
 use App\Http\Controllers\Api\ProductSyncController;
+use App\Http\Controllers\CronHttpController;
 use App\Http\Controllers\MailPublicAssetController;
 
 // Ruta principal para la PWA
@@ -20,6 +21,12 @@ Route::get('/', function () {
 // IMPORTANTE: Debe estar ANTES de la ruta catch-all /{any}
 Route::get('/products/sync', [ProductSyncController::class, 'sync']);
 Route::get('/products/replace-all', [ProductSyncController::class, 'replaceAll']);
+
+// Cron por HTTP (curl/wget), mismo patrón que /products/sync
+Route::get('/cron/mail/abandoned-cart', [CronHttpController::class, 'abandonedCart'])->name('cron.mail.abandoned-cart');
+Route::get('/cron/mail/order-status', [CronHttpController::class, 'orderStatus'])->name('cron.mail.order-status');
+Route::get('/cron/mail/sync', [CronHttpController::class, 'syncMail'])->name('cron.mail.sync');
+Route::get('/cron/queue', [CronHttpController::class, 'processQueue'])->name('cron.queue');
 
 // Ruta para imprimir orden (acepta token como parámetro para evitar redirección a login)
 Route::get('/api/orders/{orderId}/print', [\App\Http\Controllers\PaymentController::class, 'printOrder']);
@@ -176,4 +183,4 @@ Route::any('cherry-api/{path}', CherryCatalogProxyController::class)->where('pat
 // Excluir rutas backend (/api/*), mail-assets y utilitarias.
 Route::get('/{any}', function () {
     return view('app');
-})->where('any', '^(?!(api/|cherry-api|mail-assets/|images/|dev/|products/(sync|replace-all))).*');
+})->where('any', '^(?!(api/|cherry-api|mail-assets/|images/|dev/|cron/|products/(sync|replace-all))).*');
