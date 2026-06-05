@@ -2,15 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\AbandonedCartEmail;
+use App\Mail\OrderStatusEmail;
 use App\Models\CronMailLog;
+use App\Services\CartEmailPricingService;
 use App\Services\CronMailLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Queue;
+use Throwable;
 
 /**
  * Disparar tareas de cron vía HTTP (panel de hosting con curl/wget).
+ * La lógica de encolado y registros vive aquí; no se delega a Artisan.
  */
 class CronHttpController extends Controller
 {
@@ -23,58 +29,131 @@ class CronHttpController extends Controller
         set_time_limit(0);
         ini_set('max_execution_time', '0');
 
-        $command = 'mail:abandoned-cart';
+        $comando = 'mail:abandoned-cart';
         $route = '/'.$request->path();
         $ip = (string) $request->ip();
         $startedAt = microtime(true);
 
         Log::info('Cron HTTP: solicitud recibida', [
             'route' => $route,
-            'command' => $command,
+            'command' => $comando,
             'ip' => $ip,
             'user_agent' => $request->userAgent(),
         ]);
 
-        $exitCode = Artisan::call($command);
-        $output = trim(Artisan::output());
-        $durationMs = (int) round((microtime(true) - $startedAt) * 1000);
+        $encolados = 0;
+        $errores = 0;
+        $omitidos = 0;
 
-        Log::info('Cron HTTP: comando finalizado', [
+        $this->cronMailLogService->abandonedCartCandidatesQuery()
+            ->chunkById(100, function ($carts) use ($comando, &$encolados, &$errores, &$omitidos) {
+                foreach ($carts as $cart) {
+                    $user = $cart->user;
+                    if (! $user || ! $user->email) {
+                        $omitidos++;
+                        $this->cronMailLogService->recordSkipped(
+                            $comando,
+                            CronMailLog::TIPO_ABANDONED_CART,
+                            'Usuario sin email',
+                            $user?->id,
+                            $cart->id,
+                        );
+                        continue;
+                    }
+
+                    $items = $cart->items ?? [];
+                    if (! is_array($items) || count($items) === 0) {
+                        $omitidos++;
+                        $this->cronMailLogService->recordSkipped(
+                            $comando,
+                            CronMailLog::TIPO_ABANDONED_CART,
+                            'Carrito sin ítems válidos',
+                            $user->id,
+                            $cart->id,
+                        );
+                        continue;
+                    }
+
+                    $preview = CartEmailPricingService::buildPreview($items, $user->seller_category ?? 'bronce');
+                    if (count($preview['lines']) === 0) {
+                        $omitidos++;
+                        $this->cronMailLogService->recordSkipped(
+                            $comando,
+                            CronMailLog::TIPO_ABANDONED_CART,
+                            'Sin líneas de precio para el correo',
+                            $user->id,
+                            $cart->id,
+                        );
+                        continue;
+                    }
+
+                    try {
+                        Mail::to($user->email)->queue(new AbandonedCartEmail($user, $cart, $preview));
+                        $cart->forceFill(['last_notified_at' => now()])->save();
+                        $encolados++;
+
+                        $this->cronMailLogService->recordSuccess(
+                            $comando,
+                            CronMailLog::TIPO_ABANDONED_CART,
+                            $user->email,
+                            $user->id,
+                            $cart->id,
+                            null,
+                            'Carrito abandonado encolado',
+                            'http',
+                        );
+                    } catch (Throwable $e) {
+                        $errores++;
+                        $this->cronMailLogService->recordError(
+                            $comando,
+                            CronMailLog::TIPO_ABANDONED_CART,
+                            $e->getMessage(),
+                            $user->email,
+                            $user->id,
+                            $cart->id,
+                            'http',
+                        );
+                        Log::error('Cron HTTP mail:abandoned-cart queue failed', [
+                            'cart_id' => $cart->id,
+                            'user_id' => $user->id,
+                            'message' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            });
+
+        $this->cronMailLogService->recordExecutionSummary($comando, [
+            'encolados' => $encolados,
+            'errores' => $errores,
+            'omitidos' => $omitidos,
+        ], 'http');
+
+        $output = "Abandoned cart: {$encolados} encolado(s), {$errores} error(es), {$omitidos} omitido(s).";
+        $durationMs = (int) round((microtime(true) - $startedAt) * 1000);
+        $success = $errores === 0;
+
+        Log::info('Cron HTTP: ejecución finalizada', [
             'route' => $route,
-            'command' => $command,
-            'exit_code' => $exitCode,
+            'command' => $comando,
+            'ip' => $ip,
+            'encolados' => $encolados,
+            'errores' => $errores,
+            'omitidos' => $omitidos,
             'duration_ms' => $durationMs,
             'output' => $output,
         ]);
 
-        $this->cronMailLogService->record(
-            $command,
-            CronMailLog::TIPO_RESUMEN,
-            $exitCode === 0 ? CronMailLog::ESTADO_EXITOSO : CronMailLog::ESTADO_ERROR,
-            null,
-            null,
-            null,
-            null,
-            json_encode([
-                'via' => 'http',
-                'route' => $route,
-                'ip' => $ip,
-                'exit_code' => $exitCode,
-                'duration_ms' => $durationMs,
-                'output' => $output,
-            ], JSON_UNESCAPED_UNICODE),
-            'http',
-        );
-
         return response()->json([
-            'success' => $exitCode === 0,
-            'command' => $command,
-            'exit_code' => $exitCode,
+            'success' => $success,
+            'command' => $comando,
+            'encolados' => $encolados,
+            'errores' => $errores,
+            'omitidos' => $omitidos,
             'output' => $output,
             'route' => $route,
             'logged' => true,
             'duration_ms' => $durationMs,
-        ], $exitCode === 0 ? 200 : 500);
+        ], $success ? 200 : 500);
     }
 
     public function orderStatus(Request $request): JsonResponse
@@ -82,58 +161,109 @@ class CronHttpController extends Controller
         set_time_limit(0);
         ini_set('max_execution_time', '0');
 
-        $command = 'mail:order-status-update';
+        $comando = 'mail:order-status-update';
         $route = '/'.$request->path();
         $ip = (string) $request->ip();
         $startedAt = microtime(true);
 
         Log::info('Cron HTTP: solicitud recibida', [
             'route' => $route,
-            'command' => $command,
+            'command' => $comando,
             'ip' => $ip,
             'user_agent' => $request->userAgent(),
         ]);
 
-        $exitCode = Artisan::call($command);
-        $output = trim(Artisan::output());
-        $durationMs = (int) round((microtime(true) - $startedAt) * 1000);
+        $encolados = 0;
+        $errores = 0;
+        $omitidos = 0;
 
-        Log::info('Cron HTTP: comando finalizado', [
+        $this->cronMailLogService->orderStatusCandidatesQuery()
+            ->orderBy('id')
+            ->chunkById(50, function ($orders) use ($comando, &$encolados, &$errores, &$omitidos) {
+                foreach ($orders as $order) {
+                    $user = $order->user;
+                    if (! $user || ! $user->email) {
+                        $omitidos++;
+                        $this->cronMailLogService->recordSkipped(
+                            $comando,
+                            CronMailLog::TIPO_ORDER_STATUS,
+                            'Usuario sin email',
+                            $user?->id,
+                            null,
+                            $order->id,
+                        );
+                        continue;
+                    }
+
+                    try {
+                        Mail::to($user->email)->queue(new OrderStatusEmail($order));
+                        $order->forceFill([
+                            'fulfillment_email_last_status' => $order->status,
+                        ])->save();
+                        $encolados++;
+
+                        $this->cronMailLogService->recordSuccess(
+                            $comando,
+                            CronMailLog::TIPO_ORDER_STATUS,
+                            $user->email,
+                            $user->id,
+                            null,
+                            $order->id,
+                            "Estatus «{$order->status}» encolado",
+                            'http',
+                        );
+                    } catch (Throwable $e) {
+                        $errores++;
+                        $this->cronMailLogService->recordError(
+                            $comando,
+                            CronMailLog::TIPO_ORDER_STATUS,
+                            $e->getMessage(),
+                            $user->email,
+                            $user->id,
+                            null,
+                            $order->id,
+                            'http',
+                        );
+                        Log::error('Cron HTTP mail:order-status-update queue failed', [
+                            'order_id' => $order->id,
+                            'message' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            });
+
+        $this->cronMailLogService->recordExecutionSummary($comando, [
+            'encolados' => $encolados,
+            'errores' => $errores,
+            'omitidos' => $omitidos,
+        ], 'http');
+
+        $output = "Order status: {$encolados} encolado(s), {$errores} error(es), {$omitidos} omitido(s).";
+        $durationMs = (int) round((microtime(true) - $startedAt) * 1000);
+        $success = $errores === 0;
+
+        Log::info('Cron HTTP: ejecución finalizada', [
             'route' => $route,
-            'command' => $command,
-            'exit_code' => $exitCode,
+            'command' => $comando,
+            'ip' => $ip,
+            'encolados' => $encolados,
+            'errores' => $errores,
+            'omitidos' => $omitidos,
             'duration_ms' => $durationMs,
             'output' => $output,
         ]);
 
-        $this->cronMailLogService->record(
-            $command,
-            CronMailLog::TIPO_RESUMEN,
-            $exitCode === 0 ? CronMailLog::ESTADO_EXITOSO : CronMailLog::ESTADO_ERROR,
-            null,
-            null,
-            null,
-            null,
-            json_encode([
-                'via' => 'http',
-                'route' => $route,
-                'ip' => $ip,
-                'exit_code' => $exitCode,
-                'duration_ms' => $durationMs,
-                'output' => $output,
-            ], JSON_UNESCAPED_UNICODE),
-            'http',
-        );
-
         return response()->json([
-            'success' => $exitCode === 0,
-            'command' => $command,
-            'exit_code' => $exitCode,
+            'success' => $success,
+            'command' => $comando,
+            'encolados' => $encolados,
+            'errores' => $errores,
+            'omitidos' => $omitidos,
             'output' => $output,
             'route' => $route,
             'logged' => true,
             'duration_ms' => $durationMs,
-        ], $exitCode === 0 ? 200 : 500);
+        ], $success ? 200 : 500);
     }
 
     public function syncMail(Request $request): JsonResponse
@@ -141,66 +271,63 @@ class CronHttpController extends Controller
         set_time_limit(0);
         ini_set('max_execution_time', '0');
 
-        $command = 'mail:sync-cron';
         $route = '/'.$request->path();
         $ip = (string) $request->ip();
         $startedAt = microtime(true);
-
-        $params = [];
         $only = $request->query('only');
-        if (is_string($only) && in_array($only, ['abandoned-cart', 'order-status'], true)) {
-            $params['--only'] = $only;
+
+        if ($only && ! in_array($only, ['abandoned-cart', 'order-status'], true)) {
+            return response()->json([
+                'success' => false,
+                'command' => 'mail:sync-cron',
+                'output' => 'Parámetro only inválido. Usar: abandoned-cart o order-status',
+                'route' => $route,
+                'logged' => false,
+            ], 400);
         }
 
         Log::info('Cron HTTP: solicitud recibida', [
             'route' => $route,
-            'command' => $command,
+            'command' => 'mail:sync-cron',
             'ip' => $ip,
             'user_agent' => $request->userAgent(),
-            'params' => $params,
+            'only' => $only,
         ]);
 
-        $exitCode = Artisan::call($command, $params);
-        $output = trim(Artisan::output());
+        $outputs = [];
+        $hasErrors = false;
+
+        if (! $only || $only === 'abandoned-cart') {
+            $stats = $this->encolarCorreosCarritoAbandonado();
+            $outputs[] = "Abandoned cart: {$stats['encolados']} encolado(s), {$stats['errores']} error(es), {$stats['omitidos']} omitido(s).";
+            $hasErrors = $hasErrors || $stats['errores'] > 0;
+        }
+
+        if (! $only || $only === 'order-status') {
+            $stats = $this->encolarCorreosEstatusPedido();
+            $outputs[] = "Order status: {$stats['encolados']} encolado(s), {$stats['errores']} error(es), {$stats['omitidos']} omitido(s).";
+            $hasErrors = $hasErrors || $stats['errores'] > 0;
+        }
+
+        $output = implode("\n", $outputs);
         $durationMs = (int) round((microtime(true) - $startedAt) * 1000);
 
-        Log::info('Cron HTTP: comando finalizado', [
+        Log::info('Cron HTTP: ejecución finalizada', [
             'route' => $route,
-            'command' => $command,
-            'exit_code' => $exitCode,
+            'command' => 'mail:sync-cron',
+            'ip' => $ip,
             'duration_ms' => $durationMs,
             'output' => $output,
         ]);
 
-        $this->cronMailLogService->record(
-            $command,
-            CronMailLog::TIPO_RESUMEN,
-            $exitCode === 0 ? CronMailLog::ESTADO_EXITOSO : CronMailLog::ESTADO_ERROR,
-            null,
-            null,
-            null,
-            null,
-            json_encode([
-                'via' => 'http',
-                'route' => $route,
-                'ip' => $ip,
-                'exit_code' => $exitCode,
-                'duration_ms' => $durationMs,
-                'output' => $output,
-                'params' => $params,
-            ], JSON_UNESCAPED_UNICODE),
-            'http',
-        );
-
         return response()->json([
-            'success' => $exitCode === 0,
-            'command' => $command,
-            'exit_code' => $exitCode,
+            'success' => ! $hasErrors,
+            'command' => 'mail:sync-cron',
             'output' => $output,
             'route' => $route,
             'logged' => true,
             'duration_ms' => $durationMs,
-        ], $exitCode === 0 ? 200 : 500);
+        ], $hasErrors ? 500 : 200);
     }
 
     public function processQueue(Request $request): JsonResponse
@@ -208,39 +335,42 @@ class CronHttpController extends Controller
         set_time_limit(0);
         ini_set('max_execution_time', '0');
 
-        $command = 'queue:work';
+        $comando = 'queue:work';
         $route = '/'.$request->path();
         $ip = (string) $request->ip();
         $startedAt = microtime(true);
 
-        $params = [
-            '--stop-when-empty' => true,
-            '--tries' => 3,
-        ];
-
         Log::info('Cron HTTP: solicitud recibida', [
             'route' => $route,
-            'command' => $command,
+            'command' => $comando,
             'ip' => $ip,
             'user_agent' => $request->userAgent(),
         ]);
 
-        $exitCode = Artisan::call($command, $params);
-        $output = trim(Artisan::output());
-        $durationMs = (int) round((microtime(true) - $startedAt) * 1000);
+        $processed = 0;
+        $errors = 0;
+        $connection = Queue::connection();
+        $queueName = (string) config('queue.connections.'.config('queue.default').'.queue', 'default');
 
-        Log::info('Cron HTTP: comando finalizado', [
-            'route' => $route,
-            'command' => $command,
-            'exit_code' => $exitCode,
-            'duration_ms' => $durationMs,
-            'output' => $output,
-        ]);
+        while ($job = $connection->pop($queueName)) {
+            try {
+                $job->fire();
+                $processed++;
+            } catch (Throwable $e) {
+                $errors++;
+                Log::error('Cron HTTP queue:work job failed', [
+                    'message' => $e->getMessage(),
+                ]);
+                if (method_exists($job, 'fail')) {
+                    $job->fail($e);
+                }
+            }
+        }
 
         $this->cronMailLogService->record(
-            $command,
+            $comando,
             CronMailLog::TIPO_RESUMEN,
-            $exitCode === 0 ? CronMailLog::ESTADO_EXITOSO : CronMailLog::ESTADO_ERROR,
+            $errors === 0 ? CronMailLog::ESTADO_EXITOSO : CronMailLog::ESTADO_ERROR,
             null,
             null,
             null,
@@ -249,21 +379,213 @@ class CronHttpController extends Controller
                 'via' => 'http',
                 'route' => $route,
                 'ip' => $ip,
-                'exit_code' => $exitCode,
-                'duration_ms' => $durationMs,
-                'output' => $output,
+                'procesados' => $processed,
+                'errores' => $errors,
             ], JSON_UNESCAPED_UNICODE),
             'http',
         );
 
+        $output = "Queue: {$processed} job(s) procesado(s), {$errors} error(es).";
+        $durationMs = (int) round((microtime(true) - $startedAt) * 1000);
+        $success = $errors === 0;
+
+        Log::info('Cron HTTP: ejecución finalizada', [
+            'route' => $route,
+            'command' => $comando,
+            'ip' => $ip,
+            'procesados' => $processed,
+            'errores' => $errors,
+            'duration_ms' => $durationMs,
+            'output' => $output,
+        ]);
+
         return response()->json([
-            'success' => $exitCode === 0,
-            'command' => $command,
-            'exit_code' => $exitCode,
+            'success' => $success,
+            'command' => $comando,
+            'procesados' => $processed,
+            'errores' => $errors,
             'output' => $output,
             'route' => $route,
             'logged' => true,
             'duration_ms' => $durationMs,
-        ], $exitCode === 0 ? 200 : 500);
+        ], $success ? 200 : 500);
+    }
+
+    /**
+     * @return array{encolados: int, errores: int, omitidos: int}
+     */
+    protected function encolarCorreosCarritoAbandonado(): array
+    {
+        $comando = 'mail:abandoned-cart';
+        $encolados = 0;
+        $errores = 0;
+        $omitidos = 0;
+
+        $this->cronMailLogService->abandonedCartCandidatesQuery()
+            ->chunkById(100, function ($carts) use ($comando, &$encolados, &$errores, &$omitidos) {
+                foreach ($carts as $cart) {
+                    $user = $cart->user;
+                    if (! $user || ! $user->email) {
+                        $omitidos++;
+                        $this->cronMailLogService->recordSkipped(
+                            $comando,
+                            CronMailLog::TIPO_ABANDONED_CART,
+                            'Usuario sin email',
+                            $user?->id,
+                            $cart->id,
+                        );
+                        continue;
+                    }
+
+                    $items = $cart->items ?? [];
+                    if (! is_array($items) || count($items) === 0) {
+                        $omitidos++;
+                        $this->cronMailLogService->recordSkipped(
+                            $comando,
+                            CronMailLog::TIPO_ABANDONED_CART,
+                            'Carrito sin ítems válidos',
+                            $user->id,
+                            $cart->id,
+                        );
+                        continue;
+                    }
+
+                    $preview = CartEmailPricingService::buildPreview($items, $user->seller_category ?? 'bronce');
+                    if (count($preview['lines']) === 0) {
+                        $omitidos++;
+                        $this->cronMailLogService->recordSkipped(
+                            $comando,
+                            CronMailLog::TIPO_ABANDONED_CART,
+                            'Sin líneas de precio para el correo',
+                            $user->id,
+                            $cart->id,
+                        );
+                        continue;
+                    }
+
+                    try {
+                        Mail::to($user->email)->queue(new AbandonedCartEmail($user, $cart, $preview));
+                        $cart->forceFill(['last_notified_at' => now()])->save();
+                        $encolados++;
+
+                        $this->cronMailLogService->recordSuccess(
+                            $comando,
+                            CronMailLog::TIPO_ABANDONED_CART,
+                            $user->email,
+                            $user->id,
+                            $cart->id,
+                            null,
+                            'Carrito abandonado encolado',
+                            'http',
+                        );
+                    } catch (Throwable $e) {
+                        $errores++;
+                        $this->cronMailLogService->recordError(
+                            $comando,
+                            CronMailLog::TIPO_ABANDONED_CART,
+                            $e->getMessage(),
+                            $user->email,
+                            $user->id,
+                            $cart->id,
+                            'http',
+                        );
+                        Log::error('Cron HTTP mail:abandoned-cart queue failed', [
+                            'cart_id' => $cart->id,
+                            'user_id' => $user->id,
+                            'message' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            });
+
+        $this->cronMailLogService->recordExecutionSummary($comando, [
+            'encolados' => $encolados,
+            'errores' => $errores,
+            'omitidos' => $omitidos,
+        ], 'http');
+
+        return [
+            'encolados' => $encolados,
+            'errores' => $errores,
+            'omitidos' => $omitidos,
+        ];
+    }
+
+    /**
+     * @return array{encolados: int, errores: int, omitidos: int}
+     */
+    protected function encolarCorreosEstatusPedido(): array
+    {
+        $comando = 'mail:order-status-update';
+        $encolados = 0;
+        $errores = 0;
+        $omitidos = 0;
+
+        $this->cronMailLogService->orderStatusCandidatesQuery()
+            ->orderBy('id')
+            ->chunkById(50, function ($orders) use ($comando, &$encolados, &$errores, &$omitidos) {
+                foreach ($orders as $order) {
+                    $user = $order->user;
+                    if (! $user || ! $user->email) {
+                        $omitidos++;
+                        $this->cronMailLogService->recordSkipped(
+                            $comando,
+                            CronMailLog::TIPO_ORDER_STATUS,
+                            'Usuario sin email',
+                            $user?->id,
+                            null,
+                            $order->id,
+                        );
+                        continue;
+                    }
+
+                    try {
+                        Mail::to($user->email)->queue(new OrderStatusEmail($order));
+                        $order->forceFill([
+                            'fulfillment_email_last_status' => $order->status,
+                        ])->save();
+                        $encolados++;
+
+                        $this->cronMailLogService->recordSuccess(
+                            $comando,
+                            CronMailLog::TIPO_ORDER_STATUS,
+                            $user->email,
+                            $user->id,
+                            null,
+                            $order->id,
+                            "Estatus «{$order->status}» encolado",
+                            'http',
+                        );
+                    } catch (Throwable $e) {
+                        $errores++;
+                        $this->cronMailLogService->recordError(
+                            $comando,
+                            CronMailLog::TIPO_ORDER_STATUS,
+                            $e->getMessage(),
+                            $user->email,
+                            $user->id,
+                            null,
+                            $order->id,
+                            'http',
+                        );
+                        Log::error('Cron HTTP mail:order-status-update queue failed', [
+                            'order_id' => $order->id,
+                            'message' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            });
+
+        $this->cronMailLogService->recordExecutionSummary($comando, [
+            'encolados' => $encolados,
+            'errores' => $errores,
+            'omitidos' => $omitidos,
+        ], 'http');
+
+        return [
+            'encolados' => $encolados,
+            'errores' => $errores,
+            'omitidos' => $omitidos,
+        ];
     }
 }
