@@ -70,7 +70,7 @@
               Color: {{ $colorDisp }}
             </p>
             <p style="margin:0;text-align:right;font-family:{{ $sans }};font-size:14px;font-weight:700;color:#ffffff;">
-              Precio unitario: {{ $unitPriceFormatted }}
+              Precio: {{ $unitPriceFormatted }}
             </p>
           </td>
         </tr>

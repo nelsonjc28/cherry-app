@@ -274,7 +274,7 @@
             <th align="left" style="padding:8px 6px;font-family:{{ $sans }};font-size:10px;text-transform:uppercase;color:{{ $muted }};">Img</th>
             <th align="left" style="padding:8px 6px;font-family:{{ $sans }};font-size:10px;text-transform:uppercase;color:{{ $muted }};">Producto</th>
             <th align="center" style="padding:8px 6px;font-family:{{ $sans }};font-size:10px;text-transform:uppercase;color:{{ $muted }};">Cant.</th>
-            <th align="right" style="padding:8px 6px;font-family:{{ $sans }};font-size:10px;text-transform:uppercase;color:{{ $muted }};">P. unit.</th>
+            <th align="right" style="padding:8px 6px;font-family:{{ $sans }};font-size:10px;text-transform:uppercase;color:{{ $muted }};">Precio</th>
             <th align="right" style="padding:8px 6px;font-family:{{ $sans }};font-size:10px;text-transform:uppercase;color:{{ $muted }};">Subt.</th>
           </tr>
         </thead>

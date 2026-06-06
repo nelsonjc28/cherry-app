@@ -67,7 +67,7 @@
             <span style="display:block;color:#333;font-size:13px;">Cantidad: {{ $line['quantity'] }}</span>
           </td>
           <td style="padding:14px 0;vertical-align:top;font-family:{{ $sans }};font-size:13px;color:#1a1a1a;text-align:right;white-space:nowrap;">
-            Precio unitario:<br>
+            Precio:<br>
             <strong style="font-size:14px;">${{ number_format((float) ($line['unit_price'] ?? 0), 2, '.', ',') }}</strong>
           </td>
         </tr>
