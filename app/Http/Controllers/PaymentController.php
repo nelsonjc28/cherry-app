@@ -822,7 +822,7 @@ class PaymentController extends Controller
             ], 403);
         }
 
-        $pendingOrderCheck = $this->checkPendingOrdersWithSimilarProducts($user->id, $request->items);
+        $pendingOrderCheck = $this->checkPendingOrdersWithSimilarProducts($user, $request->items);
         if ($pendingOrderCheck['has_pending']) {
             return response()->json([
                 'success' => false,
@@ -1242,7 +1242,7 @@ class PaymentController extends Controller
         }
 
         // Verificar si hay órdenes pendientes con productos similares
-        $pendingOrderCheck = $this->checkPendingOrdersWithSimilarProducts($user->id, $request->items);
+        $pendingOrderCheck = $this->checkPendingOrdersWithSimilarProducts($user, $request->items);
         if ($pendingOrderCheck['has_pending']) {
             return response()->json([
                 'success' => false,
@@ -2032,7 +2032,7 @@ class PaymentController extends Controller
         }
 
         // Verificar si hay órdenes pendientes con productos similares
-        $pendingOrderCheck = $this->checkPendingOrdersWithSimilarProducts($user->id, $requestData['items']);
+        $pendingOrderCheck = $this->checkPendingOrdersWithSimilarProducts($user, $requestData['items']);
         if ($pendingOrderCheck['has_pending']) {
             return response()->json([
                 'success' => false,
@@ -3664,7 +3664,7 @@ class PaymentController extends Controller
         }
 
         // Verificar si hay órdenes pendientes con productos similares
-        $pendingOrderCheck = $this->checkPendingOrdersWithSimilarProducts($user->id, $request->items);
+        $pendingOrderCheck = $this->checkPendingOrdersWithSimilarProducts($user, $request->items);
         if ($pendingOrderCheck['has_pending']) {
             return response()->json([
                 'success' => false,
@@ -4292,7 +4292,7 @@ class PaymentController extends Controller
         }
 
         // Verificar si hay órdenes pendientes con productos similares
-        $pendingOrderCheck = $this->checkPendingOrdersWithSimilarProducts($user->id, $request->items);
+        $pendingOrderCheck = $this->checkPendingOrdersWithSimilarProducts($user, $request->items);
         if ($pendingOrderCheck['has_pending']) {
             return response()->json([
                 'success' => false,
@@ -4819,10 +4819,19 @@ class PaymentController extends Controller
     }
 
     /**
-     * Verificar si el usuario tiene órdenes pendientes con productos similares del mismo día
+     * Verificar si el usuario bronce tiene órdenes pendientes con productos similares del mismo día.
+     * Oro y diamante pueden repetir pedidos con la misma mercancía.
      */
-    private function checkPendingOrdersWithSimilarProducts($userId, $newItems)
+    private function checkPendingOrdersWithSimilarProducts(User $user, $newItems)
     {
+        if (! $user->isBronceSeller()) {
+            return [
+                'has_pending' => false,
+                'message' => null,
+                'order' => null,
+            ];
+        }
+
         // Normalizar los items de la nueva orden: crear un array con product_id => cantidad total
         $newItemsNormalized = [];
         foreach ($newItems as $item) {
@@ -4842,7 +4851,7 @@ class PaymentController extends Controller
         $today = Carbon::today();
 
         // Buscar órdenes pendientes del usuario creadas hoy
-        $pendingOrders = Order::where('user_id', $userId)
+        $pendingOrders = Order::where('user_id', $user->id)
             ->whereIn('status', ['pending', 'pendiente_pago'])
             ->whereDate('created_at', $today) // Solo órdenes del mismo día
             ->with(['items', 'user'])
