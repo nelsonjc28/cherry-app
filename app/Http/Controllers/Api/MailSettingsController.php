@@ -31,7 +31,7 @@ class MailSettingsController extends Controller
             'template_label' => 'Correo de bienvenida',
             'area_label' => 'Hero superior — Lookbook de modelos',
             'area_description' => 'Debajo del logo Cherry. Bloque visual principal con las fotos de modelos (collage o imagen ancho completo).',
-            'size_hint' => '600 × 400 px (3:2). Collage de 3 modelos: tres fotos de 200 × 400 px sin espacio entre ellas.',
+            'size_hint' => '600 × 430 px (3:2). Collage de 3 modelos: tres fotos de 200 × 430 px sin espacio entre ellas.',
             'sort' => 1,
         ],
         MailConfig::TYPE_WELCOME_PROMO => [
@@ -40,7 +40,7 @@ class MailSettingsController extends Controller
             'template_label' => 'Correo de bienvenida',
             'area_label' => 'Banner inferior — Promociones y novedades',
             'area_description' => 'Sobre el pie negro del correo, después de los iconos de redes sociales.',
-            'size_hint' => '600 × 200 px (3:1). Puedes incluir el texto en la imagen o dejar el texto del correo debajo.',
+            'size_hint' => '600 × 230 px (3:1). Puedes incluir el texto en la imagen o dejar el texto del correo debajo.',
             'sort' => 2,
         ],
         MailConfig::TYPE_ORDER_CONFIRMATION => [
@@ -50,7 +50,7 @@ class MailSettingsController extends Controller
             'template_description' => 'Se envía al completar una compra.',
             'area_label' => 'Cabecera — Imagen principal',
             'area_description' => 'Parte superior del correo, debajo del encabezado.',
-            'size_hint' => '600 × 320 px recomendado.',
+            'size_hint' => '600 × 350 px recomendado.',
             'sort' => 1,
         ],
         MailConfig::TYPE_ABANDONED_CART_HERO => [
@@ -60,7 +60,7 @@ class MailSettingsController extends Controller
             'template_description' => 'Recordatorio automático cuando el carrito lleva ítems sin comprar (cron diario).',
             'area_label' => 'Hero — Debajo del logo',
             'area_description' => 'Banner amarillo con el mensaje «¡Ups! Parece que dejaste algo en tu carrito.» Puedes incluir el texto en la imagen.',
-            'size_hint' => '600 × 320 px recomendado (ancho completo).',
+            'size_hint' => '600 × 350 px recomendado (ancho completo).',
             'sort' => 1,
         ],
         MailConfig::TYPE_ABANDONED_CART_PROMO => [
@@ -69,7 +69,7 @@ class MailSettingsController extends Controller
             'template_label' => 'Carrito abandonado',
             'area_label' => 'Banner inferior — Promociones y novedades',
             'area_description' => 'Sobre el pie negro del correo, después de redes sociales.',
-            'size_hint' => '600 × 200 px (3:1). Puedes incluir el texto en la imagen o dejar el texto del correo debajo.',
+            'size_hint' => '600 × 230 px (3:1). Puedes incluir el texto en la imagen o dejar el texto del correo debajo.',
             'sort' => 2,
         ],
         MailConfig::TYPE_ORDER_STATUS => [
@@ -79,7 +79,7 @@ class MailSettingsController extends Controller
             'template_description' => 'Se envía cuando cambia el estado de un pedido.',
             'area_label' => 'Cabecera del correo',
             'area_description' => 'Imagen superior que acompaña el mensaje de estado.',
-            'size_hint' => '600 × 200 px recomendado.',
+            'size_hint' => '600 × 230 px recomendado.',
             'sort' => 1,
         ],
         MailConfig::TYPE_PRODUCT_AVAILABLE => [
@@ -89,7 +89,7 @@ class MailSettingsController extends Controller
             'template_description' => 'Aviso cuando un producto vuelve a estar en stock.',
             'area_label' => 'Banner inferior',
             'area_description' => 'Franja visual al final del cuerpo del correo.',
-            'size_hint' => '600 × 200 px recomendado.',
+            'size_hint' => '600 × 230 px recomendado.',
             'sort' => 1,
         ],
     ];

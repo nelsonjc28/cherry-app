@@ -135,7 +135,7 @@
         'imageUrl' => $promoBannerImageUrl,
         'clickUrl' => $promoBannerImageClickUrl,
         'width' => '600',
-        'style' => 'display:block;width:100%;max-width:600px;height:auto;',
+        'style' => 'display:block;width:100%;max-width:600px;height:auto;min-height:230px;object-fit:cover;',
       ])
     </td>
   </tr>

@@ -30,7 +30,7 @@
               'imageUrl' => $heroImageUrl,
               'clickUrl' => $heroImageClickUrl,
               'width' => '300',
-              'style' => 'display:block;width:100%;max-width:300px;height:auto;min-height:200px;object-fit:cover;',
+              'style' => 'display:block;width:100%;max-width:300px;height:auto;min-height:230px;object-fit:cover;',
             ])
           </td>
           <td width="50%" valign="middle" style="width:50%;padding:24px 20px 24px 24px;vertical-align:middle;background:#ffffff;">

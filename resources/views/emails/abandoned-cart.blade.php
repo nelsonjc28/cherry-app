@@ -24,7 +24,7 @@
         'clickUrl' => $heroImageClickUrl,
         'alt' => '¡Ups! Parece que dejaste algo en tu carrito.',
         'width' => '600',
-        'style' => 'display:block;width:100%;max-width:600px;height:auto;border:0;',
+        'style' => 'display:block;width:100%;max-width:600px;height:auto;min-height:350px;object-fit:cover;border:0;',
       ])
     </td>
   </tr>
@@ -157,7 +157,7 @@
         'imageUrl' => $promoBannerImageUrl,
         'clickUrl' => $promoBannerImageClickUrl,
         'width' => '600',
-        'style' => 'display:block;width:100%;max-width:600px;height:auto;border:0;',
+        'style' => 'display:block;width:100%;max-width:600px;height:auto;min-height:230px;object-fit:cover;border:0;',
       ])
     </td>
   </tr>
