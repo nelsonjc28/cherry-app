@@ -34,6 +34,21 @@ class MailImageService
     }
 
     /**
+     * URL de destino al hacer clic en la imagen del correo (null si no está configurada).
+     */
+    public static function bannerClickUrl(string $mailType): ?string
+    {
+        $url = MailConfig::query()->where('mail_type', $mailType)->value('click_url');
+        if (! is_string($url)) {
+            return null;
+        }
+
+        $url = trim($url);
+
+        return $url !== '' ? $url : null;
+    }
+
+    /**
      * URL absoluta del banner para un tipo de correo. Si no hay imagen en BD o el archivo no existe, usa respaldo.
      */
     public static function bannerAbsoluteUrl(string $mailType): string

@@ -19,7 +19,13 @@
   {{-- Hero (configurable en admin: abandoned_cart_hero) --}}
   <tr>
     <td style="padding:0;background:#f5f5f5;line-height:0;font-size:0;">
-      <img src="{{ $heroImageUrl }}" alt="¡Ups! Parece que dejaste algo en tu carrito." width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
+      @include('emails.partials.linked-image', [
+        'imageUrl' => $heroImageUrl,
+        'clickUrl' => $heroImageClickUrl,
+        'alt' => '¡Ups! Parece que dejaste algo en tu carrito.',
+        'width' => '600',
+        'style' => 'display:block;width:100%;max-width:600px;height:auto;border:0;',
+      ])
     </td>
   </tr>
   {{-- Saludo y cuerpo --}}
@@ -147,7 +153,12 @@
   {{-- Banner promo (configurable en admin: abandoned_cart_promo) --}}
   <tr>
     <td style="padding:0;background:#eaeaea;line-height:0;font-size:0;">
-      <img src="{{ $promoBannerImageUrl }}" alt="" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
+      @include('emails.partials.linked-image', [
+        'imageUrl' => $promoBannerImageUrl,
+        'clickUrl' => $promoBannerImageClickUrl,
+        'width' => '600',
+        'style' => 'display:block;width:100%;max-width:600px;height:auto;border:0;',
+      ])
     </td>
   </tr>
   <tr>

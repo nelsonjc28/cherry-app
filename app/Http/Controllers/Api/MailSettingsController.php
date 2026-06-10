@@ -124,6 +124,9 @@ class MailSettingsController extends Controller
                 /** Pathname para admin: mismo host/puerto que la pestaña (mail-assets o /images/…). */
                 'image_preview_path' => MailImageService::bannerPreviewPath($type),
                 'uses_uploaded' => $hasFile,
+                'click_url' => is_string($row?->click_url) && trim($row->click_url) !== ''
+                    ? trim($row->click_url)
+                    : null,
             ];
         }
 
@@ -173,7 +176,17 @@ class MailSettingsController extends Controller
         $request->validate([
             'mail_type' => ['required', 'string', Rule::in(MailConfig::allTypes())],
             'image' => ['required', 'file', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:5120'],
+            'click_url' => ['nullable', 'string', 'max:2048'],
         ]);
+
+        $clickUrl = $this->normalizeClickUrl($request->input('click_url'));
+        if ($clickUrl === false) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El enlace debe ser una URL válida que comience con http:// o https://',
+                'errors' => ['click_url' => ['URL inválida']],
+            ], 422);
+        }
 
         $mailType = $request->string('mail_type')->toString();
         $file = $request->file('image');
@@ -202,7 +215,10 @@ class MailSettingsController extends Controller
 
         MailConfig::query()->updateOrCreate(
             ['mail_type' => $mailType],
-            ['image_path' => $storedPath]
+            array_filter(
+                ['image_path' => $storedPath, 'click_url' => $clickUrl],
+                static fn ($value) => $value !== null
+            )
         );
 
         return response()->json([
@@ -213,7 +229,63 @@ class MailSettingsController extends Controller
             'image_url' => MailImageService::publicAssetAbsoluteUrl($storedPath),
             'image_preview_path' => MailImageService::mailAssetWebPathFromDbPath($storedPath),
             'uses_uploaded' => true,
+            'click_url' => $clickUrl,
         ]);
+    }
+
+    public function updateClickUrl(Request $request): JsonResponse
+    {
+        $request->validate([
+            'mail_type' => ['required', 'string', Rule::in(MailConfig::allTypes())],
+            'click_url' => ['nullable', 'string', 'max:2048'],
+        ]);
+
+        $mailType = $request->string('mail_type')->toString();
+        $clickUrl = $this->normalizeClickUrl($request->input('click_url'));
+        if ($clickUrl === false) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El enlace debe ser una URL válida que comience con http:// o https://',
+                'errors' => ['click_url' => ['URL inválida']],
+            ], 422);
+        }
+
+        MailConfig::query()->updateOrCreate(
+            ['mail_type' => $mailType],
+            ['click_url' => $clickUrl]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => $clickUrl ? 'Enlace guardado.' : 'Enlace eliminado.',
+            'mail_type' => $mailType,
+            'click_url' => $clickUrl,
+        ]);
+    }
+
+    /**
+     * @return string|null|false null = vacío, string = URL válida, false = inválida
+     */
+    protected function normalizeClickUrl(mixed $value): string|null|false
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (! is_string($value)) {
+            return false;
+        }
+
+        $url = trim($value);
+        if ($url === '') {
+            return null;
+        }
+
+        if (! preg_match('/^https?:\/\//i', $url) || ! filter_var($url, FILTER_VALIDATE_URL)) {
+            return false;
+        }
+
+        return $url;
     }
 
     protected function mailAssetFileOk(string $path): bool

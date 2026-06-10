@@ -397,6 +397,7 @@ Route::middleware(['auth:api', 'admin'])->group(function () {
     // Imágenes de cabecera / banners de correos automáticos
     Route::get('/admin/mail-images', [MailSettingsController::class, 'index']);
     Route::post('/admin/mail-images/upload', [MailSettingsController::class, 'uploadImage']);
+    Route::put('/admin/mail-images/click-url', [MailSettingsController::class, 'updateClickUrl']);
 });
 
 // Public home categories route (no authentication required)

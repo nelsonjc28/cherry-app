@@ -32,7 +32,11 @@ class AbandonedCartEmail extends Mailable implements ShouldQueue
 
     public string $heroImageUrl;
 
+    public ?string $heroImageClickUrl;
+
     public string $promoBannerImageUrl;
+
+    public ?string $promoBannerImageClickUrl;
 
     public string $socialFacebook;
 
@@ -54,7 +58,9 @@ class AbandonedCartEmail extends Mailable implements ShouldQueue
         $this->logoUrl = MailImageService::mailLogoAbsoluteUrl();
         $this->shopUrl = $base;
         $this->heroImageUrl = MailImageService::bannerAbsoluteUrl(MailConfig::TYPE_ABANDONED_CART_HERO);
+        $this->heroImageClickUrl = MailImageService::bannerClickUrl(MailConfig::TYPE_ABANDONED_CART_HERO);
         $this->promoBannerImageUrl = MailImageService::bannerAbsoluteUrl(MailConfig::TYPE_ABANDONED_CART_PROMO);
+        $this->promoBannerImageClickUrl = MailImageService::bannerClickUrl(MailConfig::TYPE_ABANDONED_CART_PROMO);
         $this->socialFacebook = (string) config('cherry.social_facebook');
         $this->socialInstagram = (string) config('cherry.social_instagram');
         $wa = config('cherry.social_whatsapp');

@@ -64,13 +64,65 @@ function buildTemplatesFromConfigs(configs) {
   }));
 }
 
+function MailImageLinkField({ slot, saving, onSave }) {
+  const [value, setValue] = useState(slot.click_url || '');
+
+  useEffect(() => {
+    setValue(slot.click_url || '');
+  }, [slot.mail_type, slot.click_url]);
+
+  const trimmed = value.trim();
+  const saved = (slot.click_url || '') === trimmed;
+  const canSave = !saving && !saved;
+
+  return (
+    <div className="mail-image-manager__link-field">
+      <label className="mail-image-manager__link-label" htmlFor={`click-url-${slot.mail_type}`}>
+        Enlace al hacer clic
+      </label>
+      <p className="mail-image-manager__link-hint">
+        URL completa (https://…). Si la dejas vacía, la imagen no será clicable.
+      </p>
+      <div className="mail-image-manager__link-row">
+        <input
+          id={`click-url-${slot.mail_type}`}
+          type="url"
+          className="mail-image-manager__link-input"
+          placeholder="https://tutienda.com/promociones"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          disabled={saving}
+        />
+        <button
+          type="button"
+          className="mail-image-manager__link-save"
+          disabled={!canSave}
+          onClick={() => onSave(slot.mail_type, trimmed)}
+        >
+          {saving ? 'Guardando…' : 'Guardar enlace'}
+        </button>
+      </div>
+      {slot.click_url ? (
+        <p className="mail-image-manager__link-active">
+          Enlace activo:{' '}
+          <a href={slot.click_url} target="_blank" rel="noopener noreferrer">
+            {slot.click_url}
+          </a>
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 function MailUploadModal({
   template,
   uploadingType,
+  savingLinkType,
   fileInputs,
   onClose,
   onFileChange,
   onTriggerFile,
+  onSaveClickUrl,
 }) {
   const overlayRef = useRef(null);
 
@@ -192,6 +244,11 @@ function MailUploadModal({
                       'Seleccionar imagen'
                     )}
                   </button>
+                  <MailImageLinkField
+                    slot={slot}
+                    saving={savingLinkType === slot.mail_type}
+                    onSave={onSaveClickUrl}
+                  />
                 </li>
               );
             })}
@@ -260,7 +317,15 @@ function MultiZoneTemplateCard({ template, onOpenModal }) {
 }
 
 /** Otros correos (una sola imagen): subida directa en la tarjeta. */
-function SingleZoneTemplateCard({ template, uploadingType, fileInputs, onFileChange, onTriggerFile }) {
+function SingleZoneTemplateCard({
+  template,
+  uploadingType,
+  savingLinkType,
+  fileInputs,
+  onFileChange,
+  onTriggerFile,
+  onSaveClickUrl,
+}) {
   const slot = template.slots[0];
   if (!slot) return null;
 
@@ -317,6 +382,11 @@ function SingleZoneTemplateCard({ template, uploadingType, fileInputs, onFileCha
           'Subir nueva imagen'
         )}
       </button>
+      <MailImageLinkField
+        slot={slot}
+        saving={savingLinkType === slot.mail_type}
+        onSave={onSaveClickUrl}
+      />
     </li>
   );
 }
@@ -326,6 +396,7 @@ export default function MailImageManager() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [uploadingType, setUploadingType] = useState(null);
+  const [savingLinkType, setSavingLinkType] = useState(null);
   const [openTemplate, setOpenTemplate] = useState(null);
   const fileInputs = useRef({});
 
@@ -422,6 +493,46 @@ export default function MailImageManager() {
     }
   };
 
+  const onSaveClickUrl = async (mailType, clickUrl) => {
+    setSavingLinkType(mailType);
+    setError('');
+    try {
+      const res = await fetch('/api/admin/mail-images/click-url', {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mail_type: mailType,
+          click_url: clickUrl || null,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg =
+          data.message ||
+          (data.errors && Object.values(data.errors).flat().join(' ')) ||
+          'Error al guardar enlace';
+        throw new Error(msg);
+      }
+      updateSlotInTemplates(mailType, {
+        click_url: data.click_url ?? null,
+      });
+      if (window.showToast) {
+        window.showToast(data.message || 'Enlace guardado', 'success');
+      }
+    } catch (err) {
+      setError(err.message || 'Error al guardar enlace');
+      if (window.showToast) {
+        window.showToast(err.message || 'Error al guardar enlace', 'error');
+      }
+    } finally {
+      setSavingLinkType(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="mail-image-manager">
@@ -434,9 +545,9 @@ export default function MailImageManager() {
     <div className="mail-image-manager">
       <h2 className="mail-image-manager__title">Imágenes de correos electrónicos</h2>
       <p className="mail-image-manager__intro">
-        Cada tarjeta es un tipo de correo. En <strong>Bienvenida</strong> y{' '}
-        <strong>Carrito abandonado</strong>, <strong>Subir nueva imagen</strong> abre el panel para hero y
-        banner promocional.
+        Cada tarjeta es un tipo de correo. Sube la imagen y configura el enlace al hacer clic. En{' '}
+        <strong>Bienvenida</strong> y <strong>Carrito abandonado</strong>,{' '}
+        <strong>Subir nueva imagen</strong> abre el panel para hero y banner promocional.
       </p>
       {error ? <div className="mail-image-manager__error" role="alert">{error}</div> : null}
 
@@ -453,9 +564,11 @@ export default function MailImageManager() {
               key={template.id}
               template={template}
               uploadingType={uploadingType}
+              savingLinkType={savingLinkType}
               fileInputs={fileInputs}
               onFileChange={onFileChange}
               onTriggerFile={triggerFile}
+              onSaveClickUrl={onSaveClickUrl}
             />
           )
         )}
@@ -465,10 +578,12 @@ export default function MailImageManager() {
         <MailUploadModal
           template={openTemplate}
           uploadingType={uploadingType}
+          savingLinkType={savingLinkType}
           fileInputs={fileInputs}
           onClose={() => setOpenTemplate(null)}
           onFileChange={onFileChange}
           onTriggerFile={triggerFile}
+          onSaveClickUrl={onSaveClickUrl}
         />
       ) : null}
     </div>

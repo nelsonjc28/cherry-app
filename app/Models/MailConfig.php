@@ -9,6 +9,7 @@ class MailConfig extends Model
     protected $fillable = [
         'mail_type',
         'image_path',
+        'click_url',
     ];
 
     /** @deprecated migrado a welcome_hero / welcome_promo */

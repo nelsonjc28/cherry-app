@@ -505,3 +505,86 @@
 .mail-image-modal__done-btn:hover {
   background: #333;
 }
+
+.mail-image-manager__link-field {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.mail-image-manager__link-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.25rem;
+}
+
+.mail-image-manager__link-hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.mail-image-manager__link-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+@media (min-width: 520px) {
+  .mail-image-manager__link-row {
+    flex-direction: row;
+    align-items: stretch;
+  }
+}
+
+.mail-image-manager__link-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.55rem 0.65rem;
+  font-size: 0.85rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.mail-image-manager__link-input:focus {
+  outline: none;
+  border-color: #111;
+  box-shadow: 0 0 0 2px rgba(17, 17, 17, 0.08);
+}
+
+.mail-image-manager__link-save {
+  flex-shrink: 0;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #fff;
+  background: #111;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mail-image-manager__link-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mail-image-manager__link-save:not(:disabled):hover {
+  background: #333;
+}
+
+.mail-image-manager__link-active {
+  margin: 0.45rem 0 0;
+  font-size: 0.75rem;
+  color: #4b5563;
+  word-break: break-all;
+}
+
+.mail-image-manager__link-active a {
+  color: #b91c1c;
+}

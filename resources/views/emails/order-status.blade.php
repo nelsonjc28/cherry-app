@@ -26,7 +26,12 @@
       <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
         <tr>
           <td width="50%" valign="middle" style="width:50%;padding:0;background:{{ $cherry }};vertical-align:middle;">
-            <img src="{{ $heroImageUrl }}" alt="" width="300" style="display:block;width:100%;max-width:300px;height:auto;min-height:200px;object-fit:cover;">
+            @include('emails.partials.linked-image', [
+              'imageUrl' => $heroImageUrl,
+              'clickUrl' => $heroImageClickUrl,
+              'width' => '300',
+              'style' => 'display:block;width:100%;max-width:300px;height:auto;min-height:200px;object-fit:cover;',
+            ])
           </td>
           <td width="50%" valign="middle" style="width:50%;padding:24px 20px 24px 24px;vertical-align:middle;background:#ffffff;">
             <p style="margin:0 0 12px;font-family:{{ $serif }};font-size:26px;line-height:1.2;color:#1a1a1a;font-weight:400;">

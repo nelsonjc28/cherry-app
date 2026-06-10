@@ -17,7 +17,11 @@
   {{-- Hero superior: 600px ancho; puede ser collage de 3 fotos (200×400 c/u) en un solo archivo --}}
   <tr>
     <td style="padding:0;background:#f5f5f5;line-height:0;font-size:0;">
-      <img src="{{ $heroImageUrl }}" alt="" width="100%" style="display:block;width:100%;max-width:100%;height:auto;border:0;">
+      @include('emails.partials.linked-image', [
+        'imageUrl' => $heroImageUrl,
+        'clickUrl' => $heroImageClickUrl,
+        'style' => 'display:block;width:100%;max-width:100%;height:auto;border:0;',
+      ])
     </td>
   </tr>
   <tr>
@@ -128,7 +132,11 @@
   </tr>
   <tr>
     <td style="padding:0;background:#eaeaea;">
-      <img src="{{ $promoBannerImageUrl }}" alt="" width="100%" style="display:block;width:100%;max-width:100%;height:auto;border:0;">
+      @include('emails.partials.linked-image', [
+        'imageUrl' => $promoBannerImageUrl,
+        'clickUrl' => $promoBannerImageClickUrl,
+        'style' => 'display:block;width:100%;max-width:100%;height:auto;border:0;',
+      ])
     </td>
   </tr>
   <tr>

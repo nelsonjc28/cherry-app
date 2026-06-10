@@ -39,6 +39,8 @@ class ProductAvailableEmail extends Mailable implements ShouldQueue
 
     public string $promoBannerImageUrl;
 
+    public ?string $promoBannerImageClickUrl;
+
     public string $socialWhatsapp;
 
     public string $productColorLabel;
@@ -70,6 +72,8 @@ class ProductAvailableEmail extends Mailable implements ShouldQueue
         $this->logoUrl = MailImageService::mailLogoAbsoluteUrl();
 
         $this->promoBannerImageUrl = MailImageService::bannerAbsoluteUrl(MailConfig::TYPE_PRODUCT_AVAILABLE);
+        $this->promoBannerImageClickUrl = MailImageService::bannerClickUrl(MailConfig::TYPE_PRODUCT_AVAILABLE)
+            ?? ($this->webBase.'/promociones');
 
         $wa = config('cherry.social_whatsapp');
         $this->socialWhatsapp = (is_string($wa) && $wa !== '') ? $wa : $this->webBase.'/contacto';

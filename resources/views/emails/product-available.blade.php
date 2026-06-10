@@ -131,9 +131,12 @@
   </tr>
   <tr>
     <td style="padding:0;background:#eaeaea;">
-      <a href="{{ $webBase }}/promociones" target="_blank" rel="noopener" style="text-decoration:none;display:block;">
-        <img src="{{ $promoBannerImageUrl }}" alt="" width="600" style="display:block;width:100%;max-width:600px;height:auto;">
-      </a>
+      @include('emails.partials.linked-image', [
+        'imageUrl' => $promoBannerImageUrl,
+        'clickUrl' => $promoBannerImageClickUrl,
+        'width' => '600',
+        'style' => 'display:block;width:100%;max-width:600px;height:auto;',
+      ])
     </td>
   </tr>
   <tr>

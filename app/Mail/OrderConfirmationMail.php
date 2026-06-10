@@ -40,6 +40,8 @@ class OrderConfirmationMail extends Mailable
     /** Imagen ancha / hero izquierda del correo. */
     public string $heroImageUrl;
 
+    public ?string $heroImageClickUrl;
+
     public float $merchandiseNetSubtotal;
 
     public float $volumeDiscountAmount;
@@ -128,6 +130,7 @@ class OrderConfirmationMail extends Mailable
             : $this->orderViewUrl;
 
         $this->heroImageUrl = $this->resolveHeroImageUrl();
+        $this->heroImageClickUrl = MailImageService::bannerClickUrl(MailConfig::TYPE_ORDER_CONFIRMATION);
 
         $this->paymentMethodLabel = $this->formatPaymentMethod($this->order->payment_method ?? '');
         $this->showPendingPaymentNotice = in_array($this->order->status, ['pending', 'pendiente_pago'], true);

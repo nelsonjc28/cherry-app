@@ -22,6 +22,8 @@ class OrderStatusEmail extends Mailable implements ShouldQueue
 
     public string $heroImageUrl;
 
+    public ?string $heroImageClickUrl;
+
     public string $customerDisplayName;
 
     public ?string $trackingNumber;
@@ -43,6 +45,7 @@ class OrderStatusEmail extends Mailable implements ShouldQueue
 
         $this->logoUrl = MailImageService::mailLogoAbsoluteUrl();
         $this->heroImageUrl = MailImageService::bannerAbsoluteUrl(MailConfig::TYPE_ORDER_STATUS);
+        $this->heroImageClickUrl = MailImageService::bannerClickUrl(MailConfig::TYPE_ORDER_STATUS);
 
         $webBase = rtrim((string) config('cherry.orders_web_base'), '/');
         if ($webBase === '') {
