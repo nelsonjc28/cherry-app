@@ -1,6 +1,6 @@
 /**
- * Buy X Get Y — modelo de lote: pagas X piezas y llevas Y gratis (dentro del paquete X+Y).
- * El cliente elige explícitamente piezas pagadas y piezas gratis (talla/color).
+ * Buy X Get Y — modelo de lote global: el total de piezas (todas las tallas)
+ * se reparte en pagadas + gratis; la gratis puede ser de otra talla.
  */
 
 export function formatBuyXGetYOfferLabel(buyQuantity, getQuantity) {
@@ -19,7 +19,7 @@ export function formatBuyXGetYOfferLabel(buyQuantity, getQuantity) {
 }
 
 /**
- * Cuántas prendas gratis corresponden según las piezas pagadas seleccionadas.
+ * Cuántas prendas gratis corresponden según las piezas pagadas (global).
  */
 export function calculateEntitledFreeCount(paidCount, buyQuantity, getQuantity) {
   const paid = parseInt(paidCount, 10) || 0;
@@ -34,9 +34,9 @@ export function calculateEntitledFreeCount(paidCount, buyQuantity, getQuantity) 
 }
 
 /**
- * Reparte un total por talla en piezas pagadas y gratis (modelo lote).
+ * Reparte un total global en piezas pagadas y gratis (modelo lote).
  */
-export function splitBuyXGetYTotalPerSize(totalQuantity, buyQuantity, getQuantity) {
+export function splitBuyXGetYGlobalTotal(totalQuantity, buyQuantity, getQuantity) {
   const total = parseInt(totalQuantity, 10) || 0;
   const buy = parseInt(buyQuantity, 10) || 0;
   const get = parseInt(getQuantity, 10) || 0;
@@ -54,26 +54,30 @@ export function splitBuyXGetYTotalPerSize(totalQuantity, buyQuantity, getQuantit
   return { paid, free };
 }
 
+/** @deprecated Usar splitBuyXGetYGlobalTotal — el reparto es global, no por talla. */
+export function splitBuyXGetYTotalPerSize(totalQuantity, buyQuantity, getQuantity) {
+  return splitBuyXGetYGlobalTotal(totalQuantity, buyQuantity, getQuantity);
+}
+
 /**
- * Valida un solo contador por talla (total = pagadas + gratis en la selección).
+ * Asigna pagadas/gratis entre tallas: primero cubre pagadas en orden de selección,
+ * el resto del total global va como gratis (puede ser otra talla).
+ *
+ * @param {Array<{ talla: string, cantidad: number }>} sizeSelections
  */
-export function validateBuyXGetYCartSelection(sizeSelections, buyQuantity, getQuantity) {
+export function allocateBuyXGetYAcrossSizes(sizeSelections, buyQuantity, getQuantity) {
   const buy = parseInt(buyQuantity, 10) || 0;
   const get = parseInt(getQuantity, 10) || 0;
 
-  let totalPaid = 0;
-  let totalFree = 0;
-  const splits = [];
+  const selections = sizeSelections
+    .map(({ talla, cantidad }) => ({
+      talla,
+      cantidad: parseInt(cantidad, 10) || 0,
+    }))
+    .filter(({ cantidad }) => cantidad > 0);
 
-  for (const { talla, cantidad } of sizeSelections) {
-    const { paid, free } = splitBuyXGetYTotalPerSize(cantidad, buy, get);
-    totalPaid += paid;
-    totalFree += free;
-    if (paid > 0 || free > 0) {
-      splits.push({ talla, cantidad, paid, free });
-    }
-  }
-
+  const totalUnits = selections.reduce((sum, { cantidad }) => sum + cantidad, 0);
+  const { paid: totalPaid, free: totalFree } = splitBuyXGetYGlobalTotal(totalUnits, buy, get);
   const entitled = calculateEntitledFreeCount(totalPaid, buy, get);
 
   if (entitled > 0 && totalFree < entitled) {
@@ -87,16 +91,54 @@ export function validateBuyXGetYCartSelection(sizeSelections, buyQuantity, getQu
       entitledFree: entitled,
       totalPaid,
       totalFree,
-      splits,
-      message: `Compra ${buy} y lleva ${get} gratis: agrega ${faltanLabel} más para completar la promoción (${totalEsperado} en total: ${totalPaid} pagadas y ${gratisLabel}).`,
+      totalUnits,
+      splits: [],
+      message: `Compra ${buy} y lleva ${get} gratis: agrega ${faltanLabel} más para completar la promoción (${totalEsperado} en total: ${totalPaid} pagadas y ${gratisLabel}). La gratis puede ser de otra talla.`,
     };
   }
 
-  return { valid: true, entitledFree: entitled, totalPaid, totalFree, splits, message: '' };
+  let paidRemaining = totalPaid;
+  let freeRemaining = totalFree;
+  const splits = [];
+
+  for (const { talla, cantidad } of selections) {
+    const paidOnSize = Math.min(cantidad, paidRemaining);
+    paidRemaining -= paidOnSize;
+
+    const leftoverOnSize = cantidad - paidOnSize;
+    const freeOnSize = Math.min(leftoverOnSize, freeRemaining);
+    freeRemaining -= freeOnSize;
+
+    if (paidOnSize > 0 || freeOnSize > 0) {
+      splits.push({
+        talla,
+        cantidad,
+        paid: paidOnSize,
+        free: freeOnSize,
+      });
+    }
+  }
+
+  return {
+    valid: true,
+    entitledFree: entitled,
+    totalPaid,
+    totalFree,
+    totalUnits,
+    splits,
+    message: '',
+  };
 }
 
 /**
- * @deprecated Usar validateBuyXGetYCartSelection con un contador por talla.
+ * Valida y reparte un contador por talla sumando el total global.
+ */
+export function validateBuyXGetYCartSelection(sizeSelections, buyQuantity, getQuantity) {
+  return allocateBuyXGetYAcrossSizes(sizeSelections, buyQuantity, getQuantity);
+}
+
+/**
+ * @deprecated Usar validateBuyXGetYCartSelection con reparto global entre tallas.
  */
 export function validateBuyXGetYSelection(paidCount, freeCount, buyQuantity, getQuantity) {
   const paid = parseInt(paidCount, 10) || 0;
@@ -142,7 +184,7 @@ export function formatBuyXGetYOfferExample(buyQuantity, getQuantity) {
 
   const total = buy + get;
 
-  return `Si agregas ${total} pieza${total > 1 ? 's' : ''}, pagas ${buy} y llevas ${get} gratis.`;
+  return `Si agregas ${total} pieza${total > 1 ? 's' : ''} (en una o varias tallas), pagas ${buy} y llevas ${get} gratis.`;
 }
 
 /**

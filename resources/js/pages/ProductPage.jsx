@@ -1690,7 +1690,7 @@ const ProductPage = () => {
                       💡 <em>Ejemplo:</em> {formatBuyXGetYOfferExample(userOffer.buy_quantity, userOffer.get_quantity)}
                     </div>
                     <div className="product-page__offer-note">
-                      ℹ️ Agrega el total de piezas (pagadas + gratis). Si no completas la promoción, te avisaremos al agregar al carrito.
+                      ℹ️ Cuenta todas las tallas juntas. Las piezas gratis pueden ser de otra talla distinta a las pagadas.
                     </div>
                   </div>
                 </div>
