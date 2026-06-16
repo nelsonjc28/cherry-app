@@ -7,7 +7,7 @@ import { getProductCardStockStatus, getTotalInventoryFromProduct } from '../../u
 import './CatalogProductCard.css';
 import { getIconPath } from '../../utils/assetPaths';
 import colorConverter from '../../services/colorConverter';
-import { formatBuyXGetYOfferLabel } from '../../utils/buyXGetYUtils';
+import { hasCatalogOfferBadge, getCatalogOfferBadgeLabel } from '../../utils/catalogOfferUtils';
 
 const CatalogProductCard = ({ product, onFavoriteToggle }) => {
   // Hook para detectar si es móvil
@@ -121,31 +121,9 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
 
   const discountPercentage = calculateDiscountPercentage();
   
-  // Determinar si hay oferta (incluyendo ofertas especiales que no tienen porcentaje)
-  const hasOffer = discountPercentage > 0 || (hasUserOffer && userOffer && (userOffer.discount_category === 'buy_x_get_y' || userOffer.discount_category === 'order_discount'));
+  const hasOffer = hasCatalogOfferBadge({ discountPercentage, hasUserOffer, userOffer });
   
-  // Determinar el tipo de descuento para mostrar etiqueta apropiada
-  const getDiscountLabel = () => {
-    // PRIORIDAD 1: Si hay oferta personalizada del usuario, mostrar su etiqueta específica
-    if (hasUserOffer && userOffer) {
-      // Para ofertas Buy X Get Y
-      if (userOffer.discount_category === 'buy_x_get_y') {
-        return formatBuyXGetYOfferLabel(userOffer.buy_quantity, userOffer.get_quantity);
-      }
-      // Para ofertas de descuento en el pedido
-      if (userOffer.discount_category === 'order_discount') {
-        return `💰 Descuento en pedido ${Math.round(userOffer.discount_percentage)}%`;
-      }
-      // No mostrar badge para envío gratis
-      // Para otras ofertas personalizadas, mostrar el porcentaje de descuento
-      if (userOffer.discount_percentage && userOffer.discount_percentage > 0) {
-        return `${!isMobile ? "Rebaja " : ""}${Math.round(userOffer.discount_percentage)}%`;
-      }
-    }
-    
-    // PRIORIDAD 2: Descuento general - mostrar "Rebaja X%"
-    return `${!isMobile ? "Rebaja " : ""}${discountPercentage}%`;
-  };
+  const getDiscountLabel = () => getCatalogOfferBadgeLabel(userOffer, { discountPercentage, isMobile });
 
   // Handle share functionality
   const handleShare = async () => {

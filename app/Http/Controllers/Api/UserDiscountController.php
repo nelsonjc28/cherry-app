@@ -131,6 +131,7 @@ class UserDiscountController extends Controller
         } elseif ($offer->discount_category === 'free_shipping') {
             $discountData['discount_type'] = 'free_shipping';
             $discountData['discount_percentage'] = 0;
+            $discountData['min_purchase_amount'] = $offer->min_purchase_amount;
         } else {
             $discountData['discount_percentage'] = $offer->discount_percentage;
             $discountData['discount_type'] = $offer->discount_type;

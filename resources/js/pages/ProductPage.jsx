@@ -42,6 +42,7 @@ import { getVolumeDiscountMainTier, getSellerCategoryFromUser, hasApiVolumeMainP
 import { canEncargoSinStock, canEncargoForSize, isOutOfStockEncargoForSize } from '../utils/encargoUtils';
 import { summarizeVolumeFromCartItems } from '../utils/cartVolumePricing';
 import { formatBuyXGetYOfferLabel, formatBuyXGetYOfferExample, validateBuyXGetYCartSelection } from '../utils/buyXGetYUtils';
+import { hasCatalogOfferBadge } from '../utils/catalogOfferUtils';
 
 // Función para formatear montos con separador de miles
 const formatMoneyWithCommas = (value) => {
@@ -1312,7 +1313,7 @@ const ProductPage = () => {
   };
 
   // Determinar si hay oferta (incluyendo ofertas especiales que no tienen porcentaje)
-  const hasOffer = discountPercentage > 0 || (hasUserOffer && userOffer && (userOffer.discount_category === 'buy_x_get_y' || userOffer.discount_category === 'order_discount'));
+  const hasOffer = hasCatalogOfferBadge({ discountPercentage, hasUserOffer, userOffer });
 
   // Calcular precio final con logs para debugging
   const calculateFinalPrice = () => {
@@ -1656,9 +1657,11 @@ const ProductPage = () => {
                     formatBuyXGetYOfferLabel(userOffer.buy_quantity, userOffer.get_quantity) :
                     hasUserOffer && userOffer && userOffer.discount_category === 'order_discount' ?
                       `💰 Descuento en pedido ${Math.round(userOffer.discount_percentage)}%` :
-                      hasUserOffer && userOffer && userOffer.discount_percentage > 0 ?
-                        (<>{!isMobile && "Rebaja "}{Math.round(userOffer.discount_percentage)}%</>) :
-                        (<>🏷️ {!isMobile && "Rebaja "}{discountPercentage}%</>)
+                      hasUserOffer && userOffer && userOffer.discount_category === 'free_shipping' ?
+                        '🚚 Envío gratis' :
+                        hasUserOffer && userOffer && userOffer.discount_percentage > 0 ?
+                          (<>{!isMobile && "Rebaja "}{Math.round(userOffer.discount_percentage)}%</>) :
+                          (<>🏷️ {!isMobile && "Rebaja "}{discountPercentage}%</>)
                   }
                 </div>
               )}

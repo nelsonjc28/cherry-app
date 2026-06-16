@@ -4,6 +4,7 @@ import FavoriteButton from '../../FavoriteButton/FavoriteButton';
 import StarRating from '../../StarRating/StarRating';
 import { formatPrice } from '../../../utils/formatters';
 import { getProductCardStockStatus, getTotalInventoryFromProduct } from '../../../utils/productUtils';
+import { hasCatalogOfferBadge, getCatalogOfferBadgeLabel } from '../../../utils/catalogOfferUtils';
 import './BestSellerCard.css';
 
 const BestSellerCard = ({ id, title, image, price, originalPrice, discount, userOffer, hasUserOffer, rating, totalRatings, description, stock = 0, isNew = false, onFavoriteToggle, product, stock_received_count = 0, stockReceivedCount = 0 }) => {
@@ -39,7 +40,7 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
   };
 
   const discountPercentage = calculateDiscountPercentage();
-  const hasOffer = discountPercentage > 0;
+  const hasOffer = hasCatalogOfferBadge({ discountPercentage, hasUserOffer, userOffer });
 
   const cardProduct = {
     ...product,
@@ -92,7 +93,9 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
         {/* Offer badge if product has discount */}
         {stockStatus !== 'coming-soon' && hasOffer && (
           <span className="best-seller-offer-badge">
-            {!isMobile && "Rebaja "}{discountPercentage}%
+            {hasUserOffer && userOffer
+              ? getCatalogOfferBadgeLabel(userOffer, { discountPercentage, isMobile })
+              : `${!isMobile && 'Rebaja '}${discountPercentage}%`}
           </span>
         )}
 

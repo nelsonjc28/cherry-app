@@ -251,9 +251,8 @@ const CatalogOffersModule = ({ onBack }) => {
         [name]: type === 'checkbox' ? checked : type === 'file' ? files[0] : value
       };
 
-      // Si se cambia a "Envío gratis", limpiar productos y descuentos
+      // Si se cambia a "Envío gratis", limpiar solo campos de descuento numérico
       if (name === 'discount_category' && value === 'free_shipping') {
-        newData.target_products = [];
         newData.discount_percentage = 0;
         newData.discount_type = 'percentage';
       }
@@ -294,7 +293,7 @@ const CatalogOffersModule = ({ onBack }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (formData.discount_category !== 'order_discount' && formData.discount_category !== 'free_shipping') {
+    if (formData.discount_category !== 'order_discount') {
       if (formData.target_scope === 'category' && !formData.target_category_code) {
         setError('Selecciona una categoría para esta oferta.');
         return;
@@ -704,7 +703,7 @@ const CatalogOffersModule = ({ onBack }) => {
               </div>
 
               {/* Alcance de la oferta (categoría, catálogo, nuevos, rebajas o productos) */}
-              {formData.discount_category !== 'order_discount' && typeInfo.name !== 'Envío gratis' && (
+              {formData.discount_category !== 'order_discount' && (
                 <div className="catalog-offers-module__form-row">
                   <div className="catalog-offers-module__form-group catalog-offers-module__form-group--full">
                     <label>¿A qué aplica esta oferta? *</label>
@@ -773,16 +772,6 @@ const CatalogOffersModule = ({ onBack }) => {
                         </small>
                       </>
                     )}
-                  </div>
-                </div>
-              )}
-
-              {formData.discount_category === 'free_shipping' && (
-                <div className="catalog-offers-module__form-row">
-                  <div className="catalog-offers-module__form-group catalog-offers-module__form-group--full">
-                    <p className="catalog-offers-module__form-help">
-                      El envío gratis aplica a todo el pedido según el monto mínimo configurado; no requiere seleccionar productos.
-                    </p>
                   </div>
                 </div>
               )}
@@ -990,11 +979,9 @@ const CatalogOffersModule = ({ onBack }) => {
                         {offer.discount_category === 'buy_x_get_y' && '🎁 Buy X Get Y'}
                         {offer.discount_category === 'free_shipping' && '🚚 Envío gratis'}
                       </span>
-                      {offer.discount_category !== 'free_shipping' && (
-                        <span className="catalog-offers-module__scope-badge">
-                          {describeOfferScope(offer, categories, catalogs)}
-                        </span>
-                      )}
+                      <span className="catalog-offers-module__scope-badge">
+                        {describeOfferScope(offer, categories, catalogs)}
+                      </span>
                     </div>
                     {offer.discount_category !== 'buy_x_get_y' && offer.discount_category !== 'free_shipping' && (
                       <div className="catalog-offers-module__offer-discount">

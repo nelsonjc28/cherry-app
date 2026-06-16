@@ -7,7 +7,7 @@ import { getProductCardStockStatus, getTotalInventoryFromProduct } from '../../u
 import { getIconPath } from '../../utils/assetPaths';
 import colorConverter from '../../services/colorConverter';
 import { useUserDiscounts } from '../../hooks/useUserDiscounts';
-import { formatBuyXGetYOfferLabel } from '../../utils/buyXGetYUtils';
+import { hasCatalogOfferBadge, getCatalogOfferBadgeLabel } from '../../utils/catalogOfferUtils';
 import './ProductCard.css';
 
 const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, variant = 'default' }) => {
@@ -128,39 +128,17 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
 
   const discountPercentage = calculateDiscountPercentage();
   
-  
-  // Determinar si hay oferta (incluyendo ofertas especiales que no tienen porcentaje)
-  const hasOffer = discountPercentage > 0 || (finalHasUserOffer && finalUserOffer && (finalUserOffer.discount_category === 'buy_x_get_y' || finalUserOffer.discount_category === 'order_discount'));
-  
-  // Determinar el tipo de descuento para mostrar etiqueta apropiada
+  const hasOffer = hasCatalogOfferBadge({
+    discountPercentage,
+    hasUserOffer: finalHasUserOffer,
+    userOffer: finalUserOffer,
+  });
+
   const getDiscountLabel = () => {
-    // PRIORIDAD 1: Si hay oferta personalizada del usuario, mostrar su etiqueta específica
     if (finalHasUserOffer && finalUserOffer) {
-      // Para ofertas Buy X Get Y
-      if (finalUserOffer.discount_category === 'buy_x_get_y') {
-        return formatBuyXGetYOfferLabel(finalUserOffer.buy_quantity, finalUserOffer.get_quantity);
-      }
-      // Para ofertas de descuento en el pedido
-      if (finalUserOffer.discount_category === 'order_discount') {
-        return `💰 Descuento en pedido ${Math.round(finalUserOffer.discount_percentage)}%`;
-      }
-      // No mostrar badge para envío gratis
-      // Para otras ofertas personalizadas, mostrar el porcentaje de descuento
-      if (finalUserOffer.discount_percentage && finalUserOffer.discount_percentage > 0) {
-        return (
-          <>
-            {!isMobile && "Rebaja "}{Math.round(finalUserOffer.discount_percentage)}%
-          </>
-        );
-      }
+      return getCatalogOfferBadgeLabel(finalUserOffer, { discountPercentage, isMobile });
     }
-    
-    // PRIORIDAD 2: Descuento general - mostrar "Rebaja X%"
-    return (
-      <>
-        {!isMobile && "Rebaja "}{discountPercentage}%
-      </>
-    );
+    return `${!isMobile ? 'Rebaja ' : ''}${discountPercentage}%`;
   };
 
   // Handle share functionality
