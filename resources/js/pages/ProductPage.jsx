@@ -41,7 +41,7 @@ import { validateStock, getProductStock } from '../services/inventoryService';
 import { getVolumeDiscountMainTier, getSellerCategoryFromUser, hasApiVolumeMainPercent, isOroDiamanteSeller, canApplyMainDiscount } from '../utils/sellerVolumeDiscount';
 import { canEncargoSinStock, canEncargoForSize, isOutOfStockEncargoForSize } from '../utils/encargoUtils';
 import { summarizeVolumeFromCartItems } from '../utils/cartVolumePricing';
-import { formatBuyXGetYOfferLabel, formatBuyXGetYOfferExample, calculateEntitledFreeCount, validateBuyXGetYSelection } from '../utils/buyXGetYUtils';
+import { formatBuyXGetYOfferLabel, formatBuyXGetYOfferExample, validateBuyXGetYCartSelection } from '../utils/buyXGetYUtils';
 
 // Función para formatear montos con separador de miles
 const formatMoneyWithCommas = (value) => {
@@ -64,7 +64,6 @@ const ProductPage = () => {
   const [selectedSize, setSelectedSize] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [quantitiesBySize, setQuantitiesBySize] = useState({});
-  const [freeQuantitiesBySize, setFreeQuantitiesBySize] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -644,11 +643,6 @@ const ProductPage = () => {
         initialQuantities[talla] = 0;
       });
       setQuantitiesBySize(initialQuantities);
-      const initialFree = {};
-      tallas.forEach(talla => {
-        initialFree[talla] = 0;
-      });
-      setFreeQuantitiesBySize(initialFree);
     }
   }, [product, selectedColor]);
 
@@ -774,26 +768,25 @@ const ProductPage = () => {
     const isBuyXGetYOffer = hasUserOffer && userOffer?.discount_category === 'buy_x_get_y';
     const buyX = parseInt(userOffer?.buy_quantity, 10) || 0;
     const getY = parseInt(userOffer?.get_quantity, 10) || 0;
-    const paidTotal = getTotalUnits();
-    const freeTotal = getTotalFreeUnits();
-    const tallasGratis = getFreeSizesWithQuantities();
+    let bogoSplits = [];
 
     if (isBuyXGetYOffer) {
-      const validation = validateBuyXGetYSelection(paidTotal, freeTotal, buyX, getY);
+      const validation = validateBuyXGetYCartSelection(tallasConCantidades, buyX, getY);
       if (!validation.valid) {
         await Swal.fire({
-          title: validation.entitledFree > 0 ? 'Selecciona tus prendas gratis' : 'Oferta incompleta',
+          title: 'Completa tu promoción',
           text: validation.message,
           icon: 'warning',
           confirmButtonColor: '#EA2630',
         });
         return;
       }
+      bogoSplits = validation.splits;
     }
 
     const sizeTotals = {};
-    [...tallasConCantidades, ...tallasGratis].forEach(({ talla, cantidad }) => {
-      sizeTotals[talla] = (sizeTotals[talla] || 0) + cantidad;
+    tallasConCantidades.forEach(({ talla, cantidad }) => {
+      sizeTotals[talla] = cantidad;
     });
 
     if (!canEncargo) {
@@ -816,7 +809,7 @@ const ProductPage = () => {
         }
       }
     } else {
-      for (const { talla } of [...tallasConCantidades, ...tallasGratis]) {
+      for (const { talla } of tallasConCantidades) {
         const stockDisponible = getStockBySizeAndColor(talla, selectedColor);
         if (stockDisponible <= 0 && !user) {
           if (window.showToast) {
@@ -864,16 +857,28 @@ const ProductPage = () => {
       };
 
       let addedOutOfStockEncargo = false;
-      for (const { talla, cantidad } of tallasConCantidades) {
-        const stockForLine = getStockBySizeAndColor(talla, selectedColor);
-        if (isOutOfStockEncargoForSize(user, statusKind, stockForLine)) {
-          addedOutOfStockEncargo = true;
-        }
-        await addToCart(buildCartLine(talla, cantidad, false), cantidad, product);
-      }
 
-      for (const { talla, cantidad } of tallasGratis) {
-        await addToCart(buildCartLine(talla, cantidad, true), cantidad, product);
+      if (isBuyXGetYOffer) {
+        for (const { talla, paid, free } of bogoSplits) {
+          if (paid > 0) {
+            const stockForLine = getStockBySizeAndColor(talla, selectedColor);
+            if (isOutOfStockEncargoForSize(user, statusKind, stockForLine)) {
+              addedOutOfStockEncargo = true;
+            }
+            await addToCart(buildCartLine(talla, paid, false), paid, product);
+          }
+          if (free > 0) {
+            await addToCart(buildCartLine(talla, free, true), free, product);
+          }
+        }
+      } else {
+        for (const { talla, cantidad } of tallasConCantidades) {
+          const stockForLine = getStockBySizeAndColor(talla, selectedColor);
+          if (isOutOfStockEncargoForSize(user, statusKind, stockForLine)) {
+            addedOutOfStockEncargo = true;
+          }
+          await addToCart(buildCartLine(talla, cantidad, false), cantidad, product);
+        }
       }
 
       if (window.showToast) {
@@ -890,9 +895,10 @@ const ProductPage = () => {
 
         if (hasOffer) {
           if (isBuyXGetYOffer) {
+            const freeAdded = bogoSplits.reduce((sum, { free }) => sum + (free || 0), 0);
             message += ` ${formatBuyXGetYOfferLabel(buyX, getY)}`;
-            if (freeTotal > 0) {
-              message += ` (${freeTotal} gratis incluida${freeTotal > 1 ? 's' : ''})`;
+            if (freeAdded > 0) {
+              message += ` (${freeAdded} gratis incluida${freeAdded > 1 ? 's' : ''})`;
             }
           } else if (hasUserOffer && userOffer && userOffer.discount_category === 'order_discount') {
             message += ` 💰 Descuento del ${Math.round(userOffer.discount_percentage)}% se aplicará al total del pedido`;
@@ -907,7 +913,6 @@ const ProductPage = () => {
 
         // Resetear las cantidades después de agregar exitosamente al carrito
         setQuantitiesBySize({});
-        setFreeQuantitiesBySize({});
         setQuantity(1);
         setSelectedSize('');
         handleMoreShoppingOrGoToCart();
@@ -962,8 +967,7 @@ const ProductPage = () => {
     const inventoryStatus = getInventoryStatus();
     const stockMaximo = getStockForSize(talla);
     const canEncargoTalla = canEncargoForSize(user, inventoryStatus.status, stockMaximo);
-    const freeOnSize = freeQuantitiesBySize[talla] || 0;
-    const maxAllowed = canEncargoTalla ? 9999 : Math.max(0, stockMaximo - freeOnSize);
+    const maxAllowed = canEncargoTalla ? 9999 : stockMaximo;
 
     if (newQuantity >= 0 && newQuantity <= maxAllowed) {
       setQuantitiesBySize(prev => ({
@@ -979,37 +983,6 @@ const ProductPage = () => {
         setSelectedSize(talla);
         setQuantity(newQuantity);
       }
-    }
-  };
-
-  const handleFreeQuantityChangeForSize = (talla, newQuantity) => {
-    const userOfferForBogo = product?.userOffer || (product ? userDiscounts[product.id_articulo] : null);
-    const isBogo = userOfferForBogo?.discount_category === 'buy_x_get_y';
-    if (!isBogo) return;
-
-    const buyX = parseInt(userOfferForBogo.buy_quantity, 10) || 0;
-    const getY = parseInt(userOfferForBogo.get_quantity, 10) || 0;
-    const entitled = calculateEntitledFreeCount(getTotalUnits(), buyX, getY);
-    const otherFree = getTotalFreeUnits() - (freeQuantitiesBySize[talla] || 0);
-    const newFreeTotal = otherFree + newQuantity;
-
-    if (newQuantity < 0 || newFreeTotal > entitled) {
-      return;
-    }
-
-    const inventoryStatus = getInventoryStatus();
-    const stockDisponible = selectedColor ? getStockBySizeAndColor(talla, selectedColor) : getStockForSize(talla);
-    const canEncargoTalla = canEncargoForSize(user, inventoryStatus.status, stockDisponible);
-    const paidOnSize = quantitiesBySize[talla] || 0;
-    const maxForFreeOnSize = canEncargoTalla ? 9999 : Math.max(0, stockDisponible - paidOnSize);
-
-    if (newQuantity <= maxForFreeOnSize) {
-      setFreeQuantitiesBySize(prev => ({
-        ...prev,
-        [talla]: newQuantity
-      }));
-    } else if (window.showToast) {
-      window.showToast(`Solo hay ${maxForFreeOnSize} unidad(es) disponibles para gratis en talla ${talla}`, 'error');
     }
   };
 
@@ -1332,30 +1305,14 @@ const ProductPage = () => {
     return Object.values(quantitiesBySize).reduce((total, cantidad) => total + (cantidad || 0), 0);
   };
 
-  const getTotalFreeUnits = () => {
-    return Object.values(freeQuantitiesBySize).reduce((total, cantidad) => total + (cantidad || 0), 0);
-  };
-
   const getSelectedSizesWithQuantities = () => {
     return Object.entries(quantitiesBySize)
       .filter(([, cantidad]) => cantidad > 0)
       .map(([talla, cantidad]) => ({ talla, cantidad }));
   };
 
-  const getFreeSizesWithQuantities = () => {
-    return Object.entries(freeQuantitiesBySize)
-      .filter(([, cantidad]) => cantidad > 0)
-      .map(([talla, cantidad]) => ({ talla, cantidad }));
-  };
-
   // Determinar si hay oferta (incluyendo ofertas especiales que no tienen porcentaje)
   const hasOffer = discountPercentage > 0 || (hasUserOffer && userOffer && (userOffer.discount_category === 'buy_x_get_y' || userOffer.discount_category === 'order_discount'));
-  const isBuyXGetYOffer = hasUserOffer && userOffer?.discount_category === 'buy_x_get_y';
-  const buyXQty = parseInt(userOffer?.buy_quantity, 10) || 0;
-  const getYQty = parseInt(userOffer?.get_quantity, 10) || 0;
-  const entitledFreeUnits = isBuyXGetYOffer ? calculateEntitledFreeCount(getTotalUnits(), buyXQty, getYQty) : 0;
-  const freeTotalUnits = getTotalFreeUnits();
-  const addToCartStepNumber = isBuyXGetYOffer && entitledFreeUnits > 0 ? 4 : 3;
 
   // Calcular precio final con logs para debugging
   const calculateFinalPrice = () => {
@@ -1733,7 +1690,7 @@ const ProductPage = () => {
                       💡 <em>Ejemplo:</em> {formatBuyXGetYOfferExample(userOffer.buy_quantity, userOffer.get_quantity)}
                     </div>
                     <div className="product-page__offer-note">
-                      ℹ️ Elige las prendas gratis en el paso 3 antes de agregar al carrito.
+                      ℹ️ Agrega el total de piezas (pagadas + gratis). Si no completas la promoción, te avisaremos al agregar al carrito.
                     </div>
                   </div>
                 </div>
@@ -1878,9 +1835,7 @@ const ProductPage = () => {
                     <div className="product-page__option-header product-page__step-number-border">
                       <span className="product-page__step-number">Paso 2</span>
                       <span className="product-page__step-description">
-                        {isBuyXGetYOffer
-                          ? 'Selecciona talla y cantidad de piezas a pagar'
-                          : 'Selecciona la talla y cantidad de piezas'}
+                        Selecciona la talla y cantidad de piezas
                       </span>
                     </div>
                     <div className="product-page__option-label">Talla</div>
@@ -1987,73 +1942,10 @@ const ProductPage = () => {
                 );
               })()}
 
-              {isBuyXGetYOffer && entitledFreeUnits > 0 && tallasAMostrar.length > 0 && selectedColor && (() => {
-                const inventoryStatus = getInventoryStatus();
-                const statusKind = inventoryStatus.status;
-
-                return (
-                  <div className="product-page__option product-page__option--free-bogo">
-                    <div className="product-page__option-header product-page__step-number-border">
-                      <span className="product-page__step-number">Paso 3</span>
-                      <span className="product-page__step-description">
-                        Selecciona {entitledFreeUnits} prenda{entitledFreeUnits > 1 ? 's' : ''} gratis
-                        {freeTotalUnits > 0 ? ` (${freeTotalUnits}/${entitledFreeUnits})` : ''}
-                      </span>
-                    </div>
-                    <div className="product-page__option-label">Talla — gratis</div>
-                    <div className="product-page__size-options">
-                      {tallasAMostrar.map((talla) => {
-                        const stockDisponible = getStockBySizeAndColor(talla, selectedColor);
-                        const canEncargoTalla = canEncargoForSize(user, statusKind, stockDisponible);
-                        const paidOnSize = quantitiesBySize[talla] || 0;
-                        const freeOnSize = freeQuantitiesBySize[talla] || 0;
-                        const maxFreeOnSize = canEncargoTalla ? entitledFreeUnits : Math.max(0, stockDisponible - paidOnSize);
-                        const canIncreaseFree = freeTotalUnits < entitledFreeUnits && freeOnSize < maxFreeOnSize;
-
-                        return (
-                          <div key={`free-${talla}`} className="product-page__size-item">
-                            <div className="product-page__size-button product-page__size-button--free-label">
-                              <span className="product-page__size-number">{talla}</span>
-                              <span className="product-page__size-availability">
-                                {maxFreeOnSize > 0 ? `Hasta ${maxFreeOnSize} gratis` : 'Sin stock'}
-                              </span>
-                            </div>
-                            <div className="product-page__size-quantity">
-                              <button
-                                type="button"
-                                className={`product-page__quantity-btn ${freeOnSize <= 0 ? 'product-page__quantity-btn--disabled' : ''}`}
-                                onClick={() => handleFreeQuantityChangeForSize(talla, freeOnSize - 1)}
-                                disabled={freeOnSize <= 0}
-                              >
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                              </button>
-                              <span className="product-page__quantity-display">{freeOnSize}</span>
-                              <button
-                                type="button"
-                                className={`product-page__quantity-btn ${!canIncreaseFree ? 'product-page__quantity-btn--disabled' : ''}`}
-                                onClick={() => handleFreeQuantityChangeForSize(talla, freeOnSize + 1)}
-                                disabled={!canIncreaseFree}
-                              >
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Add to Cart */}
+              {/* Add to Cart - Step 3 */}
               <div className="product-page__option">
                 <div className="product-page__option-header product-page__step-number-border">
-                  <span className="product-page__step-number">Paso {addToCartStepNumber}</span>
+                  <span className="product-page__step-number">Paso 3</span>
                   <span className="product-page__step-description">
                     Agregar al carrito
                     {getTotalUnits() > 0 && (
@@ -2082,7 +1974,7 @@ const ProductPage = () => {
                       size="large"
                       fullWidth
                       onClick={handleAddToCart}
-                      disabled={!selectedColor || getTotalUnits() === 0 || isAddingToCart || (isBuyXGetYOffer && entitledFreeUnits > 0 && freeTotalUnits < entitledFreeUnits)}
+                      disabled={!selectedColor || getTotalUnits() === 0 || isAddingToCart}
                       icon={
                         <svg width="15" height="14" viewBox="0 0 15 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path d="M14.349 2.00028H3.75L3.51562 0.854451C3.46354 0.567993 3.20312 0.333618 2.91667 0.333618H0.3125C0.130208 0.333618 0 0.489868 0 0.646118V1.27112C0 1.45341 0.130208 1.58362 0.3125 1.58362H2.39583L4.19271 10.8545C3.90625 11.167 3.75 11.5576 3.75 12.0003C3.75 12.9378 4.47917 13.667 5.41667 13.667C6.32812 13.667 7.08333 12.9378 7.08333 12.0003C7.08333 11.7138 6.97917 11.4274 6.84896 11.167H10.625C10.4948 11.4274 10.4167 11.7138 10.4167 12.0003C10.4167 12.9378 11.1458 13.667 12.0833 13.667C12.9948 12.9378 13.75 12.9378 13.75 12.0003C13.75 11.5315 13.5417 11.1149 13.2292 10.8024L13.2552 10.6982C13.3333 10.3076 13.0469 9.91695 12.6302 9.91695H5.28646L5.05208 8.66695H13.1771C13.4896 8.66695 13.724 8.48466 13.8021 8.1982L14.974 2.78153C15.0521 2.39091 14.7656 2.00028 14.349 2.00028ZM5.41667 12.6253C5.05208 12.6253 4.79167 12.3649 4.79167 12.0003C4.79167 11.6617 5.05208 11.3753 5.41667 11.3753C5.75521 11.3753 6.04167 11.6617 6.04167 12.0003C6.04167 12.3649 5.75521 12.6253 5.41667 12.6253ZM12.0833 12.6253C11.7188 12.6253 11.4583 12.3649 11.4583 12.0003C11.4583 11.6617 11.7188 11.3753 12.0833 11.3753C12.4219 11.3753 12.7083 11.6617 12.7083 12.0003C12.7083 12.3649 12.4219 12.6253 12.0833 12.6253ZM12.6823 7.41695H4.79167L3.98438 3.25028H13.5938L12.6823 7.41695Z" fill="white" />
@@ -2105,18 +1997,6 @@ const ProductPage = () => {
                           {getSelectedSizesWithQuantities().map(({ talla, cantidad }) => (
                             <li key={talla}>
                               <strong>{talla}</strong>: {cantidad} unidad{cantidad > 1 ? 'es' : ''}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {getFreeSizesWithQuantities().length > 0 && (
-                      <div className="product-page__selected-sizes">
-                        <p>Gratis:</p>
-                        <ul>
-                          {getFreeSizesWithQuantities().map(({ talla, cantidad }) => (
-                            <li key={`free-${talla}`}>
-                              <strong>{talla}</strong>: {cantidad} gratis
                             </li>
                           ))}
                         </ul>

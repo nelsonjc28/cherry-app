@@ -34,7 +34,69 @@ export function calculateEntitledFreeCount(paidCount, buyQuantity, getQuantity) 
 }
 
 /**
- * Valida selección de pagadas + gratis antes de agregar al carrito.
+ * Reparte un total por talla en piezas pagadas y gratis (modelo lote).
+ */
+export function splitBuyXGetYTotalPerSize(totalQuantity, buyQuantity, getQuantity) {
+  const total = parseInt(totalQuantity, 10) || 0;
+  const buy = parseInt(buyQuantity, 10) || 0;
+  const get = parseInt(getQuantity, 10) || 0;
+
+  if (buy <= 0 || get <= 0 || total <= 0) {
+    return { paid: total, free: 0 };
+  }
+
+  const bundleSize = buy + get;
+  const completeBundles = Math.floor(total / bundleSize);
+  const remainder = total % bundleSize;
+  const paid = completeBundles * buy + Math.min(remainder, buy);
+  const free = completeBundles * get + Math.max(0, remainder - buy);
+
+  return { paid, free };
+}
+
+/**
+ * Valida un solo contador por talla (total = pagadas + gratis en la selección).
+ */
+export function validateBuyXGetYCartSelection(sizeSelections, buyQuantity, getQuantity) {
+  const buy = parseInt(buyQuantity, 10) || 0;
+  const get = parseInt(getQuantity, 10) || 0;
+
+  let totalPaid = 0;
+  let totalFree = 0;
+  const splits = [];
+
+  for (const { talla, cantidad } of sizeSelections) {
+    const { paid, free } = splitBuyXGetYTotalPerSize(cantidad, buy, get);
+    totalPaid += paid;
+    totalFree += free;
+    if (paid > 0 || free > 0) {
+      splits.push({ talla, cantidad, paid, free });
+    }
+  }
+
+  const entitled = calculateEntitledFreeCount(totalPaid, buy, get);
+
+  if (entitled > 0 && totalFree < entitled) {
+    const faltan = entitled - totalFree;
+    const totalEsperado = totalPaid + entitled;
+    const gratisLabel = entitled === 1 ? '1 gratis' : `${entitled} gratis`;
+    const faltanLabel = faltan === 1 ? '1 prenda' : `${faltan} prendas`;
+
+    return {
+      valid: false,
+      entitledFree: entitled,
+      totalPaid,
+      totalFree,
+      splits,
+      message: `Compra ${buy} y lleva ${get} gratis: agrega ${faltanLabel} más para completar la promoción (${totalEsperado} en total: ${totalPaid} pagadas y ${gratisLabel}).`,
+    };
+  }
+
+  return { valid: true, entitledFree: entitled, totalPaid, totalFree, splits, message: '' };
+}
+
+/**
+ * @deprecated Usar validateBuyXGetYCartSelection con un contador por talla.
  */
 export function validateBuyXGetYSelection(paidCount, freeCount, buyQuantity, getQuantity) {
   const paid = parseInt(paidCount, 10) || 0;
@@ -78,10 +140,9 @@ export function formatBuyXGetYOfferExample(buyQuantity, getQuantity) {
     return '';
   }
 
-  const paid = buy;
-  const entitled = calculateEntitledFreeCount(paid, buy, get);
+  const total = buy + get;
 
-  return `Si pagas ${paid} pieza${paid > 1 ? 's' : ''}, elige ${entitled} gratis (total ${paid + entitled} en tu pedido).`;
+  return `Si agregas ${total} pieza${total > 1 ? 's' : ''}, pagas ${buy} y llevas ${get} gratis.`;
 }
 
 /**
