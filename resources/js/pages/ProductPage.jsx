@@ -1327,6 +1327,27 @@ const ProductPage = () => {
 
   const discountPercentage = calculateDiscountPercentage();
 
+  // Función para calcular el total de unidades seleccionadas
+  const getTotalUnits = () => {
+    return Object.values(quantitiesBySize).reduce((total, cantidad) => total + (cantidad || 0), 0);
+  };
+
+  const getTotalFreeUnits = () => {
+    return Object.values(freeQuantitiesBySize).reduce((total, cantidad) => total + (cantidad || 0), 0);
+  };
+
+  const getSelectedSizesWithQuantities = () => {
+    return Object.entries(quantitiesBySize)
+      .filter(([, cantidad]) => cantidad > 0)
+      .map(([talla, cantidad]) => ({ talla, cantidad }));
+  };
+
+  const getFreeSizesWithQuantities = () => {
+    return Object.entries(freeQuantitiesBySize)
+      .filter(([, cantidad]) => cantidad > 0)
+      .map(([talla, cantidad]) => ({ talla, cantidad }));
+  };
+
   // Determinar si hay oferta (incluyendo ofertas especiales que no tienen porcentaje)
   const hasOffer = discountPercentage > 0 || (hasUserOffer && userOffer && (userOffer.discount_category === 'buy_x_get_y' || userOffer.discount_category === 'order_discount'));
   const isBuyXGetYOffer = hasUserOffer && userOffer?.discount_category === 'buy_x_get_y';
@@ -1494,29 +1515,6 @@ const ProductPage = () => {
     }
 
     return info;
-  };
-
-
-
-  // Función para calcular el total de unidades seleccionadas
-  const getTotalUnits = () => {
-    return Object.values(quantitiesBySize).reduce((total, cantidad) => total + (cantidad || 0), 0);
-  };
-
-  const getTotalFreeUnits = () => {
-    return Object.values(freeQuantitiesBySize).reduce((total, cantidad) => total + (cantidad || 0), 0);
-  };
-
-  const getSelectedSizesWithQuantities = () => {
-    return Object.entries(quantitiesBySize)
-      .filter(([, cantidad]) => cantidad > 0)
-      .map(([talla, cantidad]) => ({ talla, cantidad }));
-  };
-
-  const getFreeSizesWithQuantities = () => {
-    return Object.entries(freeQuantitiesBySize)
-      .filter(([, cantidad]) => cantidad > 0)
-      .map(([talla, cantidad]) => ({ talla, cantidad }));
   };
 
   // Precios adicionales
