@@ -174,7 +174,7 @@ class CategoryController extends Controller
                     'productos.marca',
                     'productos.inventario'
                 ])
-                ->where('productos.id_linea', $category->code);
+                ->whereRaw('CAST(productos.id_linea AS UNSIGNED) = CAST(? AS UNSIGNED)', [$category->code]);
             Producto::applyFechaAgotadoVisibilityToProductosQuery($productosQuery);
             $productos = $productosQuery->inRandomOrder()->get();
 

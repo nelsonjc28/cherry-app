@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\CatalogOffer;
+use App\Services\CatalogOfferScopeService;
 use App\Support\ProductNewEvaluator;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -262,28 +263,27 @@ class UserOfferController extends Controller
                 ]);
             }
 
-            // Obtener productos con sus ofertas personalizadas activas
-            // Solo ofertas dentro del rango de fechas: start_date <= now <= end_date
-            // Y solo ofertas donde el usuario está registrado en catalog_offer_users
-            $productOffers = \DB::table('catalog_offer_products as cop')
-                ->join('catalog_offers', 'cop.offer_id', '=', 'catalog_offers.id')
-                ->join('catalog_offer_users as cou', 'catalog_offers.id', '=', 'cou.offer_id')
-                ->where('cou.user_id', $userId) // Solo ofertas donde el usuario está registrado
-                ->where('catalog_offers.is_active', true)
-                ->where('catalog_offers.start_date', '<=', now()) // Fecha actual >= fecha inicio
-                ->where('catalog_offers.end_date', '>=', now()) // Fecha actual <= fecha fin
-                ->select([
-                    'cop.product_id',
-                    'catalog_offers.id as offer_id',
-                    'catalog_offers.discount_percentage',
-                    'catalog_offers.discount_type',
-                    'catalog_offers.max_discount_amount'
-                ])
+            // Ofertas activas del usuario (productos explícitos + alcance dinámico)
+            $offers = CatalogOffer::query()
+                ->whereHas('offerUsers', fn ($q) => $q->where('user_id', $userId))
+                ->where('is_active', true)
+                ->where('start_date', '<=', now())
+                ->where('end_date', '>=', now())
                 ->get();
-            
-            \Log::info('🔍 getUserOfferProducts - Usuario: ' . $userId . ', Productos con ofertas encontrados: ' . $productOffers->count());
 
-            if ($productOffers->isEmpty()) {
+            $scopeService = app(CatalogOfferScopeService::class);
+            $offersByProduct = [];
+            foreach ($offers as $offer) {
+                foreach ($scopeService->resolveProductIdsForOffer($offer) as $productId) {
+                    if (! isset($offersByProduct[$productId])) {
+                        $offersByProduct[$productId] = $offer;
+                    }
+                }
+            }
+
+            \Log::info('🔍 getUserOfferProducts - Usuario: '.$userId.', Productos con ofertas encontrados: '.count($offersByProduct));
+
+            if ($offersByProduct === []) {
                 return response()->json([
                     'success' => true,
                     'data' => [
@@ -291,15 +291,6 @@ class UserOfferController extends Controller
                         'total' => 0
                     ]
                 ]);
-            }
-
-            // Crear un mapa de producto_id => oferta para acceso rápido
-            $offersByProduct = [];
-            foreach ($productOffers as $productOffer) {
-                $productId = $productOffer->product_id;
-                if (!isset($offersByProduct[$productId])) {
-                    $offersByProduct[$productId] = $productOffer;
-                }
             }
 
             $productIds = array_keys($offersByProduct);
@@ -319,7 +310,8 @@ class UserOfferController extends Controller
                     'productos.fecha_alta',
                     'productos.fecha_compra',
                     'productos.marca',
-                    'productos.inventario'
+                    'productos.inventario',
+                    'productos.stock_received_count'
                 ])
                 ->whereIn('productos.id', $productIds);
             \App\Models\Producto::applyFechaAgotadoVisibilityToProductosQuery($productosQuery);
@@ -404,6 +396,10 @@ class UserOfferController extends Controller
                 
                 $colors = $coloresPorProducto[$producto->id] ?? [];
                 $detalles = $detallesPorProducto[$producto->id] ?? [];
+                if (Producto::isProximamenteFromProductRow($producto, $detalles)) {
+                    continue;
+                }
+
                 $isNew = ProductNewEvaluator::isNewLikeNuevosPage(
                     $producto->fecha_compra ?? null,
                     (float) ($producto->inventario ?? 0),

@@ -33,7 +33,10 @@ class CatalogOffer extends Model
         'buy_quantity', // Cantidad a comprar para Buy X Get Y
         'get_quantity', // Cantidad gratis para Buy X Get Y
         'target_products', // JSON array of selected products
-        'target_users' // JSON array of user IDs
+        'target_users', // JSON array of user IDs
+        'target_scope', // products, category, catalog, new, rebajas
+        'target_category_code',
+        'target_catalog_id',
     ];
 
     protected $casts = [
@@ -151,7 +154,12 @@ class CatalogOffer extends Model
      */
     public function appliesToProduct(string $productId): bool
     {
-        return $this->offerProducts()->where('product_id', $productId)->exists();
+        $producto = Producto::query()->with('detalles')->find($productId);
+        if ($producto === null) {
+            return false;
+        }
+
+        return app(\App\Services\CatalogOfferScopeService::class)->productMatchesOffer($this, $producto);
     }
 
     /**

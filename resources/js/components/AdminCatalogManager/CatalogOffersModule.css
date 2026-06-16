@@ -870,3 +870,47 @@
     padding: 10px;
   }
 }
+
+.catalog-offers-module__scope-radios {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .catalog-offers-module__scope-radios {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.catalog-offers-module__scope-radio {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fafafa;
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+
+.catalog-offers-module__scope-radio input {
+  margin: 0;
+}
+
+.catalog-offers-module__scope-select {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.catalog-offers-module__scope-badge {
+  display: inline-block;
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  color: #4b5563;
+}

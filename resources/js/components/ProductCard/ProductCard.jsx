@@ -223,18 +223,18 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
           <span className="catalog-offer-badge catalog-out-of-stock-badge catalog-coming-soon-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
         )}
 
-        {/* Nuevo: no mostrar si el producto es "Próximamente" */}
-        {isNew && stockStatus !== 'coming-soon' && (
+        {/* Nuevo: no mostrar si hay oferta ni si es "Próximamente" */}
+        {isNew && !hasOffer && stockStatus !== 'coming-soon' && (
           <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
         )}
 
-        {/* Out of stock badge - solo si no es nuevo y no es "Próximamente" */}
-        {!isNew && stockStatus === 'out-of-stock' && (
+        {/* Out of stock badge - solo si no hay oferta y no es "Próximamente" */}
+        {!isNew && !hasOffer && stockStatus === 'out-of-stock' && (
           <span className="out-of-stock-badge">Agotado</span>
         )}
 
-        {/* Offer badge if product has discount (and is not new, not coming soon, and has stock) */}
-        {!isNew && stockStatus !== 'coming-soon' && calculateTotalStock() > 0 && hasOffer && (
+        {/* Offer badge if product has discount (and is not coming soon, and has stock) */}
+        {stockStatus !== 'coming-soon' && calculateTotalStock() > 0 && hasOffer && (
           <span className="offer-badge">
             {getDiscountLabel()}
           </span>
@@ -313,18 +313,18 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
           <span className="catalog-offer-badge catalog-out-of-stock-badge catalog-coming-soon-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
         )}
 
-        {/* Nuevo: no mostrar si el producto es "Próximamente" */}
-        {isNew && stockStatus !== 'coming-soon' && (
+        {/* Nuevo: no mostrar si hay oferta ni si es "Próximamente" */}
+        {isNew && !hasOffer && stockStatus !== 'coming-soon' && (
           <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
         )}
 
-        {/* Out of stock badge - solo si no es nuevo y no es "Próximamente" */}
-        {!isNew && stockStatus === 'out-of-stock' && (
+        {/* Out of stock badge - solo si no hay oferta y no es "Próximamente" */}
+        {!isNew && !hasOffer && stockStatus === 'out-of-stock' && (
           <span className="out-of-stock-badge">Agotado</span>
         )}
 
-        {/* Offer badge if product has discount (and is not new, not coming soon, and has stock) */}
-        {!isNew && stockStatus !== 'coming-soon' && calculateTotalStock() > 0 && hasOffer && (
+        {/* Offer badge if product has discount (and is not coming soon, and has stock) */}
+        {stockStatus !== 'coming-soon' && calculateTotalStock() > 0 && hasOffer && (
           <span className={`offer-badge ${finalHasUserOffer ? 'user-offer' : ''} ${
             finalHasUserOffer && finalUserOffer && finalUserOffer.discount_category === 'buy_x_get_y' ? 'buy-x-get-y' : 
             finalHasUserOffer && finalUserOffer && finalUserOffer.discount_category === 'order_discount' ? 'order-discount' : 

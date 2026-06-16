@@ -6,6 +6,30 @@ import ProductMultiSelect from '../ProductMultiSelect/ProductMultiSelectInline';
 import UserMultiSelect from '../UserMultiSelect/UserMultiSelectInline';
 import './CatalogOffersModule.css';
 
+const TARGET_SCOPES = [
+  { id: 'category', label: 'Categoría', hint: 'Aplica a todos los productos de una categoría (ej. Chamarras).' },
+  { id: 'catalog', label: 'Catálogo', hint: 'Aplica a todos los productos de un catálogo.' },
+  { id: 'new', label: 'Nuevos', hint: 'Aplica automáticamente a productos que califican como nuevos.' },
+  { id: 'rebajas', label: 'Rebajas', hint: 'Aplica automáticamente a productos en rebaja (desc_promo > 0).' },
+  { id: 'products', label: 'Productos específicos', hint: 'Selección manual producto por producto.' },
+];
+
+function describeOfferScope(offer, categories = [], catalogs = []) {
+  const scope = offer?.target_scope || 'products';
+  if (scope === 'category') {
+    const cat = categories.find((c) => c.code === offer.target_category_code);
+    return `Categoría: ${cat?.name || offer.target_category_code || '—'}`;
+  }
+  if (scope === 'catalog') {
+    const catalog = catalogs.find((c) => String(c.code ?? c.id) === String(offer.target_catalog_id));
+    return `Catálogo: ${catalog?.name || offer.target_catalog_id || '—'}`;
+  }
+  if (scope === 'new') return 'Alcance: Nuevos';
+  if (scope === 'rebajas') return 'Alcance: Rebajas';
+  const count = offer?.target_products?.length ?? offer?.products_info?.length ?? 0;
+  return `Productos específicos (${count})`;
+}
+
 const CatalogOffersModule = ({ onBack }) => {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,6 +43,8 @@ const CatalogOffersModule = ({ onBack }) => {
 
   // Estados para el multiselect de usuarios
   const [selectedUsers, setSelectedUsers] = useState([]);
+  const [catalogs, setCatalogs] = useState([]);
+  const [categories, setCategories] = useState([]);
 
   // Estados del formulario
   const [formData, setFormData] = useState({
@@ -27,6 +53,9 @@ const CatalogOffersModule = ({ onBack }) => {
     discount_percentage: '',
     discount_type: 'percentage',
     discount_category: 'product_discount', // Campo para el tipo de descuento
+    target_scope: 'category',
+    target_category_code: '',
+    target_catalog_id: '',
     start_date: '',
     end_date: '',
     is_active: true,
@@ -35,15 +64,13 @@ const CatalogOffersModule = ({ onBack }) => {
     get_quantity: '', // Cantidad gratis para Buy X Get Y
     min_purchase_amount: '', // Monto mínimo del pedido para descuentos de pedido
     target_users: [], // Array de IDs de usuarios seleccionados
-    target_products: [], // Array de productos seleccionados para descuento
-    modal_image: null, // Archivo de imagen para el modal
-    modal_text: '' // Texto personalizado para el modal
+    target_products: [] // Array de productos seleccionados para descuento
   });
-  
-  const [modalImagePreview, setModalImagePreview] = useState(null);
 
   useEffect(() => {
     loadAllOffers();
+    loadCatalogs();
+    loadCategories();
   }, []);
 
 
@@ -106,6 +133,23 @@ const CatalogOffersModule = ({ onBack }) => {
     }
   };
 
+  const loadCategories = async () => {
+    try {
+      const response = await axios.get('/api/admin/categories', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      if (response.data.success) {
+        setCategories(response.data.categories || []);
+      } else {
+        setCategories([]);
+      }
+    } catch (error) {
+      setCategories([]);
+    }
+  };
+
   const handleUsersChange = (users) => {
     // Filtrar usuarios válidos antes de actualizar el estado
     const validUsers = users.filter(user => user && user.id);
@@ -145,6 +189,9 @@ const CatalogOffersModule = ({ onBack }) => {
         discount_percentage: offer.discount_percentage,
         discount_type: offer.discount_type,
         discount_category: offer.discount_category || 'product_discount',
+        target_scope: offer.target_scope || 'products',
+        target_category_code: offer.target_category_code || '',
+        target_catalog_id: offer.target_catalog_id || '',
         start_date: offer.start_date.split('T')[0],
         end_date: offer.end_date.split('T')[0],
         is_active: offer.is_active,
@@ -153,17 +200,8 @@ const CatalogOffersModule = ({ onBack }) => {
         buy_quantity: offer.buy_quantity || '',
         get_quantity: offer.get_quantity || '',
         target_users: offer.target_users || [],
-        target_products: targetProducts,
-        modal_image: null,
-        modal_text: offer.modal_text || ''
+        target_products: targetProducts
       });
-      
-      // Cargar preview de imagen si existe
-      if (offer.modal_image) {
-        setModalImagePreview(`/storage/${offer.modal_image}`);
-      } else {
-        setModalImagePreview(null);
-      }
 
       // Cargar usuarios seleccionados para edición
       // offer.target_users contiene IDs, necesitamos cargar los usuarios completos
@@ -183,10 +221,11 @@ const CatalogOffersModule = ({ onBack }) => {
         discount_percentage: '',
         discount_type: 'percentage',
         discount_category: selectedDiscountType || 'product_discount',
+        target_scope: 'category',
+        target_category_code: '',
+        target_catalog_id: '',
         start_date: '',
         end_date: '',
-        modal_image: null,
-        modal_text: '',
         is_active: true,
         display_order: offers.length,
         buy_quantity: '',
@@ -233,6 +272,16 @@ const CatalogOffersModule = ({ onBack }) => {
 
 
   // Función para manejar cambios en productos seleccionados
+  const handleScopeChange = (scope) => {
+    setFormData((prev) => ({
+      ...prev,
+      target_scope: scope,
+      target_products: scope === 'products' ? prev.target_products : [],
+      target_category_code: scope === 'category' ? prev.target_category_code : '',
+      target_catalog_id: scope === 'catalog' ? prev.target_catalog_id : '',
+    }));
+  };
+
   const handleProductsChange = (selectedProducts) => {
     setFormData(prev => ({
       ...prev,
@@ -243,6 +292,21 @@ const CatalogOffersModule = ({ onBack }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (formData.discount_category !== 'order_discount' && formData.discount_category !== 'free_shipping') {
+      if (formData.target_scope === 'category' && !formData.target_category_code) {
+        setError('Selecciona una categoría para esta oferta.');
+        return;
+      }
+      if (formData.target_scope === 'catalog' && !formData.target_catalog_id) {
+        setError('Selecciona un catálogo para esta oferta.');
+        return;
+      }
+      if (formData.target_scope === 'products' && (!formData.target_products || formData.target_products.length === 0)) {
+        setError('Selecciona al menos un producto o cambia el alcance de la oferta.');
+        return;
+      }
+    }
 
     try {
 
@@ -257,11 +321,6 @@ const CatalogOffersModule = ({ onBack }) => {
             .filter(user => user && user.id) // Filtrar usuarios válidos
             .map(user => user.id);
           submitData.append(key, JSON.stringify(usersArray));
-        } else if (key === 'modal_image') {
-          // Manejar archivo de imagen del modal
-          if (formData[key] instanceof File) {
-            submitData.append(key, formData[key]);
-          }
         } else if (formData[key] !== null && formData[key] !== '') {
           // Para checkboxes, asegurar que se envíe como boolean
           if (key === 'is_active') {
@@ -643,36 +702,86 @@ const CatalogOffersModule = ({ onBack }) => {
                 </div>
               </div>
 
-              {/* Selección de productos para descuento */}
-              {formData.discount_category !== 'order_discount' && (
+              {/* Alcance de la oferta (categoría, catálogo, nuevos, rebajas o productos) */}
+              {formData.discount_category !== 'order_discount' && typeInfo.name !== 'Envío gratis' && (
                 <div className="catalog-offers-module__form-row">
                   <div className="catalog-offers-module__form-group catalog-offers-module__form-group--full">
-                    {typeInfo.name !== "Envío gratis" && (
-                      <>
-                        <label>
-                          {formData.discount_category === 'free_shipping' ? 'Productos con envío gratis *' : 'Productos con descuento *'}
+                    <label>¿A qué aplica esta oferta? *</label>
+                    <div className="catalog-offers-module__scope-radios">
+                      {TARGET_SCOPES.map((scope) => (
+                        <label key={scope.id} className="catalog-offers-module__scope-radio">
+                          <input
+                            type="radio"
+                            name="target_scope"
+                            value={scope.id}
+                            checked={formData.target_scope === scope.id}
+                            onChange={() => handleScopeChange(scope.id)}
+                          />
+                          <span>{scope.label}</span>
                         </label>
+                      ))}
+                    </div>
+                    <small className="catalog-offers-module__form-help">
+                      {TARGET_SCOPES.find((s) => s.id === formData.target_scope)?.hint}
+                    </small>
+
+                    {formData.target_scope === 'category' && (
+                      <select
+                        className="catalog-offers-module__scope-select"
+                        name="target_category_code"
+                        value={formData.target_category_code}
+                        onChange={handleInputChange}
+                        required
+                      >
+                        <option value="">Selecciona una categoría…</option>
+                        {categories.map((category) => (
+                          <option key={category.id} value={category.code}>
+                            {category.name} ({category.code})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+
+                    {formData.target_scope === 'catalog' && (
+                      <select
+                        className="catalog-offers-module__scope-select"
+                        name="target_catalog_id"
+                        value={formData.target_catalog_id}
+                        onChange={handleInputChange}
+                        required
+                      >
+                        <option value="">Selecciona un catálogo…</option>
+                        {catalogs.map((catalog) => (
+                          <option key={catalog.id} value={String(catalog.code ?? catalog.id)}>
+                            {catalog.name} ({catalog.code ?? catalog.id})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+
+                    {formData.target_scope === 'products' && (
+                      <>
                         <ProductMultiSelect
                           selectedProducts={formData.target_products}
                           onProductsChange={handleProductsChange}
                           placeholder="Buscar productos de Cherry API..."
                           maxHeight="400px"
                         />
-
-
                         <small className="catalog-offers-module__form-help">
-                          {formData.discount_category === 'product_discount' &&
-                            'Selecciona los productos específicos que tendrán este descuento. Los productos se cargan desde la API de Cherry.'
-                          }
-                          {formData.discount_category === 'buy_x_get_y' &&
-                            'Selecciona los productos que aplican para la promoción Buy X Get Y. Los productos se cargan desde la API de Cherry.'
-                          }
-                          {formData.discount_category === 'free_shipping' &&
-                            'Selecciona los productos específicos que tendrán envío gratis. Los clientes no pagarán costo de envío para estos productos.'
-                          }
+                          Selecciona los productos específicos que tendrán esta oferta.
                         </small>
                       </>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {formData.discount_category === 'free_shipping' && (
+                <div className="catalog-offers-module__form-row">
+                  <div className="catalog-offers-module__form-group catalog-offers-module__form-group--full">
+                    <p className="catalog-offers-module__form-help">
+                      El envío gratis aplica a todo el pedido según el monto mínimo configurado; no requiere seleccionar productos.
+                    </p>
                   </div>
                 </div>
               )}
@@ -819,65 +928,6 @@ const CatalogOffersModule = ({ onBack }) => {
                 </div>
               </div>
 
-              {/* Campos para modal personalizado */}
-              <div className="catalog-offers-module__form-row">
-                <div className="catalog-offers-module__form-group catalog-offers-module__form-group--full">
-                  <label>Imagen para el modal (opcional)</label>
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
-                    onChange={(e) => {
-                      const file = e.target.files[0];
-                      if (file) {
-                        setFormData(prev => ({ ...prev, modal_image: file }));
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          setModalImagePreview(reader.result);
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                  />
-                  {modalImagePreview && (
-                    <div style={{ marginTop: '10px' }}>
-                      <img 
-                        src={modalImagePreview} 
-                        alt="Preview" 
-                        style={{ maxWidth: '200px', maxHeight: '200px', borderRadius: '8px' }}
-                      />
-                    </div>
-                  )}
-                  {editingOffer && editingOffer.modal_image && !modalImagePreview && (
-                    <div style={{ marginTop: '10px' }}>
-                      <img 
-                        src={`/storage/${editingOffer.modal_image}`} 
-                        alt="Imagen actual" 
-                        style={{ maxWidth: '200px', maxHeight: '200px', borderRadius: '8px' }}
-                      />
-                    </div>
-                  )}
-                  <small className="catalog-offers-module__form-help">
-                    Esta imagen se mostrará en el modal de ofertas cuando la promoción esté activa (entre las fechas de inicio y fin).
-                  </small>
-                </div>
-              </div>
-
-              <div className="catalog-offers-module__form-row">
-                <div className="catalog-offers-module__form-group catalog-offers-module__form-group--full">
-                  <label>Texto personalizado para el modal (opcional)</label>
-                  <textarea
-                    name="modal_text"
-                    value={formData.modal_text}
-                    onChange={handleInputChange}
-                    placeholder="Ej: ¡Aprovecha esta oferta especial solo por tiempo limitado!"
-                    rows="3"
-                  />
-                  <small className="catalog-offers-module__form-help">
-                    Este texto se mostrará en el modal de ofertas cuando la promoción esté activa (entre las fechas de inicio y fin).
-                  </small>
-                </div>
-              </div>
-
               <div className="catalog-offers-module__form-actions">
                 <button type="submit" className="catalog-offers-module__submit-btn">
                   {editingOffer ? 'Actualizar Oferta' : 'Crear Oferta'}
@@ -939,6 +989,11 @@ const CatalogOffersModule = ({ onBack }) => {
                         {offer.discount_category === 'buy_x_get_y' && '🎁 Buy X Get Y'}
                         {offer.discount_category === 'free_shipping' && '🚚 Envío gratis'}
                       </span>
+                      {offer.discount_category !== 'free_shipping' && (
+                        <span className="catalog-offers-module__scope-badge">
+                          {describeOfferScope(offer, categories, catalogs)}
+                        </span>
+                      )}
                     </div>
                     {offer.discount_category !== 'buy_x_get_y' && offer.discount_category !== 'free_shipping' && (
                       <div className="catalog-offers-module__offer-discount">

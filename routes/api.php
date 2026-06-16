@@ -337,6 +337,10 @@ Route::post('/products/ratings', [App\Http\Controllers\Api\RatingController::cla
 // Product search route (no authentication required)
 Route::get('/products/search', [ProductSearchController::class, 'search']);
 
+// Respond.io — búsqueda de productos para workflows (Bearer RESPONDIO_SECRET_TOKEN)
+Route::match(['get', 'post'], '/respondio/search', [ProductSearchController::class, 'respondIoSearch'])
+    ->middleware('respondio.token');
+
 // Ruta para productos con ofertas (autenticación opcional - usuarios no logueados ven solo desc_promo)
 Route::get('/products/with-offers', [ProductSearchController::class, 'getProductsWithOffers']);
 

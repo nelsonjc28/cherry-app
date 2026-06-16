@@ -13,6 +13,7 @@ import { publicCatalogService } from '../services/api';
 import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
 import { isProductNewLikeNuevosPage } from '../utils/productNewRules';
+import { getProductCardStockStatus } from '../utils/productUtils';
 
 import './PromocionesPage.css';
 
@@ -132,6 +133,7 @@ const PromocionesPage = () => {
                 brand: product.marca || 'Sin marca',
                 stock: product.inventario || 0,
                 inventario: product.inventario || 0,
+                stock_received_count: product.stock_received_count ?? 0,
                 colors: availableColors,
                 colores: productColors,
                 sizes: availableSizes,
@@ -162,17 +164,6 @@ const PromocionesPage = () => {
             // Aplicar ofertas de usuario UNA SOLA VEZ para todos los productos
             allProducts = await applyUserOffersToProducts(allProducts);
             
-            // Debug: Verificar productos específicos después de aplicar ofertas
-            const productosEspecificos = ['515422585712', '50552258912', '515422524904', '2855708612', '515422524512'];
-            const productosEncontrados = allProducts.filter(p => productosEspecificos.includes(String(p.id)));
-            if (productosEncontrados.length > 0) {
-              productosEncontrados.forEach(p => {
-              });
-            }
-            
-            // Contar productos con ofertas personalizadas
-            const productosConOfertasPersonalizadas = allProducts.filter(p => p.hasUserOffer === true);
-            
             // Asegurar que id_linea se preserve correctamente después de aplicar ofertas
             allProducts = allProducts.map(product => {
               // Preservar id_linea del producto original antes de aplicar ofertas
@@ -193,6 +184,11 @@ const PromocionesPage = () => {
         } catch (error) {
           allProducts = [];
         }
+
+            // Excluir productos "próximamente" de rebajas
+            allProducts = allProducts.filter(
+              (product) => getProductCardStockStatus(product) !== 'coming-soon'
+            );
 
             // Separar productos con ofertas personalizadas y el resto,
             // mezclar cada grupo y luego unir (ofertas personalizadas primero)
@@ -607,9 +603,7 @@ const PromocionesPage = () => {
           {/* Header section with title and filters  -  MOBILE */}
           <div className="promociones-page__header-mobile">
             <div className="promociones-page__title-section">
-              <h1 className="promociones-page__title">
-                {hasActiveSession ? 'Rebajas Personalizadas' : 'Rebajas'}
-              </h1>
+              <h1 className="promociones-page__title">Rebajas</h1>
               <div className='promociones-page__content-texts'>
                 <span className="promociones-page__results-count">
                   ({totalResults})
@@ -649,9 +643,7 @@ const PromocionesPage = () => {
           {/* Header section with title and filters  -  DESKTOP */}
           <div className="promociones-page__header-desktop">
             <div className="promociones-page__title-section">
-              <h1 className="promociones-page__title">
-                {hasActiveSession ? 'Rebajas Personalizadas' : 'Rebajas'}
-              </h1>
+              <h1 className="promociones-page__title">Rebajas</h1>
               <div className='promociones-page__content-texts'>
                 <span className="promociones-page__results-count">
                   ({totalResults})

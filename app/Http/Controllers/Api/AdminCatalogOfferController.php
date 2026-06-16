@@ -7,6 +7,7 @@ use App\Models\Catalog;
 use App\Models\CatalogOffer;
 use App\Models\CatalogOfferProduct;
 use App\Models\CatalogOfferUser;
+use App\Services\CatalogOfferScopeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -199,6 +200,9 @@ class AdminCatalogOfferController extends Controller
                     'max_discount_amount' => $offer->max_discount_amount,
                     'buy_quantity' => $offer->buy_quantity,
                     'get_quantity' => $offer->get_quantity,
+                    'target_scope' => $offer->target_scope ?? CatalogOfferScopeService::SCOPE_PRODUCTS,
+                    'target_category_code' => $offer->target_category_code,
+                    'target_catalog_id' => $offer->target_catalog_id,
                     'created_at' => $offer->created_at,
                     'updated_at' => $offer->updated_at,
                     // Compatibilidad con frontend - IDs para compatibilidad
@@ -247,6 +251,9 @@ class AdminCatalogOfferController extends Controller
                 'get_quantity' => 'required_if:discount_category,buy_x_get_y|integer|min:1',
                 'target_products' => 'nullable|string', // JSON string
                 'target_users' => 'nullable|string', // JSON string
+                'target_scope' => 'nullable|in:products,category,catalog,new,rebajas',
+                'target_category_code' => 'nullable|string|max:64|required_if:target_scope,category',
+                'target_catalog_id' => 'nullable|string|max:64|required_if:target_scope,catalog',
                 'banner_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
                 'modal_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
                 'modal_text' => 'nullable|string'
@@ -294,6 +301,10 @@ class AdminCatalogOfferController extends Controller
             
             // Remover de los datos principales
             unset($data['target_products'], $data['target_users']);
+
+            $targetScope = $this->normalizeTargetScope($data);
+            $data['target_scope'] = $targetScope;
+            $this->applyTargetScopeFields($data, $targetScope);
             
             // Limpiar campos según el tipo de descuento
             if ($data['discount_category'] === 'buy_x_get_y') {
@@ -339,8 +350,8 @@ class AdminCatalogOfferController extends Controller
                 // Crear oferta principal
                 $offer = CatalogOffer::create($data);
                 
-                // Crear relaciones de productos con información completa
-                if (!empty($targetProducts)) {
+                // Crear relaciones de productos solo cuando el alcance es por productos específicos
+                if ($targetScope === CatalogOfferScopeService::SCOPE_PRODUCTS && ! empty($targetProducts)) {
                     foreach ($targetProducts as $product) {
                         // Manejar tanto strings como objetos/arrays
                         $productId = null;
@@ -458,6 +469,9 @@ class AdminCatalogOfferController extends Controller
                 'get_quantity' => 'required_if:discount_category,buy_x_get_y|integer|min:1',
                 'target_products' => 'nullable|string',
                 'target_users' => 'nullable|string',
+                'target_scope' => 'nullable|in:products,category,catalog,new,rebajas',
+                'target_category_code' => 'nullable|string|max:64|required_if:target_scope,category',
+                'target_catalog_id' => 'nullable|string|max:64|required_if:target_scope,catalog',
                 'banner_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
                 'modal_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
                 'modal_text' => 'nullable|string'
@@ -493,6 +507,10 @@ class AdminCatalogOfferController extends Controller
             }
             
             unset($data['target_products'], $data['target_users']);
+
+            $targetScope = $this->normalizeTargetScope($data);
+            $data['target_scope'] = $targetScope;
+            $this->applyTargetScopeFields($data, $targetScope);
             
             // Limpiar campos según tipo
             if ($data['discount_category'] === 'buy_x_get_y') {
@@ -553,9 +571,9 @@ class AdminCatalogOfferController extends Controller
                 // Actualizar oferta principal
                 $offer->update($data);
                 
-                // Actualizar relaciones de productos (eliminar y recrear con información completa)
+                // Actualizar relaciones de productos solo para alcance "products"
                 CatalogOfferProduct::where('offer_id', $offer->id)->delete();
-                if (!empty($targetProducts)) {
+                if ($targetScope === CatalogOfferScopeService::SCOPE_PRODUCTS && ! empty($targetProducts)) {
                     foreach ($targetProducts as $product) {
                         // Manejar tanto strings como objetos/arrays
                         $productId = null;
@@ -725,6 +743,9 @@ class AdminCatalogOfferController extends Controller
                 'max_discount_amount' => $offer->max_discount_amount,
                 'buy_quantity' => $offer->buy_quantity,
                 'get_quantity' => $offer->get_quantity,
+                'target_scope' => $offer->target_scope ?? CatalogOfferScopeService::SCOPE_PRODUCTS,
+                'target_category_code' => $offer->target_category_code,
+                'target_catalog_id' => $offer->target_catalog_id,
                 'created_at' => $offer->created_at,
                 'updated_at' => $offer->updated_at,
                 'target_products' => $productIds,
@@ -744,6 +765,30 @@ class AdminCatalogOfferController extends Controller
                 'success' => false,
                 'message' => 'Oferta no encontrada'
             ], 404);
+        }
+    }
+
+    private function normalizeTargetScope(array $data): string
+    {
+        $scope = strtolower(trim((string) ($data['target_scope'] ?? CatalogOfferScopeService::SCOPE_PRODUCTS)));
+
+        return in_array($scope, CatalogOfferScopeService::allScopes(), true)
+            ? $scope
+            : CatalogOfferScopeService::SCOPE_PRODUCTS;
+    }
+
+    private function applyTargetScopeFields(array &$data, string $targetScope): void
+    {
+        if ($targetScope !== CatalogOfferScopeService::SCOPE_CATEGORY) {
+            $data['target_category_code'] = null;
+        } elseif (isset($data['target_category_code'])) {
+            $data['target_category_code'] = trim((string) $data['target_category_code']) ?: null;
+        }
+
+        if ($targetScope !== CatalogOfferScopeService::SCOPE_CATALOG) {
+            $data['target_catalog_id'] = null;
+        } elseif (isset($data['target_catalog_id'])) {
+            $data['target_catalog_id'] = trim((string) $data['target_catalog_id']) ?: null;
         }
     }
 }

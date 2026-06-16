@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { FavoritesProvider } from '../contexts/FavoritesContext';
 import { ExternalApiProvider } from '../contexts/ExternalApiContext';
@@ -29,7 +29,6 @@ import CookiesPage from '../pages/CookiesPage';
 import NotificacionesPage from '../pages/NotificacionesPage';
 import ExplorarPage from '../pages/ExplorarPage';
 import PromocionesPage from '../pages/PromocionesPage';
-import OfertasPersonalizadasPage from '../pages/OfertasPersonalizadasPage';
 import DestacadosPage from '../pages/DestacadosPage';
 import NuevosPage from '../pages/NuevosPage';
 import ProximamentePage from '../pages/ProximamentePage';
@@ -122,7 +121,7 @@ const SimpleApp = () => {
                   {/* Product pages */}
                   <Route path="/explorar" element={<ExplorarPage />} />
                   <Route path="/promociones" element={<PromocionesPage />} />
-                  <Route path="/ofertas-personalizadas" element={<OfertasPersonalizadasPage />} />
+                  <Route path="/ofertas-personalizadas" element={<Navigate to="/promociones" replace />} />
                   <Route path="/destacados" element={<DestacadosPage />} />
                   <Route path="/nuevos" element={<NuevosPage />} />
                   <Route path="/proximamente" element={<ProximamentePage />} />

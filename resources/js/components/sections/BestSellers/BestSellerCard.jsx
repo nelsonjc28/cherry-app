@@ -79,18 +79,18 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
           <span className="catalog-offer-badge catalog-out-of-stock-badge catalog-coming-soon-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
         )}
 
-        {/* Nuevo: no mostrar si es "Próximamente" (como ProductCard) */}
-        {isNew && stockStatus !== 'coming-soon' && (
+        {/* Nuevo: no mostrar si hay oferta ni si es "Próximamente" */}
+        {isNew && !hasOffer && stockStatus !== 'coming-soon' && (
           <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
         )}
 
-        {/* Out of stock badge - solo si NO es nuevo y NO es "Próximamente" */}
-        {!isNew && stockStatus === 'out-of-stock' && (
+        {/* Out of stock badge - solo si no hay oferta y NO es "Próximamente" */}
+        {!isNew && !hasOffer && stockStatus === 'out-of-stock' && (
           <span className="best-seller-out-of-stock-badge">Agotado</span>
         )}
 
-        {/* Offer badge if product has discount (and is not new) */}
-        {!isNew && stockStatus !== 'coming-soon' && totalInv > 0 && hasOffer && (
+        {/* Offer badge if product has discount */}
+        {stockStatus !== 'coming-soon' && totalInv > 0 && hasOffer && (
           <span className="best-seller-offer-badge">
             {!isMobile && "Rebaja "}{discountPercentage}%
           </span>

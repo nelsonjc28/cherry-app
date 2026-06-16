@@ -68,4 +68,7 @@ return [
     /** Enlace “Agendar cita” (Calendly, WhatsApp, etc.). Si vacío, se usa contacto del sitio. */
     'pickup_appointment_url' => env('CHERRY_PICKUP_APPOINTMENT_URL', ''),
 
+    /** Token Bearer para webhook de búsqueda de Respond.io (GET/POST /api/respondio/search). */
+    'respondio_secret_token' => env('RESPONDIO_SECRET_TOKEN'),
+
 ];

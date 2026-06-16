@@ -7,6 +7,8 @@ use App\Models\Producto;
 use App\Models\Review;
 use App\Models\CatalogOffer;
 use App\Support\ProductNewEvaluator;
+use App\Services\RespondIoProductSearchService;
+use App\Services\CatalogOfferScopeService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -556,56 +558,25 @@ class ProductSearchController extends Controller
                     Log::info('🔍 Oferta ID: ' . $oferta->offer_id . ' - ' . $oferta->title . ' (' . $oferta->start_date . ' - ' . $oferta->end_date . ')');
                 }
                 
-                // Obtener productos de TODAS las ofertas activas
-                // Estas son las ofertas creadas en el módulo de descuentos (catalog_offers)
-                $productIdsConOfertasPersonalizadas = DB::table('catalog_offer_products as cop')
-                    ->join('catalog_offer_users as cou', 'cop.offer_id', '=', 'cou.offer_id')
-                    ->join('catalog_offers', 'cop.offer_id', '=', 'catalog_offers.id')
-                    ->where('cou.user_id', $userId)
-                    ->where('catalog_offers.is_active', true)
-                    ->where('catalog_offers.start_date', '<=', now())
-                    ->where('catalog_offers.end_date', '>=', now())
-                    ->distinct()
-                    ->pluck('cop.product_id')
-                    ->toArray();
-                
-                Log::info('🔍 IDs de productos con ofertas personalizadas encontrados en catalog_offer_products: ' . count($productIdsConOfertasPersonalizadas));
-                if (count($productIdsConOfertasPersonalizadas) > 0) {
-                    Log::info('🔍 Primeros 10 IDs de catalog_offer_products: ' . implode(', ', array_slice($productIdsConOfertasPersonalizadas, 0, 10)));
-                    
-                    // Verificar productos por oferta
-                    foreach ($ofertasActivasInfo as $oferta) {
-                        $productosEnOferta = DB::table('catalog_offer_products')
-                            ->where('offer_id', $oferta->offer_id)
-                            ->distinct()
-                            ->pluck('product_id')
-                            ->toArray();
-                        Log::info('🔍 Oferta ID ' . $oferta->offer_id . ' tiene ' . count($productosEnOferta) . ' productos');
-                    }
-                } else {
-                    // Debug: Verificar si hay ofertas activas para este usuario
-                    $ofertasActivas = DB::table('catalog_offer_users as cou')
-                        ->join('catalog_offers', 'cou.offer_id', '=', 'catalog_offers.id')
-                        ->where('cou.user_id', $userId)
-                        ->where('catalog_offers.is_active', true)
-                        ->where('catalog_offers.start_date', '<=', now())
-                        ->where('catalog_offers.end_date', '>=', now())
-                        ->count();
-                    Log::info('🔍 Ofertas activas para este usuario: ' . $ofertasActivas);
-                    
-                    if ($ofertasActivas > 0) {
-                        // Verificar productos en esas ofertas
-                        $productosEnOfertas = DB::table('catalog_offer_products as cop')
-                            ->join('catalog_offer_users as cou', 'cop.offer_id', '=', 'cou.offer_id')
-                            ->join('catalog_offers', 'cop.offer_id', '=', 'catalog_offers.id')
-                            ->where('cou.user_id', $userId)
-                            ->where('catalog_offers.is_active', true)
-                            ->where('catalog_offers.start_date', '<=', now())
-                            ->where('catalog_offers.end_date', '>=', now())
-                            ->count();
-                        Log::info('🔍 Productos en ofertas activas: ' . $productosEnOfertas);
-                    }
+                // Productos de ofertas personalizadas (productos explícitos + alcance dinámico)
+                $scopeService = app(CatalogOfferScopeService::class);
+                $activeOffers = CatalogOffer::query()
+                    ->whereHas('offerUsers', fn ($q) => $q->where('user_id', $userId))
+                    ->where('is_active', true)
+                    ->where('start_date', '<=', now())
+                    ->where('end_date', '>=', now())
+                    ->get();
+
+                $productIdsConOfertasPersonalizadas = [];
+                foreach ($activeOffers as $offer) {
+                    $productIdsConOfertasPersonalizadas = array_merge(
+                        $productIdsConOfertasPersonalizadas,
+                        $scopeService->resolveProductIdsForOffer($offer)
+                    );
                 }
+                $productIdsConOfertasPersonalizadas = array_values(array_unique(array_map('strval', $productIdsConOfertasPersonalizadas)));
+                
+                Log::info('🔍 IDs de productos con ofertas personalizadas (incl. alcance dinámico): ' . count($productIdsConOfertasPersonalizadas));
                 
                 // Ahora obtener los productos completos de la tabla productos
                 if (!empty($productIdsConOfertasPersonalizadas)) {
@@ -739,6 +710,11 @@ class ProductSearchController extends Controller
             Log::info('Total de IDs únicos: ' . count($productIds));
 
             foreach ($productosConDescuento as $producto) {
+                $detalles = $detallesPorProducto[$producto->id] ?? [];
+                if (Producto::isProximamenteFromProductRow($producto, $detalles)) {
+                    continue;
+                }
+
                 $precio1Raw = $producto->precio1;
                 $precio1 = 0;
                 if (is_numeric($precio1Raw)) {
@@ -786,6 +762,7 @@ class ProductSearchController extends Controller
                     'fecha_compra' => $this->formatProductDateForApi($producto->fecha_compra ?? null),
                     'marca' => $producto->marca,
                     'inventario' => (float) $producto->inventario,
+                    'stock_received_count' => (int) ($producto->stock_received_count ?? 0),
                     'detalles' => $detalles,
                     'rating' => $ratingData['rating'],
                     'ratingCount' => $ratingData['count'],
@@ -944,5 +921,28 @@ class ProductSearchController extends Controller
     {
         // Este método ya no se usa, pero se mantiene por compatibilidad
         return '';
+    }
+
+    /**
+     * Webhook de búsqueda para Respond.io (GET/POST).
+     * Devuelve un arreglo plano de productos (máx. 5) listo para mapear en workflows.
+     */
+    public function respondIoSearch(Request $request, RespondIoProductSearchService $searchService): JsonResponse
+    {
+        try {
+            $results = $searchService->search($request->all());
+
+            return response()->json($results);
+        } catch (\Throwable $e) {
+            Log::error('Respond.io product search failed', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'input' => $request->all(),
+            ]);
+
+            return response()->json([
+                'error' => 'Error interno de búsqueda.',
+            ], 500);
+        }
     }
 }

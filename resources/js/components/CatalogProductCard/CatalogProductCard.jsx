@@ -209,18 +209,18 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
           <span className="catalog-offer-badge catalog-out-of-stock-badge catalog-coming-soon-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
         )}
 
-        {/* New badge - no mostrar si el producto es "Próximamente" */}
-        {isNew && stockStatus !== 'coming-soon' && (
+        {/* New badge - no mostrar si hay oferta ni si es "Próximamente" */}
+        {isNew && !hasOffer && stockStatus !== 'coming-soon' && (
           <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
         )}
 
-        {/* Out of stock badge - solo si no es nuevo y no es "Próximamente" */}
-        {!isNew && stockStatus === 'out-of-stock' && (
+        {/* Out of stock badge - solo si no es nuevo, no hay oferta y no es "Próximamente" */}
+        {!isNew && !hasOffer && stockStatus === 'out-of-stock' && (
           <span className="catalog-offer-badge catalog-out-of-stock-badge">Agotado</span>
         )}
 
-        {/* Offer badge if product has discount (and is not new, not coming soon, and has stock) */}
-        {!isNew && stockStatus !== 'coming-soon' && stock > 0 && hasOffer && (
+        {/* Offer badge if product has discount (and is not coming soon, and has stock) */}
+        {stockStatus !== 'coming-soon' && stock > 0 && hasOffer && (
           <div className={`catalog-offer-badge ${hasUserOffer ? 'user-offer' : ''} ${
             hasUserOffer && userOffer && userOffer.discount_category === 'buy_x_get_y' ? 'buy-x-get-y' : 
             hasUserOffer && userOffer && userOffer.discount_category === 'order_discount' ? 'order-discount' : 

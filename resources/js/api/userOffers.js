@@ -100,15 +100,6 @@ export const applyUserOffersToProducts = async (products, userOfferMap = null) =
     // 🚀 UNA SOLA CONSULTA SÚPER EFICIENTE
     try {
       productsWithOffers = await checkProductsWithUserOffers(productIds);
-      
-      // Debug: Verificar productos específicos
-      const productosEspecificos = ['515422585712', '50552258912', '515422524904', '2855708612', '515422524512'];
-      const productosEncontradosEnOfertas = productosEspecificos.filter(id => productsWithOffers[id]);
-      if (productosEncontradosEnOfertas.length > 0) {
-        productosEncontradosEnOfertas.forEach(id => {
-        });
-      } else {
-      }
     } catch (error) {
       return products;
     }
@@ -120,7 +111,12 @@ export const applyUserOffersToProducts = async (products, userOfferMap = null) =
       const userOffer = productsWithOffers[productId];
       
       if (userOffer) {
-        const originalPrice = product.price || product.precio1 || 0;
+        // Usar precio1 como base para que el descuento personalizado tenga prioridad
+        // sobre el descuento de la API externa (desc_promo) ya aplicado en product.price
+        const rawBase = product.precio1 ?? product.precio ?? product.originalPrice ?? product.price ?? 0;
+        const originalPrice = typeof rawBase === 'string'
+          ? parseFloat(rawBase.replace(/[^\d.-]/g, '')) || 0
+          : parseFloat(rawBase) || 0;
         let discountedPrice = originalPrice;
         let visualDiscount = 0;
         

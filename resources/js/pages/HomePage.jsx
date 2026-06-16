@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import './HomePage.css';
 import HeroBanner from '../components/sections/HeroBanner/HeroBanner';
@@ -13,60 +13,13 @@ import AffiliateSection from '../components/sections/AffiliateSection/AffiliateS
 
 import useUserStore from '../store/userStore';
 import useProductCachePreload from '../hooks/useProductCachePreload';
-import OffersModal from '../components/OffersModal/OffersModal';
-import api from '../config/axios';
 
 const HomePage = () => {
-  const { user, initialized } = useUserStore();
-  const [showOffersModal, setShowOffersModal] = useState(false);
+  const { user } = useUserStore();
 
   // 🚀 PRECARGA: Inicia descarga de todos los productos en background
   // Primera vez: tarda unos segundos, pero las siguientes páginas serán instantáneas
   useProductCachePreload();
-
-  // Verificar si hay ofertas personalizadas y mostrar la modal automáticamente
-  useEffect(() => {
-    if (!initialized) return; // Esperar a que el store de usuario esté inicializado
-    
-    // Solo mostrar la modal si hay usuario logueado (las ofertas personalizadas requieren usuario)
-    if (!user) return;
-    
-    const checkAndShowOffers = async () => {
-      try {
-        // Obtener ofertas personalizadas del usuario
-        const response = await api.get('/user-offers');
-        
-        if (response.data.success) {
-          const offers = response.data.offers || [];
-          
-          // Filtrar ofertas que estén dentro del rango de fechas
-          // start_date <= now <= end_date
-          const now = new Date();
-          const activeOffers = offers.filter(offer => {
-            const startDate = new Date(offer.start_date);
-            const endDate = new Date(offer.end_date);
-            // Verificar que la fecha actual sea >= fecha inicio Y <= fecha fin
-            return now >= startDate && now <= endDate;
-          });
-          
-          // Solo mostrar la modal si hay ofertas personalizadas activas dentro del rango de fechas
-          if (activeOffers.length > 0) {
-            setTimeout(() => {
-              setShowOffersModal(true);
-            }, 1000);
-          }
-        }
-      } catch (error) {
-      }
-    };
-    
-    // Pequeño delay para asegurar que el componente esté montado
-    const timer = setTimeout(() => {
-      checkAndShowOffers();
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, [user, initialized]);
 
   const featuredProducts = [
     {
@@ -281,12 +234,6 @@ const HomePage = () => {
           />
         </section>
       </main>
-
-      {/* Modal de Ofertas - Se abre automáticamente */}
-      <OffersModal 
-        isOpen={showOffersModal} 
-        onClose={() => setShowOffersModal(false)} 
-      />
     </>
   );
 };

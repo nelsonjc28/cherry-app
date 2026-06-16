@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'respondio.token' => \App\Http\Middleware\VerifyRespondIoToken::class,
         ]);
         
         // Agregar middleware para procesar _method en API routes

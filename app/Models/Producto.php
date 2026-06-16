@@ -251,6 +251,47 @@ class Producto extends Model
     }
 
     /**
+     * Producto "Próximamente": sin stock, tercer dígito del ID = último dígito del año,
+     * stock_received_count = 0 y sin desc_promo activo.
+     */
+    public function isProximamente(): bool
+    {
+        return self::evaluateIsComingSoonFromRow($this, $this->computeTotalInventoryQuantity());
+    }
+
+    /**
+     * @param  array<int, object|array<string, mixed>>  $detalleRows
+     */
+    public static function isProximamenteFromProductRow(object $row, array $detalleRows = []): bool
+    {
+        $headerInv = (float) (is_object($row) ? ($row->inventario ?? 0) : ($row['inventario'] ?? 0));
+        $inventory = self::computeTotalInventoryFromDetalleRows($detalleRows, $headerInv);
+
+        return self::evaluateIsComingSoonFromRow($row, $inventory);
+    }
+
+    /**
+     * @param  array<int, object|array<string, mixed>>  $detalleRows
+     */
+    public static function computeTotalInventoryFromDetalleRows(array $detalleRows, ?float $headerInventario = null): float
+    {
+        if ($detalleRows !== []) {
+            $fromDetails = 0.0;
+            foreach ($detalleRows as $detalle) {
+                $inv = is_array($detalle)
+                    ? ($detalle['inventario_d'] ?? null)
+                    : ($detalle->inventario_d ?? null);
+                $fromDetails += self::effectiveDetailInventoryContribution($inv);
+            }
+            if ($fromDetails > 0.00001) {
+                return $fromDetails;
+            }
+        }
+
+        return self::effectiveDetailInventoryContribution($headerInventario);
+    }
+
+    /**
      * Inventario por talla antes de aplicar un payload de sincronización (id detalle => cantidad).
      *
      * @return array<string, float>

@@ -1514,10 +1514,10 @@ const ProductPage = () => {
                 <span className="catalog-offer-badge catalog-out-of-stock-badge catalog-coming-soon-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
               ) : (
                 <>
-                  {isNewProduct && (
+                  {isNewProduct && !hasOffer && (
                     <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
                   )}
-                  {inventoryStatusData.status === 'out-of-stock' && (
+                  {inventoryStatusData.status === 'out-of-stock' && !hasOffer && (
                     <span className="product-page__badge product-page__badge--out-of-stock">Agotado</span>
                   )}
                   {hasOffer && discountPercentage > 0 && (
@@ -1570,10 +1570,10 @@ const ProductPage = () => {
                   <span className="catalog-offer-badge catalog-out-of-stock-badge catalog-coming-soon-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
                 ) : (
                   <>
-                    {isNewProduct && (
+                    {isNewProduct && !hasOffer && (
                       <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
                     )}
-                    {inventoryStatusData.status === 'out-of-stock' && (
+                    {inventoryStatusData.status === 'out-of-stock' && !hasOffer && (
                       <span className="product-page__badge product-page__badge--out-of-stock">Agotado</span>
                     )}
                     {hasOffer && discountPercentage > 0 && (
