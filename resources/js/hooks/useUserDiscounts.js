@@ -22,7 +22,9 @@ export const useUserDiscounts = (productIds = []) => {
     }
 
     // Filtrar IDs válidos
-    const validIds = ids.filter(id => id && typeof id === 'string' && id.trim() !== '');
+    const validIds = ids
+      .map((id) => (id != null ? String(id).trim() : ''))
+      .filter(Boolean);
     
     if (validIds.length === 0) {
       setUserDiscounts({});

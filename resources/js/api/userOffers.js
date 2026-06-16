@@ -3,69 +3,54 @@ import axios from 'axios';
 const API_BASE_URL = '/api';
 
 /**
- * Verificar si productos específicos tienen ofertas para el usuario
- * VERSIÓN OPTIMIZADA - Usando el endpoint correcto
+ * Verificar si productos específicos tienen ofertas para el usuario.
+ * Usa /user-discounts/check con los IDs visibles para resolver alcance dinámico
+ * (categoría, catálogo, nuevos, rebajas).
  */
 export const checkProductsWithUserOffers = async (productIds) => {
-  
   try {
     if (!Array.isArray(productIds) || productIds.length === 0) {
       return {};
     }
-    
-    // Obtener token del localStorage
+
     const token = localStorage.getItem('token');
     if (!token) {
       return {};
     }
 
-    // Usar el endpoint correcto que ya está funcionando
-    const response = await fetch('/api/user-offer-products', {
+    const normalizedIds = [...new Set(
+      productIds
+        .map((id) => (id != null ? String(id).trim() : ''))
+        .filter(Boolean)
+    )];
+
+    if (normalizedIds.length === 0) {
+      return {};
+    }
+
+    const detailsResponse = await fetch('/api/user-discounts/check', {
+      method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        product_ids: normalizedIds,
+      }),
     });
 
-    if (!response.ok) {
+    if (!detailsResponse.ok) {
       return {};
     }
 
-    const data = await response.json();
-    
-    if (!data.success || !data.product_ids || data.product_ids.length === 0) {
+    const detailsData = await detailsResponse.json();
+
+    if (!detailsData.success || !detailsData.discounts) {
       return {};
     }
 
-    // Obtener datos completos de las ofertas del backend
-    try {
-      const detailsResponse = await fetch('/api/user-discounts/check', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          product_ids: data.product_ids
-        })
-      });
-      
-      if (!detailsResponse.ok) {
-        return {};
-      }
-
-      const detailsData = await detailsResponse.json();
-      
-      if (!detailsData.success || !detailsData.discounts) {
-        return {};
-      }
-
-      return detailsData.discounts;
-    } catch (error) {
-      return {};
-    }
-    
-  } catch (error) {
+    return detailsData.discounts;
+  } catch {
     return {};
   }
 };
@@ -106,9 +91,22 @@ export const applyUserOffersToProducts = async (products, userOfferMap = null) =
   }
 
   // Aplicar ofertas a los productos
+  const resolveOfferForProduct = (offersMap, product) => {
+    const candidates = [product.id_articulo, product.id, product.codigo]
+      .filter((id) => id != null && String(id).trim() !== '')
+      .map((id) => String(id).trim());
+
+    for (const key of candidates) {
+      if (offersMap[key]) {
+        return offersMap[key];
+      }
+    }
+
+    return null;
+  };
+
   const processedProducts = products.map(product => {
-      const productId = product.id_articulo || product.id || product.codigo;
-      const userOffer = productsWithOffers[productId];
+      const userOffer = resolveOfferForProduct(productsWithOffers, product);
       
       if (userOffer) {
         // Usar precio1 como base para que el descuento personalizado tenga prioridad

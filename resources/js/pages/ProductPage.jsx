@@ -81,7 +81,9 @@ const ProductPage = () => {
   }, []);
 
   // User discounts hook - debe estar antes de handleShareCatalog
-  const { userDiscounts, loading: discountsLoading } = useUserDiscounts(product ? [product.id_articulo] : []);
+  const { userDiscounts, loading: discountsLoading } = useUserDiscounts(
+    product ? [product.id_articulo || product.id] : []
+  );
   const [isSharing, setIsSharing] = useState(false);
 
   const handleShareCatalog = useCallback(async () => {
