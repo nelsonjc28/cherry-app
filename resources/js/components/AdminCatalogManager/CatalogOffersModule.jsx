@@ -4,6 +4,7 @@ import Swal from 'sweetalert2';
 import { catalogOfferService } from '../../services/api';
 import ProductMultiSelect from '../ProductMultiSelect/ProductMultiSelectInline';
 import UserMultiSelect from '../UserMultiSelect/UserMultiSelectInline';
+import { formatBuyXGetYOfferLabel } from '../../utils/buyXGetYUtils';
 import './CatalogOffersModule.css';
 
 const TARGET_SCOPES = [
@@ -1005,7 +1006,7 @@ const CatalogOffersModule = ({ onBack }) => {
                     {offer.discount_category === 'buy_x_get_y' && (
                       <div className="catalog-offers-module__offer-discount">
                         <span className="catalog-offers-module__discount-amount">
-                          Compra {offer.buy_quantity} por el precio de {offer.buy_quantity - offer.get_quantity}
+                          {formatBuyXGetYOfferLabel(offer.buy_quantity, offer.get_quantity).replace(/^🎁\s*/, '')}
                         </span>
                       </div>
                     )}

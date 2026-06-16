@@ -15,23 +15,9 @@ export const calculateItemPrice = (item) => {
   const itemPrice = item.price || item.precio || 0;
   const quantity = item.quantity || 0;
   
-  // Si tiene oferta Buy X Get Y, calcular precio basado en items pagados
+  // Buy X Get Y: las líneas pagadas cobran quantity × precio; las gratis van en líneas isFreeItem
   if (item.userOffer?.discount_category === 'buy_x_get_y') {
-    // Usar _paidQuantity si está disponible (calculado por applyBuyXGetYOffers)
-    if (item._paidQuantity !== undefined) {
-      return itemPrice * item._paidQuantity;
-    }
-    
-    // Si no tiene _paidQuantity pero tiene freeItemsCount, calcularlo
-    if (item.freeItemsCount && item.freeItemsCount > 0) {
-      const paidQuantity = quantity - item.freeItemsCount;
-      return itemPrice * paidQuantity;
-    }
-  }
-  
-  // Si tiene freeItemsCount pero no es Buy X Get Y (caso legacy)
-  if (item.freeItemsCount && item.freeItemsCount > 0) {
-    return itemPrice;
+    return itemPrice * quantity;
   }
   
   // Item normal sin ofertas
@@ -51,12 +37,13 @@ export const getPaidQuantity = (item) => {
  * Comparación estable entre líneas de carrito (p. ej. id numérico vs string con ceros a la izquierda;
  * espacios en color/talla). Evita que remove/update no encuentren la línea al borrar la última talla.
  */
-export const cartLineMatches = (item, productId, color, size) => {
+export const cartLineMatches = (item, productId, color, size, isFreeItem = false) => {
   const pid = item?.id_articulo ?? item?.product_id ?? item?.id ?? '';
   return (
     String(pid) === String(productId ?? '') &&
     String(item?.selectedColor ?? '').trim() === String(color ?? '').trim() &&
-    String(item?.selectedSize ?? '').trim() === String(size ?? '').trim()
+    String(item?.selectedSize ?? '').trim() === String(size ?? '').trim() &&
+    Boolean(item?.isFreeItem) === Boolean(isFreeItem)
   );
 };
 
@@ -488,8 +475,9 @@ const useCartStore = create(
         }
 
         // Crear un item key único
+        const isFreeLine = Boolean(product.isFreeItem);
         const existingIndex = items.findIndex((item) =>
-          cartLineMatches(item, product.id_articulo, product.selectedColor, product.selectedSize)
+          cartLineMatches(item, product.id_articulo, product.selectedColor, product.selectedSize, isFreeLine)
         );
 
         let updatedItems = [...items];
@@ -546,8 +534,8 @@ const useCartStore = create(
           updatedItems.push({ ...product, quantity: qty, detalle_id: detalleId });
         }
 
-        // Aplicar lógica de Buy X Get Y
-        updatedItems = get().applyBuyXGetYOffers(updatedItems);
+        // Limpiar campos legacy de reparto automático; las gratis van en líneas isFreeItem
+        updatedItems = get().normalizeBuyXGetYCartLines(updatedItems);
 
         // Recalcular totales
         const totalItems = updatedItems.reduce((sum, item) => {
@@ -586,18 +574,17 @@ const useCartStore = create(
       }),
 
       // El resto de tu store permanece intacto...
-      updateQuantity: async (productId, newQuantity, color, size) => {
+      updateQuantity: async (productId, newQuantity, color, size, isFreeItem = false) => {
         if (newQuantity < 1) return;
 
         const { items } = get();
         let updatedItems = items.map((item) =>
-          cartLineMatches(item, productId, color, size)
+          cartLineMatches(item, productId, color, size, isFreeItem)
             ? { ...item, quantity: newQuantity }
             : item
         );
 
-        // Aplicar lógica de Buy X Get Y después de actualizar cantidad
-        updatedItems = get().applyBuyXGetYOffers(updatedItems);
+        updatedItems = get().normalizeBuyXGetYCartLines(updatedItems);
 
         const totalItems = updatedItems.reduce((sum, item) => {
           const baseQuantity = item.quantity || 0;
@@ -633,10 +620,10 @@ const useCartStore = create(
         }
       },
 
-      removeItem: async (productId, color, size) => {
+      removeItem: async (productId, color, size, isFreeItem = false) => {
         const { items } = get();
         const updatedItems = items.filter(
-          (item) => !cartLineMatches(item, productId, color, size)
+          (item) => !cartLineMatches(item, productId, color, size, isFreeItem)
         );
 
         const totalItems = updatedItems.reduce((sum, item) => sum + (item.quantity || 0) + (item.freeItemsCount || 0), 0);
@@ -668,10 +655,10 @@ const useCartStore = create(
        * Cuando solo queda una talla en el producto y falla el guardado normal: misma idea que "Limpiar carrito"
        * (DELETE en servidor) y luego POST /cart/sync con las líneas que deben quedar.
        */
-      removeItemUsingClearThenSync: async (productId, color, size) => {
+      removeItemUsingClearThenSync: async (productId, color, size, isFreeItem = false) => {
         const { items, couponCode, discount } = get();
         const updatedItems = items.filter(
-          (item) => !cartLineMatches(item, productId, color, size)
+          (item) => !cartLineMatches(item, productId, color, size, isFreeItem)
         );
 
         const totalItems = updatedItems.reduce(
@@ -727,141 +714,25 @@ const useCartStore = create(
         localStorage.removeItem('cherry-central-cart');
       },
 
-      applyBuyXGetYOffers: (items) => {
-        // 1. Separar items con y sin oferta Buy X Get Y
-        const itemsWithOffer = items.filter(item => 
-          item.userOffer && item.userOffer.discount_category === 'buy_x_get_y'
-        );
-        const itemsWithoutOffer = items.filter(item => 
-          !item.userOffer || item.userOffer.discount_category !== 'buy_x_get_y'
-        );
-
-        // 2. Agrupar items con oferta por producto (id_articulo) y color (selectedColor)
-        // Esto agrupa todas las tallas del mismo producto y color
-        const groupedByProductAndColor = {};
-        
-        itemsWithOffer.forEach(item => {
-          const key = `${item.id_articulo}_${item.selectedColor || 'default'}`;
-          
-          if (!groupedByProductAndColor[key]) {
-            groupedByProductAndColor[key] = {
-              items: [],
-              buyQuantity: parseInt(item.userOffer.buy_quantity) || 1,
-              getQuantity: parseInt(item.userOffer.get_quantity) || 0,
-              userOffer: item.userOffer
-            };
+      normalizeBuyXGetYCartLines: (items) =>
+        items.map((item) => {
+          if (!item.isFreeItem && item.userOffer?.discount_category !== 'buy_x_get_y') {
+            return item;
           }
-          
-          groupedByProductAndColor[key].items.push(item);
-        });
-
-        // 3. Calcular oferta para cada grupo (sumando todas las tallas)
-        const processedGroups = {};
-        
-        Object.keys(groupedByProductAndColor).forEach(key => {
-          const group = groupedByProductAndColor[key];
-          const buyQuantity = group.buyQuantity;
-          const getQuantity = group.getQuantity;
-          
-          // Sumar todas las cantidades de todas las tallas del grupo
-          const totalQuantity = group.items.reduce((sum, item) => sum + (parseInt(item.quantity) || 0), 0);
-
-          // Si no hay cantidad suficiente o no hay items gratis, no aplicar oferta
-          if (totalQuantity < buyQuantity || getQuantity === 0) {
-            group.items.forEach(item => {
-              processedGroups[`${item.id_articulo}_${item.selectedColor || 'default'}_${item.selectedSize || 'default'}`] = {
-                ...item,
-                freeItemsCount: 0,
-                _paidQuantity: item.quantity,
-                _freeQuantity: 0
-              };
-            });
-            return;
+          const cleaned = { ...item };
+          delete cleaned.freeItemsCount;
+          delete cleaned._paidQuantity;
+          delete cleaned._freeQuantity;
+          delete cleaned.freeItemReason;
+          if (cleaned.isFreeItem) {
+            cleaned.price = 0;
+            cleaned.precio = 0;
           }
+          return cleaned;
+        }),
 
-          // Calcular cuántos grupos completos de "buy_quantity" hay
-          const completeGroups = Math.floor(totalQuantity / buyQuantity);
-          
-          // Calcular cuántos items son gratis (solo para grupos completos)
-          const freeItems = completeGroups * getQuantity;
-          
-          // Calcular cuántos items se pagan por cada grupo completo
-          const paidFromGroups = completeGroups * (buyQuantity - getQuantity);
-          
-          // Items sobrantes que no forman un grupo completo se pagan completos
-          const remainderItems = totalQuantity % buyQuantity;
-          
-          // Total de items pagados
-          const paidItems = paidFromGroups + remainderItems;
-
-          // 4. Distribuir items pagados y gratis proporcionalmente entre las tallas
-          // Usar un algoritmo que asegure que la suma total sea exacta
-          let remainingPaidItems = paidItems;
-          let remainingFreeItems = freeItems;
-          let totalDistributedPaid = 0;
-          let totalDistributedFree = 0;
-          
-          group.items.forEach((item, index) => {
-            const itemQuantity = parseInt(item.quantity) || 0;
-            const proportion = totalQuantity > 0 ? itemQuantity / totalQuantity : 0;
-            
-            // Calcular distribución proporcional
-            let itemPaidQuantity, itemFreeQuantity;
-            
-            if (index === group.items.length - 1) {
-              // Para el último item, usar los restantes para asegurar que la suma sea exacta
-              itemPaidQuantity = remainingPaidItems;
-              itemFreeQuantity = remainingFreeItems;
-            } else {
-              // Para los demás, calcular proporcionalmente y redondear
-              itemPaidQuantity = Math.round(paidItems * proportion);
-              itemFreeQuantity = Math.round(freeItems * proportion);
-              
-              // Asegurar que no exceda la cantidad del item
-              itemPaidQuantity = Math.min(itemPaidQuantity, itemQuantity);
-              itemFreeQuantity = Math.min(itemFreeQuantity, itemQuantity - itemPaidQuantity);
-              
-              remainingPaidItems -= itemPaidQuantity;
-              remainingFreeItems -= itemFreeQuantity;
-            }
-            
-            totalDistributedPaid += itemPaidQuantity;
-            totalDistributedFree += itemFreeQuantity;
-            
-            const itemKey = `${item.id_articulo}_${item.selectedColor || 'default'}_${item.selectedSize || 'default'}`;
-            
-            processedGroups[itemKey] = {
-              ...item,
-              freeItemsCount: itemFreeQuantity,
-              isFreeItem: false,
-              freeItemReason: freeItems > 0 ? `🎁 Oferta: Compra ${buyQuantity} por el precio de ${buyQuantity - getQuantity}` : null,
-              quantity: itemQuantity,
-              _paidQuantity: itemPaidQuantity,
-              _freeQuantity: itemFreeQuantity
-            };
-          });
-        });
-
-        // 5. Combinar items procesados con items sin oferta
-        const updatedItems = items.map(item => {
-          const itemKey = `${item.id_articulo}_${item.selectedColor || 'default'}_${item.selectedSize || 'default'}`;
-          
-          // Si está en los grupos procesados, usar ese
-          if (processedGroups[itemKey]) {
-            return processedGroups[itemKey];
-          }
-          
-          // Si no tiene oferta Buy X Get Y, limpiar campos relacionados
-          if (!item.userOffer || item.userOffer.discount_category !== 'buy_x_get_y') {
-            const { freeItemsCount, isFreeItem, freeItemReason, _paidQuantity, _freeQuantity, ...itemWithoutOffer } = item;
-            return itemWithoutOffer;
-          }
-          
-          return item;
-        });
-
-        return updatedItems;
-      },
+      /** @deprecated Usar normalizeBuyXGetYCartLines — las gratis son líneas explícitas isFreeItem */
+      applyBuyXGetYOffers: (items) => get().normalizeBuyXGetYCartLines(items),
 
       recalculateTotals: async () => {
         const { items } = get();

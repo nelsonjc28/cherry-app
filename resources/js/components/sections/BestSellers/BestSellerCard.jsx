@@ -90,7 +90,7 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
         )}
 
         {/* Offer badge if product has discount */}
-        {stockStatus !== 'coming-soon' && totalInv > 0 && hasOffer && (
+        {stockStatus !== 'coming-soon' && hasOffer && (
           <span className="best-seller-offer-badge">
             {!isMobile && "Rebaja "}{discountPercentage}%
           </span>

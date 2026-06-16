@@ -80,9 +80,14 @@ function MobileView({
           </thead>
           <tbody>
             {variants.map((variant, idx) => (
-              <tr key={idx}>
+              <tr key={`${variant.size}-${variant.isFreeItem ? 'free' : 'paid'}-${idx}`}>
                 <td>{variant.color}</td>
-                <td>{variant.size}</td>
+                <td>
+                  {variant.size}
+                  {variant.isFreeItem && (
+                    <span className="cart-details-product-card__free-badge"> 🎁 Gratis</span>
+                  )}
+                </td>
                 <td className="cart-details-product-card__quantity-cell">
                   <div className="cart-details-product-card__quantity-controls">
                     <button

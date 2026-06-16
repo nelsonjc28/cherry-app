@@ -7,6 +7,7 @@ import { getProductCardStockStatus, getTotalInventoryFromProduct } from '../../u
 import './CatalogProductCard.css';
 import { getIconPath } from '../../utils/assetPaths';
 import colorConverter from '../../services/colorConverter';
+import { formatBuyXGetYOfferLabel } from '../../utils/buyXGetYUtils';
 
 const CatalogProductCard = ({ product, onFavoriteToggle }) => {
   // Hook para detectar si es móvil
@@ -129,7 +130,7 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
     if (hasUserOffer && userOffer) {
       // Para ofertas Buy X Get Y
       if (userOffer.discount_category === 'buy_x_get_y') {
-        return `🎁 Compra ${userOffer.buy_quantity} por el precio de ${userOffer.buy_quantity - userOffer.get_quantity}`;
+        return formatBuyXGetYOfferLabel(userOffer.buy_quantity, userOffer.get_quantity);
       }
       // Para ofertas de descuento en el pedido
       if (userOffer.discount_category === 'order_discount') {
@@ -219,8 +220,8 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
           <span className="catalog-offer-badge catalog-out-of-stock-badge">Agotado</span>
         )}
 
-        {/* Offer badge if product has discount (and is not coming soon, and has stock) */}
-        {stockStatus !== 'coming-soon' && stock > 0 && hasOffer && (
+        {/* Offer badge if product has discount (not shown for "Próximamente") */}
+        {stockStatus !== 'coming-soon' && hasOffer && (
           <div className={`catalog-offer-badge ${hasUserOffer ? 'user-offer' : ''} ${
             hasUserOffer && userOffer && userOffer.discount_category === 'buy_x_get_y' ? 'buy-x-get-y' : 
             hasUserOffer && userOffer && userOffer.discount_category === 'order_discount' ? 'order-discount' : 

@@ -266,25 +266,10 @@ const CartDetailsPage = () => {
   // Helper function to calculate item price considering Buy X Get Y offers
   const calculateItemPriceForDisplay = (item) => {
     if (item.isFreeItem) return 0;
-    
+
     const itemPrice = item.price || item.precio || 0;
     const quantity = item.quantity || 0;
-    
-    // Si tiene oferta Buy X Get Y, calcular precio basado en items pagados
-    if (item.userOffer?.discount_category === 'buy_x_get_y') {
-      // Usar _paidQuantity si está disponible (calculado por applyBuyXGetYOffers)
-      if (item._paidQuantity !== undefined) {
-        return itemPrice * item._paidQuantity;
-      }
-      
-      // Si no tiene _paidQuantity pero tiene freeItemsCount, calcularlo
-      if (item.freeItemsCount && item.freeItemsCount > 0) {
-        const paidQuantity = quantity - item.freeItemsCount;
-        return itemPrice * paidQuantity;
-      }
-    }
-    
-    // Item normal sin ofertas
+
     return itemPrice * quantity;
   };
 
@@ -315,7 +300,8 @@ const CartDetailsPage = () => {
     groups[key].variants.push({
       color: item.selectedColor,
       size: item.selectedSize,
-      quantity: item.quantity
+      quantity: item.quantity,
+      isFreeItem: Boolean(item.isFreeItem),
     });
 
     // Update totals - usar calculateItemPriceForDisplay para considerar Buy X Get Y
@@ -367,7 +353,7 @@ const CartDetailsPage = () => {
 
     // Find and remove the specific item from cart
     const itemToRemove = cartItems.find((item) =>
-      cartLineMatches(item, product.sku, variant.color, variant.size)
+      cartLineMatches(item, product.sku, variant.color, variant.size, variant.isFreeItem)
     );
 
     if (!itemToRemove) return;
@@ -384,12 +370,18 @@ const CartDetailsPage = () => {
       removeItemUsingClearThenSync(
         itemToRemove.id_articulo,
         itemToRemove.selectedColor,
-        itemToRemove.selectedSize
+        itemToRemove.selectedSize,
+        itemToRemove.isFreeItem
       );
       return;
     }
 
-    removeItem(itemToRemove.id_articulo, itemToRemove.selectedColor, itemToRemove.selectedSize);
+    removeItem(
+      itemToRemove.id_articulo,
+      itemToRemove.selectedColor,
+      itemToRemove.selectedSize,
+      itemToRemove.isFreeItem
+    );
   };
 
   // Handle quantity change for specific variant
@@ -401,16 +393,32 @@ const CartDetailsPage = () => {
 
     // Find the specific item in cart
     const itemToUpdate = cartItems.find((item) =>
-      cartLineMatches(item, product.sku, variant.color, variant.size)
+      cartLineMatches(item, product.sku, variant.color, variant.size, variant.isFreeItem)
     );
 
     if (!itemToUpdate) return;
 
     const { user } = useUserStore.getState();
     if (itemSkipsStockValidation(itemToUpdate, user)) {
-      updateQuantity(itemToUpdate.id_articulo, newQty, itemToUpdate.selectedColor, itemToUpdate.selectedSize);
+      updateQuantity(
+        itemToUpdate.id_articulo,
+        newQty,
+        itemToUpdate.selectedColor,
+        itemToUpdate.selectedSize,
+        itemToUpdate.isFreeItem
+      );
       return;
     }
+
+    const siblingQty = cartItems
+      .filter((item) =>
+        String(item.id_articulo) === String(product.sku) &&
+        String(item.selectedColor ?? '').trim() === String(variant.color ?? '').trim() &&
+        String(item.selectedSize ?? '').trim() === String(variant.size ?? '').trim() &&
+        Boolean(item.isFreeItem) !== Boolean(variant.isFreeItem)
+      )
+      .reduce((sum, item) => sum + (item.quantity || 0), 0);
+    const totalForSize = newQty + siblingQty;
 
     // Validar stock disponible
     try {
@@ -418,7 +426,7 @@ const CartDetailsPage = () => {
         itemToUpdate.id_articulo,
         itemToUpdate.selectedSize,
         itemToUpdate.selectedColor,
-        newQty
+        totalForSize
       );
 
       if (!stockValidation.isValid) {
@@ -429,18 +437,26 @@ const CartDetailsPage = () => {
 
         // Si hay stock disponible pero menos de lo solicitado, ajustar a lo disponible
         if (stockValidation.availableStock > 0) {
+          const maxForLine = Math.max(1, stockValidation.availableStock - siblingQty);
           updateQuantity(
             itemToUpdate.id_articulo,
-            stockValidation.availableStock,
+            maxForLine,
             itemToUpdate.selectedColor,
-            itemToUpdate.selectedSize
+            itemToUpdate.selectedSize,
+            itemToUpdate.isFreeItem
           );
         }
         return;
       }
 
       // Si la validación es exitosa, actualizar la cantidad
-      updateQuantity(itemToUpdate.id_articulo, newQty, itemToUpdate.selectedColor, itemToUpdate.selectedSize);
+      updateQuantity(
+        itemToUpdate.id_articulo,
+        newQty,
+        itemToUpdate.selectedColor,
+        itemToUpdate.selectedSize,
+        itemToUpdate.isFreeItem
+      );
     } catch (error) {
       if (window.showToast) {
         window.showToast('Error al validar disponibilidad del producto', 'error');
@@ -1372,7 +1388,7 @@ const CartDetailsPage = () => {
             
             {productsForDisplay.map((product, idx) => (
               <CartDetailsProductCard
-                key={`${String(product.sku)}-${product.variants.map((v) => `${v.color}:${v.size}`).join('|')}`}
+                key={`${String(product.sku)}-${product.variants.map((v) => `${v.color}:${v.size}:${v.isFreeItem ? 'free' : 'paid'}`).join('|')}`}
                 {...product}
                 onRemove={variantIdx => handleRemoveVariant(idx, variantIdx)}
                 onQuantityChange={(variantIdx, newQty) => handleQuantityChange(idx, variantIdx, newQty)}

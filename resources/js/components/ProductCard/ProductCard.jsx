@@ -7,6 +7,7 @@ import { getProductCardStockStatus, getTotalInventoryFromProduct } from '../../u
 import { getIconPath } from '../../utils/assetPaths';
 import colorConverter from '../../services/colorConverter';
 import { useUserDiscounts } from '../../hooks/useUserDiscounts';
+import { formatBuyXGetYOfferLabel } from '../../utils/buyXGetYUtils';
 import './ProductCard.css';
 
 const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, variant = 'default' }) => {
@@ -137,7 +138,7 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
     if (finalHasUserOffer && finalUserOffer) {
       // Para ofertas Buy X Get Y
       if (finalUserOffer.discount_category === 'buy_x_get_y') {
-        return `🎁 Compra ${finalUserOffer.buy_quantity} por el precio de ${finalUserOffer.buy_quantity - finalUserOffer.get_quantity}`;
+        return formatBuyXGetYOfferLabel(finalUserOffer.buy_quantity, finalUserOffer.get_quantity);
       }
       // Para ofertas de descuento en el pedido
       if (finalUserOffer.discount_category === 'order_discount') {
@@ -233,8 +234,8 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
           <span className="out-of-stock-badge">Agotado</span>
         )}
 
-        {/* Offer badge if product has discount (and is not coming soon, and has stock) */}
-        {stockStatus !== 'coming-soon' && calculateTotalStock() > 0 && hasOffer && (
+        {/* Offer badge if product has discount (not shown for "Próximamente") */}
+        {stockStatus !== 'coming-soon' && hasOffer && (
           <span className="offer-badge">
             {getDiscountLabel()}
           </span>
@@ -323,8 +324,8 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
           <span className="out-of-stock-badge">Agotado</span>
         )}
 
-        {/* Offer badge if product has discount (and is not coming soon, and has stock) */}
-        {stockStatus !== 'coming-soon' && calculateTotalStock() > 0 && hasOffer && (
+        {/* Offer badge if product has discount (not shown for "Próximamente") */}
+        {stockStatus !== 'coming-soon' && hasOffer && (
           <span className={`offer-badge ${finalHasUserOffer ? 'user-offer' : ''} ${
             finalHasUserOffer && finalUserOffer && finalUserOffer.discount_category === 'buy_x_get_y' ? 'buy-x-get-y' : 
             finalHasUserOffer && finalUserOffer && finalUserOffer.discount_category === 'order_discount' ? 'order-discount' : 
