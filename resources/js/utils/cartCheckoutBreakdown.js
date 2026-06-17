@@ -65,7 +65,7 @@ export function buildCartAmountBreakdown(user, cartItems, volSummary) {
   let promoListSubtotal = 0;
   let promoCartSubtotal = 0;
   for (const it of promoItems) {
-    promoCartSubtotal += round2(calculateItemPrice(it));
+    promoCartSubtotal += round2(calculateItemPrice(it, cartItems));
     const q = getPaidQuantity(it) > 0 ? getPaidQuantity(it) : parseInt(it.quantity, 10) || 0;
     const listUnit = Number(it?.precio1 ?? it?.originalPrice ?? it?.price ?? it?.precio ?? 0);
     if (Number.isFinite(listUnit) && listUnit > 0) {

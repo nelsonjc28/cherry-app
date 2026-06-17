@@ -64,13 +64,15 @@ class CatalogOffer extends Model
     }
 
     /**
-     * Obtener ofertas activas
+     * Ofertas vigentes: is_active + rango de fechas inclusive (todo el día de inicio y fin).
      */
     public function scopeActive($query)
     {
+        $today = now()->toDateString();
+
         return $query->where('is_active', true)
-                    ->where('start_date', '<=', now())
-                    ->where('end_date', '>=', now());
+            ->whereDate('start_date', '<=', $today)
+            ->whereDate('end_date', '>=', $today);
     }
 
     /**
@@ -86,10 +88,16 @@ class CatalogOffer extends Model
      */
     public function isActive()
     {
-        return $this->is_active && 
-               $this->start_date <= now() && 
-               $this->end_date >= now() &&
-               ($this->max_uses === null || $this->current_uses < $this->max_uses);
+        if (! $this->is_active) {
+            return false;
+        }
+
+        $today = now()->toDateString();
+        $startOk = $this->start_date && $this->start_date->toDateString() <= $today;
+        $endOk = $this->end_date && $this->end_date->toDateString() >= $today;
+
+        return $startOk && $endOk
+            && ($this->max_uses === null || $this->current_uses < $this->max_uses);
     }
 
     /**

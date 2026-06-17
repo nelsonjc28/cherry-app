@@ -8,6 +8,7 @@ import './CatalogProductCard.css';
 import { getIconPath } from '../../utils/assetPaths';
 import colorConverter from '../../services/colorConverter';
 import { hasCatalogOfferBadge, getCatalogOfferBadgeLabel } from '../../utils/catalogOfferUtils';
+import { formatMinPurchaseHint } from '../../utils/offerMinPurchaseUtils';
 
 const CatalogProductCard = ({ product, onFavoriteToggle }) => {
   // Hook para detectar si es móvil
@@ -122,6 +123,7 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
   const discountPercentage = calculateDiscountPercentage();
   
   const hasOffer = hasCatalogOfferBadge({ discountPercentage, hasUserOffer, userOffer });
+  const minPurchaseHint = hasUserOffer && userOffer ? formatMinPurchaseHint(userOffer) : '';
   
   const getDiscountLabel = () => getCatalogOfferBadgeLabel(userOffer, { discountPercentage, isMobile });
 
@@ -249,6 +251,9 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
             <div className="catalog-original-price">{formatPrice(originalPrice)}</div>
           )}
           <div className="catalog-product-price">{formatPrice(price)}</div>
+          {minPurchaseHint && (
+            <div className="catalog-min-purchase-hint">{minPurchaseHint}</div>
+          )}
         </div>
         
         {/* Color selector */}

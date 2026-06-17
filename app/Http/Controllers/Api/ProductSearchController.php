@@ -548,8 +548,8 @@ class ProductSearchController extends Controller
                     ->join('catalog_offers', 'cou.offer_id', '=', 'catalog_offers.id')
                     ->where('cou.user_id', $userId)
                     ->where('catalog_offers.is_active', true)
-                    ->where('catalog_offers.start_date', '<=', now())
-                    ->where('catalog_offers.end_date', '>=', now())
+                    ->whereDate('catalog_offers.start_date', '<=', now()->toDateString())
+                    ->whereDate('catalog_offers.end_date', '>=', now()->toDateString())
                     ->select('catalog_offers.id as offer_id', 'catalog_offers.title', 'catalog_offers.start_date', 'catalog_offers.end_date')
                     ->get();
                 
@@ -562,9 +562,9 @@ class ProductSearchController extends Controller
                 $scopeService = app(CatalogOfferScopeService::class);
                 $activeOffers = CatalogOffer::query()
                     ->whereHas('offerUsers', fn ($q) => $q->where('user_id', $userId))
-                    ->where('is_active', true)
-                    ->where('start_date', '<=', now())
-                    ->where('end_date', '>=', now())
+                    ->active()
+                    ->ordered()
+                    ->orderByDesc('id')
                     ->get();
 
                 $productIdsConOfertasPersonalizadas = [];

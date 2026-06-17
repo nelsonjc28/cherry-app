@@ -361,8 +361,8 @@ class CategoryController extends Controller
                     ->join('catalog_offer_users', 'catalog_offers.id', '=', 'catalog_offer_users.offer_id')
                     ->where('catalog_offer_users.user_id', $userId)
                     ->where('catalog_offers.is_active', true)
-                    ->where('catalog_offers.start_date', '<=', now())
-                    ->where('catalog_offers.end_date', '>=', now())
+                    ->whereDate('catalog_offers.start_date', '<=', now()->toDateString())
+                    ->whereDate('catalog_offers.end_date', '>=', now()->toDateString())
                     ->distinct()
                     ->pluck('product_id');
             }

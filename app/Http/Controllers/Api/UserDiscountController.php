@@ -37,10 +37,8 @@ class UserDiscountController extends Controller
 
             $offers = CatalogOffer::query()
                 ->whereHas('offerUsers', fn ($q) => $q->where('user_id', $userId))
-                ->where('is_active', true)
-                ->where('start_date', '<=', now())
-                ->where('end_date', '>=', now())
-                ->orderBy('display_order')
+                ->active()
+                ->ordered()
                 ->orderByDesc('id')
                 ->get();
 
@@ -51,9 +49,12 @@ class UserDiscountController extends Controller
                 $discounts[$productId] = $this->formatDiscountPayload($offer);
             }
 
+            $activeOffers = $offers->map(fn (CatalogOffer $offer) => $this->formatDiscountPayload($offer))->values();
+
             return response()->json([
                 'success' => true,
                 'discounts' => $discounts,
+                'active_offers' => $activeOffers,
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -81,9 +82,9 @@ class UserDiscountController extends Controller
 
             $offers = CatalogOffer::query()
                 ->whereHas('offerUsers', fn ($q) => $q->where('user_id', $userId))
-                ->where('is_active', true)
-                ->where('start_date', '<=', now())
-                ->where('end_date', '>=', now())
+                ->active()
+                ->ordered()
+                ->orderByDesc('id')
                 ->get();
 
             $productIds = [];
@@ -128,6 +129,7 @@ class UserDiscountController extends Controller
             $discountData['get_quantity'] = $offer->get_quantity;
             $discountData['discount_type'] = 'buy_x_get_y';
             $discountData['discount_percentage'] = 0;
+            $discountData['min_purchase_amount'] = $offer->min_purchase_amount;
         } elseif ($offer->discount_category === 'free_shipping') {
             $discountData['discount_type'] = 'free_shipping';
             $discountData['discount_percentage'] = 0;

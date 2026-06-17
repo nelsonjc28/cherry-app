@@ -791,4 +791,36 @@ class AdminCatalogOfferController extends Controller
             $data['target_catalog_id'] = trim((string) $data['target_catalog_id']) ?: null;
         }
     }
+
+    /**
+     * Reordenar ofertas (display_order).
+     */
+    public function reorder(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'offers' => 'required|array',
+                'offers.*.id' => 'required|integer|exists:catalog_offers,id',
+                'offers.*.display_order' => 'required|integer|min:0',
+            ]);
+
+            foreach ($validated['offers'] as $item) {
+                CatalogOffer::where('id', $item['id'])->update([
+                    'display_order' => $item['display_order'],
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Orden actualizado correctamente',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error reordenando ofertas: '.$e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al reordenar ofertas',
+            ], 500);
+        }
+    }
 }

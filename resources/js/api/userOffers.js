@@ -1,4 +1,8 @@
 import axios from 'axios';
+import {
+  getOfferMinPurchaseAmount,
+  calculateProductDiscountUnitPrice,
+} from '../utils/offerMinPurchaseUtils';
 
 const API_BASE_URL = '/api';
 
@@ -117,31 +121,29 @@ export const applyUserOffersToProducts = async (products, userOfferMap = null) =
           : parseFloat(rawBase) || 0;
         let discountedPrice = originalPrice;
         let visualDiscount = 0;
+        let showPriceDiscount = true;
         
         // Calcular precio con descuento (solo para ofertas de descuento en producto)
         if (userOffer.discount_category === 'product_discount') {
           const discountValue = parseFloat(userOffer.discount_percentage) || 0;
-          
+          const minPurchase = getOfferMinPurchaseAmount(userOffer);
+
           if (discountValue > 0) {
-            if (userOffer.discount_type === 'percentage') {
-              // Descuento por porcentaje
-              const discount = (originalPrice * discountValue) / 100;
-              discountedPrice = Math.max(0, originalPrice - discount);
-              visualDiscount = discountValue; // Mostrar el porcentaje directamente
-            } else if (userOffer.discount_type === 'fixed') {
-              // Descuento por pesos fijos
-              discountedPrice = Math.max(0, originalPrice - discountValue);
-              // Calcular el equivalente en porcentaje
-              if (originalPrice > 0) {
-                visualDiscount = Math.round((discountValue / originalPrice) * 100);
-              }
+            visualDiscount = userOffer.discount_type === 'percentage'
+              ? discountValue
+              : (originalPrice > 0 ? Math.round((discountValue / originalPrice) * 100) : 0);
+
+            // Sin compra mínima: aplicar descuento al precio. Con mínimo: precio lista hasta alcanzarlo en carrito.
+            if (minPurchase <= 0) {
+              discountedPrice = calculateProductDiscountUnitPrice(originalPrice, userOffer);
+            } else {
+              showPriceDiscount = false;
+              discountedPrice = originalPrice;
             }
           }
         }
         
         // Para ofertas buy_x_get_y y free_shipping, NO mostrar descuento de precio
-        let showPriceDiscount = true;
-        
         if (userOffer.discount_category === 'buy_x_get_y') {
           visualDiscount = 0; // No mostrar descuento de precio para buy X get Y
           showPriceDiscount = false;
@@ -156,14 +158,20 @@ export const applyUserOffersToProducts = async (products, userOfferMap = null) =
           ...product,
           // Información de la oferta personalizada
           userOffer: {
+            offer_id: userOffer.offer_id,
             percentage: visualDiscount,
-            discount_percentage: visualDiscount,
+            discount_percentage: userOffer.discount_category === 'product_discount'
+              ? (parseFloat(userOffer.discount_percentage) || 0)
+              : visualDiscount,
             title: userOffer.title,
             type: userOffer.discount_type,
+            discount_type: userOffer.discount_type,
             endDate: userOffer.end_date,
             discount_category: userOffer.discount_category,
             buy_quantity: userOffer.buy_quantity,
             get_quantity: userOffer.get_quantity,
+            min_purchase_amount: userOffer.min_purchase_amount,
+            max_discount_amount: userOffer.max_discount_amount,
             showPriceDiscount: showPriceDiscount
           },
           // Precios actualizados

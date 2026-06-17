@@ -5,24 +5,18 @@ import useUserStore from './userStore';
 import { isOroDiamanteSeller } from '../utils/sellerVolumeDiscount';
 import { effectiveDetailInventoryContribution } from '../utils/productUtils';
 import { isEncargoCartLine } from '../utils/encargoUtils';
+import { calculateItemPriceWithMinPurchase } from '../utils/offerMinPurchaseUtils';
 
 /**
- * Helper function to calculate item price considering Buy X Get Y offers
+ * Helper function to calculate item price considering offers and compra mínima.
  */
-export const calculateItemPrice = (item) => {
-  if (item.isFreeItem) return 0;
-  
-  const itemPrice = item.price || item.precio || 0;
-  const quantity = item.quantity || 0;
-  
-  // Buy X Get Y: las líneas pagadas cobran quantity × precio; las gratis van en líneas isFreeItem
-  if (item.userOffer?.discount_category === 'buy_x_get_y') {
-    return itemPrice * quantity;
-  }
-  
-  // Item normal sin ofertas
-  return itemPrice * quantity;
+export const calculateItemPrice = (item, allItems = null) => {
+  const items = allItems ?? (item ? [item] : []);
+  return calculateItemPriceWithMinPurchase(item, items);
 };
+
+export const sumCartItemsPrice = (items) =>
+  (items || []).reduce((sum, item) => sum + calculateItemPrice(item, items), 0);
 
 export const getPaidQuantity = (item) => {
   if (item?._paidQuantity !== undefined && item?._paidQuantity !== null) {
@@ -190,7 +184,7 @@ const useCartStore = create(
                 return sum + baseQuantity + freeItems;
               }, 0);
 
-              const totalPrice = cleanedItems.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+              const totalPrice = cleanedItems.reduce((sum, item) => sum + calculateItemPrice(item, cleanedItems), 0);
 
               set({
                 items: cleanedItems,
@@ -233,7 +227,7 @@ const useCartStore = create(
           return sum + baseQuantity + freeItems;
         }, 0);
 
-        const totalPrice = items.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+        const totalPrice = sumCartItemsPrice(items);
 
             set({
               totalItems,
@@ -361,7 +355,7 @@ const useCartStore = create(
               return sum + baseQuantity + freeItems;
             }, 0);
 
-            const totalPriceSynced = itemsWithOffers.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+            const totalPriceSynced = itemsWithOffers.reduce((sum, item) => sum + calculateItemPrice(item, itemsWithOffers), 0);
 
             // Actualizar estado con el carrito combinado (puede estar vacío si ambos estaban vacíos)
             set({
@@ -389,7 +383,7 @@ const useCartStore = create(
                 return sum + baseQuantity + freeItems;
               }, 0);
 
-              const totalPrice = itemsWithOffers.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+              const totalPrice = itemsWithOffers.reduce((sum, item) => sum + calculateItemPrice(item, itemsWithOffers), 0);
 
               set({
                 items: itemsWithOffers,
@@ -419,7 +413,7 @@ const useCartStore = create(
               return sum + baseQuantity + freeItems;
             }, 0);
 
-            const totalPrice = itemsWithOffers.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+            const totalPrice = itemsWithOffers.reduce((sum, item) => sum + calculateItemPrice(item, itemsWithOffers), 0);
 
             set({
               items: itemsWithOffers,
@@ -544,7 +538,7 @@ const useCartStore = create(
           return sum + baseQuantity + freeItems;
         }, 0);
 
-        const totalPrice = updatedItems.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+        const totalPrice = updatedItems.reduce((sum, item) => sum + calculateItemPrice(item, updatedItems), 0);
 
         const newState = {
           items: updatedItems,
@@ -591,7 +585,7 @@ const useCartStore = create(
           const freeItems = item.freeItemsCount || 0;
           return sum + baseQuantity + freeItems;
         }, 0);
-        const totalPrice = updatedItems.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+        const totalPrice = updatedItems.reduce((sum, item) => sum + calculateItemPrice(item, updatedItems), 0);
 
         const newState = {
           items: updatedItems,
@@ -627,7 +621,7 @@ const useCartStore = create(
         );
 
         const totalItems = updatedItems.reduce((sum, item) => sum + (item.quantity || 0) + (item.freeItemsCount || 0), 0);
-        const totalPrice = updatedItems.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+        const totalPrice = updatedItems.reduce((sum, item) => sum + calculateItemPrice(item, updatedItems), 0);
 
         const newState = { items: updatedItems, totalItems, totalPrice };
         set(newState);
@@ -665,7 +659,7 @@ const useCartStore = create(
           (sum, item) => sum + (item.quantity || 0) + (item.freeItemsCount || 0),
           0
         );
-        const totalPrice = updatedItems.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+        const totalPrice = updatedItems.reduce((sum, item) => sum + calculateItemPrice(item, updatedItems), 0);
 
         const newState = { items: updatedItems, totalItems, totalPrice };
         set(newState);
@@ -737,7 +731,7 @@ const useCartStore = create(
       recalculateTotals: async () => {
         const { items } = get();
         const totalItems = items.reduce((sum, item) => (sum + (item.quantity || 0) + (item.freeItemsCount || 0)), 0);
-        const totalPrice = items.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+        const totalPrice = sumCartItemsPrice(items);
         
         const newState = { totalItems, totalPrice };
         set(newState);
@@ -765,7 +759,7 @@ const useCartStore = create(
         let merchandiseSubtotal = 0;
 
         items.forEach((item) => {
-          merchandiseSubtotal += calculateItemPrice(item);
+          merchandiseSubtotal += calculateItemPrice(item, items);
 
           const quantity = Number(item?.quantity ?? 0);
           if (!Number.isFinite(quantity) || quantity <= 0) return;
@@ -847,7 +841,7 @@ const useCartStore = create(
         
         if (state && state.items) {
           const totalItems = state.items.reduce((sum, item) => (sum + (item.quantity || 0) + (item.freeItemsCount || 0)), 0);
-          const totalPrice = state.items.reduce((sum, item) => sum + calculateItemPrice(item), 0);
+          const totalPrice = sumCartItemsPrice(state.items);
           state.totalItems = totalItems;
           state.totalPrice = totalPrice;
         }

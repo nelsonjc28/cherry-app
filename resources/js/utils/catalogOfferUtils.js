@@ -1,6 +1,6 @@
 import { formatBuyXGetYOfferLabel } from './buyXGetYUtils';
 
-const BADGE_CATEGORIES = ['buy_x_get_y', 'order_discount', 'free_shipping'];
+const BADGE_CATEGORIES = ['product_discount', 'buy_x_get_y', 'order_discount', 'free_shipping'];
 
 /**
  * Indica si el producto debe mostrar badge de oferta (prioridad sobre Nuevo/Agotado).

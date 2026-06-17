@@ -20,10 +20,9 @@ class UserOfferController extends Controller
             // Intentar obtener el usuario desde diferentes guards
             $userId = auth('api')->id() ?? auth('web')->id() ?? auth()->id();
             
-            // Obtener ofertas activas (filtrar por fechas)
+            // Obtener ofertas activas (filtrar por fechas inclusive)
             $query = CatalogOffer::with('catalog')
-                ->where('start_date', '<=', now())
-                ->where('end_date', '>=', now());
+                ->active();
             
             // Si hay usuario logueado, filtrar ofertas que incluyan a este usuario
             // o que sean generales (sin usuarios específicos)
@@ -266,9 +265,9 @@ class UserOfferController extends Controller
             // Ofertas activas del usuario (productos explícitos + alcance dinámico)
             $offers = CatalogOffer::query()
                 ->whereHas('offerUsers', fn ($q) => $q->where('user_id', $userId))
-                ->where('is_active', true)
-                ->where('start_date', '<=', now())
-                ->where('end_date', '>=', now())
+                ->active()
+                ->ordered()
+                ->orderByDesc('id')
                 ->get();
 
             $scopeService = app(CatalogOfferScopeService::class);
@@ -436,8 +435,24 @@ class UserOfferController extends Controller
                 'success' => true,
                 'data' => [
                     'products' => $products,
-                    'total' => count($products)
-                ]
+                    'total' => count($products),
+                    'active_offers' => $offers->map(function ($offer) {
+                        return [
+                            'offer_id' => $offer->id,
+                            'title' => $offer->title,
+                            'description' => $offer->description,
+                            'discount_category' => $offer->discount_category,
+                            'discount_percentage' => $offer->discount_percentage,
+                            'discount_type' => $offer->discount_type,
+                            'buy_quantity' => $offer->buy_quantity,
+                            'get_quantity' => $offer->get_quantity,
+                            'min_purchase_amount' => $offer->min_purchase_amount,
+                            'start_date' => $offer->start_date?->format('Y-m-d'),
+                            'end_date' => $offer->end_date?->format('Y-m-d'),
+                            'display_order' => $offer->display_order,
+                        ];
+                    })->values(),
+                ],
             ]);
 
         } catch (\Exception $e) {

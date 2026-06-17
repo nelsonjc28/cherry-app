@@ -4,6 +4,10 @@ import { getCherryCatalogBaseUrl, unwrapCatalogProductList } from '../config/che
 import productCache from '../utils/productCacheInMemory';
 import { getProductCardStockStatus, getTotalInventoryFromProduct } from '../utils/productUtils';
 import { isProductNewLikeNuevosPage } from '../utils/productNewRules';
+import {
+  getOfferMinPurchaseAmount,
+  calculateProductDiscountUnitPrice,
+} from '../utils/offerMinPurchaseUtils';
 
 const CHERRY_API_URL = getCherryCatalogBaseUrl();
 
@@ -615,17 +619,25 @@ export const getPromoProducts = async (limit = 50) => {
           finalPrice = originalPrice; // Mantener precio original
         } else {
           // Solo para product_discount y order_discount
+          const minPurchase = getOfferMinPurchaseAmount(offerDataForProduct);
+
           if (offerDataForProduct.discount_type === 'percentage') {
             visualDiscount = parseFloat(offerDataForProduct.discount_percentage) || 0;
             discountAmount = originalPrice * (visualDiscount / 100);
             finalPrice = originalPrice - discountAmount;
           } else if (offerDataForProduct.discount_type === 'fixed') {
-            // Para descuentos fijos, el discount_percentage contiene el monto en dinero
             discountAmount = parseFloat(offerDataForProduct.discount_percentage) || 0;
             finalPrice = Math.max(0, originalPrice - discountAmount);
             if (originalPrice > 0) {
               visualDiscount = Math.round((discountAmount / originalPrice) * 100);
             }
+          }
+
+          if (offerDataForProduct.discount_category === 'product_discount' && minPurchase > 0) {
+            showPriceDiscount = false;
+            finalPrice = originalPrice;
+          } else if (offerDataForProduct.discount_category === 'product_discount' && minPurchase <= 0) {
+            finalPrice = calculateProductDiscountUnitPrice(originalPrice, offerDataForProduct);
           }
           
           // Aplicar límites de descuento si están configurados
@@ -657,6 +669,7 @@ export const getPromoProducts = async (limit = 50) => {
         
         
         product.userOffer = {
+          offer_id: offerDataForProduct.offer_id,
           discount_percentage: visualDiscount, // Porcentaje visual para mostrar
           discount_amount: discountAmount, // Monto real del descuento
           discount_type: offerDataForProduct.discount_type,

@@ -411,19 +411,28 @@ const CatalogOffersModule = ({ onBack }) => {
       return;
     }
 
-    const newOffers = [...offers];
-    const draggedItem = newOffers[dragIndex];
-    newOffers.splice(dragIndex, 1);
-    newOffers.splice(dropIndex, 0, draggedItem);
+    const sortedTypeOffers = [...getOffersByType(selectedDiscountType)];
+    const draggedItem = sortedTypeOffers[dragIndex];
+    sortedTypeOffers.splice(dragIndex, 1);
+    sortedTypeOffers.splice(dropIndex, 0, draggedItem);
 
-    setOffers(newOffers);
+    const reorderData = sortedTypeOffers.map((offer, index) => ({
+      id: offer.id,
+      display_order: index + 1,
+    }));
+
+    setOffers((prev) => {
+      const others = prev.filter((o) => o.discount_category !== selectedDiscountType);
+      const updatedTypeOffers = sortedTypeOffers.map((offer, index) => ({
+        ...offer,
+        display_order: index + 1,
+      }));
+      return [...others, ...updatedTypeOffers].sort(
+        (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)
+      );
+    });
 
     try {
-      const reorderData = newOffers.map((offer, index) => ({
-        id: offer.id,
-        display_order: index + 1
-      }));
-
       const response = await catalogOfferService.reorder(reorderData);
       if (response.data.success) {
         window.showToast('Orden actualizado exitosamente', 'success');
@@ -447,22 +456,48 @@ const CatalogOffersModule = ({ onBack }) => {
     return new Date(dateString).toLocaleDateString('es-ES');
   };
 
+  const getOffersByType = (discountType) => {
+    return offers
+      .filter(offer => offer.discount_category === discountType)
+      .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+  };
+
+  /** Vigente = activa en admin + fechas inclusive (misma regla que backend). */
+  const isOfferVigente = (offer) => {
+    if (!offer?.is_active) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const start = new Date(offer.start_date);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(offer.end_date);
+    end.setHours(23, 59, 59, 999);
+    return start <= today && end >= today;
+  };
+
   const getStatusBadge = (offer) => {
     if (!offer.is_active) return 'inactive';
-    if (new Date(offer.end_date) < new Date()) return 'expired';
-    if (new Date(offer.start_date) > new Date()) return 'pending';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const end = new Date(offer.end_date);
+    end.setHours(23, 59, 59, 999);
+    const start = new Date(offer.start_date);
+    start.setHours(0, 0, 0, 0);
+    if (end < today) return 'expired';
+    if (start > today) return 'pending';
     return 'active';
   };
 
   const getStatusText = (offer) => {
     if (!offer.is_active) return 'Inactiva';
-    if (new Date(offer.end_date) < new Date()) return 'Expirada';
-    if (new Date(offer.start_date) > new Date()) return 'Pendiente';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const end = new Date(offer.end_date);
+    end.setHours(23, 59, 59, 999);
+    const start = new Date(offer.start_date);
+    start.setHours(0, 0, 0, 0);
+    if (end < today) return 'Expirada';
+    if (start > today) return 'Pendiente';
     return 'Activa';
-  };
-
-  const getOffersByType = (discountType) => {
-    return offers.filter(offer => offer.discount_category === discountType);
   };
 
   const getDiscountTypeInfo = (type) => {
@@ -520,7 +555,7 @@ const CatalogOffersModule = ({ onBack }) => {
               {discountTypes.map((type) => {
                 const typeInfo = getDiscountTypeInfo(type);
                 const typeOffers = getOffersByType(type);
-                const activeOffers = typeOffers.filter(offer => offer.is_active);
+                const activeOffers = typeOffers.filter(isOfferVigente);
 
                 return (
                   <div key={type} className="catalog-offers-module__catalog-card">
@@ -812,8 +847,8 @@ const CatalogOffersModule = ({ onBack }) => {
                 </div>
               )}
 
-              {/* Campos de descuento para otros tipos - No mostrar para envío gratis */}
-              {formData.discount_category !== 'buy_x_get_y' && formData.discount_category !== 'free_shipping' && (
+              {/* Campos de descuento para descuento en productos */}
+              {formData.discount_category === 'product_discount' && (
                 <div className="catalog-offers-module__form-row">
                   <div className="catalog-offers-module__form-group">
                     <label>Descuento *</label>
@@ -838,6 +873,41 @@ const CatalogOffersModule = ({ onBack }) => {
                         <option value="fixed">$</option>
                       </select>
                     </div>
+                  </div>
+                  <div className="catalog-offers-module__form-group">
+                    <label>Compra mínima en productos de la promo (opcional)</label>
+                    <input
+                      type="number"
+                      name="min_purchase_amount"
+                      value={formData.min_purchase_amount}
+                      onChange={handleInputChange}
+                      min="0"
+                      step="1"
+                      placeholder="Ej: 1000"
+                    />
+                    <small className="catalog-offers-module__form-help">
+                      Subtotal mínimo de productos elegibles para activar el descuento (ej. 10% con mínimo $1,000).
+                    </small>
+                  </div>
+                </div>
+              )}
+
+              {formData.discount_category === 'buy_x_get_y' && (
+                <div className="catalog-offers-module__form-row">
+                  <div className="catalog-offers-module__form-group">
+                    <label>Compra mínima en productos de la promo (opcional)</label>
+                    <input
+                      type="number"
+                      name="min_purchase_amount"
+                      value={formData.min_purchase_amount}
+                      onChange={handleInputChange}
+                      min="0"
+                      step="1"
+                      placeholder="Ej: 1000"
+                    />
+                    <small className="catalog-offers-module__form-help">
+                      Subtotal mínimo de productos elegibles para activar la oferta Buy X Get Y.
+                    </small>
                   </div>
                 </div>
               )}
@@ -1005,8 +1075,11 @@ const CatalogOffersModule = ({ onBack }) => {
                       <span>Fin: {formatDate(offer.end_date)}</span>
                     </div>
                     <div className="catalog-offers-module__offer-usage">
-                      {offer.min_purchase_amount && offer.discount_category !== 'buy_x_get_y' && (
-                        <span>Mín: ${offer.min_purchase_amount}</span>
+                      {offer.min_purchase_amount && offer.discount_category === 'free_shipping' && (
+                        <span>Envío gratis desde: ${offer.min_purchase_amount}</span>
+                      )}
+                      {offer.min_purchase_amount && (offer.discount_category === 'product_discount' || offer.discount_category === 'buy_x_get_y') && (
+                        <span>Compra mín. promo: ${offer.min_purchase_amount}</span>
                       )}
                     </div>
                   </div>

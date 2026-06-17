@@ -43,6 +43,7 @@ import { canEncargoSinStock, canEncargoForSize, isOutOfStockEncargoForSize } fro
 import { summarizeVolumeFromCartItems } from '../utils/cartVolumePricing';
 import { formatBuyXGetYOfferLabel, formatBuyXGetYOfferExample, validateBuyXGetYCartSelection } from '../utils/buyXGetYUtils';
 import { hasCatalogOfferBadge } from '../utils/catalogOfferUtils';
+import { formatMinPurchaseHint, buildPromoContextItems, resolveProductDiscountUnitPrice, resolveProductDiscountPercent, isPromoMinPurchaseMet, getOfferMinPurchaseAmount, formatMinPurchaseLabel } from '../utils/offerMinPurchaseUtils';
 
 // Función para formatear montos con separador de miles
 const formatMoneyWithCommas = (value) => {
@@ -848,13 +849,16 @@ const ProductPage = () => {
           isComingSoon: isComingSoon,
           isOutOfStockEncargo: lineOutOfStockEncargo,
           userOffer: hasUserOffer ? {
+            offer_id: userOffer.offer_id,
             discount_category: userOffer.discount_category,
             type: userOffer.discount_category,
             title: userOffer.title,
             discount_percentage: userOffer.discount_percentage,
+            discount_type: userOffer.discount_type || userOffer.type,
             buy_quantity: userOffer.buy_quantity,
             get_quantity: userOffer.get_quantity,
-            min_purchase_amount: userOffer.min_purchase_amount
+            min_purchase_amount: userOffer.min_purchase_amount,
+            max_discount_amount: userOffer.max_discount_amount,
           } : null
         };
       };
@@ -896,7 +900,14 @@ const ProductPage = () => {
           message += ' 📦 (Encargo - Talla agotada)';
         }
 
-        if (hasOffer) {
+        const cartAfterAdd = useCartStore.getState().items;
+        const promoMinMet = !hasUserOffer || !userOffer || isPromoMinPurchaseMet(userOffer, cartAfterAdd);
+        const minRequired = getOfferMinPurchaseAmount(userOffer);
+        const promoNeedsMin = minRequired > 0 && (
+          userOffer?.discount_category === 'product_discount' || userOffer?.discount_category === 'buy_x_get_y'
+        );
+
+        if (hasOffer && promoMinMet) {
           if (isBuyXGetYOffer) {
             const freeAdded = bogoSplits.reduce((sum, { free }) => sum + (free || 0), 0);
             message += ` ${formatBuyXGetYOfferLabel(buyX, getY)}`;
@@ -907,9 +918,17 @@ const ProductPage = () => {
             message += ` 💰 Descuento del ${Math.round(userOffer.discount_percentage)}% se aplicará al total del pedido`;
           } else if (hasUserOffer && userOffer && userOffer.discount_category === 'free_shipping') {
             message += ` 🚚 ¡Envío gratis incluido!`;
-          } else if (discountPercentage > 0) {
+          } else if (
+            hasUserOffer
+            && userOffer?.discount_category === 'product_discount'
+            && resolveProductDiscountPercent(userOffer, cartAfterAdd) > 0
+          ) {
+            message += ` 🏷️ ${Math.round(userOffer.discount_percentage)}% de descuento aplicado`;
+          } else if (discountPercentage > 0 && !hasUserOffer) {
             message += ` 🏷️ Con ${discountPercentage}% de descuento`;
           }
+        } else if (hasOffer && promoNeedsMin && !promoMinMet) {
+          message += ` 📋 Compra mínima $${formatMinPurchaseLabel(minRequired)} en productos de esta promo para activar el descuento`;
         }
 
         window.showToast(message, 'success');
@@ -1274,35 +1293,6 @@ const ProductPage = () => {
   const userOffer = product?.userOffer || (product ? userDiscounts[product.id_articulo] : null);
   const hasUserOffer = Boolean(product?.hasUserOffer || userOffer);
 
-  // Calcular descuento con prioridades
-  const calculateDiscountPercentage = () => {
-    // PRIORIDAD 1: Descuento personalizado del usuario (ya procesado) - NO reducir
-    if (hasUserOffer && userOffer && userOffer.discount_percentage > 0) {
-      return Math.round(userOffer.discount_percentage);
-    }
-    // PRIORIDAD 2: Descuento general desde la API (desc_promo) - reducir 10% a descuentos de API externa
-    if (product?.desc_promo && product.desc_promo > 0) {
-      // Restar 10% al descuento de la API externa (solo si NO es oferta de usuario)
-      const reducedDiscount = Math.max(0, product.desc_promo - 10);
-      return Math.round(reducedDiscount);
-    }
-
-    // PRIORIDAD 3: Descuento ya procesado en product.discount
-    if (product?.discount && product.discount > 0) {
-      return Math.round(product.discount);
-    }
-
-    // PRIORIDAD 4: Fallback usando originalPrice vs price
-    if (product?.originalPrice && product?.price && product.originalPrice > product.price) {
-      const calculatedDiscount = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);;
-      return calculatedDiscount;
-    }
-
-    return 0;
-  };
-
-  const discountPercentage = calculateDiscountPercentage();
-
   // Función para calcular el total de unidades seleccionadas
   const getTotalUnits = () => {
     return Object.values(quantitiesBySize).reduce((total, cantidad) => total + (cantidad || 0), 0);
@@ -1314,22 +1304,72 @@ const ProductPage = () => {
       .map(([talla, cantidad]) => ({ talla, cantidad }));
   };
 
-  // Determinar si hay oferta (incluyendo ofertas especiales que no tienen porcentaje)
+  const promoContextItems = (() => {
+    if (!hasUserOffer || !userOffer) {
+      return [];
+    }
+
+    const pendingLines = getSelectedSizesWithQuantities().map(({ cantidad }) => ({
+      precio1: precio1 || product?.precio1 || 0,
+      originalPrice: precio1 || product?.precio1 || 0,
+      price: precio1 || product?.precio1 || 0,
+      quantity: cantidad,
+      userOffer: {
+        offer_id: userOffer.offer_id,
+        title: userOffer.title,
+        discount_category: userOffer.discount_category,
+        min_purchase_amount: userOffer.min_purchase_amount,
+      },
+    }));
+
+    return buildPromoContextItems(cartItems, userOffer, pendingLines);
+  })();
+
+  // Calcular descuento con prioridades (respeta compra mínima)
+  const calculateDiscountPercentage = () => {
+    if (hasUserOffer && userOffer?.discount_category === 'product_discount') {
+      const promoPercent = resolveProductDiscountPercent(userOffer, promoContextItems);
+      if (promoPercent > 0) {
+        return Math.round(promoPercent);
+      }
+    } else if (hasUserOffer && userOffer && userOffer.discount_percentage > 0) {
+      return Math.round(userOffer.discount_percentage);
+    }
+
+    if (product?.desc_promo && product.desc_promo > 0) {
+      const reducedDiscount = Math.max(0, product.desc_promo - 10);
+      return Math.round(reducedDiscount);
+    }
+
+    if (product?.discount && product.discount > 0) {
+      return Math.round(product.discount);
+    }
+
+    if (product?.originalPrice && product?.price && product.originalPrice > product.price) {
+      return Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
+    }
+
+    return 0;
+  };
+
+  const discountPercentage = calculateDiscountPercentage();
+
   const hasOffer = hasCatalogOfferBadge({ discountPercentage, hasUserOffer, userOffer });
 
-  // Calcular precio final con logs para debugging
+  // Calcular precio final (respeta compra mínima de la promo)
   const calculateFinalPrice = () => {
     const basePrice = precio1 || 0;
 
-    // Si ya hay un precio procesado, usarlo
-    if (product?.price && product.price !== basePrice) {
+    if (hasUserOffer && userOffer?.discount_category === 'product_discount') {
+      return resolveProductDiscountUnitPrice(basePrice, userOffer, promoContextItems);
+    }
+
+    if (product?.price && product.price !== basePrice && userOffer?.showPriceDiscount !== false) {
       return product.price;
     }
 
-    // Si hay descuento, calcularlo
     if (discountPercentage > 0 && basePrice > 0) {
-      const discountedPrice = basePrice - (basePrice * (discountPercentage / 100));;
-      return discountedPrice;
+      return basePrice - (basePrice * (discountPercentage / 100));
     }
 
     return basePrice;
@@ -1697,6 +1737,18 @@ const ProductPage = () => {
                     <div className="product-page__offer-note">
                       ℹ️ Cuenta todas las tallas juntas. Las piezas gratis pueden ser de otra talla distinta a las pagadas.
                     </div>
+                    {formatMinPurchaseHint(userOffer) && (
+                      <div className="product-page__min-purchase">
+                        📋 {formatMinPurchaseHint(userOffer)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              {hasUserOffer && userOffer && userOffer.discount_category === 'product_discount' && formatMinPurchaseHint(userOffer) && (
+                <div className="product-page__offer-details">
+                  <div className="product-page__min-purchase">
+                    📋 {formatMinPurchaseHint(userOffer)}
                   </div>
                 </div>
               )}

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import useCartStore, { cartLineMatches } from '../store/cartStore';
+import useCartStore, { cartLineMatches, calculateItemPrice } from '../store/cartStore';
+import { buildOfferMinPurchaseAlerts } from '../utils/offerMinPurchaseUtils';
 import api from '../config/axios';
 import './CartDetailsPage.css';
 import CartDetailsProductCard from '../components/CartDetailsProductCard';
@@ -263,15 +264,7 @@ const CartDetailsPage = () => {
     });
   }, []);
 
-  // Helper function to calculate item price considering Buy X Get Y offers
-  const calculateItemPriceForDisplay = (item) => {
-    if (item.isFreeItem) return 0;
-
-    const itemPrice = item.price || item.precio || 0;
-    const quantity = item.quantity || 0;
-
-    return itemPrice * quantity;
-  };
+  const calculateItemPriceForDisplay = (item) => calculateItemPrice(item, cartItems);
 
   // Group cart items by product ID and color, combining different sizes
   const groupedProducts = cartItems.reduce((groups, item) => {
@@ -1333,7 +1326,8 @@ const CartDetailsPage = () => {
 
   const discountAlerts = getDiscountAlerts();
   const shippingAlerts = getShippingAlerts();
-  const allAlerts = [...discountWarningAlert, ...discountAlerts, ...shippingAlerts];
+  const minPurchaseAlerts = buildOfferMinPurchaseAlerts(cartItems);
+  const allAlerts = [...discountWarningAlert, ...minPurchaseAlerts, ...discountAlerts, ...shippingAlerts];
 
   const orderAmountBreakdown = useMemo(
     () => buildCartAmountBreakdown(user, cartItems, volumeSummary),

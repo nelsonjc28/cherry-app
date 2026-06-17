@@ -372,4 +372,11 @@
   .catalog-product-price {
     font-size: 1.3rem;
   }
+}
+
+.catalog-min-purchase-hint {
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 0.25rem;
+  line-height: 1.3;
 } 
