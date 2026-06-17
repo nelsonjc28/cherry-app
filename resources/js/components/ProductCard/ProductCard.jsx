@@ -8,6 +8,7 @@ import { getIconPath } from '../../utils/assetPaths';
 import colorConverter from '../../services/colorConverter';
 import { useUserDiscounts } from '../../hooks/useUserDiscounts';
 import { hasCatalogOfferBadge, getCatalogOfferBadgeLabel } from '../../utils/catalogOfferUtils';
+import { resolveStackedProductDiscountPercentLiteral, getCatalogRebajaPercent } from '../../utils/offerMinPurchaseUtils';
 import './ProductCard.css';
 
 const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, variant = 'default' }) => {
@@ -106,23 +107,30 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
 
   const stockStatus = getStockStatus();
 
-  // Calculate discount percentage - Priorizar oferta personalizada
+  // Calculate discount percentage (rebaja catálogo + oferta apilada)
+  const listPrice = Number(product.precio1 ?? originalPrice ?? price ?? 0) || 0;
+  const stackItem = { ...product, precio1: listPrice };
+
   const calculateDiscountPercentage = () => {
-    // PRIORIDAD 1: Oferta personalizada del usuario
+    if (finalHasUserOffer && finalUserOffer?.discount_category === 'product_discount') {
+      return resolveStackedProductDiscountPercentLiteral(stackItem, finalUserOffer, []);
+    }
     if (finalHasUserOffer && finalUserOffer && finalUserOffer.discount_percentage > 0) {
       return Math.round(finalUserOffer.discount_percentage);
     }
-    
-    // PRIORIDAD 2: Descuento general desde la API (desc_promo)
+
     if (discount && discount > 0) {
       return Math.round(discount);
     }
-    
-    // PRIORIDAD 3: Fallback usando originalPrice vs price
+
+    if (getCatalogRebajaPercent(stackItem) > 0) {
+      return Math.round(getCatalogRebajaPercent(stackItem));
+    }
+
     if (originalPrice && price && originalPrice > price) {
       return Math.round(((originalPrice - price) / originalPrice) * 100);
     }
-    
+
     return 0;
   };
 
@@ -136,9 +144,9 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
 
   const getDiscountLabel = () => {
     if (finalHasUserOffer && finalUserOffer) {
-      return getCatalogOfferBadgeLabel(finalUserOffer, { discountPercentage, isMobile });
+      return getCatalogOfferBadgeLabel(finalUserOffer, { discountPercentage, isMobile, product: stackItem });
     }
-    return `${!isMobile ? 'Rebaja ' : ''}${discountPercentage}%`;
+    return `${discountPercentage}%`;
   };
 
   // Handle share functionality

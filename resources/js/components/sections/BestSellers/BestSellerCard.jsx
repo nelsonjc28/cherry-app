@@ -5,6 +5,7 @@ import StarRating from '../../StarRating/StarRating';
 import { formatPrice } from '../../../utils/formatters';
 import { getProductCardStockStatus, getTotalInventoryFromProduct } from '../../../utils/productUtils';
 import { hasCatalogOfferBadge, getCatalogOfferBadgeLabel } from '../../../utils/catalogOfferUtils';
+import { resolveStackedProductDiscountPercentLiteral, getCatalogRebajaPercent } from '../../../utils/offerMinPurchaseUtils';
 import './BestSellerCard.css';
 
 const BestSellerCard = ({ id, title, image, price, originalPrice, discount, userOffer, hasUserOffer, rating, totalRatings, description, stock = 0, isNew = false, onFavoriteToggle, product, stock_received_count = 0, stockReceivedCount = 0 }) => {
@@ -19,29 +20,6 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  // Calculate discount percentage - Priorizar oferta personalizada
-  const calculateDiscountPercentage = () => {
-    // PRIORIDAD 1: Oferta personalizada del usuario
-    if (hasUserOffer && userOffer && userOffer.percentage > 0) {
-      return Math.round(userOffer.percentage);
-    }
-    
-    // PRIORIDAD 2: Descuento general desde la API (desc_promo)
-    if (discount && discount > 0) {
-      return Math.round(discount);
-    }
-
-    // PRIORIDAD 3: Fallback usando originalPrice vs price
-    if (originalPrice && price && originalPrice > price) {
-      return Math.round(((originalPrice - price) / originalPrice) * 100);
-    }
-
-    return 0;
-  };
-
-  const discountPercentage = calculateDiscountPercentage();
-  const hasOffer = hasCatalogOfferBadge({ discountPercentage, hasUserOffer, userOffer });
-
   const cardProduct = {
     ...product,
     id: product?.id ?? id,
@@ -52,6 +30,35 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
     desc_promo: product?.desc_promo,
     detalles: product?.detalles,
   };
+
+  const listPrice = Number(cardProduct.precio1 ?? originalPrice ?? price ?? 0) || 0;
+  const stackItem = { ...cardProduct, precio1: listPrice };
+
+  const calculateDiscountPercentage = () => {
+    if (hasUserOffer && userOffer?.discount_category === 'product_discount') {
+      return resolveStackedProductDiscountPercentLiteral(stackItem, userOffer, []);
+    }
+    if (hasUserOffer && userOffer && (userOffer.percentage > 0 || userOffer.discount_percentage > 0)) {
+      return Math.round(userOffer.percentage ?? userOffer.discount_percentage);
+    }
+
+    if (discount && discount > 0) {
+      return Math.round(discount);
+    }
+
+    if (getCatalogRebajaPercent(stackItem) > 0) {
+      return Math.round(getCatalogRebajaPercent(stackItem));
+    }
+
+    if (originalPrice && price && originalPrice > price) {
+      return Math.round(((originalPrice - price) / originalPrice) * 100);
+    }
+
+    return 0;
+  };
+
+  const discountPercentage = calculateDiscountPercentage();
+  const hasOffer = hasCatalogOfferBadge({ discountPercentage, hasUserOffer, userOffer });
   const stockStatus = getProductCardStockStatus(cardProduct);
   const totalInv = getTotalInventoryFromProduct(cardProduct);
 
@@ -94,8 +101,8 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
         {stockStatus !== 'coming-soon' && hasOffer && (
           <span className="best-seller-offer-badge">
             {hasUserOffer && userOffer
-              ? getCatalogOfferBadgeLabel(userOffer, { discountPercentage, isMobile })
-              : `${!isMobile && 'Rebaja '}${discountPercentage}%`}
+              ? getCatalogOfferBadgeLabel(userOffer, { discountPercentage, isMobile, product: stackItem })
+              : `${discountPercentage}%`}
           </span>
         )}
 

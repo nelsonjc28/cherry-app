@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import useCartStore, { cartLineMatches, calculateItemPrice } from '../store/cartStore';
-import { buildOfferMinPurchaseAlerts } from '../utils/offerMinPurchaseUtils';
+import { buildOfferMinPurchaseAlerts, resolveCartGroupedDiscountPercent } from '../utils/offerMinPurchaseUtils';
 import api from '../config/axios';
 import './CartDetailsPage.css';
 import CartDetailsProductCard from '../components/CartDetailsProductCard';
@@ -276,6 +276,7 @@ const CartDetailsPage = () => {
         image: item.image,
         title: item.title,
         precio: item.precio,
+        precio1: item.precio1 ?? item.originalPrice,
         originalPrice: item.originalPrice, // Precio original antes del descuento
         desc_promo: item.desc_promo, // Porcentaje de descuento
         discount: item.discount, // Descuento calculado
@@ -306,26 +307,29 @@ const CartDetailsPage = () => {
 
   // Convert grouped products to array format
   const productsForDisplay = Object.values(groupedProducts).map((groupedProduct) => {
-    // Calcular precio sin descuento (precio original * cantidad total)
-    const priceWithoutDiscount = parseFloat(groupedProduct.precio) * groupedProduct.totalQuantity;
-    
-    // El precio con descuento ya está calculado considerando Buy X Get Y en totalPrice
+    const listUnit = parseFloat(groupedProduct.precio1 || groupedProduct.originalPrice || groupedProduct.precio) || 0;
+    const priceWithoutDiscount = listUnit * groupedProduct.totalQuantity;
     const priceWithDiscount = groupedProduct.totalPrice;
-    
-    // Determinar si el producto tiene rebaja (desc_promo > 0 o tiene originalPrice)
-    const hasDiscount = (groupedProduct.desc_promo && groupedProduct.desc_promo > 0) || 
-                        (groupedProduct.originalPrice && groupedProduct.originalPrice > groupedProduct.precio);
-    
+    const discountPercentage = resolveCartGroupedDiscountPercent(groupedProduct, cartItems);
+    const hasDiscount = discountPercentage > 0
+      || (groupedProduct.desc_promo && groupedProduct.desc_promo > 0)
+      || (groupedProduct.originalPrice && parseFloat(groupedProduct.originalPrice) > parseFloat(groupedProduct.precio))
+      || groupedProduct.userOffer?.discount_category === 'product_discount';
+
+    const effectiveUnitPrice = groupedProduct.totalQuantity > 0
+      ? priceWithDiscount / groupedProduct.totalQuantity
+      : parseFloat(groupedProduct.precio) || 0;
+
     return {
       image: groupedProduct.image && groupedProduct.image !== '/images/catalogProductImages/Rectangle 4922.png' 
         ? groupedProduct.image 
         : null,
       sku: groupedProduct.id_articulo,
       title: groupedProduct.title,
-      price: parseFloat(groupedProduct.precio).toFixed(2),
-      originalPrice: groupedProduct.originalPrice ? parseFloat(groupedProduct.originalPrice).toFixed(2) : null,
-      hasDiscount: hasDiscount,
-      discountPercentage: groupedProduct.discount || groupedProduct.desc_promo || 0,
+      price: effectiveUnitPrice.toFixed(2),
+      originalPrice: hasDiscount && listUnit > effectiveUnitPrice ? listUnit.toFixed(2) : null,
+      hasDiscount,
+      discountPercentage,
       variants: groupedProduct.variants,
       summary: {
         quantity: groupedProduct.totalQuantity,

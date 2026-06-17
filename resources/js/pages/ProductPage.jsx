@@ -42,8 +42,8 @@ import { getVolumeDiscountMainTier, getSellerCategoryFromUser, hasApiVolumeMainP
 import { canEncargoSinStock, canEncargoForSize, isOutOfStockEncargoForSize } from '../utils/encargoUtils';
 import { summarizeVolumeFromCartItems } from '../utils/cartVolumePricing';
 import { formatBuyXGetYOfferLabel, formatBuyXGetYOfferExample, validateBuyXGetYCartSelection } from '../utils/buyXGetYUtils';
-import { hasCatalogOfferBadge } from '../utils/catalogOfferUtils';
-import { formatMinPurchaseHint, buildPromoContextItems, resolveProductDiscountUnitPrice, resolveProductDiscountPercent, isPromoMinPurchaseMet, getOfferMinPurchaseAmount, formatMinPurchaseLabel } from '../utils/offerMinPurchaseUtils';
+import { hasCatalogOfferBadge, getCatalogOfferBadgeLabel } from '../utils/catalogOfferUtils';
+import { formatMinPurchaseHint, buildPromoContextItems, resolveStackedProductDiscountUnitPrice, resolveStackedProductDiscountPercentLiteral, isPromoMinPurchaseMet, getOfferMinPurchaseAmount, formatMinPurchaseLabel, getCatalogRebajaPercent, formatProductDiscountOfferDetail } from '../utils/offerMinPurchaseUtils';
 
 // Función para formatear montos con separador de miles
 const formatMoneyWithCommas = (value) => {
@@ -921,9 +921,19 @@ const ProductPage = () => {
           } else if (
             hasUserOffer
             && userOffer?.discount_category === 'product_discount'
-            && resolveProductDiscountPercent(userOffer, cartAfterAdd) > 0
+            && isPromoMinPurchaseMet(userOffer, cartAfterAdd)
+            && resolveStackedProductDiscountPercentLiteral(
+              { desc_promo: product?.desc_promo, precio1 },
+              userOffer,
+              cartAfterAdd
+            ) > getCatalogRebajaPercent({ desc_promo: product?.desc_promo })
           ) {
-            message += ` 🏷️ ${Math.round(userOffer.discount_percentage)}% de descuento aplicado`;
+            const stackedPct = resolveStackedProductDiscountPercentLiteral(
+              { desc_promo: product?.desc_promo, precio1 },
+              userOffer,
+              cartAfterAdd
+            );
+            message += ` 🏷️ ${stackedPct}% de descuento aplicado`;
           } else if (discountPercentage > 0 && !hasUserOffer) {
             message += ` 🏷️ Con ${discountPercentage}% de descuento`;
           }
@@ -1325,20 +1335,19 @@ const ProductPage = () => {
     return buildPromoContextItems(cartItems, userOffer, pendingLines);
   })();
 
-  // Calcular descuento con prioridades (respeta compra mínima)
+  const stackItem = { desc_promo: product?.desc_promo, precio1: precio1 || product?.precio1 };
+
+  // Calcular descuento con prioridades (rebaja catálogo + oferta apilada)
   const calculateDiscountPercentage = () => {
     if (hasUserOffer && userOffer?.discount_category === 'product_discount') {
-      const promoPercent = resolveProductDiscountPercent(userOffer, promoContextItems);
-      if (promoPercent > 0) {
-        return Math.round(promoPercent);
-      }
-    } else if (hasUserOffer && userOffer && userOffer.discount_percentage > 0) {
+      return resolveStackedProductDiscountPercentLiteral(stackItem, userOffer, promoContextItems);
+    }
+    if (hasUserOffer && userOffer && userOffer.discount_percentage > 0) {
       return Math.round(userOffer.discount_percentage);
     }
 
     if (product?.desc_promo && product.desc_promo > 0) {
-      const reducedDiscount = Math.max(0, product.desc_promo - 10);
-      return Math.round(reducedDiscount);
+      return Math.round(Math.max(0, product.desc_promo - 10));
     }
 
     if (product?.discount && product.discount > 0) {
@@ -1356,12 +1365,12 @@ const ProductPage = () => {
 
   const hasOffer = hasCatalogOfferBadge({ discountPercentage, hasUserOffer, userOffer });
 
-  // Calcular precio final (respeta compra mínima de la promo)
+  // Calcular precio final (rebaja catálogo + oferta si aplica)
   const calculateFinalPrice = () => {
     const basePrice = precio1 || 0;
 
     if (hasUserOffer && userOffer?.discount_category === 'product_discount') {
-      return resolveProductDiscountUnitPrice(basePrice, userOffer, promoContextItems);
+      return resolveStackedProductDiscountUnitPrice(basePrice, stackItem, userOffer, promoContextItems);
     }
 
     if (product?.price && product.price !== basePrice && userOffer?.showPriceDiscount !== false) {
@@ -1376,6 +1385,10 @@ const ProductPage = () => {
   };
 
   const finalPrice = calculateFinalPrice();
+
+  const productDiscountDetail = hasUserOffer && userOffer?.discount_category === 'product_discount'
+    ? formatProductDiscountOfferDetail(stackItem, userOffer)
+    : '';
 
 
   // Función para obtener el stock disponible por talla y color
@@ -1701,9 +1714,9 @@ const ProductPage = () => {
                       `💰 Descuento en pedido ${Math.round(userOffer.discount_percentage)}%` :
                       hasUserOffer && userOffer && userOffer.discount_category === 'free_shipping' ?
                         '🚚 Envío gratis' :
-                        hasUserOffer && userOffer && userOffer.discount_percentage > 0 ?
-                          (<>{!isMobile && "Rebaja "}{Math.round(userOffer.discount_percentage)}%</>) :
-                          (<>🏷️ {!isMobile && "Rebaja "}{discountPercentage}%</>)
+                        hasUserOffer && userOffer ?
+                          getCatalogOfferBadgeLabel(userOffer, { discountPercentage, isMobile, product: stackItem }) :
+                          (<>🏷️ {discountPercentage}%</>)
                   }
                 </div>
               )}
@@ -1745,10 +1758,10 @@ const ProductPage = () => {
                   </div>
                 </div>
               )}
-              {hasUserOffer && userOffer && userOffer.discount_category === 'product_discount' && formatMinPurchaseHint(userOffer) && (
+              {hasUserOffer && userOffer && userOffer.discount_category === 'product_discount' && productDiscountDetail && (
                 <div className="product-page__offer-details">
-                  <div className="product-page__min-purchase">
-                    📋 {formatMinPurchaseHint(userOffer)}
+                  <div className="product-page__offer-note">
+                    ℹ️ {productDiscountDetail}
                   </div>
                 </div>
               )}

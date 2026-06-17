@@ -8,7 +8,7 @@ import './CatalogProductCard.css';
 import { getIconPath } from '../../utils/assetPaths';
 import colorConverter from '../../services/colorConverter';
 import { hasCatalogOfferBadge, getCatalogOfferBadgeLabel } from '../../utils/catalogOfferUtils';
-import { formatMinPurchaseHint } from '../../utils/offerMinPurchaseUtils';
+import { formatMinPurchaseHint, resolveStackedProductDiscountUnitPrice, resolveStackedProductDiscountPercentLiteral, getCatalogRebajaPercent } from '../../utils/offerMinPurchaseUtils';
 
 const CatalogProductCard = ({ product, onFavoriteToggle }) => {
   // Hook para detectar si es móvil
@@ -100,23 +100,32 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
 
   const stockStatus = getStockStatus();
 
-  // Calculate discount percentage - Priorizar oferta personalizada
+  // Calculate discount percentage and display price (rebaja catálogo + oferta apilada)
+  const listPrice = Number(product.precio1 ?? originalPrice ?? price ?? 0) || 0;
+  const stackItem = { ...product, precio1: listPrice };
+
+  const displayUnitPrice = hasUserOffer && userOffer?.discount_category === 'product_discount'
+    ? resolveStackedProductDiscountUnitPrice(listPrice, stackItem, userOffer, [])
+    : price;
+
+  const displayOriginalPrice = listPrice > displayUnitPrice ? listPrice : originalPrice;
+
   const calculateDiscountPercentage = () => {
-    // PRIORIDAD 1: Oferta personalizada del usuario (solo si tiene porcentaje)
+    if (hasUserOffer && userOffer?.discount_category === 'product_discount') {
+      return resolveStackedProductDiscountPercentLiteral(stackItem, userOffer, []);
+    }
     if (hasUserOffer && userOffer && userOffer.discount_percentage > 0) {
       return Math.round(userOffer.discount_percentage);
     }
-    
-    // PRIORIDAD 2: Descuento general desde la API (desc_promo)
     if (discount && discount > 0) {
       return Math.round(discount);
     }
-    
-    // PRIORIDAD 3: Fallback usando originalPrice vs price
+    if (getCatalogRebajaPercent(stackItem) > 0) {
+      return Math.round(getCatalogRebajaPercent(stackItem));
+    }
     if (originalPrice && price && originalPrice > price) {
       return Math.round(((originalPrice - price) / originalPrice) * 100);
     }
-    
     return 0;
   };
 
@@ -125,7 +134,7 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
   const hasOffer = hasCatalogOfferBadge({ discountPercentage, hasUserOffer, userOffer });
   const minPurchaseHint = hasUserOffer && userOffer ? formatMinPurchaseHint(userOffer) : '';
   
-  const getDiscountLabel = () => getCatalogOfferBadgeLabel(userOffer, { discountPercentage, isMobile });
+  const getDiscountLabel = () => getCatalogOfferBadgeLabel(userOffer, { discountPercentage, isMobile, product: stackItem });
 
   // Handle share functionality
   const handleShare = async () => {
@@ -247,10 +256,10 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
         
         {/* Price */}
         <div className="catalog-product-price-container">
-          {hasOffer && originalPrice && (
-            <div className="catalog-original-price">{formatPrice(originalPrice)}</div>
+          {hasOffer && displayOriginalPrice && displayOriginalPrice > displayUnitPrice && (
+            <div className="catalog-original-price">{formatPrice(displayOriginalPrice)}</div>
           )}
-          <div className="catalog-product-price">{formatPrice(price)}</div>
+          <div className="catalog-product-price">{formatPrice(displayUnitPrice)}</div>
           {minPurchaseHint && (
             <div className="catalog-min-purchase-hint">{minPurchaseHint}</div>
           )}

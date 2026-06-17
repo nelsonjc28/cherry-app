@@ -1,7 +1,6 @@
 import axios from 'axios';
 import {
-  getOfferMinPurchaseAmount,
-  calculateProductDiscountUnitPrice,
+  applyStackedProductDiscountPricing,
 } from '../utils/offerMinPurchaseUtils';
 
 const API_BASE_URL = '/api';
@@ -122,25 +121,18 @@ export const applyUserOffersToProducts = async (products, userOfferMap = null) =
         let discountedPrice = originalPrice;
         let visualDiscount = 0;
         let showPriceDiscount = true;
-        
-        // Calcular precio con descuento (solo para ofertas de descuento en producto)
+        let stackedOriginalPrice = null;
+
         if (userOffer.discount_category === 'product_discount') {
-          const discountValue = parseFloat(userOffer.discount_percentage) || 0;
-          const minPurchase = getOfferMinPurchaseAmount(userOffer);
-
-          if (discountValue > 0) {
-            visualDiscount = userOffer.discount_type === 'percentage'
-              ? discountValue
-              : (originalPrice > 0 ? Math.round((discountValue / originalPrice) * 100) : 0);
-
-            // Sin compra mínima: aplicar descuento al precio. Con mínimo: precio lista hasta alcanzarlo en carrito.
-            if (minPurchase <= 0) {
-              discountedPrice = calculateProductDiscountUnitPrice(originalPrice, userOffer);
-            } else {
-              showPriceDiscount = false;
-              discountedPrice = originalPrice;
-            }
-          }
+          const stacked = applyStackedProductDiscountPricing(
+            { ...product, precio1: originalPrice },
+            userOffer,
+            []
+          );
+          discountedPrice = stacked.finalPrice;
+          visualDiscount = stacked.visualDiscount;
+          showPriceDiscount = stacked.showPriceDiscount;
+          stackedOriginalPrice = stacked.originalPrice;
         }
         
         // Para ofertas buy_x_get_y y free_shipping, NO mostrar descuento de precio
@@ -175,7 +167,8 @@ export const applyUserOffersToProducts = async (products, userOfferMap = null) =
             showPriceDiscount: showPriceDiscount
           },
           // Precios actualizados
-          originalPrice: showPriceDiscount && discountedPrice < originalPrice ? originalPrice : product.originalPrice,
+          originalPrice: stackedOriginalPrice
+            ?? (showPriceDiscount && discountedPrice < originalPrice ? originalPrice : product.originalPrice),
           price: discountedPrice,
           discount: visualDiscount,
           hasUserOffer: true

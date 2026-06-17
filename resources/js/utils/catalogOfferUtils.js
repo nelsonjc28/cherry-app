@@ -1,4 +1,5 @@
 import { formatBuyXGetYOfferLabel } from './buyXGetYUtils';
+import { formatProductDiscountBadgeLabel } from './offerMinPurchaseUtils';
 
 const BADGE_CATEGORIES = ['product_discount', 'buy_x_get_y', 'order_discount', 'free_shipping'];
 
@@ -18,7 +19,7 @@ export function hasCatalogOfferBadge({ discountPercentage = 0, hasUserOffer = fa
 /**
  * Texto del badge de oferta en tarjetas y ficha de producto.
  */
-export function getCatalogOfferBadgeLabel(userOffer, { discountPercentage = 0, isMobile = false } = {}) {
+export function getCatalogOfferBadgeLabel(userOffer, { discountPercentage = 0, isMobile = false, product = null } = {}) {
   if (userOffer?.discount_category === 'buy_x_get_y') {
     return formatBuyXGetYOfferLabel(userOffer.buy_quantity, userOffer.get_quantity);
   }
@@ -28,8 +29,14 @@ export function getCatalogOfferBadgeLabel(userOffer, { discountPercentage = 0, i
   if (userOffer?.discount_category === 'free_shipping') {
     return '🚚 Envío gratis';
   }
-  if (userOffer?.discount_percentage > 0) {
-    return `${!isMobile ? 'Rebaja ' : ''}${Math.round(userOffer.discount_percentage)}%`;
+  if (userOffer?.discount_category === 'product_discount') {
+    const label = formatProductDiscountBadgeLabel(product ?? {}, userOffer);
+    if (label) {
+      return label;
+    }
   }
-  return `${!isMobile ? 'Rebaja ' : ''}${discountPercentage}%`;
+  if (userOffer?.discount_percentage > 0) {
+    return `${Math.round(userOffer.discount_percentage)}%`;
+  }
+  return `${discountPercentage}%`;
 }

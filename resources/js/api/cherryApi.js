@@ -5,8 +5,7 @@ import productCache from '../utils/productCacheInMemory';
 import { getProductCardStockStatus, getTotalInventoryFromProduct } from '../utils/productUtils';
 import { isProductNewLikeNuevosPage } from '../utils/productNewRules';
 import {
-  getOfferMinPurchaseAmount,
-  calculateProductDiscountUnitPrice,
+  applyStackedProductDiscountPricing,
 } from '../utils/offerMinPurchaseUtils';
 
 const CHERRY_API_URL = getCherryCatalogBaseUrl();
@@ -605,7 +604,7 @@ export const getPromoProducts = async (limit = 50) => {
         let discountAmount = 0;
         let showPriceDiscount = true;
         
-        const originalPrice = product.price || product.precio1 || 0;
+        const originalPrice = product.precio1 || product.price || 0;
         let finalPrice = originalPrice;
         
         // Para ofertas buy_x_get_y y free_shipping, NO mostrar descuento de precio
@@ -619,9 +618,19 @@ export const getPromoProducts = async (limit = 50) => {
           finalPrice = originalPrice; // Mantener precio original
         } else {
           // Solo para product_discount y order_discount
-          const minPurchase = getOfferMinPurchaseAmount(offerDataForProduct);
+          const listPrice = product.precio1 || product.price || 0;
 
-          if (offerDataForProduct.discount_type === 'percentage') {
+          if (offerDataForProduct.discount_category === 'product_discount') {
+            const stacked = applyStackedProductDiscountPricing(
+              { ...product, precio1: listPrice },
+              offerDataForProduct,
+              []
+            );
+            visualDiscount = stacked.visualDiscount;
+            finalPrice = stacked.finalPrice;
+            showPriceDiscount = stacked.showPriceDiscount;
+            discountAmount = Math.max(0, listPrice - finalPrice);
+          } else if (offerDataForProduct.discount_type === 'percentage') {
             visualDiscount = parseFloat(offerDataForProduct.discount_percentage) || 0;
             discountAmount = originalPrice * (visualDiscount / 100);
             finalPrice = originalPrice - discountAmount;
@@ -633,15 +642,8 @@ export const getPromoProducts = async (limit = 50) => {
             }
           }
 
-          if (offerDataForProduct.discount_category === 'product_discount' && minPurchase > 0) {
-            showPriceDiscount = false;
-            finalPrice = originalPrice;
-          } else if (offerDataForProduct.discount_category === 'product_discount' && minPurchase <= 0) {
-            finalPrice = calculateProductDiscountUnitPrice(originalPrice, offerDataForProduct);
-          }
-          
-          // Aplicar límites de descuento si están configurados
-          if (offerDataForProduct.max_discount_amount && offerDataForProduct.discount_type === 'percentage') {
+          if (offerDataForProduct.max_discount_amount && offerDataForProduct.discount_type === 'percentage'
+            && offerDataForProduct.discount_category !== 'product_discount') {
             const maxDiscount = parseFloat(offerDataForProduct.max_discount_amount);
             const calculatedDiscount = originalPrice - finalPrice;
             if (calculatedDiscount > maxDiscount) {
@@ -670,7 +672,9 @@ export const getPromoProducts = async (limit = 50) => {
         
         product.userOffer = {
           offer_id: offerDataForProduct.offer_id,
-          discount_percentage: visualDiscount, // Porcentaje visual para mostrar
+          discount_percentage: offerDataForProduct.discount_category === 'product_discount'
+            ? (parseFloat(offerDataForProduct.discount_percentage) || 0)
+            : visualDiscount,
           discount_amount: discountAmount, // Monto real del descuento
           discount_type: offerDataForProduct.discount_type,
           discount_category: offerDataForProduct.discount_category,
