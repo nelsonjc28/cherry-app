@@ -34,27 +34,45 @@ class CatalogOfferScopeService
 
     public function usesDynamicScope(CatalogOffer $offer): bool
     {
-        $scope = $this->normalizeScope($offer->target_scope);
+        $scopes = $this->resolveScopeConfig($offer)['scopes'];
 
-        return $scope !== self::SCOPE_PRODUCTS;
+        return ! (count($scopes) === 1 && $scopes[0] === self::SCOPE_PRODUCTS);
+    }
+
+    /**
+     * @return array{scopes: list<string>, category_codes: list<string>, catalog_ids: list<string>}
+     */
+    public function resolveScopeConfig(CatalogOffer $offer): array
+    {
+        $scopes = $offer->target_scopes;
+        if (is_array($scopes) && $scopes !== []) {
+            $normalizedScopes = $this->normalizeScopeList($scopes);
+
+            return [
+                'scopes' => $normalizedScopes,
+                'category_codes' => $this->normalizeStringList($offer->target_category_codes ?? []),
+                'catalog_ids' => $this->normalizeStringList($offer->target_catalog_ids ?? []),
+            ];
+        }
+
+        $legacy = $this->normalizeScope($offer->target_scope);
+        $categoryCodes = $offer->target_category_code
+            ? [trim((string) $offer->target_category_code)]
+            : [];
+        $catalogIds = $offer->target_catalog_id
+            ? [trim((string) $offer->target_catalog_id)]
+            : [];
+
+        return [
+            'scopes' => [$legacy],
+            'category_codes' => $this->normalizeStringList($categoryCodes),
+            'catalog_ids' => $this->normalizeStringList($catalogIds),
+        ];
     }
 
     public function productMatchesOffer(CatalogOffer $offer, Producto $producto): bool
     {
-        if ($producto->isProximamente()) {
-            return false;
-        }
-
-        $scope = $this->normalizeScope($offer->target_scope);
-
-        return match ($scope) {
-            self::SCOPE_PRODUCTS => $offer->offerProducts()->where('product_id', $producto->id)->exists(),
-            self::SCOPE_CATEGORY => $this->matchesCategory($producto, (string) ($offer->target_category_code ?? '')),
-            self::SCOPE_CATALOG => $this->matchesCatalog($producto, (string) ($offer->target_catalog_id ?? '')),
-            self::SCOPE_NEW => $this->matchesNew($producto),
-            self::SCOPE_REBAJAS => $this->matchesRebajas($producto),
-            default => $offer->offerProducts()->where('product_id', $producto->id)->exists(),
-        };
+        return $this->productMatchesOfferWithCache($offer, $producto, []);
     }
 
     /**
@@ -99,42 +117,16 @@ class CatalogOfferScopeService
      */
     public function resolveProductIdsForOffer(CatalogOffer $offer, int $limit = 5000): array
     {
-        $scope = $this->normalizeScope($offer->target_scope);
+        $config = $this->resolveScopeConfig($offer);
+        $ids = [];
 
-        if ($scope === self::SCOPE_PRODUCTS) {
-            return $this->filterOutProximamenteProductIds(
-                $offer->offerProducts()->pluck('product_id')->map(fn ($id) => (string) $id)->all()
-            );
+        foreach ($config['scopes'] as $scope) {
+            $ids = array_merge($ids, $this->resolveProductIdsForScope($offer, $scope, $config, $limit));
         }
 
-        $query = Producto::query()->select('productos.id');
-        Producto::applyFechaAgotadoVisibilityToProductosQuery($query->toBase());
-
-        return match ($scope) {
-            self::SCOPE_CATEGORY => $this->filterOutProximamenteProductIds(
-                $this->applyCategoryScopeToQuery($query, (string) ($offer->target_category_code ?? ''))
-                    ->limit($limit)
-                    ->pluck('id')
-                    ->map(fn ($id) => (string) $id)
-                    ->all()
-            ),
-            self::SCOPE_CATALOG => $this->filterOutProximamenteProductIds(
-                $this->applyCatalogScopeToQuery($query, (string) ($offer->target_catalog_id ?? ''))
-                    ->limit($limit)
-                    ->pluck('id')
-                    ->map(fn ($id) => (string) $id)
-                    ->all()
-            ),
-            self::SCOPE_NEW => $this->resolveNewProductIds($limit),
-            self::SCOPE_REBAJAS => $this->filterOutProximamenteProductIds(
-                $query->where('desc_promo', '>', 0)
-                    ->limit($limit)
-                    ->pluck('id')
-                    ->map(fn ($id) => (string) $id)
-                    ->all()
-            ),
-            default => [],
-        };
+        return $this->filterOutProximamenteProductIds(
+            array_values(array_unique(array_map('strval', $ids)))
+        );
     }
 
     /**
@@ -157,6 +149,88 @@ class CatalogOfferScopeService
             ->map(fn ($id) => (string) $id)
             ->values()
             ->all();
+    }
+
+    /**
+     * @param  array<int, array<string, bool>>  $explicitProductIdsByOffer
+     */
+    private function productMatchesOfferWithCache(
+        CatalogOffer $offer,
+        Producto $producto,
+        array $explicitProductIdsByOffer
+    ): bool {
+        if ($producto->isProximamente()) {
+            return false;
+        }
+
+        $config = $this->resolveScopeConfig($offer);
+
+        foreach ($config['scopes'] as $scope) {
+            if ($scope === self::SCOPE_PRODUCTS) {
+                if (($explicitProductIdsByOffer[$offer->id] ?? [])[(string) $producto->id] ?? false) {
+                    return true;
+                }
+
+                continue;
+            }
+
+            if ($this->productMatchesDynamicScope($producto, $scope, $config)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array{scopes: list<string>, category_codes: list<string>, catalog_ids: list<string>}  $config
+     */
+    private function productMatchesDynamicScope(Producto $producto, string $scope, array $config): bool
+    {
+        return match ($scope) {
+            self::SCOPE_CATEGORY => $this->matchesAnyCategory($producto, $config['category_codes']),
+            self::SCOPE_CATALOG => $this->matchesAnyCatalog($producto, $config['catalog_ids']),
+            self::SCOPE_NEW => $this->matchesNew($producto),
+            self::SCOPE_REBAJAS => $this->matchesRebajas($producto),
+            default => false,
+        };
+    }
+
+    /**
+     * @param  array{scopes: list<string>, category_codes: list<string>, catalog_ids: list<string>}  $config
+     * @return list<string>
+     */
+    private function resolveProductIdsForScope(CatalogOffer $offer, string $scope, array $config, int $limit): array
+    {
+        if ($scope === self::SCOPE_PRODUCTS) {
+            return $offer->offerProducts()
+                ->pluck('product_id')
+                ->map(fn ($id) => (string) $id)
+                ->all();
+        }
+
+        $query = Producto::query()->select('productos.id');
+        Producto::applyFechaAgotadoVisibilityToProductosQuery($query->toBase());
+
+        return match ($scope) {
+            self::SCOPE_CATEGORY => $this->applyCategoriesScopeToQuery($query, $config['category_codes'])
+                ->limit($limit)
+                ->pluck('id')
+                ->map(fn ($id) => (string) $id)
+                ->all(),
+            self::SCOPE_CATALOG => $this->applyCatalogsScopeToQuery($query, $config['catalog_ids'])
+                ->limit($limit)
+                ->pluck('id')
+                ->map(fn ($id) => (string) $id)
+                ->all(),
+            self::SCOPE_NEW => $this->resolveNewProductIds($limit),
+            self::SCOPE_REBAJAS => $query->where('desc_promo', '>', 0)
+                ->limit($limit)
+                ->pluck('id')
+                ->map(fn ($id) => (string) $id)
+                ->all(),
+            default => [],
+        };
     }
 
     /**
@@ -192,7 +266,11 @@ class CatalogOfferScopeService
     private function buildExplicitProductMap(Collection $offers): array
     {
         $productScopeOfferIds = $offers
-            ->filter(fn (CatalogOffer $offer) => $this->normalizeScope($offer->target_scope) === self::SCOPE_PRODUCTS)
+            ->filter(function (CatalogOffer $offer) {
+                $scopes = $this->resolveScopeConfig($offer)['scopes'];
+
+                return in_array(self::SCOPE_PRODUCTS, $scopes, true);
+            })
             ->pluck('id')
             ->all();
 
@@ -213,24 +291,41 @@ class CatalogOfferScopeService
     }
 
     /**
-     * @param  array<int, array<string, bool>>  $explicitProductIdsByOffer
+     * @param  list<string>  $scopes
+     * @return list<string>
      */
-    private function productMatchesOfferWithCache(
-        CatalogOffer $offer,
-        Producto $producto,
-        array $explicitProductIdsByOffer
-    ): bool {
-        if ($producto->isProximamente()) {
-            return false;
+    private function normalizeScopeList(array $scopes): array
+    {
+        $normalized = [];
+        foreach ($scopes as $scope) {
+            $value = $this->normalizeScope($scope);
+            if (! in_array($value, $normalized, true)) {
+                $normalized[] = $value;
+            }
         }
 
-        $scope = $this->normalizeScope($offer->target_scope);
+        return $normalized;
+    }
 
-        if ($scope === self::SCOPE_PRODUCTS) {
-            return ($explicitProductIdsByOffer[$offer->id] ?? [])[(string) $producto->id] ?? false;
+    /**
+     * @param  mixed  $values
+     * @return list<string>
+     */
+    private function normalizeStringList($values): array
+    {
+        if (! is_array($values)) {
+            return [];
         }
 
-        return $this->productMatchesOffer($offer, $producto);
+        $result = [];
+        foreach ($values as $value) {
+            $trimmed = trim((string) $value);
+            if ($trimmed !== '' && ! in_array($trimmed, $result, true)) {
+                $result[] = $trimmed;
+            }
+        }
+
+        return $result;
     }
 
     private function normalizeScope(mixed $scope): string
@@ -238,6 +333,34 @@ class CatalogOfferScopeService
         $scope = is_string($scope) ? strtolower(trim($scope)) : self::SCOPE_PRODUCTS;
 
         return in_array($scope, self::allScopes(), true) ? $scope : self::SCOPE_PRODUCTS;
+    }
+
+    /**
+     * @param  list<string>  $categoryCodes
+     */
+    private function matchesAnyCategory(Producto $producto, array $categoryCodes): bool
+    {
+        foreach ($categoryCodes as $categoryCode) {
+            if ($this->matchesCategory($producto, $categoryCode)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  list<string>  $catalogIds
+     */
+    private function matchesAnyCatalog(Producto $producto, array $catalogIds): bool
+    {
+        foreach ($catalogIds as $catalogId) {
+            if ($this->matchesCatalog($producto, $catalogId)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function matchesCategory(Producto $producto, string $categoryCode): bool
@@ -282,17 +405,43 @@ class CatalogOfferScopeService
 
     /**
      * @param  \Illuminate\Database\Eloquent\Builder<Producto>  $query
+     * @param  list<string>  $categoryCodes
      * @return \Illuminate\Database\Eloquent\Builder<Producto>
      */
-    private function applyCategoryScopeToQuery($query, string $categoryCode)
+    private function applyCategoriesScopeToQuery($query, array $categoryCodes)
     {
-        $normalized = $this->normalizeCategoryCode($categoryCode);
-        if ($normalized === null) {
+        $normalizedCodes = [];
+        foreach ($categoryCodes as $categoryCode) {
+            $normalized = $this->normalizeCategoryCode($categoryCode);
+            if ($normalized !== null) {
+                $normalizedCodes[] = $normalized;
+            }
+        }
+
+        if ($normalizedCodes === []) {
             return $query->whereRaw('1 = 0');
         }
 
-        // id_linea en productos suele ser "01", "08", etc.; categories.code es "1", "8"
-        return $query->whereRaw('CAST(id_linea AS UNSIGNED) = ?', [$normalized]);
+        return $query->where(function ($inner) use ($normalizedCodes) {
+            foreach ($normalizedCodes as $normalized) {
+                $inner->orWhereRaw('CAST(id_linea AS UNSIGNED) = ?', [$normalized]);
+            }
+        });
+    }
+
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder<Producto>  $query
+     * @param  list<string>  $catalogIds
+     * @return \Illuminate\Database\Eloquent\Builder<Producto>
+     */
+    private function applyCatalogsScopeToQuery($query, array $catalogIds)
+    {
+        $catalogIds = $this->normalizeStringList($catalogIds);
+        if ($catalogIds === []) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereIn('catalogoId', $catalogIds);
     }
 
     /**
@@ -306,19 +455,5 @@ class CatalogOfferScopeService
         }
 
         return (int) $code;
-    }
-
-    /**
-     * @param  \Illuminate\Database\Eloquent\Builder<Producto>  $query
-     * @return \Illuminate\Database\Eloquent\Builder<Producto>
-     */
-    private function applyCatalogScopeToQuery($query, string $catalogId)
-    {
-        $catalogId = trim($catalogId);
-        if ($catalogId === '') {
-            return $query->whereRaw('1 = 0');
-        }
-
-        return $query->where('catalogoId', $catalogId);
     }
 }

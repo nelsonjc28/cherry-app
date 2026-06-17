@@ -46,6 +46,33 @@
   100% { transform: rotate(360deg); }
 }
 
+.user-multi-select__selected-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.user-multi-select__clear-all-btn {
+  background: none;
+  border: none;
+  color: #dc3545;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.user-multi-select__clear-all-btn:hover {
+  text-decoration: underline;
+}
+
 .user-multi-select__selected {
   display: flex;
   flex-wrap: wrap;

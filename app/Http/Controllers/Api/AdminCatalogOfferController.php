@@ -201,8 +201,15 @@ class AdminCatalogOfferController extends Controller
                     'buy_quantity' => $offer->buy_quantity,
                     'get_quantity' => $offer->get_quantity,
                     'target_scope' => $offer->target_scope ?? CatalogOfferScopeService::SCOPE_PRODUCTS,
+                    'target_scopes' => $offer->target_scopes ?? [$offer->target_scope ?? CatalogOfferScopeService::SCOPE_PRODUCTS],
                     'target_category_code' => $offer->target_category_code,
+                    'target_category_codes' => $offer->target_category_codes ?? (
+                        $offer->target_category_code ? [$offer->target_category_code] : []
+                    ),
                     'target_catalog_id' => $offer->target_catalog_id,
+                    'target_catalog_ids' => $offer->target_catalog_ids ?? (
+                        $offer->target_catalog_id ? [$offer->target_catalog_id] : []
+                    ),
                     'created_at' => $offer->created_at,
                     'updated_at' => $offer->updated_at,
                     // Compatibilidad con frontend - IDs para compatibilidad
@@ -252,8 +259,11 @@ class AdminCatalogOfferController extends Controller
                 'target_products' => 'nullable|string', // JSON string
                 'target_users' => 'nullable|string', // JSON string
                 'target_scope' => 'nullable|in:products,category,catalog,new,rebajas',
-                'target_category_code' => 'nullable|string|max:64|required_if:target_scope,category',
-                'target_catalog_id' => 'nullable|string|max:64|required_if:target_scope,catalog',
+                'target_scopes' => 'nullable|string',
+                'target_category_code' => 'nullable|string|max:64',
+                'target_category_codes' => 'nullable|string',
+                'target_catalog_id' => 'nullable|string|max:64',
+                'target_catalog_ids' => 'nullable|string',
                 'banner_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
                 'modal_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
                 'modal_text' => 'nullable|string'
@@ -302,9 +312,20 @@ class AdminCatalogOfferController extends Controller
             // Remover de los datos principales
             unset($data['target_products'], $data['target_users']);
 
-            $targetScope = $this->normalizeTargetScope($data);
-            $data['target_scope'] = $targetScope;
-            $this->applyTargetScopeFields($data, $targetScope);
+            $targetScope = $this->normalizeTargetScopePayload($data);
+            $scopeError = $this->validateTargetScopes(
+                $targetScope,
+                $data['target_category_codes'] ?? [],
+                $data['target_catalog_ids'] ?? [],
+                $targetProducts,
+                (string) ($data['discount_category'] ?? '')
+            );
+            if ($scopeError !== null) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $scopeError,
+                ], 422);
+            }
             
             // Limpiar campos según el tipo de descuento
             if ($data['discount_category'] === 'buy_x_get_y') {
@@ -351,7 +372,7 @@ class AdminCatalogOfferController extends Controller
                 $offer = CatalogOffer::create($data);
                 
                 // Crear relaciones de productos solo cuando el alcance es por productos específicos
-                if ($targetScope === CatalogOfferScopeService::SCOPE_PRODUCTS && ! empty($targetProducts)) {
+                if (in_array(CatalogOfferScopeService::SCOPE_PRODUCTS, $targetScope, true) && ! empty($targetProducts)) {
                     foreach ($targetProducts as $product) {
                         // Manejar tanto strings como objetos/arrays
                         $productId = null;
@@ -470,8 +491,11 @@ class AdminCatalogOfferController extends Controller
                 'target_products' => 'nullable|string',
                 'target_users' => 'nullable|string',
                 'target_scope' => 'nullable|in:products,category,catalog,new,rebajas',
-                'target_category_code' => 'nullable|string|max:64|required_if:target_scope,category',
-                'target_catalog_id' => 'nullable|string|max:64|required_if:target_scope,catalog',
+                'target_scopes' => 'nullable|string',
+                'target_category_code' => 'nullable|string|max:64',
+                'target_category_codes' => 'nullable|string',
+                'target_catalog_id' => 'nullable|string|max:64',
+                'target_catalog_ids' => 'nullable|string',
                 'banner_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
                 'modal_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
                 'modal_text' => 'nullable|string'
@@ -508,9 +532,20 @@ class AdminCatalogOfferController extends Controller
             
             unset($data['target_products'], $data['target_users']);
 
-            $targetScope = $this->normalizeTargetScope($data);
-            $data['target_scope'] = $targetScope;
-            $this->applyTargetScopeFields($data, $targetScope);
+            $targetScope = $this->normalizeTargetScopePayload($data);
+            $scopeError = $this->validateTargetScopes(
+                $targetScope,
+                $data['target_category_codes'] ?? [],
+                $data['target_catalog_ids'] ?? [],
+                $targetProducts,
+                (string) ($data['discount_category'] ?? '')
+            );
+            if ($scopeError !== null) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $scopeError,
+                ], 422);
+            }
             
             // Limpiar campos según tipo
             if ($data['discount_category'] === 'buy_x_get_y') {
@@ -573,7 +608,7 @@ class AdminCatalogOfferController extends Controller
                 
                 // Actualizar relaciones de productos solo para alcance "products"
                 CatalogOfferProduct::where('offer_id', $offer->id)->delete();
-                if ($targetScope === CatalogOfferScopeService::SCOPE_PRODUCTS && ! empty($targetProducts)) {
+                if (in_array(CatalogOfferScopeService::SCOPE_PRODUCTS, $targetScope, true) && ! empty($targetProducts)) {
                     foreach ($targetProducts as $product) {
                         // Manejar tanto strings como objetos/arrays
                         $productId = null;
@@ -744,8 +779,15 @@ class AdminCatalogOfferController extends Controller
                 'buy_quantity' => $offer->buy_quantity,
                 'get_quantity' => $offer->get_quantity,
                 'target_scope' => $offer->target_scope ?? CatalogOfferScopeService::SCOPE_PRODUCTS,
+                'target_scopes' => $offer->target_scopes ?? [$offer->target_scope ?? CatalogOfferScopeService::SCOPE_PRODUCTS],
                 'target_category_code' => $offer->target_category_code,
+                'target_category_codes' => $offer->target_category_codes ?? (
+                    $offer->target_category_code ? [$offer->target_category_code] : []
+                ),
                 'target_catalog_id' => $offer->target_catalog_id,
+                'target_catalog_ids' => $offer->target_catalog_ids ?? (
+                    $offer->target_catalog_id ? [$offer->target_catalog_id] : []
+                ),
                 'created_at' => $offer->created_at,
                 'updated_at' => $offer->updated_at,
                 'target_products' => $productIds,
@@ -768,28 +810,122 @@ class AdminCatalogOfferController extends Controller
         }
     }
 
-    private function normalizeTargetScope(array $data): string
+    private function normalizeTargetScope(mixed $scope): string
     {
-        $scope = strtolower(trim((string) ($data['target_scope'] ?? CatalogOfferScopeService::SCOPE_PRODUCTS)));
+        $scope = strtolower(trim((string) ($scope ?? CatalogOfferScopeService::SCOPE_PRODUCTS)));
 
         return in_array($scope, CatalogOfferScopeService::allScopes(), true)
             ? $scope
             : CatalogOfferScopeService::SCOPE_PRODUCTS;
     }
 
-    private function applyTargetScopeFields(array &$data, string $targetScope): void
+    /**
+     * @return list<string>
+     */
+    private function normalizeTargetScopePayload(array &$data): array
     {
-        if ($targetScope !== CatalogOfferScopeService::SCOPE_CATEGORY) {
-            $data['target_category_code'] = null;
-        } elseif (isset($data['target_category_code'])) {
-            $data['target_category_code'] = trim((string) $data['target_category_code']) ?: null;
+        $scopes = $this->decodeJsonArray($data['target_scopes'] ?? null);
+        if ($scopes === [] && isset($data['target_scope'])) {
+            $scopes = [$this->normalizeTargetScope($data['target_scope'])];
         }
 
-        if ($targetScope !== CatalogOfferScopeService::SCOPE_CATALOG) {
-            $data['target_catalog_id'] = null;
-        } elseif (isset($data['target_catalog_id'])) {
-            $data['target_catalog_id'] = trim((string) $data['target_catalog_id']) ?: null;
+        $scopes = array_values(array_unique(array_filter(array_map(
+            fn ($scope) => $this->normalizeTargetScope($scope),
+            $scopes
+        ))));
+
+        $categoryCodes = $this->decodeJsonArray($data['target_category_codes'] ?? null);
+        if ($categoryCodes === [] && ! empty($data['target_category_code'])) {
+            $categoryCodes = [trim((string) $data['target_category_code'])];
         }
+
+        $catalogIds = $this->decodeJsonArray($data['target_catalog_ids'] ?? null);
+        if ($catalogIds === [] && ! empty($data['target_catalog_id'])) {
+            $catalogIds = [trim((string) $data['target_catalog_id'])];
+        }
+
+        $categoryCodes = array_values(array_unique(array_filter(array_map(
+            fn ($code) => trim((string) $code),
+            $categoryCodes
+        ))));
+        $catalogIds = array_values(array_unique(array_filter(array_map(
+            fn ($id) => trim((string) $id),
+            $catalogIds
+        ))));
+
+        if ($scopes === []) {
+            $scopes = [CatalogOfferScopeService::SCOPE_PRODUCTS];
+        }
+
+        if (! in_array(CatalogOfferScopeService::SCOPE_CATEGORY, $scopes, true)) {
+            $categoryCodes = [];
+        }
+        if (! in_array(CatalogOfferScopeService::SCOPE_CATALOG, $scopes, true)) {
+            $catalogIds = [];
+        }
+
+        $data['target_scopes'] = $scopes;
+        $data['target_category_codes'] = $categoryCodes !== [] ? $categoryCodes : null;
+        $data['target_catalog_ids'] = $catalogIds !== [] ? $catalogIds : null;
+        $data['target_scope'] = $scopes[0];
+        $data['target_category_code'] = $categoryCodes[0] ?? null;
+        $data['target_catalog_id'] = $catalogIds[0] ?? null;
+
+        return $scopes;
+    }
+
+    /**
+     * @param  list<string>  $scopes
+     * @param  list<string>  $categoryCodes
+     * @param  list<string>  $catalogIds
+     * @param  list<mixed>  $targetProducts
+     */
+    private function validateTargetScopes(
+        array $scopes,
+        array $categoryCodes,
+        array $catalogIds,
+        array $targetProducts,
+        string $discountCategory
+    ): ?string {
+        if ($discountCategory === 'order_discount') {
+            return null;
+        }
+
+        if ($scopes === []) {
+            return 'Selecciona al menos un alcance para la oferta.';
+        }
+
+        if (in_array(CatalogOfferScopeService::SCOPE_CATEGORY, $scopes, true) && $categoryCodes === []) {
+            return 'Selecciona al menos una categoría.';
+        }
+
+        if (in_array(CatalogOfferScopeService::SCOPE_CATALOG, $scopes, true) && $catalogIds === []) {
+            return 'Selecciona al menos un catálogo.';
+        }
+
+        if (in_array(CatalogOfferScopeService::SCOPE_PRODUCTS, $scopes, true) && $targetProducts === []) {
+            return 'Selecciona al menos un producto o quita el alcance de productos específicos.';
+        }
+
+        return null;
+    }
+
+    /**
+     * @return list<mixed>
+     */
+    private function decodeJsonArray(mixed $raw): array
+    {
+        if (is_array($raw)) {
+            return $raw;
+        }
+
+        if (is_string($raw) && trim($raw) !== '') {
+            $decoded = json_decode($raw, true);
+
+            return is_array($decoded) ? $decoded : [];
+        }
+
+        return [];
     }
 
     /**

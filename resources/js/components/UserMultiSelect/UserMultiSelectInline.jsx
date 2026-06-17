@@ -98,10 +98,6 @@ const UserMultiSelect = ({
     }
   };
 
-  const handleRemoveUser = (userToRemove) => {
-    onUsersChange(selectedUsers.filter((u) => u?.id !== userToRemove.id));
-  };
-
   const handleInputChange = (e) => {
     setSearchTerm(e.target.value);
     if (!isOpen) setIsOpen(true);
@@ -195,51 +191,41 @@ const UserMultiSelect = ({
         />
       </div>
 
-      {/* Selected users */}
+      {/* Resumen compacto (sin listar cada usuario) */}
       {selectedUsers.length > 0 && (
         <div
           style={{
             display: "flex",
-            flexWrap: "wrap",
-            gap: "8px",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
             marginTop: "8px",
-            padding: "8px",
+            padding: "8px 12px",
             backgroundColor: "#f8f9fa",
             borderRadius: "6px",
+            fontSize: "13px",
+            color: "#4b5563",
           }}
         >
-          {selectedUsers.map((user) => (
-            <div
-              key={user.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "6px 12px",
-                backgroundColor: "#dc3545",
-                color: "white",
-                borderRadius: "20px",
-                fontSize: "13px",
-                fontWeight: 500,
-              }}
-            >
-              <span>{formatUserName(user)}</span>
-              <button
-                type="button"
-                onClick={() => handleRemoveUser(user)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "white",
-                  fontSize: "16px",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                }}
-              >
-                ×
-              </button>
-            </div>
-          ))}
+          <span>
+            {selectedUsers.length} usuario{selectedUsers.length !== 1 ? "s" : ""} seleccionado
+            {selectedUsers.length !== 1 ? "s" : ""}
+          </span>
+          <button
+            type="button"
+            onClick={() => onUsersChange([])}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#dc3545",
+              fontSize: "13px",
+              fontWeight: 600,
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            Quitar todos
+          </button>
         </div>
       )}
 

@@ -104,15 +104,6 @@ const UserMultiSelect = ({
     onUsersChange(newSelectedUsers);
   };
 
-  const handleRemoveUser = (userToRemove) => {
-    if (!userToRemove || !userToRemove.id) {
-      return;
-    }
-    
-    const newSelectedUsers = selectedUsers.filter(user => user && user.id !== userToRemove.id);
-    onUsersChange(newSelectedUsers);
-  };
-
   const formatUserName = (user) => {
     if (!user || !user.first_name || !user.last_name) {
       return 'Usuario sin nombre';
@@ -141,23 +132,19 @@ const UserMultiSelect = ({
         )}
       </div>
 
-      {/* Usuarios seleccionados */}
       {selectedUsers.length > 0 && (
-        <div className="user-multi-select__selected">
-          {selectedUsers.filter(user => user && user.id).map(user => (
-            <div key={user.id} className="user-multi-select__selected-item">
-              <span className="user-multi-select__selected-name">
-                {formatUserName(user)}
-              </span>
-              <button
-                type="button"
-                onClick={() => handleRemoveUser(user)}
-                className="user-multi-select__remove-btn"
-              >
-                ×
-              </button>
-            </div>
-          ))}
+        <div className="user-multi-select__selected-summary">
+          <span>
+            {selectedUsers.length} usuario{selectedUsers.length !== 1 ? 's' : ''} seleccionado
+            {selectedUsers.length !== 1 ? 's' : ''}
+          </span>
+          <button
+            type="button"
+            onClick={() => onUsersChange([])}
+            className="user-multi-select__clear-all-btn"
+          >
+            Quitar todos
+          </button>
         </div>
       )}
 

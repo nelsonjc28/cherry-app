@@ -43,7 +43,7 @@ import { canEncargoSinStock, canEncargoForSize, isOutOfStockEncargoForSize } fro
 import { summarizeVolumeFromCartItems } from '../utils/cartVolumePricing';
 import { formatBuyXGetYOfferLabel, formatBuyXGetYOfferExample, validateBuyXGetYCartSelection } from '../utils/buyXGetYUtils';
 import { hasCatalogOfferBadge, getCatalogOfferBadgeLabel } from '../utils/catalogOfferUtils';
-import { formatMinPurchaseHint, buildPromoContextItems, resolveStackedProductDiscountUnitPrice, resolveStackedProductDiscountPercentLiteral, isPromoMinPurchaseMet, getOfferMinPurchaseAmount, formatMinPurchaseLabel, getCatalogRebajaPercent, formatProductDiscountOfferDetail } from '../utils/offerMinPurchaseUtils';
+import { formatMinPurchaseHint, buildPromoContextItems, resolveStackedProductDiscountUnitPrice, getCatalogDisplayUnitPrice, getProductDisplayDiscountPercent, isPromoMinPurchaseMet, getOfferMinPurchaseAmount, formatMinPurchaseLabel, getCatalogRebajaPercent, formatProductDiscountOfferDetail } from '../utils/offerMinPurchaseUtils';
 
 // Función para formatear montos con separador de miles
 const formatMoneyWithCommas = (value) => {
@@ -833,12 +833,12 @@ const ProductPage = () => {
           id_articulo: product.id_articulo,
           title: product.descripcion,
           desc_promo: product.desc_promo,
-          price: isFreeItem ? 0 : finalPrice,
-          precio: isFreeItem ? 0 : finalPrice,
+          price: isFreeItem ? 0 : checkoutUnitPrice,
+          precio: isFreeItem ? 0 : checkoutUnitPrice,
           precio1: precio1,
           originalPrice: hasOffer && !isFreeItem ? precio1 : null,
           discount: hasOffer && !isFreeItem ? discountPercentage : null,
-          savings: hasOffer && !isFreeItem ? (precio1 - finalPrice) : null,
+          savings: hasOffer && !isFreeItem ? (precio1 - checkoutUnitPrice) : null,
           image: generateS3ImageUrl(product.id_articulo),
           selectedColor,
           selectedSize: talla,
@@ -922,18 +922,15 @@ const ProductPage = () => {
             hasUserOffer
             && userOffer?.discount_category === 'product_discount'
             && isPromoMinPurchaseMet(userOffer, cartAfterAdd)
-            && resolveStackedProductDiscountPercentLiteral(
-              { desc_promo: product?.desc_promo, precio1 },
-              userOffer,
-              cartAfterAdd
-            ) > getCatalogRebajaPercent({ desc_promo: product?.desc_promo })
+            && (parseFloat(userOffer.discount_percentage) || 0) > 0
           ) {
-            const stackedPct = resolveStackedProductDiscountPercentLiteral(
-              { desc_promo: product?.desc_promo, precio1 },
-              userOffer,
-              cartAfterAdd
-            );
-            message += ` 🏷️ ${stackedPct}% de descuento aplicado`;
+            const offerPct = Math.round(userOffer.discount_percentage);
+            const offerTitle = userOffer.title || 'la promoción';
+            if (getCatalogRebajaPercent({ desc_promo: product?.desc_promo }) > 0) {
+              message += ` 🏷️ ${discountPercentage}% de rebaja. El ${offerPct}% de ${offerTitle} se aplicará al pagar`;
+            } else {
+              message += ` 🏷️ El ${offerPct}% de ${offerTitle} se aplicará al pagar`;
+            }
           } else if (discountPercentage > 0 && !hasUserOffer) {
             message += ` 🏷️ Con ${discountPercentage}% de descuento`;
           }
@@ -1340,7 +1337,7 @@ const ProductPage = () => {
   // Calcular descuento con prioridades (rebaja catálogo + oferta apilada)
   const calculateDiscountPercentage = () => {
     if (hasUserOffer && userOffer?.discount_category === 'product_discount') {
-      return resolveStackedProductDiscountPercentLiteral(stackItem, userOffer, promoContextItems);
+      return getProductDisplayDiscountPercent(stackItem, userOffer);
     }
     if (hasUserOffer && userOffer && userOffer.discount_percentage > 0) {
       return Math.round(userOffer.discount_percentage);
@@ -1365,12 +1362,12 @@ const ProductPage = () => {
 
   const hasOffer = hasCatalogOfferBadge({ discountPercentage, hasUserOffer, userOffer });
 
-  // Calcular precio final (rebaja catálogo + oferta si aplica)
+  // Precio mostrado en ficha (rebaja catálogo; oferta adicional al pagar)
   const calculateFinalPrice = () => {
     const basePrice = precio1 || 0;
 
     if (hasUserOffer && userOffer?.discount_category === 'product_discount') {
-      return resolveStackedProductDiscountUnitPrice(basePrice, stackItem, userOffer, promoContextItems);
+      return getCatalogDisplayUnitPrice(basePrice, stackItem, userOffer);
     }
 
     if (product?.price && product.price !== basePrice && userOffer?.showPriceDiscount !== false) {
@@ -1385,6 +1382,13 @@ const ProductPage = () => {
   };
 
   const finalPrice = calculateFinalPrice();
+  const checkoutUnitPrice = (() => {
+    const basePrice = precio1 || 0;
+    if (hasUserOffer && userOffer?.discount_category === 'product_discount') {
+      return resolveStackedProductDiscountUnitPrice(basePrice, stackItem, userOffer, promoContextItems);
+    }
+    return finalPrice;
+  })();
 
   const productDiscountDetail = hasUserOffer && userOffer?.discount_category === 'product_discount'
     ? formatProductDiscountOfferDetail(stackItem, userOffer)

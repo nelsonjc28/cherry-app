@@ -8,7 +8,7 @@ import { getIconPath } from '../../utils/assetPaths';
 import colorConverter from '../../services/colorConverter';
 import { useUserDiscounts } from '../../hooks/useUserDiscounts';
 import { hasCatalogOfferBadge, getCatalogOfferBadgeLabel } from '../../utils/catalogOfferUtils';
-import { resolveStackedProductDiscountPercentLiteral, getCatalogRebajaPercent } from '../../utils/offerMinPurchaseUtils';
+import { getProductDisplayDiscountPercent, getCatalogRebajaPercent } from '../../utils/offerMinPurchaseUtils';
 import './ProductCard.css';
 
 const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, variant = 'default' }) => {
@@ -113,7 +113,7 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
 
   const calculateDiscountPercentage = () => {
     if (finalHasUserOffer && finalUserOffer?.discount_category === 'product_discount') {
-      return resolveStackedProductDiscountPercentLiteral(stackItem, finalUserOffer, []);
+      return getProductDisplayDiscountPercent(stackItem, finalUserOffer);
     }
     if (finalHasUserOffer && finalUserOffer && finalUserOffer.discount_percentage > 0) {
       return Math.round(finalUserOffer.discount_percentage);

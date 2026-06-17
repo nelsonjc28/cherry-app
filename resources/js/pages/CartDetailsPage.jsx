@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import useCartStore, { cartLineMatches, calculateItemPrice } from '../store/cartStore';
-import { buildOfferMinPurchaseAlerts, resolveCartGroupedDiscountPercent } from '../utils/offerMinPurchaseUtils';
+import { buildOfferMinPurchaseAlerts, resolveCartGroupedDiscountPercent, getCatalogDiscountedUnitPrice, getListUnitPrice } from '../utils/offerMinPurchaseUtils';
 import api from '../config/axios';
 import './CartDetailsPage.css';
 import CartDetailsProductCard from '../components/CartDetailsProductCard';
@@ -78,7 +78,8 @@ const CartDetailsPage = () => {
     removeItemUsingClearThenSync,
     updateQuantity,
     clearCart,
-    initCart
+    initCart,
+    refreshCartOffers,
   } = useCartStore();
   const getPricingSummary = useCartStore((state) => state.getPricingSummary);
   const pricingSummary = getPricingSummary();
@@ -129,8 +130,12 @@ const CartDetailsPage = () => {
 
   // Initialize cart from localStorage
   useEffect(() => {
-    initCart();
-  }, [initCart]);
+    const loadCart = async () => {
+      await initCart();
+      await refreshCartOffers();
+    };
+    loadCart();
+  }, [initCart, refreshCartOffers]);
 
   // Refrescar usuario al entrar al carrito para evitar categoría cacheada
   // (p.ej. cambio admin de Oro/Diamante a Bronce sin hard refresh).
@@ -307,18 +312,26 @@ const CartDetailsPage = () => {
 
   // Convert grouped products to array format
   const productsForDisplay = Object.values(groupedProducts).map((groupedProduct) => {
-    const listUnit = parseFloat(groupedProduct.precio1 || groupedProduct.originalPrice || groupedProduct.precio) || 0;
-    const priceWithoutDiscount = listUnit * groupedProduct.totalQuantity;
-    const priceWithDiscount = groupedProduct.totalPrice;
+    const repItem = {
+      desc_promo: groupedProduct.desc_promo,
+      precio1: groupedProduct.precio1 ?? groupedProduct.originalPrice,
+      originalPrice: groupedProduct.originalPrice,
+      precio: groupedProduct.precio,
+      userOffer: groupedProduct.userOffer,
+    };
+    const listUnit = getListUnitPrice(repItem);
+    const catalogUnit = getCatalogDiscountedUnitPrice(listUnit, repItem);
+    const qty = groupedProduct.totalQuantity;
+    const catalogLineTotal = catalogUnit * qty;
+    const finalLineTotal = groupedProduct.totalPrice;
+    const priceWithoutDiscount = listUnit * qty;
     const discountPercentage = resolveCartGroupedDiscountPercent(groupedProduct, cartItems);
     const hasDiscount = discountPercentage > 0
       || (groupedProduct.desc_promo && groupedProduct.desc_promo > 0)
-      || (groupedProduct.originalPrice && parseFloat(groupedProduct.originalPrice) > parseFloat(groupedProduct.precio))
+      || (groupedProduct.originalPrice && parseFloat(groupedProduct.originalPrice) > catalogUnit)
       || groupedProduct.userOffer?.discount_category === 'product_discount';
 
-    const effectiveUnitPrice = groupedProduct.totalQuantity > 0
-      ? priceWithDiscount / groupedProduct.totalQuantity
-      : parseFloat(groupedProduct.precio) || 0;
+    const displayUnitPrice = catalogUnit > 0 ? catalogUnit : (qty > 0 ? finalLineTotal / qty : 0);
 
     return {
       image: groupedProduct.image && groupedProduct.image !== '/images/catalogProductImages/Rectangle 4922.png' 
@@ -326,15 +339,16 @@ const CartDetailsPage = () => {
         : null,
       sku: groupedProduct.id_articulo,
       title: groupedProduct.title,
-      price: effectiveUnitPrice.toFixed(2),
-      originalPrice: hasDiscount && listUnit > effectiveUnitPrice ? listUnit.toFixed(2) : null,
+      price: displayUnitPrice.toFixed(2),
+      originalPrice: hasDiscount && listUnit > displayUnitPrice ? listUnit.toFixed(2) : null,
       hasDiscount,
       discountPercentage,
       variants: groupedProduct.variants,
       summary: {
-        quantity: groupedProduct.totalQuantity,
+        quantity: qty,
         priceWithoutDiscount: priceWithoutDiscount.toFixed(2),
-        priceWithDiscount: parseFloat(priceWithDiscount).toFixed(2),
+        priceWithDiscount: catalogLineTotal.toFixed(2),
+        finalLineTotal: parseFloat(finalLineTotal).toFixed(2),
         // Información adicional para mostrar ofertas Buy X Get Y
         userOffer: groupedProduct.userOffer,
         freeItemsCount: groupedProduct.freeItemsCount || 0,

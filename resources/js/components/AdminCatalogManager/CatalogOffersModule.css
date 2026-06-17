@@ -905,7 +905,25 @@
   padding: 0.55rem 0.65rem;
   border: 1px solid #d1d5db;
   border-radius: 8px;
-  font-size: 0.9rem;
+}
+
+.catalog-offers-module__scope-multi-list {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.catalog-offers-module__scope-multi-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.25rem;
 }
 
 .catalog-offers-module__scope-badge {

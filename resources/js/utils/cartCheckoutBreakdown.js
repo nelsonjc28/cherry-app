@@ -5,6 +5,12 @@
 
 import { cartItemToPricingLine, discountedMerchandiseForSubset } from './cartVolumePricing';
 import { calculateItemPrice, getPaidQuantity } from '../store/cartStore';
+import {
+  getCatalogDiscountedUnitPrice,
+  getListUnitPrice,
+  getOfferGroupKey,
+  isPromoMinPurchaseMet,
+} from './offerMinPurchaseUtils';
 
 function round2(n) {
   return Math.round((Number(n) + Number.EPSILON) * 100) / 100;
@@ -22,6 +28,43 @@ export function isVolumeEligibleCartItem(item) {
   return true;
 }
 
+/** Descuentos de ofertas product_discount agrupados por promoción (sobre importe ya rebajado). */
+export function computeCartOfferDiscountLines(cartItems) {
+  const byKey = {};
+
+  for (const it of cartItems || []) {
+    const offer = it?.userOffer;
+    if (offer?.discount_category !== 'product_discount') {
+      continue;
+    }
+    if (!isPromoMinPurchaseMet(offer, cartItems)) {
+      continue;
+    }
+
+    const qty = getPaidQuantity(it) > 0 ? getPaidQuantity(it) : parseInt(it.quantity, 10) || 0;
+    if (qty <= 0) {
+      continue;
+    }
+
+    const listUnit = getListUnitPrice(it);
+    const catalogUnit = getCatalogDiscountedUnitPrice(listUnit, it);
+    const catalogLine = round2(catalogUnit * qty);
+    const finalLine = round2(calculateItemPrice(it, cartItems));
+    const saving = round2(Math.max(0, catalogLine - finalLine));
+    if (saving <= 0.0001) {
+      continue;
+    }
+
+    const key = getOfferGroupKey(it) || `offer:${offer.title || 'promo'}`;
+    if (!byKey[key]) {
+      byKey[key] = { title: offer.title || 'Oferta', amount: 0 };
+    }
+    byKey[key].amount = round2(byKey[key].amount + saving);
+  }
+
+  return Object.values(byKey).filter((row) => row.amount > 0.0001);
+}
+
 /**
  * @param {object | null} user
  * @param {object[]} cartItems
@@ -37,8 +80,10 @@ export function buildCartAmountBreakdown(user, cartItems, volSummary) {
       discountVolumeExtra: 0,
       lineNet: 0,
       promoListSubtotal: 0,
+      promoCatalogSubtotal: 0,
       promoCartSubtotal: 0,
       promoSavings: 0,
+      offerDiscountLines: [],
       totalPieces: 0,
     };
   }
@@ -63,21 +108,26 @@ export function buildCartAmountBreakdown(user, cartItems, volSummary) {
     : 0;
 
   let promoListSubtotal = 0;
+  let promoCatalogSubtotal = 0;
   let promoCartSubtotal = 0;
   for (const it of promoItems) {
     promoCartSubtotal += round2(calculateItemPrice(it, cartItems));
     const q = getPaidQuantity(it) > 0 ? getPaidQuantity(it) : parseInt(it.quantity, 10) || 0;
-    const listUnit = Number(it?.precio1 ?? it?.originalPrice ?? it?.price ?? it?.precio ?? 0);
+    const listUnit = getListUnitPrice(it);
     if (Number.isFinite(listUnit) && listUnit > 0) {
       promoListSubtotal += round2(listUnit * q);
+      promoCatalogSubtotal += round2(getCatalogDiscountedUnitPrice(listUnit, it) * q);
     }
   }
   promoListSubtotal = round2(promoListSubtotal);
+  promoCatalogSubtotal = round2(promoCatalogSubtotal);
   promoCartSubtotal = round2(promoCartSubtotal);
   if (promoPieces > 0 && promoListSubtotal < 0.01 && promoCartSubtotal > 0) {
     promoListSubtotal = round2(promoCartSubtotal);
+    promoCatalogSubtotal = round2(promoCartSubtotal);
   }
-  const promoSavings = round2(Math.max(0, promoListSubtotal - promoCartSubtotal));
+  const promoSavings = round2(Math.max(0, promoListSubtotal - promoCatalogSubtotal));
+  const offerDiscountLines = computeCartOfferDiscountLines(cartItems);
 
   return {
     linePieces,
@@ -87,8 +137,10 @@ export function buildCartAmountBreakdown(user, cartItems, volSummary) {
     discountVolumeExtra,
     lineNet: round2(lineNet),
     promoListSubtotal,
+    promoCatalogSubtotal,
     promoCartSubtotal,
     promoSavings,
+    offerDiscountLines,
     totalPieces: linePieces + promoPieces,
   };
 }

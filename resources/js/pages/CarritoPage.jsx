@@ -6,12 +6,16 @@ import './CarritoPage.css';
 import { validateStock } from '../services/inventoryService';
 
 const CarritoPage = () => {
-  const { items: cartItems, totalItems, totalPrice, removeItem, updateQuantity, initCart } = useCartStore();
+  const { items: cartItems, totalItems, totalPrice, removeItem, updateQuantity, initCart, refreshCartOffers } = useCartStore();
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    initCart();
-  }, [initCart]);
+    const loadCart = async () => {
+      await initCart();
+      await refreshCartOffers();
+    };
+    loadCart();
+  }, [initCart, refreshCartOffers]);
 
   const handleClearCart = () => {
     const { clearCart } = useCartStore.getState();

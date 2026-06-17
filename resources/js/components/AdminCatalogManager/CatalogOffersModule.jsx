@@ -8,27 +8,78 @@ import { formatBuyXGetYOfferLabel } from '../../utils/buyXGetYUtils';
 import './CatalogOffersModule.css';
 
 const TARGET_SCOPES = [
-  { id: 'category', label: 'Categoría', hint: 'Aplica a todos los productos de una categoría (ej. Chamarras).' },
-  { id: 'catalog', label: 'Catálogo', hint: 'Aplica a todos los productos de un catálogo.' },
-  { id: 'new', label: 'Nuevos', hint: 'Aplica automáticamente a productos que califican como nuevos.' },
-  { id: 'rebajas', label: 'Rebajas', hint: 'Aplica automáticamente a productos en rebaja (desc_promo > 0).' },
+  { id: 'category', label: 'Categoría', hint: 'Uno o más grupos de categoría (ej. Chamarras, Blusas).' },
+  { id: 'catalog', label: 'Catálogo', hint: 'Uno o más catálogos.' },
+  { id: 'new', label: 'Nuevos', hint: 'Productos que califican como nuevos.' },
+  { id: 'rebajas', label: 'Rebajas', hint: 'Productos en rebaja (desc_promo > 0).' },
   { id: 'products', label: 'Productos específicos', hint: 'Selección manual producto por producto.' },
 ];
 
+const DEFAULT_FORM_SCOPES = {
+  target_scopes: ['category'],
+  target_category_codes: [],
+  target_catalog_ids: [],
+  target_products: [],
+};
+
+function parseOfferScopes(offer) {
+  if (Array.isArray(offer?.target_scopes) && offer.target_scopes.length > 0) {
+    return offer.target_scopes;
+  }
+  if (offer?.target_scope) {
+    return [offer.target_scope];
+  }
+  return ['products'];
+}
+
+function parseOfferCategoryCodes(offer) {
+  if (Array.isArray(offer?.target_category_codes) && offer.target_category_codes.length > 0) {
+    return offer.target_category_codes.map(String);
+  }
+  if (offer?.target_category_code) {
+    return [String(offer.target_category_code)];
+  }
+  return [];
+}
+
+function parseOfferCatalogIds(offer) {
+  if (Array.isArray(offer?.target_catalog_ids) && offer.target_catalog_ids.length > 0) {
+    return offer.target_catalog_ids.map(String);
+  }
+  if (offer?.target_catalog_id) {
+    return [String(offer.target_catalog_id)];
+  }
+  return [];
+}
+
 function describeOfferScope(offer, categories = [], catalogs = []) {
-  const scope = offer?.target_scope || 'products';
-  if (scope === 'category') {
-    const cat = categories.find((c) => c.code === offer.target_category_code);
-    return `Categoría: ${cat?.name || offer.target_category_code || '—'}`;
+  const scopes = parseOfferScopes(offer);
+  const parts = [];
+
+  if (scopes.includes('category')) {
+    const codes = parseOfferCategoryCodes(offer);
+    const names = codes.map((code) => {
+      const cat = categories.find((c) => String(c.code) === String(code));
+      return cat?.name || code;
+    });
+    parts.push(`Categorías: ${names.length ? names.join(', ') : '—'}`);
   }
-  if (scope === 'catalog') {
-    const catalog = catalogs.find((c) => String(c.code ?? c.id) === String(offer.target_catalog_id));
-    return `Catálogo: ${catalog?.name || offer.target_catalog_id || '—'}`;
+  if (scopes.includes('catalog')) {
+    const ids = parseOfferCatalogIds(offer);
+    const names = ids.map((id) => {
+      const catalog = catalogs.find((c) => String(c.code ?? c.id) === String(id));
+      return catalog?.name || id;
+    });
+    parts.push(`Catálogos: ${names.length ? names.join(', ') : '—'}`);
   }
-  if (scope === 'new') return 'Alcance: Nuevos';
-  if (scope === 'rebajas') return 'Alcance: Rebajas';
-  const count = offer?.target_products?.length ?? offer?.products_info?.length ?? 0;
-  return `Productos específicos (${count})`;
+  if (scopes.includes('new')) parts.push('Nuevos');
+  if (scopes.includes('rebajas')) parts.push('Rebajas');
+  if (scopes.includes('products')) {
+    const count = offer?.target_products?.length ?? offer?.products_info?.length ?? 0;
+    parts.push(`Productos (${count})`);
+  }
+
+  return parts.length ? parts.join(' · ') : 'Sin alcance';
 }
 
 const CatalogOffersModule = ({ onBack }) => {
@@ -53,10 +104,8 @@ const CatalogOffersModule = ({ onBack }) => {
     description: '',
     discount_percentage: '',
     discount_type: 'percentage',
-    discount_category: 'product_discount', // Campo para el tipo de descuento
-    target_scope: 'category',
-    target_category_code: '',
-    target_catalog_id: '',
+    discount_category: 'product_discount',
+    ...DEFAULT_FORM_SCOPES,
     start_date: '',
     end_date: '',
     is_active: true,
@@ -190,9 +239,9 @@ const CatalogOffersModule = ({ onBack }) => {
         discount_percentage: offer.discount_percentage,
         discount_type: offer.discount_type,
         discount_category: offer.discount_category || 'product_discount',
-        target_scope: offer.target_scope || 'products',
-        target_category_code: offer.target_category_code || '',
-        target_catalog_id: offer.target_catalog_id || '',
+        target_scopes: parseOfferScopes(offer),
+        target_category_codes: parseOfferCategoryCodes(offer),
+        target_catalog_ids: parseOfferCatalogIds(offer),
         start_date: offer.start_date.split('T')[0],
         end_date: offer.end_date.split('T')[0],
         is_active: offer.is_active,
@@ -222,9 +271,7 @@ const CatalogOffersModule = ({ onBack }) => {
         discount_percentage: '',
         discount_type: 'percentage',
         discount_category: selectedDiscountType || 'product_discount',
-        target_scope: 'category',
-        target_category_code: '',
-        target_catalog_id: '',
+        ...DEFAULT_FORM_SCOPES,
         start_date: '',
         end_date: '',
         is_active: true,
@@ -272,14 +319,32 @@ const CatalogOffersModule = ({ onBack }) => {
 
 
   // Función para manejar cambios en productos seleccionados
-  const handleScopeChange = (scope) => {
-    setFormData((prev) => ({
-      ...prev,
-      target_scope: scope,
-      target_products: scope === 'products' ? prev.target_products : [],
-      target_category_code: scope === 'category' ? prev.target_category_code : '',
-      target_catalog_id: scope === 'catalog' ? prev.target_catalog_id : '',
-    }));
+  const handleScopeToggle = (scopeId, checked) => {
+    setFormData((prev) => {
+      const nextScopes = checked
+        ? [...new Set([...(prev.target_scopes || []), scopeId])]
+        : (prev.target_scopes || []).filter((scope) => scope !== scopeId);
+
+      return {
+        ...prev,
+        target_scopes: nextScopes,
+        target_category_codes: nextScopes.includes('category') ? (prev.target_category_codes || []) : [],
+        target_catalog_ids: nextScopes.includes('catalog') ? (prev.target_catalog_ids || []) : [],
+        target_products: nextScopes.includes('products') ? (prev.target_products || []) : [],
+      };
+    });
+  };
+
+  const handleScopeListToggle = (field, value, checked) => {
+    const stringValue = String(value);
+    setFormData((prev) => {
+      const current = Array.isArray(prev[field]) ? prev[field].map(String) : [];
+      const next = checked
+        ? [...new Set([...current, stringValue])]
+        : current.filter((item) => item !== stringValue);
+
+      return { ...prev, [field]: next };
+    });
   };
 
   const handleProductsChange = (selectedProducts) => {
@@ -294,16 +359,21 @@ const CatalogOffersModule = ({ onBack }) => {
     e.preventDefault();
 
     if (formData.discount_category !== 'order_discount') {
-      if (formData.target_scope === 'category' && !formData.target_category_code) {
-        setError('Selecciona una categoría para esta oferta.');
+      const scopes = formData.target_scopes || [];
+      if (scopes.length === 0) {
+        setError('Selecciona al menos un alcance para esta oferta.');
         return;
       }
-      if (formData.target_scope === 'catalog' && !formData.target_catalog_id) {
-        setError('Selecciona un catálogo para esta oferta.');
+      if (scopes.includes('category') && (!formData.target_category_codes || formData.target_category_codes.length === 0)) {
+        setError('Selecciona al menos una categoría.');
         return;
       }
-      if (formData.target_scope === 'products' && (!formData.target_products || formData.target_products.length === 0)) {
-        setError('Selecciona al menos un producto o cambia el alcance de la oferta.');
+      if (scopes.includes('catalog') && (!formData.target_catalog_ids || formData.target_catalog_ids.length === 0)) {
+        setError('Selecciona al menos un catálogo.');
+        return;
+      }
+      if (scopes.includes('products') && (!formData.target_products || formData.target_products.length === 0)) {
+        setError('Selecciona al menos un producto o quita el alcance de productos específicos.');
         return;
       }
     }
@@ -312,10 +382,12 @@ const CatalogOffersModule = ({ onBack }) => {
 
       const submitData = new FormData();
       Object.keys(formData).forEach(key => {
-        // Para target_products y target_users, siempre enviar (incluso si están vacíos)
         if (key === 'target_products') {
           const productsArray = Array.isArray(formData[key]) ? formData[key] : [];
           submitData.append(key, JSON.stringify(productsArray));
+        } else if (key === 'target_scopes' || key === 'target_category_codes' || key === 'target_catalog_ids') {
+          const arr = Array.isArray(formData[key]) ? formData[key] : [];
+          submitData.append(key, JSON.stringify(arr));
         } else if (key === 'target_users') {
           const usersArray = selectedUsers
             .filter(user => user && user.id) // Filtrar usuarios válidos
@@ -746,55 +818,54 @@ const CatalogOffersModule = ({ onBack }) => {
                       {TARGET_SCOPES.map((scope) => (
                         <label key={scope.id} className="catalog-offers-module__scope-radio">
                           <input
-                            type="radio"
-                            name="target_scope"
-                            value={scope.id}
-                            checked={formData.target_scope === scope.id}
-                            onChange={() => handleScopeChange(scope.id)}
+                            type="checkbox"
+                            checked={(formData.target_scopes || []).includes(scope.id)}
+                            onChange={(e) => handleScopeToggle(scope.id, e.target.checked)}
                           />
                           <span>{scope.label}</span>
                         </label>
                       ))}
                     </div>
                     <small className="catalog-offers-module__form-help">
-                      {TARGET_SCOPES.find((s) => s.id === formData.target_scope)?.hint}
+                      Puedes combinar varios alcances. Un producto que cumpla más de uno recibe el descuento una sola vez.
                     </small>
 
-                    {formData.target_scope === 'category' && (
-                      <select
-                        className="catalog-offers-module__scope-select"
-                        name="target_category_code"
-                        value={formData.target_category_code}
-                        onChange={handleInputChange}
-                        required
-                      >
-                        <option value="">Selecciona una categoría…</option>
+                    {(formData.target_scopes || []).includes('category') && (
+                      <div className="catalog-offers-module__scope-multi-list">
+                        <div className="catalog-offers-module__scope-multi-title">Categorías</div>
                         {categories.map((category) => (
-                          <option key={category.id} value={category.code}>
-                            {category.name} ({category.code})
-                          </option>
+                          <label key={category.id} className="catalog-offers-module__scope-radio">
+                            <input
+                              type="checkbox"
+                              checked={(formData.target_category_codes || []).includes(String(category.code))}
+                              onChange={(e) => handleScopeListToggle('target_category_codes', category.code, e.target.checked)}
+                            />
+                            <span>{category.name} ({category.code})</span>
+                          </label>
                         ))}
-                      </select>
+                      </div>
                     )}
 
-                    {formData.target_scope === 'catalog' && (
-                      <select
-                        className="catalog-offers-module__scope-select"
-                        name="target_catalog_id"
-                        value={formData.target_catalog_id}
-                        onChange={handleInputChange}
-                        required
-                      >
-                        <option value="">Selecciona un catálogo…</option>
-                        {catalogs.map((catalog) => (
-                          <option key={catalog.id} value={String(catalog.code ?? catalog.id)}>
-                            {catalog.name} ({catalog.code ?? catalog.id})
-                          </option>
-                        ))}
-                      </select>
+                    {(formData.target_scopes || []).includes('catalog') && (
+                      <div className="catalog-offers-module__scope-multi-list">
+                        <div className="catalog-offers-module__scope-multi-title">Catálogos</div>
+                        {catalogs.map((catalog) => {
+                          const catalogKey = String(catalog.code ?? catalog.id);
+                          return (
+                            <label key={catalog.id} className="catalog-offers-module__scope-radio">
+                              <input
+                                type="checkbox"
+                                checked={(formData.target_catalog_ids || []).includes(catalogKey)}
+                                onChange={(e) => handleScopeListToggle('target_catalog_ids', catalogKey, e.target.checked)}
+                              />
+                              <span>{catalog.name} ({catalogKey})</span>
+                            </label>
+                          );
+                        })}
+                      </div>
                     )}
 
-                    {formData.target_scope === 'products' && (
+                    {(formData.target_scopes || []).includes('products') && (
                       <>
                         <ProductMultiSelect
                           selectedProducts={formData.target_products}

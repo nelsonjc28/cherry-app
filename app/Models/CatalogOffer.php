@@ -34,9 +34,12 @@ class CatalogOffer extends Model
         'get_quantity', // Cantidad gratis para Buy X Get Y
         'target_products', // JSON array of selected products
         'target_users', // JSON array of user IDs
-        'target_scope', // products, category, catalog, new, rebajas
+        'target_scope', // products, category, catalog, new, rebajas (legacy / primer alcance)
+        'target_scopes', // JSON: múltiples alcances combinables (OR)
         'target_category_code',
+        'target_category_codes', // JSON: múltiples categorías
         'target_catalog_id',
+        'target_catalog_ids', // JSON: múltiples catálogos
     ];
 
     protected $casts = [
@@ -52,7 +55,10 @@ class CatalogOffer extends Model
         'buy_quantity' => 'integer',
         'get_quantity' => 'integer',
         'target_products' => 'array',
-        'target_users' => 'array'
+        'target_users' => 'array',
+        'target_scopes' => 'array',
+        'target_category_codes' => 'array',
+        'target_catalog_ids' => 'array',
     ];
 
     /**

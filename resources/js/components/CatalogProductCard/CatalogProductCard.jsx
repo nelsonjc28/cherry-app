@@ -8,7 +8,7 @@ import './CatalogProductCard.css';
 import { getIconPath } from '../../utils/assetPaths';
 import colorConverter from '../../services/colorConverter';
 import { hasCatalogOfferBadge, getCatalogOfferBadgeLabel } from '../../utils/catalogOfferUtils';
-import { formatMinPurchaseHint, resolveStackedProductDiscountUnitPrice, resolveStackedProductDiscountPercentLiteral, getCatalogRebajaPercent } from '../../utils/offerMinPurchaseUtils';
+import { formatMinPurchaseHint, resolveStackedProductDiscountUnitPrice, getCatalogDisplayUnitPrice, getProductDisplayDiscountPercent, getCatalogRebajaPercent } from '../../utils/offerMinPurchaseUtils';
 
 const CatalogProductCard = ({ product, onFavoriteToggle }) => {
   // Hook para detectar si es móvil
@@ -105,14 +105,16 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
   const stackItem = { ...product, precio1: listPrice };
 
   const displayUnitPrice = hasUserOffer && userOffer?.discount_category === 'product_discount'
-    ? resolveStackedProductDiscountUnitPrice(listPrice, stackItem, userOffer, [])
-    : price;
+    ? getCatalogDisplayUnitPrice(listPrice, stackItem, userOffer)
+    : (getCatalogRebajaPercent(stackItem) > 0
+      ? getCatalogDisplayUnitPrice(listPrice, stackItem, null)
+      : price);
 
   const displayOriginalPrice = listPrice > displayUnitPrice ? listPrice : originalPrice;
 
   const calculateDiscountPercentage = () => {
     if (hasUserOffer && userOffer?.discount_category === 'product_discount') {
-      return resolveStackedProductDiscountPercentLiteral(stackItem, userOffer, []);
+      return getProductDisplayDiscountPercent(stackItem, userOffer);
     }
     if (hasUserOffer && userOffer && userOffer.discount_percentage > 0) {
       return Math.round(userOffer.discount_percentage);

@@ -54,7 +54,7 @@ export function getOfferUnitPrice(item) {
   return Number.isFinite(offerUnit) && offerUnit >= 0 ? offerUnit : 0;
 }
 
-/** Subtotal a precio lista de líneas que comparten la misma oferta. */
+/** Subtotal elegible para compra mínima de líneas que comparten la misma oferta. */
 export function computeOfferSubtotals(items) {
   const totals = {};
 
@@ -64,7 +64,7 @@ export function computeOfferSubtotals(items) {
       continue;
     }
 
-    const lineTotal = getListLineTotal(item);
+    const lineTotal = getMinPurchaseEligibleLineTotal(item);
     if (lineTotal <= 0) {
       continue;
     }
@@ -137,10 +137,30 @@ export function getCatalogDiscountedUnitPrice(listUnit, item) {
 }
 
 /**
- * Monto del descuento de oferta product_discount sobre precio lista (adicional a rebaja catálogo).
+ * Subtotal de línea para compra mínima (product_discount / buy_x_get_y):
+ * importe con rebaja de catálogo si hay desc_promo; si no, precio normal.
+ * Las líneas gratis de Buy X Get Y no suman.
  */
-export function getOfferDiscountAmountOnList(listUnit, userOffer) {
-  const base = Number(listUnit) || 0;
+export function getMinPurchaseEligibleLineTotal(item) {
+  if (item?.isFreeItem) {
+    return 0;
+  }
+
+  const qty = Number(item?.quantity ?? 0) || 0;
+  if (qty <= 0) {
+    return 0;
+  }
+
+  const listUnit = getListUnitPrice(item);
+  const unit = getCatalogDiscountedUnitPrice(listUnit, item);
+  return unit * qty;
+}
+
+/**
+ * Monto del descuento de oferta product_discount sobre el precio ya rebajado (importe de promo).
+ */
+export function getOfferDiscountAmountOnCatalogPrice(catalogUnit, userOffer) {
+  const base = Number(catalogUnit) || 0;
   if (base <= 0 || userOffer?.discount_category !== 'product_discount') {
     return 0;
   }
@@ -168,8 +188,13 @@ export function getOfferDiscountAmountOnList(listUnit, userOffer) {
   return 0;
 }
 
+/** @deprecated Usar getOfferDiscountAmountOnCatalogPrice */
+export function getOfferDiscountAmountOnList(listUnit, userOffer) {
+  return getOfferDiscountAmountOnCatalogPrice(listUnit, userOffer);
+}
+
 /**
- * Precio unitario: rebaja catálogo + oferta product_discount (suma % o suma $ sobre lista).
+ * Precio unitario en carrito: rebaja catálogo + oferta sobre el importe ya rebajado.
  */
 export function resolveStackedProductDiscountUnitPrice(listUnit, item, userOffer, contextItems = []) {
   const list = Number(listUnit) || 0;
@@ -177,7 +202,6 @@ export function resolveStackedProductDiscountUnitPrice(listUnit, item, userOffer
     return 0;
   }
 
-  const catalogPct = getCatalogRebajaPercent(item);
   const catalogUnit = getCatalogDiscountedUnitPrice(list, item);
 
   if (!userOffer || userOffer.discount_category !== 'product_discount') {
@@ -188,11 +212,13 @@ export function resolveStackedProductDiscountUnitPrice(listUnit, item, userOffer
     return catalogUnit;
   }
 
-  const addon = getOfferDiscountAmountOnList(list, userOffer);
-  return Math.max(0, list - (list * catalogPct) / 100 - addon);
+  const addon = getOfferDiscountAmountOnCatalogPrice(catalogUnit, userOffer);
+  return Math.max(0, catalogUnit - addon);
 }
 
-/** % efectivo total sobre precio lista (rebaja + oferta si aplica). */
+/**
+ * % efectivo total sobre precio lista (rebaja catálogo + oferta sobre importe rebajado).
+ */
 export function resolveStackedProductDiscountPercent(item, userOffer, contextItems = []) {
   const listUnit = getListUnitPrice(item);
   if (listUnit <= 0) {
@@ -202,27 +228,51 @@ export function resolveStackedProductDiscountPercent(item, userOffer, contextIte
   return Math.round((1 - finalUnit / listUnit) * 100);
 }
 
+/** % a mostrar en tarjetas/ficha: solo rebaja de catálogo si existe. */
+export function getProductDisplayDiscountPercent(item, userOffer = null) {
+  const catalogPct = Math.round(getCatalogRebajaPercent(item));
+  if (catalogPct > 0) {
+    return catalogPct;
+  }
+
+  if (userOffer?.discount_category === 'product_discount') {
+    const discountType = userOffer.discount_type || userOffer.type || 'percentage';
+    if (discountType === 'percentage') {
+      const offerPct = parseFloat(userOffer.discount_percentage) || 0;
+      if (offerPct > 0) {
+        return Math.round(offerPct);
+      }
+    }
+  }
+
+  const stored = parseFloat(item?.discount);
+  return Number.isFinite(stored) && stored > 0 ? Math.round(stored) : 0;
+}
+
 /**
- * % para badge: suma literal si oferta es % (50+10=60); si es $, % efectivo.
+ * Precio a mostrar en catálogo/ficha (rebaja catálogo; el % de oferta se aplica al pagar).
  */
+export function getCatalogDisplayUnitPrice(listUnit, item, userOffer = null) {
+  const list = Number(listUnit) || 0;
+  if (list <= 0) {
+    return 0;
+  }
+
+  const catalogUnit = getCatalogDiscountedUnitPrice(list, item);
+  if (getCatalogRebajaPercent(item) > 0) {
+    return catalogUnit;
+  }
+
+  if (userOffer?.discount_category === 'product_discount') {
+    return calculateProductDiscountUnitPrice(list, userOffer);
+  }
+
+  return list;
+}
+
+/** @deprecated Usar getProductDisplayDiscountPercent */
 export function resolveStackedProductDiscountPercentLiteral(item, userOffer, contextItems = []) {
-  const catalogPct = getCatalogRebajaPercent(item);
-
-  if (!userOffer || userOffer.discount_category !== 'product_discount') {
-    return Math.round(catalogPct);
-  }
-
-  if (!isPromoMinPurchaseMet(userOffer, contextItems)) {
-    return Math.round(catalogPct);
-  }
-
-  const discountType = userOffer.discount_type || userOffer.type || 'percentage';
-  if (discountType === 'percentage') {
-    const offerPct = parseFloat(userOffer.discount_percentage) || 0;
-    return Math.round(catalogPct + offerPct);
-  }
-
-  return resolveStackedProductDiscountPercent(item, userOffer, contextItems);
+  return getProductDisplayDiscountPercent(item, userOffer);
 }
 
 /**
@@ -235,28 +285,22 @@ export function applyStackedProductDiscountPricing(product, userOffer, contextIt
     : parseFloat(rawBase) || 0;
 
   const item = { ...product, precio1: listUnit };
-  const catalogPct = getCatalogRebajaPercent(item);
-  const minPurchase = getOfferMinPurchaseAmount(userOffer);
+  const displayUnit = getCatalogDisplayUnitPrice(listUnit, item, userOffer);
+  const visualDiscount = getProductDisplayDiscountPercent(item, userOffer);
+  const showPriceDiscount = displayUnit < listUnit;
 
-  let finalPrice = listUnit;
-  let visualDiscount = Math.round(catalogPct);
-  let showPriceDiscount = catalogPct > 0;
-
+  let checkoutUnit = displayUnit;
   if (userOffer?.discount_category === 'product_discount') {
-    const promoApplies = minPurchase <= 0 || isPromoMinPurchaseMet(userOffer, contextItems);
-    finalPrice = resolveStackedProductDiscountUnitPrice(listUnit, item, userOffer, contextItems);
-    visualDiscount = promoApplies
-      ? resolveStackedProductDiscountPercentLiteral(item, userOffer, contextItems)
-      : Math.round(catalogPct);
-    showPriceDiscount = finalPrice < listUnit;
+    checkoutUnit = resolveStackedProductDiscountUnitPrice(listUnit, item, userOffer, contextItems);
   }
 
   return {
     listUnit,
-    finalPrice,
+    finalPrice: displayUnit,
+    checkoutPrice: checkoutUnit,
     visualDiscount,
     showPriceDiscount,
-    originalPrice: showPriceDiscount && finalPrice < listUnit ? listUnit : product?.originalPrice,
+    originalPrice: showPriceDiscount && displayUnit < listUnit ? listUnit : product?.originalPrice,
   };
 }
 
@@ -313,7 +357,7 @@ export function resolveProductDiscountPercent(userOffer, contextItems = [], item
   }
 
   const stackItem = item ?? { precio1: 0, desc_promo: 0 };
-  return resolveStackedProductDiscountPercentLiteral(stackItem, userOffer, contextItems);
+  return getProductDisplayDiscountPercent(stackItem, userOffer);
 }
 
 /**
@@ -380,45 +424,28 @@ function formatOfferFixedAmount(amount) {
 }
 
 /**
- * Texto del badge para product_discount con rebaja catálogo + oferta apilada.
- * Con compra mínima: desglosa (ej. "50% + 5%"). Sin mínimo: suma (ej. "55%").
+ * Texto del badge en tarjetas: solo rebaja de catálogo si existe.
  */
 export function formatProductDiscountBadgeLabel(item, userOffer) {
   const catalogPct = Math.round(getCatalogRebajaPercent(item));
-  const hasMin = getOfferMinPurchaseAmount(userOffer) > 0;
-  const discountType = userOffer?.discount_type || userOffer?.type || 'percentage';
-  const offerValue = parseFloat(userOffer?.discount_percentage) || 0;
-
-  if (offerValue <= 0) {
-    return catalogPct > 0 ? `${catalogPct}%` : '';
+  if (catalogPct > 0) {
+    return `${catalogPct}%`;
   }
 
-  if (catalogPct <= 0) {
-    if (discountType === 'fixed') {
-      return formatOfferFixedAmount(offerValue);
-    }
-    return `${Math.round(offerValue)}%`;
+  const discountType = userOffer?.discount_type || userOffer?.type || 'percentage';
+  const offerValue = parseFloat(userOffer?.discount_percentage) || 0;
+  if (offerValue <= 0) {
+    return '';
   }
 
   if (discountType === 'fixed') {
-    const fixedLabel = formatOfferFixedAmount(offerValue);
-    if (hasMin) {
-      return `${catalogPct}% + ${fixedLabel}`;
-    }
-    const listUnit = getListUnitPrice(item);
-    const addonPct = listUnit > 0 ? Math.round((offerValue / listUnit) * 100) : 0;
-    return `${catalogPct + addonPct}%`;
+    return formatOfferFixedAmount(offerValue);
   }
-
-  const offerPct = Math.round(offerValue);
-  if (hasMin) {
-    return `${catalogPct}% + ${offerPct}%`;
-  }
-  return `${catalogPct + offerPct}%`;
+  return `${Math.round(offerValue)}%`;
 }
 
 /**
- * Explicación en ficha cuando hay rebaja catálogo + oferta con compra mínima.
+ * Explicación en ficha: oferta adicional sobre importe de promo (no sobre precio lista).
  */
 export function formatProductDiscountOfferDetail(item, userOffer) {
   if (userOffer?.discount_category !== 'product_discount') {
@@ -429,21 +456,28 @@ export function formatProductDiscountOfferDetail(item, userOffer) {
   const min = getOfferMinPurchaseAmount(userOffer);
   const offerValue = parseFloat(userOffer.discount_percentage) || 0;
   const discountType = userOffer.discount_type || userOffer.type || 'percentage';
+  const offerTitle = userOffer.title || 'esta promoción';
 
   if (offerValue <= 0 && min <= 0) {
     return '';
   }
 
   const minPhrase = min > 0
-    ? `al alcanzar la compra mínima de $${formatMinPurchaseLabel(min)} en productos de esta promoción`
+    ? ` al alcanzar la compra mínima de $${formatMinPurchaseLabel(min)} en productos de esta promoción`
     : '';
 
-  if (catalogPct > 0 && offerValue > 0 && min > 0) {
+  if (offerValue > 0) {
     if (discountType === 'percentage') {
       const offerPct = Math.round(offerValue);
-      return `Este producto ya incluye ${catalogPct}% de rebaja. El ${offerPct}% adicional de esta promoción se activa ${minPhrase} (total ${catalogPct + offerPct}%).`;
+      if (catalogPct > 0) {
+        return `Este producto incluye ${catalogPct}% de rebaja de catálogo. El ${offerPct}% de ${offerTitle} se aplica sobre el importe de promo al confirmar la compra${minPhrase}.`;
+      }
+      return `El ${offerPct}% de ${offerTitle} se aplica sobre el importe de promo al confirmar la compra${minPhrase}.`;
     }
-    return `Este producto ya incluye ${catalogPct}% de rebaja. El descuento adicional de ${formatOfferFixedAmount(offerValue)} se activa ${minPhrase}.`;
+    if (catalogPct > 0) {
+      return `Este producto incluye ${catalogPct}% de rebaja de catálogo. El descuento adicional de ${formatOfferFixedAmount(offerValue)} de ${offerTitle} se aplica sobre el importe de promo al confirmar la compra${minPhrase}.`;
+    }
+    return `El descuento de ${formatOfferFixedAmount(offerValue)} de ${offerTitle} se aplica al confirmar la compra${minPhrase}.`;
   }
 
   if (min > 0) {
@@ -454,7 +488,7 @@ export function formatProductDiscountOfferDetail(item, userOffer) {
 }
 
 /**
- * % de descuento a mostrar en líneas del carrito (rebaja catálogo + oferta apilada).
+ * % de descuento a mostrar en líneas del carrito (solo rebaja de catálogo en tarjeta).
  */
 export function resolveCartGroupedDiscountPercent(groupedProduct, cartItems = []) {
   if (!groupedProduct) {
@@ -471,38 +505,7 @@ export function resolveCartGroupedDiscountPercent(groupedProduct, cartItems = []
     discount: groupedProduct.discount,
   };
 
-  const totalQty = Number(groupedProduct.totalQuantity ?? 0) || 0;
-  const totalPaid = Number(groupedProduct.totalPrice ?? 0) || 0;
-  const listUnit = getListUnitPrice(repItem);
-
-  if (repItem.userOffer?.discount_category === 'product_discount') {
-    return resolveStackedProductDiscountPercentLiteral(repItem, repItem.userOffer, cartItems);
-  }
-
-  if (repItem.userOffer?.discount_category === 'buy_x_get_y') {
-    const totalList = listUnit * totalQty;
-    if (totalList > 0 && totalPaid < totalList) {
-      return Math.round((1 - totalPaid / totalList) * 100);
-    }
-    return 0;
-  }
-
-  const catalogPct = getCatalogRebajaPercent(repItem);
-  if (catalogPct > 0) {
-    return Math.round(catalogPct);
-  }
-
-  const totalList = listUnit * totalQty;
-  if (totalList > 0 && totalPaid > 0 && totalPaid < totalList) {
-    return Math.round((1 - totalPaid / totalList) * 100);
-  }
-
-  const stored = parseFloat(groupedProduct.discount);
-  if (Number.isFinite(stored) && stored > 0) {
-    return Math.round(stored);
-  }
-
-  return 0;
+  return getProductDisplayDiscountPercent(repItem, groupedProduct.userOffer);
 }
 
 export function buildPromoContextItems(cartItems, userOffer, pendingLines = []) {

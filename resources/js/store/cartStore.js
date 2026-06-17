@@ -6,6 +6,7 @@ import { isOroDiamanteSeller } from '../utils/sellerVolumeDiscount';
 import { effectiveDetailInventoryContribution } from '../utils/productUtils';
 import { isEncargoCartLine } from '../utils/encargoUtils';
 import { calculateItemPriceWithMinPurchase } from '../utils/offerMinPurchaseUtils';
+import { refreshCartItemsOffers } from '../utils/cartOfferRefresh';
 
 /**
  * Helper function to calculate item price considering offers and compra mínima.
@@ -134,6 +135,22 @@ const saveCartToLocalStorage = (items, totalItems, totalPrice, couponCode = null
   }
 };
 
+const computeCartTotals = (items) => {
+  const totalItems = (items || []).reduce((sum, item) => {
+    const baseQuantity = item.quantity || 0;
+    const freeItems = item.freeItemsCount || 0;
+    return sum + baseQuantity + freeItems;
+  }, 0);
+  const totalPrice = sumCartItemsPrice(items || []);
+  return { totalItems, totalPrice };
+};
+
+const prepareCartItemsWithFreshOffers = async (get, items) => {
+  let processed = await refreshCartItemsOffers(items || []);
+  processed = get().normalizeBuyXGetYCartLines(processed);
+  return processed;
+};
+
 /**
  * Store for managing shopping cart state
  * - Si hay sesión: guarda en BD y localStorage
@@ -178,22 +195,25 @@ const useCartStore = create(
                 return item;
               });
 
-              const totalItems = cleanedItems.reduce((sum, item) => {
-                const baseQuantity = item.quantity || 0;
-                const freeItems = item.freeItemsCount || 0;
-                return sum + baseQuantity + freeItems;
-              }, 0);
-
-              const totalPrice = cleanedItems.reduce((sum, item) => sum + calculateItemPrice(item, cleanedItems), 0);
+              const itemsWithFreshOffers = await prepareCartItemsWithFreshOffers(get, cleanedItems);
+              const { totalItems, totalPrice } = computeCartTotals(itemsWithFreshOffers);
 
               set({
-                items: cleanedItems,
+                items: itemsWithFreshOffers,
                 totalItems,
                 totalPrice,
                 couponCode: dbCart.coupon_code || null,
                 discount: dbCart.discount || 0,
                 isInitialized: true,
                 isLoading: false
+              });
+
+              await saveCartToDatabase({
+                items: itemsWithFreshOffers,
+                totalItems,
+                totalPrice,
+                couponCode: dbCart.coupon_code || null,
+                discount: dbCart.discount || 0,
               });
             } else {
               // No hay carrito en BD, verificar localStorage y sincronizar
@@ -341,30 +361,20 @@ const useCartStore = create(
           if (syncedCart) {
             // Hay respuesta del servidor (puede tener items o estar vacío)
             const syncedItems = syncedCart.items || [];
-            
-            
-            // Aplicar ofertas Buy X Get Y al carrito combinado
-            const itemsWithOffers = syncedItems.length > 0 
-              ? get().applyBuyXGetYOffers(syncedItems)
+
+            const itemsWithFreshOffers = syncedItems.length > 0
+              ? await prepareCartItemsWithFreshOffers(get, syncedItems)
               : [];
-            
-            // Calcular totales
-            const totalItemsSynced = itemsWithOffers.reduce((sum, item) => {
-              const baseQuantity = item.quantity || 0;
-              const freeItems = item.freeItemsCount || 0;
-              return sum + baseQuantity + freeItems;
-            }, 0);
 
-            const totalPriceSynced = itemsWithOffers.reduce((sum, item) => sum + calculateItemPrice(item, itemsWithOffers), 0);
+            const { totalItems: totalItemsSynced, totalPrice: totalPriceSynced } = computeCartTotals(itemsWithFreshOffers);
 
-            // Actualizar estado con el carrito combinado (puede estar vacío si ambos estaban vacíos)
             set({
-              items: itemsWithOffers,
+              items: itemsWithFreshOffers,
               totalItems: totalItemsSynced,
               totalPrice: totalPriceSynced,
               couponCode: syncedCart.coupon_code || null,
               discount: syncedCart.discount || 0,
-              isInitialized: true, // Marcar como inicializado para evitar que initCart sobrescriba
+              isInitialized: true,
               isLoading: false
             });
 
@@ -376,17 +386,11 @@ const useCartStore = create(
             
             // Si hay items en localStorage, mantenerlos en el estado
             if (localItems && localItems.length > 0) {
-              const itemsWithOffers = get().applyBuyXGetYOffers(localItems);
-              const totalItems = itemsWithOffers.reduce((sum, item) => {
-                const baseQuantity = item.quantity || 0;
-                const freeItems = item.freeItemsCount || 0;
-                return sum + baseQuantity + freeItems;
-              }, 0);
-
-              const totalPrice = itemsWithOffers.reduce((sum, item) => sum + calculateItemPrice(item, itemsWithOffers), 0);
+              const itemsWithFreshOffers = await prepareCartItemsWithFreshOffers(get, localItems);
+              const { totalItems, totalPrice } = computeCartTotals(itemsWithFreshOffers);
 
               set({
-                items: itemsWithOffers,
+                items: itemsWithFreshOffers,
                 totalItems,
                 totalPrice,
                 couponCode: localTotals.couponCode,
@@ -406,17 +410,11 @@ const useCartStore = create(
           
           // Si falla la sincronización, mantener items de localStorage si existen
           if (localItems && localItems.length > 0) {
-            const itemsWithOffers = get().applyBuyXGetYOffers(localItems);
-            const totalItems = itemsWithOffers.reduce((sum, item) => {
-              const baseQuantity = item.quantity || 0;
-              const freeItems = item.freeItemsCount || 0;
-              return sum + baseQuantity + freeItems;
-            }, 0);
-
-            const totalPrice = itemsWithOffers.reduce((sum, item) => sum + calculateItemPrice(item, itemsWithOffers), 0);
+            const itemsWithFreshOffers = await prepareCartItemsWithFreshOffers(get, localItems);
+            const { totalItems, totalPrice } = computeCartTotals(itemsWithFreshOffers);
 
             set({
-              items: itemsWithOffers,
+              items: itemsWithFreshOffers,
               totalItems,
               totalPrice,
               couponCode: localTotals.couponCode,
@@ -727,6 +725,29 @@ const useCartStore = create(
 
       /** @deprecated Usar normalizeBuyXGetYCartLines — las gratis son líneas explícitas isFreeItem */
       applyBuyXGetYOffers: (items) => get().normalizeBuyXGetYCartLines(items),
+
+      /** Actualiza userOffer y precios desde el backend (sin depender del snapshot guardado). */
+      refreshCartOffers: async () => {
+        if (!isAuthenticated()) {
+          return;
+        }
+
+        const { items, couponCode, discount } = get();
+        if (!items?.length) {
+          return;
+        }
+
+        const processed = await prepareCartItemsWithFreshOffers(get, items);
+        const { totalItems, totalPrice } = computeCartTotals(processed);
+        const newState = { items: processed, totalItems, totalPrice };
+
+        set(newState);
+        await saveCartToDatabase({
+          ...newState,
+          couponCode,
+          discount: discount ?? 0,
+        });
+      },
 
       recalculateTotals: async () => {
         const { items } = get();

@@ -5,7 +5,7 @@ import StarRating from '../../StarRating/StarRating';
 import { formatPrice } from '../../../utils/formatters';
 import { getProductCardStockStatus, getTotalInventoryFromProduct } from '../../../utils/productUtils';
 import { hasCatalogOfferBadge, getCatalogOfferBadgeLabel } from '../../../utils/catalogOfferUtils';
-import { resolveStackedProductDiscountPercentLiteral, getCatalogRebajaPercent } from '../../../utils/offerMinPurchaseUtils';
+import { getCatalogDisplayUnitPrice, getProductDisplayDiscountPercent, getCatalogRebajaPercent } from '../../../utils/offerMinPurchaseUtils';
 import './BestSellerCard.css';
 
 const BestSellerCard = ({ id, title, image, price, originalPrice, discount, userOffer, hasUserOffer, rating, totalRatings, description, stock = 0, isNew = false, onFavoriteToggle, product, stock_received_count = 0, stockReceivedCount = 0 }) => {
@@ -36,7 +36,7 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
 
   const calculateDiscountPercentage = () => {
     if (hasUserOffer && userOffer?.discount_category === 'product_discount') {
-      return resolveStackedProductDiscountPercentLiteral(stackItem, userOffer, []);
+      return getProductDisplayDiscountPercent(stackItem, userOffer);
     }
     if (hasUserOffer && userOffer && (userOffer.percentage > 0 || userOffer.discount_percentage > 0)) {
       return Math.round(userOffer.percentage ?? userOffer.discount_percentage);

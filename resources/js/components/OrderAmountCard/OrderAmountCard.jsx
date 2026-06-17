@@ -44,8 +44,10 @@ const OrderAmountCard = ({
     discountVolumeExtra = 0,
     lineNet = 0,
     promoListSubtotal = 0,
+    promoCatalogSubtotal = 0,
     promoCartSubtotal = 0,
     promoSavings = 0,
+    offerDiscountLines = [],
     totalPieces = 0
   } = b;
 
@@ -54,6 +56,7 @@ const OrderAmountCard = ({
   const showMainDisc = (Number(discountVolumeMain) || 0) > 0.0001;
   const showExtraDisc = (Number(discountVolumeExtra) || 0) > 0.0001;
   const showPromoSavings = (Number(promoSavings) || 0) > 0.0001;
+  const offerLines = Array.isArray(offerDiscountLines) ? offerDiscountLines : [];
 
   const shippingIsFree = deliveryType === 'envio' && Number(shipping) === 0;
   const mainLabel = `Descuento del ${Number(mainPercent) || 30}%`;
@@ -101,6 +104,15 @@ const OrderAmountCard = ({
                 <span className="cart-order-summary__free-shipping">-${formatMoney(promoSavings)}</span>
               </div>
             )}
+            {offerLines.map((line) => (
+              <div
+                key={line.title}
+                className="cart-order-summary__row cart-order-summary__discount-line order-amount__row"
+              >
+                <span>{line.title}</span>
+                <span className="cart-order-summary__free-shipping">-${formatMoney(line.amount)}</span>
+              </div>
+            ))}
             <Row
               label="Importe de Promo"
               value={`$${formatMoney(promoCartSubtotal)}`}
@@ -142,8 +154,13 @@ OrderAmountCard.propTypes = {
     discountVolumeExtra: PropTypes.number,
     lineNet: PropTypes.number,
     promoListSubtotal: PropTypes.number,
+    promoCatalogSubtotal: PropTypes.number,
     promoCartSubtotal: PropTypes.number,
     promoSavings: PropTypes.number,
+    offerDiscountLines: PropTypes.arrayOf(PropTypes.shape({
+      title: PropTypes.string,
+      amount: PropTypes.number,
+    })),
     totalPieces: PropTypes.number
   }),
   mainPercent: PropTypes.number,
