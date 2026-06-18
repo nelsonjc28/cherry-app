@@ -7,6 +7,7 @@ import { isProductNewLikeNuevosPage } from '../utils/productNewRules';
 import {
   applyStackedProductDiscountPricing,
 } from '../utils/offerMinPurchaseUtils';
+import { isOfferActiveOnDate, getOfferDaysRemaining } from '../utils/offerDateUtils';
 
 const CHERRY_API_URL = getCherryCatalogBaseUrl();
 
@@ -652,24 +653,14 @@ export const getPromoProducts = async (limit = 50) => {
           }
         }
         
-        // Validar fechas de la oferta
-        const now = new Date();
-        const startDate = offerDataForProduct.start_date ? new Date(offerDataForProduct.start_date) : null;
-        const endDate = offerDataForProduct.end_date ? new Date(offerDataForProduct.end_date) : null;
-        
-        let isActive = true;
-        let timeRemaining = null;
-        
-        if (endDate) {
-          isActive = endDate >= now;
-          if (isActive) {
-            const timeDiff = endDate.getTime() - now.getTime();
-            const daysRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-            timeRemaining = daysRemaining;
-          }
-        }
-        
-        
+        // Validar fechas de la oferta (día calendario inclusive)
+        const isActive = isOfferActiveOnDate(
+          offerDataForProduct.start_date,
+          offerDataForProduct.end_date
+        );
+        const timeRemaining = isActive
+          ? getOfferDaysRemaining(offerDataForProduct.end_date)
+          : null;
         product.userOffer = {
           offer_id: offerDataForProduct.offer_id,
           discount_percentage: offerDataForProduct.discount_category === 'product_discount'

@@ -149,6 +149,20 @@ class PaymentController extends Controller
         $isShippingLine = $pid === '0' || str_contains($lowerName, 'envío') || str_contains($lowerName, 'envio') || str_contains($lowerName, 'ajuste');
         $detalleId = $isShippingLine ? null : OrderItemDetalleResolver::resolve($item);
 
+        $productDetails = null;
+        if (! $isShippingLine) {
+            $productDetails = array_filter([
+                'desc_promo' => $item['desc_promo'] ?? null,
+                'precio1' => isset($item['precio1']) ? (float) $item['precio1'] : null,
+                'user_offer_applies' => filter_var($item['user_offer_applies'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                'offer_discount_percentage' => isset($item['offer_discount_percentage'])
+                    ? (float) $item['offer_discount_percentage']
+                    : null,
+                'offer_discount_type' => $item['offer_discount_type'] ?? null,
+                'offer_discount_category' => $item['offer_discount_category'] ?? null,
+            ], static fn ($v) => $v !== null && $v !== '');
+        }
+
         return [
             'order_id' => $orderId,
             'product_id' => $pid,
@@ -160,6 +174,7 @@ class PaymentController extends Controller
             'quantity' => $qty,
             'price' => $price,
             'subtotal' => round($qty * $price, 2),
+            'product_details' => $productDetails ?: null,
         ];
     }
 

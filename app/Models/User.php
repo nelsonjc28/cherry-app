@@ -171,11 +171,12 @@ class User extends Authenticatable implements JWTSubject
 
     public function getFreeShippingAttribute()
     {
-        $now = Carbon::now();
+        $today = now()->toDateString();
         $haveOffert = CatalogOfferUser::join('catalog_offers', 'catalog_offer_users.offer_id', '=', 'catalog_offers.id')
             ->where('catalog_offer_users.user_id', $this->id)
-            ->where('catalog_offers.start_date', '<=', $now)
-            ->where('catalog_offers.end_date', '>=', $now)
+            ->where('catalog_offers.is_active', true)
+            ->whereDate('catalog_offers.start_date', '<=', $today)
+            ->whereDate('catalog_offers.end_date', '>=', $today)
             ->where('catalog_offers.discount_category', 'free_shipping')
             ->count();
 
@@ -188,11 +189,12 @@ class User extends Authenticatable implements JWTSubject
      */
     public function getFreeShippingMinAmountAttribute()
     {
-        $now = Carbon::now();
+        $today = now()->toDateString();
         $offer = CatalogOfferUser::join('catalog_offers', 'catalog_offer_users.offer_id', '=', 'catalog_offers.id')
             ->where('catalog_offer_users.user_id', $this->id)
-            ->where('catalog_offers.start_date', '<=', $now)
-            ->where('catalog_offers.end_date', '>=', $now)
+            ->where('catalog_offers.is_active', true)
+            ->whereDate('catalog_offers.start_date', '<=', $today)
+            ->whereDate('catalog_offers.end_date', '>=', $today)
             ->where('catalog_offers.discount_category', 'free_shipping')
             ->orderBy('catalog_offers.min_purchase_amount', 'asc')
             ->select('catalog_offers.min_purchase_amount')

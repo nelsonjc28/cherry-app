@@ -8,6 +8,7 @@ use App\Models\OrderItem;
 use App\Models\Detalle;
 use App\Models\Producto;
 use App\Models\User;
+use App\Support\CatalogOfferDate;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -83,6 +84,10 @@ class ExternalSalesService
         $importeBrutoCatalogo = 0.0;
         /** @var float Suma de subtotales reales de línea (neto pagado por mercancía) */
         $sumaNetoLineas = 0.0;
+        /** @var float Monto acumulado de oferta de usuario (solo si todas las líneas comparten el mismo %) */
+        $impoDecto3Total = 0.0;
+        /** @var list<float> % de oferta por línea (equivalente si es monto fijo) */
+        $offerPercentsSeen = [];
 
         foreach ($order->items as $orderItem) {
             if ($this->isNonInventoryOrderLine($orderItem)) {
@@ -190,7 +195,38 @@ class ExternalSalesService
             $grossLine = round($precioOriginal * $cantidad, 2);
             $importeBrutoCatalogo += $grossLine;
 
-            // % de descuento sobre precio catálogo para que (precio × (1 - %/100) × cantidad) refleje el neto de línea
+            $details = is_array($orderItem->product_details) ? $orderItem->product_details : [];
+            $descPromo = (float) ($details['desc_promo'] ?? $producto->desc_promo ?? 0);
+            $catalogUnit = CatalogOfferDate::catalogUnitPrice($precioOriginal, $descPromo);
+            $paidUnit = $precioConDescuento;
+            $catalogLine = round($catalogUnit * $cantidad, 2);
+
+            $offerSavingLine = 0.0;
+            if ($paidUnit < $catalogUnit - 0.0001) {
+                $offerSavingLine = round(($catalogUnit - $paidUnit) * $cantidad, 2);
+            }
+
+            if ($offerSavingLine > 0.0001) {
+                $lineOfferPct = null;
+                $hasUserOffer = filter_var($details['user_offer_applies'] ?? false, FILTER_VALIDATE_BOOLEAN);
+                $storedPct = isset($details['offer_discount_percentage'])
+                    ? (float) $details['offer_discount_percentage']
+                    : null;
+                $discountType = (string) ($details['offer_discount_type'] ?? 'percentage');
+
+                if ($hasUserOffer && $storedPct !== null && $storedPct > 0.0001 && $discountType === 'percentage') {
+                    $lineOfferPct = round($storedPct, 2);
+                } elseif ($catalogLine > 0.0001) {
+                    $lineOfferPct = round(($offerSavingLine / $catalogLine) * 100, 2);
+                }
+
+                if ($lineOfferPct !== null) {
+                    $offerPercentsSeen[] = $lineOfferPct;
+                    $impoDecto3Total += $offerSavingLine;
+                }
+            }
+
+            // % efectivo por línea: rebaja catálogo (desc_promo) + oferta, como antes
             $porcentajeDescuento = 0.0;
             if ($grossLine > 0.0001) {
                 $porcentajeDescuento = (($grossLine - $netLine) / $grossLine) * 100;
@@ -348,6 +384,15 @@ class ExternalSalesService
             }
         }
 
+        $decto3Api = 0.0;
+        $impoDecto3Api = 0.0;
+        $uniqueOfferPercents = array_values(array_unique($offerPercentsSeen));
+        // decto3 solo si todas las líneas con oferta comparten el mismo %; si difieren, va solo en items[].descuento
+        if (count($uniqueOfferPercents) === 1 && $impoDecto3Total > 0.009) {
+            $decto3Api = $uniqueOfferPercents[0];
+            $impoDecto3Api = round($impoDecto3Total, 2);
+        }
+
         $importeFinal = (float) ($order->total_amount ?? ($discountedTotalOrden + $costoEnvio));
         
         // Validar que importeFinal sea válido
@@ -390,8 +435,8 @@ class ExternalSalesService
             'refDecto1' => null,
             'decto2' => $decto2Api,
             'impoDecto2' => $impoDecto2Api,
-            'decto3' => 0.0,
-            'impoDecto3' => 0.0,
+            'decto3' => $decto3Api,
+            'impoDecto3' => $impoDecto3Api,
             'descuento1' => (float) $descuento1,
             'descuento2' => (float) $descuento2,
             'importeNeto' => (float) $importeNeto,

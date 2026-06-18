@@ -28,6 +28,7 @@ import {
   discountedMerchandiseForSubset,
 } from '../utils/cartVolumePricing';
 import { buildCartAmountBreakdown } from '../utils/cartCheckoutBreakdown';
+import { buildOrderLinePayload } from '../utils/orderLinePayload';
 import {
   isEncargoCartLine,
   itemSkipsStockValidation,
@@ -577,18 +578,9 @@ const CartDetailsPage = () => {
       const regularDiscountedTotal = regularTotalAfterDiscount;
 
       const directData = {
-        items: paymentLineItems.map(item => ({
-          product_id: String(item.id_articulo || item.product_id || item.id),
-          name: item.title || item.name,
-          quantity: parseInt(item.quantity, 10),
-          price: parseFloat(item.precio || item.price),
-          size: item.selectedSize || null,
-          color: item.selectedColor || null,
-          barcode: item.barcode || null,
-          detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null,
+        items: paymentLineItems.map((item) => ({
+          ...buildOrderLinePayload(item),
           ...cartLineToApiEncargoFlags(item),
-          desc_promo: item.desc_promo != null ? item.desc_promo : null,
-          user_offer_applies: !!(item.userOffer && item.userOffer.discount_category),
         })),
         address_id: deliveryType === 'envio' ? selectedAddress.id : null,
         delivery_type: deliveryType,
@@ -712,17 +704,9 @@ const CartDetailsPage = () => {
         const advanceOrderTotalCharged = parseFloat(advanceDiscountedMerch.toFixed(2));
 
         const advanceOrderData = {
-          items: advanceOrderItems.map(item => ({
-            product_id: String(item.id_articulo || item.product_id || item.id), // Enviar como string para soportar IDs con ceros a la izquierda
-            name: item.title || item.name,
-            quantity: parseInt(item.quantity, 10),
-            price: parseFloat(item.precio || item.price),
-            size: item.selectedSize || null,
-            color: item.selectedColor || null,
-            barcode: item.barcode || null,
-            detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null,
-            desc_promo: item.desc_promo != null ? item.desc_promo : null,
-            user_offer_applies: !!(item.userOffer && item.userOffer.discount_category),
+          items: advanceOrderItems.map((item) => ({
+            ...buildOrderLinePayload(item),
+            ...cartLineToApiEncargoFlags(item),
           })),
           items_for_volume_pricing: fullCartPricingLinesSnapshot.map((line) => ({
             price: line.price,
@@ -866,23 +850,10 @@ const CartDetailsPage = () => {
       const regularSubtotal = lineItemsGrossTotal; // Subtotal sin descuentos de volumen
 
       const paymentData = {
-        items: paymentLineItems.map(item => {
-          const mappedItem = {
-            product_id: String(item.id_articulo || item.product_id || item.id), // Enviar como string para soportar IDs con ceros a la izquierda
-            name: item.title || item.name,
-            quantity: parseInt(item.quantity, 10),
-            price: parseFloat(item.precio || item.price),
-            size: item.selectedSize || null,
-            color: item.selectedColor || null,
-            barcode: item.barcode || null,
-            detalle_id: item.detalle_id != null ? Number(item.detalle_id) : null,
-            ...cartLineToApiEncargoFlags(item),
-            desc_promo: item.desc_promo != null ? item.desc_promo : null,
-            user_offer_applies: !!(item.userOffer && item.userOffer.discount_category),
-          };
-
-          return mappedItem;
-        }),
+        items: paymentLineItems.map((item) => ({
+          ...buildOrderLinePayload(item),
+          ...cartLineToApiEncargoFlags(item),
+        })),
         items_for_volume_pricing: fullCartPricingLinesSnapshot.map((line) => ({
           price: line.price,
           quantity: line.quantity,
