@@ -44,6 +44,7 @@ import { summarizeVolumeFromCartItems } from '../utils/cartVolumePricing';
 import { formatBuyXGetYOfferLabel, formatBuyXGetYOfferExample, validateBuyXGetYCartSelection } from '../utils/buyXGetYUtils';
 import { hasCatalogOfferBadge, getCatalogOfferBadgeLabel } from '../utils/catalogOfferUtils';
 import { formatMinPurchaseHint, buildPromoContextItems, resolveStackedProductDiscountUnitPrice, getCatalogDisplayUnitPrice, getProductDisplayDiscountPercent, isPromoMinPurchaseMet, getOfferMinPurchaseAmount, formatMinPurchaseLabel, getCatalogRebajaPercent, formatProductDiscountOfferDetail } from '../utils/offerMinPurchaseUtils';
+import { getEffectiveDescPromoPercent, catalogPriceFromList } from '../utils/catalogRebajaUtils';
 
 // Función para formatear montos con separador de miles
 const formatMoneyWithCommas = (value) => {
@@ -115,8 +116,7 @@ const ProductPage = () => {
       if (hasUserOffer && userOffer && userOffer.discount_percentage > 0) {
         discountPercentage = Math.round(userOffer.discount_percentage);
       } else if (product?.desc_promo && product.desc_promo > 0) {
-        const reducedDiscount = Math.max(0, product.desc_promo - 10);
-        discountPercentage = Math.round(reducedDiscount);
+        discountPercentage = Math.round(getEffectiveDescPromoPercent(product.desc_promo, user));
       } else if (product?.discount && product.discount > 0) {
         discountPercentage = Math.round(product.discount);
       } else if (product?.originalPrice && product?.price && product.originalPrice > product.price) {
@@ -259,9 +259,7 @@ const ProductPage = () => {
       if (product?.userOffer?.discount_percentage > 0) {
         discount = Math.round(product.userOffer.discount_percentage);
       } else if (product?.desc_promo && product.desc_promo > 0) {
-        // Restar 10% al descuento de la API externa (solo si NO es oferta de usuario)
-        const reducedDiscount = Math.max(0, product.desc_promo - 10);
-        discount = Math.round(reducedDiscount);
+        discount = Math.round(getEffectiveDescPromoPercent(product.desc_promo, user));
       } else if (product?.discount && product.discount > 0) {
         discount = Math.round(product.discount);
       }
@@ -926,7 +924,7 @@ const ProductPage = () => {
           ) {
             const offerPct = Math.round(userOffer.discount_percentage);
             const offerTitle = userOffer.title || 'la promoción';
-            if (getCatalogRebajaPercent({ desc_promo: product?.desc_promo }) > 0) {
+            if (getCatalogRebajaPercent({ desc_promo: product?.desc_promo }, user) > 0) {
               message += ` 🏷️ ${discountPercentage}% de rebaja. El ${offerPct}% de ${offerTitle} se aplicará al pagar`;
             } else {
               message += ` 🏷️ El ${offerPct}% de ${offerTitle} se aplicará al pagar`;
@@ -1332,23 +1330,23 @@ const ProductPage = () => {
     return buildPromoContextItems(cartItems, userOffer, pendingLines);
   })();
 
-  const stackItem = { desc_promo: product?.desc_promo, precio1: precio1 || product?.precio1 };
+  const stackItem = {
+    ...product,
+    desc_promo: product?.desc_promo ?? product?.descPromo,
+    precio1: precio1 || product?.precio1,
+  };
 
   // Calcular descuento con prioridades (rebaja catálogo + oferta apilada)
   const calculateDiscountPercentage = () => {
     if (hasUserOffer && userOffer?.discount_category === 'product_discount') {
-      return getProductDisplayDiscountPercent(stackItem, userOffer);
+      return getProductDisplayDiscountPercent(stackItem, userOffer, user);
+    }
+    const catalogPct = getCatalogRebajaPercent(stackItem, user);
+    if (catalogPct > 0) {
+      return Math.round(catalogPct);
     }
     if (hasUserOffer && userOffer && userOffer.discount_percentage > 0) {
       return Math.round(userOffer.discount_percentage);
-    }
-
-    if (product?.desc_promo && product.desc_promo > 0) {
-      return Math.round(Math.max(0, product.desc_promo - 10));
-    }
-
-    if (product?.discount && product.discount > 0) {
-      return Math.round(product.discount);
     }
 
     if (product?.originalPrice && product?.price && product.originalPrice > product.price) {
@@ -1367,7 +1365,7 @@ const ProductPage = () => {
     const basePrice = precio1 || 0;
 
     if (hasUserOffer && userOffer?.discount_category === 'product_discount') {
-      return getCatalogDisplayUnitPrice(basePrice, stackItem, userOffer);
+      return getCatalogDisplayUnitPrice(basePrice, stackItem, userOffer, user);
     }
 
     if (product?.price && product.price !== basePrice && userOffer?.showPriceDiscount !== false) {
@@ -1385,13 +1383,13 @@ const ProductPage = () => {
   const checkoutUnitPrice = (() => {
     const basePrice = precio1 || 0;
     if (hasUserOffer && userOffer?.discount_category === 'product_discount') {
-      return resolveStackedProductDiscountUnitPrice(basePrice, stackItem, userOffer, promoContextItems);
+      return resolveStackedProductDiscountUnitPrice(basePrice, stackItem, userOffer, promoContextItems, user);
     }
     return finalPrice;
   })();
 
   const productDiscountDetail = hasUserOffer && userOffer?.discount_category === 'product_discount'
-    ? formatProductDiscountOfferDetail(stackItem, userOffer)
+    ? formatProductDiscountOfferDetail(stackItem, userOffer, user)
     : '';
 
 
@@ -1719,7 +1717,7 @@ const ProductPage = () => {
                       hasUserOffer && userOffer && userOffer.discount_category === 'free_shipping' ?
                         '🚚 Envío gratis' :
                         hasUserOffer && userOffer ?
-                          getCatalogOfferBadgeLabel(userOffer, { discountPercentage, isMobile, product: stackItem }) :
+                          getCatalogOfferBadgeLabel(userOffer, { discountPercentage, isMobile, product: stackItem, user }) :
                           (<>🏷️ {discountPercentage}%</>)
                   }
                 </div>

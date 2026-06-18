@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Support\CatalogOfferDate;
+
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Support\ProductNewEvaluator;
@@ -264,7 +266,7 @@ class CategoryController extends Controller
                 $descPromoValue = (float) ($producto->desc_promo ?? 0);
                 $hasDiscount = $descPromoValue > 0;
                 // Reducir 10% al descuento (mínimo 0)
-                $discountPercentage = $hasDiscount ? max(0, $descPromoValue - 10) : 0;
+                $discountPercentage = $hasDiscount ? CatalogOfferDate::catalogRebajaPercent($descPromoValue, $request->user()) : 0;
                 // El precio original es precio1 (ya que precio1 es el precio base)
                 $originalPrice = $hasDiscount && $precio1 > 0 ? $precio1 : null;
                 // Calcular precio final con descuento reducido aplicado sobre precio1

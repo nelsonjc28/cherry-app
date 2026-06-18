@@ -13,7 +13,8 @@ import { refreshCartItemsOffers } from '../utils/cartOfferRefresh';
  */
 export const calculateItemPrice = (item, allItems = null) => {
   const items = allItems ?? (item ? [item] : []);
-  return calculateItemPriceWithMinPurchase(item, items);
+  const user = useUserStore.getState?.()?.user ?? null;
+  return calculateItemPriceWithMinPurchase(item, items, user);
 };
 
 export const sumCartItemsPrice = (items) =>

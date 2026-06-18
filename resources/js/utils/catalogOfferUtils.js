@@ -19,7 +19,7 @@ export function hasCatalogOfferBadge({ discountPercentage = 0, hasUserOffer = fa
 /**
  * Texto del badge de oferta en tarjetas y ficha de producto.
  */
-export function getCatalogOfferBadgeLabel(userOffer, { discountPercentage = 0, isMobile = false, product = null } = {}) {
+export function getCatalogOfferBadgeLabel(userOffer, { discountPercentage = 0, isMobile = false, product = null, user = null } = {}) {
   if (userOffer?.discount_category === 'buy_x_get_y') {
     return formatBuyXGetYOfferLabel(userOffer.buy_quantity, userOffer.get_quantity);
   }
@@ -30,7 +30,7 @@ export function getCatalogOfferBadgeLabel(userOffer, { discountPercentage = 0, i
     return '🚚 Envío gratis';
   }
   if (userOffer?.discount_category === 'product_discount') {
-    const label = formatProductDiscountBadgeLabel(product ?? {}, userOffer);
+    const label = formatProductDiscountBadgeLabel(product ?? {}, userOffer, user);
     if (label) {
       return label;
     }

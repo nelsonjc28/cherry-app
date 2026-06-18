@@ -9,9 +9,11 @@ import colorConverter from '../../services/colorConverter';
 import { useUserDiscounts } from '../../hooks/useUserDiscounts';
 import { hasCatalogOfferBadge, getCatalogOfferBadgeLabel } from '../../utils/catalogOfferUtils';
 import { getProductDisplayDiscountPercent, getCatalogRebajaPercent } from '../../utils/offerMinPurchaseUtils';
+import useUserStore from '../../store/userStore';
 import './ProductCard.css';
 
 const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, variant = 'default' }) => {
+  const { user } = useUserStore();
   // Hook para detectar si es móvil
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
@@ -113,7 +115,11 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
 
   const calculateDiscountPercentage = () => {
     if (finalHasUserOffer && finalUserOffer?.discount_category === 'product_discount') {
-      return getProductDisplayDiscountPercent(stackItem, finalUserOffer);
+      return getProductDisplayDiscountPercent(stackItem, finalUserOffer, user);
+    }
+    const catalogPct = getCatalogRebajaPercent(stackItem, user);
+    if (catalogPct > 0) {
+      return Math.round(catalogPct);
     }
     if (finalHasUserOffer && finalUserOffer && finalUserOffer.discount_percentage > 0) {
       return Math.round(finalUserOffer.discount_percentage);
@@ -121,10 +127,6 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
 
     if (discount && discount > 0) {
       return Math.round(discount);
-    }
-
-    if (getCatalogRebajaPercent(stackItem) > 0) {
-      return Math.round(getCatalogRebajaPercent(stackItem));
     }
 
     if (originalPrice && price && originalPrice > price) {
@@ -144,7 +146,7 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
 
   const getDiscountLabel = () => {
     if (finalHasUserOffer && finalUserOffer) {
-      return getCatalogOfferBadgeLabel(finalUserOffer, { discountPercentage, isMobile, product: stackItem });
+      return getCatalogOfferBadgeLabel(finalUserOffer, { discountPercentage, isMobile, product: stackItem, user });
     }
     return `${discountPercentage}%`;
   };

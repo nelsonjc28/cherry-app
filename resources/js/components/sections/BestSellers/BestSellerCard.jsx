@@ -6,9 +6,11 @@ import { formatPrice } from '../../../utils/formatters';
 import { getProductCardStockStatus, getTotalInventoryFromProduct } from '../../../utils/productUtils';
 import { hasCatalogOfferBadge, getCatalogOfferBadgeLabel } from '../../../utils/catalogOfferUtils';
 import { getCatalogDisplayUnitPrice, getProductDisplayDiscountPercent, getCatalogRebajaPercent } from '../../../utils/offerMinPurchaseUtils';
+import useUserStore from '../../../store/userStore';
 import './BestSellerCard.css';
 
 const BestSellerCard = ({ id, title, image, price, originalPrice, discount, userOffer, hasUserOffer, rating, totalRatings, description, stock = 0, isNew = false, onFavoriteToggle, product, stock_received_count = 0, stockReceivedCount = 0 }) => {
+  const { user } = useUserStore();
   // Hook para detectar si es móvil
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
@@ -36,7 +38,11 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
 
   const calculateDiscountPercentage = () => {
     if (hasUserOffer && userOffer?.discount_category === 'product_discount') {
-      return getProductDisplayDiscountPercent(stackItem, userOffer);
+      return getProductDisplayDiscountPercent(stackItem, userOffer, user);
+    }
+    const catalogPct = getCatalogRebajaPercent(stackItem, user);
+    if (catalogPct > 0) {
+      return Math.round(catalogPct);
     }
     if (hasUserOffer && userOffer && (userOffer.percentage > 0 || userOffer.discount_percentage > 0)) {
       return Math.round(userOffer.percentage ?? userOffer.discount_percentage);
@@ -44,10 +50,6 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
 
     if (discount && discount > 0) {
       return Math.round(discount);
-    }
-
-    if (getCatalogRebajaPercent(stackItem) > 0) {
-      return Math.round(getCatalogRebajaPercent(stackItem));
     }
 
     if (originalPrice && price && originalPrice > price) {
@@ -101,7 +103,7 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
         {stockStatus !== 'coming-soon' && hasOffer && (
           <span className="best-seller-offer-badge">
             {hasUserOffer && userOffer
-              ? getCatalogOfferBadgeLabel(userOffer, { discountPercentage, isMobile, product: stackItem })
+              ? getCatalogOfferBadgeLabel(userOffer, { discountPercentage, isMobile, product: stackItem, user })
               : `${discountPercentage}%`}
           </span>
         )}

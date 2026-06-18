@@ -3,6 +3,8 @@
  * Envío gratis usa su propio mínimo aparte — no pasa por aquí.
  */
 
+import { getEffectiveDescPromoPercent } from './catalogRebajaUtils';
+
 export function getOfferMinPurchaseAmount(userOffer) {
   if (!userOffer?.min_purchase_amount) {
     return 0;
@@ -55,7 +57,7 @@ export function getOfferUnitPrice(item) {
 }
 
 /** Subtotal elegible para compra mínima de líneas que comparten la misma oferta. */
-export function computeOfferSubtotals(items) {
+export function computeOfferSubtotals(items, user = null) {
   const totals = {};
 
   for (const item of items || []) {
@@ -64,7 +66,7 @@ export function computeOfferSubtotals(items) {
       continue;
     }
 
-    const lineTotal = getMinPurchaseEligibleLineTotal(item);
+    const lineTotal = getMinPurchaseEligibleLineTotal(item, user);
     if (lineTotal <= 0) {
       continue;
     }
@@ -75,12 +77,12 @@ export function computeOfferSubtotals(items) {
   return totals;
 }
 
-export function computeEligiblePromoSubtotal(items, userOffer) {
+export function computeEligiblePromoSubtotal(items, userOffer, user = null) {
   const key = getOfferGroupKeyFromOffer(userOffer);
   if (!key) {
     return 0;
   }
-  const totals = computeOfferSubtotals(items);
+  const totals = computeOfferSubtotals(items, user);
   return totals[key] || 0;
 }
 
@@ -98,12 +100,12 @@ export function isOfferMinPurchaseMet(item, offerSubtotals) {
   return (offerSubtotals[key] || 0) >= min;
 }
 
-export function isPromoMinPurchaseMet(userOffer, items = []) {
+export function isPromoMinPurchaseMet(userOffer, items = [], user = null) {
   const min = getOfferMinPurchaseAmount(userOffer);
   if (min <= 0) {
     return true;
   }
-  return computeEligiblePromoSubtotal(items, userOffer) >= min;
+  return computeEligiblePromoSubtotal(items, userOffer, user) >= min;
 }
 
 export function requiresMinPurchase(userOffer) {
@@ -114,22 +116,18 @@ export function requiresMinPurchase(userOffer) {
   return getOfferMinPurchaseAmount(userOffer) > 0;
 }
 
-/** Rebaja de catálogo (desc_promo) sobre precio lista; regla -10 pts de API externa. */
-export function getCatalogRebajaPercent(item) {
-  const descPromo = parseFloat(item?.desc_promo ?? item?.descPromo ?? 0);
-  if (Number.isFinite(descPromo) && descPromo > 0.0001) {
-    return Math.max(0, descPromo - 10);
-  }
-  return 0;
+/** Rebaja de catálogo (desc_promo); Oro/Diamante % completo, Bronce/invitado −10 pts. */
+export function getCatalogRebajaPercent(item, user = null) {
+  return getEffectiveDescPromoPercent(item?.desc_promo ?? item?.descPromo ?? 0, user);
 }
 
 /** Precio unitario solo con rebaja de catálogo (sin oferta personalizada). */
-export function getCatalogDiscountedUnitPrice(listUnit, item) {
+export function getCatalogDiscountedUnitPrice(listUnit, item, user = null) {
   const base = Number(listUnit) || 0;
   if (base <= 0) {
     return 0;
   }
-  const pct = getCatalogRebajaPercent(item);
+  const pct = getCatalogRebajaPercent(item, user);
   if (pct <= 0) {
     return base;
   }
@@ -141,7 +139,7 @@ export function getCatalogDiscountedUnitPrice(listUnit, item) {
  * importe con rebaja de catálogo si hay desc_promo; si no, precio normal.
  * Las líneas gratis de Buy X Get Y no suman.
  */
-export function getMinPurchaseEligibleLineTotal(item) {
+export function getMinPurchaseEligibleLineTotal(item, user = null) {
   if (item?.isFreeItem) {
     return 0;
   }
@@ -152,7 +150,7 @@ export function getMinPurchaseEligibleLineTotal(item) {
   }
 
   const listUnit = getListUnitPrice(item);
-  const unit = getCatalogDiscountedUnitPrice(listUnit, item);
+  const unit = getCatalogDiscountedUnitPrice(listUnit, item, user);
   return unit * qty;
 }
 
@@ -196,19 +194,19 @@ export function getOfferDiscountAmountOnList(listUnit, userOffer) {
 /**
  * Precio unitario en carrito: rebaja catálogo + oferta sobre el importe ya rebajado.
  */
-export function resolveStackedProductDiscountUnitPrice(listUnit, item, userOffer, contextItems = []) {
+export function resolveStackedProductDiscountUnitPrice(listUnit, item, userOffer, contextItems = [], user = null) {
   const list = Number(listUnit) || 0;
   if (list <= 0) {
     return 0;
   }
 
-  const catalogUnit = getCatalogDiscountedUnitPrice(list, item);
+  const catalogUnit = getCatalogDiscountedUnitPrice(list, item, user);
 
   if (!userOffer || userOffer.discount_category !== 'product_discount') {
     return catalogUnit;
   }
 
-  if (!isPromoMinPurchaseMet(userOffer, contextItems)) {
+  if (!isPromoMinPurchaseMet(userOffer, contextItems, user)) {
     return catalogUnit;
   }
 
@@ -229,8 +227,8 @@ export function resolveStackedProductDiscountPercent(item, userOffer, contextIte
 }
 
 /** % a mostrar en tarjetas/ficha: solo rebaja de catálogo si existe. */
-export function getProductDisplayDiscountPercent(item, userOffer = null) {
-  const catalogPct = Math.round(getCatalogRebajaPercent(item));
+export function getProductDisplayDiscountPercent(item, userOffer = null, user = null) {
+  const catalogPct = Math.round(getCatalogRebajaPercent(item, user));
   if (catalogPct > 0) {
     return catalogPct;
   }
@@ -245,21 +243,20 @@ export function getProductDisplayDiscountPercent(item, userOffer = null) {
     }
   }
 
-  const stored = parseFloat(item?.discount);
-  return Number.isFinite(stored) && stored > 0 ? Math.round(stored) : 0;
+  return 0;
 }
 
 /**
  * Precio a mostrar en catálogo/ficha (rebaja catálogo; el % de oferta se aplica al pagar).
  */
-export function getCatalogDisplayUnitPrice(listUnit, item, userOffer = null) {
+export function getCatalogDisplayUnitPrice(listUnit, item, userOffer = null, user = null) {
   const list = Number(listUnit) || 0;
   if (list <= 0) {
     return 0;
   }
 
-  const catalogUnit = getCatalogDiscountedUnitPrice(list, item);
-  if (getCatalogRebajaPercent(item) > 0) {
+  const catalogUnit = getCatalogDiscountedUnitPrice(list, item, user);
+  if (getCatalogRebajaPercent(item, user) > 0) {
     return catalogUnit;
   }
 
@@ -278,20 +275,20 @@ export function resolveStackedProductDiscountPercentLiteral(item, userOffer, con
 /**
  * Precios de catálogo/ficha con rebaja apilada (solo product_discount).
  */
-export function applyStackedProductDiscountPricing(product, userOffer, contextItems = []) {
+export function applyStackedProductDiscountPricing(product, userOffer, contextItems = [], user = null) {
   const rawBase = product?.precio1 ?? product?.precio ?? product?.originalPrice ?? product?.price ?? 0;
   const listUnit = typeof rawBase === 'string'
     ? parseFloat(rawBase.replace(/[^\d.-]/g, '')) || 0
     : parseFloat(rawBase) || 0;
 
   const item = { ...product, precio1: listUnit };
-  const displayUnit = getCatalogDisplayUnitPrice(listUnit, item, userOffer);
-  const visualDiscount = getProductDisplayDiscountPercent(item, userOffer);
+  const displayUnit = getCatalogDisplayUnitPrice(listUnit, item, userOffer, user);
+  const visualDiscount = getProductDisplayDiscountPercent(item, userOffer, user);
   const showPriceDiscount = displayUnit < listUnit;
 
   let checkoutUnit = displayUnit;
   if (userOffer?.discount_category === 'product_discount') {
-    checkoutUnit = resolveStackedProductDiscountUnitPrice(listUnit, item, userOffer, contextItems);
+    checkoutUnit = resolveStackedProductDiscountUnitPrice(listUnit, item, userOffer, contextItems, user);
   }
 
   return {
@@ -342,30 +339,30 @@ export function calculateProductDiscountUnitPrice(originalPrice, userOffer) {
 /**
  * Precio unitario efectivo: rebaja catálogo + oferta si cumple compra mínima.
  */
-export function resolveProductDiscountUnitPrice(originalPrice, userOffer, contextItems = [], item = null) {
+export function resolveProductDiscountUnitPrice(originalPrice, userOffer, contextItems = [], item = null, user = null) {
   const listUnit = Number(originalPrice) || 0;
   const stackItem = item ?? { precio1: listUnit, desc_promo: 0 };
-  return resolveStackedProductDiscountUnitPrice(listUnit, stackItem, userOffer, contextItems);
+  return resolveStackedProductDiscountUnitPrice(listUnit, stackItem, userOffer, contextItems, user);
 }
 
 /**
  * Porcentaje visual del descuento apilado (0 extra si no aplica por compra mínima).
  */
-export function resolveProductDiscountPercent(userOffer, contextItems = [], item = null) {
+export function resolveProductDiscountPercent(userOffer, contextItems = [], item = null, user = null) {
   if (userOffer?.discount_category !== 'product_discount') {
     return 0;
   }
 
   const stackItem = item ?? { precio1: 0, desc_promo: 0 };
-  return getProductDisplayDiscountPercent(stackItem, userOffer);
+  return getProductDisplayDiscountPercent(stackItem, userOffer, user);
 }
 
 /**
  * Precio de línea considerando compra mínima de la oferta (product_discount / buy_x_get_y).
  */
-export function calculateItemPriceWithMinPurchase(item, allItems = []) {
+export function calculateItemPriceWithMinPurchase(item, allItems = [], user = null) {
   const items = Array.isArray(allItems) && allItems.length > 0 ? allItems : [item];
-  const offerSubtotals = computeOfferSubtotals(items);
+  const offerSubtotals = computeOfferSubtotals(items, user);
   const qty = Number(item?.quantity ?? 0) || 0;
 
   if (qty <= 0) {
@@ -386,13 +383,13 @@ export function calculateItemPriceWithMinPurchase(item, allItems = []) {
 
   if (!minMet) {
     if (category === 'product_discount') {
-      return getCatalogDiscountedUnitPrice(listUnit, item) * qty;
+      return getCatalogDiscountedUnitPrice(listUnit, item, user) * qty;
     }
     return listUnit * qty;
   }
 
   if (category === 'product_discount') {
-    const unit = resolveStackedProductDiscountUnitPrice(listUnit, item, item.userOffer, items);
+    const unit = resolveStackedProductDiscountUnitPrice(listUnit, item, item.userOffer, items, user);
     return unit * qty;
   }
 
@@ -426,8 +423,8 @@ function formatOfferFixedAmount(amount) {
 /**
  * Texto del badge en tarjetas: solo rebaja de catálogo si existe.
  */
-export function formatProductDiscountBadgeLabel(item, userOffer) {
-  const catalogPct = Math.round(getCatalogRebajaPercent(item));
+export function formatProductDiscountBadgeLabel(item, userOffer, user = null) {
+  const catalogPct = Math.round(getCatalogRebajaPercent(item, user));
   if (catalogPct > 0) {
     return `${catalogPct}%`;
   }
@@ -447,12 +444,12 @@ export function formatProductDiscountBadgeLabel(item, userOffer) {
 /**
  * Explicación en ficha: oferta adicional sobre importe de promo (no sobre precio lista).
  */
-export function formatProductDiscountOfferDetail(item, userOffer) {
+export function formatProductDiscountOfferDetail(item, userOffer, user = null) {
   if (userOffer?.discount_category !== 'product_discount') {
     return '';
   }
 
-  const catalogPct = Math.round(getCatalogRebajaPercent(item));
+  const catalogPct = Math.round(getCatalogRebajaPercent(item, user));
   const min = getOfferMinPurchaseAmount(userOffer);
   const offerValue = parseFloat(userOffer.discount_percentage) || 0;
   const discountType = userOffer.discount_type || userOffer.type || 'percentage';
@@ -490,7 +487,7 @@ export function formatProductDiscountOfferDetail(item, userOffer) {
 /**
  * % de descuento a mostrar en líneas del carrito (solo rebaja de catálogo en tarjeta).
  */
-export function resolveCartGroupedDiscountPercent(groupedProduct, cartItems = []) {
+export function resolveCartGroupedDiscountPercent(groupedProduct, cartItems = [], user = null) {
   if (!groupedProduct) {
     return 0;
   }
@@ -505,7 +502,7 @@ export function resolveCartGroupedDiscountPercent(groupedProduct, cartItems = []
     discount: groupedProduct.discount,
   };
 
-  return getProductDisplayDiscountPercent(repItem, groupedProduct.userOffer);
+  return getProductDisplayDiscountPercent(repItem, groupedProduct.userOffer, user);
 }
 
 export function buildPromoContextItems(cartItems, userOffer, pendingLines = []) {
@@ -521,10 +518,10 @@ export function buildPromoContextItems(cartItems, userOffer, pendingLines = []) 
 /**
  * Alertas de carrito cuando falta monto para activar la promoción.
  */
-export function buildOfferMinPurchaseAlerts(cartItems) {
+export function buildOfferMinPurchaseAlerts(cartItems, user = null) {
   const alerts = [];
   const seen = new Set();
-  const offerSubtotals = computeOfferSubtotals(cartItems);
+  const offerSubtotals = computeOfferSubtotals(cartItems, user);
 
   for (const item of cartItems || []) {
     const offer = item?.userOffer;

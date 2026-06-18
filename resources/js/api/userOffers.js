@@ -1,7 +1,6 @@
 import axios from 'axios';
-import {
-  applyStackedProductDiscountPricing,
-} from '../utils/offerMinPurchaseUtils';
+import useUserStore from '../store/userStore';
+import { applyStackedProductDiscountPricing } from '../utils/offerMinPurchaseUtils';
 
 const API_BASE_URL = '/api';
 
@@ -62,11 +61,13 @@ export const checkProductsWithUserOffers = async (productIds) => {
  * Aplicar ofertas de usuario a una lista de productos
  * VERSIÓN SÚPER SIMPLIFICADA - Sin lotes, sin límites, sin timeouts
  */
-export const applyUserOffersToProducts = async (products, userOfferMap = null) => {
+export const applyUserOffersToProducts = async (products, userOfferMap = null, user = null) => {
   
   if (!products || products.length === 0) {
     return products;
   }
+
+  const effectiveUser = user ?? useUserStore.getState?.()?.user ?? null;
   // Si se proporciona un mapa de ofertas personalizadas, usarlo directamente
   let productsWithOffers = {};
   
@@ -127,7 +128,8 @@ export const applyUserOffersToProducts = async (products, userOfferMap = null) =
           const stacked = applyStackedProductDiscountPricing(
             { ...product, precio1: originalPrice },
             userOffer,
-            []
+            [],
+            effectiveUser
           );
           discountedPrice = stacked.finalPrice;
           visualDiscount = stacked.visualDiscount;

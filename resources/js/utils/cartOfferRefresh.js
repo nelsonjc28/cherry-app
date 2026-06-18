@@ -1,4 +1,5 @@
 import { checkProductsWithUserOffers } from '../api/userOffers';
+import useUserStore from '../store/userStore';
 import {
   getListUnitPrice,
   getCatalogDiscountedUnitPrice,
@@ -41,7 +42,7 @@ export function buildCartUserOffer(backendOffer) {
   };
 }
 
-function applyOfferToCartItem(item, backendOffer, allItems) {
+function applyOfferToCartItem(item, backendOffer, allItems, user = null) {
   const freshOffer = buildCartUserOffer(backendOffer);
   const updated = { ...item, userOffer: freshOffer };
 
@@ -55,7 +56,7 @@ function applyOfferToCartItem(item, backendOffer, allItems) {
   }
 
   if (!freshOffer) {
-    const unit = getCatalogDiscountedUnitPrice(listUnit, updated);
+    const unit = getCatalogDiscountedUnitPrice(listUnit, updated, user);
     return { ...updated, userOffer: null, price: unit, precio: unit };
   }
 
@@ -64,12 +65,12 @@ function applyOfferToCartItem(item, backendOffer, allItems) {
     || freshOffer.discount_category === 'free_shipping'
     || freshOffer.discount_category === 'order_discount'
   ) {
-    const unit = getCatalogDiscountedUnitPrice(listUnit, updated);
+    const unit = getCatalogDiscountedUnitPrice(listUnit, updated, user);
     return { ...updated, price: unit, precio: unit };
   }
 
   if (freshOffer.discount_category === 'product_discount') {
-    const unit = resolveStackedProductDiscountUnitPrice(listUnit, updated, freshOffer, allItems);
+    const unit = resolveStackedProductDiscountUnitPrice(listUnit, updated, freshOffer, allItems, user);
     return { ...updated, price: unit, precio: unit };
   }
 
@@ -77,17 +78,14 @@ function applyOfferToCartItem(item, backendOffer, allItems) {
 }
 
 /**
- * Reemplaza userOffer y precios de línea con datos actuales de /user-discounts/check.
- * No cachea el % de la oferta: siempre consulta el backend.
+ * Reemplaza userOffer y precios de línea (rebaja catálogo + oferta) según backend y categoría del usuario.
  */
 export async function refreshCartItemsOffers(items) {
   if (!Array.isArray(items) || items.length === 0) {
     return items || [];
   }
 
-  if (!localStorage.getItem('token')) {
-    return items;
-  }
+  const user = useUserStore.getState?.()?.user ?? null;
 
   const productIds = [...new Set(
     items
@@ -96,26 +94,19 @@ export async function refreshCartItemsOffers(items) {
       .map((id) => String(id).trim())
   )];
 
-  if (productIds.length === 0) {
-    return items;
+  let offersMap = {};
+  if (localStorage.getItem('token') && productIds.length > 0) {
+    offersMap = await checkProductsWithUserOffers(productIds);
   }
-
-  const offersMap = await checkProductsWithUserOffers(productIds);
 
   let refreshed = items.map((item) => {
     const backendOffer = resolveOfferForCartItem(offersMap, item);
-    if (!item?.userOffer && !backendOffer) {
-      return item;
-    }
-    return applyOfferToCartItem(item, backendOffer, items);
+    return applyOfferToCartItem(item, backendOffer, items, user);
   });
 
   refreshed = refreshed.map((item) => {
     const backendOffer = resolveOfferForCartItem(offersMap, item);
-    if (!item?.userOffer && !backendOffer) {
-      return item;
-    }
-    return applyOfferToCartItem(item, backendOffer, refreshed);
+    return applyOfferToCartItem(item, backendOffer, refreshed, user);
   });
 
   return refreshed;

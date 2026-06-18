@@ -12,9 +12,12 @@ import { publicCatalogService } from '../services/api';
 import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
 import { isProductNewLikeNuevosPage, sortKeyFechaCompra } from '../utils/productNewRules';
+import useUserStore from '../store/userStore';
+import { getEffectiveDescPromoPercent } from '../utils/catalogRebajaUtils';
 import './ProductosPage.css';
 
 const ProductosPage = () => {
+  const { user } = useUserStore();
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -170,7 +173,7 @@ const ProductosPage = () => {
             if (finalPrice === undefined || finalPrice === null || finalPrice === 0) {
               const hasDiscount = product.opc_promo === 'S' && product.desc_promo > 0;
               const originalDiscountPercentage = hasDiscount ? parseFloat(product.desc_promo) : 0;
-              discountPercentage = hasDiscount ? Math.max(0, originalDiscountPercentage - 10) : 0;
+              discountPercentage = hasDiscount ? getEffectiveDescPromoPercent(originalDiscountPercentage, user) : 0;
               originalPrice = hasDiscount && numericPrice > 0 
                 ? (numericPrice / (1 - originalDiscountPercentage / 100)) 
                 : null;

@@ -197,7 +197,7 @@ class ExternalSalesService
 
             $details = is_array($orderItem->product_details) ? $orderItem->product_details : [];
             $descPromo = (float) ($details['desc_promo'] ?? $producto->desc_promo ?? 0);
-            $catalogUnit = CatalogOfferDate::catalogUnitPrice($precioOriginal, $descPromo);
+            $catalogUnit = CatalogOfferDate::catalogUnitPrice($precioOriginal, $descPromo, $order->user);
             $paidUnit = $precioConDescuento;
             $catalogLine = round($catalogUnit * $cantidad, 2);
 
@@ -319,8 +319,8 @@ class ExternalSalesService
         }
 
         // --- Totales API (requisito cliente) ---
-        // importeNeto = mercancía CON descuentos (lo cobrado en productos, sin envío).
-        // importeTotal = mercancía SIN descuentos (bruto antes de aplicar descuentos).
+        // importeTotal (API) = mercancía CON descuentos (lo cobrado en productos, sin envío).
+        // importeFinal (API) = mercancía SIN descuentos (bruto antes de aplicar descuentos).
         // subtotal BD = carrito antes de escalas $7k/$15k; discounted_total = tras descuentos (sin envío).
         $subtotalOrden = round((float) ($order->subtotal ?? 0), 2);
         $discountedTotalOrden = round((float) ($order->discounted_total ?? 0), 2);
@@ -332,19 +332,19 @@ class ExternalSalesService
 
         // Bruto sin descuentos: prioridad subtotal de orden; si viene igual al neto (error u orden vieja), catálogo o reconstrucción
         $importeBrutoCatalogo = round($importeBrutoCatalogo, 2);
-        $importeTotal = $subtotalOrden;
-        if ($importeTotal < $importeNeto - 0.01) {
-            $importeTotal = round(max($importeBrutoCatalogo, $importeNeto), 2);
+        $importeBruto = $subtotalOrden;
+        if ($importeBruto < $importeNeto - 0.01) {
+            $importeBruto = round(max($importeBrutoCatalogo, $importeNeto), 2);
         }
-        if ($importeTotal <= $importeNeto + 0.01) {
+        if ($importeBruto <= $importeNeto + 0.01) {
             $candidatoCatalogo = round(max($importeBrutoCatalogo, $importeNeto), 2);
             $deltaVolumen = round(max(0.0, $subtotalOrden - $discountedTotalOrden), 2);
-            $importeTotal = round(max($candidatoCatalogo, $importeNeto + $deltaVolumen), 2);
+            $importeBruto = round(max($candidatoCatalogo, $importeNeto + $deltaVolumen), 2);
         }
-        $importeTotal = round(max($importeTotal, $importeNeto), 2);
+        $importeBruto = round(max($importeBruto, $importeNeto), 2);
 
-        // Descuento monetario total de mercancía: bruto − neto (cuadra con importeTotal / importeNeto)
-        $descuentos = round(max(0.0, $importeTotal - $importeNeto), 2);
+        // Descuento monetario total de mercancía: bruto − neto (cuadra con importeFinal / importeTotal)
+        $descuentos = round(max(0.0, $importeBruto - $importeNeto), 2);
 
         // Descuento por escalas según columnas de la orden (importe monetario del volumen)
         $descuentoVolumenMonto = round(max(0.0, $subtotalOrden - $discountedTotalOrden), 2);
@@ -393,18 +393,18 @@ class ExternalSalesService
             $impoDecto3Api = round($impoDecto3Total, 2);
         }
 
-        $importeFinal = (float) ($order->total_amount ?? ($discountedTotalOrden + $costoEnvio));
-        
-        // Validar que importeFinal sea válido
-        if ($importeFinal <= 0) {
-            Log::warning('Importe final es 0 o negativo', [
+        $importeCobro = (float) ($order->total_amount ?? ($discountedTotalOrden + $costoEnvio));
+
+        // Validar que el importe cobrado sea válido
+        if ($importeCobro <= 0) {
+            Log::warning('Importe cobrado es 0 o negativo', [
                 'order_id' => $order->id,
-                'importeNeto' => $importeNeto,
+                'importeTotal_api' => $importeNeto,
                 'descuentos' => $descuentos,
-                'importeTotal' => $importeTotal,
+                'importeFinal_api' => $importeBruto,
                 'costoEnvio' => $costoEnvio,
-                'importeFinal' => $importeFinal,
-                'items_count' => count($items)
+                'importeCobro' => $importeCobro,
+                'items_count' => count($items),
             ]);
         }
         
@@ -439,12 +439,11 @@ class ExternalSalesService
             'impoDecto3' => $impoDecto3Api,
             'descuento1' => (float) $descuento1,
             'descuento2' => (float) $descuento2,
-            'importeNeto' => (float) $importeNeto,
+            'importeTotal' => (float) $importeNeto,
             'descuentos' => (float) $descuentos,
-            'importeTotal' => (float) $importeTotal,
+            'importeFinal' => (float) $importeBruto,
             'costoEnvio' => (float) $costoEnvio,
             'items' => $items,
-            'importeFinal' => (float) $importeFinal,
         ];
 
         $splitGroupId = $paymentData['split_group_id'] ?? null;
@@ -453,7 +452,7 @@ class ExternalSalesService
                 'split_group_id' => (string) $splitGroupId,
                 'split_role' => $paymentData['split_role'] ?? null,
                 'paired_order_id' => $paymentData['split_paired_order_id'] ?? null,
-                'nota' => 'Operación fraccionada (crédito / Mercado Pago). Sumar importeNeto de órdenes con el mismo split_group_id para el total de mercancía del carrito.',
+                'nota' => 'Operación fraccionada (crédito / Mercado Pago). Sumar importeTotal de órdenes con el mismo split_group_id para el total de mercancía del carrito.',
             ];
         }
 
@@ -465,45 +464,53 @@ class ExternalSalesService
             'discounted_total_from_db' => $order->discounted_total,
             'total_amount_from_db' => $order->total_amount,
             'importe_bruto_catalogo' => $importeBrutoCatalogo,
-            'importeNeto' => $importeNeto, // Con descuento (neto cobrado mercancía)
+            'importeTotal_api' => $importeNeto, // Con descuento (neto cobrado mercancía)
             'descuento_volumen_monto' => $descuentoVolumenMonto,
             'suma_neto_lineas' => $sumaNetoLineas,
             'descuentos' => $descuentos,
-            'importeTotal' => $importeTotal, // Sin descuento (bruto lista)
+            'importeFinal_api' => $importeBruto, // Sin descuento (bruto lista)
             'costoEnvio' => $costoEnvio,
-            'importeFinal' => $importeFinal,
-            'payload' => $payload
+            'importeCobro' => $importeCobro,
+            'payload' => $payload,
         ]);
-        
+
         // Validar que items no esté vacío
         if (empty($payload['items'])) {
             throw new \Exception('El payload no contiene items. No se puede enviar una venta sin productos.');
         }
-        
-        // Validar que importeFinal esté definido y sea mayor a 0
-        if (!isset($payload['importeFinal']) || $payload['importeFinal'] <= 0) {
+
+        // Validar importeTotal (mercancía con descuento) e importe cobrado
+        if (! isset($payload['importeTotal']) || $payload['importeTotal'] <= 0) {
             throw new \Exception(
-                "El importeFinal no está definido o es inválido. " .
-                "Valor actual: {$payload['importeFinal']}. " .
-                "ImporteNeto: {$importeNeto}, Descuentos: {$descuentos}, CostoEnvio: {$costoEnvio}"
+                'El importeTotal no está definido o es inválido. '.
+                "Valor actual: {$payload['importeTotal']}. ".
+                "ImporteFinal: {$payload['importeFinal']}, Descuentos: {$descuentos}, CostoEnvio: {$costoEnvio}"
             );
         }
-        
+
+        if ($importeCobro <= 0) {
+            throw new \Exception(
+                'El importe cobrado no es válido. '.
+                "ImporteTotal: {$payload['importeTotal']}, CostoEnvio: {$costoEnvio}"
+            );
+        }
+
         // Verificar estructura final del payload antes de enviar
-        if (!isset($payload['items']) || !is_array($payload['items'])) {
+        if (! isset($payload['items']) || ! is_array($payload['items'])) {
             throw new \Exception('El campo items no está definido o no es un array en el payload.');
         }
-        
-        if (!isset($payload['importeFinal'])) {
+
+        if (! isset($payload['importeFinal'])) {
             throw new \Exception('El campo importeFinal no está definido en el payload.');
         }
-        
+
         // Log del payload completo en formato JSON para verificar estructura
         Log::info('Payload JSON completo para API externa', [
             'order_id' => $order->id,
             'payload_json' => json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
             'items_count' => count($payload['items']),
-            'importeFinal' => $payload['importeFinal']
+            'importeTotal' => $payload['importeTotal'],
+            'importeFinal' => $payload['importeFinal'],
         ]);
         
         // Log del JSON exacto que se enviará

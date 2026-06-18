@@ -279,7 +279,9 @@ class User extends Authenticatable implements JWTSubject
      */
     public function isPremiumSeller()
     {
-        return in_array($this->seller_category, ['oro', 'diamante']);
+        $cat = strtolower(trim((string) ($this->seller_category ?? '')));
+
+        return in_array($cat, ['oro', 'diamante', 'gold', 'diamond'], true);
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\User;
 use Carbon\Carbon;
 
 /**
@@ -30,22 +31,29 @@ final class CatalogOfferDate
         return true;
     }
 
-    public static function catalogRebajaPercent(float $descPromo): float
+    /**
+     * % rebaja catálogo: Oro/Diamante → desc_promo completo; resto → desc_promo − 10.
+     */
+    public static function catalogRebajaPercent(float $descPromo, ?User $user = null): float
     {
         if ($descPromo <= 0.0001) {
             return 0.0;
         }
 
+        if ($user?->isPremiumSeller()) {
+            return $descPromo;
+        }
+
         return max(0.0, $descPromo - 10.0);
     }
 
-    public static function catalogUnitPrice(float $listPrice, float $descPromo): float
+    public static function catalogUnitPrice(float $listPrice, float $descPromo, ?User $user = null): float
     {
         if ($listPrice <= 0) {
             return 0.0;
         }
 
-        $pct = self::catalogRebajaPercent($descPromo);
+        $pct = self::catalogRebajaPercent($descPromo, $user);
 
         if ($pct <= 0) {
             return $listPrice;

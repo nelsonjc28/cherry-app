@@ -9,8 +9,10 @@ import { getIconPath } from '../../utils/assetPaths';
 import colorConverter from '../../services/colorConverter';
 import { hasCatalogOfferBadge, getCatalogOfferBadgeLabel } from '../../utils/catalogOfferUtils';
 import { formatMinPurchaseHint, resolveStackedProductDiscountUnitPrice, getCatalogDisplayUnitPrice, getProductDisplayDiscountPercent, getCatalogRebajaPercent } from '../../utils/offerMinPurchaseUtils';
+import useUserStore from '../../store/userStore';
 
 const CatalogProductCard = ({ product, onFavoriteToggle }) => {
+  const { user } = useUserStore();
   // Hook para detectar si es móvil
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
@@ -105,25 +107,26 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
   const stackItem = { ...product, precio1: listPrice };
 
   const displayUnitPrice = hasUserOffer && userOffer?.discount_category === 'product_discount'
-    ? getCatalogDisplayUnitPrice(listPrice, stackItem, userOffer)
-    : (getCatalogRebajaPercent(stackItem) > 0
-      ? getCatalogDisplayUnitPrice(listPrice, stackItem, null)
+    ? getCatalogDisplayUnitPrice(listPrice, stackItem, userOffer, user)
+    : (getCatalogRebajaPercent(stackItem, user) > 0
+      ? getCatalogDisplayUnitPrice(listPrice, stackItem, null, user)
       : price);
 
   const displayOriginalPrice = listPrice > displayUnitPrice ? listPrice : originalPrice;
 
   const calculateDiscountPercentage = () => {
     if (hasUserOffer && userOffer?.discount_category === 'product_discount') {
-      return getProductDisplayDiscountPercent(stackItem, userOffer);
+      return getProductDisplayDiscountPercent(stackItem, userOffer, user);
+    }
+    const catalogPct = getCatalogRebajaPercent(stackItem, user);
+    if (catalogPct > 0) {
+      return Math.round(catalogPct);
     }
     if (hasUserOffer && userOffer && userOffer.discount_percentage > 0) {
       return Math.round(userOffer.discount_percentage);
     }
     if (discount && discount > 0) {
       return Math.round(discount);
-    }
-    if (getCatalogRebajaPercent(stackItem) > 0) {
-      return Math.round(getCatalogRebajaPercent(stackItem));
     }
     if (originalPrice && price && originalPrice > price) {
       return Math.round(((originalPrice - price) / originalPrice) * 100);
@@ -136,7 +139,7 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
   const hasOffer = hasCatalogOfferBadge({ discountPercentage, hasUserOffer, userOffer });
   const minPurchaseHint = hasUserOffer && userOffer ? formatMinPurchaseHint(userOffer) : '';
   
-  const getDiscountLabel = () => getCatalogOfferBadgeLabel(userOffer, { discountPercentage, isMobile, product: stackItem });
+  const getDiscountLabel = () => getCatalogOfferBadgeLabel(userOffer, { discountPercentage, isMobile, product: stackItem, user });
 
   // Handle share functionality
   const handleShare = async () => {

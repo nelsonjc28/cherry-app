@@ -29,7 +29,7 @@ export function isVolumeEligibleCartItem(item) {
 }
 
 /** Descuentos de ofertas product_discount agrupados por promoción (sobre importe ya rebajado). */
-export function computeCartOfferDiscountLines(cartItems) {
+export function computeCartOfferDiscountLines(cartItems, user = null) {
   const byKey = {};
 
   for (const it of cartItems || []) {
@@ -37,7 +37,7 @@ export function computeCartOfferDiscountLines(cartItems) {
     if (offer?.discount_category !== 'product_discount') {
       continue;
     }
-    if (!isPromoMinPurchaseMet(offer, cartItems)) {
+    if (!isPromoMinPurchaseMet(offer, cartItems, user)) {
       continue;
     }
 
@@ -47,7 +47,7 @@ export function computeCartOfferDiscountLines(cartItems) {
     }
 
     const listUnit = getListUnitPrice(it);
-    const catalogUnit = getCatalogDiscountedUnitPrice(listUnit, it);
+    const catalogUnit = getCatalogDiscountedUnitPrice(listUnit, it, user);
     const catalogLine = round2(catalogUnit * qty);
     const finalLine = round2(calculateItemPrice(it, cartItems));
     const saving = round2(Math.max(0, catalogLine - finalLine));
@@ -116,7 +116,7 @@ export function buildCartAmountBreakdown(user, cartItems, volSummary) {
     const listUnit = getListUnitPrice(it);
     if (Number.isFinite(listUnit) && listUnit > 0) {
       promoListSubtotal += round2(listUnit * q);
-      promoCatalogSubtotal += round2(getCatalogDiscountedUnitPrice(listUnit, it) * q);
+      promoCatalogSubtotal += round2(getCatalogDiscountedUnitPrice(listUnit, it, u) * q);
     }
   }
   promoListSubtotal = round2(promoListSubtotal);
@@ -127,7 +127,7 @@ export function buildCartAmountBreakdown(user, cartItems, volSummary) {
     promoCatalogSubtotal = round2(promoCartSubtotal);
   }
   const promoSavings = round2(Math.max(0, promoListSubtotal - promoCatalogSubtotal));
-  const offerDiscountLines = computeCartOfferDiscountLines(cartItems);
+  const offerDiscountLines = computeCartOfferDiscountLines(cartItems, u);
 
   return {
     linePieces,

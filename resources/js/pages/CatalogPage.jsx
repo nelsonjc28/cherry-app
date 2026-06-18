@@ -14,6 +14,8 @@ import { catalogService, publicCatalogService } from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
 import { shareCatalogPdf } from '../utils/shareProductUtils';
 import { isProductNewLikeNuevosPage } from '../utils/productNewRules';
+import useUserStore from '../store/userStore';
+import { getEffectiveDescPromoPercent } from '../utils/catalogRebajaUtils';
 
 // Función para mezclar array de forma aleatoria (Fisher-Yates shuffle)
 const shuffleArray = (array) => {
@@ -27,6 +29,7 @@ const shuffleArray = (array) => {
 
 const CatalogPage = ({ catalogId }) => {
 
+  const { user } = useUserStore();
   const [searchParams] = useSearchParams();
   const category = searchParams.get('category') || 'all';
   const colorFilter = searchParams.get('color') || '';
@@ -428,7 +431,7 @@ const CatalogPage = ({ catalogId }) => {
                   if (finalPrice === undefined || finalPrice === null || finalPrice === 0) {
                     const hasDiscount = product.opc_promo === 'S' && product.desc_promo > 0;
                     const originalDiscountPercentage = hasDiscount ? parseFloat(product.desc_promo) : 0;
-                    discountPercentage = hasDiscount ? Math.max(0, originalDiscountPercentage - 10) : 0;
+                    discountPercentage = hasDiscount ? getEffectiveDescPromoPercent(originalDiscountPercentage, user) : 0;
                     originalPrice = hasDiscount && numericPrice > 0 ? numericPrice : null;
                     finalPrice = hasDiscount && discountPercentage > 0 && numericPrice > 0
                       ? (numericPrice - (numericPrice * (discountPercentage / 100)))
@@ -519,7 +522,7 @@ const CatalogPage = ({ catalogId }) => {
                 if (finalPrice === undefined || finalPrice === null || finalPrice === 0) {
                   const hasDiscount = product.opc_promo === 'S' && product.desc_promo > 0;
                   const originalDiscountPercentage = hasDiscount ? parseFloat(product.desc_promo) : 0;
-                  discountPercentage = hasDiscount ? Math.max(0, originalDiscountPercentage - 10) : 0;
+                  discountPercentage = hasDiscount ? getEffectiveDescPromoPercent(originalDiscountPercentage, user) : 0;
                   originalPrice = hasDiscount && numericPrice > 0 ? numericPrice : null;
                   finalPrice = hasDiscount && discountPercentage > 0 && numericPrice > 0
                     ? (numericPrice - (numericPrice * (discountPercentage / 100)))

@@ -8,6 +8,7 @@ import useUserStore from '../../store/userStore';
 import productCache from '../../utils/productCacheInMemory';
 import api from '../../services/api';
 import { isProductNewLikeNuevosPage } from '../../utils/productNewRules';
+import { getEffectiveDescPromoPercent, catalogPriceFromList } from '../../utils/catalogRebajaUtils';
 import './RecentlyViewedSection.css';
 
 const RecentlyViewedSection = ({ currentProductId }) => {
@@ -186,10 +187,10 @@ const RecentlyViewedSection = ({ currentProductId }) => {
             originalPrice = basePrice;
             finalPrice = basePrice - (basePrice * (discountPercentage / 100));
           } else if (product.desc_promo && product.desc_promo > 0) {
-            discountPercentage = Math.max(0, product.desc_promo - 10);
+            discountPercentage = getEffectiveDescPromoPercent(product.desc_promo, user);
             if (discountPercentage > 0) {
               originalPrice = basePrice;
-              finalPrice = basePrice - (basePrice * (discountPercentage / 100));
+              finalPrice = catalogPriceFromList(basePrice, product.desc_promo, user);
             }
           }
 

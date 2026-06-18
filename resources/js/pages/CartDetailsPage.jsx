@@ -321,12 +321,12 @@ const CartDetailsPage = () => {
       userOffer: groupedProduct.userOffer,
     };
     const listUnit = getListUnitPrice(repItem);
-    const catalogUnit = getCatalogDiscountedUnitPrice(listUnit, repItem);
+    const catalogUnit = getCatalogDiscountedUnitPrice(listUnit, repItem, user);
     const qty = groupedProduct.totalQuantity;
     const catalogLineTotal = catalogUnit * qty;
     const finalLineTotal = groupedProduct.totalPrice;
     const priceWithoutDiscount = listUnit * qty;
-    const discountPercentage = resolveCartGroupedDiscountPercent(groupedProduct, cartItems);
+    const discountPercentage = resolveCartGroupedDiscountPercent(groupedProduct, cartItems, user);
     const hasDiscount = discountPercentage > 0
       || (groupedProduct.desc_promo && groupedProduct.desc_promo > 0)
       || (groupedProduct.originalPrice && parseFloat(groupedProduct.originalPrice) > catalogUnit)
@@ -1315,7 +1315,7 @@ const CartDetailsPage = () => {
 
   const discountAlerts = getDiscountAlerts();
   const shippingAlerts = getShippingAlerts();
-  const minPurchaseAlerts = buildOfferMinPurchaseAlerts(cartItems);
+  const minPurchaseAlerts = buildOfferMinPurchaseAlerts(cartItems, user);
   const allAlerts = [...discountWarningAlert, ...minPurchaseAlerts, ...discountAlerts, ...shippingAlerts];
 
   const orderAmountBreakdown = useMemo(

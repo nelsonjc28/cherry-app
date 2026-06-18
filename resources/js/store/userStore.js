@@ -127,6 +127,7 @@ const useUserStore = create((set, get) => ({
       // PASO 6: Inicializar carrito después del login y sincronizar localStorage a BD
       cartStore.resetInitialization(); // Resetear para forzar recarga
       await cartStore.syncCartFromLocalStorage(); // Sincronizar (esto ya carga el carrito combinado)
+      await cartStore.refreshCartOffers(); // Recalcular rebajas según categoría del vendedor
       // NO llamar a initCart aquí porque syncCartFromLocalStorage ya actualiza el estado
 
       return data.user;

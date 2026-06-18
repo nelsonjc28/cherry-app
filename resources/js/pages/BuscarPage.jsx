@@ -14,6 +14,8 @@ import { flexibleSearchInFields } from '../utils/searchNormalizer';
 import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
 import { isProductNewLikeNuevosPage } from '../utils/productNewRules';
+import useUserStore from '../store/userStore';
+import { getEffectiveDescPromoPercent } from '../utils/catalogRebajaUtils';
 import './BuscarPage.css';
 import './NuevosPage.css';
 
@@ -28,6 +30,7 @@ const shuffleArray = (array) => {
 };
 
 const BuscarPage = () => {
+  const { user } = useUserStore();
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
   const colorFilter = searchParams.get('color') || '';
@@ -246,7 +249,7 @@ const BuscarPage = () => {
                 if (finalPrice === undefined || finalPrice === null || finalPrice === 0) {
                   const hasDiscount = product.opc_promo === 'S' && product.desc_promo > 0;
                   const originalDiscountPercentage = hasDiscount ? parseFloat(product.desc_promo) : 0;
-                  discountPercentage = hasDiscount ? Math.max(0, originalDiscountPercentage - 10) : 0;
+                  discountPercentage = hasDiscount ? getEffectiveDescPromoPercent(originalDiscountPercentage, user) : 0;
                   originalPrice = hasDiscount && numericPrice > 0 ? (numericPrice / (1 - originalDiscountPercentage / 100)) : null;
                   finalPrice = hasDiscount && discountPercentage > 0 && numericPrice > 0 
                     ? (numericPrice - (numericPrice * (discountPercentage / 100))) 
