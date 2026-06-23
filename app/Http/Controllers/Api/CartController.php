@@ -61,6 +61,9 @@ class CartController extends Controller
             'discount' => 'nullable|numeric|min:0'
         ]);
 
+        $existingCart = Cart::where('user_id', $user->id)->first();
+        $wasEmpty = ! $existingCart || $existingCart->total_items <= 0;
+
         $cart = Cart::updateOrCreate(
             ['user_id' => $user->id],
             [
@@ -71,6 +74,12 @@ class CartController extends Controller
                 'discount' => $validated['discount'] ?? 0
             ]
         );
+
+        if ($validated['total_items'] <= 0) {
+            $cart->resetAbandonmentCampaign();
+        } elseif ($wasEmpty) {
+            $cart->startAbandonmentCampaignIfNeeded();
+        }
 
         Log::info('Carrito actualizado para usuario', [
             'user_id' => $user->id,
@@ -98,7 +107,6 @@ class CartController extends Controller
         $cart = Cart::where('user_id', $user->id)->first();
 
         if ($cart) {
-            // Limpiar completamente el carrito en la base de datos
             $cart->update([
                 'items' => [],
                 'total_items' => 0,
@@ -106,6 +114,7 @@ class CartController extends Controller
                 'coupon_code' => null,
                 'discount' => 0
             ]);
+            $cart->resetAbandonmentCampaign();
             
             \Log::info('Carrito vaciado para usuario', [
                 'user_id' => $user->id,
@@ -161,7 +170,6 @@ class CartController extends Controller
         ]);
 
         if ($existingCart && !empty($existingCart->items)) {
-            // Hay carrito en BD: combinar con localStorage (si hay items)
             if (!empty($localItems)) {
                 // Combinar items: agregar items de localStorage que no estén en BD
                 // Si hay duplicados (mismo producto-color-talla), sumar cantidades
@@ -268,6 +276,12 @@ class CartController extends Controller
                     ]
                 );
             }
+        }
+
+        if ($cart->total_items <= 0) {
+            $cart->resetAbandonmentCampaign();
+        } else {
+            $cart->startAbandonmentCampaignIfNeeded();
         }
 
         Log::info('✅ Carrito sincronizado desde localStorage', [

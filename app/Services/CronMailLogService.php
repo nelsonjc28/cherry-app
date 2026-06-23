@@ -139,20 +139,17 @@ class CronMailLogService
         );
     }
 
-    /** Carritos elegibles para mail:abandoned-cart (misma regla que el comando). */
+    /** Carritos potencialmente elegibles para mail:abandoned-cart (el hito exacto se valida con AbandonedCartSchedule). */
     public function abandonedCartCandidatesQuery()
     {
-        $staleCart = now()->subHours(48);
-        $notifyGap = now()->subHours(48);
-
         return Cart::query()
             ->with('user')
             ->where('total_items', '>', 0)
             ->whereNotNull('items')
-            ->where('updated_at', '<=', $staleCart)
-            ->where(function ($q) use ($notifyGap) {
-                $q->whereNull('last_notified_at')
-                    ->orWhere('last_notified_at', '<=', $notifyGap);
+            ->where('abandoned_email_stage', '<', AbandonedCartSchedule::MAX_STAGE)
+            ->where(function ($q) {
+                $q->whereNotNull('abandonment_started_at')
+                    ->orWhere('created_at', '>', now()->subDays(AbandonedCartSchedule::CAMPAIGN_DAYS + 1));
             })
             ->whereHas('user', function ($q) {
                 $q->whereNotNull('email')->where('email', '!=', '');

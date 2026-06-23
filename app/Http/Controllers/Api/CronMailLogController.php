@@ -11,7 +11,8 @@ use Illuminate\Http\Request;
 class CronMailLogController extends Controller
 {
     public function __construct(
-        protected \App\Services\CronMailLogService $cronMailLogService
+        protected \App\Services\CronMailLogService $cronMailLogService,
+        protected \App\Services\AbandonedCartEmailService $abandonedCartEmailService,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -88,7 +89,7 @@ class CronMailLogController extends Controller
                 ];
             });
 
-        $pendingAbandoned = $this->cronMailLogService->abandonedCartCandidatesQuery()->count();
+        $pendingAbandoned = $this->abandonedCartEmailService->countDue();
         $pendingOrderStatus = $this->cronMailLogService->orderStatusCandidatesQuery()->count();
 
         return response()->json([

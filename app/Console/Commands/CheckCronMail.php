@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\CronMailLog;
+use App\Services\AbandonedCartEmailService;
 use App\Services\CronMailLogService;
 use Illuminate\Console\Command;
 
@@ -16,7 +17,8 @@ class CheckCronMail extends Command
     protected $description = 'Supervisar correos automáticos del cron (carrito abandonado y estatus de pedido)';
 
     public function __construct(
-        protected CronMailLogService $cronMailLogService
+        protected CronMailLogService $cronMailLogService,
+        protected AbandonedCartEmailService $abandonedCartEmailService,
     ) {
         parent::__construct();
     }
@@ -33,7 +35,7 @@ class CheckCronMail extends Command
         $commands = [
             'mail:abandoned-cart' => [
                 'label' => 'Carrito abandonado',
-                'schedule' => 'diario (schedule:run)',
+                'schedule' => 'cada hora (3h, 1d, 3d, 1sem, 2sem, 1mes)',
             ],
             'mail:order-status-update' => [
                 'label' => 'Estatus de pedido (enviado/entregado)',
@@ -52,7 +54,7 @@ class CheckCronMail extends Command
             $this->line("Programación: {$meta['schedule']}");
 
             $pending = $cmd === 'mail:abandoned-cart'
-                ? $this->cronMailLogService->abandonedCartCandidatesQuery()->count()
+                ? $this->abandonedCartEmailService->countDue()
                 : $this->cronMailLogService->orderStatusCandidatesQuery()->count();
 
             $this->line("Pendientes de encolar: {$pending}");
