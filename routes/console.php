@@ -10,8 +10,8 @@ Artisan::command('inspire', function () {
 
 /*
 | Correos automáticos Cherry (requiere `php artisan schedule:run` en cron).
-| Carrito abandonado: cada hora (primer recordatorio a las 3 h). Estatus de envío: cada hora.
+| Carrito abandonado: cada 15 min (1 h, 24 h, 36 h). Estatus de envío: cada hora.
 */
-Schedule::command('mail:abandoned-cart')->hourly();
+Schedule::command('mail:abandoned-cart')->everyFifteenMinutes();
 Schedule::command('mail:order-status-update')->hourly();
 Schedule::command('users:degrade-expired-seller-categories')->daily();

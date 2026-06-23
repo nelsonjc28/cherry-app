@@ -7,19 +7,16 @@ use Carbon\CarbonInterface;
 
 class AbandonedCartSchedule
 {
-    /** @var array<int, array{label: string, hours?: int, days?: int}> */
+    /** @var array<int, array{label: string, hours: int}> */
     public const MILESTONES = [
-        1 => ['label' => '3 horas', 'hours' => 3],
-        2 => ['label' => '1 día', 'days' => 1],
-        3 => ['label' => '3 días', 'days' => 3],
-        4 => ['label' => '1 semana', 'days' => 7],
-        5 => ['label' => '2 semanas', 'days' => 14],
-        6 => ['label' => '1 mes', 'days' => 30],
+        1 => ['label' => '1 hora', 'hours' => 1],
+        2 => ['label' => '24 horas', 'hours' => 24],
+        3 => ['label' => '36 horas', 'hours' => 36],
     ];
 
-    public const MAX_STAGE = 6;
+    public const MAX_STAGE = 3;
 
-    public const CAMPAIGN_DAYS = 30;
+    public const CAMPAIGN_HOURS = 36;
 
     public static function referenceTime(Cart $cart): CarbonInterface
     {
@@ -28,11 +25,11 @@ class AbandonedCartSchedule
 
     public static function isPastCampaignEnd(Cart $cart): bool
     {
-        return now()->gt(static::referenceTime($cart)->copy()->addDays(self::CAMPAIGN_DAYS));
+        return now()->gt(static::referenceTime($cart)->copy()->addHours(self::CAMPAIGN_HOURS));
     }
 
     /**
-     * Hito más alto ya vencido y aún no enviado (1-6), o null si no corresponde enviar.
+     * Hito más alto ya vencido y aún no enviado (1-3), o null si no corresponde enviar.
      */
     public static function getDueMilestone(Cart $cart): ?int
     {
@@ -59,14 +56,7 @@ class AbandonedCartSchedule
 
     public static function milestoneDueAt(CarbonInterface $reference, int $milestone): CarbonInterface
     {
-        $config = self::MILESTONES[$milestone];
-        $dueAt = $reference->copy();
-
-        if (isset($config['hours'])) {
-            return $dueAt->addHours($config['hours']);
-        }
-
-        return $dueAt->addDays($config['days']);
+        return $reference->copy()->addHours(self::MILESTONES[$milestone]['hours']);
     }
 
     public static function milestoneLabel(int $milestone): string

@@ -35,7 +35,7 @@ class CheckCronMail extends Command
         $commands = [
             'mail:abandoned-cart' => [
                 'label' => 'Carrito abandonado',
-                'schedule' => 'cada hora (3h, 1d, 3d, 1sem, 2sem, 1mes)',
+                'schedule' => 'cada 15 min (1h, 24h, 36h)',
             ],
             'mail:order-status-update' => [
                 'label' => 'Estatus de pedido (enviado/entregado)',

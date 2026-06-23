@@ -149,7 +149,7 @@ class CronMailLogService
             ->where('abandoned_email_stage', '<', AbandonedCartSchedule::MAX_STAGE)
             ->where(function ($q) {
                 $q->whereNotNull('abandonment_started_at')
-                    ->orWhere('created_at', '>', now()->subDays(AbandonedCartSchedule::CAMPAIGN_DAYS + 1));
+                    ->orWhere('created_at', '>', now()->subHours(AbandonedCartSchedule::CAMPAIGN_HOURS + 24));
             })
             ->whereHas('user', function ($q) {
                 $q->whereNotNull('email')->where('email', '!=', '');

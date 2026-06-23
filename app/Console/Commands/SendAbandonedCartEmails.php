@@ -9,7 +9,7 @@ class SendAbandonedCartEmails extends Command
 {
     protected $signature = 'mail:abandoned-cart';
 
-    protected $description = 'Encola correos de carrito abandonado (3h, 1d, 3d, 1sem, 2sem, 1mes; máx. 6 por carrito).';
+    protected $description = 'Encola correos de carrito abandonado (1h, 24h, 36h; máx. 3 por carrito).';
 
     public function __construct(
         protected AbandonedCartEmailService $abandonedCartEmailService
