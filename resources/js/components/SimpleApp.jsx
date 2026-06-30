@@ -62,6 +62,8 @@ import PWAInstallAlerts from './PWAInstaller/PWAInstallAlerts';
 import PWADiagnostics from './PWAInstaller/PWADiagnostics';
 import RespondIoBootstrap from './RespondIoBootstrap';
 import RespondIoGrowthBootstrap from './RespondIoGrowthBootstrap';
+import Ga4RouteTracker from './Ga4RouteTracker/Ga4RouteTracker';
+import CookieConsent from './CookieConsent/CookieConsent';
 
 const SimpleApp = () => {
   return (
@@ -69,6 +71,8 @@ const SimpleApp = () => {
       <FavoritesProvider>
         <Router>
           <ScrollToTop />
+          <Ga4RouteTracker />
+          <CookieConsent />
           <RespondIoGrowthBootstrap />
           <RespondIoBootstrap />
           <ExternalApiProvider>

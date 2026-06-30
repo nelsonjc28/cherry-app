@@ -1,15 +1,16 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import CherryButton from '../components/CherryButton/CherryButton';
+import { setCookieConsent } from '../utils/analytics';
 import './CookiesPage.css';
 
 const CookiesPage = () => {
   const handleAcceptAll = () => {
-    // Aquí iría la lógica para aceptar todas las cookies
+    setCookieConsent({ analytics: true, marketing: false });
   };
 
   const handleRejectAll = () => {
-    // Aquí iría la lógica para rechazar todas las cookies
+    setCookieConsent({ analytics: false, marketing: false });
   };
 
   return (

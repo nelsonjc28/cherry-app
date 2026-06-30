@@ -33,6 +33,7 @@ import { favoriteService } from '../services/api';
 
 // Utils
 import { formatPrice } from '../utils/formatters';
+import { trackViewItem } from '../utils/analytics';
 import { getTotalInventoryFromProduct, getProductInventoryStatusKind, effectiveDetailInventoryContribution } from '../utils/productUtils';
 import { isProductNewLikeNuevosPage } from '../utils/productNewRules';
 import useHorizontalDragScroll from '../hooks/useHorizontalDragScroll';
@@ -563,6 +564,11 @@ const ProductPage = () => {
     };
     fetchProduct();
   }, [productId, user]);
+
+  useEffect(() => {
+    if (!product) return;
+    trackViewItem(product);
+  }, [product?.id_articulo, product?.id]);
 
   // Load suggested products when product is loaded
   useEffect(() => {

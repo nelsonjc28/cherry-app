@@ -7,6 +7,7 @@ import { effectiveDetailInventoryContribution } from '../utils/productUtils';
 import { isEncargoCartLine } from '../utils/encargoUtils';
 import { calculateItemPriceWithMinPurchase } from '../utils/offerMinPurchaseUtils';
 import { refreshCartItemsOffers } from '../utils/cartOfferRefresh';
+import { trackAddToCart } from '../utils/analytics';
 
 /**
  * Helper function to calculate item price considering offers and compra mínima.
@@ -546,6 +547,8 @@ const useCartStore = create(
         };
 
         set(newState);
+
+        trackAddToCart(product, quantity);
 
         // Si hay sesión, guardar SOLO en BD (no en localStorage)
         if (isAuthenticated()) {

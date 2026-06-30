@@ -27,6 +27,7 @@ import {
   summarizeVolumeFromPricingLines,
   discountedMerchandiseForSubset,
 } from '../utils/cartVolumePricing';
+import { trackBeginCheckout } from '../utils/analytics';
 import { buildCartAmountBreakdown } from '../utils/cartCheckoutBreakdown';
 import { buildOrderLinePayload } from '../utils/orderLinePayload';
 import {
@@ -128,6 +129,7 @@ const CartDetailsPage = () => {
   
   const [storeAddress, setStoreAddress] = useState(defaultStoreAddress);
   const [storeMapUrl, setStoreMapUrl] = useState(defaultMapUrl);
+  const beginCheckoutTrackedRef = useRef(false);
 
   // Initialize cart from localStorage
   useEffect(() => {
@@ -137,6 +139,12 @@ const CartDetailsPage = () => {
     };
     loadCart();
   }, [initCart, refreshCartOffers]);
+
+  useEffect(() => {
+    if (beginCheckoutTrackedRef.current || cartItems.length === 0) return;
+    trackBeginCheckout(cartItems, totalPrice);
+    beginCheckoutTrackedRef.current = true;
+  }, [cartItems, totalPrice]);
 
   // Refrescar usuario al entrar al carrito para evitar categoría cacheada
   // (p.ej. cambio admin de Oro/Diamante a Bronce sin hard refresh).

@@ -71,4 +71,13 @@ return [
     /** Token Bearer para webhook de búsqueda de Respond.io (GET/POST /api/respondio/search). */
     'respondio_secret_token' => env('RESPONDIO_SECRET_TOKEN'),
 
+    /** Google Analytics 4 — ID de medición (G-XXXXXXXXXX). Vacío = desactivado. */
+    'ga4_measurement_id' => trim((string) env('GA4_MEASUREMENT_ID', '')),
+
+    /** Eliminar productos locales que ya no vienen en la API (hard delete tras sync). */
+    'sync_prune_orphans' => filter_var(env('CHERRY_SYNC_PRUNE_ORPHANS', true), FILTER_VALIDATE_BOOLEAN),
+
+    /** Mínimo api_count/local_count para ejecutar la poda (evita borrar si la API falla parcialmente). */
+    'sync_prune_min_api_ratio' => (float) env('CHERRY_SYNC_PRUNE_MIN_API_RATIO', 0.8),
+
 ];

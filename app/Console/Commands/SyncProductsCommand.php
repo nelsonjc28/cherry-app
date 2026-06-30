@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use App\Services\ProductSyncPruneService;
 
 class SyncProductsCommand extends Command
 {
@@ -365,6 +366,20 @@ class SyncProductsCommand extends Command
             $bar->finish();
             $this->newLine();
 
+            $pruneStats = app(ProductSyncPruneService::class)->pruneAfterSync($externalProducts);
+            $stats = array_merge($stats, [
+                'productos_eliminados' => $pruneStats['productos_eliminados'],
+                'detalles_eliminados' => $pruneStats['detalles_eliminados'],
+                'referencias_limpiadas' => $pruneStats['referencias_limpiadas'],
+                'poda_omitida' => $pruneStats['omitido'],
+            ]);
+
+            if ($pruneStats['omitido'] && $pruneStats['motivo_omision']) {
+                $this->warn('Poda omitida: '.$pruneStats['motivo_omision']);
+            } elseif ($pruneStats['productos_eliminados'] > 0) {
+                $this->info("Productos huérfanos eliminados: {$pruneStats['productos_eliminados']}");
+            }
+
             DB::commit();
 
             // Registrar en historial
@@ -386,6 +401,9 @@ class SyncProductsCommand extends Command
                     ['Productos actualizados', $stats['productos_actualizados']],
                     ['Detalles creados', $stats['detalles_creados']],
                     ['Detalles actualizados', $stats['detalles_actualizados']],
+                    ['Productos eliminados (huérfanos)', $stats['productos_eliminados'] ?? 0],
+                    ['Detalles eliminados (huérfanos)', $stats['detalles_eliminados'] ?? 0],
+                    ['Referencias limpiadas', $stats['referencias_limpiadas'] ?? 0],
                 ]
             );
             $this->newLine();

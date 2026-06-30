@@ -15,9 +15,13 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Services\ProductSyncPruneService;
 
 class ProductSyncController extends Controller
 {
+    public function __construct(
+        protected ProductSyncPruneService $productSyncPruneService
+    ) {}
     private const EXTERNAL_API_URL = 'https://cherryapi.estrategiadmgs.com.mx/cherryApi/789/articulos';
 
     /**
@@ -364,6 +368,15 @@ class ProductSyncController extends Controller
                     continue;
                 }
             }
+
+            $pruneStats = $this->productSyncPruneService->pruneAfterSync($externalProducts);
+            $stats = array_merge($stats, [
+                'productos_eliminados' => $pruneStats['productos_eliminados'],
+                'detalles_eliminados' => $pruneStats['detalles_eliminados'],
+                'referencias_limpiadas' => $pruneStats['referencias_limpiadas'],
+                'poda_omitida' => $pruneStats['omitido'],
+                'poda_motivo' => $pruneStats['motivo_omision'],
+            ]);
 
             DB::commit();
 

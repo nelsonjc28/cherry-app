@@ -1,11 +1,15 @@
 import CustomButton from '../components/CustomButton';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import './CheckoutSuccessPage.css';
 import { getIconPath } from '../utils/assetPaths';
 import api from '../config/axios';
 import useCartStore from '../store/cartStore';
 import CheckoutSuccessShareButton from '../components/CheckoutSuccessShareButton/CheckoutSuccessShareButton';
+import {
+  mapOrderItemsToGa4,
+  trackPurchase,
+} from '../utils/analytics';
 
 /** Texto principal bajo el título «
  * » */
@@ -91,6 +95,7 @@ export default function CheckoutSuccessPage() {
   const [missingPurchaseContext, setMissingPurchaseContext] = useState(false);
   /** Respuesta API: varias órdenes del mismo checkout (split). */
   const [groupOrders, setGroupOrders] = useState(null);
+  const purchaseTrackedRef = useRef(false);
   // Obtener datos del pago desde el state de navegación (pago con tarjeta)
   const stateOrderData = location.state?.orderData;
   const statePaymentStatus = location.state?.paymentStatus;
@@ -319,14 +324,39 @@ export default function CheckoutSuccessPage() {
 
   // Limpiar carrito después de pago exitoso
   useEffect(() => {
-    if (paymentStatus === 'approved') {
-      // Limpiar carrito usando el store (maneja BD y localStorage)
-      const { clearCart } = useCartStore.getState();
-      clearCart();
-      // Disparar evento para actualizar el header
-      window.dispatchEvent(new Event('cartUpdated'));
+    if (paymentStatus !== 'approved') return;
+
+    if (!purchaseTrackedRef.current) {
+      const cartItems = useCartStore.getState().items ?? [];
+      const orders = ordersToShow.length > 0
+        ? ordersToShow
+        : (orderInfoFallback?.orderId
+          ? [buildCheckoutSuccessOrderStub(orderInfoFallback)]
+          : []);
+
+      if (orders.length > 0) {
+        const transactionId = orders.map((order) => order.id).filter(Boolean).join('-') || String(orders[0].id);
+        const value = orders.reduce(
+          (sum, order, index) => sum + getOrderDisplayTotal(order, index === 0 ? orderInfoFallback : null),
+          0,
+        );
+        const orderItems = orders.flatMap((order) => mapOrderItemsToGa4(order.items));
+        const items = orderItems.length > 0 ? orderItems : cartItems;
+
+        trackPurchase({
+          transactionId,
+          value,
+          items,
+        });
+      }
+
+      purchaseTrackedRef.current = true;
     }
-  }, [paymentStatus]);
+
+    const { clearCart } = useCartStore.getState();
+    clearCart();
+    window.dispatchEvent(new Event('cartUpdated'));
+  }, [paymentStatus, ordersToShow, orderInfoFallback]);
 
   // Mostrar loading mientras verifica
   if (loading) {

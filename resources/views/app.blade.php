@@ -12,6 +12,7 @@
     $respondIoGrowthScriptSrc = ($respondIoGrowthEnabled && $respondIoGrowthWid !== '')
         ? 'https://cdn.respond.io/widget/widget.js?wId=' . rawurlencode($respondIoGrowthWid)
         : null;
+    $ga4MeasurementId = config('cherry.ga4_measurement_id', '');
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -365,6 +366,22 @@
 
     @if ($respondIoGrowthScriptSrc)
         <meta name="respond-io-growth-src" content="{{ $respondIoGrowthScriptSrc }}">
+    @endif
+
+    @if ($ga4MeasurementId !== '')
+        <meta name="ga4-measurement-id" content="{{ $ga4MeasurementId }}">
+        <script async src="https://www.googletagmanager.com/gtag/js?id={{ $ga4MeasurementId }}"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('consent', 'default', {
+                analytics_storage: 'denied',
+                ad_storage: 'denied',
+                wait_for_update: 500,
+            });
+            gtag('js', new Date());
+            gtag('config', @json($ga4MeasurementId), { send_page_view: false });
+        </script>
     @endif
 
     <!-- Vite Assets -->
