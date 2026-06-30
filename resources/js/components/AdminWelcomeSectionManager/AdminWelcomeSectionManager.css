@@ -565,6 +565,41 @@
   }
 }
 
+/* Vista previa HTML del título en tarjetas */
+.admin-welcome-manager__section-title-html {
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0 0 0.35rem;
+}
+
+.admin-welcome-manager__section-title-html p {
+  margin: 0;
+}
+
+.admin-welcome-manager__color-input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 220px;
+}
+
+.admin-welcome-manager__color-picker {
+  width: 48px;
+  height: 40px;
+  padding: 2px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #fff;
+}
+
+.admin-welcome-manager__color-hex {
+  flex: 1;
+  font-family: monospace;
+  text-transform: uppercase;
+}
+
 /* Vista previa HTML del subtítulo en tarjetas */
 .admin-welcome-manager__section-subtitle-html {
   font-size: 0.95rem;

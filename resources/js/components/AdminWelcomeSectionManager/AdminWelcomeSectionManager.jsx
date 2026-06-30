@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Swal from 'sweetalert2';
 import { welcomeSectionService, formDataUtils } from '../../services/api';
 import AdminRichTextEditor from '../AdminRichTextEditor';
-import { isRichTextBodyEmpty } from '../../utils/richTextUtils';
+import { isRichTextBodyEmpty, getRichTextPlainText } from '../../utils/richTextUtils';
 import './AdminWelcomeSectionManager.css';
 
 const AdminWelcomeSectionManager = () => {
@@ -14,6 +14,7 @@ const AdminWelcomeSectionManager = () => {
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
+    title_color: '#EA2630',
     subtitle: '',
     button_text: '',
     button_url: '',
@@ -62,6 +63,14 @@ const AdminWelcomeSectionManager = () => {
         return;
       }
       
+      if (isRichTextBodyEmpty(formData.title)) {
+        setError('El título de la sección es obligatorio');
+        if (window.showToast) {
+          window.showToast('El título de la sección es obligatorio', 'error');
+        }
+        return;
+      }
+
       if (isRichTextBodyEmpty(formData.subtitle)) {
         setError('El subtítulo / descripción es obligatorio');
         if (window.showToast) {
@@ -73,7 +82,7 @@ const AdminWelcomeSectionManager = () => {
       // Validar campos requeridos usando las utilidades (subtitle es HTML: se valida arriba)
       try {
         const tempFormData = formDataUtils.createFromObject(formData, { trim: true });
-        formDataUtils.validateRequired(tempFormData, ['title', 'button_text', 'button_url']);
+        formDataUtils.validateRequired(tempFormData, ['button_text', 'button_url']);
       } catch (validationError) {
         setError(validationError.message);
         if (window.showToast) {
@@ -136,6 +145,7 @@ const AdminWelcomeSectionManager = () => {
     setEditingSection(section);
     setFormData({
       title: section.title,
+      title_color: section.title_color || '#EA2630',
       subtitle: section.subtitle,
       button_text: section.button_text,
       button_url: section.button_url,
@@ -146,7 +156,7 @@ const AdminWelcomeSectionManager = () => {
     setShowForm(true);
     
     if (window.showToast) {
-      window.showToast(`Editando sección: ${section.title}`, 'info');
+      window.showToast(`Editando sección: ${getRichTextPlainText(section.title) || 'Sin título'}`, 'info');
     }
   }, []);
 
@@ -157,7 +167,7 @@ const AdminWelcomeSectionManager = () => {
       title: '¿Eliminar sección?',
       html: `
         <div class="text-center">
-          <p>¿Estás seguro de que quieres eliminar <strong>${section.title}</strong>?</p>
+          <p>¿Estás seguro de que quieres eliminar <strong>${getRichTextPlainText(section.title) || 'esta sección'}</strong>?</p>
           <p class="text-muted small">Esta acción no se puede deshacer y se eliminará la imagen asociada.</p>
         </div>
       `,
@@ -214,6 +224,7 @@ const AdminWelcomeSectionManager = () => {
     setEditingSection(null);
     setFormData({
       title: '',
+      title_color: '#EA2630',
       subtitle: '',
       button_text: '',
       button_url: '',
@@ -428,12 +439,16 @@ const AdminWelcomeSectionManager = () => {
                       <div className="admin-welcome-manager__section-image">
                         <img 
                           src={`/${section.image_path}`} 
-                          alt={section.title}
+                          alt={getRichTextPlainText(section.title) || 'Sección de bienvenida'}
                           onError={handleImageError}
                         />
                       </div>
                       <div className="admin-welcome-manager__section-details">
-                        <h4>{section.title}</h4>
+                        <div
+                          className="admin-welcome-manager__section-title-html"
+                          style={{ color: section.title_color || '#EA2630' }}
+                          dangerouslySetInnerHTML={{ __html: section.title || '' }}
+                        />
                         <div
                           className="admin-welcome-manager__section-subtitle-html"
                           dangerouslySetInnerHTML={{ __html: section.subtitle || '' }}
@@ -494,18 +509,44 @@ const AdminWelcomeSectionManager = () => {
               </div>
 
               <form onSubmit={handleSubmit} className="admin-welcome-manager__form">
-                <div className="form-group">
+                <div className="form-group admin-welcome-manager__richtext-group">
                   <label htmlFor="title">Título de la Sección *</label>
-                  <input
-                    type="text"
-                    id="title"
-                    name="title"
+                  <small className="form-text text-muted d-block mb-2">
+                    Mismo editor que el subtítulo (negritas, color de texto, etc.). Se mostrará en el inicio tal como lo guardes.
+                  </small>
+                  <AdminRichTextEditor
                     value={formData.title}
-                    onChange={handleInputChange}
-                    className="form-control"
-                    required
-                    placeholder="Ej: ¡Bienvenida a la moda que te inspira!"
+                    onChange={(html) => setFormData((prev) => ({ ...prev, title: html }))}
+                    height={160}
                   />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="title_color">Color base del título</label>
+                  <small className="form-text text-muted d-block mb-2">
+                    Color por defecto del título en el inicio. También puedes aplicar colores específicos desde la barra del editor.
+                  </small>
+                  <div className="admin-welcome-manager__color-input-row">
+                    <input
+                      type="color"
+                      id="title_color"
+                      name="title_color"
+                      value={formData.title_color}
+                      onChange={handleInputChange}
+                      className="admin-welcome-manager__color-picker"
+                      aria-label="Seleccionar color del título"
+                    />
+                    <input
+                      type="text"
+                      name="title_color"
+                      value={formData.title_color}
+                      onChange={handleInputChange}
+                      className="form-control admin-welcome-manager__color-hex"
+                      pattern="^#[0-9A-Fa-f]{6}$"
+                      placeholder="#EA2630"
+                      maxLength={7}
+                    />
+                  </div>
                 </div>
 
                 <div className="form-group admin-welcome-manager__richtext-group">

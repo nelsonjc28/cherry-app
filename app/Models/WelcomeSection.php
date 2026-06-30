@@ -11,6 +11,7 @@ class WelcomeSection extends Model
 
     protected $fillable = [
         'title',
+        'title_color',
         'subtitle',
         'button_text',
         'button_url',

@@ -23,8 +23,8 @@ const HeroBanner = () => {
     {
       id: 1,
       image: getHeroSliderImagePath('hero-slider1-girl.png'),
-      titlePart1: '¡Bienvenida',
-      titlePart2: 'a la moda que te inspira!',
+      titleHtml: '<span>¡Bienvenida</span> <span>a la moda que te inspira!</span>',
+      titleColor: '#EA2630',
       description: 'Explora nuestra colección única y actualizada que resalta tu estilo personal.',
       buttonText: 'Explorar Colección',
       buttonUrl: '/catalogo',
@@ -38,8 +38,8 @@ const HeroBanner = () => {
       return welcomeSections.map((section, index) => ({
         id: section.id,
         image: section.image_path ? `${window.location.origin}/${section.image_path}` : getHeroSliderImagePath('hero-slider1-girl.png'),
-        titlePart1: section.title ? section.title.split(' ')[0] : '¡Bienvenida',
-        titlePart2: section.title ? section.title.split(' ').slice(1).join(' ') : 'a la moda que te inspira!',
+        titleHtml: section.title || '<span>¡Bienvenida</span> <span>a la moda que te inspira!</span>',
+        titleColor: section.title_color || '#EA2630',
         description: section.subtitle || 'Explora nuestra colección única y actualizada que resalta tu estilo personal.',
         buttonText: section.button_text || 'Explorar Colección',
         buttonUrl: section.button_url || '/catalogo',
@@ -329,10 +329,11 @@ const HeroBanner = () => {
                 ))}
               </div>
             )}
-            <h1 className="banner-title">
-              <span className="title-part1">{currentBanner.titlePart1}</span>
-              <span className="title-part2">{currentBanner.titlePart2}</span>
-            </h1>
+            <h1
+              className="banner-title banner-title--html"
+              style={{ color: currentBanner.titleColor }}
+              dangerouslySetInnerHTML={{ __html: currentBanner.titleHtml }}
+            />
 
             <div
               className="banner-description banner-description--html"

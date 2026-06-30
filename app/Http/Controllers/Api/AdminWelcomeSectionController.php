@@ -76,7 +76,8 @@ class AdminWelcomeSectionController extends Controller
 
             // Validar datos requeridos usando configuración centralizada
             $validator = Validator::make($request->all(), [
-                'title' => 'required|string|max:255',
+                'title' => 'required|string',
+                'title_color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
                 'subtitle' => 'required|string',
                 'button_text' => 'required|string|max:255',
                 'button_url' => 'required|string|max:500',
@@ -122,6 +123,7 @@ class AdminWelcomeSectionController extends Controller
             // Crear sección
             $section = WelcomeSection::create([
                 'title' => $request->input('title'),
+                'title_color' => $request->input('title_color', '#EA2630'),
                 'subtitle' => $request->input('subtitle'),
                 'button_text' => $request->input('button_text'),
                 'button_url' => $request->input('button_url'),
@@ -187,7 +189,7 @@ class AdminWelcomeSectionController extends Controller
             $updateData = [];
             
             // Procesar campos de texto
-            $textFields = ['title', 'subtitle', 'button_text', 'button_url'];
+            $textFields = ['title', 'title_color', 'subtitle', 'button_text', 'button_url'];
             foreach ($textFields as $field) {
                 if ($request->has($field) && $request->input($field) !== null) {
                     $updateData[$field] = $request->input($field);
