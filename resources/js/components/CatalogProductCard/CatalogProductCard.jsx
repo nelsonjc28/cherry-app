@@ -205,17 +205,15 @@ const CatalogProductCard = ({ product, onFavoriteToggle }) => {
         )}
 
         {/* New badge - no mostrar si hay oferta ni si es "Próximamente" */}
-        {isNew && !hasOffer && stockStatus !== 'coming-soon' && (
+        {isNew && !hasOffer && stockStatus !== 'coming-soon' && stockStatus !== 'out-of-stock' && (
           <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
         )}
 
-        {/* Out of stock badge - solo si no es nuevo, no hay oferta y no es "Próximamente" */}
-        {!isNew && !hasOffer && stockStatus === 'out-of-stock' && (
+        {stockStatus === 'out-of-stock' && (
           <span className="catalog-offer-badge catalog-out-of-stock-badge">Agotado</span>
         )}
 
-        {/* Offer badge if product has discount (not shown for "Próximamente") */}
-        {stockStatus !== 'coming-soon' && hasOffer && (
+        {stockStatus !== 'coming-soon' && stockStatus !== 'out-of-stock' && hasOffer && (
           <div className={`catalog-offer-badge ${hasUserOffer ? 'user-offer' : ''} ${
             hasUserOffer && userOffer && userOffer.discount_category === 'buy_x_get_y' ? 'buy-x-get-y' : 
             hasUserOffer && userOffer && userOffer.discount_category === 'order_discount' ? 'order-discount' : 

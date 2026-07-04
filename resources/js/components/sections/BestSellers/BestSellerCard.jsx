@@ -90,17 +90,15 @@ const BestSellerCard = ({ id, title, image, price, originalPrice, discount, user
         )}
 
         {/* Nuevo: no mostrar si hay oferta ni si es "Próximamente" */}
-        {isNew && !hasOffer && stockStatus !== 'coming-soon' && (
+        {isNew && !hasOffer && stockStatus !== 'coming-soon' && stockStatus !== 'out-of-stock' && (
           <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
         )}
 
-        {/* Out of stock badge - solo si no hay oferta y NO es "Próximamente" */}
-        {!isNew && !hasOffer && stockStatus === 'out-of-stock' && (
+        {stockStatus === 'out-of-stock' && (
           <span className="best-seller-out-of-stock-badge">Agotado</span>
         )}
 
-        {/* Offer badge if product has discount */}
-        {stockStatus !== 'coming-soon' && hasOffer && (
+        {stockStatus !== 'coming-soon' && stockStatus !== 'out-of-stock' && hasOffer && (
           <span className="best-seller-offer-badge">
             {hasUserOffer && userOffer
               ? getCatalogOfferBadgeLabel(userOffer, { discountPercentage, isMobile, product: stackItem, user })

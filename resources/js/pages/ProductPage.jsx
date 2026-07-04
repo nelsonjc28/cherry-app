@@ -40,7 +40,12 @@ import useHorizontalDragScroll from '../hooks/useHorizontalDragScroll';
 import colorConverter from '../services/colorConverter';
 import { validateStock, getProductStock } from '../services/inventoryService';
 import { getVolumeDiscountMainTier, getSellerCategoryFromUser, hasApiVolumeMainPercent, isOroDiamanteSeller, canApplyMainDiscount } from '../utils/sellerVolumeDiscount';
-import { canEncargoSinStock, canEncargoForSize, isOutOfStockEncargoForSize } from '../utils/encargoUtils';
+import {
+  canEncargoSinStock,
+  canEncargoForSize,
+  isOutOfStockEncargoForSize,
+  productHasExternalRebaja,
+} from '../utils/encargoUtils';
 import { summarizeVolumeFromCartItems } from '../utils/cartVolumePricing';
 import { formatBuyXGetYOfferLabel, formatBuyXGetYOfferExample, validateBuyXGetYCartSelection } from '../utils/buyXGetYUtils';
 import { hasCatalogOfferBadge, getCatalogOfferBadgeLabel } from '../utils/catalogOfferUtils';
@@ -610,7 +615,7 @@ const ProductPage = () => {
       // Verificar si el producto está "próximamente" y el usuario es "oro"
       const inventoryStatus = getInventoryStatus();
       const stockDisponible = getStockBySizeAndColor(selectedSize, selectedColor);
-      const canEncargoTalla = canEncargoForSize(user, inventoryStatus.status, stockDisponible);
+      const canEncargoTalla = canEncargoForSize(user, inventoryStatus.status, stockDisponible, product);
       if (quantity > stockDisponible && !canEncargoTalla) {
         setQuantity(Math.max(1, stockDisponible));
       }
@@ -622,7 +627,7 @@ const ProductPage = () => {
     if (selectedColor && selectedSize) {
       const inventoryStatus = getInventoryStatus();
       const stockDisponible = getStockBySizeAndColor(selectedSize, selectedColor);
-      const canEncargoTalla = canEncargoForSize(user, inventoryStatus.status, stockDisponible);
+      const canEncargoTalla = canEncargoForSize(user, inventoryStatus.status, stockDisponible, product);
       if (quantity > stockDisponible && !canEncargoTalla) {
         setQuantity(Math.max(1, stockDisponible));
       }
@@ -634,7 +639,7 @@ const ProductPage = () => {
     if (selectedColor && selectedSize) {
       const inventoryStatus = getInventoryStatus();
       const stockDisponible = getStockBySizeAndColor(selectedSize, selectedColor);
-      const canEncargoTalla = canEncargoForSize(user, inventoryStatus.status, stockDisponible);
+      const canEncargoTalla = canEncargoForSize(user, inventoryStatus.status, stockDisponible, product);
       if (stockDisponible <= 0 && !canEncargoTalla) {
         setSelectedSize('');
         setQuantity(1);
@@ -713,7 +718,14 @@ const ProductPage = () => {
     const statusKind = inventoryStatus.status;
     const isComingSoon = statusKind === 'coming-soon';
     const isOutOfStock = statusKind === 'out-of-stock';
-    const canEncargo = canEncargoSinStock(user, statusKind);
+    const canEncargo = canEncargoSinStock(user, statusKind, product);
+
+    if (isOutOfStock && productHasExternalRebaja(product)) {
+      if (window.showToast) {
+        window.showToast('Los productos en rebaja agotados no están disponibles para pedido adelantado.', 'error');
+      }
+      return;
+    }
 
     if (isOutOfStock && canEncargo && !user) {
       if (window.showToast) {
@@ -800,7 +812,7 @@ const ProductPage = () => {
     if (!canEncargo) {
       for (const [talla, totalEnTalla] of Object.entries(sizeTotals)) {
         const stockDisponible = getStockBySizeAndColor(talla, selectedColor);
-        const encargoTalla = canEncargoForSize(user, statusKind, stockDisponible);
+        const encargoTalla = canEncargoForSize(user, statusKind, stockDisponible, product);
 
         if (stockDisponible <= 0 && !encargoTalla) {
           if (window.showToast) {
@@ -831,7 +843,7 @@ const ProductPage = () => {
     try {
       const buildCartLine = (talla, cantidad, isFreeItem) => {
         const stockForLine = getStockBySizeAndColor(talla, selectedColor);
-        const lineOutOfStockEncargo = isOutOfStockEncargoForSize(user, statusKind, stockForLine);
+        const lineOutOfStockEncargo = isOutOfStockEncargoForSize(user, statusKind, stockForLine, product);
 
         return {
           id_articulo: product.id_articulo,
@@ -873,7 +885,7 @@ const ProductPage = () => {
         for (const { talla, paid, free } of bogoSplits) {
           if (paid > 0) {
             const stockForLine = getStockBySizeAndColor(talla, selectedColor);
-            if (isOutOfStockEncargoForSize(user, statusKind, stockForLine)) {
+            if (isOutOfStockEncargoForSize(user, statusKind, stockForLine, product)) {
               addedOutOfStockEncargo = true;
             }
             await addToCart(buildCartLine(talla, paid, false), paid, product);
@@ -885,7 +897,7 @@ const ProductPage = () => {
       } else {
         for (const { talla, cantidad } of tallasConCantidades) {
           const stockForLine = getStockBySizeAndColor(talla, selectedColor);
-          if (isOutOfStockEncargoForSize(user, statusKind, stockForLine)) {
+          if (isOutOfStockEncargoForSize(user, statusKind, stockForLine, product)) {
             addedOutOfStockEncargo = true;
           }
           await addToCart(buildCartLine(talla, cantidad, false), cantidad, product);
@@ -999,7 +1011,7 @@ const ProductPage = () => {
   const handleQuantityChangeForSize = (talla, newQuantity) => {
     const inventoryStatus = getInventoryStatus();
     const stockMaximo = getStockForSize(talla);
-    const canEncargoTalla = canEncargoForSize(user, inventoryStatus.status, stockMaximo);
+    const canEncargoTalla = canEncargoForSize(user, inventoryStatus.status, stockMaximo, product);
     const maxAllowed = canEncargoTalla ? 9999 : stockMaximo;
 
     if (newQuantity >= 0 && newQuantity <= maxAllowed) {
@@ -1023,7 +1035,7 @@ const ProductPage = () => {
   const handleSizeSelection = (talla) => {
     const inventoryStatus = getInventoryStatus();
     const stockDisponible = selectedColor ? getStockBySizeAndColor(talla, selectedColor) : getStockForSize(talla);
-    const canEncargoTalla = canEncargoForSize(user, inventoryStatus.status, stockDisponible);
+    const canEncargoTalla = canEncargoForSize(user, inventoryStatus.status, stockDisponible, product);
 
     if (stockDisponible <= 0 && !canEncargoTalla) {
       if (window.showToast) {
@@ -1493,10 +1505,19 @@ const ProductPage = () => {
 
   // Agregar alerta de "próximamente" si aplica (después de que getInventoryStatus esté definida)
   const isComingSoon = inventoryStatusData.status === 'coming-soon';
-  const canEncargo = canEncargoSinStock(user, inventoryStatusData.status);
+  const canEncargo = canEncargoSinStock(user, inventoryStatusData.status, product);
   const showNotifyAlert = isComingSoon && (!user || !canEncargo);
+  const rebajaAgotadoSinEncargo = productHasExternalRebaja(product) && inventoryStatusData.status === 'out-of-stock';
 
   const productPageAlerts = [...baseAlerts];
+  if (rebajaAgotadoSinEncargo) {
+    productPageAlerts.push({
+      type: 'warning',
+      icon: 'ℹ️',
+      message: 'Este producto en rebaja está agotado y no está disponible para pedido adelantado.',
+      color: '#ff9800',
+    });
+  }
   if (showNotifyAlert) {
     productPageAlerts.push({
       type: 'warning',
@@ -1609,13 +1630,13 @@ const ProductPage = () => {
                 <span className="catalog-offer-badge catalog-out-of-stock-badge catalog-coming-soon-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
               ) : (
                 <>
-                  {isNewProduct && !hasOffer && (
+                  {isNewProduct && !hasOffer && inventoryStatusData.status !== 'out-of-stock' && (
                     <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
                   )}
-                  {inventoryStatusData.status === 'out-of-stock' && !hasOffer && (
+                  {inventoryStatusData.status === 'out-of-stock' && (
                     <span className="product-page__badge product-page__badge--out-of-stock">Agotado</span>
                   )}
-                  {hasOffer && discountPercentage > 0 && (
+                  {hasOffer && discountPercentage > 0 && inventoryStatusData.status !== 'out-of-stock' && (
                     <span className="product-page__badge product-page__badge--discount">-{discountPercentage}%</span>
                   )}
                 </>
@@ -1665,13 +1686,13 @@ const ProductPage = () => {
                   <span className="catalog-offer-badge catalog-out-of-stock-badge catalog-coming-soon-badge" style={{ backgroundColor: 'rgb(255, 152, 0)', color: 'rgb(255, 255, 255)' }}>Próximamente</span>
                 ) : (
                   <>
-                    {isNewProduct && !hasOffer && (
+                    {isNewProduct && !hasOffer && inventoryStatusData.status !== 'out-of-stock' && (
                       <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
                     )}
-                    {inventoryStatusData.status === 'out-of-stock' && !hasOffer && (
+                    {inventoryStatusData.status === 'out-of-stock' && (
                       <span className="product-page__badge product-page__badge--out-of-stock">Agotado</span>
                     )}
-                    {hasOffer && discountPercentage > 0 && (
+                    {hasOffer && discountPercentage > 0 && inventoryStatusData.status !== 'out-of-stock' && (
                       <span className="product-page__badge product-page__badge--discount">-{discountPercentage}%</span>
                     )}
                   </>
@@ -1902,7 +1923,7 @@ const ProductPage = () => {
                 const statusKind = inventoryStatus.status;
                 const isComingSoon = statusKind === 'coming-soon';
                 const isOutOfStock = statusKind === 'out-of-stock';
-                const canEncargo = canEncargoSinStock(user, statusKind);
+                const canEncargo = canEncargoSinStock(user, statusKind, product);
                 const showNotifyAlert = isComingSoon && (!user || !canEncargo);
                 const encargoLabel = isComingSoon
                   ? 'Encargo - Próximamente'
@@ -1952,7 +1973,7 @@ const ProductPage = () => {
                     <div className="product-page__size-options">
                       {tallasAMostrar.map((talla, index) => {
                         const stockDisponible = selectedColor ? getStockBySizeAndColor(talla, selectedColor) : getStockForSize(talla);
-                        const canEncargoTalla = canEncargoForSize(user, statusKind, stockDisponible);
+                        const canEncargoTalla = canEncargoForSize(user, statusKind, stockDisponible, product);
                         const isDisabled = selectedColor && stockDisponible <= 0 && !canEncargoTalla;
                         const maxStock = getStockForSize(talla);
                         const maxAllowed = canEncargoTalla ? 9999 : maxStock;
@@ -2037,7 +2058,7 @@ const ProductPage = () => {
                 {(() => {
                   const inventoryStatus = getInventoryStatus();
                   const isComingSoon = inventoryStatus.status === 'coming-soon';
-                  const canEncargo = canEncargoSinStock(user, inventoryStatus.status);
+                  const canEncargo = canEncargoSinStock(user, inventoryStatus.status, product);
                   const showNotifyAlert = isComingSoon && (!user || !canEncargo);
 
                   // Si es "próximamente" y no puede encargar, no mostrar botón de agregar al carrito

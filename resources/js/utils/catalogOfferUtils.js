@@ -4,7 +4,7 @@ import { formatProductDiscountBadgeLabel } from './offerMinPurchaseUtils';
 const BADGE_CATEGORIES = ['product_discount', 'buy_x_get_y', 'order_discount', 'free_shipping'];
 
 /**
- * Indica si el producto debe mostrar badge de oferta (prioridad sobre Nuevo/Agotado).
+ * Indica si el producto debe mostrar badge de oferta (solo cuando hay stock; Agotado tiene prioridad en tarjetas).
  */
 export function hasCatalogOfferBadge({ discountPercentage = 0, hasUserOffer = false, userOffer = null } = {}) {
   if (discountPercentage > 0) {

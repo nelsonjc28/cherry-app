@@ -25,8 +25,8 @@ export function effectiveDetailInventoryContribution(raw) {
 }
 
 /**
- * Inventario total: suma de inventario_d por talla (solo valores > 0); si la suma es 0 y hay detalles, cabecera.
- * Alineado con ProductController::show y badges Próximamente / Agotado.
+ * Inventario total: si hay detalles/tallas, solo la suma de inventario_d (sin usar cabecera desactualizada).
+ * Sin detalles: inventario de cabecera.
  */
 export function getTotalInventoryFromProduct(product) {
   if (!product) {
@@ -34,13 +34,9 @@ export function getTotalInventoryFromProduct(product) {
   }
   const detalles = product.detalles;
   if (detalles && detalles.length > 0) {
-    const fromDetails = detalles.reduce((total, detalle) => {
+    return detalles.reduce((total, detalle) => {
       return total + effectiveDetailInventoryContribution(detalle?.inventario_d);
     }, 0);
-    if (fromDetails > 0.00001) {
-      return fromDetails;
-    }
-    return effectiveDetailInventoryContribution(product.inventario ?? product.stock ?? 0);
   }
   return effectiveDetailInventoryContribution(product.inventario ?? product.stock ?? 0);
 }

@@ -213,17 +213,15 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
         )}
 
         {/* Nuevo: no mostrar si hay oferta ni si es "Próximamente" */}
-        {isNew && !hasOffer && stockStatus !== 'coming-soon' && (
+        {isNew && !hasOffer && stockStatus !== 'coming-soon' && stockStatus !== 'out-of-stock' && (
           <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
         )}
 
-        {/* Out of stock badge - solo si no hay oferta y no es "Próximamente" */}
-        {!isNew && !hasOffer && stockStatus === 'out-of-stock' && (
+        {stockStatus === 'out-of-stock' && (
           <span className="out-of-stock-badge">Agotado</span>
         )}
 
-        {/* Offer badge if product has discount (not shown for "Próximamente") */}
-        {stockStatus !== 'coming-soon' && hasOffer && (
+        {stockStatus !== 'coming-soon' && stockStatus !== 'out-of-stock' && hasOffer && (
           <span className="offer-badge">
             {getDiscountLabel()}
           </span>
@@ -303,17 +301,15 @@ const ProductCard = ({ product, onFavoriteToggle, showFavoriteButton = true, var
         )}
 
         {/* Nuevo: no mostrar si hay oferta ni si es "Próximamente" */}
-        {isNew && !hasOffer && stockStatus !== 'coming-soon' && (
+        {isNew && !hasOffer && stockStatus !== 'coming-soon' && stockStatus !== 'out-of-stock' && (
           <span className="catalog-offer-badge catalog-new-badge">Nuevo</span>
         )}
 
-        {/* Out of stock badge - solo si no hay oferta y no es "Próximamente" */}
-        {!isNew && !hasOffer && stockStatus === 'out-of-stock' && (
+        {stockStatus === 'out-of-stock' && (
           <span className="out-of-stock-badge">Agotado</span>
         )}
 
-        {/* Offer badge if product has discount (not shown for "Próximamente") */}
-        {stockStatus !== 'coming-soon' && hasOffer && (
+        {stockStatus !== 'coming-soon' && stockStatus !== 'out-of-stock' && hasOffer && (
           <span className={`offer-badge ${finalHasUserOffer ? 'user-offer' : ''} ${
             finalHasUserOffer && finalUserOffer && finalUserOffer.discount_category === 'buy_x_get_y' ? 'buy-x-get-y' : 
             finalHasUserOffer && finalUserOffer && finalUserOffer.discount_category === 'order_discount' ? 'order-discount' : 

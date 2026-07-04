@@ -452,7 +452,9 @@ class Producto extends Model
             ->pluck('inventario_d')
             ->sum(fn ($v) => self::effectiveDetailInventoryContribution($v));
 
-        $inventoryTotal = $sumDetails > 0.00001
+        $hasDetalles = Detalle::query()->where('producto_id', $productId)->exists();
+
+        $inventoryTotal = $hasDetalles
             ? $sumDetails
             : self::effectiveDetailInventoryContribution($producto->inventario ?? null);
 

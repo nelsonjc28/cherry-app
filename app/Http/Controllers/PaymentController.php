@@ -14,6 +14,7 @@ use App\Models\Address;
 use App\Models\DayFortyFive;
 use App\Models\PaymentCard;
 use App\Models\User;
+use App\Models\Producto;
 use App\Models\Notification;
 use App\Services\ExternalSalesService;
 use App\Services\CreditAvailabilityService;
@@ -770,6 +771,44 @@ class PaymentController extends Controller
     }
 
     /**
+     * Rebaja de catálogo (desc_promo > 0) agotada: no permite encargo / pedido adelantado.
+     *
+     * @param  array<int, array<string, mixed>>  $items
+     */
+    protected function rejectRebajaAgotadoEncargoLines(array $items): ?\Illuminate\Http\JsonResponse
+    {
+        $productIds = [];
+
+        foreach ($items as $item) {
+            if (! filter_var($item['is_out_of_stock_encargo'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+                continue;
+            }
+            $productId = (string) ($item['product_id'] ?? '');
+            if ($productId !== '') {
+                $productIds[] = $productId;
+            }
+        }
+
+        if ($productIds === []) {
+            return null;
+        }
+
+        $hasRebajaAgotadoEncargo = Producto::query()
+            ->whereIn('id', array_unique($productIds))
+            ->where('desc_promo', '>', 0)
+            ->exists();
+
+        if ($hasRebajaAgotadoEncargo) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Los productos en rebaja agotados no están disponibles para pedido adelantado.',
+            ], 422);
+        }
+
+        return null;
+    }
+
+    /**
      * Pedido directo (descuento por volumen desde API de clientes): sin Mercado Pago; pendiente de liquidación administrativa.
      */
     public function createDirectOrder(Request $request)
@@ -818,6 +857,10 @@ class PaymentController extends Controller
                 'message' => 'Datos de validación incorrectos',
                 'errors' => $validator->errors(),
             ], 422);
+        }
+
+        if ($rebajaEncargoError = $this->rejectRebajaAgotadoEncargoLines($request->input('items', []))) {
+            return $rebajaEncargoError;
         }
 
         /** @var User $user */
@@ -1237,6 +1280,10 @@ class PaymentController extends Controller
                 'message' => 'Datos de validación incorrectos',
                 'errors' => $validator->errors()
             ], 422);
+        }
+
+        if ($rebajaEncargoError = $this->rejectRebajaAgotadoEncargoLines($request->input('items', []))) {
+            return $rebajaEncargoError;
         }
 
         /** @var User $user */
@@ -4245,6 +4292,8 @@ class PaymentController extends Controller
             'items.*.color' => 'nullable|string',
             'items.*.barcode' => 'nullable|string',
             'items.*.detalle_id' => 'nullable|integer|min:1',
+            'items.*.is_coming_soon' => 'nullable|boolean',
+            'items.*.is_out_of_stock_encargo' => 'nullable|boolean',
             'items.*.desc_promo' => 'nullable|numeric',
             'items.*.user_offer_applies' => 'nullable|boolean',
             'items_for_volume_pricing' => 'nullable|array',
@@ -4265,6 +4314,10 @@ class PaymentController extends Controller
                 'message' => 'Datos de validación incorrectos',
                 'errors' => $validator->errors()
             ], 422);
+        }
+
+        if ($rebajaEncargoError = $this->rejectRebajaAgotadoEncargoLines($request->input('items', []))) {
+            return $rebajaEncargoError;
         }
 
         $itemsForPricingSubset = $this->pricingLinesFromRequestItems($request->items);

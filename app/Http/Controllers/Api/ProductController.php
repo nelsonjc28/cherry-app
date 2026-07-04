@@ -124,7 +124,7 @@ class ProductController extends Controller
             }
 
             $inventarioSumDetalles = collect($detalles)->sum(fn (array $d) => Producto::effectiveDetailInventoryContribution($d['inventario_d'] ?? null));
-            $inventarioTotalProducto = $inventarioSumDetalles > 0.00001
+            $inventarioTotalProducto = count($detalles) > 0
                 ? $inventarioSumDetalles
                 : Producto::effectiveDetailInventoryContribution($producto->inventario ?? 0);
             $isComingSoon = Producto::evaluateIsComingSoonFromRow($producto, $inventarioTotalProducto);
@@ -328,7 +328,8 @@ class ProductController extends Controller
                         ->toArray();
 
                     $sumDet = $productGroup->sum(fn ($row) => Producto::effectiveDetailInventoryContribution($row->inventario_d ?? null));
-                    $inventarioTotal = $sumDet > 0.00001
+                    $hasDetailRows = $productGroup->contains(fn ($row) => isset($row->detalle_id) && $row->detalle_id !== null);
+                    $inventarioTotal = $hasDetailRows
                         ? $sumDet
                         : Producto::effectiveDetailInventoryContribution($producto->inventario ?? 0);
 
@@ -749,7 +750,8 @@ class ProductController extends Controller
                         ->toArray();
 
                     $sumDet = $productGroup->sum(fn ($row) => Producto::effectiveDetailInventoryContribution($row->inventario_d ?? null));
-                    $inventarioTotal = $sumDet > 0.00001
+                    $hasDetailRows = $productGroup->contains(fn ($row) => isset($row->detalle_id) && $row->detalle_id !== null);
+                    $inventarioTotal = $hasDetailRows
                         ? $sumDet
                         : Producto::effectiveDetailInventoryContribution($producto->inventario ?? 0);
 

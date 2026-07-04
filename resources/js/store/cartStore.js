@@ -4,7 +4,7 @@ import { cartApi } from '../api/cartApi';
 import useUserStore from './userStore';
 import { isOroDiamanteSeller } from '../utils/sellerVolumeDiscount';
 import { effectiveDetailInventoryContribution } from '../utils/productUtils';
-import { isEncargoCartLine } from '../utils/encargoUtils';
+import { isEncargoCartLine, productHasExternalRebaja } from '../utils/encargoUtils';
 import { calculateItemPriceWithMinPurchase } from '../utils/offerMinPurchaseUtils';
 import { refreshCartItemsOffers } from '../utils/cartOfferRefresh';
 import { trackAddToCart } from '../utils/analytics';
@@ -456,6 +456,11 @@ const useCartStore = create(
         const isEncargoLine = isEncargoCartLine(product);
         const user = useUserStore.getState?.()?.user;
         const isPremiumUser = user && isOroDiamanteSeller(user);
+
+        if (isEncargoLine && product.isOutOfStockEncargo && productHasExternalRebaja(product)) {
+          window.showToast('Los productos en rebaja agotados no están disponibles para pedido adelantado.', 'error');
+          return;
+        }
         
         if (maxStock === 0 && !(isEncargoLine && isPremiumUser)) {
            window.showToast("No hay stock para esta combinación de color y talla.",'error');
