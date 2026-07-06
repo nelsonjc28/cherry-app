@@ -355,40 +355,76 @@
   color: #666;
 }
 
+.client-manager__actions-header {
+  width: 200px;
+  min-width: 200px;
+  text-align: center;
+}
+
+.client-manager__actions-cell {
+  padding: 8px 6px !important;
+  vertical-align: middle;
+}
+
+.client-manager__actions-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  width: 100%;
+  min-width: 180px;
+}
+
+.client-manager__actions-grid-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+}
+
+.client-manager__actions-grid-col .order-action-btn.client-manager__table-icon-btn {
+  margin: 0;
+}
+
+/* Acciones tabla: color fijo; hover = misma tonalidad más oscura */
+.client-manager__actions-grid-col .order-action-btn.order-action-btn--detail.client-manager__table-icon-btn,
+.client-manager__table-actions .order-action-btn.order-action-btn--detail.client-manager__table-icon-btn {
+  color: #666;
+}
+
+.client-manager__actions-grid-col .order-action-btn.order-action-btn--detail.client-manager__table-icon-btn:hover,
+.client-manager__table-actions .order-action-btn.order-action-btn--detail.client-manager__table-icon-btn:hover {
+  color: #383838;
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+.client-manager__actions-grid-col .order-action-btn.client-manager__table-icon-btn--edit,
+.client-manager__table-actions .order-action-btn.client-manager__table-icon-btn--edit {
+  color: #e6a819;
+}
+
+.client-manager__actions-grid-col .order-action-btn.client-manager__table-icon-btn--edit:hover,
+.client-manager__table-actions .order-action-btn.client-manager__table-icon-btn--edit:hover {
+  color: #9a7200;
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+.client-manager__actions-grid-col .order-action-btn.client-manager__table-icon-btn--delete,
+.client-manager__table-actions .order-action-btn.client-manager__table-icon-btn--delete {
+  color: #ea2630;
+}
+
+.client-manager__actions-grid-col .order-action-btn.client-manager__table-icon-btn--delete:hover,
+.client-manager__table-actions .order-action-btn.client-manager__table-icon-btn--delete:hover {
+  color: #9e0f1c;
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
 .client-manager__table-actions {
   display: flex;
   gap: 8px;
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-}
-
-/* Acciones tabla: color fijo; hover = misma tonalidad más oscura (sin volver al rojo del --detail global) */
-.client-manager__table-actions .order-action-btn.order-action-btn--detail.client-manager__table-icon-btn {
-  color: #666;
-}
-
-.client-manager__table-actions .order-action-btn.order-action-btn--detail.client-manager__table-icon-btn:hover {
-  color: #383838;
-  background-color: rgba(0, 0, 0, 0.08);
-}
-
-.client-manager__table-actions .order-action-btn.client-manager__table-icon-btn--edit {
-  color: #e6a819;
-}
-
-.client-manager__table-actions .order-action-btn.client-manager__table-icon-btn--edit:hover {
-  color: #9a7200;
-  background-color: rgba(0, 0, 0, 0.06);
-}
-
-.client-manager__table-actions .order-action-btn.client-manager__table-icon-btn--delete {
-  color: #ea2630;
-}
-
-.client-manager__table-actions .order-action-btn.client-manager__table-icon-btn--delete:hover {
-  color: #9e0f1c;
-  background-color: rgba(0, 0, 0, 0.06);
 }
 
 .client-manager__action-btn {
@@ -519,6 +555,10 @@
   .client-manager__form {
     width: 95%;
     padding: 1.5rem;
+  }
+
+  .client-manager__actions-grid {
+    min-width: 160px;
   }
 
   .client-manager__table-actions {

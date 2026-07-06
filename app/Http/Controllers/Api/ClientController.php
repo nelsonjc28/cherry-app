@@ -8,6 +8,7 @@ use App\Models\Role;
 use App\Models\Order;
 use App\Models\Address;
 use App\Services\ExternalClienteDiscountService;
+use App\Services\ExternalClienteAccountService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -555,6 +556,52 @@ class ClientController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener los estados de cuenta: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Estado de cuenta externo (API Cherry) para clientes oro y diamante.
+     */
+    public function getClientExternalAccountStatement($id, ExternalClienteAccountService $accountService)
+    {
+        try {
+            $client = User::where('role_id', 2)->find($id);
+
+            if (! $client) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cliente no encontrado',
+                ], 404);
+            }
+
+            if (! in_array($client->seller_category, ['oro', 'diamante'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Esta consulta solo está disponible para clientes Oro y Diamante',
+                ], 403);
+            }
+
+            $result = $accountService->fetchAccountStatement(
+                (int) $client->id,
+                (float) ($client->credit_limit ?? 0)
+            );
+
+            if (! $result['success']) {
+                return response()->json($result, 502);
+            }
+
+            return response()->json(array_merge($result, [
+                'client' => [
+                    'id' => $client->id,
+                    'name' => trim($client->first_name.' '.$client->last_name),
+                    'email' => $client->email,
+                ],
+            ]), 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener el estado de cuenta: '.$e->getMessage(),
             ], 500);
         }
     }

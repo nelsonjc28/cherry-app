@@ -207,6 +207,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/admin/clients/{id}/external-discounts', [ClientController::class, 'getExternalClientDiscounts']);
     Route::get('/admin/clients/{id}', [ClientController::class, 'getClient']);
     Route::get('/admin/clients/{id}/account-statements', [ClientController::class, 'getClientAccountStatements']);
+    Route::get('/admin/clients/{id}/external-account-statement', [ClientController::class, 'getClientExternalAccountStatement']);
     Route::post('/admin/clients', [ClientController::class, 'createClient']);
     Route::post('/admin/clients/{id}/addresses/{addressId}', [ClientController::class, 'updateClientAddress']);
     Route::post('/admin/clients/{id}/addresses', [ClientController::class, 'storeClientAddress']);

@@ -122,7 +122,9 @@ const AccountStatementModal = ({ isOpen, onClose, userId = null }) => {
       <div className="account-statement-modal__content" onClick={(e) => e.stopPropagation()}>
         <div className="account-statement-modal__header">
           <div>
-            <h3 className="account-statement-modal__title">Estados de Cuenta</h3>
+            <h3 className="account-statement-modal__title">
+              {userId ? 'Estado de Cuenta' : 'Estados de Cuenta'}
+            </h3>
             {userId && statements.length > 0 && statements[0]?.client && (
               <p className="account-statement-modal__client-name">
                 Cliente: {statements[0].client.name} ({statements[0].client.email})

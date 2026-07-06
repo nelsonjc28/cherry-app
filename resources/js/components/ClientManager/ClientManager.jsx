@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import CherryButton from '../CherryButton/CherryButton';
 import AccountStatementModal from '../AccountStatementModal/AccountStatementModal';
+import ExternalAccountStatementModal from '../ExternalAccountStatementModal/ExternalAccountStatementModal';
 import useUserStore from '../../store/userStore';
 import { fetchSepomexPostalCode } from '../../utils/sepomexPostal';
 import { sanitizeStreetNumberDigits } from '../../utils/addressDisplay';
@@ -220,6 +221,7 @@ const ClientManager = () => {
   const [editingClient, setEditingClient] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAccountStatementModal, setShowAccountStatementModal] = useState(false);
+  const [showExternalAccountStatementModal, setShowExternalAccountStatementModal] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState(null);
   const [addressForm, setAddressForm] = useState(() => emptyAddressForm(null, true));
   const [postalSettlements, setPostalSettlements] = useState([]);
@@ -600,6 +602,11 @@ const ClientManager = () => {
     setShowAccountStatementModal(true);
   };
 
+  const handleViewExternalAccountStatement = (clientId) => {
+    setSelectedClientId(clientId);
+    setShowExternalAccountStatementModal(true);
+  };
+
   const categoryLabels = { oro: 'Oro', bronce: 'Bronce', diamante: 'Diamante' };
 
   const handleCategoryChangeWithConfirm = (clientId, newCategory, currentCategory) => {
@@ -940,7 +947,7 @@ const ClientManager = () => {
                     <th>Nombre</th>
                     <th>Correo</th>
                     <th>Categoría</th>
-                    <th>Acciones</th>
+                    <th className="client-manager__actions-header">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -953,6 +960,7 @@ const ClientManager = () => {
                       Math.round(creditLim * 100) !== 0;
                     const showCreditBlock =
                       ['oro', 'diamante'].includes(cat) && creditOrLimitNonZero;
+                    const isPremiumClient = ['oro', 'diamante'].includes(cat);
                     return (
                       <tr key={client.id}>
                         <td className="client-manager__id-cell">
@@ -1003,41 +1011,62 @@ const ClientManager = () => {
                             </div>
                           )}
                         </td>
-                        <td className="order-actions-cell">
-                          <div className="client-manager__table-actions">
-                            <button
-                              type="button"
-                              className="order-action-btn order-action-btn--detail client-manager__table-icon-btn"
-                              onClick={() => handleViewAccountStatement(client.id)}
-                              data-tooltip="Estados de cuenta"
-                              aria-label="Estados de cuenta"
-                              onMouseEnter={showClientActionTooltip}
-                              onMouseLeave={hideClientActionTooltip}
-                            >
-                              📊
-                            </button>
-                            <button
-                              type="button"
-                              className="order-action-btn client-manager__table-icon-btn client-manager__table-icon-btn--edit"
-                              onClick={() => handleEdit(client)}
-                              data-tooltip="Editar"
-                              aria-label="Editar"
-                              onMouseEnter={showClientActionTooltip}
-                              onMouseLeave={hideClientActionTooltip}
-                            >
-                              ✏️
-                            </button>
-                            <button
-                              type="button"
-                              className="order-action-btn client-manager__table-icon-btn client-manager__table-icon-btn--delete"
-                              onClick={() => handleDelete(client.id)}
-                              data-tooltip="Eliminar"
-                              aria-label="Eliminar"
-                              onMouseEnter={showClientActionTooltip}
-                              onMouseLeave={hideClientActionTooltip}
-                            >
-                              🗑️
-                            </button>
+                        <td className="client-manager__actions-cell">
+                          <div className="client-manager__actions-grid">
+                            <div className="client-manager__actions-grid-col">
+                              {isPremiumClient ? (
+                                <button
+                                  type="button"
+                                  className="order-action-btn order-action-btn--detail client-manager__table-icon-btn"
+                                  onClick={() => handleViewExternalAccountStatement(client.id)}
+                                  data-tooltip="Estado de cuenta ADM"
+                                  aria-label="Estado de cuenta ADM"
+                                  onMouseEnter={showClientActionTooltip}
+                                  onMouseLeave={hideClientActionTooltip}
+                                >
+                                  📋
+                                </button>
+                              ) : null}
+                            </div>
+                            <div className="client-manager__actions-grid-col">
+                              <button
+                                type="button"
+                                className="order-action-btn order-action-btn--detail client-manager__table-icon-btn"
+                                onClick={() => handleViewAccountStatement(client.id)}
+                                data-tooltip="Estado de cuenta"
+                                aria-label="Estado de cuenta"
+                                onMouseEnter={showClientActionTooltip}
+                                onMouseLeave={hideClientActionTooltip}
+                              >
+                                📊
+                              </button>
+                            </div>
+                            <div className="client-manager__actions-grid-col">
+                              <button
+                                type="button"
+                                className="order-action-btn client-manager__table-icon-btn client-manager__table-icon-btn--edit"
+                                onClick={() => handleEdit(client)}
+                                data-tooltip="Editar"
+                                aria-label="Editar"
+                                onMouseEnter={showClientActionTooltip}
+                                onMouseLeave={hideClientActionTooltip}
+                              >
+                                ✏️
+                              </button>
+                            </div>
+                            <div className="client-manager__actions-grid-col">
+                              <button
+                                type="button"
+                                className="order-action-btn client-manager__table-icon-btn client-manager__table-icon-btn--delete"
+                                onClick={() => handleDelete(client.id)}
+                                data-tooltip="Eliminar"
+                                aria-label="Eliminar"
+                                onMouseEnter={showClientActionTooltip}
+                                onMouseLeave={hideClientActionTooltip}
+                              >
+                                🗑️
+                              </button>
+                            </div>
                           </div>
                         </td>
                       </tr>
@@ -1059,6 +1088,17 @@ const ClientManager = () => {
             setSelectedClientId(null);
           }}
           userId={selectedClientId}
+        />
+      )}
+
+      {showExternalAccountStatementModal && selectedClientId && (
+        <ExternalAccountStatementModal
+          isOpen={showExternalAccountStatementModal}
+          onClose={() => {
+            setShowExternalAccountStatementModal(false);
+            setSelectedClientId(null);
+          }}
+          clientId={selectedClientId}
         />
       )}
     </div>
