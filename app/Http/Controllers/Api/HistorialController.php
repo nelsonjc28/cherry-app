@@ -30,7 +30,8 @@ class HistorialController extends Controller
 
         // Ordenar de mayor a menor (más reciente primero) y paginar
         $perPage = $request->get('per_page', 15);
-        $historial = $query->orderBy('ejecutado_at', 'desc')
+        $historial = $query->orderByDesc('ejecutado_at')
+            ->orderByDesc('id')
             ->paginate($perPage)
             ->through(function ($item) {
                 return [

@@ -9,18 +9,19 @@ use App\Models\Producto;
 use App\Models\Detalle;
 use App\Models\Favorite;
 use App\Models\Notification;
-use App\Models\Historial;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Services\ProductSyncPruneService;
+use App\Services\ProductSyncHistorialService;
 
 class ProductSyncController extends Controller
 {
     public function __construct(
-        protected ProductSyncPruneService $productSyncPruneService
+        protected ProductSyncPruneService $productSyncPruneService,
+        protected ProductSyncHistorialService $productSyncHistorialService,
     ) {}
     private const EXTERNAL_API_URL = 'https://cherryapi.estrategiadmgs.com.mx/cherryApi/789/articulos';
 
@@ -33,6 +34,8 @@ class ProductSyncController extends Controller
         set_time_limit(0);
         ini_set('max_execution_time', '0');
         ini_set('memory_limit', '512M');
+
+        $historial = $this->productSyncHistorialService->start('http');
         
         try {
             DB::beginTransaction();
@@ -380,12 +383,7 @@ class ProductSyncController extends Controller
 
             DB::commit();
 
-            // Registrar en historial
-            Historial::create([
-                'ejecutado_at' => now(),
-                'estado' => 'exitoso',
-                'mensaje' => 'Sincronización completada exitosamente'
-            ]);
+            $this->productSyncHistorialService->markSuccess($historial, $stats, 'http');
 
             return response()->json([
                 'success' => true,
@@ -399,12 +397,7 @@ class ProductSyncController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
 
-            // Registrar error en historial
-            Historial::create([
-                'ejecutado_at' => now(),
-                'estado' => 'error',
-                'mensaje' => 'Error al sincronizar productos: ' . $e->getMessage()
-            ]);
+            $this->productSyncHistorialService->markFailure($historial, $e->getMessage(), 'http');
 
             return response()->json([
                 'success' => false,

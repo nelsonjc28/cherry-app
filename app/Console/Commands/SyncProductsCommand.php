@@ -7,7 +7,6 @@ use App\Models\Genero;
 use App\Models\Sector;
 use App\Models\Producto;
 use App\Models\Detalle;
-use App\Models\Historial;
 use App\Models\ProductNotification;
 use App\Mail\ProductAvailableEmail;
 use Illuminate\Support\Facades\Http;
@@ -15,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Services\ProductSyncPruneService;
+use App\Services\ProductSyncHistorialService;
 
 class SyncProductsCommand extends Command
 {
@@ -37,10 +37,16 @@ class SyncProductsCommand extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(ProductSyncHistorialService $historialService)
     {
+        set_time_limit(0);
+        ini_set('max_execution_time', '0');
+        ini_set('memory_limit', '512M');
+
         Log::info('🔄 Comando products:sync iniciado - Iniciando sincronización de productos...');
         $this->info('Iniciando sincronización de productos...');
+
+        $historial = $historialService->start('cli');
         
         try {
             DB::beginTransaction();
@@ -382,12 +388,7 @@ class SyncProductsCommand extends Command
 
             DB::commit();
 
-            // Registrar en historial
-            Historial::create([
-                'ejecutado_at' => now(),
-                'estado' => 'exitoso',
-                'mensaje' => 'Sincronización completada exitosamente'
-            ]);
+            $historialService->markSuccess($historial, $stats, 'cli');
 
             $this->info('✅ Sincronización completada exitosamente!');
             $this->newLine();
@@ -415,13 +416,8 @@ class SyncProductsCommand extends Command
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
-            // Registrar error en historial
-            Historial::create([
-                'ejecutado_at' => now(),
-                'estado' => 'error',
-                'mensaje' => 'Error al sincronizar productos: ' . $e->getMessage()
-            ]);
+
+            $historialService->markFailure($historial, $e->getMessage(), 'cli');
             
             $this->error('❌ Error en sincronización: ' . $e->getMessage());
             Log::error('Error en sincronización de productos: ' . $e->getMessage(), [
