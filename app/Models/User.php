@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -125,6 +126,15 @@ class User extends Authenticatable implements JWTSubject
     public function isOperator()
     {
         return $this->role && $this->role->name === 'operador';
+    }
+
+    /**
+     * Check if the user has role 'vendedor'.
+     * Un vendedor gestiona pedidos en nombre de clientes oro/diamante asociados.
+     */
+    public function isVendedor()
+    {
+        return $this->role && $this->role->name === 'vendedor';
     }
 
     /**
@@ -246,6 +256,27 @@ class User extends Authenticatable implements JWTSubject
     public function defaultPaymentCard()
     {
         return $this->hasOne(PaymentCard::class)->where('is_default', true);
+    }
+
+    /**
+     * Compradores asociados a este usuario cuando actúa como vendedor.
+     * Sólo retorna asociaciones activas (filtradas en query si se necesita el universo completo).
+     */
+    public function buyers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'vendor_buyer', 'vendor_id', 'buyer_id')
+            ->withPivot('is_active')
+            ->withTimestamps();
+    }
+
+    /**
+     * Vendedores que tienen a este usuario como comprador asociado.
+     */
+    public function vendors(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'vendor_buyer', 'buyer_id', 'vendor_id')
+            ->withPivot('is_active')
+            ->withTimestamps();
     }
 
     // Métodos requeridos por JWTSubject

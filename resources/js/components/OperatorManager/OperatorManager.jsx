@@ -3,12 +3,39 @@ import Swal from 'sweetalert2';
 import CherryButton from '../CherryButton/CherryButton';
 import './OperatorManager.css';
 
+// Helpers de tooltip (mismo patrón que ClientManager)
+const showActionTooltip = (e) => {
+  const button = e.currentTarget;
+  const tooltipText = button.getAttribute('data-tooltip') || button.getAttribute('aria-label');
+  if (!tooltipText) return;
+  let tooltip = document.querySelector('.client-tooltip');
+  if (!tooltip) {
+    tooltip = document.createElement('div');
+    tooltip.className = 'client-tooltip';
+    document.body.appendChild(tooltip);
+  }
+  tooltip.textContent = tooltipText;
+  tooltip.style.display = 'block';
+  const rect = button.getBoundingClientRect();
+  tooltip.style.left = `${rect.left + rect.width / 2}px`;
+  tooltip.style.top = `${rect.top - 10}px`;
+  tooltip.style.transform = 'translate(-50%, -100%)';
+  const tooltipRect = tooltip.getBoundingClientRect();
+  tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
+};
+const hideActionTooltip = () => {
+  const tooltip = document.querySelector('.client-tooltip');
+  if (tooltip) tooltip.style.display = 'none';
+};
+
 const OperatorManager = () => {
+  const [allUsers, setAllUsers] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -39,6 +66,8 @@ const OperatorManager = () => {
       const data = await response.json();
       // Filter only operator users
       const operatorUsers = data.users.filter(user => user.role?.name === 'operador');
+      setAllUsers(operatorUsers);
+      setAllUsers(operatorUsers);
       setUsers(operatorUsers);
     } catch (err) {
       setError(err.message);
@@ -47,6 +76,23 @@ const OperatorManager = () => {
       setLoading(false);
     }
   };
+
+  // Filtrar operadores según el término de búsqueda (nombre, email, teléfono, id)
+  useEffect(() => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) {
+      setUsers(allUsers);
+      return;
+    }
+    const filtered = allUsers.filter((user) => {
+      const fullName = `${user.first_name || ''} ${user.last_name || ''} ${user.middle_name || ''}`.toLowerCase();
+      const email = (user.email || '').toLowerCase();
+      const phone = (user.phone || '').toLowerCase();
+      const idStr = String(user.id);
+      return fullName.includes(q) || email.includes(q) || phone.includes(q) || idStr.includes(q);
+    });
+    setUsers(filtered);
+  }, [searchTerm, allUsers]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -333,44 +379,91 @@ const OperatorManager = () => {
         <div className="operator-manager__list-header">
           <h3>Operadores ({users.length})</h3>
         </div>
-        
+
+        {/* Search Bar */}
+        <div className="operator-manager__search">
+          <div className="operator-manager__search-group">
+            <label htmlFor="operator-search">Buscar Operador:</label>
+            <input
+              id="operator-search"
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar por nombre, email, teléfono o ID..."
+              className="operator-manager__search-input"
+            />
+          </div>
+        </div>
+
         {users.length === 0 ? (
           <div className="operator-manager__empty">
             No hay operadores registrados
           </div>
         ) : (
-          <div className="operator-manager__users">
-            {users.map(user => (
-              <div key={user.id} className="operator-manager__user-card">
-                <div className="operator-manager__user-info">
-                  <div className="operator-manager__user-name">
-                    {user.first_name} {user.last_name}
-                  </div>
-                  <div className="operator-manager__user-email">
-                    {user.email}
-                  </div>
-                  <div className="operator-manager__user-role">
-                    Operador
-                  </div>
-                </div>
-                <div className="operator-manager__user-actions">
-                  <CherryButton 
-                    onClick={() => handleEdit(user)}
-                    variant="outline"
-                    size="small"
-                  >
-                    Editar
-                  </CherryButton>
-                  <CherryButton 
-                    onClick={() => handleDelete(user.id)}
-                    variant="red"
-                    size="small"
-                  >
-                    Eliminar
-                  </CherryButton>
-                </div>
-              </div>
-            ))}
+          <div className="admin-orders__table-container">
+            <div className="table-scroll-wrapper">
+              <table className="admin-orders__table client-manager__data-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Correo</th>
+                    <th>Teléfono</th>
+                    <th>Rol</th>
+                    <th className="client-manager__actions-header">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((user) => (
+                    <tr key={user.id}>
+                      <td className="client-manager__id-cell">#{user.id}</td>
+                      <td className="order-customer-cell client-manager__name-cell">
+                        {user.first_name} {user.last_name}
+                      </td>
+                      <td className="client-manager__email-cell" title={user.email || ''}>
+                        {user.email || '—'}
+                      </td>
+                      <td className="client-manager__email-cell">{user.phone || '—'}</td>
+                      <td>
+                        <span className="vendor-category-badge vendor-category-badge--none">
+                          Operador
+                        </span>
+                      </td>
+                      <td className="client-manager__actions-cell">
+                        <div className="client-manager__actions-grid">
+                          <div className="client-manager__actions-grid-col">
+                            <button
+                              type="button"
+                              className="order-action-btn client-manager__table-icon-btn client-manager__table-icon-btn--edit"
+                              onClick={() => handleEdit(user)}
+                              data-tooltip="Editar"
+                              aria-label="Editar"
+                              onMouseEnter={showActionTooltip}
+                              onMouseLeave={hideActionTooltip}
+                            >
+                              ✏️
+                            </button>
+                          </div>
+                          <div className="client-manager__actions-grid-col">
+                            <button
+                              type="button"
+                              className="order-action-btn client-manager__table-icon-btn client-manager__table-icon-btn--delete"
+                              onClick={() => handleDelete(user.id)}
+                              data-tooltip="Eliminar"
+                              aria-label="Eliminar"
+                              onMouseEnter={showActionTooltip}
+                              onMouseLeave={hideActionTooltip}
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

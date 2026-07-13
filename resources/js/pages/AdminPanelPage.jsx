@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import CherryButton from '../components/CherryButton/CherryButton';
 import AdminUserManager from '../components/AdminUserManager/AdminUserManager';
 import OperatorManager from '../components/OperatorManager/OperatorManager';
+import VendorManager from '../components/VendorManager/VendorManager';
 import ClientManager from '../components/ClientManager/ClientManager';
 import AdminReviews from '../components/AdminReviews/AdminReviews';
 
@@ -96,6 +97,7 @@ function AdminPanelPage() {
       'home': 'Dashboard - Admin - Cherry Central',
       'users': 'Administradores - Admin - Cherry Central',
       'operators': 'Operadores - Admin - Cherry Central',
+      'vendors': 'Vendedores - Admin - Cherry Central',
       'clients': 'Clientes - Admin - Cherry Central',
       'category-products': 'Categorías - Admin - Cherry Central',
       'category-order': 'Ordenar Categorías - Admin - Cherry Central',
@@ -126,6 +128,7 @@ function AdminPanelPage() {
     '/admin/dashboard': 'home',
     '/admin/usuarios': 'users',
     '/admin/operadores': 'operators',
+    '/admin/vendedores': 'vendors',
     '/admin/clientes': 'clients',
     '/admin/categorias': 'category-products',
     '/admin/ordenar-categorias': 'category-order',
@@ -150,6 +153,7 @@ function AdminPanelPage() {
     'home': '/admin',
     'users': '/admin/usuarios',
     'operators': '/admin/operadores',
+    'vendors': '/admin/vendedores',
     'clients': '/admin/clientes',
     'category-products': '/admin/categorias',
     'category-order': '/admin/ordenar-categorias',
@@ -188,7 +192,7 @@ function AdminPanelPage() {
     setSelectedMenu(currentMenu);
     
     // Expandir automáticamente el submenú correspondiente
-    if (currentMenu === 'users' || currentMenu === 'operators' || currentMenu === 'clients') {
+    if (currentMenu === 'users' || currentMenu === 'operators' || currentMenu === 'vendors' || currentMenu === 'clients') {
       setExpandedMenus(prev => ({ ...prev, usuarios: true }));
     } else if (currentMenu === 'category-products' || currentMenu === 'category-order' || currentMenu === 'menu-category-order') {
       setExpandedMenus(prev => ({ ...prev, categorias: true }));
@@ -265,11 +269,17 @@ function AdminPanelPage() {
                     >
                       Administradores
                     </button>
-                    <button 
-                      className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='operators'?' active':''}`} 
+                    <button
+                      className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='operators'?' active':''}`}
                       onClick={()=>handleMenuChange('operators')}
                     >
                       Operadores
+                    </button>
+                    <button
+                      className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='vendors'?' active':''}`}
+                      onClick={()=>handleMenuChange('vendors')}
+                    >
+                      Vendedores
                     </button>
                   </>
                 )}
@@ -422,6 +432,12 @@ function AdminPanelPage() {
         {selectedMenu === 'operators' && isOnlyAdmin() && (
           <section>
             <OperatorManager />
+          </section>
+        )}
+
+        {selectedMenu === 'vendors' && isOnlyAdmin() && (
+          <section>
+            <VendorManager />
           </section>
         )}
         

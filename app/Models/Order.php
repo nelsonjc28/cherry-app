@@ -14,6 +14,7 @@ class Order extends Model
     protected $fillable = [
         'order_group_id',
         'user_id',
+        'placed_by_vendor_id',
         'address_id',
         'total_amount',
         'subtotal',
@@ -75,6 +76,15 @@ class Order extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Vendedor que colocó la orden en nombre del cliente (user_id).
+     * Nullable: las órdenes históricas no tienen vendedor asociado.
+     */
+    public function placedByVendor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'placed_by_vendor_id');
     }
 
     /**

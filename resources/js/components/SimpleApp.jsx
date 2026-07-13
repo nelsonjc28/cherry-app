@@ -53,6 +53,11 @@ import PrivacySecurity from '../pages/profile/PrivacySecurity';
 import Header from './Header/Header';
 import Footer from './Footer/Footer';
 import AdminRoute from './AdminRoute';
+import VendorRoute from './VendorRoute';
+import VendorLayout from './VendorLayout/VendorLayout';
+import VendorDashboard from '../pages/vendor/VendorDashboard';
+import VendorOrders from '../pages/vendor/VendorOrders';
+import VendorCheckoutPage from '../pages/vendor/VendorCheckoutPage';
 import CustomToastContainer from './Toast/ToastContainer';
 import ScrollToTop from './ScrollToTop/ScrollToTop';
 
@@ -145,7 +150,18 @@ const SimpleApp = () => {
                       <AdminPanelPage />
                     </AdminRoute>
                   } />
-                  
+
+                  {/* Vendor routes - sólo rol vendedor */}
+                  <Route path="/vendor" element={
+                    <VendorRoute>
+                      <VendorLayout />
+                    </VendorRoute>
+                  }>
+                    <Route index element={<VendorDashboard />} />
+                    <Route path="orders" element={<VendorOrders />} />
+                    <Route path="checkout" element={<VendorCheckoutPage />} />
+                  </Route>
+
                   {/* Catch-all route - redirect to home for any unmatched routes */}
                   <Route path="*" element={<HomePage />} />
                 </Routes>

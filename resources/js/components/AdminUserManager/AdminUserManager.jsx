@@ -3,9 +3,36 @@ import Swal from 'sweetalert2';
 import CherryButton from '../CherryButton/CherryButton';
 import './AdminUserManager.css';
 
+// Helpers de tooltip (mismo patrón que ClientManager)
+const showActionTooltip = (e) => {
+  const button = e.currentTarget;
+  const tooltipText = button.getAttribute('data-tooltip') || button.getAttribute('aria-label');
+  if (!tooltipText) return;
+  let tooltip = document.querySelector('.client-tooltip');
+  if (!tooltip) {
+    tooltip = document.createElement('div');
+    tooltip.className = 'client-tooltip';
+    document.body.appendChild(tooltip);
+  }
+  tooltip.textContent = tooltipText;
+  tooltip.style.display = 'block';
+  const rect = button.getBoundingClientRect();
+  tooltip.style.left = `${rect.left + rect.width / 2}px`;
+  tooltip.style.top = `${rect.top - 10}px`;
+  tooltip.style.transform = 'translate(-50%, -100%)';
+  const tooltipRect = tooltip.getBoundingClientRect();
+  tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
+};
+const hideActionTooltip = () => {
+  const tooltip = document.querySelector('.client-tooltip');
+  if (tooltip) tooltip.style.display = 'none';
+};
+
 const AdminUserManager = () => {
+  const [allUsers, setAllUsers] = useState([]);
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -42,6 +69,7 @@ const AdminUserManager = () => {
       const data = await response.json();
       // Filter only admin users
       const adminUsers = data.users.filter(user => user.role?.name === 'admin');
+      setAllUsers(adminUsers);
       setUsers(adminUsers);
     } catch (err) {
       setError(err.message);
@@ -50,6 +78,23 @@ const AdminUserManager = () => {
       setLoading(false);
     }
   };
+
+  // Filtrar administradores según el término de búsqueda (nombre, email, teléfono, id)
+  useEffect(() => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) {
+      setUsers(allUsers);
+      return;
+    }
+    const filtered = allUsers.filter((user) => {
+      const fullName = `${user.first_name || ''} ${user.last_name || ''} ${user.middle_name || ''}`.toLowerCase();
+      const email = (user.email || '').toLowerCase();
+      const phone = (user.phone || '').toLowerCase();
+      const idStr = String(user.id);
+      return fullName.includes(q) || email.includes(q) || phone.includes(q) || idStr.includes(q);
+    });
+    setUsers(filtered);
+  }, [searchTerm, allUsers]);
 
   const fetchRoles = async () => {
     try {
@@ -359,44 +404,91 @@ const AdminUserManager = () => {
         <div className="admin-user-manager__list-header">
           <h3>Administradores ({users.length})</h3>
         </div>
-        
+
+        {/* Search Bar */}
+        <div className="admin-user-manager__search">
+          <div className="admin-user-manager__search-group">
+            <label htmlFor="admin-search">Buscar Administrador:</label>
+            <input
+              id="admin-search"
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar por nombre, email, teléfono o ID..."
+              className="admin-user-manager__search-input"
+            />
+          </div>
+        </div>
+
         {users.length === 0 ? (
           <div className="admin-user-manager__empty">
             No hay administradores registrados
           </div>
         ) : (
-          <div className="admin-user-manager__users">
-            {users.map(user => (
-              <div key={user.id} className="admin-user-manager__user-card">
-                <div className="admin-user-manager__user-info">
-                  <div className="admin-user-manager__user-name">
-                    {user.first_name} {user.last_name}
-                  </div>
-                  <div className="admin-user-manager__user-email">
-                    {user.email}
-                  </div>
-                  <div className="admin-user-manager__user-role">
-                    Administrador
-                  </div>
-                </div>
-                <div className="admin-user-manager__user-actions">
-                  <CherryButton 
-                    onClick={() => handleEdit(user)}
-                    variant="outline"
-                    size="small"
-                  >
-                    Editar
-                  </CherryButton>
-                  <CherryButton 
-                    onClick={() => handleDelete(user.id)}
-                    variant="red"
-                    size="small"
-                  >
-                    Eliminar
-                  </CherryButton>
-                </div>
-              </div>
-            ))}
+          <div className="admin-orders__table-container">
+            <div className="table-scroll-wrapper">
+              <table className="admin-orders__table client-manager__data-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Correo</th>
+                    <th>Teléfono</th>
+                    <th>Rol</th>
+                    <th className="client-manager__actions-header">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((user) => (
+                    <tr key={user.id}>
+                      <td className="client-manager__id-cell">#{user.id}</td>
+                      <td className="order-customer-cell client-manager__name-cell">
+                        {user.first_name} {user.last_name}
+                      </td>
+                      <td className="client-manager__email-cell" title={user.email || ''}>
+                        {user.email || '—'}
+                      </td>
+                      <td className="client-manager__email-cell">{user.phone || '—'}</td>
+                      <td>
+                        <span className="vendor-category-badge vendor-category-badge--none">
+                          Administrador
+                        </span>
+                      </td>
+                      <td className="client-manager__actions-cell">
+                        <div className="client-manager__actions-grid">
+                          <div className="client-manager__actions-grid-col">
+                            <button
+                              type="button"
+                              className="order-action-btn client-manager__table-icon-btn client-manager__table-icon-btn--edit"
+                              onClick={() => handleEdit(user)}
+                              data-tooltip="Editar"
+                              aria-label="Editar"
+                              onMouseEnter={showActionTooltip}
+                              onMouseLeave={hideActionTooltip}
+                            >
+                              ✏️
+                            </button>
+                          </div>
+                          <div className="client-manager__actions-grid-col">
+                            <button
+                              type="button"
+                              className="order-action-btn client-manager__table-icon-btn client-manager__table-icon-btn--delete"
+                              onClick={() => handleDelete(user.id)}
+                              data-tooltip="Eliminar"
+                              aria-label="Eliminar"
+                              onMouseEnter={showActionTooltip}
+                              onMouseLeave={hideActionTooltip}
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

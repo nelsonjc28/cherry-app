@@ -141,6 +141,19 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/orders/{orderId}/print', [PaymentController::class, 'printOrder']); // Imprimir orden
     Route::get('/orders/{orderId}/print-pdf', [PaymentController::class, 'printOrderPdf']); // PDF para compartir (incluye split)
 
+// Vendor routes - protected by vendor middleware (solo rol vendedor)
+Route::middleware(['auth:api', 'vendor'])->prefix('vendor')->group(function () {
+    // Compradores asociados (filtro dinámico oro/diamante)
+    Route::get('/buyers', [\App\Http\Controllers\Api\Vendor\BuyerController::class, 'index']);
+    Route::get('/buyers/{id}', [\App\Http\Controllers\Api\Vendor\BuyerController::class, 'show']);
+    Route::get('/buyers/{id}/addresses', [\App\Http\Controllers\Api\Vendor\BuyerController::class, 'addresses']);
+    // Órdenes de los compradores asociados
+    Route::get('/orders', [\App\Http\Controllers\Api\Vendor\OrderController::class, 'index']);
+    Route::get('/orders/{id}', [\App\Http\Controllers\Api\Vendor\OrderController::class, 'show']);
+    // Checkout (pedido directo en nombre de un cliente asociado)
+    Route::post('/checkout', [\App\Http\Controllers\Api\Vendor\CheckoutController::class, 'checkout']);
+});
+
 // Admin routes - protected by admin middleware
 Route::middleware(['auth:api', 'admin'])->prefix('admin')->group(function () {
     Route::get('/orders', [App\Http\Controllers\Admin\AdminOrderController::class, 'index']);
@@ -201,6 +214,18 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('/admin/operators', [\App\Http\Controllers\Api\OperatorController::class, 'createUser']);
     Route::post('/admin/operators/{id}', [\App\Http\Controllers\Api\OperatorController::class, 'updateUser']);
     Route::delete('/admin/operators/{id}', [\App\Http\Controllers\Api\OperatorController::class, 'deleteUser']);
+
+    // Vendor routes - CRUD + gestión de compradores asociados (oro/diamante)
+    Route::get('/admin/vendors', [\App\Http\Controllers\Api\VendorController::class, 'index']);
+    Route::get('/admin/vendors/{id}', [\App\Http\Controllers\Api\VendorController::class, 'show']);
+    Route::post('/admin/vendors', [\App\Http\Controllers\Api\VendorController::class, 'store']);
+    Route::post('/admin/vendors/{id}', [\App\Http\Controllers\Api\VendorController::class, 'update']);
+    Route::delete('/admin/vendors/{id}', [\App\Http\Controllers\Api\VendorController::class, 'destroy']);
+    Route::get('/admin/vendors/{id}/buyers', [\App\Http\Controllers\Api\VendorController::class, 'listBuyers']);
+    Route::post('/admin/vendors/{id}/buyers', [\App\Http\Controllers\Api\VendorController::class, 'attachBuyer']);
+    Route::delete('/admin/vendors/{id}/buyers/{buyerId}', [\App\Http\Controllers\Api\VendorController::class, 'detachBuyer']);
+    // Listado de clientes elegibles para asociar (filtra dinámicamente por oro/diamante)
+    Route::get('/admin/clients/eligible-for-vendor', [\App\Http\Controllers\Api\VendorController::class, 'eligibleClients']);
     
     // Client routes - require authentication and admin role
     Route::get('/admin/clients', [ClientController::class, 'getClients']);

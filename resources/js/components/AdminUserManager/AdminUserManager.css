@@ -237,4 +237,45 @@
   color: #666;
   margin-top: 0.5rem;
   margin-bottom: 0;
+}
+
+/* Search bar (mismo patrón que ClientManager) */
+.admin-user-manager__search {
+  margin-bottom: 16px !important;
+  padding: 1rem !important;
+  background: white !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.admin-user-manager__search-group {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.5rem !important;
+}
+
+.admin-user-manager__search-group label {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #333 !important;
+}
+
+.admin-user-manager__search-input {
+  padding: 10px 12px !important;
+  border: 1px solid #ddd !important;
+  border-radius: 4px !important;
+  font-size: 14px !important;
+  background: #fff !important;
+  color: #222 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  transition: border-color 0.2s ease !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+
+.admin-user-manager__search-input:focus {
+  outline: none !important;
+  border-color: var(--color-primary, #b8002f) !important;
 } 
