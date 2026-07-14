@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import './ExternalAccountStatementModal.css';
 
 const ExternalAccountStatementModal = ({ isOpen, onClose, clientId }) => {
@@ -59,10 +59,89 @@ const ExternalAccountStatementModal = ({ isOpen, onClose, clientId }) => {
     }).format(value);
   };
 
+  /**
+   * Parsea la fecha de la API aceptando formatos comunes en español:
+   *   - ISO:        "2026-07-13" o "2026-07-13T00:00:00"
+   *   - dmy/.:      "13/07/2026", "13-07-2026", "13.07.2026"
+   *   - dmy corto:  "13/07/26"
+   * Devuelve un objeto Date con horas a 00:00:00 o null si no se puede parsear.
+   */
+  const parseFlexibleDate = (str) => {
+    if (!str) return null;
+    if (str instanceof Date) {
+      if (Number.isNaN(str.getTime())) return null;
+      str.setHours(0, 0, 0, 0);
+      return str;
+    }
+    const s = String(str).trim();
+    if (!s) return null;
+
+    // 1) ISO o cualquier formato que new Date entienda sin ambigüedad
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+      const d = new Date(s);
+      if (!Number.isNaN(d.getTime())) {
+        d.setHours(0, 0, 0, 0);
+        return d;
+      }
+    }
+
+    // 2) DMY: dd/mm/yyyy, dd-mm-yyyy, dd.m.yyyy (incluye años de 2 dígitos)
+    const dmy = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+    if (dmy) {
+      let [, dd, mm, yy] = dmy;
+      dd = parseInt(dd, 10);
+      mm = parseInt(mm, 10) - 1;
+      yy = parseInt(yy, 10);
+      if (yy < 100) yy += yy >= 70 ? 1900 : 2000;
+      const d = new Date(yy, mm, dd);
+      if (!Number.isNaN(d.getTime())) {
+        d.setHours(0, 0, 0, 0);
+        return d;
+      }
+    }
+
+    // 3) Último intento: dejar que el navegador intente
+    const fallback = new Date(s);
+    if (!Number.isNaN(fallback.getTime())) {
+      fallback.setHours(0, 0, 0, 0);
+      return fallback;
+    }
+    return null;
+  };
+
+  /**
+   * Devuelve true si la fecha "vence" ya pasó (anterior al día de hoy).
+   * Se compara solo por día, ignorando la hora.
+   * Soporta ISO, DD/MM/YYYY y otros formatos comunes.
+   */
+  const isOverdue = (venceStr) => {
+    const vence = parseFlexibleDate(venceStr);
+    if (!vence) return false;
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return vence.getTime() < now.getTime();
+  };
+
   if (!isOpen) return null;
 
   const summary = data?.summary ?? {};
   const documentos = data?.documentos ?? [];
+
+  // Ordenar por fecha de más reciente a más antigua.
+  // Usa parseFlexibleDate (mismo parser que isOverdue) para tolerar
+  // distintos formatos de fecha que pueda devolver la API externa.
+  // Si dos filas tienen la misma fecha, el refer rompe el empate para
+  // que el orden sea estable entre renders.
+  const documentosOrdenados = useMemo(() => {
+    return [...documentos].sort((a, b) => {
+      const da = parseFlexibleDate(a.fecha);
+      const db = parseFlexibleDate(b.fecha);
+      const ta = da ? da.getTime() : 0;
+      const tb = db ? db.getTime() : 0;
+      if (tb !== ta) return tb - ta; // descendente: mayor (más reciente) primero
+      return String(a.refer ?? '').localeCompare(String(b.refer ?? ''));
+    });
+  }, [documentos]);
 
   return (
     <div className="ext-account-modal__overlay" onClick={onClose}>
@@ -143,8 +222,11 @@ const ExternalAccountStatementModal = ({ isOpen, onClose, clientId }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {documentos.map((row, index) => (
-                        <tr key={`${row.refer}-${index}`}>
+                      {documentosOrdenados.map((row, index) => (
+                        <tr
+                          key={`${row.refer}-${index}`}
+                          className={isOverdue(row.vence) ? 'ext-account-modal__row-overdue' : undefined}
+                        >
                           <td>{row.fecha || '—'}</td>
                           <td>{row.vence || '—'}</td>
                           <td className="ext-account-modal__num">{formatNumber(row.atraso)}</td>

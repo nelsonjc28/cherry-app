@@ -109,6 +109,19 @@
   color: var(--color-primary, #ea2630) !important;
 }
 
+/* Fila con fecha ya pasada: alerta visual en toda la fila.
+   Se usa !important para sobrescribir el fondo alterno (#f8f9fa) y el hover. */
+.ext-account-modal__row-overdue,
+.ext-account-modal__row-overdue:nth-child(even),
+.ext-account-modal__row-overdue:hover {
+  background-color: rgba(234, 38, 48, 0.12) !important;
+}
+
+.ext-account-modal__row-overdue td {
+  color: var(--color-primary, #ea2630) !important;
+  font-weight: 600;
+}
+
 .ext-account-modal__table-wrap {
   overflow-x: auto;
   border: 1px solid #e9ecef;
@@ -150,9 +163,18 @@
 }
 
 .ext-account-modal__num {
-  text-align: right;
+  text-align: center;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+
+/* Centrar también los headers de las columnas numéricas para que coincidan
+   visualmente con sus valores: Atraso(3), Cargo(6), Abono(7), Saldo(8) */
+.ext-account-modal__table th:nth-child(3),
+.ext-account-modal__table th:nth-child(6),
+.ext-account-modal__table th:nth-child(7),
+.ext-account-modal__table th:nth-child(8) {
+  text-align: center;
 }
 
 .ext-account-modal__saldo {
