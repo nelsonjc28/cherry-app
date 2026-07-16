@@ -223,6 +223,13 @@ class ProductSearchController extends Controller
                 $colors = $coloresPorProducto[$producto->id] ?? [];
                 $detalles = $detallesPorProducto[$producto->id] ?? [];
                 
+                // Filtrar productos agotados y próximamente: solo mostrar disponibles
+                $inventoryTotal = Producto::computeTotalInventoryFromDetalleRows($detalles, (float) $producto->inventario);
+                $statusKind = Producto::evaluateInventoryStatusKindFromRow($producto, $inventoryTotal);
+                if ($statusKind !== 'in-stock') {
+                    continue;
+                }
+                
                 $isNew = ProductNewEvaluator::isNewLikeNuevosPage(
                     $producto->fecha_compra ?? null,
                     (float) ($producto->inventario ?? 0),
