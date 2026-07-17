@@ -290,75 +290,10 @@ const Header = () => {
     }
   };
 
-  // Función para convertir nombre de categoría de plural a singular
-  const pluralToSingular = (categoryName) => {
-    // Mapeo de plurales a singulares específicos
-    const pluralMap = {
-      'pantalones': 'pantalón',
-      'vestidos': 'vestido',
-      'blusas': 'blusa',
-      'faldas': 'falda',
-      'chaquetas': 'chaqueta',
-      'abrigos': 'abrigo',
-      'trajes': 'traje',
-      'zapatos': 'zapato',
-      'bolsos': 'bolso',
-      'accesorios': 'accesorio',
-      'suéteres': 'suéter',
-      'camisas': 'camisa',
-      'playeras': 'playera',
-      'chamarras': 'chamarra',
-      'shorts': 'short',
-      'calcetines': 'calcetín',
-      'leggins': 'leggin',
-      'jeans': 'jean'
-    };
-
-    const lowerName = categoryName.toLowerCase().trim();
-
-    // Si existe en el mapeo, retornar el singular
-    if (pluralMap[lowerName]) {
-      return pluralMap[lowerName];
-    }
-
-    // Reglas generales para español
-    // Si termina en "ones" (como "pantalones"), cambiar a "ón"
-    if (lowerName.endsWith('ones')) {
-      return lowerName.slice(0, -4) + 'ón';
-    }
-
-    // Si termina en "es" después de consonante, quitar "es"
-    if (lowerName.endsWith('es') && lowerName.length > 3) {
-      const beforeEs = lowerName[lowerName.length - 3];
-      if (!'aeiou'.includes(beforeEs)) {
-        return lowerName.slice(0, -2);
-      }
-    }
-
-    // Si termina en "s" simple, quitarla
-    if (lowerName.endsWith('s') && !lowerName.endsWith('ss')) {
-      return lowerName.slice(0, -1);
-    }
-
-    // Si no se puede convertir, retornar el original
-    return categoryName;
-  };
-
   // Función para manejar clic en elementos del menú
-  const handleMenuClick = (e, item, activeMenuType) => {
-    // Cerrar el menú desplegable
+  const handleMenuClick = () => {
+    // Cerrar el menú desplegable y conservar la navegación del componente Link
     setActiveMenu(null);
-
-    // Para categorías individuales, prevenir navegación por defecto y hacer búsqueda con nombre en singular
-    if (activeMenuType === 'categorias' && item.link.startsWith('/categoria/')) {
-      e.preventDefault(); // Prevenir la navegación del Link
-      const singularName = pluralToSingular(item.name);
-      setSearchTerm(singularName);
-      const urlSearchParams = new URLSearchParams();
-      urlSearchParams.set('q', singularName);
-      navigate(`/buscar?${urlSearchParams.toString()}`);
-    }
-    // Para otros casos, dejar que el Link navegue normalmente
   };
 
   // Cargar usuario al montar si hay token

@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams, useLocation } from 'react-router-dom';
+import ProductCard from '../components/ProductCard/ProductCard';
 import CatalogFilter from '../components/CatalogFilter/CatalogFilter';
-import CatalogProductCard from '../components/CatalogProductCard/CatalogProductCard';
+import CherryButton from '../components/CherryButton/CherryButton';
 import InfiniteScrollLoader from '../components/InfiniteScrollLoader/InfiniteScrollLoader';
 import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
-import CustomButton from '../components/CustomButton';
-import './CatalogPage.css';
+import './BuscarPage.css';
+import './NuevosPage.css';
 import { publicCategoryService } from '../services/api';
 import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
@@ -442,8 +443,8 @@ const CategoryPage = ({ categorySlug }) => {
                     try {
                       const productIds = allLocalProducts.map(product => product.id);
                       
-                      const ratingsResponse = await api.get('/products/ratings', {
-                        params: { product_ids: productIds }
+                      const ratingsResponse = await api.post('/products/ratings', {
+                        product_ids: productIds
                       });
                       
                       if (ratingsResponse.data.success) {
@@ -675,43 +676,6 @@ const CategoryPage = ({ categorySlug }) => {
     // Implement favorite functionality here
   };
 
-  // Handle share functionality
-  const handleShareCategory = () => {
-    const categoryUrl = `${window.location.origin}/categoria/${categorySlug}`;
-    
-    if (navigator.share) {
-      // Use native sharing if available
-      navigator.share({
-        title: `Categoría ${currentCategory?.name || 'de productos'} Cherry`,
-        text: `Explora nuestra categoría ${currentCategory?.name || 'de productos'}. Encuentra las últimas tendencias en moda y accesorios.`,
-        url: categoryUrl
-      });
-    } else {
-      // Fallback to clipboard copy
-      copyToClipboard(categoryUrl);
-    }
-  };
-
-  const copyToClipboard = async (text) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      if (window.showToast) {
-        window.showToast('Enlace de la categoría copiado al portapapeles', 'success');
-      }
-    } catch (err) {
-      // Fallback para navegadores que no soportan clipboard API
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      if (window.showToast) {
-        window.showToast('Enlace de la categoría copiado al portapapeles', 'success');
-      }
-    }
-  };
-
   const totalResults = filteredProducts.length;
 
   // Infinite scroll
@@ -733,48 +697,39 @@ const CategoryPage = ({ categorySlug }) => {
         <link rel="canonical" href={canonicalUrl} />
       </Helmet>
 
-      <div className="catalog-page">
+      <div className="nuevos-page">
         <div className="container">
-          {/* Header section with title and filters  -  MOBILE */}
-          <div className="catalog-page__header-mobile">
-            <div className="catalog-page__title-section">
-              <h1 className="catalog-page__title">
+          {/* Header section with title and filters - MOBILE */}
+          <div className="nuevos-page__header-mobile">
+            <div className="nuevos-page__title-section">
+              <h1 className="nuevos-page__title">
                 {currentCategory ? currentCategory.name : 'Categoría de productos'}
               </h1>
-              <div className='catalog-page__content-texts'>
-                <span className="catalog-page__results-count">
+              <div className="nuevos-page__content-texts">
+                <span className="nuevos-page__results-count">
                   ({totalResults})
-                  <p className="catalog-page__text-results-count">Resultados</p>
+                  <p className="nuevos-page__text-results-count">Resultados</p>
                 </span>
-                <CustomButton
-                  variant="filled"
-                  size="small"
-                  className="catalog-page__compare-clients-btn"
-                  iconLeft={<img src={getIconPath('Whatsapp.svg')} alt="Compartir categoría" style={{ width: 16, height: 16 }} />}
-                  onClick={handleShareCategory}
-                >
-                  <span className="catalog-page__whatsapp-text">Compartir a clientes</span>
-                </CustomButton>
               </div>
             </div>
 
-            <div className="catalog-page__controls">
-              <div className="catalog-page__sort-section">
-                <div className="catalog-page__mobile-filter-controls">
+            <div className="nuevos-page__controls">
+              <div className="nuevos-page__sort-section">
+                <div className="nuevos-page__mobile-filter-controls">
                   <button
-                    className="catalog-page__mobile-filter-btn"
+                    className="nuevos-page__mobile-filter-btn"
                     onClick={toggleFilterModal}
                   >
                     <img src={getIconPath('Filter.svg')} alt="Filtros" />
                     <img src={getIconPath('Chevron Down.svg')} alt="Expandir" />
                   </button>
                 </div>
-                <label htmlFor="sort-select" className="catalog-page__sort-label">Ordenar por:</label>
+                <label htmlFor="sort-select" className="nuevos-page__sort-label">Ordenar por:</label>
                 <select
                   id="sort-select"
                   value={sortBy}
                   onChange={handleSortChange}
-                  className="catalog-page__sort-select"
+                  className="nuevos-page__sort-select"
                 >
                   <option value="más recientes">más recientes</option>
                   <option value="precio-menor">Precio: menor a mayor</option>
@@ -786,28 +741,28 @@ const CategoryPage = ({ categorySlug }) => {
             </div>
           </div>
 
-          {/* Header section with title and filters  -  DESKTOP */}
-          <div className="catalog-page__header-desktop">
-            <div className="catalog-page__title-section">
-              <h1 className="catalog-page__title">
+          {/* Header section with title and filters - DESKTOP */}
+          <div className="nuevos-page__header-desktop">
+            <div className="nuevos-page__title-section">
+              <h1 className="nuevos-page__title">
                 {currentCategory ? currentCategory.name : 'Categoría de productos'}
               </h1>
-              <div className='catalog-page__content-texts'>
-                <span className="catalog-page__results-count">
+              <div className="nuevos-page__content-texts">
+                <span className="nuevos-page__results-count">
                   ({totalResults})
-                  <p className="catalog-page__text-results-count">Resultados</p>
+                  <p className="nuevos-page__text-results-count">Resultados</p>
                 </span>
               </div>
             </div>
 
-            <div className="catalog-page__controls">
-              <div className="catalog-page__sort-section">
-                <label htmlFor="sort-select" className="catalog-page__sort-label">Ordenar por:</label>
+            <div className="nuevos-page__controls">
+              <div className="nuevos-page__sort-section">
+                <label htmlFor="sort-select-desktop" className="nuevos-page__sort-label">Ordenar por:</label>
                 <select
-                  id="sort-select"
+                  id="sort-select-desktop"
                   value={sortBy}
                   onChange={handleSortChange}
-                  className="catalog-page__sort-select"
+                  className="nuevos-page__sort-select"
                 >
                   <option value="más recientes">más recientes</option>
                   <option value="precio-menor">Precio: menor a mayor</option>
@@ -816,58 +771,58 @@ const CategoryPage = ({ categorySlug }) => {
                   <option value="nombre-z-a">Nombre: Z-A</option>
                 </select>
               </div>
-              <CustomButton
-                variant="filled"
-                size="medium"
-                iconLeft={<img src={getIconPath('Whatsapp.svg')} alt="Compartir categoría" style={{ width: 16, height: 16 }} />}
-                onClick={handleShareCategory}
-              >
-                <span className="catalog-page__whatsapp-text">Compartir a clientes</span>
-              </CustomButton>
             </div>
           </div>
 
           {/* Main content */}
-          <div className="catalog-page__content">
-            {/* Filters sidebar - DESKTOP */}
-            <aside className="catalog-page__sidebar">
+          <div className="nuevos-page__content">
+            {/* Filtros */}
+            <aside className="nuevos-page__sidebar">
               <CatalogFilter
                 filters={filters}
                 onFilterChange={handleFilterChange}
                 onClearFilters={handleClearFilters}
+                catalogs={catalogs}
                 isMobile={false}
+                catalogLoading={catalogLoading}
                 availableColors={availableColors}
                 availableSizes={availableSizes}
-                catalogs={catalogs}
-                catalogLoading={catalogLoading}
                 hideCatalogSelector={!!categorySlug}
               />
             </aside>
 
-            {/* Products grid */}
-            <main className="catalog-page__products-section">
+            {/* Resultados */}
+            <main className="nuevos-page__products-section">
               {loading ? (
-                <div className="catalog-page__loading">
-                  <div className="catalog-page__loading-spinner"></div>
-                  <p>Cargando productos...</p>
+                <div className="buscar-loading">
+                  <div className="loading-spinner"></div>
+                  <p>Buscando productos...</p>
                 </div>
               ) : filteredProducts.length === 0 ? (
-                <div className="catalog-page__no-results">
+                <div className="buscar-no-results">
+                  <div className="no-results-icon">
+                    <img src={getIconPath('Search.svg')} alt="Sin resultados" />
+                  </div>
                   <h3>No se encontraron productos</h3>
-                  <p>Intenta ajustar los filtros de búsqueda</p>
+                  <p>Intenta ajustar los términos de búsqueda o usar filtros diferentes</p>
+                  <CherryButton
+                    variant="outline"
+                    size="medium"
+                    onClick={handleClearFilters}
+                  >
+                    Limpiar filtros
+                  </CherryButton>
                 </div>
               ) : (
                 <>
-                  <div className="catalog-page__products-grid">
-                    {infiniteScroll.displayedItems.map((product, index) => {
-                      return (
-                      <CatalogProductCard
-                        key={product.id}
+                  <div className={`nuevos-page__products-grid ${filteredProducts.length === 1 ? 'single-result' : ''}`}>
+                    {infiniteScroll.displayedItems.map((product, index) => (
+                      <ProductCard
+                        key={product.id || `product-${index}`}
                         product={product}
                         onFavoriteToggle={handleFavoriteToggle}
                       />
-                      );
-                    })}
+                    ))}
                   </div>
 
                   {/* Infinite Scroll Loader */}
@@ -883,21 +838,21 @@ const CategoryPage = ({ categorySlug }) => {
 
           {/* Mobile filter modal */}
           {isFilterModalOpen && (
-            <div className="catalog-page__filter-modal-overlay" onClick={toggleFilterModal}>
-            <div className="catalog-page__filter-modal" onClick={(e) => e.stopPropagation()}>
-              <CatalogFilter
-                filters={filters}
-                onFilterChange={handleFilterChange}
-                onClearFilters={handleClearFilters}
-                isMobile={true}
-                onClose={toggleFilterModal}
-                availableColors={availableColors}
-                availableSizes={availableSizes}
-                catalogs={catalogs}
-                catalogLoading={catalogLoading}
-                hideCatalogSelector={!!categorySlug}
-              />
-            </div>
+            <div className="nuevos-page__filter-modal-overlay" onClick={toggleFilterModal}>
+              <div className="nuevos-page__filter-modal" onClick={(e) => e.stopPropagation()}>
+                <CatalogFilter
+                  filters={filters}
+                  onFilterChange={handleFilterChange}
+                  onClearFilters={handleClearFilters}
+                  isMobile={true}
+                  onClose={toggleFilterModal}
+                  availableColors={availableColors}
+                  availableSizes={availableSizes}
+                  catalogs={catalogs}
+                  catalogLoading={catalogLoading}
+                  hideCatalogSelector={!!categorySlug}
+                />
+              </div>
             </div>
           )}
         </div>
