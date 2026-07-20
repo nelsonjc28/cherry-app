@@ -222,11 +222,12 @@ class ProductSearchController extends Controller
                 
                 $colors = $coloresPorProducto[$producto->id] ?? [];
                 $detalles = $detallesPorProducto[$producto->id] ?? [];
-                
+
                 // Filtrar productos agotados y próximamente: solo mostrar disponibles
                 $inventoryTotal = Producto::computeTotalInventoryFromDetalleRows($detalles, (float) $producto->inventario);
                 $statusKind = Producto::evaluateInventoryStatusKindFromRow($producto, $inventoryTotal);
-                if ($statusKind !== 'in-stock') {
+                $stockReceivedCount = (int) ($producto->stock_received_count ?? 0);
+                if ($statusKind !== 'in-stock' && $stockReceivedCount > 0) {
                     continue;
                 }
                 
@@ -237,8 +238,7 @@ class ProductSearchController extends Controller
                 );
                 
                 $ratingData = $ratingsPorProducto[$producto->id] ?? ['rating' => 0, 'count' => 0];
-                $ratingData = $ratingsPorProducto[$producto->id] ?? ['rating' => 0, 'count' => 0];
-                
+
                 $products[] = [
                     'id' => $producto->id,
                     'id_articulo' => $producto->id,
@@ -279,7 +279,7 @@ class ProductSearchController extends Controller
                     'last_page' => 1
                 ]
             ];
-            
+
             // Sin caché - siempre retornar datos frescos de la BD
             return response()->json($response);
 
@@ -431,7 +431,13 @@ class ProductSearchController extends Controller
                     $detalles
                 );
                 $ratingData = $ratingsPorProducto[$producto->id] ?? ['rating' => 0, 'count' => 0];
-                
+                $stockReceivedCount = (int) ($producto->stock_received_count ?? 0);
+                $inventoryTotalRow = Producto::computeTotalInventoryFromDetalleRows($detalles, (float) $producto->inventario);
+                $statusKind = Producto::evaluateInventoryStatusKindFromRow($producto, $inventoryTotalRow);
+                if ($statusKind !== 'in-stock' && $stockReceivedCount > 0) {
+                    continue;
+                }
+
                 $products[] = [
                     'id' => $producto->id,
                     'id_articulo' => $producto->id,
@@ -454,7 +460,7 @@ class ProductSearchController extends Controller
                     'fecha_compra' => $this->formatProductDateForApi($producto->fecha_compra ?? null),
                     'marca' => $producto->marca,
                     'inventario' => (float) $producto->inventario,
-                    'stock_received_count' => (int) ($producto->stock_received_count ?? 0),
+                    'stock_received_count' => $stockReceivedCount,
                     'detalles' => $detalles,
                     'rating' => $ratingData['rating'],
                     'ratingCount' => $ratingData['count'],
