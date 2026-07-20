@@ -7,6 +7,10 @@ use Carbon\Carbon;
 
 /**
  * Vigencia de categoría: 45 días desde la última compra exitosa.
+ *
+ * También marca `first_purchase_completed_at` la primera vez que un cliente bronce
+ * completa una compra exitosa, para que la regla de descuento por piezas
+ * pase a usar el umbral de 6 piezas en compras posteriores.
  */
 class UserSellerCategoryActivityService
 {
@@ -34,6 +38,10 @@ class UserSellerCategoryActivityService
                 $payload['bronze_benefit_active'] = true;
                 $payload['benefit_expires_at'] = $at->copy()->addDays(self::EXTENSION_DAYS);
             }
+        }
+
+        if ($user->first_purchase_completed_at === null) {
+            $payload['first_purchase_completed_at'] = $at;
         }
 
         $user->forceFill($payload)->save();

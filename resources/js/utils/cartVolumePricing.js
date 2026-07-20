@@ -1,17 +1,23 @@
 /**
  * Alineado con {@see App\Services\PriceService::summarizeVolumeFromItems} (PHP).
- * Sin descuento1 en usuario: reglas tipo bronce para todos (≥ $7k / 45 días) y 30 % + 10 % si ≥ $15k elegible.
- * Con descuento1 desde API: los % del usuario; el segundo tramo aplica junto al primero (sin umbral $15k).
+ *
+ * Reglas:
+ * - Bronce: descuento por PIEZAS. Umbrales 12 (primera compra) / 6 (posteriores).
+ *   El frontend también envía la cantidad de piezas elegibles al backend vía
+ *   `items_for_volume_pricing`. El backend valida la consistencia.
+ * - Oro/Diamante: descuento por monto elegible, % desde API o 30 + 10 por defecto.
  */
 
 import {
   canApplyMainDiscount,
   getVolumeDiscountMainTier,
   getVolumeDiscountExtraPercent,
-  hasApiVolumeMainPercent,
+  isBronzeSeller,
+  hasCompletedFirstPurchase,
+  bronzeShippingPiecesThreshold,
+  shouldApplyBronzeMainDiscount,
+  shouldApplyBronzeSecondTier,
 } from './sellerVolumeDiscount';
-
-export const SECOND_TIER_ELIGIBLE_MIN = 15000;
 
 function round2(n) {
   return Math.round((Number(n) + Number.EPSILON) * 100) / 100;
@@ -26,6 +32,19 @@ export function cartItemToPricingLine(item) {
     desc_promo: item.desc_promo ?? null,
     user_offer_applies: !!(item.userOffer && item.userOffer.discount_category),
   };
+}
+
+/** Cantidad total de piezas sin `desc_promo` y sin oferta de usuario. */
+export function countEligiblePiecesFromLines(lines) {
+  let pieces = 0;
+  for (const item of lines) {
+    const descPromo = item.desc_promo ?? null;
+    const hasPromo = descPromo !== null && parseFloat(descPromo) > 0.0001;
+    const hasUserOffer = !!item.user_offer_applies;
+    if (hasPromo || hasUserOffer) continue;
+    pieces += parseInt(item.quantity, 10) || 0;
+  }
+  return pieces;
 }
 
 export function summarizeVolumeFromPricingLines(user, lines) {
@@ -45,23 +64,36 @@ export function summarizeVolumeFromPricingLines(user, lines) {
   }
   eligibleTotal = round2(eligibleTotal);
 
+  const eligiblePieces = countEligiblePiecesFromLines(lines);
+  const isBronze = isBronzeSeller(user);
+
   const { mainRate, mainPercent } = getVolumeDiscountMainTier(user);
-  const extraPercent = getVolumeDiscountExtraPercent(user);
+  const extraPercent = isBronze
+    ? getVolumeDiscountExtraPercent(user, eligiblePieces)
+    : getVolumeDiscountExtraPercent(user);
   const extraRate = extraPercent / 100;
+
   let volMain = 0;
   let volExtra = 0;
   let descuento1 = 0;
   let descuento2 = 0;
 
-  if (canApplyMainDiscount(user, eligibleTotal)) {
+  if (isBronze) {
+    if (shouldApplyBronzeMainDiscount(user, eligiblePieces)) {
+      descuento1 = mainPercent;
+      volMain = round2(eligibleTotal * mainRate);
+      const afterMain = round2(eligibleTotal - volMain);
+
+      if (shouldApplyBronzeSecondTier(user, eligiblePieces)) {
+        volExtra = round2(afterMain * extraRate);
+        descuento2 = extraPercent;
+      }
+    }
+  } else if (canApplyMainDiscount(user, eligibleTotal)) {
     descuento1 = mainPercent;
     volMain = round2(eligibleTotal * mainRate);
     const afterMain = round2(eligibleTotal - volMain);
-
-    const hasApiMain = hasApiVolumeMainPercent(user);
-    const applySecondTier = hasApiMain || eligibleTotal >= SECOND_TIER_ELIGIBLE_MIN;
-
-    if (applySecondTier) {
+    if (extraRate > 0) {
       volExtra = round2(afterMain * extraRate);
       descuento2 = extraPercent;
     }
@@ -73,6 +105,13 @@ export function summarizeVolumeFromPricingLines(user, lines) {
   return {
     lines_sum: linesSum,
     eligible_total: eligibleTotal,
+    eligible_pieces: eligiblePieces,
+    bronze_shipping_pieces_threshold: isBronze
+      ? bronzeShippingPiecesThreshold(user)
+      : null,
+    bronze_completed_first_purchase: isBronze
+      ? hasCompletedFirstPurchase(user)
+      : null,
     volume_discount: volumeDiscount,
     vol_main: volMain,
     vol_extra: volExtra,

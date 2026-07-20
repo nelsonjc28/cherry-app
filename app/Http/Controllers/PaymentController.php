@@ -809,6 +809,50 @@ class PaymentController extends Controller
     }
 
     /**
+     * Regla bronce: el envío a domicilio solo se permite si el cliente cumple el
+     * mínimo de piezas sin `desc_promo` y sin oferta de usuario.
+     * Devuelve un 422 cuando un cliente bronce intenta `envio` sin alcanzar el umbral.
+     *
+     * @param  array<int, array<string, mixed>>  $items
+     */
+    protected function rejectBronzeShippingWithoutPieces(User $user, string $deliveryType, array $items): ?\Illuminate\Http\JsonResponse
+    {
+        if (strtolower((string) ($user->seller_category ?? '')) !== 'bronce') {
+            return null;
+        }
+        if ($deliveryType !== 'envio') {
+            return null;
+        }
+
+        $pricingLines = $this->pricingLinesFromRequestItems($items);
+        $pieces = 0;
+        foreach ($pricingLines as $line) {
+            $descPromo = $line['desc_promo'] ?? null;
+            $hasPromo = $descPromo !== null && (float) $descPromo > 0.0001;
+            $hasUserOffer = filter_var($line['user_offer_applies'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            if ($hasPromo || $hasUserOffer) {
+                continue;
+            }
+            $pieces += (int) ($line['quantity'] ?? 0);
+        }
+
+        $threshold = $user->first_purchase_completed_at === null
+            ? 12
+            : 6;
+
+        if ($pieces < $threshold) {
+            return response()->json([
+                'success' => false,
+                'message' => "El envío a domicilio requiere al menos {$threshold} prendas sin rebaja. Usa retiro en tienda.",
+                'bronze_pieces_required' => $threshold,
+                'bronze_pieces_counted' => $pieces,
+            ], 422);
+        }
+
+        return null;
+    }
+
+    /**
      * Pedido directo (descuento por volumen desde API de clientes): sin Mercado Pago; pendiente de liquidación administrativa.
      */
     public function createDirectOrder(Request $request)
@@ -871,6 +915,11 @@ class PaymentController extends Controller
                 'success' => false,
                 'message' => 'Usuario no autenticado',
             ], 401);
+        }
+
+        $bronzeShippingError = $this->rejectBronzeShippingWithoutPieces($user, $deliveryType, $request->input('items', []));
+        if ($bronzeShippingError !== null) {
+            return $bronzeShippingError;
         }
 
         if (! $user->isPremiumSeller()) {
@@ -1294,6 +1343,11 @@ class PaymentController extends Controller
                 'success' => false,
                 'message' => 'Usuario no autenticado'
             ], 401);
+        }
+
+        $bronzeShippingError = $this->rejectBronzeShippingWithoutPieces($user, $deliveryType, $request->input('items', []));
+        if ($bronzeShippingError !== null) {
+            return $bronzeShippingError;
         }
 
         if ($user->isPremiumSeller()) {
@@ -2091,6 +2145,11 @@ class PaymentController extends Controller
                 'success' => false,
                 'message' => 'Usuario no autenticado'
             ], 401);
+        }
+
+        $bronzeShippingError = $this->rejectBronzeShippingWithoutPieces($user, $deliveryType, $requestData['items'] ?? []);
+        if ($bronzeShippingError !== null) {
+            return $bronzeShippingError;
         }
 
         // Verificar si hay órdenes pendientes con productos similares
@@ -3412,6 +3471,11 @@ class PaymentController extends Controller
             ], 401);
         }
 
+        $bronzeShippingError = $this->rejectBronzeShippingWithoutPieces($user, $deliveryType, $request->input('items', []));
+        if ($bronzeShippingError !== null) {
+            return $bronzeShippingError;
+        }
+
         try {
             // Verificar que la dirección pertenece al usuario solo si es envío
             $addressId = null;
@@ -4318,6 +4382,15 @@ class PaymentController extends Controller
 
         if ($rebajaEncargoError = $this->rejectRebajaAgotadoEncargoLines($request->input('items', []))) {
             return $rebajaEncargoError;
+        }
+
+        $bronzeShippingError = $this->rejectBronzeShippingWithoutPieces(
+            $user,
+            $request->input('delivery_type', 'envio'),
+            $request->input('items', [])
+        );
+        if ($bronzeShippingError !== null) {
+            return $bronzeShippingError;
         }
 
         $itemsForPricingSubset = $this->pricingLinesFromRequestItems($request->items);

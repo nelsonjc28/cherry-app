@@ -144,6 +144,11 @@ class CheckoutController extends Controller
         }
 
         // 4) Validar totales contra el cálculo del servidor (precios en base al BUYER)
+        $bronzeShippingError = $this->rejectBronzeShippingWithoutPieces($buyer, $deliveryType, $request->input('items', []));
+        if ($bronzeShippingError !== null) {
+            return $bronzeShippingError;
+        }
+
         $itemsForPricing = $this->pricingLinesFromRequestItems($request->items);
         $fullRaw = $request->input('items_for_volume_pricing');
         $fullItemsForPricing = is_array($fullRaw) && count($fullRaw) > 0
@@ -305,6 +310,49 @@ class CheckoutController extends Controller
             ];
         }
         return $out;
+    }
+
+    /**
+     * Regla bronce: el envío a domicilio solo se permite si el cliente cumple el
+     * mínimo de piezas sin `desc_promo` y sin oferta de usuario.
+     *
+     * @param  array<int, array<string, mixed>>  $items
+     */
+    private function rejectBronzeShippingWithoutPieces(User $user, string $deliveryType, array $items): ?\Illuminate\Http\JsonResponse
+    {
+        if (strtolower((string) ($user->seller_category ?? '')) !== 'bronce') {
+            return null;
+        }
+        if ($deliveryType !== 'envio') {
+            return null;
+        }
+
+        $pricingLines = $this->pricingLinesFromRequestItems($items);
+        $pieces = 0;
+        foreach ($pricingLines as $line) {
+            $descPromo = $line['desc_promo'] ?? null;
+            $hasPromo = $descPromo !== null && (float) $descPromo > 0.0001;
+            $hasUserOffer = filter_var($line['user_offer_applies'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            if ($hasPromo || $hasUserOffer) {
+                continue;
+            }
+            $pieces += (int) ($line['quantity'] ?? 0);
+        }
+
+        $threshold = $user->first_purchase_completed_at === null
+            ? 12
+            : 6;
+
+        if ($pieces < $threshold) {
+            return response()->json([
+                'success' => false,
+                'message' => "El envío a domicilio requiere al menos {$threshold} prendas sin rebaja. Usa retiro en tienda.",
+                'bronze_pieces_required' => $threshold,
+                'bronze_pieces_counted' => $pieces,
+            ], 422);
+        }
+
+        return null;
     }
 
     /**

@@ -19,11 +19,17 @@ import {
   getBronzeBenefitRemainingDays,
   hasApiVolumeMainPercent,
   isOroDiamanteSeller,
+  isBronzeSeller,
+  hasCompletedFirstPurchase,
+  bronzeShippingPiecesThreshold,
+  bronzeCanShip,
+  shouldApplyBronzeMainDiscount,
+  shouldApplyBronzeSecondTier,
   canApplyMainDiscount,
 } from '../utils/sellerVolumeDiscount';
+import { summarizeVolumeFromCartItems, countEligiblePiecesFromLines } from '../utils/cartVolumePricing';
 import {
   cartItemToPricingLine,
-  summarizeVolumeFromCartItems,
   summarizeVolumeFromPricingLines,
   discountedMerchandiseForSubset,
 } from '../utils/cartVolumePricing';
@@ -97,6 +103,22 @@ const CartDetailsPage = () => {
 
   // State for delivery type (envio or retiro)
   const [deliveryType, setDeliveryType] = useState('envio'); // 'envio' or 'retiro'
+
+  // Helper: piezas elegibles (sin `desc_promo` y sin oferta de usuario) en el carrito actual.
+  const eligiblePieces = useMemo(() => {
+    return countEligiblePiecesFromLines(
+      cartItems.map(cartItemToPricingLine)
+    );
+  }, [cartItems]);
+
+  // Regla bronce: si no alcanza el umbral de piezas para envío a domicilio,
+  // se fuerza "retiro en tienda" y se oculta la opción de "Envío a domicilio".
+  const bronzeUser = user ? isBronzeSeller(user) : false;
+  const bronzeShippingAllowed = user ? bronzeCanShip(user, eligiblePieces) : true;
+  const bronzeRequiredPieces = user && bronzeUser
+    ? bronzeShippingPiecesThreshold(user)
+    : null;
+  const bronzeForcePickup = bronzeUser && !bronzeShippingAllowed;
   
   // State for payment method (credit or mercadopago)
   const [paymentMethod, setPaymentMethod] = useState('mercadopago'); // 'mercadopago' or 'credit'
@@ -513,6 +535,14 @@ const CartDetailsPage = () => {
       }
     }
   }, [deliveryType, storeAddress, selectedAddress]);
+
+  // Si el cliente bronce no cumple el mínimo de piezas para envío a domicilio,
+  // se fuerza la opción a "retiro en tienda" automáticamente.
+  useEffect(() => {
+    if (bronzeForcePickup && deliveryType !== 'retiro') {
+      setDeliveryType('retiro');
+    }
+  }, [bronzeForcePickup, deliveryType]);
 
   // MercadoPago o crédito; oro/diamante → pedido directo vía /orders/direct. Descuento API solo en precios.
   const handleGenerateOrder = async (options = {}) => {
@@ -1135,8 +1165,63 @@ const CartDetailsPage = () => {
   // Calcular alertas para descuentos
   const getDiscountAlerts = () => {
     const alerts = [];
-    
-    // Solo mostrar alertas si hay productos elegibles (sin rebaja)
+
+    // Bronce: mensajes por PIEZAS, no por monto.
+    if (isBronzeUser) {
+      const required = bronzeRequiredPieces || 0;
+      if (bronzeBenefitActive) {
+        alerts.push({
+          type: 'success',
+          icon: '⏳',
+          message: `Tu descuento del 30% vence en: ${bronzeBenefitDaysLeft} día(s). ¡Compra algo para renovarlo!`,
+          color: '#4caf50',
+        });
+      } else if (required > 0) {
+        const remainingPieces = Math.max(0, required - eligiblePieces);
+        const isNearPieces = eligiblePieces >= required * NEAR_THRESHOLD_PERCENT;
+        if (eligiblePieces === 0) {
+          alerts.push({
+            type: 'info',
+            icon: '💡',
+            message: `Para obtener tu descuento del 30% necesitas ${required} prendas sin rebaja.`,
+            color: '#2196f3',
+          });
+        } else if (eligiblePieces < required) {
+          if (isNearPieces) {
+            alerts.push({
+              type: 'near',
+              icon: '🔥',
+              message: `¡Ya casi! Te faltan ${remainingPieces} prendas sin rebaja para el 30%.`,
+              color: '#ff9800',
+            });
+          } else {
+            alerts.push({
+              type: 'info',
+              icon: '💰',
+              message: `Te faltan ${remainingPieces} prendas sin rebaja para el 30%.`,
+              color: '#2196f3',
+            });
+          }
+        } else if (!hasCompletedFirstPurchase(user) && eligiblePieces >= 12) {
+          alerts.push({
+            type: 'success',
+            icon: '🎉',
+            message: '¡Increíble! Tienes el descuento del 30% + 10% adicional en tu primera compra.',
+            color: '#4caf50',
+          });
+        } else {
+          alerts.push({
+            type: 'success',
+            icon: '✅',
+            message: '¡Felicidades! Ya tienes el descuento del 30% activado.',
+            color: '#4caf50',
+          });
+        }
+      }
+      return alerts;
+    }
+
+    // Para oro/diamante (reglas previas por monto).
     if (eligibleTotal <= 0) return alerts;
 
     const hasApiMain = hasApiVolumeMainPercent(user);
@@ -1150,30 +1235,9 @@ const CartDetailsPage = () => {
     const apiSecondTierActive =
       hasActiveVolumeDiscount
       && hasApiMain
-      && canApplyMainDiscount(user, eligibleTotal)
+      && canApplyMainDiscount(user, eligibleTotal, eligiblePieces)
       && Number(descuento2) > 0
       && eligibleTotal < DISCOUNT_40_THRESHOLD;
-
-    if (isBronzeUser) {
-      if (bronzeBenefitActive) {
-        alerts.push({
-          type: 'success',
-          icon: '⏳',
-          message: `Tu descuento del 30% vence en: ${bronzeBenefitDaysLeft} día(s). ¡Compra algo para renovarlo!`,
-          color: '#4caf50'
-        });
-      } else {
-        const remainingToActivate = Math.max(0, 7000 - eligibleTotal);
-        alerts.push({
-          type: 'info',
-          icon: '💡',
-          message: remainingToActivate > 0
-            ? `¡Te faltan $${formatMoney(remainingToActivate)} para obtener el 30% de descuento!`
-            : 'Tu compra actual activa el 30% de descuento por 45 días.',
-          color: '#2196f3'
-        });
-      }
-    }
 
     // Diamante: mensaje genérico; oro/bronce: porcentaje real del primer tramo
     const discountLabel = isDiamanteUser
@@ -1182,7 +1246,7 @@ const CartDetailsPage = () => {
     const maxDiscountLabel = isDiamanteUser
       ? '¡Felicidades! Has alcanzado el descuento máximo disponible'
       : `¡Increíble! Tienes el descuento máximo del ${mainDiscountPercent}% + 10% adicional`;
-    
+
     // Bronce sin beneficio 45 días: el mensaje "falta $X para el 30%" ya va arriba (💡); no duplicar con el tramo genérico.
     const skipFirstVolumeTier =
       isBronzeUser && !bronzeBenefitActive && eligibleTotal < progressThreshold;
@@ -1196,8 +1260,8 @@ const CartDetailsPage = () => {
           type: 'near',
           icon: '🔥',
           message: isDiamanteUser
-            ? `¡Ya casi! Te faltan $${formatMoney(remaining)} para activar tu descuento`
-            : `¡Ya casi! Te faltan $${formatMoney(remaining)} para obtener tu descuento del ${mainDiscountPercent}%`,
+            ? `¡Ya casi! Te faltan ${formatMoney(remaining)} para activar tu descuento`
+            : `¡Ya casi! Te faltan ${formatMoney(remaining)} para obtener tu descuento del ${mainDiscountPercent}%`,
           color: '#ff9800'
         });
       } else {
@@ -1205,8 +1269,8 @@ const CartDetailsPage = () => {
           type: 'info',
           icon: '💰',
           message: isDiamanteUser
-            ? `Te faltan $${formatMoney(remaining)} para activar tu descuento`
-            : `Te faltan $${formatMoney(remaining)} para obtener un descuento del ${mainDiscountPercent}%`,
+            ? `Te faltan ${formatMoney(remaining)} para activar tu descuento`
+            : `Te faltan ${formatMoney(remaining)} para obtener un descuento del ${mainDiscountPercent}%`,
           color: '#2196f3'
         });
       }
@@ -1238,14 +1302,14 @@ const CartDetailsPage = () => {
             alerts.push({
               type: 'near',
               icon: '🔥',
-              message: `¡Ya casi! Te faltan $${formatMoney(remaining)} para obtener un 10% adicional`,
+              message: `¡Ya casi! Te faltan ${formatMoney(remaining)} para obtener un 10% adicional`,
               color: '#ff9800'
             });
           } else {
             alerts.push({
               type: 'info',
               icon: '🎯',
-              message: `Te faltan $${formatMoney(remaining)} para obtener un 10% adicional`,
+              message: `Te faltan ${formatMoney(remaining)} para obtener un 10% adicional`,
               color: '#2196f3'
             });
           }
@@ -1403,16 +1467,19 @@ const CartDetailsPage = () => {
             <div className="cart-details__delivery-options">
               <div className="cart-details__section-title">Tipo de entrega</div>
               <div className="cart-details__delivery-options-content">
-                <label className="cart-details__delivery-option">
-                  <input
-                    type="radio"
-                    name="deliveryType"
-                    value="envio"
-                    checked={deliveryType === 'envio'}
-                    onChange={(e) => setDeliveryType(e.target.value)}
-                  />
-                  <span>Envío a domicilio</span>
-                </label>
+                {/* Bronce sin umbral cumplido: solo se permite retiro en tienda */}
+                {!bronzeForcePickup && (
+                  <label className="cart-details__delivery-option">
+                    <input
+                      type="radio"
+                      name="deliveryType"
+                      value="envio"
+                      checked={deliveryType === 'envio'}
+                      onChange={(e) => setDeliveryType(e.target.value)}
+                    />
+                    <span>Envío a domicilio</span>
+                  </label>
+                )}
                 <label className="cart-details__delivery-option">
                   <input
                     type="radio"
@@ -1421,12 +1488,27 @@ const CartDetailsPage = () => {
                     checked={deliveryType === 'retiro'}
                     onChange={(e) => setDeliveryType(e.target.value)}
                   />
-                  <span>Retiro en tienda</span>
+                  <span>
+                    Retiro en tienda
+                    {bronzeForcePickup && bronzeRequiredPieces && (
+                      <span style={{ marginLeft: 6, color: '#7f8c8d' }}>
+                        (necesitas {bronzeRequiredPieces} piezas sin rebaja)
+                      </span>
+                    )}
+                  </span>
                 </label>
               </div>
+              {bronzeForcePickup && bronzeRequiredPieces && (
+                <div
+                  className="cart-details__delivery-options-hint"
+                  style={{ fontSize: '0.8rem', color: '#7f8c8d', marginTop: 4 }}
+                >
+                  {`El envío a domicilio se habilita al alcanzar ${bronzeRequiredPieces} piezas sin rebaja.`}
+                </div>
+              )}
             </div>
-            
-            {deliveryType === 'envio' && (
+
+            {deliveryType === 'envio' && !bronzeForcePickup && (
             <AddressSelector
               selectedAddressId={selectedAddress?.id}
               onAddressChange={handleAddressChange}

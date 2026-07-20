@@ -39,7 +39,7 @@ import { isProductNewLikeNuevosPage } from '../utils/productNewRules';
 import useHorizontalDragScroll from '../hooks/useHorizontalDragScroll';
 import colorConverter from '../services/colorConverter';
 import { validateStock, getProductStock } from '../services/inventoryService';
-import { getVolumeDiscountMainTier, getSellerCategoryFromUser, hasApiVolumeMainPercent, isOroDiamanteSeller, canApplyMainDiscount } from '../utils/sellerVolumeDiscount';
+import { getVolumeDiscountMainTier, getSellerCategoryFromUser, hasApiVolumeMainPercent, isOroDiamanteSeller, isBronzeSeller, canApplyMainDiscount } from '../utils/sellerVolumeDiscount';
 import {
   canEncargoSinStock,
   canEncargoForSize,
@@ -933,7 +933,9 @@ const ProductPage = () => {
           } else if (hasUserOffer && userOffer && userOffer.discount_category === 'order_discount') {
             message += ` 💰 Descuento del ${Math.round(userOffer.discount_percentage)}% se aplicará al total del pedido`;
           } else if (hasUserOffer && userOffer && userOffer.discount_category === 'free_shipping') {
-            message += ` 🚚 ¡Envío gratis incluido!`;
+            if (!isBronzeUser) {
+              message += ` 🚚 ¡Envío gratis incluido!`;
+            }
           } else if (
             hasUserOffer
             && userOffer?.discount_category === 'product_discount'
@@ -1112,6 +1114,7 @@ const ProductPage = () => {
   const getProductPageAlerts = () => {
     const alerts = [];
     const isDiamanteUser = getSellerCategoryFromUser(user) === 'diamante';
+    const isBronzeUser = isBronzeSeller(user);
     const { mainPercent: volMainPercent } = getVolumeDiscountMainTier(user);
 
     // Alertas para descuentos (solo si hay items elegibles o el producto actual es elegible)
@@ -1206,6 +1209,11 @@ const ProductPage = () => {
     }
 
     // Alertas para envío gratis
+    if (isBronzeUser) {
+      // Los clientes bronce se rigen por la regla de piezas (12 primera compra / 6 posteriores),
+      // no por umbrales monetarios ni cupones free_shipping.
+      return alerts;
+    }
     if (cartTotal < freeShippingMin) {
       const remaining = freeShippingMin - cartTotal;
       const isNear = cartTotal >= (freeShippingMin * NEAR_THRESHOLD_PERCENT);
@@ -1214,14 +1222,14 @@ const ProductPage = () => {
         alerts.push({
           type: 'near',
           icon: '🚚',
-          message: `¡Ya casi! Te faltan $${formatMoneyWithCommas(remaining)} para envío gratis`,
+          message: `¡Ya casi! Te faltan ${formatMoneyWithCommas(remaining)} para envío gratis`,
           color: '#ff9800'
         });
       } else if (cartTotal > 0) {
         alerts.push({
           type: 'info',
           icon: '📦',
-          message: `Te faltan $${formatMoneyWithCommas(remaining)} para envío gratis`,
+          message: `Te faltan ${formatMoneyWithCommas(remaining)} para envío gratis`,
           color: '#9c27b0'
         });
       }
