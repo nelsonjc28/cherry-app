@@ -14,6 +14,7 @@ import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
 import { applyUserOffersToProducts } from '../api/userOffers';
 import { isProductNewLikeNuevosPage } from '../utils/productNewRules';
+import { evaluateProductStatus } from '../utils/productStatusEvaluator';
 import useUserStore from '../store/userStore';
 import { getEffectiveDescPromoPercent } from '../utils/catalogRebajaUtils';
 
@@ -395,12 +396,14 @@ const CategoryPage = ({ categorySlug }) => {
                     const availableSizes = productSizes.length > 0 ? productSizes : ['M']; // Talla por defecto
                     
                     const isNewProduct = isProductNewLikeNuevosPage(product);
-                    
+                    // Filtro principal unificado (Próximamente / Nuevo / Agotado / En Rebaja)
+                    const statusEval = evaluateProductStatus(product);
+
                     // Calcular descuento si existe
                     const hasDiscount = product.opc_promo === 'S' && product.desc_promo > 0;
                     const discountPercentage = hasDiscount ? product.desc_promo : 0;
                     const originalPrice = hasDiscount ? (numericPrice / (1 - discountPercentage / 100)) : numericPrice;
-                    
+
                     return {
                       id: product.id_articulo,
                       title: product.descripcion || 'Sin nombre',
@@ -417,7 +420,12 @@ const CategoryPage = ({ categorySlug }) => {
                       colores: productColors,
                       sizes: availableSizes,
                       tallas: productSizes,
-                      isNew: isNewProduct,
+                      isNew: statusEval.is_new,
+                      isInStock: statusEval.is_in_stock,
+                      isOutOfStock: statusEval.is_out_of_stock,
+                      isComingSoon: statusEval.is_coming_soon,
+                      isOnSale: statusEval.is_on_sale,
+                      status: statusEval.status,
                       rating: 0, // Se actualizará con la consulta a la BD
                       ratingCount: 0,
                       linea: product.linea,
@@ -505,23 +513,25 @@ const CategoryPage = ({ categorySlug }) => {
                   : [];
                 
                 const isNewProduct = isProductNewLikeNuevosPage(product);
-                
+                // Filtro principal unificado (Próximamente / Nuevo / Agotado / En Rebaja)
+                const statusEval = evaluateProductStatus(product);
+
                 let finalPrice = product.price;
                 let originalPrice = product.originalPrice;
                 let discountPercentage = product.discount;
-                
+
                 if (finalPrice === undefined || finalPrice === null || finalPrice === 0) {
                   const hasDiscount = product.opc_promo === 'S' && product.desc_promo > 0;
                   const originalDiscountPercentage = hasDiscount ? parseFloat(product.desc_promo) : 0;
                   discountPercentage = hasDiscount ? getEffectiveDescPromoPercent(originalDiscountPercentage, user) : 0;
-                  originalPrice = hasDiscount && numericPrice > 0 
-                    ? (numericPrice / (1 - originalDiscountPercentage / 100)) 
+                  originalPrice = hasDiscount && numericPrice > 0
+                    ? (numericPrice / (1 - originalDiscountPercentage / 100))
                     : null;
-                  finalPrice = hasDiscount && discountPercentage > 0 && numericPrice > 0 
-                    ? (numericPrice - (numericPrice * (discountPercentage / 100))) 
+                  finalPrice = hasDiscount && discountPercentage > 0 && numericPrice > 0
+                    ? (numericPrice - (numericPrice * (discountPercentage / 100)))
                     : numericPrice;
                 }
-                
+
                 return {
                   id: product.id_articulo || product.id,
                   title: product.descripcion || 'Sin nombre',
@@ -536,7 +546,12 @@ const CategoryPage = ({ categorySlug }) => {
                   inventario: product.inventario || 0,
                   colors: productColors.length > 0 ? productColors : ['black'],
                   sizes: productSizes.length > 0 ? productSizes : ['M'],
-                  isNew: isNewProduct,
+                  isNew: statusEval.is_new,
+                  isInStock: statusEval.is_in_stock,
+                  isOutOfStock: statusEval.is_out_of_stock,
+                  isComingSoon: statusEval.is_coming_soon,
+                  isOnSale: statusEval.is_on_sale,
+                  status: statusEval.status,
                   rating: product.rating || 0,
                   ratingCount: product.ratingCount || 0,
                   linea: { id_linea: product.id_linea },

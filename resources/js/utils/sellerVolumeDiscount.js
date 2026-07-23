@@ -81,6 +81,15 @@ export function bronzeShippingPiecesThreshold(user) {
 }
 
 /**
+ * Bronce: piezas mínimas para que aplique el 30% de descuento.
+ * - Primera compra: 12 piezas sin rebaja.
+ * - Compras posteriores (first_purchase_completed_at definido): desde 1 pieza.
+ */
+export function bronzeMainDiscountPiecesThreshold(user) {
+  return hasCompletedFirstPurchase(user) ? 1 : BRONZE_PIECES_FIRST_PURCHASE;
+}
+
+/**
  * Indica si el cliente bronce cumple el mínimo de piezas para envío a domicilio.
  * Si retorna false, la UI debe ocultar la opción de "Envío a domicilio".
  */
@@ -92,21 +101,24 @@ export function bronzeCanShip(user, eligiblePieces) {
 }
 
 /**
- * Bronce: aplica el primer tramo (30 %) solo si alcanza el umbral de piezas.
+ * Bronce: aplica el primer tramo (30 %) según el umbral correspondiente.
+ * - Primera compra: ≥ 12 piezas sin rebaja.
+ * - Compras posteriores (first_purchase_completed_at definido): desde 1 pieza.
  */
 export function shouldApplyBronzeMainDiscount(user, eligiblePieces) {
   if (!isBronzeSeller(user)) return false;
   const pieces = Number(eligiblePieces || 0);
   if (pieces <= 0) return false;
-  return pieces >= bronzeShippingPiecesThreshold(user);
+  return pieces >= bronzeMainDiscountPiecesThreshold(user);
 }
 
 /**
- * Bronce: aplica el segundo tramo (10 %) solo en la primera compra con 12+ piezas.
+ * Bronce: aplica el segundo tramo (10 %) a partir de 12 piezas sin rebaja,
+ * tanto en primera compra como en compras posteriores (la fórmula del cálculo
+ * no cambia: sigue siendo 10% sobre el subtotal después del 30%).
  */
 export function shouldApplyBronzeSecondTier(user, eligiblePieces) {
   if (!isBronzeSeller(user)) return false;
-  if (hasCompletedFirstPurchase(user)) return false;
   const pieces = Number(eligiblePieces || 0);
   return pieces >= BRONZE_PIECES_FIRST_PURCHASE;
 }

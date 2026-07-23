@@ -797,10 +797,12 @@ class AdminCatalogController extends Controller
                     'productos.opc_promo',
                     'productos.desc_promo',
                     'productos.fecha_alta',
+                    'productos.fecha_compra',
                     'productos.opc_nuevo',
                     'productos.marca',
                     'productos.inventario',
-                    'productos.sku'
+                    'productos.sku',
+                    'productos.stock_received_count'
                 ])
                 ->where('productos.catalogoId', $catalogCode);
             Producto::applyFechaAgotadoVisibilityToProductosQuery($productosQuery);
@@ -825,11 +827,12 @@ class AdminCatalogController extends Controller
             $productIds = $productos->pluck('id')->toArray();
             
             // Obtener detalles completos para colores y tallas
+            // (incluye inventario_d para que el frontend pueda calcular el stock total)
             $detallesPorProducto = [];
             $coloresPorProducto = [];
             if (!empty($productIds)) {
                 $detalles = DB::table('detalles')
-                    ->select('producto_id', 'nombreColor', 'detalle')
+                    ->select('producto_id', 'nombreColor', 'detalle', 'inventario_d')
                     ->whereIn('producto_id', $productIds)
                     ->whereNotNull('nombreColor')
                     ->where('nombreColor', '!=', '')
@@ -844,7 +847,8 @@ class AdminCatalogController extends Controller
                     // Agregar detalle completo
                     $detallesPorProducto[$detalle->producto_id][] = [
                         'nombreColor' => $detalle->nombreColor,
-                        'detalle' => $detalle->detalle
+                        'detalle' => $detalle->detalle,
+                        'inventario_d' => (float) ($detalle->inventario_d ?? 0),
                     ];
                     
                     // Agregar color único
@@ -913,25 +917,37 @@ class AdminCatalogController extends Controller
                     ? ($precio1 - ($precio1 * ($discountPercentage / 100))) 
                     : $precio1;
                 
-                $isNew = false;
-                if ($producto->fecha_alta) {
-                    $fechaAltaTimestamp = strtotime($producto->fecha_alta);
-                    $thirtyDaysAgo = time() - (30 * 24 * 60 * 60);
-                    if ($fechaAltaTimestamp && $fechaAltaTimestamp > $thirtyDaysAgo) {
-                        $isNew = true;
-                    }
-                }
-                
                 // Obtener colores y detalles del producto
                 $colors = $coloresPorProducto[$producto->id] ?? [];
                 $detalles = $detallesPorProducto[$producto->id] ?? [];
-                
+
+                // Filtro principal unificado (Próximamente / Nuevo / Agotado / En Rebaja).
+                // Mismo alineamiento que /categories/{id}/local-products.
+                $inventarioSumDetalles = 0.0;
+                foreach ($detalles as $d) {
+                    $v = (float) ($d['inventario_d'] ?? 0);
+                    if ($v > 0.0000001) {
+                        $inventarioSumDetalles += $v;
+                    }
+                }
+                $headerInv = (float) ($producto->inventario ?? 0);
+                $inventarioTotalProducto = $inventarioSumDetalles > 0.00001
+                    ? $inventarioSumDetalles
+                    : ($headerInv > 0.0000001 ? $headerInv : 0.0);
+
+                $statusEval = \App\Support\ProductStatusEvaluator::evaluate(
+                    (array) $producto,
+                    $inventarioTotalProducto,
+                    $detalles
+                );
+                $isNew = $statusEval['is_new'];
+
                 // Obtener rating del producto
                 $ratingData = $ratingsPorProducto[$producto->id] ?? ['rating' => 0, 'count' => 0];
-                
+
                 // Generar URL de imagen desde S3
                 $imageUrl = $this->getProductImageUrl($producto->id);
-                
+
                 $products[] = [
                     'id' => $producto->id,
                     'id_articulo' => $producto->id,
@@ -946,13 +962,24 @@ class AdminCatalogController extends Controller
                     'discount' => $discountPercentage, // Descuento reducido (desc_promo - 10)
                     'colors' => $colors,
                     'colores' => $colors, // También como colores
+
+                    // Filtro principal unificado
+                    'status' => $statusEval['status'],
+                    'stock_kind' => $statusEval['status'],
                     'isNew' => $isNew,
+                    'is_in_stock' => $statusEval['is_in_stock'],
+                    'is_coming_soon' => $statusEval['is_coming_soon'],
+                    'is_out_of_stock' => $statusEval['is_out_of_stock'],
+                    'is_on_sale' => $statusEval['is_on_sale'],
+
                     'opc_nuevo' => $producto->opc_nuevo,
                     'opc_promo' => $producto->opc_promo,
                     'desc_promo' => $producto->desc_promo,
                     'fecha_alta' => $producto->fecha_alta ? date('Y-m-d', strtotime($producto->fecha_alta)) : null,
+                    'fecha_compra' => \App\Support\ProductNewEvaluator::formatFechaCompraForApi($producto->fecha_compra ?? null),
                     'marca' => $producto->marca,
-                    'inventario' => (float) $producto->inventario,
+                    'inventario' => $inventarioTotalProducto,
+                    'stock' => $inventarioTotalProducto,
                     'stock_received_count' => (int) ($producto->stock_received_count ?? 0),
                     'detalles' => $detalles, // Detalles completos para el frontend
                     'rating' => $ratingData['rating'],

@@ -251,23 +251,28 @@ class Producto extends Model
     }
 
     /**
-     * Producto "Próximamente": sin stock, tercer dígito del ID = último dígito del año,
-     * stock_received_count = 0 y sin desc_promo activo.
+     * Delegado a {@see \App\Support\ProductStatusEvaluator} (filtro principal).
+     * Mantenido por retrocompatibilidad.
      */
     public function isProximamente(): bool
     {
-        return self::evaluateIsComingSoonFromRow($this, $this->computeTotalInventoryQuantity());
+        $eval = \App\Support\ProductStatusEvaluator::evaluate($this, $this->computeTotalInventoryQuantity());
+
+        return $eval['is_coming_soon'] === true;
     }
 
     /**
+     * Delegado a {@see \App\Support\ProductStatusEvaluator} (filtro principal).
+     *
      * @param  array<int, object|array<string, mixed>>  $detalleRows
      */
     public static function isProximamenteFromProductRow(object $row, array $detalleRows = []): bool
     {
         $headerInv = (float) (is_object($row) ? ($row->inventario ?? 0) : ($row['inventario'] ?? 0));
         $inventory = self::computeTotalInventoryFromDetalleRows($detalleRows, $headerInv);
+        $eval = \App\Support\ProductStatusEvaluator::evaluate($row, $inventory);
 
-        return self::evaluateIsComingSoonFromRow($row, $inventory);
+        return $eval['is_coming_soon'] === true;
     }
 
     /**
@@ -337,100 +342,39 @@ class Producto extends Model
     }
 
     /**
-     * Próximamente: candidato por año + sin stock + sin recepciones previas, y SIN oferta desc_promo.
-     * Además: (fecha_alta es null o stock total <= 0), alineado con reglas de negocio y listados.
+     * Delegado a {@see \App\Support\ProductStatusEvaluator} (filtro principal).
+     * Mantenido por retrocompatibilidad.
+     *
+     * Antes usaba la heurística del tercer dígito del ID; esa regla fue removida porque
+     * marcaba como "próximamente" productos antiguos cuyo stock se agotaba. Ahora la
+     * condición se basa en `stock_received_count`, `opc_nuevo` y `fecha_alta`.
      */
     public function getIsComingSoonAttribute(): bool
     {
-        if ($this->hasActiveDescPromoOffer()) {
-            return false;
-        }
+        $eval = \App\Support\ProductStatusEvaluator::evaluate($this, $this->computeTotalInventoryQuantity());
 
-        $total = $this->computeTotalInventoryQuantity();
-        if ($total > 0.00001) {
-            return false;
-        }
-
-        if ((int) ($this->stock_received_count ?? 0) > 0) {
-            return false;
-        }
-
-        $idStr = (string) $this->getKey();
-        if (strlen($idStr) < 3) {
-            return false;
-        }
-
-        return (int) $idStr[2] === ((int) date('Y') % 10);
+        return $eval['is_coming_soon'] === true;
     }
 
     /**
-     * Misma lógica que {@see getIsComingSoonAttribute()} para filas stdClass/array (ProductController con DB::table).
+     * Delegado a {@see \App\Support\ProductStatusEvaluator} (filtro principal).
      *
      * @param  object|array<string, mixed>  $row
      */
     public static function evaluateIsComingSoonFromRow(object|array $row, float $inventoryTotal): bool
     {
-        $desc = (float) (is_array($row) ? ($row['desc_promo'] ?? 0) : ($row->desc_promo ?? 0));
-        if ($desc > 0.00001) {
-            return false;
-        }
-
-        if ($inventoryTotal > 0.00001) {
-            return false;
-        }
-
-        $idStr = (string) (is_array($row) ? ($row['id'] ?? '') : ($row->id ?? ''));
-        if (strlen($idStr) < 3) {
-            return false;
-        }
-
-        if ((int) $idStr[2] !== ((int) date('Y') % 10)) {
-            return false;
-        }
-
-        $received = (int) (is_array($row) ? ($row['stock_received_count'] ?? 0) : ($row->stock_received_count ?? 0));
-        if ($received > 0) {
-            return false;
-        }
-
-        return true;
+        return \App\Support\ProductStatusEvaluator::evaluate($row, $inventoryTotal)['is_coming_soon'] === true;
     }
 
     /**
-     * Alineado con getProductInventoryStatusKind en resources/js/utils/productUtils.js.
+     * Delegado a {@see \App\Support\ProductStatusEvaluator} (filtro principal).
      *
      * @param  object|array<string, mixed>  $row
-     * @return 'in-stock'|'coming-soon'|'out-of-stock'
+     * @return 'in-stock'|'coming-soon'|'out-of-stock'|'new'
      */
     public static function evaluateInventoryStatusKindFromRow(object|array $row, float $inventoryTotal): string
     {
-        $stockReceived = (int) (is_array($row) ? ($row['stock_received_count'] ?? 0) : ($row->stock_received_count ?? 0));
-
-        if ($inventoryTotal > 0.00001) {
-            return 'in-stock';
-        }
-
-        if ($stockReceived > 0 && $inventoryTotal <= 0.00001) {
-            return 'out-of-stock';
-        }
-
-        $descPromo = (float) (is_array($row) ? ($row['desc_promo'] ?? 0) : ($row->desc_promo ?? 0));
-        $hasActiveDescPromo = $descPromo > 0.00001;
-
-        $idStr = (string) (is_array($row) ? ($row['id'] ?? '') : ($row->id ?? ''));
-        $tercerDigito = strlen($idStr) > 2 ? $idStr[2] : null;
-        $currentYearLastDigit = (string) ((int) date('Y') % 10);
-        $isComingSoon = $tercerDigito !== null && $tercerDigito === $currentYearLastDigit;
-
-        if ($isComingSoon && $inventoryTotal <= 0.00001 && $stockReceived === 0 && ! $hasActiveDescPromo) {
-            return 'coming-soon';
-        }
-
-        if ($inventoryTotal <= 0.00001 && (! $isComingSoon || $stockReceived > 0)) {
-            return 'out-of-stock';
-        }
-
-        return 'out-of-stock';
+        return \App\Support\ProductStatusEvaluator::evaluate($row, $inventoryTotal)['status'];
     }
 
     /**

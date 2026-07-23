@@ -7,6 +7,7 @@ use App\Support\CatalogOfferDate;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Support\ProductNewEvaluator;
+use App\Support\ProductStatusEvaluator;
 use App\Models\Producto;
 use App\Models\CategoryProduct;
 use App\Models\Review;
@@ -174,7 +175,8 @@ class CategoryController extends Controller
                     'productos.fecha_compra',
                     'productos.opc_nuevo',
                     'productos.marca',
-                    'productos.inventario'
+                    'productos.inventario',
+                    'productos.stock_received_count'
                 ])
                 ->whereRaw('CAST(productos.id_linea AS UNSIGNED) = CAST(? AS UNSIGNED)', [$category->code]);
             Producto::applyFechaAgotadoVisibilityToProductosQuery($productosQuery);
@@ -277,15 +279,35 @@ class CategoryController extends Controller
                 // Obtener colores y detalles del producto
                 $colors = $coloresPorProducto[$producto->id] ?? [];
                 $detalles = $detallesPorProducto[$producto->id] ?? [];
-                $isNew = ProductNewEvaluator::isNewLikeNuevosPage(
-                    $producto->fecha_compra ?? null,
-                    (float) ($producto->inventario ?? 0),
+
+                // Filtro principal unificado (Próximamente / Nuevo / Agotado / En Rebaja).
+                // Calculamos el inventario total alineado con el frontend:
+                //  - si hay detalles, suma de inventario_d (positivos);
+                //  - en su defecto, inventario de cabecera.
+                $inventarioSumDetalles = 0.0;
+                foreach ($detalles as $d) {
+                    $inv = (float) ($d['inventario_d'] ?? 0);
+                    if ($inv > 0.0000001) {
+                        $inventarioSumDetalles += $inv;
+                    }
+                }
+                $headerInv = (float) ($producto->inventario ?? 0);
+                $inventarioTotalProducto = $inventarioSumDetalles > 0.00001
+                    ? $inventarioSumDetalles
+                    : ($headerInv > 0.0000001 ? $headerInv : 0.0);
+
+                $statusEval = ProductStatusEvaluator::evaluate(
+                    (array) $producto,
+                    $inventarioTotalProducto,
                     $detalles
                 );
-                
+
+                // Mantener también isNew por compat con consumidores existentes del campo.
+                $isNew = $statusEval['is_new'];
+
                 // Obtener rating del producto
                 $ratingData = $ratingsPorProducto[$producto->id] ?? ['rating' => 0, 'count' => 0];
-                
+
                 $formattedProducts[] = [
                     'id' => $producto->id,
                     'id_articulo' => $producto->id,
@@ -300,14 +322,24 @@ class CategoryController extends Controller
                     'discount' => $discountPercentage, // Descuento reducido (desc_promo - 10)
                     'colors' => $colors,
                     'colores' => $colors, // También como colores
+
+                    // Filtro principal unificado (ProductoStatusEvaluator)
+                    'status' => $statusEval['status'],
+                    'stock_kind' => $statusEval['status'],
                     'isNew' => $isNew,
+                    'is_in_stock' => $statusEval['is_in_stock'],
+                    'is_coming_soon' => $statusEval['is_coming_soon'],
+                    'is_out_of_stock' => $statusEval['is_out_of_stock'],
+                    'is_on_sale' => $statusEval['is_on_sale'],
+
                     'opc_nuevo' => $producto->opc_nuevo,
                     'opc_promo' => $producto->opc_promo,
                     'desc_promo' => $producto->desc_promo,
                     'fecha_alta' => $producto->fecha_alta ? date('Y-m-d', strtotime($producto->fecha_alta)) : null,
                     'fecha_compra' => ProductNewEvaluator::formatFechaCompraForApi($producto->fecha_compra ?? null),
                     'marca' => $producto->marca,
-                    'inventario' => (float) $producto->inventario,
+                    'inventario' => $inventarioTotalProducto,
+                    'stock' => $inventarioTotalProducto,
                     'stock_received_count' => (int) ($producto->stock_received_count ?? 0),
                     'detalles' => $detalles, // Detalles completos para el frontend
                     'rating' => $ratingData['rating'],

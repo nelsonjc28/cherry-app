@@ -12,6 +12,7 @@ import { publicCatalogService } from '../services/api';
 import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
 import { getTotalInventoryFromProduct } from '../utils/productUtils';
+import { evaluateProductStatus } from '../utils/productStatusEvaluator';
 import useUserStore from '../store/userStore';
 import { getEffectiveDescPromoPercent } from '../utils/catalogRebajaUtils';
 
@@ -399,72 +400,16 @@ const NuevosPage = () => {
         if (searchResponse.data.success && searchResponse.data.data.products) {
           const localProducts = searchResponse.data.data.products;
           
-          // FILTRO CRÍTICO: Un producto SOLO puede mostrarse en "Próximamente" si cumple TODAS las condiciones simultáneamente (AND):
-          // 1. Inventario total exactamente 0 (getTotalInventoryFromProduct: suma inventario_d solo si > 0 por talla)
-          // 2. El tercer carácter de su ID (id[2]) coincide con el último dígito del año actual
-          // 3. stock_received_count = 0 (el producto nunca ha recibido stock)
-          const currentYearLastDigit = String(new Date().getFullYear() % 10);
-          
-          const comingSoonProductsRaw = localProducts.filter(product => {
-            const totalStock = getTotalInventoryFromProduct(product);
-
-            if (totalStock > 1e-9) {
-              return false;
-            }
-            
-            // Condición 2: El tercer dígito del ID debe coincidir con el último dígito del año actual
-            const productId = String(product.id_articulo || product.id || '');
-            const thirdDigit = productId.length >= 3 ? productId.charAt(2) : null;
-            const isValidYearDigit = thirdDigit !== null && thirdDigit === currentYearLastDigit;
-            
-            // Condición 3: stock_received_count debe ser 0
-            // Verificar múltiples posibles nombres del campo y convertir a número
-            const stockReceivedCountRaw = product.stock_received_count ?? 
-                                         product.stockReceivedCount ?? 
-                                         product['stock_received_count'] ??
-                                         (product.hasOwnProperty('stock_received_count') ? product.stock_received_count : null);
-            
-            // Convertir a número de forma segura (maneja null, undefined, string, número)
-            let stockReceivedCountNum = 0;
-            if (stockReceivedCountRaw !== null && stockReceivedCountRaw !== undefined && stockReceivedCountRaw !== '') {
-              const parsed = parseInt(String(stockReceivedCountRaw), 10);
-              stockReceivedCountNum = isNaN(parsed) ? 0 : parsed;
-            }
-            
-            // Debug: Log para productos específicos problemáticos (SIEMPRE mostrar)
-            const isProblematicProduct = product.id === '14612611701' || product.id_articulo === '14612611701';
-            if (isProblematicProduct) {
-              console.warn('[ProximamentePage] 🔍 DEBUG Producto 14612611701:', {
-                id: product.id || product.id_articulo,
-                id_articulo: product.id_articulo,
-                stock_received_count: product.stock_received_count,
-                stockReceivedCount: product.stockReceivedCount,
-                stockReceivedCountRaw,
-                stockReceivedCountNum,
-                totalStock,
-                isValidYearDigit,
-                todas_las_propiedades: Object.keys(product),
-                producto_completo: JSON.stringify(product, null, 2)
-              });
-            }
-            
-            // VERIFICACIÓN CRÍTICA: Si stock_received_count > 0, EXCLUIR INMEDIATAMENTE
-            // Esta verificación debe ser ANTES de cualquier otra condición
-            if (stockReceivedCountNum > 0) {
-              if (isProblematicProduct) {
-                console.error('[ProximamentePage] ❌ EXCLUYENDO producto 14612611701 porque stock_received_count =', stockReceivedCountNum);
-              }
-              return false; // Excluir productos que ya recibieron stock
-            }
-            
-            // Verificación adicional: Si es el producto problemático y el campo es null/undefined, 
-            // puede ser que la migración no se ejecutó. En ese caso, verificar en la BD directamente.
-            // Por ahora, si el campo no existe, asumimos que es 0 (comportamiento por defecto)
-            
-            // Todas las condiciones deben cumplirse (AND)
-            // IMPORTANTE: Si stock_received_count > 0, ya se excluyó arriba
-            return isValidYearDigit;
-          });
+          // FILTRO PRINCIPAL: usar ProductStatusEvaluator (misma regla que el backend).
+          // Un producto es "Próximamente" si cumple TODAS estas condiciones (evaluadas por
+          // el evaluador central):
+          //  - inventario total = 0
+          //  - nunca recibió stock (stock_received_count = 0)
+          //  - es recién llegado (opc_nuevo='S' o fecha_alta nula / reciente / futura)
+          //  - sin oferta desc_promo activa
+          const comingSoonProductsRaw = localProducts.filter(product =>
+            evaluateProductStatus(product).is_coming_soon
+          );
           
           // Mapear productos al formato esperado
           const mappedProducts = comingSoonProductsRaw.map(product => {

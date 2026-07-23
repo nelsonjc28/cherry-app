@@ -22,6 +22,7 @@ import {
   isBronzeSeller,
   hasCompletedFirstPurchase,
   bronzeShippingPiecesThreshold,
+  bronzeMainDiscountPiecesThreshold,
   bronzeCanShip,
   shouldApplyBronzeMainDiscount,
   shouldApplyBronzeSecondTier,
@@ -117,6 +118,10 @@ const CartDetailsPage = () => {
   const bronzeShippingAllowed = user ? bronzeCanShip(user, eligiblePieces) : true;
   const bronzeRequiredPieces = user && bronzeUser
     ? bronzeShippingPiecesThreshold(user)
+    : null;
+  // Umbral de piezas para el descuento del 30% (≠ envío): 12 primera compra / 1 repetida.
+  const bronzeMainRequiredPieces = user && bronzeUser
+    ? bronzeMainDiscountPiecesThreshold(user)
     : null;
   const bronzeForcePickup = bronzeUser && !bronzeShippingAllowed;
   
@@ -1168,7 +1173,10 @@ const CartDetailsPage = () => {
 
     // Bronce: mensajes por PIEZAS, no por monto.
     if (isBronzeUser) {
-      const required = bronzeRequiredPieces || 0;
+      const mainRequired = bronzeMainRequiredPieces || 12; // 12 (1ª) / 1 (repetida)
+      const secondTierRequired = 12; // 10% adicional siempre desde 12 piezas
+      const hasCompletedFirst = hasCompletedFirstPurchase(user);
+
       if (bronzeBenefitActive) {
         alerts.push({
           type: 'success',
@@ -1176,46 +1184,81 @@ const CartDetailsPage = () => {
           message: `Tu descuento del 30% vence en: ${bronzeBenefitDaysLeft} día(s). ¡Compra algo para renovarlo!`,
           color: '#4caf50',
         });
-      } else if (required > 0) {
-        const remainingPieces = Math.max(0, required - eligiblePieces);
-        const isNearPieces = eligiblePieces >= required * NEAR_THRESHOLD_PERCENT;
-        if (eligiblePieces === 0) {
-          alerts.push({
-            type: 'info',
-            icon: '💡',
-            message: `Para obtener tu descuento del 30% necesitas ${required} prendas sin rebaja.`,
-            color: '#2196f3',
-          });
-        } else if (eligiblePieces < required) {
-          if (isNearPieces) {
+      } else if (mainRequired > 1 || eligiblePieces < mainRequired) {
+        // Repeat customer (mainRequired = 1): solo progreso al 10% adicional.
+        // First purchase (mainRequired = 12): progreso al 30% + 10%.
+        if (hasCompletedFirst) {
+          // Repeat: 30% ya aplica desde 1 pieza; mensajes para 10% adicional.
+          if (eligiblePieces < secondTierRequired) {
+            const remainingPieces = Math.max(0, secondTierRequired - eligiblePieces);
+            const isNearPieces = eligiblePieces >= secondTierRequired * NEAR_THRESHOLD_PERCENT;
+            if (eligiblePieces === 0) {
+              // Carrito vacío: sin mensaje (el 30% ya aplica desde la 1ª pieza).
+            } else if (isNearPieces) {
+              alerts.push({
+                type: 'near',
+                icon: '🔥',
+                message: `¡Ya casi! Te faltan ${remainingPieces} prenda${remainingPieces > 1 ? 's' : ''} para tu 10% adicional`,
+                color: '#ff9800',
+              });
+            } else {
+              alerts.push({
+                type: 'info',
+                icon: '💰',
+                message: `Te faltan ${remainingPieces} prenda${remainingPieces > 1 ? 's' : ''} para tu 10% adicional`,
+                color: '#2196f3',
+              });
+            }
+          } else {
             alerts.push({
-              type: 'near',
-              icon: '🔥',
-              message: `¡Ya casi! Te faltan ${remainingPieces} prendas sin rebaja para el 30%.`,
-              color: '#ff9800',
+              type: 'success',
+              icon: '🎉',
+              message: '¡Increíble! Tienes el descuento del 30% + 10% adicional.',
+              color: '#4caf50',
+            });
+          }
+        } else {
+          // First purchase: 30% (y 10% adicional) a partir de 12 piezas.
+          const remainingPieces = Math.max(0, mainRequired - eligiblePieces);
+          const isNearPieces = eligiblePieces >= mainRequired * NEAR_THRESHOLD_PERCENT;
+          if (eligiblePieces === 0) {
+            alerts.push({
+              type: 'info',
+              icon: '💡',
+              message: `Para obtener tu descuento del 30% + 10% adicional necesitas ${mainRequired} prendas.`,
+              color: '#2196f3',
+            });
+          } else if (eligiblePieces < mainRequired) {
+            if (isNearPieces) {
+              alerts.push({
+                type: 'near',
+                icon: '🔥',
+                message: `¡Ya casi! Te faltan ${remainingPieces} prenda${remainingPieces > 1 ? 's' : ''} para el 30% + 10% adicional.`,
+                color: '#ff9800',
+              });
+            } else {
+              alerts.push({
+                type: 'info',
+                icon: '💰',
+                message: `Te faltan ${remainingPieces} prenda${remainingPieces > 1 ? 's' : ''} para el 30% + 10% adicional.`,
+                color: '#2196f3',
+              });
+            }
+          } else if (eligiblePieces >= 12) {
+            alerts.push({
+              type: 'success',
+              icon: '🎉',
+              message: '¡Increíble! Tienes el descuento del 30% + 10% adicional en tu primera compra.',
+              color: '#4caf50',
             });
           } else {
             alerts.push({
-              type: 'info',
-              icon: '💰',
-              message: `Te faltan ${remainingPieces} prendas sin rebaja para el 30%.`,
-              color: '#2196f3',
+              type: 'success',
+              icon: '✅',
+              message: '¡Felicidades! Ya tienes el descuento del 30% activado.',
+              color: '#4caf50',
             });
           }
-        } else if (!hasCompletedFirstPurchase(user) && eligiblePieces >= 12) {
-          alerts.push({
-            type: 'success',
-            icon: '🎉',
-            message: '¡Increíble! Tienes el descuento del 30% + 10% adicional en tu primera compra.',
-            color: '#4caf50',
-          });
-        } else {
-          alerts.push({
-            type: 'success',
-            icon: '✅',
-            message: '¡Felicidades! Ya tienes el descuento del 30% activado.',
-            color: '#4caf50',
-          });
         }
       }
       return alerts;
@@ -1492,7 +1535,7 @@ const CartDetailsPage = () => {
                     Retiro en tienda
                     {bronzeForcePickup && bronzeRequiredPieces && (
                       <span style={{ marginLeft: 6, color: '#7f8c8d' }}>
-                        (necesitas {bronzeRequiredPieces} piezas sin rebaja)
+                        (necesitas {bronzeRequiredPieces} piezas)
                       </span>
                     )}
                   </span>
@@ -1503,7 +1546,7 @@ const CartDetailsPage = () => {
                   className="cart-details__delivery-options-hint"
                   style={{ fontSize: '0.8rem', color: '#7f8c8d', marginTop: 4 }}
                 >
-                  {`El envío a domicilio se habilita al alcanzar ${bronzeRequiredPieces} piezas sin rebaja.`}
+                  {`El envío a domicilio se habilita al alcanzar ${bronzeRequiredPieces} piezas.`}
                 </div>
               )}
             </div>

@@ -1,20 +1,26 @@
 /**
- * Reglas globales de disponibilidad: misma lógica que {@see ProductPage} (detalle)
- * y tarjetas (getProductCardStockStatus).
- * Un producto con oferta de catálogo (desc_promo) activa nunca es "Próximamente" sin stock.
+ * Reglas globales de disponibilidad delegadas al evaluador central.
+ * Mantener este archivo sólo para compatibilidad: la lógica vive en
+ * {@see ./productStatusEvaluator.js} y debe estar sincronizada con
+ * {@see App\Support\ProductStatusEvaluator} (PHP).
  */
 
-export function hasActiveDescPromo(product) {
-  if (!product) return false;
-  const raw = product.desc_promo ?? product.descPromo;
-  if (raw === null || raw === undefined || raw === '') return false;
-  const n = Number(raw);
-  return !Number.isNaN(n) && n > 0;
-}
+export {
+  hasActiveSale,
+  evaluateProductStatus,
+  getProductCardStockStatus,
+  getProductInventoryStatusKind,
+  getProductStatus,
+  filterProducts,
+  matchesFilter,
+  isNewArrival,
+  STATUS,
+  FILTER,
+} from './productStatusEvaluator';
 
 /**
  * Contribución de una talla al stock total: inventario_d negativo no resta.
- * Alineado con Producto::effectiveDetailInventoryContribution (PHP).
+ * (alineado con Producto::effectiveDetailInventoryContribution en PHP).
  */
 export function effectiveDetailInventoryContribution(raw) {
   const n = Number(raw);
@@ -25,56 +31,47 @@ export function effectiveDetailInventoryContribution(raw) {
 }
 
 /**
- * Inventario total: si hay detalles/tallas, solo la suma de inventario_d (sin usar cabecera desactualizada).
- * Sin detalles: inventario de cabecera.
+ * Inventario total: si hay detalles/tallas con `inventario_d`, usa la suma;
+ * si los detalles existen pero NO traen `inventario_d` (o todos son 0), cae
+ * al inventario de cabecera (`inventario` o `stock`).
+ *
+ * Esto protege contra endpoints que devuelven el array `detalles` sin stock
+ * por detalle (ej. `/catalogs/{id}/products` antes de la corrección).
  */
 export function getTotalInventoryFromProduct(product) {
   if (!product) {
     return 0;
   }
   const detalles = product.detalles;
-  if (detalles && detalles.length > 0) {
-    return detalles.reduce((total, detalle) => {
-      return total + effectiveDetailInventoryContribution(detalle?.inventario_d);
-    }, 0);
+
+  if (detalles && Array.isArray(detalles) && detalles.length > 0) {
+    let hasInventarioD = false;
+    let sum = 0;
+    for (const d of detalles) {
+      const inv = d?.inventario_d;
+      if (inv !== undefined && inv !== null && inv !== '' && !Number.isNaN(Number(inv))) {
+        hasInventarioD = true;
+      }
+      const positive = effectiveDetailInventoryContribution(inv);
+      sum += positive;
+    }
+    if (hasInventarioD && sum > 0.00001) {
+      return sum;
+    }
+    // Si no hay inventario_d en los detalles, o todos son 0:
+    // caer al inventario de cabecera.
+    if (hasInventarioD) {
+      // Hay `inventario_d` pero todo es 0 (sin stock real) → respetar el dato.
+      return 0;
+    }
+    return effectiveDetailInventoryContribution(product.inventario ?? product.stock ?? 0);
   }
+
   return effectiveDetailInventoryContribution(product.inventario ?? product.stock ?? 0);
 }
 
 /**
- * Estado alineado con `getInventoryStatus` en ProductPage.
- * @returns {'in-stock'|'coming-soon'|'out-of-stock'}
- */
-export function getProductInventoryStatusKind(product) {
-  const totalInventory = getTotalInventoryFromProduct(product);
-  const stockReceivedCount = parseInt(product?.stock_received_count || product?.stockReceivedCount || 0, 10);
-
-  if (totalInventory > 0) {
-    return 'in-stock';
-  }
-
-  if (stockReceivedCount > 0 && totalInventory === 0) {
-    return 'out-of-stock';
-  }
-
-  const productId = String(product?.id || product?.id_articulo || '');
-  const tercerDigito = productId.length > 2 ? productId[2] : null;
-  const currentYearLastDigit = String(new Date().getFullYear() % 10);
-  const isComingSoon = tercerDigito === currentYearLastDigit;
-
-  if (isComingSoon && totalInventory === 0 && stockReceivedCount === 0 && !hasActiveDescPromo(product)) {
-    return 'coming-soon';
-  }
-
-  if (totalInventory === 0 && (!isComingSoon || stockReceivedCount > 0)) {
-    return 'out-of-stock';
-  }
-
-  return 'out-of-stock';
-}
-
-/**
- * Compatible con uso anterior: stock “para badge de hay piezas” (>= 0).
+ * Stock "para badge de hay piezas" (>= 0).
  * @deprecated Preferir getTotalInventoryFromProduct donde haga falta el número exacto.
  */
 export function computeTotalProductStock(product) {
@@ -82,24 +79,7 @@ export function computeTotalProductStock(product) {
 }
 
 /**
- * Estado para badges en tarjetas: 'coming-soon' | 'out-of-stock' | null (hay stock).
- * Usa la misma regla que el detalle ({@link getProductInventoryStatusKind}).
- */
-export function getProductCardStockStatus(product) {
-  const kind = getProductInventoryStatusKind(product);
-  if (kind === 'in-stock') {
-    return null;
-  }
-  if (kind === 'coming-soon') {
-    return 'coming-soon';
-  }
-  return 'out-of-stock';
-}
-
-/**
  * Oculta en catálogo externo los que tienen fecha_agotado en BD con más de 30 días (alineado a Laravel).
- * @param {Array<object>} products
- * @param {Record<string, string|null|undefined>} metaMap id → 'Y-m-d' | null
  */
 export function filterProductsByFechaAgotadoMeta(products, metaMap) {
   if (!Array.isArray(products) || products.length === 0) {

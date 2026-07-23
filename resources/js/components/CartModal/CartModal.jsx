@@ -10,7 +10,11 @@ import {
   getVolumeDiscountExtraPercent,
   getSellerCategoryFromUser,
   hasApiVolumeMainPercent,
+  isBronzeSeller,
   canApplyMainDiscount,
+  bronzeMainDiscountPiecesThreshold,
+  shouldApplyBronzeSecondTier,
+  hasCompletedFirstPurchase,
 } from '../../utils/sellerVolumeDiscount';
 
 const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout }) => {   
@@ -60,17 +64,27 @@ const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout 
       return sum + (itemPrice * itemQuantity);
     }, 0);
 
+    // Piezas elegibles (sin desc_promo y sin userOffer) — para bronce
+    const eligiblePieces = eligibleItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
+
+    const isBronze = isBronzeSeller(user);
     const { mainRate: volMainRate } = getVolumeDiscountMainTier(user);
-    const extraRate = getVolumeDiscountExtraPercent(user) / 100;
+    const extraRate = getVolumeDiscountExtraPercent(user, eligiblePieces) / 100;
     const hasApiMain = hasApiVolumeMainPercent(user);
-    const mainApplies = canApplyMainDiscount(user, eligibleTotal);
-    const applySecondTier = hasApiMain || eligibleTotal >= 15000;
+
+    const mainApplies = canApplyMainDiscount(user, eligibleTotal, eligiblePieces);
+    // 10% adicional:
+    //  - Bronce: a partir de 12 piezas sin rebaja (cálculo intacto).
+    //  - Oro/Diamante: API trae descuento2 → siempre; si no, ≥ $15,000 elegibles.
+    const secondTierApplies = isBronze
+      ? shouldApplyBronzeSecondTier(user, eligiblePieces)
+      : (hasApiMain || eligibleTotal >= 15000);
 
     let discountAmount = 0;
     if (mainApplies) {
       const discountMain = eligibleTotal * volMainRate;
       const totalAfterMain = eligibleTotal - discountMain;
-      if (applySecondTier) {
+      if (secondTierApplies) {
         discountAmount = discountMain + totalAfterMain * extraRate;
       } else {
         discountAmount = discountMain;
@@ -83,13 +97,38 @@ const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout 
       ? totalAfterDiscount >= (user.free_shipping_min_amount || 3000)
       : totalAfterDiscount >= 3000;
 
+    // Cálculo de "remaining" según categoría del vendedor.
+    let remainingForDiscount30 = 0;
+    let remainingForDiscount40 = 0;
+    if (isBronze) {
+      const mainThreshold = bronzeMainDiscountPiecesThreshold(user); // 12 (1ª) / 1 (repetida)
+      remainingForDiscount30 = !mainApplies
+        ? Math.max(0, mainThreshold - eligiblePieces)
+        : 0;
+      remainingForDiscount40 = (mainApplies && !secondTierApplies)
+        ? Math.max(0, 12 - eligiblePieces)
+        : 0;
+    } else {
+      remainingForDiscount30 = (!mainApplies && eligibleTotal < 7000)
+        ? Math.max(0, 7000 - eligibleTotal)
+        : 0;
+      remainingForDiscount40 = hasApiMain
+        ? 0
+        : (mainApplies && eligibleTotal < 15000
+          ? 15000 - eligibleTotal
+          : 0);
+    }
+
     return {
       discount30: mainApplies,
-      discount40: mainApplies && applySecondTier,
+      discount40: mainApplies && secondTierApplies,
       freeShipping: hasFreeShipping,
+      isBronze,
       eligibleTotal,
-      remainingForDiscount30: !mainApplies && eligibleTotal < 7000 ? Math.max(0, 7000 - eligibleTotal) : 0,
-      remainingForDiscount40: hasApiMain ? 0 : (mainApplies && eligibleTotal < 15000 ? 15000 - eligibleTotal : 0),
+      eligiblePieces,
+      hasCompletedFirst: hasCompletedFirstPurchase(user),
+      remainingForDiscount30,
+      remainingForDiscount40,
       remainingForFreeShipping: !hasFreeShipping ? Math.max(0, freeShippingMin - totalAfterDiscount) : 0
     };
   }, [cartItems, user]);
@@ -126,19 +165,17 @@ const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout 
             <div className="cart-modal__benefits">
               <div className="cart-modal__benefits-title">Beneficios disponibles</div>
               
-              {/* Descuento por volumen (30% oro / 33% diamante) */}
+              {/* Descuento por volumen (bronce por piezas / oro-diamante por monto) */}
               {benefits.discount30 ? (
                 <div className="cart-modal__benefit-item cart-modal__benefit-item--active">
                   <span className="cart-modal__benefit-icon">✓</span>
                   <span className="cart-modal__benefit-text">
-                    {isDiamanteUser ? (
-                      <>
-                        <strong>Descuento por volumen</strong> aplicado en compras mayores a $7,000
-                      </>
+                    {benefits.isBronze ? (
+                      <>Tienes <strong>30% de descuento</strong> en tus productos elegibles</>
+                    ) : isDiamanteUser ? (
+                      <><strong>Descuento por volumen</strong> aplicado en compras mayores a $7,000</>
                     ) : (
-                      <>
-                        <strong>{modalVolMainPercent}% de descuento</strong> aplicado en compras mayores a $7,000
-                      </>
+                      <><strong>{modalVolMainPercent}% de descuento</strong> aplicado en compras mayores a $7,000</>
                     )}
                   </span>
                 </div>
@@ -146,12 +183,16 @@ const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout 
                 <div className="cart-modal__benefit-item">
                   <span className="cart-modal__benefit-icon">🎁</span>
                   <span className="cart-modal__benefit-text">
-                    {isDiamanteUser ? (
+                    {benefits.isBronze ? (
+                      benefits.eligiblePieces > 0
+                        ? <>Te faltan <strong>{benefits.remainingForDiscount30}</strong> pieza{benefits.remainingForDiscount30 > 1 ? 's' : ''} para tu <strong>30% de descuento</strong></>
+                        : <>Agrega <strong>{bronzeMainDiscountPiecesThreshold(user)}</strong> pieza{bronzeMainDiscountPiecesThreshold(user) > 1 ? 's' : ''}{benefits.hasCompletedFirst ? '' : ' en tu primera compra'} para tu <strong>30% de descuento</strong></>
+                    ) : isDiamanteUser ? (
                       <>Activa tu <strong>descuento por volumen</strong> en compras mayores a $7,000</>
                     ) : (
                       <>Obtén <strong>{modalVolMainPercent}% de descuento</strong> en compras mayores a $7,000</>
                     )}
-                    {benefits.remainingForDiscount30 > 0 && (
+                    {!benefits.isBronze && benefits.remainingForDiscount30 > 0 && (
                       <span className="cart-modal__benefit-remaining">
                         {' '}(Te faltan ${benefits.remainingForDiscount30.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 })})
                       </span>
@@ -165,7 +206,11 @@ const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout 
                 <div className="cart-modal__benefit-item cart-modal__benefit-item--active">
                   <span className="cart-modal__benefit-icon">✓</span>
                   <span className="cart-modal__benefit-text">
-                    <strong>10% adicional</strong> aplicado en compras mayores a $15,000
+                    {benefits.isBronze ? (
+                      <><strong>30% + 10% adicional</strong> aplicados por tus 12 piezas</>
+                    ) : (
+                      <><strong>10% adicional</strong> aplicado en compras mayores a $15,000</>
+                    )}
                   </span>
                 </div>
               ) : (
@@ -173,8 +218,12 @@ const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout 
                   <div className="cart-modal__benefit-item">
                     <span className="cart-modal__benefit-icon">🎉</span>
                     <span className="cart-modal__benefit-text">
-                      Obtén <strong>10% adicional</strong> en compras mayores a $15,000
-                      {benefits.remainingForDiscount40 > 0 && (
+                      {benefits.isBronze ? (
+                        <>Obtén <strong>10% adicional</strong> con {benefits.remainingForDiscount40} pieza{benefits.remainingForDiscount40 > 1 ? 's' : ''} más (12 en total)</>
+                      ) : (
+                        <>Obtén <strong>10% adicional</strong> en compras mayores a $15,000</>
+                      )}
+                      {!benefits.isBronze && benefits.remainingForDiscount40 > 0 && (
                         <span className="cart-modal__benefit-remaining">
                           {' '}(Te faltan ${benefits.remainingForDiscount40.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 })})
                         </span>

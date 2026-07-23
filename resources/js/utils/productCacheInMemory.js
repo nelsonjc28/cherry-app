@@ -15,7 +15,13 @@ import axios from 'axios';
 import { getCherryCatalogBaseUrl, unwrapCatalogProductList } from '../config/cherryCatalogBaseUrl';
 import { fetchFechaAgotadoMetaMap } from '../api/fechaAgotadoMeta';
 import { filterProductsByFechaAgotadoMeta } from './productUtils';
-import { isProductNewLikeNuevosPage } from './productNewRules';
+import {
+  evaluateProductStatus,
+  filterProducts,
+  matchesFilter,
+  FILTER,
+  isNewArrival,
+} from './productStatusEvaluator';
 
 const CHERRY_API_URL = getCherryCatalogBaseUrl();
 const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutos
@@ -145,10 +151,38 @@ class ProductCacheManager {
   }
 
   /**
-   * Filtra solo productos nuevos (misma regla que /nuevos).
+   * Filtra solo productos nuevos (filtro principal unificado).
    */
   filterOnlyNew(products) {
-    return products.filter(p => isProductNewLikeNuevosPage(p));
+    return products.filter((p) => evaluateProductStatus(p).is_new === true);
+  }
+
+  /**
+   * Filtra solo productos "Próximamente" (filtro principal unificado).
+   */
+  filterOnlyComingSoon(products) {
+    return products.filter((p) => evaluateProductStatus(p).is_coming_soon === true);
+  }
+
+  /**
+   * Filtra solo productos en rebaja (en oferta desc_promo).
+   */
+  filterOnlyOnSale(products) {
+    return products.filter((p) => evaluateProductStatus(p).is_on_sale === true);
+  }
+
+  /**
+   * Filtra solo productos agotados.
+   */
+  filterOnlyOutOfStock(products) {
+    return products.filter((p) => evaluateProductStatus(p).is_out_of_stock === true);
+  }
+
+  /**
+   * Pasa el filtro solicitado por nombre o por FILTER.*
+   */
+  filterByStatus(products, filterKey) {
+    return products.filter((p) => matchesFilter(p, filterKey));
   }
 
   /**

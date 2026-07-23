@@ -346,7 +346,7 @@ class CheckoutController extends Controller
         if ($pieces < $threshold) {
             return response()->json([
                 'success' => false,
-                'message' => "El envío a domicilio requiere al menos {$threshold} prendas sin rebaja. Usa retiro en tienda.",
+                'message' => "El envío a domicilio requiere al menos {$threshold} prendas. Usa retiro en tienda.",
                 'bronze_pieces_required' => $threshold,
                 'bronze_pieces_counted' => $pieces,
             ], 422);

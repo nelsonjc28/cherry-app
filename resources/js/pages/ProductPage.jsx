@@ -39,7 +39,7 @@ import { isProductNewLikeNuevosPage } from '../utils/productNewRules';
 import useHorizontalDragScroll from '../hooks/useHorizontalDragScroll';
 import colorConverter from '../services/colorConverter';
 import { validateStock, getProductStock } from '../services/inventoryService';
-import { getVolumeDiscountMainTier, getSellerCategoryFromUser, hasApiVolumeMainPercent, isOroDiamanteSeller, isBronzeSeller, canApplyMainDiscount } from '../utils/sellerVolumeDiscount';
+import { getVolumeDiscountMainTier, getSellerCategoryFromUser, hasApiVolumeMainPercent, isOroDiamanteSeller, isBronzeSeller, canApplyMainDiscount, bronzeShippingPiecesThreshold, bronzeMainDiscountPiecesThreshold, hasCompletedFirstPurchase } from '../utils/sellerVolumeDiscount';
 import {
   canEncargoSinStock,
   canEncargoForSize,
@@ -1129,7 +1129,86 @@ const ProductPage = () => {
       && desc2 > 0
       && eligibleCartTotal < DISCOUNT_40_THRESHOLD;
 
-    if (productHasNoPromo || eligibleCartTotal > 0) {
+    // Bronce: el descuento se rige por PIEZAS, no por umbrales monetarios.
+    // Reglas:
+    //  - 30% (primer tramo):
+    //      * Primera compra: ≥ 12 piezas sin rebaja.
+    //      * Compras posteriores (first_purchase_completed_at definido): desde 1 pieza
+    //        (no se muestra el mensaje de "Agrega piezas para el 30%" porque ya aplica).
+    //  - 10% (segundo tramo): se aplica a partir de 12 piezas sin rebaja, tanto en la
+    //    primera compra como en las posteriores. El cálculo no cambia.
+    if (isBronzeUser) {
+      const pieces = (volSummary && volSummary.eligible_pieces) || 0;
+      const hasCompletedFirst = volSummary
+        ? volSummary.bronze_completed_first_purchase
+        : hasCompletedFirstPurchase(user);
+      const secondTierThreshold = 12; // 10% adicional siempre desde 12 piezas
+
+      // Helper para singular/plural
+      const piecesLabel = (n) => `${n} pieza${n > 1 ? 's' : ''}`;
+
+      if (pieces >= secondTierThreshold) {
+        // Cualquiera (primera compra o posterior): 30% + 10% adicional desde 12 piezas.
+        alerts.push({
+          type: 'success',
+          icon: '🎉',
+          message: `¡Tienes el descuento máximo del ${volMainPercent}% + 10% adicional!`,
+          color: '#4caf50',
+        });
+      } else if (pieces > 0) {
+        if (hasCompletedFirst) {
+          // Repeat: 30% ya aplica desde la 1ª pieza. Solo progresamos al 10% adicional.
+          const remaining = secondTierThreshold - pieces;
+          const isNear = pieces >= secondTierThreshold * NEAR_THRESHOLD_PERCENT;
+          if (isNear) {
+            alerts.push({
+              type: 'near',
+              icon: '🔥',
+              message: `¡Ya casi! Te faltan ${piecesLabel(remaining)} para obtener tu 10% adicional`,
+              color: '#ff9800',
+            });
+          } else {
+            alerts.push({
+              type: 'info',
+              icon: '💰',
+              message: `Te faltan ${piecesLabel(remaining)} para obtener tu 10% adicional`,
+              color: '#2196f3',
+            });
+          }
+        } else {
+          // Primera compra: 30% requiere 12 piezas. Mostrar progreso al 30% (que incluye 10% adicional).
+          const remaining = secondTierThreshold - pieces;
+          const isNear = pieces >= secondTierThreshold * NEAR_THRESHOLD_PERCENT;
+          if (isNear) {
+            alerts.push({
+              type: 'near',
+              icon: '🔥',
+              message: `¡Ya casi! Te faltan ${piecesLabel(remaining)} para obtener tu descuento del ${volMainPercent}% + 10% adicional`,
+              color: '#ff9800',
+            });
+          } else {
+            alerts.push({
+              type: 'info',
+              icon: '💰',
+              message: pieces === 0
+                ? `Agrega ${piecesLabel(secondTierThreshold)} en tu primera compra para obtener ${volMainPercent}% + 10% adicional`
+                : `Te faltan ${piecesLabel(remaining)} para obtener tu descuento del ${volMainPercent}% + 10% adicional`,
+              color: '#2196f3',
+            });
+          }
+        }
+      } else if (!hasCompletedFirst) {
+        // Carrito vacío, primera compra: mostrar mensaje inicial.
+        alerts.push({
+          type: 'info',
+          icon: '💰',
+          message: `Agrega ${piecesLabel(secondTierThreshold)} en tu primera compra para obtener ${volMainPercent}% + 10% adicional`,
+          color: '#2196f3',
+        });
+      }
+      // Carrito vacío, repeat customer: 30% ya aplica, no se muestra mensaje.
+    } else if (productHasNoPromo || eligibleCartTotal > 0) {
+      // Oro / Diamante (y usuarios sin categoría): descuento por MONTO elegible
       if (eligibleCartTotal < DISCOUNT_30_THRESHOLD) {
         const remaining = DISCOUNT_30_THRESHOLD - eligibleCartTotal;
         const isNear = eligibleCartTotal >= (DISCOUNT_30_THRESHOLD * NEAR_THRESHOLD_PERCENT);
@@ -1139,8 +1218,8 @@ const ProductPage = () => {
             type: 'near',
             icon: '🔥',
             message: isDiamanteUser
-              ? `¡Ya casi! Te faltan $${formatMoneyWithCommas(remaining)} para activar tu descuento por volumen`
-              : `¡Ya casi! Te faltan $${formatMoneyWithCommas(remaining)} para obtener tu descuento del ${volMainPercent}%`,
+              ? `¡Ya casi! Te faltan ${formatMoneyWithCommas(remaining)} para activar tu descuento por volumen`
+              : `¡Ya casi! Te faltan ${formatMoneyWithCommas(remaining)} para obtener tu descuento del ${volMainPercent}%`,
             color: '#ff9800'
           });
         } else {
@@ -1149,11 +1228,11 @@ const ProductPage = () => {
             icon: '💰',
             message: eligibleCartTotal > 0
               ? (isDiamanteUser
-                ? `Te faltan $${formatMoneyWithCommas(remaining)} para activar tu descuento por volumen`
-                : `Te faltan $${formatMoneyWithCommas(remaining)} para obtener un descuento del ${volMainPercent}%`)
+                ? `Te faltan ${formatMoneyWithCommas(remaining)} para activar tu descuento por volumen`
+                : `Te faltan ${formatMoneyWithCommas(remaining)} para obtener un descuento del ${volMainPercent}%`)
               : (isDiamanteUser
-                ? `Agrega $${DISCOUNT_30_THRESHOLD.toLocaleString()} en productos elegibles para activar tu descuento por volumen`
-                : `Agrega $${DISCOUNT_30_THRESHOLD.toLocaleString()} en productos para obtener ${volMainPercent}% de descuento`),
+                ? `Agrega ${DISCOUNT_30_THRESHOLD.toLocaleString()} en productos elegibles para activar tu descuento por volumen`
+                : `Agrega ${DISCOUNT_30_THRESHOLD.toLocaleString()} en productos elegibles para obtener ${volMainPercent}% de descuento`),
             color: '#2196f3'
           });
         }
@@ -1184,14 +1263,14 @@ const ProductPage = () => {
             alerts.push({
               type: 'near',
               icon: '🔥',
-              message: `¡Ya casi! Te faltan $${formatMoneyWithCommas(remaining)} para un 10% adicional`,
+              message: `¡Ya casi! Te faltan ${formatMoneyWithCommas(remaining)} para un 10% adicional`,
               color: '#ff9800',
             });
           } else {
             alerts.push({
               type: 'info',
               icon: '🎯',
-              message: `Te faltan $${formatMoneyWithCommas(remaining)} para un 10% adicional`,
+              message: `Te faltan ${formatMoneyWithCommas(remaining)} para un 10% adicional`,
               color: '#2196f3',
             });
           }

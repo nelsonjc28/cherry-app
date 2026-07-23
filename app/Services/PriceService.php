@@ -154,6 +154,19 @@ class PriceService
     }
 
     /**
+     * Bronce: piezas mínimas para que aplique el 30 % de descuento.
+     * - Primera compra: 12 piezas sin rebaja.
+     * - Compras posteriores (first_purchase_completed_at definido): desde 1 pieza
+     *   (no requiere acumular 6 piezas — el descuento sigue al cliente en cada compra).
+     */
+    public function bronzeMainDiscountPiecesThreshold(User $user): int
+    {
+        return $this->hasCompletedFirstPurchase($user)
+            ? 1
+            : self::BRONZE_PIECES_FIRST_PURCHASE;
+    }
+
+    /**
      * Indica si el cliente bronce cumple el mínimo de piezas para envío a domicilio.
      * Si el carrito está vacío o no alcanza el mínimo, debe retirar en tienda.
      */
@@ -173,7 +186,8 @@ class PriceService
 
     /**
      * Bronce: ¿aplica el primer tramo (30 %)?
-     * Solo si alcanza el umbral de piezas correspondiente a su primera o no-primera compra.
+     * - Primera compra: ≥ 12 piezas sin rebaja.
+     * - Compras posteriores (first_purchase_completed_at definido): desde 1 pieza.
      */
     public function shouldApplyBronzeMainDiscount(User $user, array $items): bool
     {
@@ -182,24 +196,22 @@ class PriceService
         }
 
         $pieces = $this->countEligiblePieces($items);
-        if ($pieces < $this->bronzeShippingPiecesThreshold($user)) {
+        if ($pieces <= 0) {
             return false;
         }
 
-        return $pieces > 0;
+        return $pieces >= $this->bronzeMainDiscountPiecesThreshold($user);
     }
 
     /**
      * Bronce: ¿aplica el segundo tramo (10 %)?
-     * Solo en la primera compra y solo si alcanza el umbral de 12 piezas.
+     * Aplica a partir de 12 piezas sin rebaja, tanto en primera compra como en
+     * compras posteriores (la fórmula del cálculo no cambia; sigue siendo 10 %
+     * sobre el subtotal después del primer tramo).
      */
     public function shouldApplyBronzeSecondTier(User $user, array $items): bool
     {
         if (! $this->isBronze($user)) {
-            return false;
-        }
-
-        if ($this->hasCompletedFirstPurchase($user)) {
             return false;
         }
 
@@ -397,6 +409,16 @@ class PriceService
         return [
             'lines_sum' => $linesSum,
             'eligible_total' => $eligibleTotal,
+            'eligible_pieces' => $this->countEligiblePieces($items),
+            'bronze_shipping_pieces_threshold' => $this->isBronze($user)
+                ? $this->bronzeShippingPiecesThreshold($user)
+                : null,
+            'bronze_main_discount_pieces_threshold' => $this->isBronze($user)
+                ? $this->bronzeMainDiscountPiecesThreshold($user)
+                : null,
+            'bronze_completed_first_purchase' => $this->isBronze($user)
+                ? $this->hasCompletedFirstPurchase($user)
+                : null,
             'volume_discount' => $volumeDiscount,
             'descuento1' => $descuento1,
             'descuento2' => $descuento2,

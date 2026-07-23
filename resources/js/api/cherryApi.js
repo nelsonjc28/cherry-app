@@ -8,6 +8,14 @@ import {
   applyStackedProductDiscountPricing,
 } from '../utils/offerMinPurchaseUtils';
 import { isOfferActiveOnDate, getOfferDaysRemaining } from '../utils/offerDateUtils';
+import {
+  evaluateProductStatus,
+  STATUS,
+  FILTER,
+  hasActiveSale,
+  filterProducts,
+  matchesFilter,
+} from '../utils/productStatusEvaluator';
 
 const CHERRY_API_URL = getCherryCatalogBaseUrl();
 
@@ -427,8 +435,14 @@ export const mapApiProductToAppProduct = (apiProduct, ratingsCache = {}) => {
     detalles: apiProduct.detalles || []
   };
 
-  mappedProduct.isComingSoon =
-    getProductCardStockStatus(mappedProduct) === 'coming-soon';
+  // Filtro principal unificado (Próximamente / Nuevo / Agotado / En Rebaja)
+  const statusEval = evaluateProductStatus(mappedProduct);
+  mappedProduct.status = statusEval.status;
+  mappedProduct.isNew = statusEval.is_new;
+  mappedProduct.isComingSoon = statusEval.is_coming_soon;
+  mappedProduct.isOutOfStock = statusEval.is_out_of_stock;
+  mappedProduct.isInStock = statusEval.is_in_stock;
+  mappedProduct.isOnSale = statusEval.is_on_sale;
 
   return mappedProduct;
 };

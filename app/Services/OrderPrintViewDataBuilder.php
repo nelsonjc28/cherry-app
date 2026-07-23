@@ -150,23 +150,21 @@ class OrderPrintViewDataBuilder
     private function buildProductLabelsForPrint(?Producto $product, float $stockTotal): array
     {
         $labels = [];
-        $descPromoRaw = $product?->desc_promo;
-        $hasRebaja = $descPromoRaw !== null
-            && $descPromoRaw !== ''
-            && (float) $descPromoRaw > 0.0001;
-        if ($hasRebaja) {
+
+        if (! $product) {
+            return $labels;
+        }
+
+        // Filtro principal unificado
+        $eval = \App\Support\ProductStatusEvaluator::evaluate($product, $stockTotal);
+
+        if ($eval['is_on_sale']) {
             $labels[] = 'REBAJA';
         }
-
-        $fechaAlta = $product?->fecha_alta ? Carbon::parse($product->fecha_alta) : null;
-        $isNuevo = (($product?->opc_nuevo ?? 'N') === 'S')
-            || ($fechaAlta && $fechaAlta->greaterThanOrEqualTo(now()->subDays(30)));
-        if ($isNuevo) {
+        if ($eval['is_new']) {
             $labels[] = 'NUEVO';
         }
-
-        $isProximamente = ! $hasRebaja && ($fechaAlta === null || $stockTotal <= 0.0001);
-        if ($isProximamente) {
+        if ($eval['is_coming_soon']) {
             $labels[] = 'PRÓXIMAMENTE';
         }
 

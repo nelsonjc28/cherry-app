@@ -127,7 +127,14 @@ class ProductController extends Controller
             $inventarioTotalProducto = count($detalles) > 0
                 ? $inventarioSumDetalles
                 : Producto::effectiveDetailInventoryContribution($producto->inventario ?? 0);
-            $isComingSoon = Producto::evaluateIsComingSoonFromRow($producto, $inventarioTotalProducto);
+
+            // Filtro principal unificado (Próximamente / Nuevo / Agotado / En Rebaja).
+            /** @var array{status:string,is_in_stock:bool,is_new:bool,is_coming_soon:bool,is_out_of_stock:bool,is_on_sale:bool} $statusEval */
+            $statusEval = \App\Support\ProductStatusEvaluator::evaluate(
+                is_array($producto) ? $producto : (array) $producto,
+                $inventarioTotalProducto
+            );
+            $isComingSoon = $statusEval['is_coming_soon'];
 
             // Obtener reseñas aprobadas con información del usuario
             $approvedReviews = Review::where('product_id', $id)
@@ -205,7 +212,14 @@ class ProductController extends Controller
                     'opc_nuevo' => $producto->opc_nuevo ?? 'N',
                     'opc_promo' => $producto->opc_promo ?? 'N',
                     'desc_promo' => (float) ($producto->desc_promo ?? 0),
-                    'is_coming_soon' => $isComingSoon,
+
+                    // Filtro principal (ProductoStatusEvaluator)
+                    'status' => $statusEval['status'],
+                    'is_coming_soon' => $statusEval['is_coming_soon'],
+                    'is_out_of_stock' => $statusEval['is_out_of_stock'],
+                    'is_in_stock' => $statusEval['is_in_stock'],
+                    'is_on_sale' => $statusEval['is_on_sale'],
+                    'stock_kind' => $statusEval['status'],
 
                     // Campos calculados
                     'price' => $finalPrice, // Precio final con descuento reducido aplicado
@@ -401,28 +415,28 @@ class ProductController extends Controller
     }
 
     /**
-     * Obtener productos próximamente
-     * REGLA DE NEGOCIO GLOBAL: Un producto es "Próximamente" SOLO si cumple TODAS las condiciones:
-     * 1. El tercer dígito del ID (índice 2) coincide con el último dígito del año actual
-     * 2. Inventario total exactamente 0 (si hay detalles: suma de inventario_d; si no: inventario de cabecera; ver computeTotalInventoryLikeFrontend)
-     * 3. stock_received_count = 0 (el producto nunca ha recibido stock)
-     * 
-     * Limitado a 4 productos para la sección "Próximamente" (por defecto)
-     * Ejemplo: En 2026, solo productos cuyo tercer dígito del ID sea "6", con stock = 0 y stock_received_count = 0
+     * Obtener productos próximamente.
+     *
+     * Filtro principal: delega en {@see \App\Support\ProductStatusEvaluator}.
+     * Antes se usaba la heurística "3er dígito del ID = último dígito del año". Esa regla
+     * fue removida y ahora se usan:
+     *   - inventario total = 0
+     *   - stock_received_count = 0
+     *   - fecha_alta nula / reciente (≤ 90 días) / futura, o bien opc_nuevo='S'
+     *   - sin oferta desc_promo activa
+     *
+     * Limitado a 4 productos para la sección "Próximamente" (por defecto).
      */
     public function getComingSoonProducts(Request $request): JsonResponse
     {
         try {
             $limit = $request->input('limit', 4);
 
-            // Obtener el último dígito del año actual (ej: 2026 -> 6)
-            $currentYearLastDigit = (int) date('Y') % 10;
+            // Filtro SQL equivalente a ProductStatusEvaluator::isNewArrivalFromRow()
+            // (sin oferta activa, sin recepciones previas y con fecha_alta nula o dentro
+            // de los últimos 90 días — incluyendo futura).
+            $newArrivalCutoff = now()->subDays(\App\Support\ProductStatusEvaluator::NEW_ARRIVAL_WINDOW_DAYS)->format('Y-m-d');
 
-            // Obtener productos próximamente con sus detalles
-            // FILTRO CRÍTICO: Un producto SOLO puede mostrarse en "Próximamente" si cumple TODAS las condiciones:
-            // 1. Inventario total exactamente 0 (ver computeTotalInventoryLikeFrontend)
-            // 2. El tercer carácter de su ID (id[2]) coincide con el último dígito del año actual
-            // 3. stock_received_count = 0 (el producto nunca ha recibido stock)
             $query = DB::table('productos')
                 ->leftJoin('detalles', 'productos.id', '=', 'detalles.producto_id')
                 ->select(
@@ -456,11 +470,17 @@ class ProductController extends Controller
                     'detalles.detalle',
                     'detalles.inventario_d'
                 )
-                ->whereRaw('SUBSTRING(productos.id, 3, 1) = ?', [$currentYearLastDigit]) // Condición 2: Tercer dígito debe coincidir con último dígito del año
-                ->where('productos.stock_received_count', '=', 0) // Condición 3: stock_received_count debe ser 0
+                ->where('productos.stock_received_count', '=', 0) // nunca ha recibido stock
                 ->where(function ($q) {
+                    // sin oferta activa
                     $q->whereNull('productos.desc_promo')
                         ->orWhere('productos.desc_promo', '<=', 0);
+                })
+                ->where(function ($q) use ($newArrivalCutoff) {
+                    // recién llegado: opc_nuevo='S' o fecha_alta nula / reciente / futura
+                    $q->where('productos.opc_nuevo', 'S')
+                        ->orWhereNull('productos.fecha_alta')
+                        ->orWhere('productos.fecha_alta', '>=', $newArrivalCutoff);
                 });
 
             Producto::applyFechaAgotadoVisibilityToProductosQuery($query);
@@ -548,6 +568,22 @@ class ProductController extends Controller
                             ];
                         })->values()->toArray();
 
+                    // Filtro principal: confirmar nuevamente con el evaluador (incluye la lógica PHP
+                    // que el SQL aproxima, por si hay drift).
+                    $rowForEval = (array) $producto;
+                    $rowForEval['inventario_total'] = $inventarioTotal;
+                    $statusEval = \App\Support\ProductStatusEvaluator::evaluate(
+                        $rowForEval,
+                        $inventarioTotal,
+                        array_map(
+                            fn ($d) => ['inventario_d' => $d->inventario_d ?? null],
+                            $productGroup->filter(fn ($d) => isset($d->detalle_id) && $d->detalle_id !== null)->all()
+                        )
+                    );
+                    if ($statusEval['status'] !== \App\Support\ProductStatusEvaluator::STATUS_COMING_SOON) {
+                        return null;
+                    }
+
                     return [
                         'id' => $producto->id,
                         'id_articulo' => $producto->id,
@@ -562,7 +598,16 @@ class ProductController extends Controller
                         'inventario' => $inventarioTotal,
                         'colors' => $colors,
                         'sizes' => $sizes,
+
+                        // Filtro principal (ProductoStatusEvaluator)
+                        'status' => $statusEval['status'],
                         'isNew' => false, // Coming soon are not "new" in this context
+                        'is_coming_soon' => true,
+                        'is_out_of_stock' => false,
+                        'is_in_stock' => false,
+                        'is_on_sale' => $statusEval['is_on_sale'],
+                        'stock_kind' => $statusEval['status'],
+
                         'rating' => $rating,
                         'ratingCount' => $ratingCount,
                         'id_linea' => $producto->id_linea,

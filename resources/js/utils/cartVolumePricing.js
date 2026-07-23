@@ -15,6 +15,7 @@ import {
   isBronzeSeller,
   hasCompletedFirstPurchase,
   bronzeShippingPiecesThreshold,
+  bronzeMainDiscountPiecesThreshold,
   shouldApplyBronzeMainDiscount,
   shouldApplyBronzeSecondTier,
 } from './sellerVolumeDiscount';
@@ -108,6 +109,9 @@ export function summarizeVolumeFromPricingLines(user, lines) {
     eligible_pieces: eligiblePieces,
     bronze_shipping_pieces_threshold: isBronze
       ? bronzeShippingPiecesThreshold(user)
+      : null,
+    bronze_main_discount_pieces_threshold: isBronze
+      ? bronzeMainDiscountPiecesThreshold(user)
       : null,
     bronze_completed_first_purchase: isBronze
       ? hasCompletedFirstPurchase(user)

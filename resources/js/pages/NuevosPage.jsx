@@ -13,6 +13,7 @@ import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
 import { getTotalInventoryFromProduct } from '../utils/productUtils';
 import { isProductNewLikeNuevosPage, sortKeyFechaCompra } from '../utils/productNewRules';
+import { evaluateProductStatus, FILTER } from '../utils/productStatusEvaluator';
 import useUserStore from '../store/userStore';
 import { getEffectiveDescPromoPercent } from '../utils/catalogRebajaUtils';
 
@@ -389,29 +390,17 @@ const NuevosPage = () => {
           });
           setAvailableSizes(sortedSizes);
           
-          // Excluir productos próximamente antes de mostrarlos en pantalla
-          // REGLA CORREGIDA: Excluir SOLO si el tercer dígito coincide con el año Y el stock es 0
+          // Excluir productos "próximamente" antes de mostrarlos en pantalla
+          // Filtro principal unificado (ProductStatusEvaluator).
           let excluidosEnFiltroFinal = 0;
           const productosSinProximamente = productsWithOffers.filter(product => {
-            const totalStock = getTotalInventoryFromProduct(product);
-            
-            // Verificar si el tercer dígito del ID coincide con el último dígito del año actual
-            const productId = String(product.id || product.id_articulo || '');
-            const tercerDigito = productId.length > 2 ? productId[2] : null;
-            const currentYearLastDigit = String(new Date().getFullYear() % 10);
-            const tercerDigitoCoincideConAno = tercerDigito === currentYearLastDigit;
-            
-            // EXCLUIR SOLO si AMBAS condiciones se cumplen:
-            // 1. El tercer dígito coincide con el último dígito del año actual
-            // 2. El stock es 0
-            if (tercerDigitoCoincideConAno && totalStock === 0) {
+            if (evaluateProductStatus(product).is_coming_soon) {
               excluidosEnFiltroFinal++;
-              return false; // Excluir productos próximamente sin stock
+              return false;
             }
-            return true; // Incluir todos los demás productos (incluyendo próximamente con stock > 0)
+            return true;
           });
-          
-          
+
           setAllProducts(shuffleArray(productosSinProximamente));
         } else {
           setAllProducts([]);
