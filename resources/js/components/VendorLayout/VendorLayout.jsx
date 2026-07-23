@@ -70,6 +70,15 @@ const VendorLayout = () => {
           >
             🛒 Checkout
           </button>
+          <button
+            className={`vendor-layout__nav-link${isActive('/vendor/profile') ? ' active' : ''}`}
+            onClick={() => {
+              navigate('/vendor/profile');
+              setSidebarOpen(false);
+            }}
+          >
+            👤 Mi Perfil
+          </button>
 
           <div className="vendor-layout__nav-divider" />
 

@@ -152,6 +152,9 @@ Route::middleware(['auth:api', 'vendor'])->prefix('vendor')->group(function () {
     Route::get('/orders/{id}', [\App\Http\Controllers\Api\Vendor\OrderController::class, 'show']);
     // Checkout (pedido directo en nombre de un cliente asociado)
     Route::post('/checkout', [\App\Http\Controllers\Api\Vendor\CheckoutController::class, 'checkout']);
+    // Perfil del vendor (ver/actualizar idvendedor)
+    Route::get('/profile', [\App\Http\Controllers\Api\Vendor\ProfileController::class, 'show']);
+    Route::post('/profile/idvendedor', [\App\Http\Controllers\Api\Vendor\ProfileController::class, 'updateIdvendedor']);
 });
 
 // Admin routes - protected by admin middleware

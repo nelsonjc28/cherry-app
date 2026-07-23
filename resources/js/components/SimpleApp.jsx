@@ -58,6 +58,7 @@ import VendorLayout from './VendorLayout/VendorLayout';
 import VendorDashboard from '../pages/vendor/VendorDashboard';
 import VendorOrders from '../pages/vendor/VendorOrders';
 import VendorCheckoutPage from '../pages/vendor/VendorCheckoutPage';
+import VendorProfile from '../pages/vendor/VendorProfile';
 import CustomToastContainer from './Toast/ToastContainer';
 import ScrollToTop from './ScrollToTop/ScrollToTop';
 
@@ -160,6 +161,7 @@ const SimpleApp = () => {
                     <Route index element={<VendorDashboard />} />
                     <Route path="orders" element={<VendorOrders />} />
                     <Route path="checkout" element={<VendorCheckoutPage />} />
+                    <Route path="profile" element={<VendorProfile />} />
                   </Route>
 
                   {/* Catch-all route - redirect to home for any unmatched routes */}

@@ -55,3 +55,15 @@ export const vendorCheckout = (payload) =>
     headers: authHeaders(),
     body: JSON.stringify(payload),
   }).then(handle);
+
+// ============ Perfil del vendedor ============
+
+export const getMyProfile = () =>
+  fetch('/api/vendor/profile', { headers: authHeaders() }).then(handle);
+
+export const updateMyIdvendedor = (idvendedor) =>
+  fetch('/api/vendor/profile/idvendedor', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ idvendedor }),
+  }).then(handle);
