@@ -32,17 +32,24 @@ export function effectiveDetailInventoryContribution(raw) {
 
 /**
  * Inventario total: si hay detalles/tallas con `inventario_d`, usa la suma;
- * si los detalles existen pero NO traen `inventario_d` (o todos son 0), cae
- * al inventario de cabecera (`inventario` o `stock`).
+ * si los detalles existen pero NO traen `inventario_d`, cae al inventario
+ * de cabecera (`inventario` o `stock`).
  *
- * Esto protege contra endpoints que devuelven el array `detalles` sin stock
- * por detalle (ej. `/catalogs/{id}/products` antes de la corrección).
+ * Si los detalles tienen `inventario_d` y la suma es 0 pero la cabecera
+ * reporta stock > 0, gana el valor mayor. Esto protege contra dos casos:
+ *   1. Endpoints que no incluyen `inventario_d` (defensa).
+ *   2. Sync incompleta del detalle (header actualizado, detalles aún en 0):
+ *      no se debe ocultar el producto de los listados por un desfase
+ *      transitorio.
  */
 export function getTotalInventoryFromProduct(product) {
   if (!product) {
     return 0;
   }
   const detalles = product.detalles;
+  const headerInv = effectiveDetailInventoryContribution(
+    product.inventario ?? product.stock ?? 0
+  );
 
   if (detalles && Array.isArray(detalles) && detalles.length > 0) {
     let hasInventarioD = false;
@@ -56,18 +63,20 @@ export function getTotalInventoryFromProduct(product) {
       sum += positive;
     }
     if (hasInventarioD && sum > 0.00001) {
+      // Detalles reportan stock: usar esa suma (es la fuente fina).
       return sum;
     }
-    // Si no hay inventario_d en los detalles, o todos son 0:
-    // caer al inventario de cabecera.
-    if (hasInventarioD) {
-      // Hay `inventario_d` pero todo es 0 (sin stock real) → respetar el dato.
-      return 0;
+    if (!hasInventarioD) {
+      // Detalles sin `inventario_d` (campo ausente): caer a la cabecera.
+      return headerInv;
     }
-    return effectiveDetailInventoryContribution(product.inventario ?? product.stock ?? 0);
+    // Detalles con `inventario_d` pero todo en 0: respetar el dato si la
+    // cabecera también está en 0; si la cabecera tiene stock, usar el mayor
+    // (posible desfase de sincronización).
+    return Math.max(sum, headerInv);
   }
 
-  return effectiveDetailInventoryContribution(product.inventario ?? product.stock ?? 0);
+  return headerInv;
 }
 
 /**
