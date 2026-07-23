@@ -1563,6 +1563,19 @@ const ProductPage = () => {
       };
     }
 
+    if (kind === 'new') {
+      // Producto recién llegado con stock: badge "Nuevo" con icono distintivo.
+      return {
+        status: 'new',
+        text: 'Nuevo',
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 0.25L9.625 5.625L15 7.25L10.875 10.5L12.125 16L8 13L3.875 16L5.125 10.5L1 7.25L6.375 5.625L8 0.25Z" fill="#6f42c1" />
+          </svg>
+        )
+      };
+    }
+
     if (kind === 'coming-soon') {
       return {
         status: 'coming-soon',

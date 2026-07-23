@@ -312,6 +312,11 @@
   color: #1DA534;
 }
 
+.product-page__stock-status--new {
+  color: #6f42c1;
+  font-weight: 600;
+}
+
 .product-page__stock-status--out-of-stock {
   color: #D32F2F;
 }
