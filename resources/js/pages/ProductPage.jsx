@@ -1821,14 +1821,6 @@ const ProductPage = () => {
                   totalRatings={ratingData.count}
                 />
               </div>
-              <div className="product-page__info-stock">
-                <>
-                  {inventoryStatusData.icon}
-                  <span className={`product-page__stock-status product-page__stock-status--${inventoryStatusData.status}`}>
-                    {inventoryStatusData.text}
-                  </span>
-                </>
-              </div>
             </div>
 
             <div className="product-page__info-price">
