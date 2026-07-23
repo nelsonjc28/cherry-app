@@ -734,6 +734,20 @@ const ProductPage = () => {
       return;
     }
 
+    // Defensa adicional: producto totalmente agotado (status='out-of-stock') y usuario
+    // sin privilegio de encargo (bronce). Aunque `canEncargo` ya sería false, este check
+    // explícito previene que un bug de datos (tallas con stock > 0 en un producto que
+    // el backend marca agotado) deje agregar al carrito.
+    if (isOutOfStock && user && !isOroDiamanteSeller(user)) {
+      if (window.showToast) {
+        window.showToast(
+          'Este producto está agotado en su totalidad. Solo clientes Oro/Diamante pueden encargarlo.',
+          'error'
+        );
+      }
+      return;
+    }
+
     // Si el producto está "próximamente", manejar según categoría del usuario
     if (isComingSoon) {
       if (!user) {
@@ -1038,6 +1052,14 @@ const ProductPage = () => {
     const inventoryStatus = getInventoryStatus();
     const stockDisponible = selectedColor ? getStockBySizeAndColor(talla, selectedColor) : getStockForSize(talla);
     const canEncargoTalla = canEncargoForSize(user, inventoryStatus.status, stockDisponible, product);
+
+    // Defensa: producto totalmente agotado + usuario bronce/oro_diamante sin encargo
+    if (inventoryStatus.status === 'out-of-stock' && user && !isOroDiamanteSeller(user)) {
+      if (window.showToast) {
+        window.showToast('Este producto está agotado en su totalidad. Solo clientes Oro/Diamante pueden encargarlo.', 'error');
+      }
+      return;
+    }
 
     if (stockDisponible <= 0 && !canEncargoTalla) {
       if (window.showToast) {
@@ -2066,7 +2088,11 @@ const ProductPage = () => {
                       {tallasAMostrar.map((talla, index) => {
                         const stockDisponible = selectedColor ? getStockBySizeAndColor(talla, selectedColor) : getStockForSize(talla);
                         const canEncargoTalla = canEncargoForSize(user, statusKind, stockDisponible, product);
-                        const isDisabled = selectedColor && stockDisponible <= 0 && !canEncargoTalla;
+                        // Defensa: si el producto está totalmente agotado y el usuario es bronce,
+                        // bloquear TODAS las tallas (incluso las que tengan stock > 0 por
+                        // inconsistencia de datos). El encargo solo es para oro/diamante.
+                        const isOutOfStockSizeDisabled = isOutOfStock && user && !isOroDiamanteSeller(user);
+                        const isDisabled = isOutOfStockSizeDisabled || (selectedColor && stockDisponible <= 0 && !canEncargoTalla);
                         const maxStock = getStockForSize(talla);
                         const maxAllowed = canEncargoTalla ? 9999 : maxStock;
                         const canIncrease = (quantitiesBySize[talla] || 0) < maxAllowed;
