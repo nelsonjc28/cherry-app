@@ -1184,7 +1184,9 @@ const CartDetailsPage = () => {
           message: `Tu descuento del 30% vence en: ${bronzeBenefitDaysLeft} día(s). ¡Compra algo para renovarlo!`,
           color: '#4caf50',
         });
-      } else if (mainRequired > 1 || eligiblePieces < mainRequired) {
+      } else if (mainRequired > 1 || eligiblePieces < secondTierRequired) {
+        // Repetir la rama aunque sea repeat (mainRequired=1): cubre el caso en que
+        // el usuario ya tiene 30% (≥1 pieza) pero le falta completar 12 para el 10%.
         // Repeat customer (mainRequired = 1): solo progreso al 10% adicional.
         // First purchase (mainRequired = 12): progreso al 30% + 10%.
         if (hasCompletedFirst) {
@@ -1290,9 +1292,12 @@ const CartDetailsPage = () => {
       ? '¡Felicidades! Has alcanzado el descuento máximo disponible'
       : `¡Increíble! Tienes el descuento máximo del ${mainDiscountPercent}% + 10% adicional`;
 
-    // Bronce sin beneficio 45 días: el mensaje "falta $X para el 30%" ya va arriba (💡); no duplicar con el tramo genérico.
-    const skipFirstVolumeTier =
-      isBronzeUser && !bronzeBenefitActive && eligibleTotal < progressThreshold;
+    // Cualquier usuario bronce siempre ve mensajes por PIEZAS; nunca por monto ($).
+    // Antes solo se saltaba si NO tenía ventana activa, pero eso permitía que un
+    // bronce con bronzeBenefitActive=true y eligibleTotal < $7,000 viera "Te faltan
+    // $X para activar tu descuento" — mensaje incorrecto porque su descuento ya está
+    // activo por la ventana.
+    const skipFirstVolumeTier = isBronzeUser;
 
     if (eligibleTotal < progressThreshold && !skipFirstVolumeTier) {
       const remaining = progressThreshold - eligibleTotal;
