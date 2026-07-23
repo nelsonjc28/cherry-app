@@ -223,11 +223,16 @@ class ProductSearchController extends Controller
                 $colors = $coloresPorProducto[$producto->id] ?? [];
                 $detalles = $detallesPorProducto[$producto->id] ?? [];
 
-                // Filtrar productos agotados y próximamente: solo mostrar disponibles
+                // Filtrar productos agotados y próximamente: solo mostrar disponibles.
+                // Acepta tanto 'in-stock' como 'new' (ambos tienen stock > 0 con el
+                // evaluador central). Excluye solo los que alguna vez recibieron stock
+                // y ahora están sin stock (out-of-stock "establecido") u son
+                // coming-soon (Próximamente) cuando ya recibieron stock.
                 $inventoryTotal = Producto::computeTotalInventoryFromDetalleRows($detalles, (float) $producto->inventario);
                 $statusKind = Producto::evaluateInventoryStatusKindFromRow($producto, $inventoryTotal);
                 $stockReceivedCount = (int) ($producto->stock_received_count ?? 0);
-                if ($statusKind !== 'in-stock' && $stockReceivedCount > 0) {
+                $hasStockNow = in_array($statusKind, ['in-stock', 'new'], true);
+                if (! $hasStockNow && $stockReceivedCount > 0) {
                     continue;
                 }
                 
@@ -434,7 +439,8 @@ class ProductSearchController extends Controller
                 $stockReceivedCount = (int) ($producto->stock_received_count ?? 0);
                 $inventoryTotalRow = Producto::computeTotalInventoryFromDetalleRows($detalles, (float) $producto->inventario);
                 $statusKind = Producto::evaluateInventoryStatusKindFromRow($producto, $inventoryTotalRow);
-                if ($statusKind !== 'in-stock' && $stockReceivedCount > 0) {
+                $hasStockNow = in_array($statusKind, ['in-stock', 'new'], true);
+                if (! $hasStockNow && $stockReceivedCount > 0) {
                     continue;
                 }
 
