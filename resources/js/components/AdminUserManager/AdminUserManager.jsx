@@ -28,6 +28,8 @@ const hideActionTooltip = () => {
   if (tooltip) tooltip.style.display = 'none';
 };
 
+const VENDOR_ROLE_ID = 4; // role_id de 'vendedor' (ver migración 2026_07_13_100000)
+
 const AdminUserManager = () => {
   const [allUsers, setAllUsers] = useState([]);
   const [users, setUsers] = useState([]);
@@ -44,7 +46,8 @@ const AdminUserManager = () => {
     email: '',
     phone: '',
     password: '',
-    role_id: '1' // Default to admin role (ID: 1)
+    role_id: '1', // Default to admin role (ID: 1)
+    idvendedor: '',
   });
 
   // Fetch users and roles on component mount
@@ -67,10 +70,12 @@ const AdminUserManager = () => {
       }
       
       const data = await response.json();
-      // Filter only admin users
-      const adminUsers = data.users.filter(user => user.role?.name === 'admin');
-      setAllUsers(adminUsers);
-      setUsers(adminUsers);
+      // Mostrar solo administradores y vendedores (los operadores se gestionan aparte).
+      const filteredUsers = data.users.filter(user =>
+        user.role?.name === 'admin' || user.role?.name === 'vendedor'
+      );
+      setAllUsers(filteredUsers);
+      setUsers(filteredUsers);
     } catch (err) {
       setError(err.message);
       window.showToast('Error al cargar usuarios: ' + err.message, 'error');
@@ -144,7 +149,8 @@ const AdminUserManager = () => {
       email: '',
       phone: '',
       password: '',
-      role_id: '1' // Default to admin role (ID: 1)
+      role_id: '1', // Default to admin role (ID: 1)
+      idvendedor: '',
     });
     setEditingUser(null);
     setShowForm(false);
@@ -205,7 +211,8 @@ const AdminUserManager = () => {
       email: user.email,
       phone: user.phone || '',
       password: '',
-      role_id: user.role_id
+      role_id: user.role_id,
+      idvendedor: user.idvendedor || '',
     });
     setShowForm(true);
   };
@@ -258,16 +265,19 @@ const AdminUserManager = () => {
     return <div className="admin-user-manager__error">Error: {error}</div>;
   }
 
+  const isVendorRole = String(formData.role_id) === String(VENDOR_ROLE_ID);
+  const editingIsVendor = editingUser && editingUser.role_id === VENDOR_ROLE_ID;
+
   return (
     <div className="admin-user-manager">
       <div className="admin-user-manager__header">
-        <h2>Gestión de Usuarios Administradores</h2>
-        <CherryButton 
+        <h2>Gestión de Administradores y Vendedores</h2>
+        <CherryButton
           onClick={() => setShowForm(true)}
           variant="red"
           size="medium"
         >
-          Agregar Administrador
+          Agregar Usuario
         </CherryButton>
       </div>
 
@@ -276,16 +286,66 @@ const AdminUserManager = () => {
         <div className="admin-user-manager__form-overlay">
           <div className="admin-user-manager__form">
             <div className="admin-user-manager__form-header">
-              <h3>{editingUser ? 'Editar Administrador' : 'Crear Nuevo Administrador'}</h3>
-              <button 
+              <h3>
+                {editingUser
+                  ? `Editar ${editingIsVendor ? 'Vendedor' : 'Administrador'}`
+                  : (isVendorRole ? 'Crear Nuevo Vendedor' : 'Crear Nuevo Administrador')}
+              </h3>
+              <button
                 className="admin-user-manager__form-close"
                 onClick={resetForm}
               >
                 ✕
               </button>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="admin-user-manager__form-content">
+              <div className="admin-user-manager__form-row">
+                <div className="admin-user-manager__form-group">
+                  <label htmlFor="role_id">Rol *</label>
+                  <select
+                    id="role_id"
+                    name="role_id"
+                    value={formData.role_id}
+                    onChange={handleInputChange}
+                    required
+                    disabled={!!editingUser}
+                  >
+                    {roles
+                      .filter(r => r.name === 'admin' || r.name === 'vendedor')
+                      .map(r => (
+                        <option key={r.id} value={r.id}>
+                          {r.name === 'admin' ? 'Administrador' : 'Vendedor'}
+                        </option>
+                      ))}
+                  </select>
+                  {editingUser && (
+                    <p className="admin-user-manager__field-hint">
+                      El rol no se puede cambiar. Para cambiarlo, elimina y crea de nuevo.
+                    </p>
+                  )}
+                </div>
+                {isVendorRole && (
+                  <div className="admin-user-manager__form-group">
+                    <label htmlFor="idvendedor">ID Vendedor (externo) *</label>
+                    <input
+                      type="text"
+                      id="idvendedor"
+                      name="idvendedor"
+                      value={formData.idvendedor}
+                      onChange={handleInputChange}
+                      required={isVendorRole}
+                      maxLength="64"
+                      placeholder="Ej. 111, VEN-001"
+                    />
+                    <p className="admin-user-manager__field-hint">
+                      Identificador externo del vendedor (provisto por la API).
+                      Debe ser único entre todos los vendedores. Para clientes,
+                      este campo se sincroniza automáticamente desde la API.
+                    </p>
+                  </div>
+                )}
+              </div>
               <div className="admin-user-manager__form-row">
                 <div className="admin-user-manager__form-group">
                   <label htmlFor="first_name">Nombre *</label>
@@ -435,11 +495,14 @@ const AdminUserManager = () => {
                     <th>Correo</th>
                     <th>Teléfono</th>
                     <th>Rol</th>
+                    <th>ID Vendedor</th>
                     <th className="client-manager__actions-header">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((user) => (
+                  {users.map((user) => {
+                    const isVendor = user.role?.name === 'vendedor';
+                    return (
                     <tr key={user.id}>
                       <td className="client-manager__id-cell">#{user.id}</td>
                       <td className="order-customer-cell client-manager__name-cell">
@@ -450,9 +513,12 @@ const AdminUserManager = () => {
                       </td>
                       <td className="client-manager__email-cell">{user.phone || '—'}</td>
                       <td>
-                        <span className="vendor-category-badge vendor-category-badge--none">
-                          Administrador
+                        <span className={`vendor-category-badge ${isVendor ? 'vendor-category-badge--oro' : 'vendor-category-badge--none'}`}>
+                          {isVendor ? 'Vendedor' : 'Administrador'}
                         </span>
+                      </td>
+                      <td className="client-manager__email-cell">
+                        {isVendor ? (user.idvendedor || '—') : '—'}
                       </td>
                       <td className="client-manager__actions-cell">
                         <div className="client-manager__actions-grid">
@@ -485,7 +551,8 @@ const AdminUserManager = () => {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

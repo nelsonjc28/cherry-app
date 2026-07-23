@@ -23,7 +23,9 @@ class ExternalClienteDiscountService
      *   message?: string,
      *   external_client_id: string,
      *   descuento1: string|null,
-     *   descuento2: string|null
+     *   descuento2: string|null,
+     *   idvendedor: string|null,
+     *   nombre_vendedor: string|null
      * }
      */
     public function fetchByUserId(int $userId): array
@@ -52,6 +54,8 @@ class ExternalClienteDiscountService
                 'external_client_id' => $externalId,
                 'descuento1' => null,
                 'descuento2' => null,
+                'idvendedor' => null,
+                'nombre_vendedor' => null,
             ];
         }
 
@@ -68,6 +72,8 @@ class ExternalClienteDiscountService
                 'external_client_id' => $externalId,
                 'descuento1' => null,
                 'descuento2' => null,
+                'idvendedor' => null,
+                'nombre_vendedor' => null,
             ];
         }
 
@@ -79,17 +85,23 @@ class ExternalClienteDiscountService
                 'external_client_id' => $externalId,
                 'descuento1' => null,
                 'descuento2' => null,
+                'idvendedor' => null,
+                'nombre_vendedor' => null,
             ];
         }
 
         $d1 = $this->pickDiscountValue($json, 1);
         $d2 = $this->pickDiscountValue($json, 2);
+        $idvendedor = $this->pickNestedValue($json, ['idVendedor', 'IdVendedor', 'id_vendedor', 'idvendedor']);
+        $nombreVendedor = $this->pickNestedValue($json, ['nombreVendedor', 'NombreVendedor', 'nombre_vendedor', 'nombrevendedor']);
 
         return [
             'success' => true,
             'external_client_id' => $externalId,
             'descuento1' => $d1,
             'descuento2' => $d2,
+            'idvendedor' => $idvendedor !== null && $idvendedor !== '' ? (string) $idvendedor : null,
+            'nombre_vendedor' => $nombreVendedor !== null && $nombreVendedor !== '' ? (string) $nombreVendedor : null,
         ];
     }
 
@@ -101,7 +113,9 @@ class ExternalClienteDiscountService
      *   message?: string,
      *   external_client_id: string,
      *   descuento1: float|null,
-     *   descuento2: float|null
+     *   descuento2: float|null,
+     *   idvendedor: string|null,
+     *   nombre_vendedor: string|null
      * }
      */
     public function fetchDiscountPercents(int $userId): array
@@ -115,6 +129,8 @@ class ExternalClienteDiscountService
                 'external_client_id' => $r['external_client_id'],
                 'descuento1' => null,
                 'descuento2' => null,
+                'idvendedor' => null,
+                'nombre_vendedor' => null,
             ];
         }
 
@@ -123,6 +139,8 @@ class ExternalClienteDiscountService
             'external_client_id' => $r['external_client_id'],
             'descuento1' => $this->normalizePercentDisplayValue($r['descuento1']),
             'descuento2' => $this->normalizePercentDisplayValue($r['descuento2']),
+            'idvendedor' => $r['idvendedor'] ?? null,
+            'nombre_vendedor' => $r['nombre_vendedor'] ?? null,
         ];
     }
 
@@ -181,5 +199,31 @@ class ExternalClienteDiscountService
         }
 
         return (string) $v;
+    }
+
+    /**
+     * Busca el primer valor no vacío entre keys candidatas. La API externa
+     * suele envolver la respuesta en { data: {...} }.
+     *
+     * @param  array<string, mixed>  $json
+     * @param  list<string>  $keys
+     */
+    private function pickNestedValue(array $json, array $keys): mixed
+    {
+        $nested = data_get($json, 'data');
+        if (is_array($nested)) {
+            foreach ($keys as $k) {
+                if (array_key_exists($k, $nested) && $nested[$k] !== null && $nested[$k] !== '') {
+                    return $nested[$k];
+                }
+            }
+        }
+        foreach ($keys as $k) {
+            if (array_key_exists($k, $json) && $json[$k] !== null && $json[$k] !== '') {
+                return $json[$k];
+            }
+        }
+
+        return null;
     }
 }

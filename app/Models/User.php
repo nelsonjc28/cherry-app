@@ -12,6 +12,7 @@ use Tymon\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Address> $addresses
@@ -37,6 +38,7 @@ class User extends Authenticatable implements JWTSubject
         'email',
         'password',
         'role_id',
+        'idvendedor',
         'birth_day',
         'birth_month',
         'birth_year',
@@ -94,6 +96,43 @@ class User extends Authenticatable implements JWTSubject
     public function role()
     {
         return $this->belongsTo(Role::class);
+    }
+
+    /**
+     * Boot del modelo: validación de unicidad de idvendedor para vendors.
+     *
+     * MariaDB/MySQL no soporta índices únicos parciales con WHERE
+     * (CREATE UNIQUE INDEX ... WHERE role_id = 4), por lo que validamos
+     * en código al guardar:
+     *   - Para role_id=4 (vendedor): idvendedor debe ser único entre vendors.
+     *   - Para role_id=2 (cliente): idvendedor puede repetirse (varios clientes
+     *     pueden compartir el mismo vendor). No validamos unicidad.
+     *   - Para otros roles: idvendedor generalmente es NULL, no validamos.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (User $user) {
+            if (empty($user->idvendedor)) {
+                return;
+            }
+
+            // Solo validar unicidad para vendors (role_id = 4).
+            if ((int) $user->role_id !== 4) {
+                return;
+            }
+
+            $exists = static::query()
+                ->where('idvendedor', $user->idvendedor)
+                ->where('role_id', 4)
+                ->where('id', '!=', $user->id ?? 0)
+                ->exists();
+
+            if ($exists) {
+                throw new \RuntimeException(
+                    "Ya existe un vendedor registrado con idvendedor '{$user->idvendedor}'."
+                );
+            }
+        });
     }
 
     public function cart(): HasOne

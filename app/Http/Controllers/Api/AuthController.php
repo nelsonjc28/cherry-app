@@ -246,6 +246,11 @@ class AuthController extends Controller
         }
     }
 
+    private function isClientRole($user): bool
+    {
+        return $user && $user->role && $user->role->name === 'cliente';
+    }
+
     public function me()
     {
         try {
@@ -263,6 +268,21 @@ class AuthController extends Controller
                     $userWithRole->setAttribute('volume_descuento1', $ext['descuento1']);
                     $userWithRole->setAttribute('volume_descuento2', $ext['descuento2']);
                 }
+
+                // Sincronizar idvendedor del cliente desde la API externa.
+                // Para role='cliente': la API indica qué vendedor lo atiende.
+                // Para role='vendedor': el idvendedor lo pone el admin (no se sobreescribe).
+                // Solo actualizamos si la API devolvió un valor.
+                if (! empty($ext['idvendedor']) && $this->isClientRole($userWithRole)) {
+                    if ($userWithRole->idvendedor !== $ext['idvendedor']) {
+                        $userWithRole->idvendedor = $ext['idvendedor'];
+                        $userWithRole->save();
+                    }
+                }
+
+                // Exponer idvendedor y nombre_vendedor en la respuesta
+                $userWithRole->setAttribute('idvendedor_api', $ext['idvendedor'] ?? null);
+                $userWithRole->setAttribute('nombre_vendedor_api', $ext['nombre_vendedor'] ?? null);
             } catch (\Throwable $e) {
                 Log::warning('me(): no se pudieron obtener descuentos API cliente', [
                     'user_id' => $userWithRole->id,

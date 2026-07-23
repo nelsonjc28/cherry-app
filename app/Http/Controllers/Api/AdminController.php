@@ -13,12 +13,15 @@ use Illuminate\Validation\Rule;
 class AdminController extends Controller
 {
     /**
-     * Get all admin users with their roles
+     * Get all admin and vendor users with their roles
      */
     public function getUsers()
     {
         try {
-            $users = User::with('role')->where('role_id', 1)->get();
+            $vendorRoleId = \App\Models\Role::where('name', 'vendedor')->value('id') ?? 4;
+            $users = User::with('role')
+                ->whereIn('role_id', [1, $vendorRoleId])
+                ->get();
             return response()->json([
                 'success' => true,
                 'users' => $users
@@ -59,7 +62,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Create a new admin user
+     * Create a new admin or vendor user
      */
     public function createUser(Request $request)
     {
@@ -73,12 +76,16 @@ class AdminController extends Controller
                 ], 403);
             }
 
+            $vendorRoleId = \App\Models\Role::where('name', 'vendedor')->value('id') ?? 4;
+
             $validator = Validator::make($request->all(), [
                 'first_name' => 'required|string|max:255',
                 'last_name' => 'required|string|max:255',
                 'middle_name' => 'nullable|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users',
                 'phone' => 'required|string|size:10|regex:/^[0-9]{10}$/|unique:users',
+                'role_id' => "required|integer|in:1,{$vendorRoleId}",
+                'idvendedor' => "nullable|string|max:64|required_if:role_id,{$vendorRoleId}",
                 'password' => [
                     'required',
                     'string',
@@ -93,7 +100,10 @@ class AdminController extends Controller
                 'email.required' => 'El correo electrónico es requerido.',
                 'phone.unique' => 'Este número de teléfono ya está registrado.',
                 'phone.size' => 'El teléfono debe tener exactamente 10 dígitos.',
-                'phone.regex' => 'El teléfono debe contener solo números.'
+                'phone.regex' => 'El teléfono debe contener solo números.',
+                'idvendedor.required_if' => 'El ID Vendedor es obligatorio para usuarios con rol Vendedor.',
+                'idvendedor.max' => 'El ID Vendedor no puede exceder 64 caracteres.',
+                'role_id.in' => 'El rol debe ser Administrador o Vendedor.',
             ]);
 
             if ($validator->fails()) {
@@ -110,19 +120,22 @@ class AdminController extends Controller
                 'email' => $request->email,
                 'phone' => $request->phone,
                 'password' => Hash::make($request->password),
-                'role_id' => 1 // Always create as admin
+                'role_id' => (int) $request->role_id,
+                'idvendedor' => $request->role_id == $vendorRoleId ? $request->idvendedor : null,
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Administrador registrado exitosamente',
+                'message' => $request->role_id == $vendorRoleId
+                    ? 'Vendedor registrado exitosamente'
+                    : 'Administrador registrado exitosamente',
                 'user' => $user->load('role')
             ], 201);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al crear administrador: ' . $e->getMessage()
+                'message' => 'Error al crear usuario: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -169,6 +182,7 @@ class AdminController extends Controller
                     'regex:/^[0-9]{10}$/',
                     Rule::unique('users')->ignore($id)
                 ],
+                'idvendedor' => "nullable|string|max:64|required_if:role_id," . (\App\Models\Role::where('name', 'vendedor')->value('id') ?? 4),
                 'password' => [
                     'nullable',
                     'string',
@@ -182,7 +196,9 @@ class AdminController extends Controller
                 'email.unique' => 'Este correo electrónico ya está registrado.',
                 'phone.unique' => 'Este número de teléfono ya está registrado.',
                 'phone.size' => 'El teléfono debe tener exactamente 10 dígitos.',
-                'phone.regex' => 'El teléfono debe contener solo números.'
+                'phone.regex' => 'El teléfono debe contener solo números.',
+                'idvendedor.required_if' => 'El ID Vendedor es obligatorio para usuarios con rol Vendedor.',
+                'idvendedor.max' => 'El ID Vendedor no puede exceder 64 caracteres.',
             ]);
 
             if ($validator->fails()) {
@@ -198,8 +214,14 @@ class AdminController extends Controller
                 'middle_name' => $request->middle_name,
                 'email' => $request->email,
                 'phone' => $request->phone,
-                'role_id' => 1 // Always keep as admin
+                'role_id' => $user->role_id, // no se cambia el rol en update
             ];
+
+            // Para vendors: actualizar idvendedor. Para otros roles: null.
+            $vendorRoleId = \App\Models\Role::where('name', 'vendedor')->value('id') ?? 4;
+            $userData['idvendedor'] = $user->role_id == $vendorRoleId
+                ? ($request->filled('idvendedor') ? $request->idvendedor : $user->idvendedor)
+                : null;
 
             // Solo actualizar password si se proporciona
             if ($request->filled('password')) {
@@ -208,9 +230,13 @@ class AdminController extends Controller
 
             $user->update($userData);
 
+            $message = $user->role_id == $vendorRoleId
+                ? 'Vendedor actualizado exitosamente'
+                : 'Administrador actualizado exitosamente';
+
             return response()->json([
                 'success' => true,
-                'message' => 'Administrador actualizado exitosamente',
+                'message' => $message,
                 'user' => $user->load('role')
             ]);
 
