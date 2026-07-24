@@ -1542,4 +1542,28 @@ export const userNotificationService = {
   }
 };
 
+// Servicios para clientes
+export const clientService = {
+  // Listar todos los clientes (filtra por idvendedor del vendor si aplica)
+  getAll: async (params = {}) => {
+    try {
+      const response = await api.get('/admin/clients', { params });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+  // Sincroniza el idvendedor de los clientes oro/diamante desde la API externa.
+  // Accesible para admin, operador y vendor. Para vendor, solo sincroniza
+  // los clientes de su idvendedor.
+  syncIdvendedor: async () => {
+    try {
+      const response = await api.post('/admin/clients/sync-idvendedor');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+};
+
 export default api;

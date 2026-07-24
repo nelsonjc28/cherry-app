@@ -10,30 +10,176 @@ use App\Models\Address;
 use App\Services\ExternalClienteDiscountService;
 use App\Services\ExternalClienteAccountService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 class ClientController extends Controller
 {
     /**
-     * Get all client users with their roles
+     * Get all client users with their roles.
+     * Si el usuario autenticado es vendor, devuelve solo los clientes
+     * cuyo idvendedor coincide con su propio idvendedor.
      */
-    public function getClients()
+    public function getClients(Request $request)
     {
         try {
-            $users = User::with(['role', 'addresses'])
+            $authUser = Auth::user();
+            $query = User::with(['role', 'addresses'])
                 ->where('role_id', 2)
-                ->orderBy('id', 'desc')
-                ->get();
+                ->orderBy('id', 'desc');
+
+            // Filtro por idvendedor si el usuario autenticado es vendor
+            // (o si se pasa explícitamente el parámetro ?vendor=ID para el admin)
+            $vendorIdvendedor = null;
+            $isVendor = $authUser && $authUser->role && $authUser->role->name === 'vendedor';
+            if ($isVendor) {
+                $vendorIdvendedor = $authUser->idvendedor;
+            } elseif ($request->has('vendor')) {
+                $vendorIdvendedor = $request->input('vendor');
+            }
+
+            if ($vendorIdvendedor !== null && $vendorIdvendedor !== '') {
+                $query->where('idvendedor', $vendorIdvendedor);
+            }
+
+            $users = $query->get();
+
             return response()->json([
                 'success' => true,
-                'users' => $users
+                'users' => $users,
+                'vendor_filter' => $vendorIdvendedor,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener clientes: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Sincroniza el idvendedor de todos los clientes oro/diamante
+     * desde la API externa de clientes (campo `idVendedor`).
+     *
+     * Recorre los clientes con role=cliente y seller_category en
+     * (oro, diamante), consulta la API para cada uno y actualiza el
+     * campo `idvendedor` en la BD con el valor devuelto.
+     *
+     * Devuelve un resumen con: total procesados, actualizados, sin
+     * cambio, errores, y el detalle por cliente.
+     */
+    public function syncIdvendedorFromExternal(Request $request, ExternalClienteDiscountService $service)
+    {
+        $authUser = Auth::user();
+        if ($authUser && $authUser->isOperator()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Los operadores no tienen permiso para sincronizar idvendedor',
+            ], 403);
+        }
+
+        try {
+            // Solo clientes con categoría oro o diamante son los que tienen
+            // idvendedor relevante en la API externa.
+            $clients = User::where('role_id', 2)
+                ->whereIn('seller_category', ['oro', 'diamante'])
+                ->get(['id', 'first_name', 'last_name', 'email', 'idvendedor']);
+
+            $updated = 0;
+            $unchanged = 0;
+            $noValue = 0;
+            $errors = [];
+            $details = [];
+
+            foreach ($clients as $client) {
+                try {
+                    $result = $service->fetchByUserId((int) $client->id);
+
+                    if (! $result['success']) {
+                        $noValue++;
+                        $details[] = [
+                            'id' => $client->id,
+                            'name' => trim($client->first_name . ' ' . $client->last_name),
+                            'email' => $client->email,
+                            'status' => 'no_data',
+                            'message' => $result['message'] ?? 'Sin datos de la API',
+                        ];
+                        continue;
+                    }
+
+                    $newIdvendedor = $result['idvendedor'] ?? null;
+
+                    if (empty($newIdvendedor)) {
+                        $noValue++;
+                        $details[] = [
+                            'id' => $client->id,
+                            'name' => trim($client->first_name . ' ' . $client->last_name),
+                            'email' => $client->email,
+                            'status' => 'no_value',
+                            'message' => 'La API no devolvió idvendedor',
+                        ];
+                        continue;
+                    }
+
+                    $newIdvendedor = (string) $newIdvendedor;
+                    if ($client->idvendedor !== $newIdvendedor) {
+                        $client->idvendedor = $newIdvendedor;
+                        $client->save();
+                        $updated++;
+                        $details[] = [
+                            'id' => $client->id,
+                            'name' => trim($client->first_name . ' ' . $client->last_name),
+                            'email' => $client->email,
+                            'status' => 'updated',
+                            'idvendedor' => $newIdvendedor,
+                        ];
+                    } else {
+                        $unchanged++;
+                        $details[] = [
+                            'id' => $client->id,
+                            'name' => trim($client->first_name . ' ' . $client->last_name),
+                            'email' => $client->email,
+                            'status' => 'unchanged',
+                            'idvendedor' => $newIdvendedor,
+                        ];
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('syncIdvendedorFromExternal: error con cliente ' . $client->id, [
+                        'error' => $e->getMessage(),
+                    ]);
+                    $errors[] = [
+                        'id' => $client->id,
+                        'name' => trim($client->first_name . ' ' . $client->last_name),
+                        'message' => $e->getMessage(),
+                    ];
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => sprintf(
+                    'Sincronización completada: %d actualizados, %d sin cambios, %d sin datos, %d errores',
+                    $updated,
+                    $unchanged,
+                    $noValue,
+                    count($errors)
+                ),
+                'total_processed' => $clients->count(),
+                'updated' => $updated,
+                'unchanged' => $unchanged,
+                'no_value' => $noValue,
+                'errors_count' => count($errors),
+                'details' => $details,
+                'errors' => $errors,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error en la sincronización: ' . $e->getMessage(),
             ], 500);
         }
     }

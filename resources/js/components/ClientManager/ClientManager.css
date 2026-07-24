@@ -11,6 +11,42 @@
   border-bottom: 1px solid var(--color-border, #e0e0e0);
 }
 
+.client-manager__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.client-manager__sync-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid #1DA534;
+  background: #fff;
+  color: #1DA534;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.client-manager__sync-btn:hover:not(:disabled) {
+  background: #1DA534;
+  color: #fff;
+}
+
+.client-manager__sync-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.client-manager__sync-btn svg {
+  flex-shrink: 0;
+}
+
 .client-manager__header h2 {
   margin: 0;
   color: var(--color-text, #373737);

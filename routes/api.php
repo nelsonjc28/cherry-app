@@ -237,6 +237,11 @@ Route::middleware(['auth:api'])->group(function () {
     });
     
     // Client routes - require authentication and admin role
+    // IMPORTANTE: las rutas con segmentos fijos (sync-idvendedor) deben ir
+    // ANTES que las rutas con {id} para evitar que Laravel las matchee
+    // incorrectamente.
+    Route::post('/admin/clients/sync-idvendedor', [ClientController::class, 'syncIdvendedorFromExternal']);
+
     Route::get('/admin/clients', [ClientController::class, 'getClients']);
     Route::get('/admin/clients/{id}/external-discounts', [ClientController::class, 'getExternalClientDiscounts']);
     Route::get('/admin/clients/{id}', [ClientController::class, 'getClient']);

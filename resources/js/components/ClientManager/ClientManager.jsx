@@ -7,6 +7,7 @@ import useUserStore from '../../store/userStore';
 import { fetchSepomexPostalCode } from '../../utils/sepomexPostal';
 import { sanitizeStreetNumberDigits } from '../../utils/addressDisplay';
 import { formatExternalClienteId } from '../../utils/externalClienteId';
+import { clientService } from '../../services/api';
 import './ClientManager.css';
 
 const emptyAddressForm = (address, defaultIfFirst) => ({
@@ -241,6 +242,7 @@ const ClientManager = () => {
     descuento1: '',
     descuento2: '',
   });
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Fetch clients on component mount
   useEffect(() => {
@@ -296,21 +298,11 @@ const ClientManager = () => {
 
   const fetchClients = async () => {
     try {
-      const response = await fetch('/api/admin/clients', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Error al obtener clientes');
-      }
-      
-      const data = await response.json();
-      setClients(data.users);
-      setAllClients(data.users);
-      return data.users;
+      const data = await clientService.getAll();
+      const users = data?.data?.users ?? [];
+      setClients(users);
+      setAllClients(users);
+      return users;
     } catch (err) {
       setError(err.message);
       window.showToast('Error al cargar clientes: ' + err.message, 'error');
@@ -656,6 +648,54 @@ const ClientManager = () => {
     }
   };
 
+  // Sincroniza el idvendedor de los clientes oro/diamante desde la API externa.
+  // El backend devuelve un resumen con actualizados/sin cambios/errores
+  // y vuelve a listar los clientes para reflejar los cambios.
+  const handleSyncIdvendedor = async () => {
+    if (isSyncing) return;
+    const confirmed = await Swal.fire({
+      title: 'Sincronizar clientes con la API',
+      html:
+        'Se consultará la API externa de descuentos para todos los clientes <strong>Oro</strong> y <strong>Diamante</strong>, '
+        + 'y se actualizará el campo <code>idvendedor</code> de cada uno.<br><br>'
+        + 'Los clientes Bronce no se actualizan.',
+      icon: 'info',
+      showCancelButton: true,
+      confirmButtonText: 'Sincronizar ahora',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#1DA534',
+      cancelButtonColor: '#6c757d',
+      reverseButtons: true,
+    });
+    if (!confirmed.isConfirmed) return;
+
+    try {
+      setIsSyncing(true);
+      const response = await clientService.syncIdvendedor();
+      const data = response?.data ?? {};
+      const updated = data.updated ?? 0;
+      const unchanged = data.unchanged ?? 0;
+      const noValue = data.no_value ?? 0;
+      const errorsCount = data.errors_count ?? 0;
+      const total = data.total_processed ?? 0;
+
+      window.showToast(
+        `Sincronización completada: ${updated} actualizados, ${unchanged} sin cambios, ${noValue} sin datos, ${errorsCount} errores (de ${total} totales).`,
+        updated > 0 || (total > 0 && errorsCount === 0) ? 'success' : 'info',
+        5000,
+      );
+      await fetchClients();
+    } catch (err) {
+      window.showToast(
+        'Error al sincronizar: ' + (err.message || 'desconocido'),
+        'error',
+        5000,
+      );
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleDelete = async (clientId) => {
     const result = await Swal.fire({
       title: '¿Estás seguro?',
@@ -708,26 +748,45 @@ const ClientManager = () => {
     <div className="client-manager">
       <div className="client-manager__header">
         <h2>Gestión de Clientes</h2>
-        <CherryButton 
-          onClick={() => {
-            setEditingClient(null);
-            setExternalApiDiscounts({ loading: false, descuento1: '', descuento2: '' });
-            setFormData({
-              first_name: '',
-              last_name: '',
-              middle_name: '',
-              email: '',
-              phone: '',
-              password: '',
-              role_id: '2',
-            });
-            setShowForm(true);
-          }}
-          variant="red"
-          size="medium"
-        >
-          Agregar Cliente
-        </CherryButton>
+        <div className="client-manager__header-actions">
+          <button
+            type="button"
+            className="client-manager__sync-btn"
+            onClick={handleSyncIdvendedor}
+            disabled={isSyncing}
+            data-tooltip="Sincronizar clientes con la API externa"
+            aria-label="Sincronizar clientes con la API externa"
+            onMouseEnter={showClientActionTooltip}
+            onMouseLeave={hideClientActionTooltip}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            {isSyncing ? 'Sincronizando…' : 'Sincronizar clientes'}
+          </button>
+          <CherryButton
+            onClick={() => {
+              setEditingClient(null);
+              setExternalApiDiscounts({ loading: false, descuento1: '', descuento2: '' });
+              setFormData({
+                first_name: '',
+                last_name: '',
+                middle_name: '',
+                email: '',
+                phone: '',
+                password: '',
+                role_id: '2',
+              });
+              setShowForm(true);
+            }}
+            variant="red"
+            size="medium"
+          >
+            Agregar Cliente
+          </CherryButton>
+        </div>
       </div>
 
       {/* Client Form */}
