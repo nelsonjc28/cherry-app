@@ -41,6 +41,7 @@ const emptyForm = {
   middle_name: '',
   email: '',
   phone: '',
+  idvendedor: '',
   password: '',
 };
 
@@ -117,6 +118,7 @@ const VendorManager = () => {
       middle_name: vendor.middle_name || '',
       email: vendor.email || '',
       phone: vendor.phone || '',
+      idvendedor: vendor.idvendedor || '',
       password: '',
     });
     setShowForm(true);
@@ -296,6 +298,27 @@ const VendorManager = () => {
 
               <div className="vendor-manager__form-row">
                 <div className="vendor-manager__form-group">
+                  <label htmlFor="idvendedor">ID Vendedor (externo) *</label>
+                  <input
+                    id="idvendedor"
+                    name="idvendedor"
+                    type="text"
+                    value={formData.idvendedor}
+                    onChange={handleInputChange}
+                    required
+                    maxLength={64}
+                    placeholder="Ej. 111, VEN-001"
+                    autoComplete="off"
+                  />
+                  <p className="vendor-manager__field-hint">
+                    Identificador externo del vendor (provisto por la API del ERP).
+                    Debe ser único entre todos los vendedores.
+                  </p>
+                </div>
+              </div>
+
+              <div className="vendor-manager__form-row">
+                <div className="vendor-manager__form-group">
                   <label htmlFor="password">
                     {editingVendor
                       ? 'Nueva Contraseña (dejar vacío para mantener)'
@@ -370,6 +393,7 @@ const VendorManager = () => {
                     <th>Correo</th>
                     <th>Teléfono</th>
                     <th>Rol</th>
+                    <th>ID Vendedor</th>
                     <th>Compradores</th>
                     <th className="client-manager__actions-header">Acciones</th>
                   </tr>
@@ -389,6 +413,13 @@ const VendorManager = () => {
                         <span className="vendor-category-badge vendor-category-badge--none">
                           Vendedor
                         </span>
+                      </td>
+                      <td className="client-manager__email-cell">
+                        {vendor.idvendedor ? (
+                          <code className="vendor-idvendedor-cell">{vendor.idvendedor}</code>
+                        ) : (
+                          '—'
+                        )}
                       </td>
                       <td>
                         <span className="vendor-orders__buyer">

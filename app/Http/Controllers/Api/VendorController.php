@@ -123,6 +123,7 @@ class VendorController extends Controller
                 'middle_name' => 'nullable|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users',
                 'phone' => 'required|string|size:10|regex:/^[0-9]{10}$/|unique:users',
+                'idvendedor' => 'required|string|max:64',
                 'password' => [
                     'required',
                     'string',
@@ -138,6 +139,8 @@ class VendorController extends Controller
                 'phone.unique' => 'Este número de teléfono ya está registrado.',
                 'phone.size' => 'El teléfono debe tener exactamente 10 dígitos.',
                 'phone.regex' => 'El teléfono debe contener solo números.',
+                'idvendedor.required' => 'El ID Vendedor es obligatorio.',
+                'idvendedor.max' => 'El ID Vendedor no puede exceder 64 caracteres.',
             ]);
 
             if ($validator->fails()) {
@@ -155,6 +158,7 @@ class VendorController extends Controller
                 'phone' => $request->phone,
                 'password' => Hash::make($request->password),
                 'role_id' => $vendorRole->id,
+                'idvendedor' => trim($request->idvendedor),
             ]);
 
             return response()->json([
@@ -205,6 +209,7 @@ class VendorController extends Controller
                     'regex:/^[0-9]{10}$/',
                     Rule::unique('users')->ignore($id),
                 ],
+                'idvendedor' => 'required|string|max:64',
                 'password' => [
                     'nullable',
                     'string',
@@ -219,6 +224,8 @@ class VendorController extends Controller
                 'phone.unique' => 'Este número de teléfono ya está registrado.',
                 'phone.size' => 'El teléfono debe tener exactamente 10 dígitos.',
                 'phone.regex' => 'El teléfono debe contener solo números.',
+                'idvendedor.required' => 'El ID Vendedor es obligatorio.',
+                'idvendedor.max' => 'El ID Vendedor no puede exceder 64 caracteres.',
             ]);
 
             if ($validator->fails()) {
@@ -235,6 +242,7 @@ class VendorController extends Controller
                 'email' => $request->email,
                 'phone' => $request->phone,
                 'role_id' => $vendorRole->id,
+                'idvendedor' => trim($request->idvendedor),
             ];
 
             if ($request->filled('password')) {
