@@ -11,6 +11,7 @@ import {
   getSellerCategoryFromUser,
   hasApiVolumeMainPercent,
   isBronzeSeller,
+  isOroDiamanteSeller,
   canApplyMainDiscount,
   bronzeMainDiscountPiecesThreshold,
   shouldApplyBronzeSecondTier,
@@ -160,8 +161,8 @@ const CartModal = ({ open, onClose, cartItems, subtotal, onViewCart, onCheckout 
             </div>
           )}
           
-          {/* Sección de beneficios */}
-          {cartItems.length > 0 && (
+          {/* Sección de beneficios — ocultar para Oro/Diamante sin API de descuentos */}
+          {cartItems.length > 0 && (benefits.isBronze || modalVolMainPercent > 0) && (
             <div className="cart-modal__benefits">
               <div className="cart-modal__benefits-title">Beneficios disponibles</div>
               

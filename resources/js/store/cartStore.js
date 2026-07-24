@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { cartApi } from '../api/cartApi';
 import useUserStore from './userStore';
-import { isOroDiamanteSeller } from '../utils/sellerVolumeDiscount';
+import { isOroDiamanteSeller, isPremiumOrVendor } from '../utils/sellerVolumeDiscount';
 import { effectiveDetailInventoryContribution } from '../utils/productUtils';
 import { isEncargoCartLine, productHasExternalRebaja } from '../utils/encargoUtils';
 import { calculateItemPriceWithMinPurchase } from '../utils/offerMinPurchaseUtils';
@@ -452,10 +452,10 @@ const useCartStore = create(
 
         const maxStock = getStockForVariant(product, product.selectedColor, product.selectedSize);
         
-        // Encargo (Próximamente o Agotado): solo Oro o Diamante
+        // Encargo (Próximamente o Agotado): solo Oro, Diamante o Vendedor
         const isEncargoLine = isEncargoCartLine(product);
         const user = useUserStore.getState?.()?.user;
-        const isPremiumUser = user && isOroDiamanteSeller(user);
+        const isPremiumUser = user && isPremiumOrVendor(user);
 
         if (isEncargoLine && product.isOutOfStockEncargo && productHasExternalRebaja(product)) {
           window.showToast('Los productos en rebaja agotados no están disponibles para pedido adelantado.', 'error');
@@ -493,7 +493,7 @@ const useCartStore = create(
 
           const isEncargoLine = isEncargoCartLine(product) || isEncargoCartLine(existing);
           const user = useUserStore.getState?.()?.user;
-          const isPremiumUser = user && isOroDiamanteSeller(user);
+          const isPremiumUser = user && isPremiumOrVendor(user);
           
           const maxAllowed = (isEncargoLine && isPremiumUser) ? 9999 : maxStock;
 
@@ -521,7 +521,7 @@ const useCartStore = create(
         } else {
           const isEncargoLine = isEncargoCartLine(product);
           const user = useUserStore.getState?.()?.user;
-          const isPremiumUser = user && isOroDiamanteSeller(user);
+          const isPremiumUser = user && isPremiumOrVendor(user);
           
           const maxAllowed = (isEncargoLine && isPremiumUser) ? 9999 : maxStock;
           const qty = quantity > maxAllowed ? maxAllowed : quantity;

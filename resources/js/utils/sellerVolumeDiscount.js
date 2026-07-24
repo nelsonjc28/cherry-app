@@ -46,6 +46,13 @@ export function isBronzeSeller(user) {
   return getSellerCategoryFromUser(user) === 'bronce';
 }
 
+/** Usuario premium (Oro/Diamante) o vendedor. */
+export function isPremiumOrVendor(user) {
+  if (!user || typeof user !== 'object') return false;
+  if (isOroDiamanteSeller(user)) return true;
+  return user?.role?.name === 'vendedor';
+}
+
 /** La API / login expuso un descuento1 usable (> 0). */
 export function hasApiVolumeMainPercent(user) {
   if (!user || typeof user !== 'object') return false;
@@ -126,7 +133,7 @@ export function shouldApplyBronzeSecondTier(user, eligiblePieces) {
 /**
  * Porcentaje del primer tramo:
  * - Bronce: 30 si alcanza el umbral; 0 si no.
- * - Oro/Diamante: API si viene; 30 por defecto.
+ * - Oro/Diamante: solo si la API trae descuento1; si no, 0 (sin descuento por volumen).
  */
 export function getVolumeDiscountMainTier(user) {
   if (isBronzeSeller(user)) {
@@ -139,13 +146,14 @@ export function getVolumeDiscountMainTier(user) {
       return { mainRate: n / 100, mainPercent: Math.round(n) };
     }
   }
-  return { mainRate: 0.3, mainPercent: 30 };
+  // Oro/Diamante sin API: sin descuento por volumen
+  return { mainRate: 0, mainPercent: 0 };
 }
 
 /**
  * Segundo tramo (% sobre neto tras el primero):
  * - Bronce: 10 solo en primera compra; 0 después.
- * - Oro/Diamante: API si viene; 10 por defecto.
+ * - Oro/Diamante: solo si la API trae descuento2; si no, 0.
  */
 export function getVolumeDiscountExtraPercent(user, eligiblePieces) {
   if (isBronzeSeller(user)) {
@@ -158,7 +166,8 @@ export function getVolumeDiscountExtraPercent(user, eligiblePieces) {
       return n;
     }
   }
-  return 10;
+  // Oro/Diamante sin API: sin segundo tramo
+  return 0;
 }
 
 export function isBronzeBenefitActive(user, now = new Date()) {

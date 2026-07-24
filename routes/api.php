@@ -147,6 +147,7 @@ Route::middleware(['auth:api', 'vendor'])->prefix('vendor')->group(function () {
     Route::get('/buyers', [\App\Http\Controllers\Api\Vendor\BuyerController::class, 'index']);
     Route::get('/buyers/{id}', [\App\Http\Controllers\Api\Vendor\BuyerController::class, 'show']);
     Route::get('/buyers/{id}/addresses', [\App\Http\Controllers\Api\Vendor\BuyerController::class, 'addresses']);
+    Route::get('/buyers/{id}/discounts', [\App\Http\Controllers\Api\Vendor\BuyerController::class, 'discounts']);
     // Órdenes de los compradores asociados
     Route::get('/orders', [\App\Http\Controllers\Api\Vendor\OrderController::class, 'index']);
     Route::get('/orders/{id}', [\App\Http\Controllers\Api\Vendor\OrderController::class, 'show']);
@@ -159,22 +160,33 @@ Route::middleware(['auth:api', 'vendor'])->prefix('vendor')->group(function () {
 
 // Admin routes - protected by admin middleware
 Route::middleware(['auth:api', 'admin'])->prefix('admin')->group(function () {
-    Route::get('/orders', [App\Http\Controllers\Admin\AdminOrderController::class, 'index']);
-    Route::get('/orders/{orderId}', [App\Http\Controllers\Admin\AdminOrderController::class, 'show']);
-    Route::put('/orders/{orderId}/status', [App\Http\Controllers\Admin\AdminOrderController::class, 'updateStatus']);
-    Route::post('/orders/{orderId}/mark-credit-paid', [App\Http\Controllers\Admin\AdminOrderController::class, 'markCreditOrderAsPaid']);
-    Route::post('/orders/{orderId}/update-prepared', [App\Http\Controllers\Admin\AdminOrderController::class, 'updatePrepared']);
-    Route::post('/orders/{orderId}/update-tracking', [App\Http\Controllers\Admin\AdminOrderController::class, 'updateTracking']);
-    Route::post('/orders/{orderId}/resend-external-api', [App\Http\Controllers\Admin\AdminOrderController::class, 'resendToExternalApi']);
     Route::post('/notify-product-interest', [App\Http\Controllers\Admin\AdminNotificationController::class, 'notifyProductInterest']);
     Route::get('/notifications', [App\Http\Controllers\NotificationController::class, 'getAdminNotifications']);
-    
+
     // Admin Reviews routes
     Route::get('/reviews', [App\Http\Controllers\Admin\AdminReviewController::class, 'index']);
     Route::get('/reviews/stats', [App\Http\Controllers\Admin\AdminReviewController::class, 'getStats']);
     Route::post('/reviews/{reviewId}/approve', [App\Http\Controllers\Admin\AdminReviewController::class, 'approve']);
     Route::post('/reviews/{reviewId}/reject', [App\Http\Controllers\Admin\AdminReviewController::class, 'reject']);
     Route::delete('/reviews/{reviewId}', [App\Http\Controllers\Admin\AdminReviewController::class, 'destroy']);
+});
+
+// Admin / Vendor routes - Orders. Accesible para admin (todas) y vendor
+// (solo las de sus clientes asociados). El AdminOrderController::index()
+// filtra automáticamente por idvendedor del vendor cuando aplica.
+Route::middleware(['auth:api'])->prefix('admin')->group(function () {
+    Route::get('/orders', [App\Http\Controllers\Admin\AdminOrderController::class, 'index']);
+    Route::get('/orders/{orderId}', [App\Http\Controllers\Admin\AdminOrderController::class, 'show']);
+    // Las siguientes rutas de orders son exclusivas para admin (cambios
+    // de estado, marcar pagado, reenviar a API externa, etc.).
+    // Se mantienen dentro de un sub-grupo con middleware admin.
+    Route::middleware(['admin'])->group(function () {
+        Route::put('/orders/{orderId}/status', [App\Http\Controllers\Admin\AdminOrderController::class, 'updateStatus']);
+        Route::post('/orders/{orderId}/mark-credit-paid', [App\Http\Controllers\Admin\AdminOrderController::class, 'markCreditOrderAsPaid']);
+        Route::post('/orders/{orderId}/update-prepared', [App\Http\Controllers\Admin\AdminOrderController::class, 'updatePrepared']);
+        Route::post('/orders/{orderId}/update-tracking', [App\Http\Controllers\Admin\AdminOrderController::class, 'updateTracking']);
+        Route::post('/orders/{orderId}/resend-external-api', [App\Http\Controllers\Admin\AdminOrderController::class, 'resendToExternalApi']);
+    });
 });
 
 // Notification routes

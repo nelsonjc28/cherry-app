@@ -39,7 +39,7 @@ import { isProductNewLikeNuevosPage } from '../utils/productNewRules';
 import useHorizontalDragScroll from '../hooks/useHorizontalDragScroll';
 import colorConverter from '../services/colorConverter';
 import { validateStock, getProductStock } from '../services/inventoryService';
-import { getVolumeDiscountMainTier, getSellerCategoryFromUser, hasApiVolumeMainPercent, isOroDiamanteSeller, isBronzeSeller, canApplyMainDiscount, bronzeShippingPiecesThreshold, bronzeMainDiscountPiecesThreshold, hasCompletedFirstPurchase } from '../utils/sellerVolumeDiscount';
+import { getVolumeDiscountMainTier, getSellerCategoryFromUser, hasApiVolumeMainPercent, isOroDiamanteSeller, isPremiumOrVendor, isBronzeSeller, canApplyMainDiscount, bronzeShippingPiecesThreshold, bronzeMainDiscountPiecesThreshold, hasCompletedFirstPurchase } from '../utils/sellerVolumeDiscount';
 import {
   canEncargoSinStock,
   canEncargoForSize,
@@ -738,7 +738,7 @@ const ProductPage = () => {
     // sin privilegio de encargo (bronce). Aunque `canEncargo` ya sería false, este check
     // explícito previene que un bug de datos (tallas con stock > 0 en un producto que
     // el backend marca agotado) deje agregar al carrito.
-    if (isOutOfStock && user && !isOroDiamanteSeller(user)) {
+    if (isOutOfStock && user && !isPremiumOrVendor(user)) {
       if (window.showToast) {
         window.showToast(
           'Este producto está agotado en su totalidad. Solo clientes Oro/Diamante pueden encargarlo.',
@@ -757,8 +757,8 @@ const ProductPage = () => {
         return;
       }
 
-      // Sin categoría Oro/Diamante: solo avisar interés (no encargo al carrito)
-      if (!isOroDiamanteSeller(user)) {
+      // Sin categoría premium/vendor: solo avisar interés (no encargo al carrito)
+      if (!isPremiumOrVendor(user)) {
         try {
           // Notificar al admin
           await api.post('/api/notify-product-interest', {
@@ -1053,8 +1053,8 @@ const ProductPage = () => {
     const stockDisponible = selectedColor ? getStockBySizeAndColor(talla, selectedColor) : getStockForSize(talla);
     const canEncargoTalla = canEncargoForSize(user, inventoryStatus.status, stockDisponible, product);
 
-    // Defensa: producto totalmente agotado + usuario bronce/oro_diamante sin encargo
-    if (inventoryStatus.status === 'out-of-stock' && user && !isOroDiamanteSeller(user)) {
+    // Defensa: producto totalmente agotado + usuario no premium/vendor
+    if (inventoryStatus.status === 'out-of-stock' && user && !isPremiumOrVendor(user)) {
       if (window.showToast) {
         window.showToast('Este producto está agotado en su totalidad. Solo clientes Oro/Diamante pueden encargarlo.', 'error');
       }
@@ -1231,7 +1231,10 @@ const ProductPage = () => {
       // Carrito vacío, repeat customer: 30% ya aplica, no se muestra mensaje.
     } else if (productHasNoPromo || eligibleCartTotal > 0) {
       // Oro / Diamante (y usuarios sin categoría): descuento por MONTO elegible
-      if (eligibleCartTotal < DISCOUNT_30_THRESHOLD) {
+      // Sin API de descuentos: no mostrar alertas de descuento
+      if (volMainPercent === 0) {
+        // No hay descuento desde API, no mostrar alertas
+      } else if (eligibleCartTotal < DISCOUNT_30_THRESHOLD) {
         const remaining = DISCOUNT_30_THRESHOLD - eligibleCartTotal;
         const isNear = eligibleCartTotal >= (DISCOUNT_30_THRESHOLD * NEAR_THRESHOLD_PERCENT);
 
@@ -2091,7 +2094,7 @@ const ProductPage = () => {
                         // Defensa: si el producto está totalmente agotado y el usuario es bronce,
                         // bloquear TODAS las tallas (incluso las que tengan stock > 0 por
                         // inconsistencia de datos). El encargo solo es para oro/diamante.
-                        const isOutOfStockSizeDisabled = isOutOfStock && user && !isOroDiamanteSeller(user);
+                        const isOutOfStockSizeDisabled = isOutOfStock && user && !isPremiumOrVendor(user);
                         const isDisabled = isOutOfStockSizeDisabled || (selectedColor && stockDisponible <= 0 && !canEncargoTalla);
                         const maxStock = getStockForSize(talla);
                         const maxAllowed = canEncargoTalla ? 9999 : maxStock;

@@ -16,6 +16,7 @@ use App\Models\PaymentCard;
 use App\Models\User;
 use App\Models\Producto;
 use App\Models\Notification;
+use App\Models\VendorBuyer;
 use App\Services\ExternalSalesService;
 use App\Services\CreditAvailabilityService;
 use App\Services\OrderCreditSplitService;
@@ -885,6 +886,7 @@ class PaymentController extends Controller
             'discounted_total' => 'required|numeric|min:0',
             'descuento1' => 'nullable|numeric|min:0',
             'descuento2' => 'nullable|numeric|min:0',
+            'buyer_id' => 'nullable|integer|exists:users,id',
         ];
 
         if ($deliveryType === 'envio') {
@@ -907,29 +909,68 @@ class PaymentController extends Controller
             return $rebajaEncargoError;
         }
 
-        /** @var User $user */
-        $user = Auth::user();
+        /** @var User $vendor */
+        $vendor = Auth::user();
 
-        if (! $user) {
+        if (! $vendor) {
             return response()->json([
                 'success' => false,
                 'message' => 'Usuario no autenticado',
             ], 401);
         }
 
-        $bronzeShippingError = $this->rejectBronzeShippingWithoutPieces($user, $deliveryType, $request->input('items', []));
+        // Determinar si es vendedor haciendo pedido para un cliente
+        $buyerId = $request->input('buyer_id');
+        $isVendorOrder = $vendor->isVendedor() && ! empty($buyerId);
+
+        // Resolver el usuario real de la orden (el comprador)
+        $orderUser = $vendor;
+        if ($isVendorOrder) {
+            /** @var User|null $buyer */
+            $buyer = User::find($buyerId);
+            if (! $buyer) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cliente no encontrado.',
+                ], 404);
+            }
+
+            // Validar que el buyer tenga el mismo idvendedor que el vendedor
+            $vendorIdvendedor = $vendor->idvendedor;
+            if (empty($vendorIdvendedor) || $buyer->idvendedor !== $vendorIdvendedor) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El cliente seleccionado no está asociado a este vendedor.',
+                ], 403);
+            }
+
+            // Validar que el buyer siga siendo oro/diamante
+            if (! in_array($buyer->seller_category, VendorBuyer::ALLOWED_BUYER_CATEGORIES, true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El cliente ya no pertenece a las categorías oro/diamante.',
+                ], 403);
+            }
+
+            $orderUser = $buyer;
+        }
+
+        $bronzeShippingError = $this->rejectBronzeShippingWithoutPieces($orderUser, $deliveryType, $request->input('items', []));
         if ($bronzeShippingError !== null) {
             return $bronzeShippingError;
         }
 
-        if (! $user->isPremiumSeller()) {
+        // Para flujo no-vendor: validar premium
+        if (! $isVendorOrder && ! $orderUser->isPremiumSeller()) {
             return response()->json([
                 'success' => false,
                 'message' => 'El pedido directo solo está disponible para clientes con categoría Oro o Diamante.',
             ], 403);
         }
 
-        $pendingOrderCheck = $this->checkPendingOrdersWithSimilarProducts($user, $request->items);
+        // Para vendor: el buyer debe ser premium (ya validado arriba con ALLOWED_BUYER_CATEGORIES)
+
+        $pendingOrderCheck = $this->checkPendingOrdersWithSimilarProducts($orderUser, $request->items);
         if ($pendingOrderCheck['has_pending']) {
             return response()->json([
                 'success' => false,
@@ -941,11 +982,12 @@ class PaymentController extends Controller
 
         $addressId = null;
         if ($deliveryType === 'envio') {
-            $address = $user->addresses()->find($request->address_id);
+            // Si es vendedor, validar que la dirección pertenece al buyer
+            $address = $orderUser->addresses()->find($request->address_id);
             if (! $address) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Dirección no encontrada o no pertenece al usuario',
+                    'message' => 'Dirección no encontrada o no pertenece al cliente',
                 ], 404);
             }
             $addressId = $request->address_id;
@@ -959,16 +1001,16 @@ class PaymentController extends Controller
 
         if ($fullItemsForPricing !== null) {
             $expectedMerchandise = $this->orderPricingService->discountedMerchandiseForSubset(
-                $user,
+                $orderUser,
                 $fullItemsForPricing,
                 $itemsForPricing
             );
         } else {
-            $summary = $this->orderPricingService->summarizeVolumeFromItems($user, $itemsForPricing);
+            $summary = $this->orderPricingService->summarizeVolumeFromItems($orderUser, $itemsForPricing);
             $expectedMerchandise = $summary['discounted_merchandise'];
         }
 
-        $summaryLines = $this->orderPricingService->summarizeVolumeFromItems($user, $itemsForPricing);
+        $summaryLines = $this->orderPricingService->summarizeVolumeFromItems($orderUser, $itemsForPricing);
         $shippingAmount = (float) $request->input('shipping_amount', 0);
         $discountedTotalReq = round((float) $request->input('discounted_total'), 2);
         $totalAmountReq = round((float) $request->input('total_amount'), 2);
@@ -999,7 +1041,7 @@ class PaymentController extends Controller
 
             return $this->createDirectOrderWithPromoRegularSplit(
                 $request,
-                $user,
+                $orderUser,
                 $addressId,
                 $deliveryType,
                 $itemsForPricing,
@@ -1014,14 +1056,21 @@ class PaymentController extends Controller
 
         try {
             /** @var Order $order */
-            $order = DB::transaction(function () use ($request, $user, $addressId, $deliveryType, $totalAmountReq, $subtotal, $discountedTotalReq, $shippingAmount, $descuento1, $descuento2, $sortedItems) {
+            $order = DB::transaction(function () use ($request, $vendor, $orderUser, $addressId, $deliveryType, $totalAmountReq, $subtotal, $discountedTotalReq, $shippingAmount, $descuento1, $descuento2, $sortedItems, $isVendorOrder) {
                 $initialPaymentData = [
                     'delivery_type' => $deliveryType,
                     'shipping_amount' => $shippingAmount,
                 ];
 
+                // Si es vendedor, registrar quién colocó el pedido
+                if ($isVendorOrder) {
+                    $initialPaymentData['placed_by_vendor_id'] = $vendor->id;
+                    $initialPaymentData['vendor_placed'] = true;
+                }
+
                 $order = Order::create([
-                    'user_id' => $user->id,
+                    'user_id' => $orderUser->id,
+                    'placed_by_vendor_id' => $isVendorOrder ? $vendor->id : null,
                     'address_id' => $addressId,
                     'total_amount' => $totalAmountReq,
                     'subtotal' => $subtotal,
@@ -1035,7 +1084,7 @@ class PaymentController extends Controller
                     'paid_with_credit' => false,
                     'status' => 'pendiente_pago',
                     'payment_method' => 'pedido_directo',
-                    'external_reference' => uniqid('order_'.$user->id.'_'),
+                    'external_reference' => uniqid('order_'.$orderUser->id.'_'),
                     'payment_data' => json_encode($initialPaymentData),
                     'is_advance_order' => $this->orderLinesContainComingSoon($sortedItems),
                 ]);
@@ -1047,9 +1096,15 @@ class PaymentController extends Controller
                 return $order->fresh(['user', 'items', 'address']);
             });
 
+            // Email: si es vendedor, enviar al buyer (cliente real)
+            $emailRecipient = $isVendorOrder ? $orderUser : $vendor;
             try {
-                Mail::to($user->email)->send(new OrderConfirmationMail($order));
-                Log::info('Email de confirmación enviado (pedido directo)', ['order_id' => $order->id]);
+                Mail::to($emailRecipient->email)->send(new OrderConfirmationMail($order));
+                Log::info('Email de confirmación enviado (pedido directo)', [
+                    'order_id' => $order->id,
+                    'recipient_email' => $emailRecipient->email,
+                    'vendor_placed' => $isVendorOrder,
+                ]);
             } catch (\Exception $e) {
                 Log::error('Error al enviar email de confirmación (pedido directo)', [
                     'order_id' => $order->id,
@@ -1057,8 +1112,7 @@ class PaymentController extends Controller
                 ]);
             }
 
-            // API externa: enviar al registrar el pedido (pendiente_pago), igual que pedido anticipado.
-            // Vigencia de categoría sigue al marcar «pagado» (admin). orders.external_api_sent evita duplicado al liquidar.
+            // API externa: enviar al registrar el pedido (pendiente_pago)
             try {
                 $order->load(['user', 'items', 'address']);
                 $apiResult = $this->externalSalesService->sendSaleToExternalApi($order);
@@ -1073,14 +1127,17 @@ class PaymentController extends Controller
                     'error' => $e->getMessage(),
                     'trace' => $e->getTraceAsString(),
                 ]);
-                // No bloquear la confirmación; reintento con `orders:resend-external-api` u otro flujo manual (no al marcar pagado).
             }
 
             $this->orderSharePdfService->ensureStoredForOrder($order);
 
+            $message = $isVendorOrder
+                ? 'Pedido registrado para el cliente. Queda pendiente de pago hasta liquidación.'
+                : 'Pedido registrado. Queda pendiente de pago hasta liquidación.';
+
             return response()->json([
                 'success' => true,
-                'message' => 'Pedido registrado. Queda pendiente de pago hasta liquidación.',
+                'message' => $message,
                 'data' => [
                     'order_id' => $order->id,
                     'external_reference' => $order->external_reference,

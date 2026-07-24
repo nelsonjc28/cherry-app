@@ -45,8 +45,8 @@ const CartOrderSummary = ({
   hasRegularItems = true // Si hay productos regulares (con stock)
 }) => {
   const navigate = useNavigate();
-  // Pedido directo (sin MP): solo categoría Oro o Diamante
-  const usesDirectOrderPayment = isOroDiamanteSeller(user);
+  // Pedido directo (sin MP): categoría Oro/Diamante o vendedor (que compra para sus clientes oro/diamante)
+  const usesDirectOrderPayment = isOroDiamanteSeller(user) || user?.role?.name === 'vendedor';
   
   const [paymentCards, setPaymentCards] = useState([]);
   const [isLoadingCards, setIsLoadingCards] = useState(true);

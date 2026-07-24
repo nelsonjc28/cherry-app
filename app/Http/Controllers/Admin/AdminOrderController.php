@@ -26,14 +26,34 @@ class AdminOrderController extends Controller
     private array $productStockCache = [];
 
     /**
-     * Get all orders for admin dashboard
+     * Get all orders for admin dashboard.
+     * Si el usuario autenticado es vendor, filtra por órdenes de los
+     * clientes cuyo idvendedor coincide con su idvendedor.
      */
     public function index()
     {
         try {
-            $orders = Order::with(['user', 'items', 'address'])
-                ->orderBy('created_at', 'desc')
-                ->get();
+            $authUser = auth()->user();
+            $query = Order::with(['user', 'items', 'address']);
+
+            $isVendor = $authUser && $authUser->role && $authUser->role->name === 'vendedor';
+            if ($isVendor && $authUser->idvendedor) {
+                $clientIds = User::where('role_id', 2)
+                    ->where('idvendedor', $authUser->idvendedor)
+                    ->pluck('id')
+                    ->all();
+                if (empty($clientIds)) {
+                    // El vendor no tiene clientes asociados; devolver lista vacía
+                    return response()->json([
+                        'success' => true,
+                        'orders' => [],
+                        'vendor_filter' => $authUser->idvendedor,
+                    ]);
+                }
+                $query->whereIn('user_id', $clientIds);
+            }
+
+            $orders = $query->orderBy('created_at', 'desc')->get();
 
             $formattedOrders = $orders->map(function ($order) {
                 // Calcular costo de envío
@@ -131,7 +151,8 @@ class AdminOrderController extends Controller
 
             return response()->json([
                 'success' => true,
-                'orders' => $formattedOrders
+                'orders' => $formattedOrders,
+                'vendor_filter' => $isVendor ? $authUser->idvendedor : null,
             ]);
 
         } catch (\Exception $e) {

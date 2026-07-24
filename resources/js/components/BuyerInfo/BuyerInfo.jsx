@@ -1,9 +1,23 @@
 import React from 'react';
 import useUserStore from '../../store/userStore';
+import VendorBuyerSelector from './VendorBuyerSelector';
 import './BuyerInfo.css';
 
-const BuyerInfo = ({ className = '' }) => {
+const BuyerInfo = ({ className = '', selectedBuyer = null, onBuyerChange = null }) => {
   const { user } = useUserStore();
+
+  const isVendor = user?.role?.name === 'vendedor';
+
+  // Si es vendedor, mostrar el selector de clientes en lugar de sus datos
+  if (isVendor) {
+    return (
+      <VendorBuyerSelector
+        className={className}
+        selectedBuyer={selectedBuyer}
+        onBuyerChange={onBuyerChange}
+      />
+    );
+  }
 
   if (!user) {
     return (

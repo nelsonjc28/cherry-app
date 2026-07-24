@@ -35,6 +35,9 @@ export const getMyBuyer = (id) =>
 export const getMyBuyerAddresses = (id) =>
   fetch(`/api/vendor/buyers/${id}/addresses`, { headers: authHeaders() }).then(handle);
 
+export const getMyBuyerDiscounts = (id) =>
+  fetch(`/api/vendor/buyers/${id}/discounts`, { headers: authHeaders() }).then(handle);
+
 // ============ Órdenes ============
 
 export const listMyOrders = (params = {}) => {

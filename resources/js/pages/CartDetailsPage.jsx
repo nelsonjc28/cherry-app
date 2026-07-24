@@ -35,6 +35,7 @@ import {
   discountedMerchandiseForSubset,
 } from '../utils/cartVolumePricing';
 import { trackBeginCheckout } from '../utils/analytics';
+import { getMyBuyerAddresses, getMyBuyerDiscounts } from '../api/vendorApi';
 import { buildCartAmountBreakdown } from '../utils/cartCheckoutBreakdown';
 import { buildOrderLinePayload } from '../utils/orderLinePayload';
 import {
@@ -96,6 +97,12 @@ const CartDetailsPage = () => {
 
   const { user, fetchUser } = useUserStore();
 
+  // Vendor mode: selected buyer for whom the order is placed
+  const isVendor = user?.role?.name === 'vendedor';
+  const [selectedBuyer, setSelectedBuyer] = useState(null); // comprador seleccionado (para vendedores)
+  const [buyerAddresses, setBuyerAddresses] = useState([]); // direcciones del comprador seleccionado
+  const [buyerDiscounts, setBuyerDiscounts] = useState(null); // descuentos reales del buyer desde API externa
+
   // State for selected address
   const [selectedAddress, setSelectedAddress] = useState(null);
 
@@ -114,8 +121,9 @@ const CartDetailsPage = () => {
 
   // Regla bronce: si no alcanza el umbral de piezas para envío a domicilio,
   // se fuerza "retiro en tienda" y se oculta la opción de "Envío a domicilio".
-  const bronzeUser = user ? isBronzeSeller(user) : false;
-  const bronzeShippingAllowed = user ? bronzeCanShip(user, eligiblePieces) : true;
+  // El vendedor siempre se comporta como Oro/Diamante (no aplican reglas bronce)
+  const bronzeUser = user ? (isVendor ? false : isBronzeSeller(user)) : false;
+  const bronzeShippingAllowed = user ? (isVendor ? true : bronzeCanShip(user, eligiblePieces)) : true;
   const bronzeRequiredPieces = user && bronzeUser
     ? bronzeShippingPiecesThreshold(user)
     : null;
@@ -521,6 +529,49 @@ const CartDetailsPage = () => {
     clearCart();
   };
 
+  // Handle vendor buyer selection - carga direcciones y descuentos del comprador
+  const handleBuyerChange = (buyer) => {
+    console.log('[handleBuyerChange] Cliente seleccionado:', buyer);
+    setSelectedBuyer(buyer);
+    setBuyerDiscounts(null);
+    // Limpiar dirección al cambiar de comprador
+    setSelectedAddress(null);
+    setBuyerAddresses([]);
+    if (buyer) {
+      // Cargar direcciones del comprador
+      getMyBuyerAddresses(buyer.id)
+        .then((data) => {
+          const addrs = data.addresses || [];
+          setBuyerAddresses(addrs);
+          const def = addrs.find((a) => a.is_default);
+          if (def) {
+            setSelectedAddress(def);
+          } else if (addrs.length > 0) {
+            setSelectedAddress(addrs[0]);
+          }
+        })
+        .catch((err) => {
+          if (window.showToast) {
+            window.showToast('Error al cargar direcciones del cliente', 'error');
+          }
+        });
+      // Cargar descuentos reales desde API externa
+      getMyBuyerDiscounts(buyer.id)
+        .then((data) => {
+          console.log('[handleBuyerChange] Descuentos del cliente:', data);
+          if (data.success) {
+            setBuyerDiscounts({
+              volume_descuento1: data.volume_descuento1,
+              volume_descuento2: data.volume_descuento2,
+            });
+          }
+        })
+        .catch((err) => {
+          console.error('[handleBuyerChange] Error cargando descuentos:', err);
+        });
+    }
+  };
+
   // Handle address selection
   const handleAddressChange = (address) => {
     setSelectedAddress(address);
@@ -563,7 +614,15 @@ const CartDetailsPage = () => {
     /** Snapshot del carrito completo (disponibles + anticipados) para volumen y validación en servidor. */
     const fullCartPricingLinesSnapshot = cartItems.map(cartItemToPricingLine);
 
-    const isDirectCategory = isOroDiamanteSeller(user);
+    // Vendor: validar que haya seleccionado un cliente
+    if (isVendor && !selectedBuyer) {
+      if (window.showToast) {
+        window.showToast('Debes seleccionar un cliente para realizar el pedido', 'warning');
+      }
+      return;
+    }
+
+    const isDirectCategory = isOroDiamanteSeller(user) || isVendor;
 
     if (isDirectCategory) {
       if (deliveryType === 'envio' && !selectedAddress) {
@@ -596,9 +655,18 @@ const CartDetailsPage = () => {
         }
       }
 
-      // Pedido directo (API volume discount): POST /orders/direct — pendiente_pago hasta liquidación admin.
+      // Pedido directo (API volume discount): POST /orders/direct.
+      // Para vendor: calcular descuentos con la categoría del buyer (Oro/Diamante)
       const paymentLineItems = cartItems;
-      const volSummary = summarizeVolumeFromCartItems(user, paymentLineItems);
+      const pricingUserForOrder = isVendor && selectedBuyer
+        ? {
+            ...user,
+            seller_category: selectedBuyer.seller_category || 'oro',
+            volume_descuento1: buyerDiscounts?.volume_descuento1 ?? user.volume_descuento1,
+            volume_descuento2: buyerDiscounts?.volume_descuento2 ?? user.volume_descuento2,
+          }
+        : user;
+      const volSummary = summarizeVolumeFromCartItems(pricingUserForOrder, paymentLineItems);
       const paymentDescuento1 = volSummary.descuento1;
       const paymentDescuento2 = volSummary.descuento2;
       const lineItemsGrossTotal = volSummary.lines_sum;
@@ -640,6 +708,11 @@ const CartDetailsPage = () => {
           user_offer_applies: line.user_offer_applies,
         })),
       };
+
+      // Si es vendedor, incluir buyer_id para que el backend asigne la orden al cliente
+      if (isVendor && selectedBuyer) {
+        directData.buyer_id = selectedBuyer.id;
+      }
 
       const longTimeout = { timeout: 120000 };
 
@@ -1103,8 +1176,17 @@ const CartDetailsPage = () => {
     // El error ya se maneja en el componente IntegratedCheckout
   };
 
-  // Descuento por volumen alineado con PriceService (sin API: +10 % adicional si elegible ≥ $15k; con API: segundo tramo sin $15k)
-  const volumeSummary = summarizeVolumeFromCartItems(user, cartItems);
+  // Descuento por volumen alineado con PriceService.
+  // Para vendor: usar los descuentos reales del buyer desde API externa
+  const pricingUser = isVendor && selectedBuyer
+    ? {
+        ...user,
+        seller_category: selectedBuyer.seller_category || 'oro',
+        volume_descuento1: buyerDiscounts?.volume_descuento1 ?? user.volume_descuento1,
+        volume_descuento2: buyerDiscounts?.volume_descuento2 ?? user.volume_descuento2,
+      }
+    : user;
+  const volumeSummary = summarizeVolumeFromCartItems(pricingUser, cartItems);
   const eligibleTotal = volumeSummary.eligible_total;
   const dayFortyFiveDiscountAmount = volumeSummary.volume_discount;
   const discountTwentyAmount = volumeSummary.vol_main;
@@ -1267,9 +1349,10 @@ const CartDetailsPage = () => {
     }
 
     // Para oro/diamante (reglas previas por monto).
-    if (eligibleTotal <= 0) return alerts;
-
+    // Si no hay descuento desde API y no es bronce, no mostrar alertas de descuento
     const hasApiMain = hasApiVolumeMainPercent(user);
+    if (eligibleTotal <= 0 || (mainDiscountPercent === 0 && !isBronzeUser)) return alerts;
+
     const progressThreshold =
       isBronzeUser && !bronzeBenefitActive
         ? VOLUME_MAIN_THRESHOLD
@@ -1508,8 +1591,12 @@ const CartDetailsPage = () => {
               deliveryType={deliveryType}
               isFreeShipping={isFreeShippingApplied}
             />
-            {/* Datos del comprador (debajo de Monto del pedido) */}
-            <BuyerInfo className="cart-details__buyer-info" />
+            {/* Datos del comprador: para vendor muestra selector, para clientes normales muestra sus datos */}
+            <BuyerInfo
+              className="cart-details__buyer-info"
+              selectedBuyer={selectedBuyer}
+              onBuyerChange={handleBuyerChange}
+            />
             
             {/* Opciones de entrega */}
             <div className="cart-details__delivery-options">
@@ -1561,6 +1648,7 @@ const CartDetailsPage = () => {
               selectedAddressId={selectedAddress?.id}
               onAddressChange={handleAddressChange}
               className="cart-details__address-selector"
+              addresses={isVendor ? buyerAddresses : undefined}
             />
             )}
             

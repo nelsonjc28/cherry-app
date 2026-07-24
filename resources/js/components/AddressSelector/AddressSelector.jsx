@@ -5,7 +5,7 @@ import api from '../../config/axios';
 import useUserStore from '../../store/userStore';
 import './AddressSelector.css';
 
-const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' }) => {
+const AddressSelector = ({ selectedAddressId, onAddressChange, className = '', addresses: externalAddresses = null }) => {
   const { token, user } = useUserStore();
   const navigate = useNavigate();
   const [addresses, setAddresses] = useState([]);
@@ -51,10 +51,22 @@ const AddressSelector = ({ selectedAddressId, onAddressChange, className = '' })
 
 
   useEffect(() => {
-    if (user) {
+    if (externalAddresses && Array.isArray(externalAddresses)) {
+      // Usar direcciones externas (modo vendedor: direcciones del cliente seleccionado)
+      setLoading(false);
+      setAddresses(externalAddresses);
+      if (externalAddresses.length > 0 && onAddressChange) {
+        const defaultAddr = externalAddresses.find(a => a.is_default);
+        if (defaultAddr) {
+          onAddressChange(defaultAddr);
+        } else {
+          onAddressChange(externalAddresses[0]);
+        }
+      }
+    } else if (user) {
       fetchAddresses();
     }
-  }, [user]);
+  }, [user, externalAddresses]);
 
   const fetchAddresses = async () => {
     try {

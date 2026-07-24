@@ -62,12 +62,12 @@ const VendorDashboard = () => {
           </div>
 
           <div className="vendor-card vendor-card--action">
-            <Link to="/vendor/checkout" className="vendor-card__link">
+            <Link to="/carrito-detalle" className="vendor-card__link">
               <div className="vendor-card__icon">🛒</div>
               <div className="vendor-card__content">
-                <div className="vendor-card__label">Ir al Checkout</div>
+                <div className="vendor-card__label">Ir al Carrito</div>
                 <div className="vendor-card__hint">
-                  Crear pedido directo para un cliente
+                  Crea un pedido para un cliente desde el carrito
                 </div>
               </div>
             </Link>

@@ -5,6 +5,7 @@ import AdminUserManager from '../components/AdminUserManager/AdminUserManager';
 import OperatorManager from '../components/OperatorManager/OperatorManager';
 import VendorManager from '../components/VendorManager/VendorManager';
 import ClientManager from '../components/ClientManager/ClientManager';
+import VendorClientList from '../components/VendorClientList/VendorClientList';
 import AdminReviews from '../components/AdminReviews/AdminReviews';
 
 import CategoryOrderManager from '../components/CategoryOrderManager/CategoryOrderManager';
@@ -261,53 +262,53 @@ function AdminPanelPage() {
           {/* Dashboard: visible para todos (admin, operador, vendor) */}
           <button className={`admin-panel__sidebar-link${selectedMenu==='home'?' active':''}`} onClick={()=>handleMenuChange('home')}>Dashboard</button>
 
-          {/* Órdenes: visible para todos (admin, operador, vendor) */}
-          <button className={`admin-panel__sidebar-link${selectedMenu==='orders'?' active':''}`} onClick={()=>handleMenuChange('orders')}>Órdenes</button>
-
-          {/* Clientes: visible para todos (admin, operador, vendor) */}
-          <button className={`admin-panel__sidebar-link${selectedMenu==='clients'?' active':''}`} onClick={()=>handleMenuChange('clients')}>Clientes</button>
-
-          {/* === Solo admin/operador: === */}
-
-          {/* Menú Usuarios (no se muestra a vendors) */}
-          {!isVendorUser() && (
-            <div className="admin-panel__menu-group">
-              <button
-                className={`admin-panel__menu-group-header${expandedMenus.usuarios ? ' expanded' : ''}`}
-                onClick={() => toggleSubmenu('usuarios')}
-              >
-                <span>Usuarios</span>
-                <span className="admin-panel__menu-arrow">{expandedMenus.usuarios ? '▼' : '▶'}</span>
-              </button>
-              {expandedMenus.usuarios && (
-                <div className="admin-panel__submenu">
-                  {/* Solo admin (no operador) puede gestionar administradores/operadores/vendedores */}
-                  {isOnlyAdmin() && (
-                    <>
-                      <button
-                        className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='users'?' active':''}`}
-                        onClick={()=>handleMenuChange('users')}
-                      >
-                        Administradores
-                      </button>
-                      <button
-                        className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='operators'?' active':''}`}
-                        onClick={()=>handleMenuChange('operators')}
-                      >
-                        Operadores
-                      </button>
-                      <button
-                        className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='vendors'?' active':''}`}
-                        onClick={()=>handleMenuChange('vendors')}
-                      >
-                        Vendedores
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+          {/* === Menú Usuarios (visible para admin, operador y vendor) === */}
+          <div className="admin-panel__menu-group">
+            <button
+              className={`admin-panel__menu-group-header${expandedMenus.usuarios ? ' expanded' : ''}`}
+              onClick={() => toggleSubmenu('usuarios')}
+            >
+              <span>Usuarios</span>
+              <span className="admin-panel__menu-arrow">{expandedMenus.usuarios ? '▼' : '▶'}</span>
+            </button>
+            {expandedMenus.usuarios && (
+              <div className="admin-panel__submenu">
+                {/* Solo admin (no operador) puede gestionar administradores/operadores/vendedores */}
+                {isOnlyAdmin() && (
+                  <button
+                    className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='users'?' active':''}`}
+                    onClick={()=>handleMenuChange('users')}
+                  >
+                    Administradores
+                  </button>
+                )}
+                {/* Clientes: visible para todos (admin, operador, vendor) */}
+                <button
+                  className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='clients'?' active':''}`}
+                  onClick={()=>handleMenuChange('clients')}
+                >
+                  Clientes
+                </button>
+                {/* Solo admin (no operador) */}
+                {isOnlyAdmin() && (
+                  <>
+                    <button
+                      className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='operators'?' active':''}`}
+                      onClick={()=>handleMenuChange('operators')}
+                    >
+                      Operadores
+                    </button>
+                    <button
+                      className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='vendors'?' active':''}`}
+                      onClick={()=>handleMenuChange('vendors')}
+                    >
+                      Vendedores
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Menú Categorías (no se muestra a vendors) */}
           {!isVendorUser() && (
@@ -378,6 +379,9 @@ function AdminPanelPage() {
               )}
             </div>
           )}
+
+          {/* Órdenes: visible para todos (admin, operador, vendor) — después de Catálogos */}
+          <button className={`admin-panel__sidebar-link${selectedMenu==='orders'?' active':''}`} onClick={()=>handleMenuChange('orders')}>Órdenes</button>
 
           {/* Las siguientes secciones no son visibles para vendors */}
           {!isVendorUser() && (
@@ -472,7 +476,7 @@ function AdminPanelPage() {
         {/* Módulos para administradores, operadores y vendors */}
         {selectedMenu === 'clients' && hasAdminPanelAccess() && (
           <section>
-            <ClientManager />
+            {isVendorUser() ? <VendorClientList /> : <ClientManager />}
           </section>
         )}
 

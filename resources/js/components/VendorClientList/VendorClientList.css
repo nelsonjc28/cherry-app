@@ -1,0 +1,126 @@
+.vendor-client-list {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.vendor-client-list__title {
+  margin: 0 0 20px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #333;
+}
+
+.vendor-client-list__loading {
+  padding: 40px;
+  text-align: center;
+  color: #777;
+  font-size: 14px;
+}
+
+.vendor-client-list__search {
+  margin-bottom: 16px;
+}
+
+.vendor-client-list__search-input {
+  width: 100%;
+  max-width: 400px;
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.vendor-client-list__search-input:focus {
+  border-color: #b8002f;
+  box-shadow: 0 0 0 2px rgba(184, 0, 47, 0.1);
+}
+
+.vendor-client-list__empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: #888;
+  font-size: 14px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #eee;
+}
+
+/* Reutilizar estilos de tabla de admin y de vendor category badges */
+.vendor-client-list .admin-orders__table-container {
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.vendor-client-list .admin-orders__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.vendor-client-list .admin-orders__table thead {
+  background: #fafafa;
+}
+
+.vendor-client-list .admin-orders__table th,
+.vendor-client-list .admin-orders__table td {
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 14px;
+}
+
+.vendor-client-list .admin-orders__table tbody tr:hover {
+  background: #fef2f4;
+}
+
+.vendor-client-list .vendor-category-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.vendor-client-list .vendor-category-badge--oro {
+  background: #fff4d4;
+  color: #b8860b;
+}
+
+.vendor-client-list .vendor-category-badge--diamante {
+  background: #d4ecff;
+  color: #0056b3;
+}
+
+/* Reutilizar botón de estado de cuenta de ClientManager */
+.vendor-client-list .client-manager__table-icon-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  padding: 4px;
+  transition: transform 0.15s;
+}
+
+.vendor-client-list .client-manager__table-icon-btn:hover {
+  transform: scale(1.15);
+}
+
+.vendor-client-list .client-manager__email-cell {
+  color: #666;
+  font-size: 13px;
+}
+
+.vendor-client-list .client-manager__phone-cell {
+  color: #999;
+  font-size: 12px;
+}
+
+.vendor-client-list .order-action-btn--detail {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}

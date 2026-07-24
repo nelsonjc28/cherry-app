@@ -193,10 +193,31 @@ const AdminOrders = () => {
   // Filtrar y ordenar órdenes
   const filteredOrders = orders.filter(order => {
     const matchesStatus = statusFilter === 'all' || order.status.toLowerCase() === statusFilter.toLowerCase();
-    const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.customerEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.customerName?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesSearch;
+    
+    if (!searchTerm.trim()) {
+      return matchesStatus;
+    }
+    
+    const q = searchTerm.toLowerCase().trim();
+    
+    // Buscar en campos principales de la orden
+    const matchesOrderFields = order.orderNumber.toLowerCase().includes(q) ||
+                               order.customerEmail?.toLowerCase().includes(q) ||
+                               order.customerName?.toLowerCase().includes(q) ||
+                               String(order.customerId || order.user_id || '').includes(q) ||
+                               order.customerPhone?.includes(q);
+    
+    if (matchesOrderFields) return matchesStatus;
+    
+    // Buscar en productos de la orden
+    const orderItems = order.items || [];
+    const matchesProduct = orderItems.some(item => {
+      const productName = (item.name || item.title || '').toLowerCase();
+      const productId = String(item.product_id || item.id || '');
+      return productName.includes(q) || productId.includes(q) || item.barcode?.includes(q) || item.sku?.toLowerCase().includes(q);
+    });
+    
+    return matchesStatus && matchesProduct;
   }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
   // Paginación
