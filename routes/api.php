@@ -218,17 +218,23 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('/admin/operators/{id}', [\App\Http\Controllers\Api\OperatorController::class, 'updateUser']);
     Route::delete('/admin/operators/{id}', [\App\Http\Controllers\Api\OperatorController::class, 'deleteUser']);
 
-    // Vendor routes - CRUD + gestión de compradores asociados (oro/diamante)
-    Route::get('/admin/vendors', [\App\Http\Controllers\Api\VendorController::class, 'index']);
-    Route::get('/admin/vendors/{id}', [\App\Http\Controllers\Api\VendorController::class, 'show']);
-    Route::post('/admin/vendors', [\App\Http\Controllers\Api\VendorController::class, 'store']);
-    Route::post('/admin/vendors/{id}', [\App\Http\Controllers\Api\VendorController::class, 'update']);
-    Route::delete('/admin/vendors/{id}', [\App\Http\Controllers\Api\VendorController::class, 'destroy']);
-    Route::get('/admin/vendors/{id}/buyers', [\App\Http\Controllers\Api\VendorController::class, 'listBuyers']);
-    Route::post('/admin/vendors/{id}/buyers', [\App\Http\Controllers\Api\VendorController::class, 'attachBuyer']);
-    Route::delete('/admin/vendors/{id}/buyers/{buyerId}', [\App\Http\Controllers\Api\VendorController::class, 'detachBuyer']);
-    // Listado de clientes elegibles para asociar (filtra dinámicamente por oro/diamante)
-    Route::get('/admin/clients/eligible-for-vendor', [\App\Http\Controllers\Api\VendorController::class, 'eligibleClients']);
+    // Vendor routes (CRUD + gestión de compradores) - solo accesible para ADMINS.
+    // Importante: aunque las rutas están en /admin/vendors/*, las separamos del
+    // grupo vendor (auth:api,vendor) porque la gestión de vendors es exclusiva
+    // del admin, no del propio vendor. El perfil del vendor y la gestión de sus
+    // compradores se hace en /api/vendor/* (ver grupo más abajo).
+    Route::middleware(['admin'])->group(function () {
+        Route::get('/admin/vendors', [\App\Http\Controllers\Api\VendorController::class, 'index']);
+        Route::get('/admin/vendors/{id}', [\App\Http\Controllers\Api\VendorController::class, 'show']);
+        Route::post('/admin/vendors', [\App\Http\Controllers\Api\VendorController::class, 'store']);
+        Route::post('/admin/vendors/{id}', [\App\Http\Controllers\Api\VendorController::class, 'update']);
+        Route::delete('/admin/vendors/{id}', [\App\Http\Controllers\Api\VendorController::class, 'destroy']);
+        Route::get('/admin/vendors/{id}/buyers', [\App\Http\Controllers\Api\VendorController::class, 'listBuyers']);
+        Route::post('/admin/vendors/{id}/buyers', [\App\Http\Controllers\Api\VendorController::class, 'attachBuyer']);
+        Route::delete('/admin/vendors/{id}/buyers/{buyerId}', [\App\Http\Controllers\Api\VendorController::class, 'detachBuyer']);
+        // Listado de clientes elegibles para asociar (filtra dinámicamente por oro/diamante)
+        Route::get('/admin/clients/eligible-for-vendor', [\App\Http\Controllers\Api\VendorController::class, 'eligibleClients']);
+    });
     
     // Client routes - require authentication and admin role
     Route::get('/admin/clients', [ClientController::class, 'getClients']);
