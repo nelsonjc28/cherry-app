@@ -51,36 +51,45 @@ function AdminPanelPage() {
     const userRole = user?.role?.name;
     return userRole === 'admin' || userRole === 'operador';
   };
-  
+
   // Helper para verificar si el usuario es solo admin (no operador)
   const isOnlyAdmin = () => {
     if (!user) return false;
     return user?.role?.name === 'admin';
   };
-  
+
+  // Helper para verificar si el usuario es vendor
+  const isVendorUser = () => {
+    if (!user) return false;
+    return user?.role?.name === 'vendedor';
+  };
+
+  // Helper para verificar si el usuario tiene acceso al panel admin
+  // (admin, operador o vendor). El vendor solo ve Dashboard, Órdenes, Clientes.
+  const hasAdminPanelAccess = () => {
+    return isAdminOrOperator() || isVendorUser();
+  };
+
   // Variable para verificar si es admin o operador (para uso directo)
   const userRole = user?.role?.name;
   const isAdminOrOperatorRole = userRole === 'admin' || userRole === 'operador';
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Validar que solo administradores y operadores puedan acceder (bloquear clientes)
+  // Validar que solo administradores, operadores y vendors puedan acceder (bloquear clientes)
   useEffect(() => {
     if (user) {
       const userRole = user?.role?.name;
-      if (userRole !== 'admin' && userRole !== 'operador') {
-        // Si el usuario no es admin ni operador, redirigir al home
+      if (userRole !== 'admin' && userRole !== 'operador' && userRole !== 'vendedor') {
+        // Si el usuario no es admin, operador ni vendor, redirigir al home
         navigate('/', { replace: true });
       }
     }
   }, [user, navigate]);
 
-  // Si no es admin ni operador, no renderizar nada (mientras se redirige)
-  if (user) {
-    const userRole = user?.role?.name;
-    if (userRole !== 'admin' && userRole !== 'operador') {
-      return null;
-    }
+  // Si no tiene acceso al panel, no renderizar nada (mientras se redirige)
+  if (user && !hasAdminPanelAccess()) {
+    return null;
   }
 
   // Función para toggle de submenús
@@ -232,7 +241,7 @@ function AdminPanelPage() {
       <aside className={`admin-panel__sidebar${sidebarOpen ? ' open' : ''}`}>
         <div className="admin-panel__sidebar-header">
           <span className="admin-panel__sidebar-title">
-            {isAdminOrOperatorRole ? 'Admin Panel' : 'Dashboard'}
+            {isAdminOrOperatorRole ? 'Admin Panel' : (isVendorUser() ? 'Panel Vendedor' : 'Dashboard')}
           </span>
           <button className="admin-panel__sidebar-toggle" onClick={()=>setSidebarOpen(v=>!v)} aria-label="Abrir/cerrar menú">
             <span>{sidebarOpen ? '✕' : '☰'}</span>
@@ -242,130 +251,147 @@ function AdminPanelPage() {
           <div className="admin-panel__user-info">
             <span className="admin-panel__user-name">{user?.first_name} {user?.last_name}</span>
             <span className="admin-panel__user-role">
-              {user?.role?.name === 'admin' ? 'Administrador' : 
-               user?.role?.name === 'operador' ? 'Operador' : 
+              {user?.role?.name === 'admin' ? 'Administrador' :
+               user?.role?.name === 'operador' ? 'Operador' :
+               user?.role?.name === 'vendedor' ? 'Vendedor' :
                'Cliente'}
             </span>
           </div>
+
+          {/* Dashboard: visible para todos (admin, operador, vendor) */}
           <button className={`admin-panel__sidebar-link${selectedMenu==='home'?' active':''}`} onClick={()=>handleMenuChange('home')}>Dashboard</button>
-          
-          {/* Menú Usuarios */}
-          <div className="admin-panel__menu-group">
-            <button 
-              className={`admin-panel__menu-group-header${expandedMenus.usuarios ? ' expanded' : ''}`}
-              onClick={() => toggleSubmenu('usuarios')}
-            >
-              <span>Usuarios</span>
-              <span className="admin-panel__menu-arrow">{expandedMenus.usuarios ? '▼' : '▶'}</span>
-            </button>
-            {expandedMenus.usuarios && (
-              <div className="admin-panel__submenu">
-                {/* Solo mostrar estos links si el usuario es admin (no operador) */}
-                {isOnlyAdmin() && (
-                  <>
-                    <button 
-                      className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='users'?' active':''}`} 
-                      onClick={()=>handleMenuChange('users')}
-                    >
-                      Administradores
-                    </button>
-                    <button
-                      className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='operators'?' active':''}`}
-                      onClick={()=>handleMenuChange('operators')}
-                    >
-                      Operadores
-                    </button>
-                    <button
-                      className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='vendors'?' active':''}`}
-                      onClick={()=>handleMenuChange('vendors')}
-                    >
-                      Vendedores
-                    </button>
-                  </>
-                )}
-                <button 
-                  className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='clients'?' active':''}`} 
-                  onClick={()=>handleMenuChange('clients')}
-                >
-                  Clientes
-                </button>
-              </div>
-            )}
-          </div>
 
-          {/* Menú Categorías */}
-          <div className="admin-panel__menu-group">
-            <button 
-              className={`admin-panel__menu-group-header${expandedMenus.categorias ? ' expanded' : ''}`}
-              onClick={() => toggleSubmenu('categorias')}
-            >
-              <span>Categorías</span>
-              <span className="admin-panel__menu-arrow">{expandedMenus.categorias ? '▼' : '▶'}</span>
-            </button>
-            {expandedMenus.categorias && (
-              <div className="admin-panel__submenu">
-                <button 
-                  className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='category-products'?' active':''}`} 
-                  onClick={()=>handleMenuChange('category-products')}
-                >
-                  Categorías
-                </button>
-                <button 
-                  className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='category-order'?' active':''}`} 
-                  onClick={()=>handleMenuChange('category-order')}
-                >
-                  Ordenar Categorías
-                </button>
-                <button 
-                  className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='menu-category-order'?' active':''}`} 
-                  onClick={()=>handleMenuChange('menu-category-order')}
-                >
-                  Ordenar Categorías del Menú
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Menú Catálogos */}
-          <div className="admin-panel__menu-group">
-            <button 
-              className={`admin-panel__menu-group-header${expandedMenus.catalogos ? ' expanded' : ''}`}
-              onClick={() => toggleSubmenu('catalogos')}
-            >
-              <span>Catálogos</span>
-              <span className="admin-panel__menu-arrow">{expandedMenus.catalogos ? '▼' : '▶'}</span>
-            </button>
-            {expandedMenus.catalogos && (
-              <div className="admin-panel__submenu">
-                <button 
-                  className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='catalogs'?' active':''}`} 
-                  onClick={()=>handleMenuChange('catalogs')}
-                >
-                  Catálogos
-                </button>
-                <button 
-                  className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='catalog-order'?' active':''}`} 
-                  onClick={()=>handleMenuChange('catalog-order')}
-                >
-                  Ordenar Catálogos
-                </button>
-                <button 
-                  className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='home-catalogs'?' active':''}`} 
-                  onClick={()=>handleMenuChange('home-catalogs')}
-                >
-                  Ordenar Catálogos del Menú
-                </button>
-              </div>
-            )}
-          </div>
-
-          <button className={`admin-panel__sidebar-link${selectedMenu==='welcome-sections'?' active':''}`} onClick={()=>handleMenuChange('welcome-sections')}>Secciones de Bienvenida</button>
+          {/* Órdenes: visible para todos (admin, operador, vendor) */}
           <button className={`admin-panel__sidebar-link${selectedMenu==='orders'?' active':''}`} onClick={()=>handleMenuChange('orders')}>Órdenes</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='reviews'?' active':''}`} onClick={()=>handleMenuChange('reviews')}>Reseñas</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='mail-images'?' active':''}`} onClick={()=>handleMenuChange('mail-images')}>Imágenes de correo</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='contact-info'?' active':''}`} onClick={()=>handleMenuChange('contact-info')}>Información de Contacto</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='privacy-policy'?' active':''}`} onClick={()=>handleMenuChange('privacy-policy')}>Terminos y condiciones</button>
-          <button className={`admin-panel__sidebar-link${selectedMenu==='discounts'?' active':''}`} onClick={()=>handleMenuChange('discounts')}>Descuentos</button>
+
+          {/* Clientes: visible para todos (admin, operador, vendor) */}
+          <button className={`admin-panel__sidebar-link${selectedMenu==='clients'?' active':''}`} onClick={()=>handleMenuChange('clients')}>Clientes</button>
+
+          {/* === Solo admin/operador: === */}
+
+          {/* Menú Usuarios (no se muestra a vendors) */}
+          {!isVendorUser() && (
+            <div className="admin-panel__menu-group">
+              <button
+                className={`admin-panel__menu-group-header${expandedMenus.usuarios ? ' expanded' : ''}`}
+                onClick={() => toggleSubmenu('usuarios')}
+              >
+                <span>Usuarios</span>
+                <span className="admin-panel__menu-arrow">{expandedMenus.usuarios ? '▼' : '▶'}</span>
+              </button>
+              {expandedMenus.usuarios && (
+                <div className="admin-panel__submenu">
+                  {/* Solo admin (no operador) puede gestionar administradores/operadores/vendedores */}
+                  {isOnlyAdmin() && (
+                    <>
+                      <button
+                        className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='users'?' active':''}`}
+                        onClick={()=>handleMenuChange('users')}
+                      >
+                        Administradores
+                      </button>
+                      <button
+                        className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='operators'?' active':''}`}
+                        onClick={()=>handleMenuChange('operators')}
+                      >
+                        Operadores
+                      </button>
+                      <button
+                        className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='vendors'?' active':''}`}
+                        onClick={()=>handleMenuChange('vendors')}
+                      >
+                        Vendedores
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Menú Categorías (no se muestra a vendors) */}
+          {!isVendorUser() && (
+            <div className="admin-panel__menu-group">
+              <button
+                className={`admin-panel__menu-group-header${expandedMenus.categorias ? ' expanded' : ''}`}
+                onClick={() => toggleSubmenu('categorias')}
+              >
+                <span>Categorías</span>
+                <span className="admin-panel__menu-arrow">{expandedMenus.categorias ? '▼' : '▶'}</span>
+              </button>
+              {expandedMenus.categorias && (
+                <div className="admin-panel__submenu">
+                  <button
+                    className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='category-products'?' active':''}`}
+                    onClick={()=>handleMenuChange('category-products')}
+                  >
+                    Categorías
+                  </button>
+                  <button
+                    className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='category-order'?' active':''}`}
+                    onClick={()=>handleMenuChange('category-order')}
+                  >
+                    Ordenar Categorías
+                  </button>
+                  <button
+                    className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='menu-category-order'?' active':''}`}
+                    onClick={()=>handleMenuChange('menu-category-order')}
+                  >
+                    Ordenar Categorías del Menú
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Menú Catálogos (no se muestra a vendors) */}
+          {!isVendorUser() && (
+            <div className="admin-panel__menu-group">
+              <button
+                className={`admin-panel__menu-group-header${expandedMenus.catalogos ? ' expanded' : ''}`}
+                onClick={() => toggleSubmenu('catalogos')}
+              >
+                <span>Catálogos</span>
+                <span className="admin-panel__menu-arrow">{expandedMenus.catalogos ? '▼' : '▶'}</span>
+              </button>
+              {expandedMenus.catalogos && (
+                <div className="admin-panel__submenu">
+                  <button
+                    className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='catalogs'?' active':''}`}
+                    onClick={()=>handleMenuChange('catalogs')}
+                  >
+                    Catálogos
+                  </button>
+                  <button
+                    className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='catalog-order'?' active':''}`}
+                    onClick={()=>handleMenuChange('catalog-order')}
+                  >
+                    Ordenar Catálogos
+                  </button>
+                  <button
+                    className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='home-catalogs'?' active':''}`}
+                    onClick={()=>handleMenuChange('home-catalogs')}
+                  >
+                    Ordenar Catálogos del Menú
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Las siguientes secciones no son visibles para vendors */}
+          {!isVendorUser() && (
+            <>
+              <button className={`admin-panel__sidebar-link${selectedMenu==='welcome-sections'?' active':''}`} onClick={()=>handleMenuChange('welcome-sections')}>Secciones de Bienvenida</button>
+              <button className={`admin-panel__sidebar-link${selectedMenu==='reviews'?' active':''}`} onClick={()=>handleMenuChange('reviews')}>Reseñas</button>
+              <button className={`admin-panel__sidebar-link${selectedMenu==='mail-images'?' active':''}`} onClick={()=>handleMenuChange('mail-images')}>Imágenes de correo</button>
+              <button className={`admin-panel__sidebar-link${selectedMenu==='contact-info'?' active':''}`} onClick={()=>handleMenuChange('contact-info')}>Información de Contacto</button>
+              <button className={`admin-panel__sidebar-link${selectedMenu==='privacy-policy'?' active':''}`} onClick={()=>handleMenuChange('privacy-policy')}>Terminos y condiciones</button>
+              <button className={`admin-panel__sidebar-link${selectedMenu==='discounts'?' active':''}`} onClick={()=>handleMenuChange('discounts')}>Descuentos</button>
+            </>
+          )}
+
+          {/* Solo admin: histórico de productos, envíos API, correos cron */}
           {isOnlyAdmin() && (
             <>
               <button className={`admin-panel__sidebar-link${selectedMenu==='historial'?' active':''}`} onClick={()=>handleMenuChange('historial')}>Historial productos</button>
@@ -373,14 +399,15 @@ function AdminPanelPage() {
               <button className={`admin-panel__sidebar-link${selectedMenu==='cron-mail-historial'?' active':''}`} onClick={()=>handleMenuChange('cron-mail-historial')}>Historial correos cron</button>
             </>
           )}
+
           <button className="admin-panel__sidebar-link" onClick={handleLogout}>Volver al sitio</button>
         </nav>
       </aside>
-      <main className={`admin-panel__main-content ${selectedMenu === 'home' && isAdminOrOperatorRole ? 'admin-panel__main-content--dashboard' : ''}`}>
+      <main className={`admin-panel__main-content ${selectedMenu === 'home' && hasAdminPanelAccess() ? 'admin-panel__main-content--dashboard' : ''}`}>
         {selectedMenu === 'home' && (
           <section>
-            {isAdminOrOperatorRole ? (
-              // Dashboard con gráficas: administradores y operadores
+            {hasAdminPanelAccess() ? (
+              // Dashboard con gráficas: visible para admin, operador y vendor
               <AdminDashboard />
             ) : (
               // Contenido de respaldo (no debería mostrarse: AdminRoute ya filtra)
@@ -388,8 +415,9 @@ function AdminPanelPage() {
                 <h2 className="section-title mb-3">Dashboard de Usuario</h2>
                 <div className="admin-panel__welcome mb-4">
                   <h3>Bienvenido, {user?.first_name}!</h3>
-                  <p>Rol: {user?.role?.name === 'admin' ? 'Administrador' : 
-                           user?.role?.name === 'operador' ? 'Operador' : 
+                  <p>Rol: {user?.role?.name === 'admin' ? 'Administrador' :
+                           user?.role?.name === 'operador' ? 'Operador' :
+                           user?.role?.name === 'vendedor' ? 'Vendedor' :
                            'Cliente'}</p>
                   <p>Email: {user?.email}</p>
                 </div>
@@ -441,8 +469,8 @@ function AdminPanelPage() {
           </section>
         )}
         
-        {/* Módulos para administradores y operadores */}
-        {selectedMenu === 'clients' && isAdminOrOperatorRole && (
+        {/* Módulos para administradores, operadores y vendors */}
+        {selectedMenu === 'clients' && hasAdminPanelAccess() && (
           <section>
             <ClientManager />
           </section>
@@ -490,7 +518,7 @@ function AdminPanelPage() {
           </section>
         )}
 
-        {selectedMenu === 'orders' && isAdminOrOperatorRole && (
+        {selectedMenu === 'orders' && hasAdminPanelAccess() && (
           <section>
             <AdminOrders />
           </section>
