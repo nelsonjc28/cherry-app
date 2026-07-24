@@ -29,9 +29,9 @@ const AdminRoute = ({ children }) => {
   // Verificar explícitamente el rol del usuario
   const userRole = user?.role?.name;
   
-  // Permitir acceso a administradores y operadores (bloquear solo clientes)
-  if (userRole !== 'admin' && userRole !== 'operador') {
-    // Si no es admin ni operador, redirigir al home
+  // Permitir acceso a administradores, operadores y vendors (bloquear solo clientes)
+  if (userRole !== 'admin' && userRole !== 'operador' && userRole !== 'vendedor') {
+    // Si no es admin, operador ni vendor, redirigir al home
     return <Navigate to="/" replace />;
   }
 
