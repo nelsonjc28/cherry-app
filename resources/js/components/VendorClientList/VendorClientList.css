@@ -3,8 +3,17 @@
   margin: 0 auto;
 }
 
+.vendor-client-list__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .vendor-client-list__title {
-  margin: 0 0 20px;
+  margin: 0;
   font-size: 22px;
   font-weight: 700;
   color: #333;
@@ -45,6 +54,32 @@
   background: #fff;
   border-radius: 8px;
   border: 1px solid #eee;
+}
+
+/* Botón de sincronizar reutilizado de ClientManager */
+.vendor-client-list .client-manager__sync-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #555;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.vendor-client-list .client-manager__sync-btn:hover {
+  border-color: #b8002f;
+  color: #b8002f;
+  background: #fef2f4;
+}
+
+.vendor-client-list .client-manager__sync-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Reutilizar estilos de tabla de admin y de vendor category badges */

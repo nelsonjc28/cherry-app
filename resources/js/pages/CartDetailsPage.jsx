@@ -1254,7 +1254,8 @@ const CartDetailsPage = () => {
     const alerts = [];
 
     // Bronce: mensajes por PIEZAS, no por monto.
-    if (isBronzeUser) {
+    // (usa bronzeUser que excluye a vendedores)
+    if (bronzeUser) {
       const mainRequired = bronzeMainRequiredPieces || 12; // 12 (1ª) / 1 (repetida)
       const secondTierRequired = 12; // 10% adicional siempre desde 12 piezas
       const hasCompletedFirst = hasCompletedFirstPurchase(user);
@@ -1351,7 +1352,7 @@ const CartDetailsPage = () => {
     // Para oro/diamante (reglas previas por monto).
     // Si no hay descuento desde API y no es bronce, no mostrar alertas de descuento
     const hasApiMain = hasApiVolumeMainPercent(user);
-    if (eligibleTotal <= 0 || (mainDiscountPercent === 0 && !isBronzeUser)) return alerts;
+    if (eligibleTotal <= 0 || (mainDiscountPercent === 0 && !bronzeUser)) return alerts;
 
     const progressThreshold =
       isBronzeUser && !bronzeBenefitActive
