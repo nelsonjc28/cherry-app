@@ -248,13 +248,73 @@
 
 @media (max-width: 560px) {
   .ext-account-modal__summary {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .ext-account-modal__summary-item {
+    gap: 4px;
+  }
+
+  .ext-account-modal__summary-item label {
+    font-size: 10px;
+  }
+
+  .ext-account-modal__summary-item span {
+    padding: 6px 8px;
+    font-size: 12px;
   }
 
   .ext-account-modal__header,
   .ext-account-modal__body,
   .ext-account-modal__footer {
-    padding-left: 16px;
-    padding-right: 16px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .ext-account-modal__title {
+    font-size: 16px;
+  }
+
+  .ext-account-modal__client-name {
+    font-size: 12px;
+  }
+
+  .ext-account-modal__client-email {
+    font-size: 11px;
+  }
+
+  .ext-account-modal__table {
+    min-width: 600px;
+    font-size: 11px;
+  }
+
+  .ext-account-modal__table th,
+  .ext-account-modal__table td {
+    padding: 6px 4px;
+    font-size: 11px;
+  }
+
+  .ext-account-modal__table th {
+    font-size: 10px;
+  }
+
+  .ext-account-modal__num {
+    font-size: 11px;
+  }
+
+  .ext-account-modal__content {
+    max-width: 100%;
+    margin: 0;
+    border-radius: 8px;
+  }
+
+  .ext-account-modal__overlay {
+    padding: 8px;
+  }
+
+  .ext-account-modal__close-btn {
+    padding: 8px 16px;
+    font-size: 13px;
   }
 }

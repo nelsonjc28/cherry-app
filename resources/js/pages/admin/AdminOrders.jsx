@@ -31,6 +31,7 @@ const getContrastColor = (hexColor) => {
 const AdminOrders = () => {
   const { user } = useUserStore();
   const isOperator = user?.role?.name === 'operador';
+  const isVendor = user?.role?.name === 'vendedor';
   const formatOrderNumber = (order) => formatOrderNumberDisplay(order);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -587,223 +588,106 @@ const AdminOrders = () => {
           </div>
         ) : (
           <div className="table-scroll-wrapper">
-            <table className="admin-orders__table">
-              <thead>
-                <tr>
-                  <th>No. de pedido</th>
-                  <th>Productos</th>
-                  <th>Fecha</th>
-                  <th>Hora</th>
-                  <th>Cliente</th>
-                  <th>Método de entrega</th>
-                  <th>Cant. piezas</th>
-                  <th>Total</th>
-                  <th>Estado</th>
-                  <th className="admin-orders__th-api" title="Envío a API externa">API</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedOrders.map((order) => {
-                  const orderDate = new Date(order.created_at);
-                  const dateStr = orderDate.toLocaleDateString('es-MX', { 
-                    year: 'numeric', 
-                    month: '2-digit', 
-                    day: '2-digit' 
-                  });
-                  const timeStr = orderDate.toLocaleTimeString('es-MX', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  });
-                  const totalPieces = order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
-                  const deliveryLabel =
-                    order.shipping_method_label
-                    || (order.address ? 'Envío a Domicilio' : 'Retiro en Tienda');
-
-                  // Obtener las primeras 3 imágenes de productos para mostrar como miniaturas
-                  const productImages = order.items?.slice(0, 3).map(item => item.image).filter(Boolean) || [];
-                  
-                  const isCreditPorPagar =
-                    order.status === 'pendiente_pago' &&
-                    order.paid_with_credit &&
-                    (order.payment_method || '').toString().toLowerCase() === 'credito';
-
-                  return (
-                    <tr 
-                      key={order.id}
-                      className={`${highlightedOrderId === order.id ? 'highlighted' : ''}${isCreditPorPagar ? ' admin-orders__row--credit-pending' : ''}`}
-                    >
-                      <td className="order-number-cell">#{formatOrderNumber(order)}</td>
-                      <td className="order-products-cell">
-                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center', justifyContent: 'flex-start' }}>
-                          {productImages.length > 0 ? (
-                            productImages.map((img, idx) => (
-                              <img 
-                                key={idx}
-                                src={img} 
-                                alt={`Producto ${idx + 1}`}
-                                style={{ 
-                                  width: '30px', 
-                                  height: '30px', 
-                                  objectFit: 'cover', 
-                                  borderRadius: '3px',
-                                  border: '1px solid #ddd'
-                                }}
-                                onError={(e) => {
-                                  e.target.style.display = 'none';
-                                }}
-                              />
-                            ))
-                          ) : (
-                            <span style={{ fontSize: '12px', color: '#999' }}>-</span>
-                          )}
-                          {order.items && order.items.length > 3 && (
-                            <span style={{ fontSize: '11px', color: '#666', marginLeft: '4px' }}>
-                              +{order.items.length - 3}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="order-date-cell">{dateStr}</td>
-                      <td className="order-time-cell">{timeStr}</td>
-                      <td className="order-customer-cell">{order.customerName || 'N/A'}</td>
-                      <td className="order-delivery-cell">{deliveryLabel}</td>
-                      <td className="order-pieces-cell">{totalPieces}</td>
-                      <td className="order-total-cell">{formatCurrency(order.totalAmount)}</td>
-                      <td className="order-status-cell">
-                        <span className={`status-badge status-badge--${getAdminStatusBadgeVariant(order)}`}>
-                          {order.statusDisplay || order.status}
-                        </span>
-                      </td>
-                      <td className="order-api-cell">
-                        {order.external_api_sent ? (
-                          <span
-                            className="external-api-badge external-api-badge--sent"
-                            title={order.external_api_sent_at
-                              ? `Enviado a API externa: ${new Date(order.external_api_sent_at).toLocaleString('es-MX')}`
-                              : 'Enviado a API externa'}
-                          >
-                            ✓
+            {isVendor ? (
+              // Tabla simplificada para vendedores (sin columna Productos)
+              <table className="admin-orders__table admin-orders__table--vendor">
+                <thead>
+                  <tr>
+                    <th>No. de pedido</th>
+                    <th>Fecha</th>
+                    <th>Cliente</th>
+                    <th>Entrega</th>
+                    <th>Piezas</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedOrders.map((order) => {
+                    const orderDate = new Date(order.created_at);
+                    const dateStr = orderDate.toLocaleDateString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit' });
+                    const totalPieces = order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+                    const deliveryLabel = order.shipping_method_label || (order.address ? 'Envío a Domicilio' : 'Retiro en Tienda');
+                    return (
+                      <tr key={order.id} style={{ cursor: 'pointer' }} onClick={() => handleViewOrderDetails(order)}>
+                        <td><span className="vendor-orders__link" style={{ textDecoration: 'underline', color: '#b8002f', cursor: 'pointer' }}>#{formatOrderNumber(order)}</span></td>
+                        <td>{dateStr}</td>
+                        <td>{order.customerName || 'N/A'}</td>
+                        <td>{deliveryLabel}</td>
+                        <td>{totalPieces}</td>
+                        <td>{formatCurrency(order.totalAmount)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              // Tabla completa para admin/operador
+              <table className="admin-orders__table">
+                <thead>
+                  <tr>
+                    <th>No. de pedido</th>
+                    <th>Productos</th>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>Cliente</th>
+                    <th>Método de entrega</th>
+                    <th>Cant. piezas</th>
+                    <th>Total</th>
+                    <th>Estado</th>
+                    <th>Detalle</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedOrders.map((order) => {
+                    const orderDate = new Date(order.created_at);
+                    const dateStr = orderDate.toLocaleDateString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit' });
+                    const timeStr = orderDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+                    const totalPieces = order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+                    const deliveryLabel = order.shipping_method_label || (order.address ? 'Envío a Domicilio' : 'Retiro en Tienda');
+                    const productImages = order.items?.slice(0, 3).map(item => item.image).filter(Boolean) || [];
+                    const isCreditPorPagar = order.status === 'pendiente_pago' && order.paid_with_credit && (order.payment_method || '').toString().toLowerCase() === 'credito';
+                    return (
+                      <tr key={order.id} className={`${highlightedOrderId === order.id ? 'highlighted' : ''}${isCreditPorPagar ? ' admin-orders__row--credit-pending' : ''}`}>
+                        <td className="order-number-cell">#{formatOrderNumber(order)}</td>
+                        <td className="order-products-cell">
+                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center', justifyContent: 'flex-start' }}>
+                            {productImages.length > 0 ? productImages.map((img, idx) => (
+                              <img key={idx} src={img} alt={`Producto ${idx + 1}`} style={{ width: '30px', height: '30px', objectFit: 'cover', borderRadius: '3px', border: '1px solid #ddd' }} onError={(e) => { e.target.style.display = 'none'; }} />
+                            )) : <span style={{ fontSize: '12px', color: '#999' }}>-</span>}
+                            {order.items && order.items.length > 3 && <span style={{ fontSize: '11px', color: '#666', marginLeft: '4px' }}>+{order.items.length - 3}</span>}
+                          </div>
+                        </td>
+                        <td className="order-date-cell">{dateStr}</td>
+                        <td className="order-time-cell">{timeStr}</td>
+                        <td className="order-customer-cell">{order.customerName || 'N/A'}</td>
+                        <td className="order-delivery-cell">{deliveryLabel}</td>
+                        <td className="order-pieces-cell">{totalPieces}</td>
+                        <td className="order-total-cell">{formatCurrency(order.totalAmount)}</td>
+                        <td className="order-status-cell">
+                          <span className={`status-badge status-badge--${getAdminStatusBadgeVariant(order)}`}>
+                            {order.statusDisplay || order.status}
                           </span>
-                        ) : order.should_send_to_external_api ? (
-                          <span
-                            className="external-api-badge external-api-badge--pending"
-                            title="Pendiente de envío a API externa"
-                          >
-                            !
-                          </span>
-                        ) : (
-                          <span
-                            className="external-api-badge external-api-badge--na"
-                            title="Aún no debe enviarse a la API externa"
-                          >
-                            —
-                          </span>
-                        )}
-                      </td>
-                      <td className="order-actions-cell">
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
-                          <button
-                            className="order-action-btn order-action-btn--detail"
-                            onClick={() => handleViewOrderDetails(order)}
-                            disabled={loadingOrderDetail}
-                            data-tooltip="Ver Detalle"
-                            onMouseEnter={(e) => {
-                              const button = e.currentTarget;
-                              const tooltipText = button.getAttribute('data-tooltip');
-                              let tooltip = document.querySelector('.order-tooltip');
-                              if (!tooltip) {
-                                tooltip = document.createElement('div');
-                                tooltip.className = 'order-tooltip';
-                                document.body.appendChild(tooltip);
-                              }
-                              tooltip.textContent = tooltipText;
-                              tooltip.style.display = 'block';
-                              
-                              const rect = button.getBoundingClientRect();
-                              const tooltipRect = tooltip.getBoundingClientRect();
-                              tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
-                              tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
-                            }}
-                            onMouseLeave={() => {
-                              const tooltip = document.querySelector('.order-tooltip');
-                              if (tooltip) tooltip.style.display = 'none';
-                            }}
-                          >
-                            {loadingOrderDetail ? '⏳' : '👁️'}
-                          </button>
-                          {!isOperator && canResendToExternalApi(order) && (
-                            <button
-                              type="button"
-                              className="order-action-btn order-action-btn--resend-api"
-                              onClick={(e) => handleResendExternalApi(order, e)}
-                              disabled={resendingExternalApiOrderId === order.id}
-                              data-tooltip={
-                                order.external_api_sent
-                                  ? 'Reenviar a API externa'
-                                  : 'Enviar a API externa'
-                              }
-                              onMouseEnter={(e) => {
-                                const button = e.currentTarget;
-                                const tooltipText = button.getAttribute('data-tooltip');
-                                let tooltip = document.querySelector('.order-tooltip');
-                                if (!tooltip) {
-                                  tooltip = document.createElement('div');
-                                  tooltip.className = 'order-tooltip';
-                                  document.body.appendChild(tooltip);
-                                }
-                                tooltip.textContent = tooltipText;
-                                tooltip.style.display = 'block';
-                                const rect = button.getBoundingClientRect();
-                                const tooltipRect = tooltip.getBoundingClientRect();
-                                tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
-                                tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
-                              }}
-                              onMouseLeave={() => {
-                                const tooltip = document.querySelector('.order-tooltip');
-                                if (tooltip) tooltip.style.display = 'none';
-                              }}
-                            >
-                              {resendingExternalApiOrderId === order.id ? '⏳' : '↻'}
-                            </button>
-                          )}
-                          {!isOperator && isPendingPaymentStatus(order) && (
-                            <button
-                              className="order-action-btn order-action-btn--mark-paid"
-                              onClick={() => handleMarkCreditAsPaid(order)}
-                              data-tooltip="Marcar como Pagada"
-                              onMouseEnter={(e) => {
-                                const button = e.currentTarget;
-                                const tooltipText = button.getAttribute('data-tooltip');
-                                let tooltip = document.querySelector('.order-tooltip');
-                                if (!tooltip) {
-                                  tooltip = document.createElement('div');
-                                  tooltip.className = 'order-tooltip';
-                                  document.body.appendChild(tooltip);
-                                }
-                                tooltip.textContent = tooltipText;
-                                tooltip.style.display = 'block';
-                                
-                                const rect = button.getBoundingClientRect();
-                                const tooltipRect = tooltip.getBoundingClientRect();
-                                tooltip.style.left = `${rect.left + rect.width / 2 - tooltipRect.width / 2}px`;
-                                tooltip.style.top = `${rect.top - tooltipRect.height - 10}px`;
-                              }}
-                              onMouseLeave={() => {
-                                const tooltip = document.querySelector('.order-tooltip');
-                                if (tooltip) tooltip.style.display = 'none';
-                              }}
-                            >
-                              💰
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        </td>
+                        <td className="order-actions-cell">
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
+                            <button className="order-action-btn order-action-btn--detail" onClick={() => handleViewOrderDetails(order)} disabled={loadingOrderDetail} data-tooltip="Ver Detalle"
+                              onMouseEnter={(e) => { const b = e.currentTarget; const t = b.getAttribute('data-tooltip'); let tp = document.querySelector('.order-tooltip'); if (!tp) { tp = document.createElement('div'); tp.className = 'order-tooltip'; document.body.appendChild(tp); } tp.textContent = t; tp.style.display = 'block'; const r = b.getBoundingClientRect(); const tr = tp.getBoundingClientRect(); tp.style.left = `${r.left + r.width / 2 - tr.width / 2}px`; tp.style.top = `${r.top - tr.height - 10}px`; }}
+                              onMouseLeave={() => { const tp = document.querySelector('.order-tooltip'); if (tp) tp.style.display = 'none'; }}
+                            >{loadingOrderDetail ? '⏳' : '👁️'}</button>
+                            {!isOperator && isPendingPaymentStatus(order) && (
+                              <button className="order-action-btn order-action-btn--mark-paid" onClick={() => handleMarkCreditAsPaid(order)} data-tooltip="Marcar como Pagada"
+                                onMouseEnter={(e) => { const b = e.currentTarget; const t = b.getAttribute('data-tooltip'); let tp = document.querySelector('.order-tooltip'); if (!tp) { tp = document.createElement('div'); tp.className = 'order-tooltip'; document.body.appendChild(tp); } tp.textContent = t; tp.style.display = 'block'; const r = b.getBoundingClientRect(); const tr = tp.getBoundingClientRect(); tp.style.left = `${r.left + r.width / 2 - tr.width / 2}px`; tp.style.top = `${r.top - tr.height - 10}px`; }}
+                                onMouseLeave={() => { const tp = document.querySelector('.order-tooltip'); if (tp) tp.style.display = 'none'; }}
+                              >💰</button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
       </div>

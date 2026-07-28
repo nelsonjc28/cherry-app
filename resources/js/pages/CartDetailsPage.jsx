@@ -632,6 +632,8 @@ const CartDetailsPage = () => {
         return;
       }
 
+      // Recolectar items con problemas de stock
+      const itemsWithoutStock = [];
       for (const item of cartItems) {
         if (itemSkipsStockValidation(item, user)) continue;
         try {
@@ -642,16 +644,84 @@ const CartDetailsPage = () => {
             item.quantity
           );
           if (!stockValidation.isValid) {
+            itemsWithoutStock.push({ item, stockValidation });
+          }
+        } catch (err) {
+          itemsWithoutStock.push({
+            item,
+            stockValidation: { isValid: false, availableStock: 0, message: 'Error al verificar' }
+          });
+        }
+      }
+
+      // Si hay items sin stock, mostrar un solo Swal con la lista de todos
+      if (itemsWithoutStock.length > 0) {
+        const itemsHtml = itemsWithoutStock.map(({ item, stockValidation }) => {
+          const productName = item.title || item.name || item.id_articulo;
+          const size = item.selectedSize || '';
+          const color = item.selectedColor || '';
+          const qty = item.quantity || 0;
+          const available = stockValidation.availableStock || 0;
+          return `<div style="margin-bottom:10px; padding:8px; background:#f9f9f9; border-radius:4px; border-left:3px solid #b8002f;">
+            <strong style="color:#333;">${productName}</strong><br>
+            <span style="font-size:13px; color:#666;">Talla: ${size} | Color: ${color}</span><br>
+            <span style="font-size:13px; color:#666;">Solicitaste: <strong>${qty}</strong> | Disponible: <strong>${available}</strong></span>
+          </div>`;
+        }).join('');
+
+        const result = await Swal.fire({
+          title: 'Productos sin stock disponible',
+          html: `
+            <p style="text-align:left; margin-bottom:14px; color:#555;">
+              Los siguientes productos ya no tienen el stock que solicitaste. ¿Qué deseas hacer con ellos?
+            </p>
+            ${itemsHtml}
+          `,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Dejar en el pedido',
+          cancelButtonText: 'Eliminar del carrito',
+          confirmButtonColor: '#b8002f',
+          cancelButtonColor: '#6c757d',
+          reverseButtons: true,
+          allowOutsideClick: false,
+        });
+
+        if (result.isConfirmed) {
+          // Marcar todos los items problemáticos como encargo (stock agotado)
+          // usando setState de Zustand para actualizar correctamente el store
+          const updatedItems = cartItems.map((ci) => {
+            const isProblematic = itemsWithoutStock.some(
+              ({ item }) =>
+                String(ci.id_articulo) === String(item.id_articulo) &&
+                ci.selectedSize === item.selectedSize &&
+                ci.selectedColor === item.selectedColor
+            );
+            if (isProblematic) {
+              return {
+                ...ci,
+                isOutOfStockEncargo: true,
+                isComingSoon: false,
+              };
+            }
+            return ci;
+          });
+          // Actualizar el store de Zustand
+          useCartStore.setState({ items: updatedItems });
+        } else if (result.dismiss === Swal.DismissReason.cancel) {
+          // Eliminar todos los items problemáticos del carrito
+          for (const { item } of itemsWithoutStock) {
+            removeItem(item.id_articulo, item.selectedColor, item.selectedSize);
+          }
+          // Si no quedan items, detener
+          if (cartItems.length - itemsWithoutStock.length <= 0) {
             if (window.showToast) {
-              window.showToast(stockValidation.message || 'Stock insuficiente', 'error');
+              window.showToast('No hay productos en el carrito para continuar', 'warning');
             }
             return;
           }
-        } catch (err) {
-          if (window.showToast) {
-            window.showToast('Error al validar disponibilidad del producto', 'error');
-          }
-          return;
+        } else {
+          return; // Canceló
         }
       }
 
@@ -1573,6 +1643,16 @@ const CartDetailsPage = () => {
               </div>
             )}
             
+            {/* En móvil para vendedores: mostrar el selector de cliente antes de los productos */}
+            {isVendor && (
+              <div className="cart-details__buyer-info-mobile">
+                <BuyerInfo
+                  className="cart-details__buyer-info"
+                  selectedBuyer={selectedBuyer}
+                  onBuyerChange={handleBuyerChange}
+                />
+              </div>
+            )}
             {productsForDisplay.map((product, idx) => (
               <CartDetailsProductCard
                 key={`${String(product.sku)}-${product.variants.map((v) => `${v.color}:${v.size}:${v.isFreeItem ? 'free' : 'paid'}`).join('|')}`}

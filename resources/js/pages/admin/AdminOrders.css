@@ -307,6 +307,37 @@
   margin: 0 auto;
 }
 
+/* Tabla de vendedores: ancho completo */
+.admin-orders__table--vendor {
+  width: 100%;
+}
+
+.admin-orders__table--vendor th,
+.admin-orders__table--vendor td {
+  white-space: nowrap;
+}
+
+.admin-orders__table--vendor th:first-child,
+.admin-orders__table--vendor td:first-child {
+  padding-left: 16px;
+}
+
+.admin-orders__table--vendor th:last-child,
+.admin-orders__table--vendor td:last-child {
+  padding-right: 16px;
+  text-align: right;
+}
+
+.admin-orders__table--vendor td:nth-child(5),
+.admin-orders__table--vendor th:nth-child(5) {
+  text-align: center;
+}
+
+.admin-orders__table--vendor td:nth-child(6),
+.admin-orders__table--vendor th:nth-child(6) {
+  text-align: right;
+}
+
 .admin-orders__table thead {
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   border-bottom: 2px solid var(--color-primary);

@@ -101,54 +101,82 @@ const VendorOrders = () => {
       ) : (
         <>
           <div className="vendor-orders__table-wrapper">
-            <table className="vendor-orders__table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Cliente</th>
-                  <th>Fecha</th>
-                  <th>Estado</th>
-                  <th>Método</th>
-                  <th>Total</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((order) => (
-                  <tr key={order.id}>
-                    <td>{order.orderNumber}</td>
-                    <td>
-                      <div className="vendor-orders__buyer">
-                        <strong>{order.buyer?.name || '—'}</strong>
-                        <span
-                          className={`vendor-category-badge vendor-category-badge--${order.buyer?.seller_category || 'none'}`}
-                        >
-                          {order.buyer?.seller_category || '—'}
-                        </span>
-                      </div>
-                    </td>
-                    <td>{order.date}</td>
-                    <td>
-                      <span
-                        className={`vendor-orders__status vendor-orders__status--${order.status}`}
-                      >
-                        {formatStatus(order.status)}
-                      </span>
-                    </td>
-                    <td>{order.payment_method}</td>
-                    <td>${order.total_amount.toFixed(2)}</td>
-                    <td>
-                      <button
-                        className="vendor-orders__detail-btn"
+            <div className="table-scroll-wrapper">
+              <table className="vendor-orders__table">
+                <thead>
+                  <tr>
+                    <th>No. de pedido</th>
+                    <th>Productos</th>
+                    <th>Fecha</th>
+                    <th>Cliente</th>
+                    <th>Entrega</th>
+                    <th>Piezas</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders.map((order) => {
+                    const orderDate = new Date(order.created_at);
+                    const dateStr = orderDate.toLocaleDateString('es-MX', { 
+                      year: 'numeric', 
+                      month: '2-digit', 
+                      day: '2-digit' 
+                    });
+                    const totalPieces = order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+                    const deliveryLabel =
+                      order.shipping_method_label
+                      || (order.address ? 'Envío a Domicilio' : 'Retiro en Tienda');
+                    const productImages = order.items?.slice(0, 3).map(item => item.image).filter(Boolean) || [];
+
+                    return (
+                      <tr 
+                        key={order.id}
+                        style={{ cursor: 'pointer' }}
                         onClick={() => handleViewDetail(order)}
                       >
-                        Ver detalle
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        <td>
+                          <span className="vendor-orders__link">#{order.orderNumber}</span>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                            {productImages.length > 0 ? (
+                              productImages.map((img, idx) => (
+                                <img 
+                                  key={idx}
+                                  src={img} 
+                                  alt={`Producto ${idx + 1}`}
+                                  style={{ width: '30px', height: '30px', objectFit: 'cover', borderRadius: '3px', border: '1px solid #ddd' }}
+                                  onError={(e) => { e.target.style.display = 'none'; }}
+                                />
+                              ))
+                            ) : (
+                              <span style={{ fontSize: '12px', color: '#999' }}>—</span>
+                            )}
+                            {order.items && order.items.length > 3 && (
+                              <span style={{ fontSize: '11px', color: '#666', marginLeft: '4px' }}>+{order.items.length - 3}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td>{dateStr}</td>
+                        <td>
+                          <div className="vendor-orders__buyer">
+                            <strong>{order.buyer?.name || '—'}</strong>
+                            <span
+                              className={`vendor-category-badge vendor-category-badge--${order.buyer?.seller_category || 'none'}`}
+                            >
+                              {order.buyer?.seller_category || '—'}
+                            </span>
+                          </div>
+                        </td>
+                        <td>{deliveryLabel}</td>
+                        <td>{totalPieces}</td>
+                        <td>${parseFloat(order.total_amount || 0).toFixed(2)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {pagination.last_page > 1 && (

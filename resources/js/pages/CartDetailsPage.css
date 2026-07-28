@@ -395,6 +395,17 @@ body, .cart-details__container {
   color: white;
 }
 
+/* Mobile: mostrar selector de cliente antes de productos para vendedores */
+.cart-details__buyer-info-mobile {
+  display: none;
+}
+
+@media (max-width: 991px) {
+  .cart-details__buyer-info-mobile {
+    display: block;
+  }
+}
+
 /* Desktop: mostrar mapa, ocultar botón */
 @media (min-width: 768px) {
   .cart-details__store-map-wrapper--desktop {

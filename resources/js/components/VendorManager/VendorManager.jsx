@@ -311,8 +311,7 @@ const VendorManager = () => {
                     autoComplete="off"
                   />
                   <p className="vendor-manager__field-hint">
-                    Identificador externo del vendor (provisto por la API del ERP).
-                    Debe ser único entre todos los vendedores.
+                    ID único del vendedor en el sistema.
                   </p>
                 </div>
               </div>

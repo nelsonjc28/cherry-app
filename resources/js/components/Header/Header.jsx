@@ -3,10 +3,12 @@ import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-do
 import { getImagePath, getIconPath } from '../../utils/assetPaths';
 import { formatPrice } from '../../utils/formatters';
 import useUserStore from '../../store/userStore';
+import { isOroDiamanteSeller } from '../../utils/sellerVolumeDiscount';
 import useCartStore from '../../store/cartStore';
 import CartModal from '../CartModal/CartModal';
 import AdminNotifications from '../AdminNotifications/AdminNotifications';
 import UserNotifications from '../UserNotifications/UserNotifications';
+import ExternalAccountStatementModal from '../ExternalAccountStatementModal/ExternalAccountStatementModal';
 import { adminNotificationService, userNotificationService } from '../../services/api';
 import useCategories from '../../hooks/useCategories';
 import useMenuCategories from '../../hooks/useMenuCategories';
@@ -41,6 +43,7 @@ const Header = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [showAccountStatement, setShowAccountStatement] = useState(false);
   const userMenuRef = useRef(null);
   const mobileSearchInputRef = useRef(null);
 
@@ -613,6 +616,27 @@ const Header = () => {
                       <img src={getIconPath('Red Bill.svg')} alt="Métodos de Pago" />
                       Métodos de Pago
                     </Link>
+                    {isOroDiamanteSeller(user) && (
+                      <>
+                        <button
+                          className="user-dropdown-item"
+                          onClick={() => {
+                            setUserMenuOpen(false);
+                            setShowAccountStatement(true);
+                          }}
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EA2630" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 12, flexShrink: 0 }}>
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="16" y1="13" x2="8" y2="13" />
+                            <line x1="16" y1="17" x2="8" y2="17" />
+                            <polyline points="10 9 9 9 8 9" />
+                          </svg>
+                          Estados de Cuenta
+                        </button>
+                        <div className="user-dropdown-divider"></div>
+                      </>
+                    )}
                     <div className="user-dropdown-divider"></div>
                     <button 
                       className="user-dropdown-item logout-item" 
@@ -1005,6 +1029,14 @@ const Header = () => {
         <UserNotifications
           isOpen={notificationsOpen}
           onClose={() => setNotificationsOpen(false)}
+        />
+      )}
+
+      {showAccountStatement && user && (
+        <ExternalAccountStatementModal
+          isOpen={showAccountStatement}
+          onClose={() => setShowAccountStatement(false)}
+          clientId={user.id}
         />
       )}
     </header>

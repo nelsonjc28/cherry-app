@@ -128,47 +128,49 @@ const VendorClientList = () => {
         </div>
       ) : (
         <div className="admin-orders__table-container">
-          <table className="admin-orders__table">
-            <thead>
-              <tr>
-                <th>Cliente</th>
-                <th>Email / Teléfono</th>
-                <th>Categoría</th>
-                <th style={{ width: 60, textAlign: 'center' }}>Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredBuyers.map((b) => (
-                <tr key={b.id}>
-                  <td>
-                    <strong>
-                      {b.first_name} {b.last_name}
-                    </strong>
-                  </td>
-                  <td className="client-manager__email-cell">
-                    {b.email || '—'}
-                    {b.phone && <span className="client-manager__phone-cell"> {b.phone}</span>}
-                  </td>
-                  <td>
-                    <span className={`vendor-category-badge vendor-category-badge--${b.seller_category}`}>
-                      {b.seller_category === 'oro' ? 'Oro' : 'Diamante'}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <button
-                      type="button"
-                      className="client-manager__table-icon-btn order-action-btn order-action-btn--detail"
-                      data-tooltip="Estado de cuenta ADM"
-                      aria-label="Estado de cuenta ADM"
-                      onClick={() => handleAccountStatement(b.id)}
-                    >
-                      📋
-                    </button>
-                  </td>
+          <div className="table-scroll-wrapper">
+            <table className="admin-orders__table">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Email / Teléfono</th>
+                  <th>Categoría</th>
+                  <th style={{ width: 60, textAlign: 'center' }}>Acción</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredBuyers.map((b) => (
+                  <tr key={b.id}>
+                    <td>
+                      <strong>
+                        {b.first_name} {b.last_name}
+                      </strong>
+                    </td>
+                    <td className="client-manager__email-cell">
+                      {b.email || '—'}
+                      {b.phone && <span className="client-manager__phone-cell"> {b.phone}</span>}
+                    </td>
+                    <td>
+                      <span className={`vendor-category-badge vendor-category-badge--${b.seller_category}`}>
+                        {b.seller_category === 'oro' ? 'Oro' : 'Diamante'}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <button
+                        type="button"
+                        className="client-manager__table-icon-btn order-action-btn order-action-btn--detail"
+                        data-tooltip="Estado de cuenta ADM"
+                        aria-label="Estado de cuenta ADM"
+                        onClick={() => handleAccountStatement(b.id)}
+                      >
+                        📋
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
