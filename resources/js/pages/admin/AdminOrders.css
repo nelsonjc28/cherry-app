@@ -1001,11 +1001,24 @@
   .admin-orders__filters {
     flex-direction: column;
     gap: 15px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding-left: 15px;
+    padding-right: 15px;
   }
 
   .filter-group {
     min-width: auto;
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .filter-select {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .filter-input {

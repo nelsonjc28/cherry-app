@@ -214,7 +214,10 @@
 
 @media (max-width: 768px) {
   .my-orders {
-    padding: 5px;
+    padding: 15px;
+    overflow-x: hidden;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .my-orders__header {

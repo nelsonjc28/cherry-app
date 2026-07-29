@@ -18,7 +18,11 @@
     padding-bottom: 8px;
     margin-bottom: 12px;
     gap: 8px;
-    scrollbar-width: none; /* Firefox */
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    width: calc(100vw - 40px);
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .mobile-tabs-container::-webkit-scrollbar {
@@ -34,6 +38,7 @@
     color: #555;
     white-space: nowrap;
     cursor: pointer;
+    flex-shrink: 0;
   }
 
   .mobile-tab.active {
@@ -63,7 +68,7 @@
   .mobile-order-card {
     display: flex;
     flex-direction: column;
-    padding: 16px 0;
+    padding: 16px 14px;
     background: #fff;
     cursor: pointer;
   }
