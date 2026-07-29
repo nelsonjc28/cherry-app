@@ -6,6 +6,7 @@ import { orderService } from '../../services/api';
 import api from '../../config/axios';
 import useUserStore from '../../store/userStore';
 import './MyOrders.css';
+import '../admin/mobile_orders_list.css';
 import { formatOrderNumberDisplay } from '../../utils/orderDisplayNumber';
 import { getProductImageUrl } from '../../utils/productImageUtils';
 import { getIconPath } from '../../utils/assetPaths';
@@ -137,6 +138,8 @@ const MyOrders = () => {
     const qs = newSearchParams.toString();
     navigate(qs ? `/perfil/mis-pedidos?${qs}` : '/perfil/mis-pedidos', { replace: true });
   }, [loading, orders, searchParams, navigate]);
+
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
 
     const fetchOrders = async () => {
       try {
@@ -352,7 +355,7 @@ const MyOrders = () => {
                   </div>
 
       <div className="my-orders__filters">
-        <div className="filter-group">
+        <div className="filter-group desktop-only">
           <label htmlFor="status-filter">Estado:</label>
           <select
             id="status-filter"
@@ -368,6 +371,30 @@ const MyOrders = () => {
             <option value="cancelled">Cancelado</option>
             <option value="pendiente_pago">Por pagar</option>
           </select>
+        </div>
+
+        {/* MOBILE TABS FILTER */}
+        <div className="mobile-tabs-container mobile-only">
+          <button 
+            className={`mobile-tab ${statusFilter === 'all' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('all')}
+          >Todos</button>
+          <button 
+            className={`mobile-tab ${statusFilter === 'en_espera_envio' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('en_espera_envio')}
+          >No preparados</button>
+          <button 
+            className={`mobile-tab ${statusFilter === 'pendiente_pago' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('pendiente_pago')}
+          >No pagados</button>
+          <button 
+            className={`mobile-tab ${statusFilter === 'pagado' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('pagado')}
+          >Pagados</button>
+          <button 
+            className={`mobile-tab ${statusFilter === 'enviado' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('enviado')}
+          >Enviados</button>
         </div>
         
         <div className="filter-group">
@@ -389,7 +416,8 @@ const MyOrders = () => {
             <p>No se encontraron órdenes con los filtros seleccionados.</p>
           </div>
         ) : (
-          <div className="table-scroll-wrapper">
+          <>
+          <div className="table-scroll-wrapper desktop-only">
             <table className="my-orders__table">
               <thead>
                 <tr>
@@ -522,6 +550,53 @@ const MyOrders = () => {
               </tbody>
             </table>
               </div>
+          
+          {/* MOBILE LIST */}
+          <div className="mobile-orders-list mobile-only">
+            {paginatedOrders.map((order) => {
+              const orderDate = new Date(order.created_at);
+              const timeStr = orderDate.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' }).toLowerCase();
+              const totalPieces = order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+              const deliveryLabel = order.shipping_method_label || (order.address ? 'Envío a Domicilio' : 'Retiro en Tienda');
+              
+              const isExpanded = expandedOrderId === order.id;
+              
+              return (
+                <div key={order.id} className="mobile-order-card-container">
+                  <div className="mobile-order-card" onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}>
+                    <div className="mobile-order-card-header">
+                      <span className="mobile-order-number">#{formatOrderNumber(order)}</span>
+                      <span className="mobile-order-price">{formatCurrency(order.totalAmount)}</span>
+                    </div>
+                    <div className="mobile-order-subtitle">
+                      {order.customerName || 'N/A'} • {totalPieces} {totalPieces === 1 ? 'artículo' : 'artículos'} • {timeStr}
+                    </div>
+                    <div className="mobile-order-badges">
+                      <span className={`mobile-badge mobile-badge--${getStatusBadgeVariant(order)}`}>{order.statusDisplay || order.status}</span>
+                    </div>
+                    <div className="mobile-order-footer">
+                      {deliveryLabel}
+                    </div>
+                  </div>
+                  
+                  {isExpanded && (
+                    <div className="mobile-order-expanded-content">
+                      <OrderDetailModal
+                        order={{
+                          ...order,
+                          statusColor: getStatusBadgeVariant(order),
+                          status: order.statusDisplay || order.status
+                        }}
+                        isOpen={true}
+                        inlineMode={true}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          </>
           )}
         </div>
 

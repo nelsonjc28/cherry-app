@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { listMyOrders } from '../../api/vendorApi';
+import { listMyOrders, getMyOrder } from '../../api/vendorApi';
 import OrderDetailModal from '../../components/OrderDetailModal/OrderDetailModal';
 import './VendorPages.css';
+import '../admin/mobile_orders_list.css';
 
 const VendorOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -15,6 +16,10 @@ const VendorOrders = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showModal, setShowModal] = useState(false);
+
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
+  const [expandedOrdersDetails, setExpandedOrdersDetails] = useState({});
+  const [loadingExpandedOrder, setLoadingExpandedOrder] = useState(false);
 
   const fetchOrders = async (page = 1) => {
     try {
@@ -51,9 +56,22 @@ const VendorOrders = () => {
     }
   };
 
-  const handleViewDetail = (order) => {
-    setSelectedOrder(order);
-    setShowModal(true);
+  const handleViewDetail = async (order) => {
+    setLoadingExpandedOrder(true);
+    try {
+      const data = await getMyOrder(order.id);
+      const detailedOrder = data.order || data;
+      setSelectedOrder(detailedOrder);
+      setExpandedOrdersDetails((prev) => ({ ...prev, [order.id]: detailedOrder }));
+    } catch (err) {
+      if (window.showToast) {
+        window.showToast('No se pudieron cargar los detalles completos de la orden', 'warning');
+      }
+      setSelectedOrder(order);
+    } finally {
+      setLoadingExpandedOrder(false);
+      setShowModal(true);
+    }
   };
 
   const formatStatus = (status) => {
@@ -78,7 +96,7 @@ const VendorOrders = () => {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="vendor-orders__filter"
+          className="vendor-orders__filter desktop-only"
         >
           <option value="">Todos los estados</option>
           <option value="pendiente_pago">Pendiente de pago</option>
@@ -86,6 +104,30 @@ const VendorOrders = () => {
           <option value="enviado">Enviado</option>
           <option value="cancelado">Cancelado</option>
         </select>
+        
+        {/* MOBILE TABS FILTER */}
+        <div className="mobile-tabs-container mobile-only">
+          <button 
+            className={`mobile-tab ${statusFilter === '' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('')}
+          >Todos</button>
+          <button 
+            className={`mobile-tab ${statusFilter === 'pendiente_pago' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('pendiente_pago')}
+          >Por pagar</button>
+          <button 
+            className={`mobile-tab ${statusFilter === 'pagado' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('pagado')}
+          >Pagados</button>
+          <button 
+            className={`mobile-tab ${statusFilter === 'enviado' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('enviado')}
+          >Enviados</button>
+          <button 
+            className={`mobile-tab ${statusFilter === 'cancelado' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('cancelado')}
+          >Cancelados</button>
+        </div>
       </div>
 
       {loading ? (
@@ -100,7 +142,7 @@ const VendorOrders = () => {
         </div>
       ) : (
         <>
-          <div className="vendor-orders__table-wrapper">
+          <div className="vendor-orders__table-wrapper desktop-only">
             <div className="table-scroll-wrapper">
               <table className="vendor-orders__table">
                 <thead>
@@ -178,6 +220,135 @@ const VendorOrders = () => {
               </table>
             </div>
           </div>
+          
+          {/* MOBILE LIST */}
+          <div className="mobile-orders-list mobile-only">
+            {orders.map((order) => {
+              const orderDate = new Date(order.created_at);
+              const timeStr = orderDate.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' }).toLowerCase();
+              const totalPieces = order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+              const deliveryLabel = order.shipping_method_label || (order.address ? 'Envío a Domicilio' : 'Retiro en Tienda');
+              const formatCurrency = (val) => `$${parseFloat(val || 0).toFixed(2)}`;
+               
+              const getStatusColor = (status) => {
+                const colorMap = {
+                  'pending': 'yellow',
+                  'pagado': 'green',
+                  'en_espera_envio': 'blue',
+                  'enviado': 'green',
+                  'cancelled': 'red',
+                  'cancelado': 'red',
+                  'failed': 'red',
+                  'pendiente_pago': 'yellow',
+                  'pago_rechazado': 'red'
+                };
+                return colorMap[status] || 'gray';
+              };
+               
+              const isExpanded = expandedOrderId === order.id;
+
+              const toggleExpand = async () => {
+                if (isExpanded) {
+                  setExpandedOrderId(null);
+                  return;
+                }
+                setExpandedOrderId(order.id);
+                // Fetch details if not present
+                if (!expandedOrdersDetails[order.id]) {
+                  try {
+                    setLoadingExpandedOrder(true);
+                    const data = await getMyOrder(order.id);
+                    setExpandedOrdersDetails(prev => ({ ...prev, [order.id]: data.order || data }));
+                  } catch (err) {
+                    // fallback: keep using original order
+                    if (window.showToast) window.showToast('No se pudieron cargar los detalles de la orden', 'warning');
+                  } finally {
+                    setLoadingExpandedOrder(false);
+                  }
+                }
+              };
+               
+              return (
+                <div key={order.id} className="mobile-order-card-container">
+                  <div className="mobile-order-card" onClick={toggleExpand}>
+                    <div className="mobile-order-card-header">
+                      <span className="mobile-order-number">#{order.orderNumber}</span>
+                      <span className="mobile-order-price">{formatCurrency(order.total_amount || 0)}</span>
+                    </div>
+                    <div className="mobile-order-subtitle">
+                      {order.buyer?.name || '—'} • {totalPieces} {totalPieces === 1 ? 'artículo' : 'artículos'} • {timeStr}
+                    </div>
+                    <div className="mobile-order-badges">
+                      <span className={`mobile-badge mobile-badge--${getStatusColor(order.status)}`}>{formatStatus(order.status)}</span>
+                      <span className={`vendor-category-badge vendor-category-badge--${order.buyer?.seller_category || 'none'}`} style={{fontSize: '11px', padding: '2px 6px', margin: 0}}>
+                        {order.buyer?.seller_category || '—'}
+                      </span>
+                    </div>
+                    <div className="mobile-order-footer">
+                      {deliveryLabel}
+                    </div>
+                  </div>
+                   
+                  {isExpanded && (
+                    <div className="mobile-order-expanded-content">
+                      {(() => {
+                        const detail = expandedOrdersDetails[order.id] || order;
+                        const items = detail.items || detail.order_items || detail.lines || order.items || [];
+                        
+                        return (
+                          <div style={{ padding: 10 }}>
+                            {/* Info general */}
+                            <div style={{ marginBottom: 10, fontSize: 13, color: '#555' }}>
+                              <div><strong>Fecha:</strong> {new Date(order.created_at).toLocaleDateString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit' })}</div>
+                              <div><strong>Total:</strong> ${parseFloat(order.total_amount || 0).toFixed(2)}</div>
+                            </div>
+                            
+                            {/* Productos */}
+                            {items && items.length > 0 ? (
+                              items.map((item, idx) => {
+                                const productName = item.name || item.title || item.product_name || 'Producto';
+                                const productId = item.product_id || item.sku || item.barcode || '—';
+                                const qty = item.quantity || 0;
+                                const price = parseFloat(item.price || 0).toFixed(2);
+                                const subtotal = parseFloat(item.subtotal || (price * qty) || 0).toFixed(2);
+                                const size = item.size || item.selectedSize || '—';
+                                const color = item.color || item.selectedColor || '—';
+                                return (
+                                  <div key={idx} style={{ display: 'flex', gap: 10, padding: '10px 0', borderBottom: '1px solid #eee' }}>
+                                    {item.image && (
+                                      <img src={item.image} alt="" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 4, border: '1px solid #ddd', flexShrink: 0 }}
+                                        onError={(e) => { e.target.style.display = 'none'; }}
+                                      />
+                                    )}
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ fontWeight: 600, fontSize: 14, color: '#333' }}>{productName}</div>
+                                      <div style={{ fontSize: 12, color: '#666' }}>SKU: {productId}</div>
+                                      <div style={{ fontSize: 12, color: '#666' }}>
+                                        Color: {color} | Talla: {size}
+                                      </div>
+                                      <div style={{ fontSize: 13, color: '#333', marginTop: 4 }}>
+                                        <strong>{qty}</strong> x ${price} = ${subtotal}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            ) : loadingExpandedOrder ? (
+                              <div style={{ padding: 20, textAlign: 'center', color: '#666' }}>Cargando productos…</div>
+                            ) : (
+                              <div style={{ padding: 20, textAlign: 'center', color: '#999' }}>
+                                No se encontraron productos en esta orden.
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
 
           {pagination.last_page > 1 && (
             <div className="vendor-orders__pagination">
@@ -207,6 +378,7 @@ const VendorOrders = () => {
           isOpen={showModal}
           onClose={() => setShowModal(false)}
           order={selectedOrder}
+          isAdmin={true}
         />
       )}
     </div>

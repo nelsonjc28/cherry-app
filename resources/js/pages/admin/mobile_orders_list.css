@@ -1,0 +1,168 @@
+/* Mobile list styles for orders (Used in AdminOrders, MyOrders, VendorOrders) */
+.mobile-only {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+  .mobile-only {
+    display: flex;
+  }
+  
+  .mobile-tabs-container {
+    display: flex;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+    gap: 8px;
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .mobile-tabs-container::-webkit-scrollbar {
+    display: none; /* Safari and Chrome */
+  }
+
+  .mobile-tab {
+    background: transparent;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 14px;
+    color: #555;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .mobile-tab.active {
+    background: #f4f6f8;
+    border-color: #333;
+    color: #111;
+    font-weight: 600;
+  }
+
+  .mobile-orders-list {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 0;
+  }
+
+  .mobile-order-card-container {
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid #eee;
+  }
+
+  .mobile-order-card-container:last-child {
+    border-bottom: none;
+  }
+
+  .mobile-order-card {
+    display: flex;
+    flex-direction: column;
+    padding: 16px 0;
+    background: #fff;
+    cursor: pointer;
+  }
+
+  .mobile-order-expanded-content {
+    animation: slideDown 0.2s ease-out forwards;
+    overflow: hidden;
+    padding-bottom: 16px;
+    border-top: 1px dashed #eee;
+    margin-top: -8px;
+    padding-top: 16px;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .mobile-order-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .mobile-order-number {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111;
+  }
+
+  .mobile-order-price {
+    font-size: 15px;
+    font-weight: 600;
+    color: #111;
+  }
+
+  .mobile-order-subtitle {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-order-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  
+  .mobile-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  
+  .mobile-badge--yellow {
+    background: #fff3cd;
+    color: #856404;
+  }
+  
+  .mobile-badge--green {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  .mobile-badge--credit-pending {
+    background: #ffe8a3;
+    color: #8a5b00;
+    border: 1px solid #f0c040;
+  }
+  
+  .mobile-badge--red {
+    background: #f8d7da;
+    color: #721c24;
+  }
+
+  .mobile-badge--blue {
+    background: #cce7ff;
+    color: #004085;
+  }
+
+  .mobile-badge--gray {
+    background: #f8f9fa;
+    color: #6c757d;
+  }
+
+  .mobile-order-footer {
+    font-size: 13px;
+    color: #666;
+  }
+}

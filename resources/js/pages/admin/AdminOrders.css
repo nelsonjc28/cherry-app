@@ -1005,6 +1005,13 @@
 
   .filter-group {
     min-width: auto;
+    width: 100%;
+  }
+
+  .filter-input {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .admin-orders__table-container {

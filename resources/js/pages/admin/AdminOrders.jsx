@@ -4,10 +4,11 @@ import CherryButton from '../../components/CherryButton/CherryButton';
 import AdminNotifications from '../../components/AdminNotifications/AdminNotifications';
 import OrderDetailModal from '../../components/OrderDetailModal/OrderDetailModal';
 import { adminOrderService, adminNotificationService } from '../../services/api';
+import useUserStore from '../../store/userStore';
 import { getIconPath } from '../../utils/assetPaths';
 import { formatOrderNumberDisplay } from '../../utils/orderDisplayNumber';
-import useUserStore from '../../store/userStore';
 import './AdminOrders.css';
+import './mobile_orders_list.css';
 
 // Función para determinar el color del texto según el color de fondo
 const getContrastColor = (hexColor) => {
@@ -162,7 +163,11 @@ const AdminOrders = () => {
     }
   }, [searchParams, navigate]);
 
-  const fetchOrders = async () => {
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
+  const [expandedOrdersDetails, setExpandedOrdersDetails] = useState({});
+  const [loadingExpandedOrder, setLoadingExpandedOrder] = useState(false);
+
+  const fetchOrders = async (page = 1) => {
     try {
       setLoading(true);
       setError(null);
@@ -549,7 +554,7 @@ const AdminOrders = () => {
       </div>
 
       <div className="admin-orders__filters">
-        <div className="filter-group">
+        <div className="filter-group desktop-only">
           <label htmlFor="status-filter">Estado:</label>
           <select
             id="status-filter"
@@ -565,6 +570,30 @@ const AdminOrders = () => {
             <option value="cancelled">Cancelado</option>
             <option value="pendiente_pago">Por pagar</option>
           </select>
+        </div>
+
+        {/* MOBILE TABS FILTER */}
+        <div className="mobile-tabs-container mobile-only">
+          <button 
+            className={`mobile-tab ${statusFilter === 'all' ? 'active' : ''}`}
+            onClick={() => updateStatusFilter('all')}
+          >Todos</button>
+          <button 
+            className={`mobile-tab ${statusFilter === 'en_espera_envio' ? 'active' : ''}`}
+            onClick={() => updateStatusFilter('en_espera_envio')}
+          >No preparados</button>
+          <button 
+            className={`mobile-tab ${statusFilter === 'pendiente_pago' ? 'active' : ''}`}
+            onClick={() => updateStatusFilter('pendiente_pago')}
+          >No pagados</button>
+          <button 
+            className={`mobile-tab ${statusFilter === 'pagado' ? 'active' : ''}`}
+            onClick={() => updateStatusFilter('pagado')}
+          >Pagados</button>
+          <button 
+            className={`mobile-tab ${statusFilter === 'enviado' ? 'active' : ''}`}
+            onClick={() => updateStatusFilter('enviado')}
+          >Enviados</button>
         </div>
         
         <div className="filter-group">
@@ -587,7 +616,8 @@ const AdminOrders = () => {
             <p>No se encontraron órdenes con los filtros seleccionados.</p>
           </div>
         ) : (
-          <div className="table-scroll-wrapper">
+          <>
+          <div className="table-scroll-wrapper desktop-only">
             {isVendor ? (
               // Tabla simplificada para vendedores (sin columna Productos)
               <table className="admin-orders__table admin-orders__table--vendor">
@@ -689,6 +719,132 @@ const AdminOrders = () => {
               </table>
             )}
           </div>
+          
+          {/* MOBILE LIST */}
+          <div className="mobile-orders-list mobile-only">
+            {paginatedOrders.map((order) => {
+              const orderDate = new Date(order.created_at);
+              const timeStr = orderDate.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' }).toLowerCase();
+              const totalPieces = order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+              const deliveryLabel = order.shipping_method_label || (order.address ? 'Envío a Domicilio' : 'Retiro en Tienda');
+               
+              const isExpanded = expandedOrderId === order.id;
+
+              const toggleExpand = async () => {
+                if (isExpanded) {
+                  setExpandedOrderId(null);
+                  return;
+                }
+                setExpandedOrderId(order.id);
+                if (!expandedOrdersDetails[order.id]) {
+                  try {
+                    setLoadingExpandedOrder(true);
+                    const resp = await adminOrderService.getOrderDetails(order.id);
+                    const detailed = resp?.data?.order || resp?.data || resp;
+                    setExpandedOrdersDetails(prev => ({ ...prev, [order.id]: detailed }));
+                  } catch (err) {
+                    if (window.showToast) window.showToast('No se pudieron cargar los detalles de la orden', 'warning');
+                  } finally {
+                    setLoadingExpandedOrder(false);
+                  }
+                }
+              };
+
+              return (
+                <div key={order.id} className="mobile-order-card-container">
+                  <div className="mobile-order-card" onClick={toggleExpand}>
+                    <div className="mobile-order-card-header">
+                      <span className="mobile-order-number">#{formatOrderNumber(order)}</span>
+                      <span className="mobile-order-price">{formatCurrency(order.totalAmount)}</span>
+                    </div>
+                    <div className="mobile-order-subtitle">
+                      {order.customerName || 'N/A'} • {totalPieces} {totalPieces === 1 ? 'artículo' : 'artículos'} • {timeStr}
+                    </div>
+                    <div className="mobile-order-badges">
+                      {(!isVendor && order.is_prepared) && <span className="mobile-badge mobile-badge--green">Preparado</span>}
+                      {(!isVendor && !order.is_prepared) && <span className="mobile-badge mobile-badge--yellow">No preparado</span>}
+                      <span className={`mobile-badge mobile-badge--${getAdminStatusBadgeVariant(order)}`}>{order.statusDisplay || order.status}</span>
+                    </div>
+                    <div className="mobile-order-footer">
+                      {deliveryLabel}
+                    </div>
+                  </div>
+                   
+                  {isExpanded && (
+                    <div className="mobile-order-expanded-content">
+                      {(() => {
+                        const detail = expandedOrdersDetails[order.id] || order;
+                        const allItems = detail.items || detail.order_items || detail.lines || order.items || [];
+                        
+                        const address = detail.address || order.address;
+                        const addrStr = address ? (address.street_address || '') + (address.street_number_ext ? ' Ext. ' + address.street_number_ext : '') + (address.street_number_int ? ' Int. ' + address.street_number_int : '') + (address.colonia ? ', ' + address.colonia : '') + (address.city ? ', ' + address.city : '') + (address.state ? ', ' + address.state : '') + (address.postal_code ? ' CP: ' + address.postal_code : '') : null;
+                        
+                        return (
+                          <div style={{ padding: 10 }}>
+                            {/* Dirección de envío */}
+                            {deliveryLabel !== 'Retiro en Tienda' && addrStr && (
+                              <div style={{ marginBottom: 12, fontSize: 13, color: '#555' }}>
+                                <div style={{ fontWeight: 600, marginBottom: 4 }}>📍 Dirección de envío:</div>
+                                <div style={{ lineHeight: 1.5 }}>{addrStr}</div>
+                              </div>
+                            )}
+                            {deliveryLabel === 'Retiro en Tienda' && (
+                              <div style={{ marginBottom: 12, fontSize: 13, color: '#555' }}>
+                                <div style={{ fontWeight: 600, marginBottom: 4 }}>📍 Retiro en tienda</div>
+                              </div>
+                            )}
+                            {/* Productos */}
+                            {allItems.length > 0 ? (
+                              allItems.map((item, idx) => {
+                                const productName = item.name || item.title || item.product_name || 'Producto';
+                                const productId = item.product_id || item.sku || item.barcode || '—';
+                                const qty = item.quantity || 0;
+                                const price = parseFloat(item.price || 0).toFixed(2);
+                                const subtotal = parseFloat(item.subtotal || (price * qty) || 0).toFixed(2);
+                                const size = item.size || item.selectedSize || '—';
+                                const color = item.color || item.selectedColor || '—';
+                                return (
+                                  <div key={idx} style={{ display: 'flex', gap: 10, padding: '10px 0', borderBottom: '1px solid #eee' }}>
+                                    {item.image && (
+                                      <img src={item.image} alt="" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 4, border: '1px solid #ddd', flexShrink: 0 }}
+                                        onError={(e) => { e.target.style.display = 'none'; }}
+                                      />
+                                    )}
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ fontWeight: 600, fontSize: 14, color: '#333' }}>{productName}</div>
+                                      <div style={{ fontSize: 12, color: '#666' }}>SKU/ID: {productId}</div>
+                                      <div style={{ fontSize: 12, color: '#666' }}>
+                                        Color: {color} | Talla: {size}
+                                      </div>
+                                      <div style={{ fontSize: 13, color: '#333', marginTop: 4 }}>
+                                        <strong>{qty}</strong> x ${price} = <strong>${subtotal}</strong>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            ) : loadingExpandedOrder ? (
+                              <div style={{ padding: 20, textAlign: 'center', color: '#666' }}>Cargando productos…</div>
+                            ) : (
+                              <div style={{ padding: 20, textAlign: 'center', color: '#999' }}>
+                                No se encontraron productos en esta orden.
+                                <div style={{ marginTop: 10 }}>
+                                  <button className="mobile-contact-btn" onClick={async (e) => { e.stopPropagation(); try { setLoadingExpandedOrder(true); const resp = await adminOrderService.getOrderDetails(order.id); const detailed = resp?.data?.order || resp?.data || resp; setExpandedOrdersDetails(prev => ({ ...prev, [order.id]: detailed })); } catch (err) { if (window.showToast) window.showToast('Error recargando detalle', 'error'); } finally { setLoadingExpandedOrder(false); } }}>
+                                    Recargar
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          </>
         )}
       </div>
 
