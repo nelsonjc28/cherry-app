@@ -581,15 +581,47 @@ const MyOrders = () => {
                   
                   {isExpanded && (
                     <div className="mobile-order-expanded-content">
-                      <OrderDetailModal
-                        order={{
-                          ...order,
-                          statusColor: getStatusBadgeVariant(order),
-                          status: order.statusDisplay || order.status
-                        }}
-                        isOpen={true}
-                        inlineMode={true}
-                      />
+                      {(() => {
+                        const allItems = order.items || order.order_items || order.lines || [];
+                        return (
+                          <div style={{ padding: 10 }}>
+                            {allItems.length > 0 ? (
+                              allItems.map((item, idx) => {
+                                const productName = item.name || item.title || item.product_name || 'Producto';
+                                const productId = item.product_id || item.sku || item.barcode || '—';
+                                const qty = item.quantity || 0;
+                                const price = parseFloat(item.price || 0).toFixed(2);
+                                const subtotal = parseFloat(item.subtotal || (price * qty) || 0).toFixed(2);
+                                const size = item.size || item.selectedSize || '—';
+                                const color = item.color || item.selectedColor || '—';
+                                return (
+                                  <div key={idx} style={{ display: 'flex', gap: 10, padding: '10px 0', borderBottom: '1px solid #eee' }}>
+                                    {item.image && (
+                                      <img src={item.image} alt="" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 4, border: '1px solid #ddd', flexShrink: 0 }}
+                                        onError={(e) => { e.target.style.display = 'none'; }}
+                                      />
+                                    )}
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ fontWeight: 600, fontSize: 14, color: '#333' }}>{productName}</div>
+                                      <div style={{ fontSize: 12, color: '#666' }}>SKU/ID: {productId}</div>
+                                      <div style={{ fontSize: 12, color: '#666' }}>
+                                        Color: {color} | Talla: {size}
+                                      </div>
+                                      <div style={{ fontSize: 13, color: '#333', marginTop: 4 }}>
+                                        <strong>{qty}</strong> x ${price} = <strong>${subtotal}</strong>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              <div style={{ padding: 20, textAlign: 'center', color: '#999' }}>
+                                No se encontraron productos en esta orden.
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
