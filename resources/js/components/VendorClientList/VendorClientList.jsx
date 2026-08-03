@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Swal from 'sweetalert2';
-import { listMyBuyers } from '../../api/vendorApi';
+import { listMyBuyers, getMyProfile, updateBuyerCategory } from '../../api/vendorApi';
 import { clientService } from '../../services/api';
 import AccountStatementModal from '../AccountStatementModal/AccountStatementModal';
 import './VendorClientList.css';
@@ -8,6 +8,8 @@ import './VendorClientList.css';
 /**
  * Lista de compradores asociados al vendedor.
  * Muestra el botón de sincronizar y el botón "Estado de cuenta ADM" (📋).
+ * Si el vendedor tiene el permiso can_change_category=true, puede cambiar
+ * la categoría de sus clientes (bronce/oro/diamante).
  */
 const VendorClientList = () => {
   const [buyers, setBuyers] = useState([]);
@@ -16,6 +18,7 @@ const VendorClientList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [showAccountStatement, setShowAccountStatement] = useState(false);
+  const [canChangeCategory, setCanChangeCategory] = useState(false);
 
   const loadBuyers = useCallback(async () => {
     try {
@@ -34,6 +37,17 @@ const VendorClientList = () => {
   useEffect(() => {
     loadBuyers();
   }, [loadBuyers]);
+
+  // Cargar el perfil del vendedor para saber si tiene permiso de cambiar categorías
+  useEffect(() => {
+    getMyProfile()
+      .then((data) => {
+        setCanChangeCategory(Boolean(data?.user?.can_change_category));
+      })
+      .catch(() => {
+        setCanChangeCategory(false);
+      });
+  }, []);
 
   const handleSyncIdvendedor = async () => {
     if (isSyncing) return;
@@ -70,6 +84,39 @@ const VendorClientList = () => {
     } finally {
       setIsSyncing(false);
     }
+  };
+
+  const handleCategoryChangeWithConfirm = (buyer, newCategory) => {
+    const currentCategory = buyer.seller_category || 'bronce';
+    if (newCategory === currentCategory) return;
+
+    const categoryLabels = { bronce: 'Bronce', oro: 'Oro', diamante: 'Diamante' };
+    const categoryName = categoryLabels[newCategory] || newCategory;
+
+    Swal.fire({
+      title: '¿Confirmar cambio de categoría?',
+      html: `El cliente <strong>${buyer.first_name} ${buyer.last_name}</strong> pasará a la categoría <strong>${categoryName}</strong>.<br/>Esto afectará sus reglas de descuento automáticamente.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, cambiar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#EA2630',
+      cancelButtonColor: '#6c757d',
+      reverseButtons: true,
+    }).then(async (result) => {
+      if (!result.isConfirmed) return;
+      try {
+        await updateBuyerCategory(buyer.id, newCategory);
+        if (window.showToast) {
+          window.showToast(`Categoría actualizada a ${categoryName}`, 'success');
+        }
+        loadBuyers();
+      } catch (err) {
+        if (window.showToast) {
+          window.showToast('Error al actualizar categoría: ' + (err.message || 'desconocido'), 'error');
+        }
+      }
+    });
   };
 
   const filteredBuyers = buyers.filter((b) => {
@@ -151,9 +198,22 @@ const VendorClientList = () => {
                       {b.phone && <span className="client-manager__phone-cell"> {b.phone}</span>}
                     </td>
                     <td>
-                      <span className={`vendor-category-badge vendor-category-badge--${b.seller_category}`}>
-                        {b.seller_category === 'oro' ? 'Oro' : 'Diamante'}
-                      </span>
+                      {canChangeCategory ? (
+                        <select
+                          className={`client-manager__category-select client-manager__category-select--${b.seller_category}`}
+                          value={b.seller_category || 'bronce'}
+                          onChange={(e) => handleCategoryChangeWithConfirm(b, e.target.value)}
+                          aria-label="Categoría del cliente"
+                        >
+                          <option value="bronce">Bronce</option>
+                          <option value="oro">Oro</option>
+                          <option value="diamante">Diamante</option>
+                        </select>
+                      ) : (
+                        <span className={`vendor-category-badge vendor-category-badge--${b.seller_category}`}>
+                          {b.seller_category === 'oro' ? 'Oro' : b.seller_category === 'diamante' ? 'Diamante' : 'Bronce'}
+                        </span>
+                      )}
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       <button

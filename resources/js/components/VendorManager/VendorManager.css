@@ -408,6 +408,49 @@
 }
 
 .vendor-manager__search-input:focus {
-  outline: none !important;
-  border-color: var(--color-primary, #b8002f) !important;
+  outline: none;
+  border-color: var(--color-primary, #b8002f);
+}
+
+/* Permiso de cambio de categoría */
+.vendor-manager__permission-cell {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.vendor-manager__permission-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.vendor-manager__permission-btn--granted {
+  background: #e8f5e9;
+  color: #1da534;
+  border-color: #a5d6a7;
+}
+
+.vendor-manager__permission-btn--granted:hover {
+  background: #c8e6c9;
+  border-color: #66bb6a;
+}
+
+.vendor-manager__permission-btn--denied {
+  background: #f5f5f5;
+  color: #757575;
+  border-color: #e0e0e0;
+}
+
+.vendor-manager__permission-btn--denied:hover {
+  background: #eeeeee;
+  border-color: #bdbdbd;
+  color: #424242;
 }

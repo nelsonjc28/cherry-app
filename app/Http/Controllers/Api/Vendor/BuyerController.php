@@ -8,6 +8,7 @@ use App\Models\VendorBuyer;
 use App\Services\ExternalClienteDiscountService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * Endpoints accesibles por un vendedor autenticado sobre SUS compradores asociados.
@@ -144,6 +145,92 @@ class BuyerController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener direcciones: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * PATCH /api/vendor/buyers/{id}/seller-category
+     * Cambia la categoría de un cliente asociado al vendedor autenticado.
+     * Requiere que el vendedor tenga el permiso `can_change_category = true`.
+     */
+    public function updateSellerCategory(Request $request, $id)
+    {
+        try {
+            $vendor = Auth::user();
+            if (! $vendor) {
+                return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
+            }
+
+            // Solo vendedor con permiso puede cambiar categorías
+            if (! $vendor->canChangeCategory()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes permiso para cambiar la categoría de clientes',
+                ], 403);
+            }
+
+            $vendorIdvendedor = $vendor->idvendedor;
+            if (empty($vendorIdvendedor)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vendedor sin ID configurado',
+                ], 400);
+            }
+
+            $buyer = User::where('id', $id)
+                ->where('role_id', 2)
+                ->where('idvendedor', $vendorIdvendedor)
+                ->first();
+
+            if (! $buyer) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cliente no encontrado o no asociado a este vendedor',
+                ], 404);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'seller_category' => 'required|in:bronce,oro,diamante',
+            ], [
+                'seller_category.required' => 'La categoría es requerida',
+                'seller_category.in' => 'La categoría debe ser "bronce", "oro" o "diamante"',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $buyer->update([
+                'seller_category' => $request->seller_category,
+            ]);
+
+            // Si se cambia a bronce, resetear crédito y límite a 0
+            if ($request->seller_category === 'bronce') {
+                $buyer->update([
+                    'credit_balance' => 0,
+                    'credit_limit' => 0,
+                ]);
+            }
+
+            $categoryLabels = [
+                'bronce' => 'Bronce',
+                'oro' => 'Oro',
+                'diamante' => 'Diamante',
+            ];
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Categoría actualizada a ' . ($categoryLabels[$request->seller_category] ?? $request->seller_category),
+                'buyer' => $buyer->load('role'),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar categoría: ' . $e->getMessage(),
             ], 500);
         }
     }

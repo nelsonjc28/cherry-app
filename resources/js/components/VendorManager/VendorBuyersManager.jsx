@@ -1,37 +1,26 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import CherryButton from '../CherryButton/CherryButton';
 import {
   listVendorBuyers,
-  attachVendorBuyer,
   detachVendorBuyer,
-  listEligibleClients,
 } from '../../api/adminVendors';
 import './VendorManager.css';
 
 /**
  * Modal para gestionar los compradores asociados a un vendor.
- * Carga:
- *   - Compradores ya asociados (GET /api/admin/vendors/{id}/buyers)
- *   - Clientes elegibles para asociar (GET /api/admin/clients/eligible-for-vendor)
- *       con ?exclude_vendor_id={id} para no mostrar los ya vinculados.
+ * Carga los clientes cuyo idvendedor coincide con el del vendedor
+ * (GET /api/admin/vendors/{id}/buyers).
  */
 const VendorBuyersManager = ({ vendor, onClose, onChanged }) => {
   const [buyers, setBuyers] = useState([]);
-  const [eligibleClients, setEligibleClients] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [selectedClientId, setSelectedClientId] = useState('');
 
   const refresh = async () => {
     try {
       setLoading(true);
-      const [buyersRes, eligibleRes] = await Promise.all([
-        listVendorBuyers(vendor.id),
-        listEligibleClients({ exclude_vendor_id: vendor.id, search }),
-      ]);
+      const buyersRes = await listVendorBuyers(vendor.id);
       setBuyers(buyersRes.buyers || []);
-      setEligibleClients(eligibleRes.clients || []);
     } catch (err) {
       if (window.showToast) {
         window.showToast('Error al cargar compradores: ' + err.message, 'error');
@@ -45,38 +34,6 @@ const VendorBuyersManager = ({ vendor, onClose, onChanged }) => {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vendor.id]);
-
-  useEffect(() => {
-    // Recargar elegibles al cambiar la búsqueda
-    const t = setTimeout(() => {
-      listEligibleClients({ exclude_vendor_id: vendor.id, search })
-        .then((data) => setEligibleClients(data.clients || []))
-        .catch(() => {});
-    }, 250);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
-
-  const handleAttach = async () => {
-    if (!selectedClientId) {
-      Swal.fire('Selecciona un cliente', 'Debes elegir un cliente de la lista.', 'warning');
-      return;
-    }
-    try {
-      await attachVendorBuyer(vendor.id, Number(selectedClientId));
-      if (window.showToast) {
-        window.showToast('Comprador asociado exitosamente', 'success', 3000);
-      }
-      setSelectedClientId('');
-      await refresh();
-      if (onChanged) onChanged();
-    } catch (err) {
-      const message = err.errors
-        ? Object.values(err.errors).flat().join('\n')
-        : err.message;
-      Swal.fire('No se pudo asociar', message, 'error');
-    }
-  };
 
   const handleDetach = async (buyer) => {
     const result = await Swal.fire({
@@ -104,15 +61,11 @@ const VendorBuyersManager = ({ vendor, onClose, onChanged }) => {
     }
   };
 
-  const categoryLabel = useMemo(
-    () => ({
-      oro: 'Oro',
-      diamante: 'Diamante',
-    }),
-    [],
-  );
-
-  const eligibleToShow = useMemo(() => eligibleClients, [eligibleClients]);
+  const categoryLabel = {
+    oro: 'Oro',
+    diamante: 'Diamante',
+    bronce: 'Bronce',
+  };
 
   return (
     <div className="vendor-manager__form-overlay">
@@ -132,45 +85,7 @@ const VendorBuyersManager = ({ vendor, onClose, onChanged }) => {
         </div>
 
         <div className="vendor-manager__buyers-content">
-          {/* Asociar nuevo */}
-          <div className="vendor-manager__buyers-section">
-            <h4>Asociar nuevo comprador</h4>
-            <p className="vendor-manager__hint">
-              Solo se muestran clientes con categoría <strong>Oro</strong> o{' '}
-              <strong>Diamente</strong> que aún no estén asociados.
-            </p>
-            <div className="vendor-manager__buyers-attach-row">
-              <input
-                type="text"
-                placeholder="Buscar por nombre, email o teléfono..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="vendor-manager__buyers-search-input"
-              />
-              <select
-                value={selectedClientId}
-                onChange={(e) => setSelectedClientId(e.target.value)}
-                className="vendor-manager__select"
-              >
-                <option value="">— Selecciona un cliente —</option>
-                {eligibleToShow.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.first_name} {c.last_name} ({categoryLabel[c.seller_category] || c.seller_category}) — {c.email || c.phone}
-                  </option>
-                ))}
-              </select>
-              <CherryButton
-                onClick={handleAttach}
-                variant="red"
-                size="small"
-                disabled={!selectedClientId}
-              >
-                Asociar
-              </CherryButton>
-            </div>
-          </div>
-
-          {/* Listado de asociados */}
+          {/* Listado de compradores asociados */}
           <div className="vendor-manager__buyers-section">
             <h4>
               Compradores asociados ({buyers.length})
@@ -179,7 +94,7 @@ const VendorBuyersManager = ({ vendor, onClose, onChanged }) => {
               <div className="vendor-manager__loading-inline">Cargando...</div>
             ) : buyers.length === 0 ? (
               <div className="vendor-manager__empty-inline">
-                Este vendedor aún no tiene compradores asociados.
+                Este vendedor no tiene clientes asociados por idvendedor.
               </div>
             ) : (
               <ul className="vendor-manager__buyers-list">

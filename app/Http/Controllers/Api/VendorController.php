@@ -265,6 +265,57 @@ class VendorController extends Controller
     }
 
     /**
+     * PATCH /api/admin/vendors/{id}/category-permission
+     * Otorga o revoca el permiso de un vendedor para cambiar las categorías
+     * de sus clientes asociados (bronce/oro/diamante).
+     */
+    public function toggleCategoryPermission(Request $request, $id)
+    {
+        try {
+            $vendorRole = $this->getVendorRole();
+
+            $vendor = User::where('role_id', $vendorRole->id)->find($id);
+            if (! $vendor) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vendedor no encontrado',
+                ], 404);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'can_change_category' => 'required|boolean',
+            ], [
+                'can_change_category.required' => 'El campo can_change_category es requerido',
+                'can_change_category.boolean' => 'El campo can_change_category debe ser true o false',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $vendor->update([
+                'can_change_category' => $request->boolean('can_change_category'),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => $vendor->can_change_category
+                    ? "Permiso de cambio de categoría otorgado a {$vendor->first_name} {$vendor->last_name}"
+                    : "Permiso de cambio de categoría revocado a {$vendor->first_name} {$vendor->last_name}",
+                'user' => $vendor->load('role'),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar permiso: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * DELETE /api/admin/vendors/{id}
      * Elimina un vendedor. cascadeOnDelete en vendor_buyer limpia asociaciones.
      */
@@ -321,15 +372,34 @@ class VendorController extends Controller
                 ], 404);
             }
 
-            $query = $vendor->buyers()->with('role');
+            // Mostrar todos los clientes cuyo idvendedor coincide con el del vendedor.
+            $buyers = collect();
 
-            if ($request->boolean('active')) {
-                $query->wherePivot('is_active', true);
-            } elseif ($request->has('active') && $request->active === 'false') {
-                $query->wherePivot('is_active', false);
+            if (! empty($vendor->idvendedor)) {
+                $buyers = User::with('role')
+                    ->where('role_id', 2)
+                    ->where('idvendedor', $vendor->idvendedor)
+                    ->orderBy('first_name')
+                    ->get();
             }
 
-            $buyers = $query->orderBy('users.first_name')->get();
+            // Si se pide active=true|false, filtrar por la asociación en vendor_buyer
+            if ($request->has('active')) {
+                $activeBuyerIds = VendorBuyer::where('vendor_id', $vendor->id)
+                    ->where('is_active', true)
+                    ->pluck('buyer_id')
+                    ->all();
+
+                if ($request->boolean('active')) {
+                    $buyers = $buyers->filter(function ($b) use ($activeBuyerIds) {
+                        return in_array($b->id, $activeBuyerIds);
+                    })->values();
+                } elseif ($request->active === 'false') {
+                    $buyers = $buyers->filter(function ($b) use ($activeBuyerIds) {
+                        return ! in_array($b->id, $activeBuyerIds);
+                    })->values();
+                }
+            }
 
             // Si se pide eligible, mantener sólo los que siguen siendo oro/diamante
             if ($request->boolean('eligible')) {
@@ -492,6 +562,17 @@ class VendorController extends Controller
             }
 
             if ($vendorId = $request->query('exclude_vendor_id')) {
+                // Filtrar por idvendedor del vendor: solo mostrar clientes
+                // cuyo idvendedor coincida con el del vendedor seleccionado.
+                $vendor = User::find($vendorId);
+                if ($vendor && ! empty($vendor->idvendedor)) {
+                    $query->where('idvendedor', $vendor->idvendedor);
+                } else {
+                    // Si el vendor no tiene idvendedor configurado,
+                    // no mostrar clientes elegibles.
+                    $query->whereRaw('1 = 0');
+                }
+
                 $alreadyAssociated = VendorBuyer::where('vendor_id', $vendorId)
                     ->pluck('buyer_id')
                     ->all();

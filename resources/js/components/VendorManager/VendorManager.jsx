@@ -6,6 +6,7 @@ import {
   createVendor,
   updateVendor,
   deleteVendor,
+  toggleVendorCategoryPermission,
 } from '../../api/adminVendors';
 import VendorBuyersManager from './VendorBuyersManager';
 import './VendorManager.css';
@@ -168,6 +169,39 @@ const VendorManager = () => {
         ? Object.values(err.errors).flat().join('\n')
         : err.message;
       Swal.fire('Error', message, 'error');
+    }
+  };
+
+  const handleToggleCategoryPermission = async (vendor) => {
+    const newValue = !vendor.can_change_category;
+    const result = await Swal.fire({
+      title: '¿Confirmar cambio de permiso?',
+      html: `Vas a ${newValue ? 'otorgar' : 'revocar'} a <strong>${vendor.first_name} ${vendor.last_name}</strong> el permiso para cambiar las categorías de sus clientes.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: newValue ? '#1DA534' : '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: newValue ? 'Sí, otorgar permiso' : 'Sí, revocar permiso',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true,
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await toggleVendorCategoryPermission(vendor.id, newValue);
+      if (window.showToast) {
+        window.showToast(
+          newValue
+            ? `Permiso otorgado a ${vendor.first_name} ${vendor.last_name}`
+            : `Permiso revocado a ${vendor.first_name} ${vendor.last_name}`,
+          'success',
+          4000,
+        );
+      }
+      await fetchVendors();
+    } catch (err) {
+      Swal.fire('Error', err.message, 'error');
     }
   };
 
@@ -394,6 +428,7 @@ const VendorManager = () => {
                     <th>Rol</th>
                     <th>ID Vendedor</th>
                     <th>Compradores</th>
+                    <th>Cambiar Categoría</th>
                     <th className="client-manager__actions-header">Acciones</th>
                   </tr>
                 </thead>
@@ -424,6 +459,27 @@ const VendorManager = () => {
                         <span className="vendor-orders__buyer">
                           <strong>{vendor.active_buyers_count ?? 0}</strong>
                         </span>
+                      </td>
+                      <td className="vendor-manager__permission-cell">
+                        <button
+                          type="button"
+                          className={`vendor-manager__permission-btn vendor-manager__permission-btn--${vendor.can_change_category ? 'granted' : 'denied'}`}
+                          onClick={() => handleToggleCategoryPermission(vendor)}
+                          data-tooltip={
+                            vendor.can_change_category
+                              ? 'Tiene permiso para cambiar categorías. Haz clic para revocar.'
+                              : 'Sin permiso para cambiar categorías. Haz clic para otorgar.'
+                          }
+                          aria-label={
+                            vendor.can_change_category
+                              ? 'Revocar permiso de cambio de categoría'
+                              : 'Otorgar permiso de cambio de categoría'
+                          }
+                          onMouseEnter={showActionTooltip}
+                          onMouseLeave={hideActionTooltip}
+                        >
+                          {vendor.can_change_category ? '🔓 Con permiso' : '🔒 Sin permiso'}
+                        </button>
                       </td>
                       <td className="client-manager__actions-cell">
                         <div className="client-manager__actions-grid">

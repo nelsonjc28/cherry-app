@@ -74,6 +74,21 @@ export const detachVendorBuyer = (vendorId, buyerId) =>
     headers: authHeaders(),
   }).then(handle);
 
+// ============ Permiso de cambio de categoría ============
+
+/**
+ * Otorga o revoca el permiso de un vendedor para cambiar las
+ * categorías de sus clientes asociados.
+ * @param {number} vendorId
+ * @param {boolean} canChangeCategory
+ */
+export const toggleVendorCategoryPermission = (vendorId, canChangeCategory) =>
+  fetch(`/api/admin/vendors/${vendorId}/category-permission`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+    body: JSON.stringify({ can_change_category: canChangeCategory }),
+  }).then(handle);
+
 // ============ Clientes elegibles (oro/diamante) ============
 
 export const listEligibleClients = (params = {}) => {

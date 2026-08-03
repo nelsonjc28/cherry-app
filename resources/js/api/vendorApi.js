@@ -38,6 +38,21 @@ export const getMyBuyerAddresses = (id) =>
 export const getMyBuyerDiscounts = (id) =>
   fetch(`/api/vendor/buyers/${id}/discounts`, { headers: authHeaders() }).then(handle);
 
+// ============ Cambio de categoría (permiso admin) ============
+
+/**
+ * Cambia la categoría de un comprador asociado.
+ * Requiere que el vendedor tenga el permiso can_change_category=true.
+ * @param {number} buyerId
+ * @param {string} sellerCategory - 'bronce' | 'oro' | 'diamante'
+ */
+export const updateBuyerCategory = (buyerId, sellerCategory) =>
+  fetch(`/api/vendor/buyers/${buyerId}/seller-category`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+    body: JSON.stringify({ seller_category: sellerCategory }),
+  }).then(handle);
+
 // ============ Órdenes ============
 
 export const listMyOrders = (params = {}) => {

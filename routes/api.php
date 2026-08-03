@@ -148,6 +148,8 @@ Route::middleware(['auth:api', 'vendor'])->prefix('vendor')->group(function () {
     Route::get('/buyers/{id}', [\App\Http\Controllers\Api\Vendor\BuyerController::class, 'show']);
     Route::get('/buyers/{id}/addresses', [\App\Http\Controllers\Api\Vendor\BuyerController::class, 'addresses']);
     Route::get('/buyers/{id}/discounts', [\App\Http\Controllers\Api\Vendor\BuyerController::class, 'discounts']);
+    // Cambiar categoría de un comprador (requiere permiso can_change_category)
+    Route::patch('/buyers/{id}/seller-category', [\App\Http\Controllers\Api\Vendor\BuyerController::class, 'updateSellerCategory']);
     // Órdenes de los compradores asociados
     Route::get('/orders', [\App\Http\Controllers\Api\Vendor\OrderController::class, 'index']);
     Route::get('/orders/{id}', [\App\Http\Controllers\Api\Vendor\OrderController::class, 'show']);
@@ -244,6 +246,8 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/admin/vendors/{id}/buyers', [\App\Http\Controllers\Api\VendorController::class, 'listBuyers']);
         Route::post('/admin/vendors/{id}/buyers', [\App\Http\Controllers\Api\VendorController::class, 'attachBuyer']);
         Route::delete('/admin/vendors/{id}/buyers/{buyerId}', [\App\Http\Controllers\Api\VendorController::class, 'detachBuyer']);
+        // Otorgar/revocar permiso de cambio de categoría a un vendedor
+        Route::patch('/admin/vendors/{id}/category-permission', [\App\Http\Controllers\Api\VendorController::class, 'toggleCategoryPermission']);
         // Listado de clientes elegibles para asociar (filtra dinámicamente por oro/diamante)
         Route::get('/admin/clients/eligible-for-vendor', [\App\Http\Controllers\Api\VendorController::class, 'eligibleClients']);
     });

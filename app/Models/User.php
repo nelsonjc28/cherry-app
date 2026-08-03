@@ -39,6 +39,7 @@ class User extends Authenticatable implements JWTSubject
         'password',
         'role_id',
         'idvendedor',
+        'can_change_category',
         'birth_day',
         'birth_month',
         'birth_year',
@@ -87,6 +88,7 @@ class User extends Authenticatable implements JWTSubject
             'credit_balance' => 'decimal:2',
             'credit_limit' => 'decimal:2',
             'welcome_sent' => 'boolean',
+            'can_change_category' => 'boolean',
         ];
     }
 
@@ -176,6 +178,15 @@ class User extends Authenticatable implements JWTSubject
     public function isVendedor()
     {
         return $this->role && $this->role->name === 'vendedor';
+    }
+
+    /**
+     * Check if the user is a vendedor with permission to change
+     * the seller_category of their associated clients.
+     */
+    public function canChangeCategory()
+    {
+        return $this->isVendedor() && (bool) $this->can_change_category;
     }
 
     /**

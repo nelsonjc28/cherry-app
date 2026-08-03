@@ -767,7 +767,39 @@ class ClientController extends Controller
                 ], 403);
             }
 
-            $user = User::where('role_id', 2)->find($id);
+            // Si el autenticado es vendedor, validar que tenga permiso
+            // y que el cliente le pertenezca (mismo idvendedor).
+            if ($authUser && $authUser->isVendedor()) {
+                if (! $authUser->canChangeCategory()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No tienes permiso para cambiar la categoría de clientes',
+                    ], 403);
+                }
+
+                $vendorIdvendedor = $authUser->idvendedor;
+                if (empty($vendorIdvendedor)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Vendedor sin ID configurado',
+                    ], 400);
+                }
+
+                $target = User::where('role_id', 2)
+                    ->where('idvendedor', $vendorIdvendedor)
+                    ->find($id);
+
+                if (! $target) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Cliente no encontrado o no asociado a este vendedor',
+                    ], 404);
+                }
+
+                $user = $target;
+            } else {
+                $user = User::where('role_id', 2)->find($id);
+            }
             
             if (!$user) {
                 return response()->json([
