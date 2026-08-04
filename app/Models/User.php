@@ -181,12 +181,16 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /**
-     * Check if the user is a vendedor with permission to change
-     * the seller_category of their associated clients.
+     * Check if the user is an operator with permission to change
+     * the seller_category of clients (bronce/oro/diamante).
+     * Admin siempre tiene permiso.
      */
     public function canChangeCategory()
     {
-        return $this->isVendedor() && (bool) $this->can_change_category;
+        if ($this->isAdmin()) {
+            return true;
+        }
+        return $this->isOperator() && (bool) $this->can_change_category;
     }
 
     /**

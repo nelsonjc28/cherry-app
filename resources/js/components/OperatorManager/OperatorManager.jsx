@@ -172,6 +172,44 @@ const OperatorManager = () => {
     }
   };
 
+  const handleToggleCategoryPermission = async (user) => {
+    const newValue = !user.can_change_category;
+    const result = await Swal.fire({
+      title: '¿Confirmar cambio de permiso?',
+      html: `Vas a ${newValue ? 'otorgar' : 'revocar'} a <strong>${user.first_name} ${user.last_name}</strong> el permiso para cambiar las categorías de los clientes.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: newValue ? '#1DA534' : '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: newValue ? 'Sí, otorgar permiso' : 'Sí, revocar permiso',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true,
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      const response = await fetch(`/api/admin/operators/${user.id}/category-permission`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ can_change_category: newValue }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al actualizar permiso');
+      }
+      if (window.showToast) {
+        window.showToast(data.message || 'Permiso actualizado', 'success', 4000);
+      }
+      await fetchUsers();
+    } catch (err) {
+      Swal.fire('Error', err.message, 'error');
+    }
+  };
+
   const handleEdit = (user) => {
     setEditingUser(user);
     setFormData({
@@ -410,6 +448,7 @@ const OperatorManager = () => {
                     <th>Correo</th>
                     <th>Teléfono</th>
                     <th>Rol</th>
+                    <th>Cambiar Categoría</th>
                     <th className="client-manager__actions-header">Acciones</th>
                   </tr>
                 </thead>
@@ -428,6 +467,27 @@ const OperatorManager = () => {
                         <span className="vendor-category-badge vendor-category-badge--none">
                           Operador
                         </span>
+                      </td>
+                      <td className="vendor-manager__permission-cell">
+                        <button
+                          type="button"
+                          className={`vendor-manager__permission-btn vendor-manager__permission-btn--${user.can_change_category ? 'granted' : 'denied'}`}
+                          onClick={() => handleToggleCategoryPermission(user)}
+                          data-tooltip={
+                            user.can_change_category
+                              ? 'Tiene permiso para cambiar categorías. Haz clic para revocar.'
+                              : 'Sin permiso para cambiar categorías. Haz clic para otorgar.'
+                          }
+                          aria-label={
+                            user.can_change_category
+                              ? 'Revocar permiso de cambio de categoría'
+                              : 'Otorgar permiso de cambio de categoría'
+                          }
+                          onMouseEnter={showActionTooltip}
+                          onMouseLeave={hideActionTooltip}
+                        >
+                          {user.can_change_category ? '🔓 Con permiso' : '🔒 Sin permiso'}
+                        </button>
                       </td>
                       <td className="client-manager__actions-cell">
                         <div className="client-manager__actions-grid">

@@ -198,22 +198,9 @@ const VendorClientList = () => {
                       {b.phone && <span className="client-manager__phone-cell"> {b.phone}</span>}
                     </td>
                     <td>
-                      {canChangeCategory ? (
-                        <select
-                          className={`client-manager__category-select client-manager__category-select--${b.seller_category}`}
-                          value={b.seller_category || 'bronce'}
-                          onChange={(e) => handleCategoryChangeWithConfirm(b, e.target.value)}
-                          aria-label="Categoría del cliente"
-                        >
-                          <option value="bronce">Bronce</option>
-                          <option value="oro">Oro</option>
-                          <option value="diamante">Diamante</option>
-                        </select>
-                      ) : (
-                        <span className={`vendor-category-badge vendor-category-badge--${b.seller_category}`}>
-                          {b.seller_category === 'oro' ? 'Oro' : b.seller_category === 'diamante' ? 'Diamante' : 'Bronce'}
-                        </span>
-                      )}
+                      <span className={`vendor-category-badge vendor-category-badge--${b.seller_category}`}>
+                        {b.seller_category === 'oro' ? 'Oro' : b.seller_category === 'diamante' ? 'Diamante' : 'Bronce'}
+                      </span>
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       <button

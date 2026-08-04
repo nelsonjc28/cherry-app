@@ -758,48 +758,24 @@ class ClientController extends Controller
     public function updateSellerCategory(Request $request, $id)
     {
         try {
-            // Verificar que el usuario autenticado no sea operador
+            // Verificar que el usuario autenticado no sea operador SIN permiso
             $authUser = auth()->user();
-            if ($authUser && $authUser->isOperator()) {
+            if ($authUser && $authUser->isOperator() && !$authUser->canChangeCategory()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Los operadores no tienen permiso para modificar la categoría de vendedor'
                 ], 403);
             }
 
-            // Si el autenticado es vendedor, validar que tenga permiso
-            // y que el cliente le pertenezca (mismo idvendedor).
+            // Los vendedores no tienen permiso para modificar categorías.
             if ($authUser && $authUser->isVendedor()) {
-                if (! $authUser->canChangeCategory()) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'No tienes permiso para cambiar la categoría de clientes',
-                    ], 403);
-                }
-
-                $vendorIdvendedor = $authUser->idvendedor;
-                if (empty($vendorIdvendedor)) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Vendedor sin ID configurado',
-                    ], 400);
-                }
-
-                $target = User::where('role_id', 2)
-                    ->where('idvendedor', $vendorIdvendedor)
-                    ->find($id);
-
-                if (! $target) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Cliente no encontrado o no asociado a este vendedor',
-                    ], 404);
-                }
-
-                $user = $target;
-            } else {
-                $user = User::where('role_id', 2)->find($id);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Los vendedores no tienen permiso para modificar la categoría de clientes',
+                ], 403);
             }
+
+            $user = User::where('role_id', 2)->find($id);
             
             if (!$user) {
                 return response()->json([

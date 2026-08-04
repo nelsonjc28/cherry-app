@@ -233,6 +233,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('/admin/operators', [\App\Http\Controllers\Api\OperatorController::class, 'createUser']);
     Route::post('/admin/operators/{id}', [\App\Http\Controllers\Api\OperatorController::class, 'updateUser']);
     Route::delete('/admin/operators/{id}', [\App\Http\Controllers\Api\OperatorController::class, 'deleteUser']);
+    Route::patch('/admin/operators/{id}/category-permission', [\App\Http\Controllers\Api\OperatorController::class, 'toggleCategoryPermission']);
 
     // Vendor routes (CRUD + gestión de compradores) - solo accesible para ADMINS.
     // Importante: aunque las rutas están en /admin/vendors/*, las separamos del

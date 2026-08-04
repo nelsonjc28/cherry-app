@@ -229,6 +229,63 @@ class OperatorController extends Controller
     }
 
     /**
+     * PATCH /api/admin/operators/{id}/category-permission
+     * Otorga o revoca el permiso de un operador para cambiar las categorías
+     * de los clientes (bronce/oro/diamante).
+     */
+    public function toggleCategoryPermission(Request $request, $id)
+    {
+        try {
+            $operatorRole = Role::where('name', 'operador')->first();
+            if (!$operatorRole) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El rol de operador no existe'
+                ], 404);
+            }
+
+            $operator = User::where('role_id', $operatorRole->id)->find($id);
+            if (!$operator) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Operador no encontrado'
+                ], 404);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'can_change_category' => 'required|boolean',
+            ], [
+                'can_change_category.required' => 'El campo can_change_category es requerido',
+                'can_change_category.boolean' => 'El campo can_change_category debe ser true o false',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $operator->update([
+                'can_change_category' => $request->boolean('can_change_category')
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => $operator->can_change_category
+                    ? "Permiso de cambio de categoría otorgado a {$operator->first_name} {$operator->last_name}"
+                    : "Permiso de cambio de categoría revocado a {$operator->first_name} {$operator->last_name}",
+                'user' => $operator->load('role')
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar permiso: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Delete a user
      */
     public function deleteUser($id)
