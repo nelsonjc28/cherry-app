@@ -476,7 +476,18 @@ const OrderDetailModal = ({
     isAdmin ||
     !['oro', 'diamante'].includes(String(viewerUser?.seller_category || '').toLowerCase());
 
-  order = normalizeOrderForDetail(order);
+  // Estado local para refrescar el UI inmediatamente al marcar/desmarcar entregas
+  const [localOrder, setLocalOrder] = useState(() => normalizeOrderForDetail(order));
+
+  // Sincronizar el estado local cuando la prop order cambie externamente
+  useEffect(() => {
+    if (order) {
+      setLocalOrder(normalizeOrderForDetail(order));
+    }
+  }, [order]);
+
+  // Usar la orden local para el renderizado (refleja cambios inmediatos)
+  order = localOrder;
  
   const formatOrderNumber = (o) =>
     formatOrderNumberDisplay(o, { isViewerOroDiamante: !isAdmin && isViewerOroDiamante });
@@ -1052,6 +1063,7 @@ const OrderDetailModal = ({
                                   variant={v}
                                   onToggle={(updatedOrder) => {
                                     if (updatedOrder && updatedOrder.items) {
+                                      setLocalOrder(normalizeOrderForDetail(updatedOrder));
                                       onOrderUpdated?.({
                                         ...order,
                                         ...updatedOrder,
