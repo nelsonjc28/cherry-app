@@ -195,7 +195,7 @@ PayPendingOrderButton.propTypes = {
   orderId: PropTypes.number.isRequired
 };
 
-/** Botón para marcar/desmarcar entrega individual de un producto. */
+/** Botón con icono y tooltip para marcar/desmarcar entrega individual de un producto. */
 const DeliveryItemButton = ({ orderId, variant, onToggle }) => {
   const [loading, setLoading] = useState(false);
 
@@ -229,12 +229,20 @@ const DeliveryItemButton = ({ orderId, variant, onToggle }) => {
       className={`order-item-delivery-btn order-item-delivery-btn--${variant.isDelivered ? 'delivered' : 'pending'}`}
       onClick={handleClick}
       disabled={loading}
-      title={variant.isDelivered ? 'Clic para desmarcar' : 'Clic para marcar como entregado'}
+      data-tooltip={variant.isDelivered ? 'Desmarcar como entregado' : 'Marcar como entregado'}
+      aria-label={variant.isDelivered ? 'Desmarcar como entregado' : 'Marcar como entregado'}
+      title={variant.isDelivered ? 'Desmarcar como entregado' : 'Marcar como entregado'}
+      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
     >
-      {loading ? '...' : variant.isDelivered ? '✓ Entregado' : 'Marcar entregado'}
+      {loading
+        ? '...'
+        : variant.isDelivered
+          ? '✓'
+          : '+'}
     </button>
   );
 };
+
 
 /** Agrupa ítems por producto; el desglose talla/color/cantidad va en la misma fila. */
 const groupOrderItemsByProduct = (items) => {
@@ -999,6 +1007,22 @@ const OrderDetailModal = ({
                           ))}
                         </div>
                       </div>
+                      <div className="product-price desktop-only">
+                        <span className="product-variant-col__label">Precio U.</span>
+                        <div className="product-variant-col__lines">
+                          {row.variants.map((v) => (
+                            <div key={`${v.key}-p`}>${v.price.toFixed(2)}</div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="product-subtotal desktop-only">
+                        <span className="product-variant-col__label">Subtotal</span>
+                        <div className="product-variant-col__lines">
+                          {row.variants.map((v) => (
+                            <div key={`${v.key}-st`}>${v.subtotal.toFixed(2)}</div>
+                          ))}
+                        </div>
+                      </div>
                       {isAdmin && (
                         <div className="product-variant-col product-variant-col--delivery desktop-only">
                           <span className="product-variant-col__label">Entrega</span>
@@ -1025,22 +1049,6 @@ const OrderDetailModal = ({
                           </div>
                         </div>
                       )}
-                      <div className="product-price desktop-only">
-                        <span className="product-variant-col__label">Precio U.</span>
-                        <div className="product-variant-col__lines">
-                          {row.variants.map((v) => (
-                            <div key={`${v.key}-p`}>${v.price.toFixed(2)}</div>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="product-subtotal desktop-only">
-                        <span className="product-variant-col__label">Subtotal</span>
-                        <div className="product-variant-col__lines">
-                          {row.variants.map((v) => (
-                            <div key={`${v.key}-st`}>${v.subtotal.toFixed(2)}</div>
-                          ))}
-                        </div>
-                      </div>
                       <div className="product-quantity">
                         <strong>Total pzas:</strong> {row.totalQuantity}
                       </div>
