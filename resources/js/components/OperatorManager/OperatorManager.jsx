@@ -179,7 +179,7 @@ const OperatorManager = () => {
       html: `Vas a ${newValue ? 'otorgar' : 'revocar'} a <strong>${user.first_name} ${user.last_name}</strong> el permiso para cambiar las categorías de los clientes.`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: newValue ? '#1DA534' : '#d33',
+      confirmButtonColor: 'var(--color-primary, #b8002f)',
       cancelButtonColor: '#3085d6',
       confirmButtonText: newValue ? 'Sí, otorgar permiso' : 'Sí, revocar permiso',
       cancelButtonText: 'Cancelar',
