@@ -4,6 +4,7 @@ import CherryButton from '../CherryButton/CherryButton';
 import AccountStatementModal from '../AccountStatementModal/AccountStatementModal';
 import ExternalAccountStatementModal from '../ExternalAccountStatementModal/ExternalAccountStatementModal';
 import useUserStore from '../../store/userStore';
+const viewerUser = useUserStore((s) => s.user);
 import { fetchSepomexPostalCode } from '../../utils/sepomexPostal';
 import { sanitizeStreetNumberDigits } from '../../utils/addressDisplay';
 import { formatExternalClienteId } from '../../utils/externalClienteId';
@@ -1037,7 +1038,7 @@ const ClientManager = () => {
                           {client.email || '—'}
                         </td>
                         <td className="client-manager__category-cell">
-                          {!isOperator ? (
+                          {(!isOperator || viewerUser?.can_change_category) ? (
                             <select
                               className={`client-manager__category-select client-manager__category-select--${cat}`}
                               value={cat}
