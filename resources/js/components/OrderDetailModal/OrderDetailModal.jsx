@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import Swal from 'sweetalert2';
 import CherryButton from '../CherryButton/CherryButton';
 import api from '../../config/axios';
 import { adminOrderService } from '../../services/api';
@@ -202,7 +203,19 @@ const DeliveryItemButton = ({ orderId, variant, onToggle }) => {
   const handleClick = async () => {
     const isDelivering = !variant.isDelivered;
     const label = `${variant.color || 'Producto'}${variant.size ? ' / ' + variant.size : ''}`;
-    if (!window.confirm(isDelivering ? `¿Marcar "${label}" como ENTREGADO?` : `¿Desmarcar "${label}"?`)) return;
+    const confirmed = await Swal.fire({
+      title: isDelivering ? 'Confirmar entrega' : 'Confirmar desmarcado',
+      html: 'Deseas ' + (isDelivering ? 'marcar' : 'desmarcar') + ' este producto como ' + (isDelivering ? 'entregado' : 'pendiente') + '?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: isDelivering ? '#1DA534' : '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: isDelivering ? 'Si, marcar' : 'Si, desmarcar',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true,
+    });
+
+    if (!confirmed.isConfirmed) return;
 
     try {
       setLoading(true);
