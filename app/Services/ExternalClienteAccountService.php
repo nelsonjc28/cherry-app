@@ -155,16 +155,29 @@ class ExternalClienteAccountService
      */
     private function buildSummary(array $data, array $documentos, float $creditLimit): array
     {
+        // La API externa ahora entrega el bloque 'credito' anidado:
+        //   credito: { creditoLimite, creditoUsado, creditoSaldo }
+        $credito = is_array($data['credito'] ?? null) ? $data['credito'] : [];
+
         $limite = $this->pickNumeric($data, [
             'limiteCredito', 'limite_credito', 'LimiteCredito', 'credito', 'limite',
         ]);
         if ($limite === null) {
+            $limite = $this->pickNumeric($credito, ['creditoLimite', 'limiteCredito', 'limite_credito']);
+        }
+        if ($limite === null) {
             $limite = max(0, $creditLimit);
         }
 
-        $saldoApi = $this->pickNumeric($data, ['saldo', 'Saldo', 'saldoTotal', 'saldo_total']);
+        // Credito usado: priorizar bloquee 'credito' de la API
+        $saldoApi = $this->pickNumeric($credito, ['creditoUsado', 'credito_usado', 'usado'])
+            ?? $this->pickNumeric($data, ['saldo', 'Saldo', 'saldoTotal', 'saldo_total']);
+
         $vencidoApi = $this->pickNumeric($data, ['vencido', 'Vencido', 'saldoVencido', 'saldo_vencido']);
-        $disponibleApi = $this->pickNumeric($data, ['disponible', 'Disponible', 'creditoDisponible', 'credito_disponible']);
+
+        // Credito disponible (saldo libre): priorizar bloquee 'credito' de la API
+        $disponibleApi = $this->pickNumeric($credito, ['creditoSaldo', 'credito_saldo', 'saldo'])
+            ?? $this->pickNumeric($data, ['disponible', 'Disponible', 'creditoDisponible', 'credito_disponible']);
 
         $saldoDocs = 0.0;
         $vencidoDocs = 0.0;
