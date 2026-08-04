@@ -471,22 +471,22 @@ const OperatorManager = () => {
                       <td className="vendor-manager__permission-cell">
                         <button
                           type="button"
-                          className={`order-item-delivery-btn order-item-delivery-btn--${user.can_change_category ? 'delivered' : 'pending'}`}
+                          className={`vendor-manager__permission-btn vendor-manager__permission-btn--${user.can_change_category ? 'granted' : 'denied'}`}
                           onClick={() => handleToggleCategoryPermission(user)}
                           data-tooltip={
                             user.can_change_category
-                              ? 'Revocar permiso de cambio de categoría'
-                              : 'Otorgar permiso de cambio de categoría'
+                              ? 'Tiene permiso para cambiar categorías. Haz clic para revocar.'
+                              : 'Sin permiso para cambiar categorías. Haz clic para otorgar.'
                           }
                           aria-label={
                             user.can_change_category
-                              ? 'Revocar permiso de cambio de categoría'
-                              : 'Otorgar permiso de cambio de categoría'
+                              ? 'Tiene permiso para cambiar categorías. Haz clic para revocar.'
+                              : 'Sin permiso para cambiar categorías. Haz clic para otorgar.'
                           }
                           onMouseEnter={showActionTooltip}
                           onMouseLeave={hideActionTooltip}
                         >
-                          {user.can_change_category ? '✓' : '+'}
+                          {user.can_change_category ? '🔓 Con permiso' : '🔒 Sin permiso'}
                         </button>
                       </td>
                       <td className="client-manager__actions-cell">
