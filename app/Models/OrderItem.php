@@ -21,14 +21,18 @@ class OrderItem extends Model
         'product_details',
         'quantity',
         'price',
-        'subtotal'
+        'subtotal',
+        'is_delivered',
+        'delivered_at'
     ];
 
     protected $casts = [
         'quantity' => 'integer',
         'price' => 'decimal:2',
         'subtotal' => 'decimal:2',
-        'product_details' => 'array'
+        'product_details' => 'array',
+        'is_delivered' => 'boolean',
+        'delivered_at' => 'datetime'
     ];
 
     /**
@@ -55,5 +59,35 @@ class OrderItem extends Model
     public function detalleRow(): BelongsTo
     {
         return $this->belongsTo(Detalle::class, 'detalle_id', 'id');
+    }
+
+    /**
+     * Marca este ítem como entregado individualmente.
+     */
+    public function markAsDelivered(): void
+    {
+        $this->forceFill([
+            'is_delivered' => true,
+            'delivered_at' => now(),
+        ])->save();
+    }
+
+    /**
+     * Revierte la entrega de este ítem (queda pendiente).
+     */
+    public function markAsPending(): void
+    {
+        $this->forceFill([
+            'is_delivered' => false,
+            'delivered_at' => null,
+        ])->save();
+    }
+
+    /**
+     * Etiqueta legible del estado de entrega del ítem.
+     */
+    public function getDeliveryStatusLabelAttribute(): string
+    {
+        return $this->is_delivered ? 'Entregado' : 'Pendiente';
     }
 }

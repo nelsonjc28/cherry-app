@@ -188,6 +188,8 @@ Route::middleware(['auth:api'])->prefix('admin')->group(function () {
         Route::post('/orders/{orderId}/update-prepared', [App\Http\Controllers\Admin\AdminOrderController::class, 'updatePrepared']);
         Route::post('/orders/{orderId}/update-tracking', [App\Http\Controllers\Admin\AdminOrderController::class, 'updateTracking']);
         Route::post('/orders/{orderId}/resend-external-api', [App\Http\Controllers\Admin\AdminOrderController::class, 'resendToExternalApi']);
+        // Marcar entrega individual de un producto dentro de una orden
+        Route::patch('/orders/{orderId}/items/{itemId}/delivery-status', [App\Http\Controllers\Admin\AdminOrderController::class, 'updateItemDeliveryStatus']);
     });
 });
 

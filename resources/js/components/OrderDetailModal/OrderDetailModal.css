@@ -566,6 +566,55 @@
   color: #333;
 }
 
+/* Botón de entrega individual por producto (solo admin) */
+.product-variant-col--delivery .product-variant-col__lines {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.order-item-delivery-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.order-item-delivery-btn--pending {
+  background: #e3f2fd;
+  color: #1565c0;
+  border-color: #90caf9;
+}
+
+.order-item-delivery-btn--pending:hover {
+  background: #bbdefb;
+  border-color: #42a5f5;
+}
+
+.order-item-delivery-btn--delivered {
+  background: #e8f5e9;
+  color: #1da534;
+  border-color: #a5d6a7;
+}
+
+.order-item-delivery-btn--delivered:hover {
+  background: #c8e6c9;
+  border-color: #66bb6a;
+}
+
+.order-item-delivery-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .product-item__breakdown-barcode {
   font-family: 'Courier New', monospace;
   font-size: 0.85rem;

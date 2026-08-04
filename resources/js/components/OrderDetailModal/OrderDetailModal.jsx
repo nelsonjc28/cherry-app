@@ -195,6 +195,47 @@ PayPendingOrderButton.propTypes = {
   orderId: PropTypes.number.isRequired
 };
 
+/** Botón para marcar/desmarcar entrega individual de un producto. */
+const DeliveryItemButton = ({ orderId, variant, onToggle }) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleClick = async () => {
+    const isDelivering = !variant.isDelivered;
+    const label = `${variant.color || 'Producto'}${variant.size ? ' / ' + variant.size : ''}`;
+    if (!window.confirm(isDelivering ? `¿Marcar "${label}" como ENTREGADO?` : `¿Desmarcar "${label}"?`)) return;
+
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/admin/orders/${orderId}/items/${variant.itemId}/delivery-status`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_delivered: isDelivering }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Error');
+      if (window.showToast) window.showToast(data.message || 'Entrega actualizada', 'success');
+      onToggle?.(data.order);
+    } catch (err) {
+      if (window.showToast) window.showToast('Error: ' + (err.message || 'desconocido'), 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      className={`order-item-delivery-btn order-item-delivery-btn--${variant.isDelivered ? 'delivered' : 'pending'}`}
+      onClick={handleClick}
+      disabled={loading}
+      title={variant.isDelivered ? 'Clic para desmarcar' : 'Clic para marcar como entregado'}
+    >
+      {loading ? '...' : variant.isDelivered ? '✓ Entregado' : 'Marcar entregado'}
+    </button>
+  );
+};
+
 /** Agrupa ítems por producto; el desglose talla/color/cantidad va en la misma fila. */
 const groupOrderItemsByProduct = (items) => {
   if (!items?.length) return [];
@@ -242,7 +283,10 @@ const groupOrderItemsByProduct = (items) => {
       finalUnitPrice: parseFloat(item.final_unit_price ?? item.price) || 0,
       productLabels: Array.isArray(item.product_labels) ? item.product_labels : [],
       descPromo: item.desc_promo ?? null,
-      barcode: item.barcode || null
+      barcode: item.barcode || null,
+      isDelivered: !!item.is_delivered,
+      deliveredAt: item.delivered_at || null,
+      itemId: item.id != null ? item.id : null
     });
     row.totalQuantity += qty;
     row.totalSubtotal += subtotal;
@@ -955,6 +999,32 @@ const OrderDetailModal = ({
                           ))}
                         </div>
                       </div>
+                      {isAdmin && (
+                        <div className="product-variant-col product-variant-col--delivery desktop-only">
+                          <span className="product-variant-col__label">Entrega</span>
+                          <div className="product-variant-col__lines">
+                            {row.variants.map((v) => (
+                              <div key={`${v.key}-delivery`}>
+                                <DeliveryItemButton
+                                  orderId={order.id}
+                                  variant={v}
+                                  onToggle={(updatedOrder) => {
+                                    if (updatedOrder && updatedOrder.items) {
+                                      onOrderUpdated?.({
+                                        ...order,
+                                        ...updatedOrder,
+                                        items: updatedOrder.items,
+                                        status: updatedOrder.status,
+                                        statusDisplay: updatedOrder.statusDisplay,
+                                      });
+                                    }
+                                  }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       <div className="product-price desktop-only">
                         <span className="product-variant-col__label">Precio U.</span>
                         <div className="product-variant-col__lines">

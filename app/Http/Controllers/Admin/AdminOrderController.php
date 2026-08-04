@@ -501,6 +501,9 @@ class AdminOrderController extends Controller
             'size' => $item->size,
             'color' => $item->color,
             'barcode' => $item->barcode,
+            'is_delivered' => (bool) ($item->is_delivered ?? false),
+            'delivered_at' => $item->delivered_at?->toIso8601String(),
+            'delivery_status_label' => $item->delivery_status_label,
             'stock_total' => $stockTotal,
             'desc_promo' => $product ? $product->desc_promo : null,
             'opc_nuevo' => $product ? $product->opc_nuevo : null,
@@ -923,6 +926,77 @@ class AdminOrderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al actualizar número de guía: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateItemDeliveryStatus(Request $request, $orderId, $itemId)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'is_delivered' => 'required|boolean',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error de validación',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $order = Order::with('items')->findOrFail($orderId);
+            $item = $order->items()->find($itemId);
+
+            if (! $item) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ítem no encontrado en esta orden',
+                ], 404);
+            }
+
+            if ($request->boolean('is_delivered')) {
+                $item->markAsDelivered();
+            } else {
+                $item->markAsPending();
+            }
+
+            $allItemsDelivered = $order->items()->where('is_delivered', false)->count() === 0;
+            $orderStatusChanged = false;
+
+            if ($allItemsDelivered) {
+                $oldStatus = $order->status;
+                $order->status = 'enviado';
+                $order->save();
+
+                if ($oldStatus !== 'enviado') {
+                    $this->notifyCustomerCanRate($order);
+                    $this->notifyCustomerStatusChange($order, $oldStatus, 'enviado');
+                }
+                $orderStatusChanged = true;
+            }
+
+            $order->load('items');
+
+            return response()->json([
+                'success' => true,
+                'message' => $request->boolean('is_delivered')
+                    ? 'Producto marcado como entregado'
+                    : 'Producto marcado como pendiente',
+                'order' => $order,
+                'all_items_delivered' => $allItemsDelivered,
+                'order_status_changed' => $orderStatusChanged,
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error al actualizar estado de entrega', [
+                'order_id' => $orderId,
+                'item_id' => $itemId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar estado de entrega: ' . $e->getMessage(),
             ], 500);
         }
     }
