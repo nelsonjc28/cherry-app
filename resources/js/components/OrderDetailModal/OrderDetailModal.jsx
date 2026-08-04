@@ -1052,7 +1052,7 @@ const OrderDetailModal = ({
                           ))}
                         </div>
                       </div>
-                      {isAdmin && (
+                      {(isAdmin || viewerUser?.role?.name === 'operador') && (
                         <div className="product-variant-col product-variant-col--delivery desktop-only">
                           <span className="product-variant-col__label">Entrega</span>
                           <div className="product-variant-col__lines">
