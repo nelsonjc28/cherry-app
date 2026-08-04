@@ -159,8 +159,9 @@ class ExternalClienteAccountService
         //   credito: { creditoLimite, creditoUsado, creditoSaldo }
         $credito = is_array($data['credito'] ?? null) ? $data['credito'] : [];
 
+        // NOTA: NO incluir 'credito' aqui: es ARRAY y (float)$array en PHP = 1
         $limite = $this->pickNumeric($data, [
-            'limiteCredito', 'limite_credito', 'LimiteCredito', 'credito', 'limite',
+            'limiteCredito', 'limite_credito', 'LimiteCredito', 'limite',
         ]);
         if ($limite === null) {
             $limite = $this->pickNumeric($credito, ['creditoLimite', 'limiteCredito', 'limite_credito']);
