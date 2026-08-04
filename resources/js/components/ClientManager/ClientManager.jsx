@@ -4,7 +4,6 @@ import CherryButton from '../CherryButton/CherryButton';
 import AccountStatementModal from '../AccountStatementModal/AccountStatementModal';
 import ExternalAccountStatementModal from '../ExternalAccountStatementModal/ExternalAccountStatementModal';
 import useUserStore from '../../store/userStore';
-const viewerUser = useUserStore((s) => s.user);
 import { fetchSepomexPostalCode } from '../../utils/sepomexPostal';
 import { sanitizeStreetNumberDigits } from '../../utils/addressDisplay';
 import { formatExternalClienteId } from '../../utils/externalClienteId';
@@ -213,6 +212,7 @@ const AdminClientAddressFields = ({ form, onAddressChange, settlements, loadingP
 };
 
 const ClientManager = () => {
+  const viewerUser = useUserStore((s) => s.user);
   const { user } = useUserStore();
   const isOperator = user?.role?.name === 'operador';
   const [clients, setClients] = useState([]);
