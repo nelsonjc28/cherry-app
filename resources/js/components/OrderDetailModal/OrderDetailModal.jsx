@@ -208,11 +208,16 @@ const DeliveryItemButton = ({ orderId, variant, onToggle }) => {
       html: 'Deseas ' + (isDelivering ? 'marcar' : 'desmarcar') + ' este producto como ' + (isDelivering ? 'entregado' : 'pendiente') + '?',
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: isDelivering ? '#1DA534' : '#d33',
-      cancelButtonColor: '#3085d6',
+      confirmButtonColor: 'var(--color-primary, #b8002f)',
       confirmButtonText: isDelivering ? 'Si, marcar' : 'Si, desmarcar',
+      confirmButtonAriaLabel: 'Confirmar',
       cancelButtonText: 'Cancelar',
+      cancelButtonColor: 'var(--color-primary, #b8002f)',
       reverseButtons: true,
+      customClass: {
+        confirmButton: 'swal-confirm-cherry',
+        cancelButton: 'swal-cancel-cherry',
+      },
     });
 
     if (!confirmed.isConfirmed) return;

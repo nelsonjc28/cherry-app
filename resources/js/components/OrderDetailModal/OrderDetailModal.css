@@ -566,6 +566,46 @@
   color: #333;
 }
 
+/* SweetAlert con estilos Cherry */
+.swal-confirm-cherry.swal2-confirm {
+  background-color: var(--color-primary, #b8002f) !important;
+  color: #ffffff !important;
+  border: 1px solid var(--color-primary, #b8002f) !important;
+  border-radius: 8px !important;
+  padding: 14px 20px !important;
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  height: 50px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: none !important;
+}
+
+.swal-confirm-cherry.swal2-confirm:hover {
+  background-color: #d10000 !important;
+  border-color: #d10000 !important;
+}
+
+.swal-cancel-cherry.swal2-cancel {
+  background-color: transparent !important;
+  color: #333333 !important;
+  border: 1px solid var(--color-primary, #b8002f) !important;
+  border-radius: 8px !important;
+  padding: 14px 20px !important;
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  height: 50px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: none !important;
+}
+
+.swal-cancel-cherry.swal2-cancel:hover {
+  color: var(--color-primary, #b8002f) !important;
+}
+
 /* Botón de entrega individual por producto (solo admin) */
 .product-variant-col--delivery .product-variant-col__lines {
   display: flex;
