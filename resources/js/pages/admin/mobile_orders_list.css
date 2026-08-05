@@ -171,3 +171,18 @@
     color: #666;
   }
 }
+
+/* === FIX-3: mobile-order-expanded-content — mostrar TODO el contenido === */
+.mobile-order-expanded-content {
+  max-height: none !important;
+  height: auto !important;
+  overflow: visible !important;
+  padding: 0 !important;
+}
+.mobile-order-card-container,
+.mobile-order-card,
+.mobile-order-expanded-content > div {
+  max-height: none !important;
+  height: auto !important;
+  overflow: visible !important;
+}
