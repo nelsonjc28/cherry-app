@@ -786,19 +786,25 @@
   color: #333;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* FIX: mostrar el detalle completo de TODOS los productos en móvil
+   (evita que el contenedor recorte cuando hay varios productos) */
+.order-detail-modal__content,
+.order-detail-products,
+.shopify-mobile-order-layout,
+.order-detail-products .product-item,
+.product-details,
+.product-details--grouped,
+.mobile-variant-col,
+.mobile-variant-line {
+  max-height: none !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+.shopify-mobile-order-layout {
+  display: block !important;
+  overflow: visible !important;
+}
+.shopify-mobile-card {
+  max-height: none !important;
+  overflow: visible !important;
+}
