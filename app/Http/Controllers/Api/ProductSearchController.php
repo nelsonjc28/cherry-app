@@ -33,6 +33,8 @@ class ProductSearchController extends Controller
             $query = trim($request->input('q', ''));
             $page = (int) $request->input('page', 1);
             $sort = $request->input('sort', 'más recientes'); // Parámetro de ordenamiento
+            // Filtro: solo productos con existencia (disponibles / no agotados)
+            $soloExistencia = filter_var($request->input('solo_existencia', false), FILTER_VALIDATE_BOOLEAN);
             // Sin límite - obtener todos los productos que coincidan
             $perPage = PHP_INT_MAX; // Sin límite
             
@@ -232,6 +234,9 @@ class ProductSearchController extends Controller
                 $statusKind = Producto::evaluateInventoryStatusKindFromRow($producto, $inventoryTotal);
                 $stockReceivedCount = (int) ($producto->stock_received_count ?? 0);
                 $hasStockNow = in_array($statusKind, ['in-stock', 'new'], true);
+                if ($soloExistencia && ! $hasStockNow) {
+                    continue;
+                }
                 if (! $hasStockNow && $stockReceivedCount > 0) {
                     continue;
                 }
@@ -306,6 +311,8 @@ class ProductSearchController extends Controller
             ini_set('memory_limit', '512M');
             
             $sort = $request->input('sort', 'más recientes'); // Parámetro de ordenamiento
+            // Filtro: solo productos con existencia
+            $soloExistencia = filter_var($request->input('solo_existencia', false), FILTER_VALIDATE_BOOLEAN);
             
             // Sin límite - obtener TODOS los productos
             $perPage = PHP_INT_MAX;
@@ -440,6 +447,9 @@ class ProductSearchController extends Controller
                 $inventoryTotalRow = Producto::computeTotalInventoryFromDetalleRows($detalles, (float) $producto->inventario);
                 $statusKind = Producto::evaluateInventoryStatusKindFromRow($producto, $inventoryTotalRow);
                 $hasStockNow = in_array($statusKind, ['in-stock', 'new'], true);
+                if ($soloExistencia && ! $hasStockNow) {
+                    continue;
+                }
                 if (! $hasStockNow && $stockReceivedCount > 0) {
                     continue;
                 }
