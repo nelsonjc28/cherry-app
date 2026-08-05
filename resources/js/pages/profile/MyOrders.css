@@ -324,3 +324,14 @@
   opacity: 0.45;
   cursor: wait;
 }
+/* === FIX-3 (perfil): mostrar TODO el contenido expandido de órdenes en móvil === */
+.mobile-order-expanded-content,
+.order-expanded-content,
+.mobile-order-card-container,
+.mobile-order-card,
+.my-orders-card,
+.expanded-content {
+  max-height: none !important;
+  height: auto !important;
+  overflow: visible !important;
+}
