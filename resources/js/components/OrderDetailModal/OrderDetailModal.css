@@ -877,3 +877,24 @@
   min-height: 0 !important;
   overflow: visible !important;
 }
+
+/* === FIX-SCROLL: permite scroll vertical en el contenido de la modal (móvil y desktop) === */
+.order-detail-modal__content {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
+  max-height: 70vh !important;
+}
+.order-detail-modal {
+  overflow: hidden !important;
+}
+@media (max-width: 768px) {
+  .order-detail-modal {
+    max-height: 95vh !important;
+  }
+  .order-detail-modal__content {
+    max-height: calc(100vh - 140px) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+}
