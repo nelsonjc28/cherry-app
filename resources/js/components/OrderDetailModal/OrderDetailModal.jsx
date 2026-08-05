@@ -1370,20 +1370,20 @@ const OrderDetailModal = ({
             {groupedRows.map((row, idx) => (
               <div key={idx} style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
                 <div style={{ width: '60px', height: '60px', flexShrink: 0, borderRadius: '8px', border: '1px solid #eee', overflow: 'hidden', background: '#f9f9f9' }}>
-                  <img src={row.product?.image || '/images/placeholder-catalog.png'} alt={row.product?.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={row.image || '/images/placeholder-catalog.png'} alt={row.product?.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: '14px', color: '#111', fontWeight: '500', lineHeight: '1.3', marginBottom: '4px' }}>
-                    {row.product?.title || row.title || 'Producto'}
+                    {row.title || row.product?.title || 'Producto'}
                   </div>
                   <div style={{ fontSize: '13px', color: '#666', marginBottom: '4px' }}>
-                    {(row.product?.variants || row.variants || []).map(v => v.color ? `${v.color} / ${v.size || v.size_name || ''}` : `${v.size || v.size_name || v.id_talla}`).join(', ')}
+                    {row.variants.map(v => v.color ? `${v.color} / ${v.size || v.size_name || ''}` : `${v.size || v.size_name || v.id_talla}`).join(', ')}
                   </div>
                   <div style={{ fontSize: '13px', color: '#666', marginBottom: '4px' }}>
-                    SKU: {row.product?.sku || row.sku || 'N/A'}
+                    SKU: {row.variants.filter(v => v.barcode).map(v => v.barcode).join(', ') || 'N/A'}
                   </div>
                   <div style={{ fontSize: '14px', color: '#333' }}>
-                    MXN {parseFloat(row.price || row.product?.price || 0).toFixed(2)}
+                    MXN {parseFloat(row.variants[0]?.price || row.variants[0]?.finalUnitPrice || 0).toFixed(2)}
                   </div>
                 </div>
                 <div style={{ fontSize: '15px', color: '#111', fontWeight: '500', paddingLeft: '8px' }}>
