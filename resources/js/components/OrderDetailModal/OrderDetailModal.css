@@ -808,3 +808,72 @@
   max-height: none !important;
   overflow: visible !important;
 }
+
+/* === FIX-V2 MÓVIL: cada producto en la orden se muestra completo (apilado) === */
+@media (max-width: 768px) {
+  .order-detail-modal__content,
+  .order-detail-modal__content .desktop-only,
+  .order-detail-modal__content .order-info-grid,
+  .order-detail-modal__content .products-section,
+  .order-detail-modal__content .order-detail-products {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .order-detail-modal__content .order-detail-products .product-item {
+    display: flex !important;
+    flex-direction: row !important;
+    width: 100% !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    margin-bottom: 16px !important;
+    padding-bottom: 12px !important;
+    border-bottom: 1px solid #eee !important;
+  }
+  .order-detail-modal__content .product-details--grouped {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 4px !important;
+    width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .order-detail-modal__content .product-details--grouped > * {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .order-detail-modal__content .mobile-variant-col,
+  .order-detail-modal__content .mobile-variant-line {
+    display: block !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    white-space: normal !important;
+  }
+  .order-detail-modal__content .mobile-variant-line {
+    padding: 6px 0 !important;
+    border-bottom: 1px dashed #eee !important;
+  }
+  .order-detail-modal__content .product-details__main {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+
+/* FIX global semaforo: nunca ocultar nada en lista de productos */
+.order-detail-products,
+.product-item,
+.product-details,
+.product-details--grouped,
+.mobile-variant-col,
+.mobile-variant-line {
+  max-height: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+}
