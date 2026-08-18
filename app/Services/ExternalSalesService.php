@@ -350,17 +350,17 @@ class ExternalSalesService
         $descuentoVolumenMonto = round(max(0.0, $subtotalOrden - $discountedTotalOrden), 2);
 
         // API externa: dectoN / impoDectoN alineados con descuentoN (misma regla que cartVolumePricing / PriceService).
-        // Sin descuento de volumen: decto1, impoDecto1, decto2, impoDecto2 = null.
-        // Con solo tramo 1: impoDecto1 = monto total volumen; decto2/impoDecto2 = null.
+        // Sin descuento de volumen: decto1, impoDecto1, decto2, impoDecto2 = 0 (nunca null).
+        // Con solo tramo 1: impoDecto1 = monto total volumen; decto2/impoDecto2 = 0.
         // Con tramo 2 (10 % sobre neto tras tramo 1): reparte monto entre impoDecto1 (vol_main) e impoDecto2 (vol_extra).
         $hayDescuentoVolumen = $descuentoVolumenMonto > 0.009
             || $descuento1 > 0.0001
             || $descuento2 > 0.0001;
 
-        $decto1Api = null;
-        $impoDecto1Api = null;
-        $decto2Api = null;
-        $impoDecto2Api = null;
+        $decto1Api = 0.0;
+        $impoDecto1Api = 0.0;
+        $decto2Api = 0.0;
+        $impoDecto2Api = 0.0;
 
         if ($hayDescuentoVolumen) {
             if ($descuento2 > 0.0001 && $descuento1 > 0.0001) {
@@ -432,7 +432,7 @@ class ExternalSalesService
             'metodoEnvio' => $metodoEnvio,
             'decto1' => $decto1Api,
             'impoDecto1' => $impoDecto1Api,
-            'refDecto1' => null,
+            'refDecto1' => 0,
             'decto2' => $decto2Api,
             'impoDecto2' => $impoDecto2Api,
             'decto3' => $decto3Api,
