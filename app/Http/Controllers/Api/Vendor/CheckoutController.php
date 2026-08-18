@@ -11,6 +11,7 @@ use App\Models\VendorBuyer;
 use App\Services\ExternalSalesService;
 use App\Services\OrderPricingService;
 use App\Services\OrderSharePdfService;
+use App\Services\OrderAvailabilityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -41,6 +42,7 @@ class CheckoutController extends Controller
         protected OrderPricingService $orderPricingService,
         protected ExternalSalesService $externalSalesService,
         protected OrderSharePdfService $orderSharePdfService,
+        protected OrderAvailabilityService $orderAvailabilityService,
     ) {}
 
     /**
@@ -122,7 +124,12 @@ class CheckoutController extends Controller
             ], 403);
         }
 
-        // 2) Validar elegibilidad dinámica (categoría oro/diamante)
+        // 2) Validar disponibilidad real contra BD
+        if ($availabilityError = $this->orderAvailabilityService->validateAvailablePieces($request->input('items', []))) {
+            return $availabilityError;
+        }
+
+        // 3) Validar elegibilidad dinámica (categoría oro/diamante)
         if (! in_array($buyer->seller_category, VendorBuyer::ALLOWED_BUYER_CATEGORIES, true)) {
             return response()->json([
                 'success' => false,

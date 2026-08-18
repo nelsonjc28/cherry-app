@@ -656,6 +656,21 @@ const CartDetailsPage = () => {
 
       // Si hay items sin stock, mostrar un solo Swal con la lista de todos
       if (itemsWithoutStock.length > 0) {
+        // Las rebajas agotadas (desc_promo > 0) NUNCA pueden dejarse en el pedido:
+        // se bloquean directamente sin ofrecer la opción de encargo.
+        const rebajaAgotadoItems = itemsWithoutStock.filter(
+          ({ item }) => Number(item.desc_promo || 0) > 0.00001
+        );
+        if (rebajaAgotadoItems.length > 0) {
+          if (window.showToast) {
+            window.showToast(
+              'Los productos en rebaja agotados no pueden dejarse en el pedido. Retíralos del carrito.',
+              'error'
+            );
+          }
+          return;
+        }
+
         const itemsHtml = itemsWithoutStock.map(({ item, stockValidation }) => {
           const productName = item.title || item.name || item.id_articulo;
           const size = item.selectedSize || '';

@@ -274,6 +274,7 @@
 @media (max-width: 700px) {
   .admin-panel__mobile-menu-btn {
     display: flex;
+    top: 50px;
   }
 
   .admin-panel__sidebar-toggle {

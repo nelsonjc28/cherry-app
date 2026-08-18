@@ -55,14 +55,29 @@ class VendorController extends Controller
     {
         try {
             $vendorRole = $this->getVendorRole();
+            $clientRole = $this->getClientRole();
 
             $vendors = User::with('role')
                 ->where('role_id', $vendorRole->id)
-                ->withCount(['buyers as active_buyers_count' => function ($q) {
-                    $q->where('vendor_buyer.is_active', true);
-                }])
                 ->orderBy('id', 'desc')
                 ->get();
+
+            // El universo real de clientes de un vendedor se determina por
+            // idvendedor coincidente (igual que listBuyers), NO por la tabla
+            // vendor_buyer (que puede estar vacía aunque el vendedor tenga
+            // clientes). Por eso contamos clientes con role=cliente cuyo
+            // idvendedor coincide con el del vendedor.
+            $vendors->each(function (User $vendor) use ($clientRole) {
+                $count = 0;
+                if (! empty($vendor->idvendedor)) {
+                    $count = User::query()
+                        ->where('role_id', $clientRole->id)
+                        ->where('idvendedor', $vendor->idvendedor)
+                        ->count();
+                }
+                $vendor->setAttribute('active_buyers_count', $count);
+                $vendor->makeVisible('active_buyers_count');
+            });
 
             return response()->json([
                 'success' => true,

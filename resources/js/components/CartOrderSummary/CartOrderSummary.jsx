@@ -6,7 +6,7 @@ import './CartOrderSummary.css';
 import { getIconPath } from '../../utils/assetPaths';
 import CustomButton from '../CustomButton';
 import api from '../../config/axios';
-import { validateStock } from '../../services/inventoryService';
+import { validateStock, clearInventoryCache } from '../../services/inventoryService';
 import useCartStore from '../../store/cartStore';
 import { cartItemToPricingLine } from '../../utils/cartVolumePricing';
 import { buildStreetWithNumbers } from '../../utils/addressDisplay';
@@ -410,9 +410,6 @@ const CartOrderSummary = ({
     const canContinue = await validateCartBeforeOrder();
     if (!canContinue) {
       // Detener compra
-      if (window.showToast) {
-        window.showToast('Se ajustaron cantidades según stock disponible. Revisa el carrito.', 'error');
-      }
       return; // ← Esto detiene la compra
     }
 
@@ -757,9 +754,6 @@ const CartOrderSummary = ({
 
     const canContinue = await validateCartBeforeOrder();
     if (!canContinue) {
-      if (window.showToast) {
-        window.showToast('Se ajustaron cantidades según stock disponible. Revisa el carrito.', 'error');
-      }
       return;
     }
 
@@ -943,6 +937,10 @@ const CartOrderSummary = ({
       `Validando disponibilidad de las prendas.`,
       "info"
     );
+
+    // Limpiar caché de stock para validar SIEMPRE contra la BD (no usar stock viejo)
+    clearInventoryCache();
+
     // Recorremos todo el carrito
     for (const item of cartItems) {
 
@@ -950,6 +948,7 @@ const CartOrderSummary = ({
       const size = item.selectedSize;
       const color = item.selectedColor;
       const requestedQuantity = item.quantity;
+      const descPromo = Number(item.desc_promo || item.descPromo || 0);
       
       if (itemSkipsStockValidation(item, user)) {
         continue;
@@ -965,6 +964,18 @@ const CartOrderSummary = ({
 
         if (!stockValidation.isValid) {
           hasErrors = true;
+
+          // Rebaja agotada: NUNCA se permite (ni como encargo ni ajustando).
+          // Bloqueamos la compra para que el usuario retire el producto.
+          if (descPromo > 0.00001 && stockValidation.availableStock <= 0) {
+            if (window.showToast) {
+              window.showToast(
+                `El producto ${productId} (${color} / ${size}) está en rebaja y agotado. Retíralo del carrito para continuar.`,
+                "error"
+              );
+            }
+            continue;
+          }
 
           if (window.showToast) {
             window.showToast(

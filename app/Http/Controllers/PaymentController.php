@@ -25,6 +25,7 @@ use App\Services\ExternalClienteDiscountService;
 use App\Services\UserSellerCategoryActivityService;
 use App\Services\OrderPrintViewDataBuilder;
 use App\Services\OrderSharePdfService;
+use App\Services\OrderAvailabilityService;
 use Illuminate\Support\Facades\Storage;
 use App\Mail\OrderConfirmationMail;
 use Illuminate\Support\Facades\Mail;
@@ -52,6 +53,8 @@ class PaymentController extends Controller
 
     protected OrderSharePdfService $orderSharePdfService;
 
+    protected OrderAvailabilityService $orderAvailabilityService;
+
     public function __construct(
         MercadoPagoService $mercadoPagoService,
         ExternalSalesService $externalSalesService,
@@ -61,7 +64,8 @@ class PaymentController extends Controller
         ExternalClienteDiscountService $externalClienteDiscountService,
         UserSellerCategoryActivityService $sellerCategoryActivityService,
         OrderPrintViewDataBuilder $orderPrintViewDataBuilder,
-        OrderSharePdfService $orderSharePdfService
+        OrderSharePdfService $orderSharePdfService,
+        OrderAvailabilityService $orderAvailabilityService
     ) {
         $this->mercadoPagoService = $mercadoPagoService;
         $this->externalSalesService = $externalSalesService;
@@ -72,6 +76,7 @@ class PaymentController extends Controller
         $this->sellerCategoryActivityService = $sellerCategoryActivityService;
         $this->orderPrintViewDataBuilder = $orderPrintViewDataBuilder;
         $this->orderSharePdfService = $orderSharePdfService;
+        $this->orderAvailabilityService = $orderAvailabilityService;
     }
 
     /**
@@ -909,6 +914,10 @@ class PaymentController extends Controller
             return $rebajaEncargoError;
         }
 
+        if ($availabilityError = $this->orderAvailabilityService->validateAvailablePieces($request->input('items', []))) {
+            return $availabilityError;
+        }
+
         /** @var User $vendor */
         $vendor = Auth::user();
 
@@ -1390,6 +1399,10 @@ class PaymentController extends Controller
 
         if ($rebajaEncargoError = $this->rejectRebajaAgotadoEncargoLines($request->input('items', []))) {
             return $rebajaEncargoError;
+        }
+
+        if ($availabilityError = $this->orderAvailabilityService->validateAvailablePieces($request->input('items', []))) {
+            return $availabilityError;
         }
 
         /** @var User $user */
@@ -4439,6 +4452,10 @@ class PaymentController extends Controller
 
         if ($rebajaEncargoError = $this->rejectRebajaAgotadoEncargoLines($request->input('items', []))) {
             return $rebajaEncargoError;
+        }
+
+        if ($availabilityError = $this->orderAvailabilityService->validateAvailablePieces($request->input('items', []))) {
+            return $availabilityError;
         }
 
         $bronzeShippingError = $this->rejectBronzeShippingWithoutPieces(
