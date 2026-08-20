@@ -8,12 +8,14 @@ import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { getIconPath } from '../utils/assetPaths';
 import CustomButton from '../components/CustomButton';
 import './CatalogPage.css';
+import './NuevosPage.css';
 import api from '../services/api';
 import { applyUserOffersToProducts } from '../api/userOffers';
 import { catalogService, publicCatalogService } from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
 import { shareCatalogPdf } from '../utils/shareProductUtils';
 import { isProductNewLikeNuevosPage } from '../utils/productNewRules';
+import { getTotalInventoryFromProduct } from '../utils/productUtils';
 import useUserStore from '../store/userStore';
 import { getEffectiveDescPromoPercent } from '../utils/catalogRebajaUtils';
 
@@ -224,49 +226,81 @@ const CatalogPage = ({ catalogId }) => {
       });;
     }
 
+    // ¿Está activo "Con existencia"? Si sí, la talla/color seleccionada también
+    // debe tener stock (inventario_d > 0) en algún detalle.
+    const soloConExistencia = currentFilters.availability === 'con-existencia';
+
+    // Function helper: ¿el detalle tiene stock?
+    const detalleConStock = (detalle) => {
+      const inv = Number(detalle?.inventario_d ?? 0);
+      return inv > 0.00001;
+    };
+
     // Filter by availability
     if (currentFilters.availability === 'con-existencia') {
-      filtered = filtered.filter(product => product.stock > 0);
+      filtered = filtered.filter(product => getTotalInventoryFromProduct(product) > 0);
     } else if (currentFilters.availability === 'sin-existencia') {
-      filtered = filtered.filter(product => product.stock === 0);
+      filtered = filtered.filter(product => getTotalInventoryFromProduct(product) <= 0.00001);
     }
 
     // Filter by colors
     if (currentFilters.colors && currentFilters.colors.length > 0) {
-      const beforeColors = filtered.length;
       filtered = filtered.filter(product => {
+        // Prioridad 1: usar detalles (fuente fina por talla/color)
+        if (product.detalles && product.detalles.length > 0) {
+          return currentFilters.colors.some(filterColor => {
+            const filterColorLower = filterColor.toLowerCase().trim();
+            return product.detalles.some(detalle => {
+              if (!detalle.nombreColor) return false;
+              const productColorLower = detalle.nombreColor.toLowerCase().trim();
+              const colorMatch = productColorLower === filterColorLower ||
+                productColorLower.includes(filterColorLower);
+              // Con "Con existencia": el detalle del color debe tener stock
+              if (soloConExistencia && !detalleConStock(detalle)) {
+                return false;
+              }
+              return colorMatch;
+            });
+          });
+        }
         if (!product.colors || product.colors.length === 0) {
           return false;
         }
-
         const matches = currentFilters.colors.some(filterColor => {
           const filterColorLower = filterColor.toLowerCase();
           return product.colors.some(productColor => {
             const productColorLower = productColor.toLowerCase();
-            const match = productColorLower === filterColorLower ||
+            return productColorLower === filterColorLower ||
               productColorLower.includes(filterColorLower) ||
               filterColorLower.includes(productColorLower);
-            if (match) {
-            }
-            return match;
           });
         });
-
-        if (!matches) {
-        }
-
         return matches;
-      });;
+      });
     }
 
     // Filter by sizes - EXACT MATCH ONLY (restrictive)
     if (currentFilters.sizes && currentFilters.sizes.length > 0) {
-      const beforeSizes = filtered.length;
       filtered = filtered.filter(product => {
+        // Prioridad 1: usar detalles (fuente fina por talla/color)
+        if (product.detalles && product.detalles.length > 0) {
+          return currentFilters.sizes.some(filterSize => {
+            const filterSizeLower = filterSize.toLowerCase().trim();
+            return product.detalles.some(detalle => {
+              if (!detalle.detalle) return false;
+              const productSizeLower = detalle.detalle.toString().toLowerCase().trim();
+              const sizeMatch = productSizeLower === filterSizeLower;
+              // Con "Con existencia": el detalle de la talla debe tener stock
+              if (soloConExistencia && !detalleConStock(detalle)) {
+                return false;
+              }
+              return sizeMatch;
+            });
+          });
+        }
         if (!product.sizes || product.sizes.length === 0) {
           return false;
         }
-
         // Use exact match only - no includes() to avoid "4" matching "14"
         const matches = currentFilters.sizes.some(filterSize => {
           const filterSizeLower = filterSize.toLowerCase().trim();
@@ -276,7 +310,6 @@ const CatalogPage = ({ catalogId }) => {
             return productSizeLower === filterSizeLower;
           });
         });
-
         return matches;
       });
     }
@@ -397,9 +430,11 @@ const CatalogPage = ({ catalogId }) => {
 
             // Cargar productos del catálogo desde la base de datos local
             // El backend ahora busca productos por catalogoId en la tabla productos
+            // Envía solo_existencia según el checkbox "Con existencia" (solo desde el catálogo)
             let localProducts = [];
             try {
-              const localResponse = await publicCatalogService.getProducts(catalogId);
+              const soloExistencia = filters.availability === 'con-existencia';
+              const localResponse = await publicCatalogService.getProducts(catalogId, soloExistencia);
               if (localResponse.data.success && localResponse.data.data.products) {
                 const backendProducts = localResponse.data.data.products;
 
@@ -594,7 +629,7 @@ const CatalogPage = ({ catalogId }) => {
     };
 
     loadProducts();
-  }, [category, filters.catalog, catalogId]);
+  }, [category, filters.catalog, filters.availability, catalogId]);
 
   // Memoized filtered and sorted products
   const processedProducts = useMemo(() => {
@@ -777,12 +812,12 @@ const CatalogPage = ({ catalogId }) => {
               </div>
             </div>
 
-            <div className="catalog-page__controls">
-              <div className="catalog-page__sort-section">
-                <div className="catalog-page__mobile-filter-controls">
+            <div className="nuevos-page__controls">
+              <div className="nuevos-page__sort-section">
+                <div className="nuevos-page__mobile-filter-controls">
                   <button
                     type="button"
-                    className="catalog-page__mobile-filter-btn"
+                    className="nuevos-page__mobile-filter-btn"
                     onClick={toggleFilterModal}
                     aria-label="Filtros"
                   >
@@ -790,12 +825,12 @@ const CatalogPage = ({ catalogId }) => {
                     <img src={getIconPath('Chevron Down.svg')} alt="" />
                   </button>
                 </div>
-                <label htmlFor="sort-select" className="catalog-page__sort-label">Ordenar por:</label>
+                <label htmlFor="sort-select" className="nuevos-page__sort-label">Ordenar por:</label>
                 <select
                   id="sort-select"
                   value={sortBy}
                   onChange={handleSortChange}
-                  className="catalog-page__sort-select"
+                  className="nuevos-page__sort-select"
                 >
                   <option value="más recientes">más recientes</option>
                   <option value="precio-menor">Precio: menor a mayor</option>
@@ -844,13 +879,13 @@ const CatalogPage = ({ catalogId }) => {
                   </button>
                 )}
               </div>
-              <div className="catalog-page__sort-section">
-                <label htmlFor="sort-select-desktop" className="catalog-page__sort-label">Ordenar por:</label>
+              <div className="nuevos-page__sort-section">
+                <label htmlFor="sort-select-desktop" className="nuevos-page__sort-label">Ordenar por:</label>
                 <select
                   id="sort-select-desktop"
                   value={sortBy}
                   onChange={handleSortChange}
-                  className="catalog-page__sort-select"
+                  className="nuevos-page__sort-select"
                 >
                   <option value="más recientes">más recientes</option>
                   <option value="precio-menor">Precio: menor a mayor</option>
@@ -862,10 +897,10 @@ const CatalogPage = ({ catalogId }) => {
             </div>
           </div>
 
-          {/* Main content */}
-          <div className="catalog-page__content">
+          {/* Main content - mismo layout que Nuevos */}
+          <div className="nuevos-page__content">
             {/* Filters sidebar - DESKTOP */}
-            <aside className="catalog-page__sidebar">
+            <aside className="nuevos-page__sidebar">
               <CatalogFilter
                 filters={filters}
                 onFilterChange={handleFilterChange}
@@ -880,20 +915,20 @@ const CatalogPage = ({ catalogId }) => {
             </aside>
 
             {/* Products grid */}
-            <main className="catalog-page__products-section">
+            <main className="nuevos-page__products-section">
               {loading ? (
-                <div className="catalog-page__loading">
-                  <div className="catalog-page__loading-spinner"></div>
+                <div className="nuevos-page__loading">
+                  <div className="nuevos-page__loading-spinner"></div>
                   <p>Cargando productos...</p>
                 </div>
               ) : filteredProducts.length === 0 ? (
-                <div className="catalog-page__no-results">
+                <div className="nuevos-page__no-results">
                   <h3>No se encontraron productos</h3>
                   <p>Intenta ajustar los filtros de búsqueda</p>
                 </div>
               ) : (
                 <>
-                  <div className="catalog-page__products-grid">
+                  <div className="nuevos-page__products-grid">
                     {infiniteScroll.displayedItems.map((product) => (
                       <CatalogProductCard
                         key={product.id}
@@ -914,10 +949,10 @@ const CatalogPage = ({ catalogId }) => {
             </main>
           </div>
 
-          {/* Mobile filter modal */}
+          {/* Mobile filter modal - mismo que Nuevos */}
           {isFilterModalOpen && (
-            <div className="catalog-page__filter-modal-overlay" onClick={toggleFilterModal}>
-              <div className="catalog-page__filter-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="nuevos-page__filter-modal-overlay" onClick={toggleFilterModal}>
+              <div className="nuevos-page__filter-modal" onClick={(e) => e.stopPropagation()}>
                 <CatalogFilter
                   filters={filters}
                   onFilterChange={handleFilterChange}

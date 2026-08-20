@@ -62,18 +62,13 @@ export function getTotalInventoryFromProduct(product) {
       const positive = effectiveDetailInventoryContribution(inv);
       sum += positive;
     }
-    if (hasInventarioD && sum > 0.00001) {
-      // Detalles reportan stock: usar esa suma (es la fuente fina).
+    // Si los detalles tienen campo `inventario_d`, son la fuente de verdad
+    // (aunque sumen 0 el producto está agotado).
+    if (hasInventarioD) {
       return sum;
     }
-    if (!hasInventarioD) {
-      // Detalles sin `inventario_d` (campo ausente): caer a la cabecera.
-      return headerInv;
-    }
-    // Detalles con `inventario_d` pero todo en 0: respetar el dato si la
-    // cabecera también está en 0; si la cabecera tiene stock, usar el mayor
-    // (posible desfase de sincronización).
-    return Math.max(sum, headerInv);
+    // Detalles sin `inventario_d` (campo ausente): caer a la cabecera.
+    return headerInv;
   }
 
   return headerInv;

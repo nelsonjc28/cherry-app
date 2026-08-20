@@ -556,10 +556,13 @@ export const publicCatalogService = {
   },
 
   // Obtener productos de un catálogo público específico
-  getProducts: async (id) => {
+  // Acepta soloExistencia para filtrar solo productos con stock (igual que /products/search)
+  getProducts: async (id, soloExistencia = false) => {
     try {
       const response = await api.get(`/catalogs/${id}/products`, {
-
+        params: {
+          solo_existencia: soloExistencia ? '1' : '0'
+        }
       });
       return response;
     } catch (error) {

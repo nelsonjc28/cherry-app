@@ -63,7 +63,10 @@ class ProductSearchController extends Controller
                       ->orWhereRaw('LOWER(productos.descripcion) LIKE ?', [$queryParam])
                       ->orWhereRaw('LOWER(productos.sku) LIKE ?', [$queryParam]);
                 });
-            Producto::applyFechaAgotadoVisibilityToProductosQuery($productIdsFromProductsQuery);
+            // Solo ocultar agotados antiguos (>30 días) cuando el usuario pide solo con existencia
+            if ($soloExistencia) {
+                Producto::applyFechaAgotadoVisibilityToProductosQuery($productIdsFromProductsQuery);
+            }
             $productIdsFromProducts = $productIdsFromProductsQuery->pluck('id')->toArray();
             
             // Obtener IDs de productos que coincidan en detalles (color, talla, SKU)
@@ -118,7 +121,10 @@ class ProductSearchController extends Controller
                     'productos.stock_received_count'
                 ])
                 ->whereIn('productos.id', $paginatedIds);
-            Producto::applyFechaAgotadoVisibilityToProductosQuery($productosQuery);
+            // Solo ocultar agotados antiguos (>30 días) cuando el usuario pide solo con existencia
+            if ($soloExistencia) {
+                Producto::applyFechaAgotadoVisibilityToProductosQuery($productosQuery);
+            }
             
             // Aplicar ordenamiento según el parámetro sort
             $this->applySorting($productosQuery, $sort);
@@ -225,19 +231,14 @@ class ProductSearchController extends Controller
                 $colors = $coloresPorProducto[$producto->id] ?? [];
                 $detalles = $detallesPorProducto[$producto->id] ?? [];
 
-                // Filtrar productos agotados y próximamente: solo mostrar disponibles.
-                // Acepta tanto 'in-stock' como 'new' (ambos tienen stock > 0 con el
-                // evaluador central). Excluye solo los que alguna vez recibieron stock
-                // y ahora están sin stock (out-of-stock "establecido") u son
-                // coming-soon (Próximamente) cuando ya recibieron stock.
+                // Filtrar productos por disponibilidad:
+                // - "solo_existencia = true"  → solo 'in-stock' y 'new' (con stock > 0).
+                // - "solo_existencia = false" → incluye agotados, próximamente y disponibles.
                 $inventoryTotal = Producto::computeTotalInventoryFromDetalleRows($detalles, (float) $producto->inventario);
                 $statusKind = Producto::evaluateInventoryStatusKindFromRow($producto, $inventoryTotal);
                 $stockReceivedCount = (int) ($producto->stock_received_count ?? 0);
                 $hasStockNow = in_array($statusKind, ['in-stock', 'new'], true);
                 if ($soloExistencia && ! $hasStockNow) {
-                    continue;
-                }
-                if (! $hasStockNow && $stockReceivedCount > 0) {
                     continue;
                 }
                 
@@ -272,6 +273,7 @@ class ProductSearchController extends Controller
                     'marca' => $producto->marca,
                     'inventario' => (float) $producto->inventario,
                     'stock_received_count' => (int) ($producto->stock_received_count ?? 0),
+                    'status' => $statusKind, // Estado: in-stock | new | coming-soon | out-of-stock
                     'detalles' => $detalles, // Detalles completos para el frontend
                     'rating' => $ratingData['rating'],
                     'ratingCount' => $ratingData['count'],
@@ -336,7 +338,10 @@ class ProductSearchController extends Controller
                     'productos.inventario',
                     'productos.stock_received_count'
                 ]);
-            Producto::applyFechaAgotadoVisibilityToProductosQuery($productosQuery);
+            // Solo ocultar agotados antiguos (>30 días) cuando el usuario pide solo con existencia
+            if ($soloExistencia) {
+                Producto::applyFechaAgotadoVisibilityToProductosQuery($productosQuery);
+            }
             
             // Aplicar ordenamiento según el parámetro sort
             $this->applySorting($productosQuery, $sort);
@@ -450,9 +455,6 @@ class ProductSearchController extends Controller
                 if ($soloExistencia && ! $hasStockNow) {
                     continue;
                 }
-                if (! $hasStockNow && $stockReceivedCount > 0) {
-                    continue;
-                }
 
                 $products[] = [
                     'id' => $producto->id,
@@ -477,6 +479,7 @@ class ProductSearchController extends Controller
                     'marca' => $producto->marca,
                     'inventario' => (float) $producto->inventario,
                     'stock_received_count' => $stockReceivedCount,
+                    'status' => $statusKind, // Estado: in-stock | new | coming-soon | out-of-stock
                     'detalles' => $detalles,
                     'rating' => $ratingData['rating'],
                     'ratingCount' => $ratingData['count'],

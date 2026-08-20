@@ -7,6 +7,7 @@ import { publicCatalogService } from '../services/api';
 import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
 import { isProductNewLikeNuevosPage } from '../utils/productNewRules';
+import { getTotalInventoryFromProduct } from '../utils/productUtils';
 import useUserStore from '../store/userStore';
 import { getEffectiveDescPromoPercent } from '../utils/catalogRebajaUtils';
 import './CatalogosPage.css';
@@ -291,8 +292,35 @@ const CatalogosPage = () => {
         }
       });
     }
+    // ¿Está activo "Con existencia"? Si sí, la talla/color seleccionada también
+    // debe tener stock (inventario_d > 0) en algún detalle.
+    const soloConExistencia = currentFilters.availability === 'con-existencia';
+
+    // Function helper: ¿el detalle tiene stock?
+    const detalleConStock = (detalle) => {
+      const inv = Number(detalle?.inventario_d ?? 0);
+      return inv > 0.00001;
+    };
+
     if (currentFilters.colors && currentFilters.colors.length > 0) {
       filtered = filtered.filter(product => {
+        // Prioridad 1: usar detalles (fuente fina por talla/color)
+        if (product.detalles && product.detalles.length > 0) {
+          return currentFilters.colors.some(filterColor => {
+            const filterColorLower = filterColor.toLowerCase().trim();
+            return product.detalles.some(detalle => {
+              if (!detalle.nombreColor) return false;
+              const productColorLower = detalle.nombreColor.toLowerCase().trim();
+              const colorMatch = productColorLower === filterColorLower ||
+                productColorLower.includes(filterColorLower);
+              // Con "Con existencia": el detalle del color debe tener stock
+              if (soloConExistencia && !detalleConStock(detalle)) {
+                return false;
+              }
+              return colorMatch;
+            });
+          });
+        }
         if (!product.colors || product.colors.length === 0) return false;
         return currentFilters.colors.some(filterColor => {
           const filterColorLower = filterColor.toLowerCase();
@@ -305,9 +333,44 @@ const CatalogosPage = () => {
         });
       });
     }
-    if (currentFilters.sizes && currentFilters.sizes.length > 0) {
-      filtered = filtered.filter(product => true);
+
+    // Filtrar por disponibilidad
+    if (currentFilters.availability === 'con-existencia') {
+      filtered = filtered.filter(product => {
+        return getTotalInventoryFromProduct(product) > 0;
+      });
     }
+
+    // Filtrar por tallas - EXACT MATCH (usar detalles como fuente fina)
+    if (currentFilters.sizes && currentFilters.sizes.length > 0) {
+      filtered = filtered.filter(product => {
+        // Prioridad 1: usar detalles (fuente fina por talla/color)
+        if (product.detalles && product.detalles.length > 0) {
+          return currentFilters.sizes.some(filterSize => {
+            const filterSizeLower = filterSize.toLowerCase().trim();
+            return product.detalles.some(detalle => {
+              if (!detalle.detalle) return false;
+              const productSizeLower = detalle.detalle.toString().toLowerCase().trim();
+              const sizeMatch = productSizeLower === filterSizeLower;
+              // Con "Con existencia": el detalle de la talla debe tener stock
+              if (soloConExistencia && !detalleConStock(detalle)) {
+                return false;
+              }
+              return sizeMatch;
+            });
+          });
+        }
+        if (!product.sizes || product.sizes.length === 0) return false;
+        return currentFilters.sizes.some(filterSize => {
+          const filterSizeLower = filterSize.toLowerCase().trim();
+          return product.sizes.some(productSize => {
+            const productSizeLower = productSize.toString().toLowerCase().trim();
+            return productSizeLower === filterSizeLower;
+          });
+        });
+      });
+    }
+
     // Filtro por código
     if (currentFilters.codigo && currentFilters.codigo.trim() !== '') {
       const codigoLower = currentFilters.codigo.trim().toLowerCase();
@@ -327,29 +390,6 @@ const CatalogosPage = () => {
           (product.dtu && product.dtu.toLowerCase().includes(dtuLower)) ||
           (product.DTU && product.DTU.toLowerCase().includes(dtuLower))
         );
-      });
-    }
-
-    // Filtrar por disponibilidad
-    if (currentFilters.availability === 'con-existencia') {
-      filtered = filtered.filter(product => {
-        const stock = parseFloat(product.inventario || product.stock || 0);
-        return stock > 0;
-      });
-    }
-
-    // Filtrar por tallas
-    if (currentFilters.sizes && currentFilters.sizes.length > 0) {
-      filtered = filtered.filter(product => {
-        if (!product.sizes || product.sizes.length === 0) return false;
-
-        return currentFilters.sizes.some(filterSize => {
-          const filterSizeLower = filterSize.toLowerCase().trim();
-          return product.sizes.some(productSize => {
-            const productSizeLower = productSize.toString().toLowerCase().trim();
-            return productSizeLower === filterSizeLower;
-          });
-        });
       });
     }
 

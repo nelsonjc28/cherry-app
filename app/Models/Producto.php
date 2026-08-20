@@ -282,11 +282,20 @@ class Producto extends Model
     {
         if ($detalleRows !== []) {
             $fromDetails = 0.0;
+            $hasInventarioD = false;
             foreach ($detalleRows as $detalle) {
                 $inv = is_array($detalle)
                     ? ($detalle['inventario_d'] ?? null)
                     : ($detalle->inventario_d ?? null);
+                if ($inv !== null && $inv !== '') {
+                    $hasInventarioD = true;
+                }
                 $fromDetails += self::effectiveDetailInventoryContribution($inv);
+            }
+            // Si los detalles tienen campo inventario_d, son la fuente de verdad
+            // (aunque sumen 0 el producto está agotado).
+            if ($hasInventarioD) {
+                return $fromDetails;
             }
             if ($fromDetails > 0.00001) {
                 return $fromDetails;

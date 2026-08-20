@@ -198,7 +198,8 @@ const BuscarPage = () => {
           const searchResponse = await api.get('/products/search', {
             params: { 
               q: query || '', // Si no hay query, el backend devolverá todos los productos
-              sort: filters.sortBy || 'más recientes' // Enviar parámetro de ordenamiento al backend
+              sort: filters.sortBy || 'más recientes', // Enviar parámetro de ordenamiento al backend
+              solo_existencia: filters.availability === 'con-existencia' // Solo con stock si el checkbox está marcado
               // Sin per_page para obtener todos los productos sin límite
             }
           });
@@ -346,11 +347,21 @@ const BuscarPage = () => {
     };
 
     loadProducts();
-  }, [query, colorFilter, skuFilter, filters.sortBy]);
+  }, [query, colorFilter, skuFilter, filters.sortBy, filters.availability]);
 
   // Filtrar productos basado en filtros adicionales
   useEffect(() => {
     let filtered = [...products];
+
+    // ¿Está activo "Con existencia"? Si sí, la talla/color seleccionada también
+    // debe tener stock (inventario_d > 0) en algún detalle.
+    const soloConExistencia = filters.availability === 'con-existencia';
+
+    // Function helper: ¿el detalle tiene stock?
+    const detalleConStock = (detalle) => {
+      const inv = Number(detalle?.inventario_d ?? 0);
+      return inv > 0.00001;
+    };
 
     // Filtrar por catálogo (soporta selección múltiple)
     // Si no hay catálogos seleccionados o está vacío, mostrar todos
@@ -434,12 +445,17 @@ const BuscarPage = () => {
             return product.detalles.some(detalle => {
               if (!detalle.nombreColor) return false;
               const productColorLower = detalle.nombreColor.toLowerCase();
-              return productColorLower === filterColorLower ||
+              const colorMatch = productColorLower === filterColorLower ||
                 productColorLower.includes(filterColorLower);
+              // Con "Con existencia": el detalle del color debe tener stock
+              if (soloConExistencia && !detalleConStock(detalle)) {
+                return false;
+              }
+              return colorMatch;
             });
           });
         }
-        // Fallback: usar colors array
+        // Fallback: usar colors array (sin poder verificar stock por talla)
         if (product.colors && product.colors.length > 0) {
           return filters.colors.some(filterColor => {
             const filterColorLower = filterColor.toLowerCase();
@@ -465,11 +481,16 @@ const BuscarPage = () => {
               if (!detalle.detalle) return false;
               const productSizeLower = detalle.detalle.toString().toLowerCase().trim();
               // Exact match only - no partial matching
-              return productSizeLower === filterSizeLower;
+              const sizeMatch = productSizeLower === filterSizeLower;
+              // Con "Con existencia": el detalle de la talla debe tener stock
+              if (soloConExistencia && !detalleConStock(detalle)) {
+                return false;
+              }
+              return sizeMatch;
             });
           });
         }
-        // Fallback: usar sizes array
+        // Fallback: usar sizes array (sin poder verificar stock por talla)
         if (product.sizes && product.sizes.length > 0) {
           return filters.sizes.some(filterSize => {
             const filterSizeLower = filterSize.toLowerCase().trim();
@@ -484,14 +505,8 @@ const BuscarPage = () => {
       });
     }
 
-    // Filtrar por disponibilidad (con existencia) - usar inventario del backend
-    if (filters.availability === 'con-existencia') {
-      filtered = filtered.filter(product => {
-        // Usar inventario del backend como fuente principal
-        const stock = parseFloat(product.inventario || product.stock || product.inventory || 0);
-        return stock > 0;
-      });
-    }
+    // La disponibilidad (con existencia / todos) ahora se filtra en el backend
+    // vía el parámetro `solo_existencia` en la llamada a /products/search.
 
     // Filtrar por código adicional - usar id_articulo del backend
     if (filters.codigo && filters.codigo.trim() !== '') {

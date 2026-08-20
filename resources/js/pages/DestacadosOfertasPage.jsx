@@ -12,6 +12,7 @@ import { publicCatalogService } from '../services/api';
 import api from '../services/api';
 import { getProductImageUrl } from '../utils/productImageUtils';
 import { isProductNewLikeNuevosPage, sortKeyFechaCompra } from '../utils/productNewRules';
+import { getTotalInventoryFromProduct } from '../utils/productUtils';
 import useUserStore from '../store/userStore';
 import { getEffectiveDescPromoPercent } from '../utils/catalogRebajaUtils';
 import './DestacadosOfertasPage.css';
@@ -382,6 +383,16 @@ const DestacadosOfertasPage = () => {
       });
     }
 
+    // ¿Está activo "Con existencia"? Si sí, la talla/color seleccionada también
+    // debe tener stock (inventario_d > 0) en algún detalle.
+    const soloConExistencia = filters.availability === 'con-existencia';
+
+    // Function helper: ¿el detalle tiene stock?
+    const detalleConStock = (detalle) => {
+      const inv = Number(detalle?.inventario_d ?? 0);
+      return inv > 0.00001;
+    };
+
     // Filtrar por colores
     if (filters.colors && filters.colors.length > 0) {
       filtered = filtered.filter(product => {
@@ -391,8 +402,13 @@ const DestacadosOfertasPage = () => {
             return product.detalles.some(detalle => {
               if (!detalle.nombreColor) return false;
               const productColorLower = detalle.nombreColor.toLowerCase();
-              return productColorLower === filterColorLower ||
+              const colorMatch = productColorLower === filterColorLower ||
                 productColorLower.includes(filterColorLower);
+              // Con "Con existencia": el detalle del color debe tener stock
+              if (soloConExistencia && !detalleConStock(detalle)) {
+                return false;
+              }
+              return colorMatch;
             });
           });
         }
@@ -420,7 +436,12 @@ const DestacadosOfertasPage = () => {
               if (!detalle.detalle) return false;
               const productSizeLower = detalle.detalle.toString().toLowerCase().trim();
               // Exact match only - no partial matching
-              return productSizeLower === filterSizeLower;
+              const sizeMatch = productSizeLower === filterSizeLower;
+              // Con "Con existencia": el detalle de la talla debe tener stock
+              if (soloConExistencia && !detalleConStock(detalle)) {
+                return false;
+              }
+              return sizeMatch;
             });
           });
         }
@@ -441,8 +462,7 @@ const DestacadosOfertasPage = () => {
     // Filtrar por disponibilidad
     if (filters.availability === 'con-existencia') {
       filtered = filtered.filter(product => {
-        const stock = parseFloat(product.inventario || product.stock || product.inventory || 0);
-        return stock > 0;
+        return getTotalInventoryFromProduct(product) > 0;
       });
     }
 

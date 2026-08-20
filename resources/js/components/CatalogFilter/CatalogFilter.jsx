@@ -270,12 +270,9 @@ const CatalogFilter = ({
   };
 
   // Available filter options - ya no se usa catalogOptions, se usa catalogs directamente
-
-
-  const availabilityOptions = [
-    { value: 'todos', label: 'Todos' },
-    { value: 'con-existencia', label: 'Con existencia' }
-  ];
+  // Ahora la disponibilidad se maneja con un checkbox "Con existencia":
+  // - desmarcado → availability = 'todos' (muestra todo, incluye agotados)
+  // - marcado    → availability = 'con-existencia' (solo con stock)
 
 
   // Get available sizes from props instead of static array
@@ -565,39 +562,6 @@ const CatalogFilter = ({
                 )}
               </div>
             )}
-            {/* Availability filter */}
-            <div className="filter-section expandable">
-              <button
-                className="filter-section-header"
-                onClick={() => toggleSection('availability')}
-              >
-                <h3 className="filter-title">Disponibilidad</h3>
-                <img src={getIconPath('Chevron Down.svg')} alt="Filter" className={`chevron ${expandedSections.availability ? 'expanded' : ''}`} />
-              </button>
-              {expandedSections.availability && (
-                <div className="filter-section-content">
-                  {isProximamente && (
-                    <p className="filter-info-note">
-                      En "Próximamente" los productos aún no tienen existencia.
-                    </p>
-                  )}
-                  <div className="availability-options">
-                    {availabilityOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => !isProximamente && handleFilterChange('availability', option.value)}
-                        className={`availability-btn ${filters.availability === option.value ? 'active' : ''} ${isProximamente && option.value === 'con-existencia' ? 'disabled' : ''}`}
-                        disabled={isProximamente && option.value === 'con-existencia'}
-                      >
-                        {option.label}
-                        {filters.availability === option.value && <span className="availability-check">✓</span>}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
 
             {/* <div className="accordion-filter-content"> */}
               {/* Sort by */}
@@ -722,6 +686,28 @@ const CatalogFilter = ({
                 </div>
               )}
             </div>
+
+            {/* Availability checkbox - sin desplegable, debajo de Precio */}
+            {isProximamente && (
+              <p className="filter-info-note">
+                En "Próximamente" los productos aún no tienen existencia.
+              </p>
+            )}
+            <label className={`availability-checkbox ${isProximamente ? 'disabled' : ''}`}>
+              <input
+                type="checkbox"
+                checked={filters.availability === 'con-existencia'}
+                disabled={isProximamente}
+                onChange={(e) => {
+                  if (isProximamente) return;
+                  handleFilterChange(
+                    'availability',
+                    e.target.checked ? 'con-existencia' : 'todos'
+                  );
+                }}
+              />
+              <span>Con existencia</span>
+            </label>
 
             {/* Action buttons */}
             <div className="filter-actions">

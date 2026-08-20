@@ -344,47 +344,33 @@
 }
 
 /* Availability filter */
-.availability-options {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.availability-btn {
+.availability-checkbox {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  background: white;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
   font-size: 0.85rem;
   color: #373737;
   cursor: pointer;
-  transition: all 0.2s ease;
   font-weight: 500;
+  user-select: none;
 }
 
-.availability-btn:hover:not(.disabled) {
-  background: #f8f9fa;
-  border-color: #bbb;
+.availability-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary, #EA2630);
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
-.availability-btn.active {
-  background: var(--color-primary, #EA2630);
-  color: white;
-  border-color: var(--color-primary, #EA2630);
-}
-
-.availability-btn.disabled {
+.availability-checkbox.disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
 
-.availability-check {
-  font-size: 0.8rem;
-  font-weight: bold;
+.availability-checkbox.disabled input[type="checkbox"] {
+  cursor: not-allowed;
 }
 
 .filter-info-note {

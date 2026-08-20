@@ -15,6 +15,7 @@ import { getProductImageUrl } from '../utils/productImageUtils';
 import { applyUserOffersToProducts } from '../api/userOffers';
 import { isProductNewLikeNuevosPage } from '../utils/productNewRules';
 import { evaluateProductStatus } from '../utils/productStatusEvaluator';
+import { getTotalInventoryFromProduct } from '../utils/productUtils';
 import useUserStore from '../store/userStore';
 import { getEffectiveDescPromoPercent } from '../utils/catalogRebajaUtils';
 
@@ -234,48 +235,93 @@ const CategoryPage = ({ categorySlug }) => {
       });
     }
 
-    // Filter by availability
+    // Filter by availability - usar getTotalInventoryFromProduct (los detalles/tallas
+    // son la fuente de verdad del stock, no solo la cabecera)
     if (currentFilters.availability === 'con-existencia') {
-      filtered = filtered.filter(product => product.stock > 0);
+      filtered = filtered.filter(product => getTotalInventoryFromProduct(product) > 0);
     } else if (currentFilters.availability === 'sin-existencia') {
-      filtered = filtered.filter(product => product.stock === 0);
+      filtered = filtered.filter(product => getTotalInventoryFromProduct(product) <= 0.00001);
     }
 
-    // Filter by colors
+    // ¿Está activo "Con existencia"? Si sí, la talla/color seleccionada también
+    // debe tener stock (inventario_d > 0) en algún detalle.
+    const soloConExistencia = currentFilters.availability === 'con-existencia';
+
+    // Function helper: ¿el detalle tiene stock?
+    const detalleConStock = (detalle) => {
+      const inv = Number(detalle?.inventario_d ?? 0);
+      return inv > 0.00001;
+    };
+
+    // Filter by colors - usar detalles como fuente fina (alineado con BuscarPage)
     if (currentFilters.colors && currentFilters.colors.length > 0) {
       filtered = filtered.filter(product => {
-        if (!product.colors || product.colors.length === 0) {
-          return false;
-        }
-        
-        return currentFilters.colors.some(filterColor => {
-          const filterColorLower = filterColor.toLowerCase();
-          return product.colors.some(productColor => {
-            const productColorLower = productColor.toLowerCase();
-            return productColorLower === filterColorLower || 
-                   productColorLower.includes(filterColorLower) ||
-                   filterColorLower.includes(productColorLower);
+        // Prioridad 1: usar detalles del backend (fuente fina por talla/color)
+        if (product.detalles && product.detalles.length > 0) {
+          return currentFilters.colors.some(filterColor => {
+            const filterColorLower = filterColor.toLowerCase().trim();
+            return product.detalles.some(detalle => {
+              if (!detalle.nombreColor) return false;
+              const productColorLower = detalle.nombreColor.toLowerCase().trim();
+              // Match exacto o que el color del producto contenga el filtrado
+              // (ej. filtro "azul" matchea producto "Azul marino")
+              const colorMatch = productColorLower === filterColorLower ||
+                                productColorLower.includes(filterColorLower);
+              // Con "Con existencia": el detalle del color debe tener stock
+              if (soloConExistencia && !detalleConStock(detalle)) {
+                return false;
+              }
+              return colorMatch;
+            });
           });
-        });
+        }
+        // Fallback: usar colors array (sin poder verificar stock por talla)
+        if (product.colors && product.colors.length > 0) {
+          return currentFilters.colors.some(filterColor => {
+            const filterColorLower = filterColor.toLowerCase().trim();
+            return product.colors.some(productColor => {
+              const productColorLower = productColor.toLowerCase().trim();
+              return productColorLower === filterColorLower ||
+                     productColorLower.includes(filterColorLower);
+            });
+          });
+        }
+        return false;
       });
     }
 
-    // Filter by sizes
+    // Filter by sizes - EXACT MATCH ONLY (alineado con BuscarPage)
     if (currentFilters.sizes && currentFilters.sizes.length > 0) {
       filtered = filtered.filter(product => {
-        if (!product.sizes || product.sizes.length === 0) {
-          return false;
-        }
-        
-        return currentFilters.sizes.some(filterSize => {
-          const filterSizeLower = filterSize.toLowerCase();
-          return product.sizes.some(productSize => {
-            const productSizeLower = productSize.toLowerCase();
-            return productSizeLower === filterSizeLower || 
-                   productSizeLower.includes(filterSizeLower) ||
-                   filterSizeLower.includes(productSizeLower);
+        // Prioridad 1: usar detalles del backend (fuente fina por talla/color)
+        if (product.detalles && product.detalles.length > 0) {
+          return currentFilters.sizes.some(filterSize => {
+            const filterSizeLower = filterSize.toLowerCase().trim();
+            return product.detalles.some(detalle => {
+              if (!detalle.detalle) return false;
+              const productSizeLower = detalle.detalle.toString().toLowerCase().trim();
+              // Exact match only - no partial matching (evita que "4" matchee "14", "24"...)
+              const sizeMatch = productSizeLower === filterSizeLower;
+              // Con "Con existencia": el detalle de la talla debe tener stock
+              if (soloConExistencia && !detalleConStock(detalle)) {
+                return false;
+              }
+              return sizeMatch;
+            });
           });
-        });
+        }
+        // Fallback: usar sizes array (sin poder verificar stock por talla)
+        if (product.sizes && product.sizes.length > 0) {
+          return currentFilters.sizes.some(filterSize => {
+            const filterSizeLower = filterSize.toLowerCase().trim();
+            return product.sizes.some(productSize => {
+              const productSizeLower = productSize.toString().toLowerCase().trim();
+              // Exact match only
+              return productSizeLower === filterSizeLower;
+            });
+          });
+        }
+        return false;
       });
     }
 
@@ -645,7 +691,7 @@ const CategoryPage = ({ categorySlug }) => {
       }
       setFilteredProducts(filtered);
     }
-  }, [filters.category, filters.department, filters.sector, filters.sizes, filters.colors, filters.priceRange, sortBy, allProducts, colorFilter, dtuFilter]);
+  }, [filters.category, filters.department, filters.sector, filters.sizes, filters.colors, filters.priceRange, filters.availability, filters.catalog, filters.catalogs, sortBy, allProducts, colorFilter, dtuFilter]);
 
   // Handle filter modal
   const toggleFilterModal = () => {
