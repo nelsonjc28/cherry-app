@@ -139,4 +139,27 @@ class Notification extends Model
             'related_order_id' => null
         ]);
     }
+
+    /**
+     * Create an admin notification when an order fails to send to the external API.
+     * The notification links to the order detail via related_order_id.
+     */
+    public static function createExternalApiFailure($order, string $error, string $origen = 'sistema')
+    {
+        $orderId = is_object($order) ? $order->id : $order;
+
+        return self::create([
+            'type' => 'external_api_sync_failed',
+            'title' => 'Fallo envío a API externa',
+            'message' => "La orden #{$orderId} no se pudo enviar a la API externa: {$error}",
+            'data' => [
+                'order_id' => $orderId,
+                'origen' => $origen,
+                'error' => $error,
+                'order_number' => str_pad((string) $orderId, 8, '0', STR_PAD_LEFT)
+            ],
+            'target_user_role' => 'admin',
+            'related_order_id' => $orderId
+        ]);
+    }
 }

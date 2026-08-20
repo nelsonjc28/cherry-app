@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Models\Producto;
 use App\Models\Notification;
 use App\Models\VendorBuyer;
+use App\Models\Detalle;
 use App\Services\ExternalSalesService;
 use App\Services\CreditAvailabilityService;
 use App\Services\OrderCreditSplitService;
@@ -155,6 +156,13 @@ class PaymentController extends Controller
         $lowerName = strtolower((string) $name);
         $isShippingLine = $pid === '0' || str_contains($lowerName, 'envío') || str_contains($lowerName, 'envio') || str_contains($lowerName, 'ajuste');
         $detalleId = $isShippingLine ? null : OrderItemDetalleResolver::resolve($item);
+
+        // Reducir stock local del detalle (talla/color) al registrar el pedido.
+        // Piso 0; no bloquea el pedido si el detalle no existe. Se revierte con el
+        // rollback de la transacción si la orden falla.
+        if ($detalleId !== null && $qty > 0) {
+            Detalle::decrementStock((int) $detalleId, (int) $qty);
+        }
 
         $productDetails = null;
         if (! $isShippingLine) {

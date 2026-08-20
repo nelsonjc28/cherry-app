@@ -8,6 +8,7 @@ use App\Models\OrderItem;
 use App\Models\Detalle;
 use App\Models\Producto;
 use App\Models\User;
+use App\Models\Notification;
 use App\Support\CatalogOfferDate;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -22,7 +23,24 @@ class ExternalSalesService
      *
      * @return array{ok: bool, kind: string, message: string, no_pedido: ?string, raw: ?array}
      */
+    /**
+     * Enviar información de venta al endpoint externo.
+     * Notifica al admin si el envío falla por cualquier motivo (API o datos).
+     */
     public function sendSaleToExternalApi(Order $order, string $origen = 'sistema'): array
+    {
+        try {
+            return $this->sendSaleToExternalApiInternal($order, $origen);
+        } catch (\Exception $e) {
+            Notification::createExternalApiFailure($order, $e->getMessage(), $origen);
+            throw $e;
+        }
+    }
+
+    /**
+     * Implementación real del envío (el wrapper público notifica cualquier fallo).
+     */
+    private function sendSaleToExternalApiInternal(Order $order, string $origen = 'sistema'): array
     {
         if (! config('cherry.external_sales_api_enabled', true)) {
             Log::info('API externa de ventas deshabilitada (entorno de pruebas). Pedido no enviado.', [
