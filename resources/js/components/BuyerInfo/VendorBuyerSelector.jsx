@@ -84,7 +84,7 @@ const VendorBuyerSelector = ({ selectedBuyer, onBuyerChange, disabled = false, c
 
   return (
     <div className={`cart-order-summary__section ${className}`} ref={wrapperRef}>
-      <div className="cart-order-summary__section-title">Datos del comprador</div>
+      <div className="cart-order-summary__section-title vendor-buyer__section-title">Seleccione un cliente</div>
       <div className="cart-order-summary__section-content">
         {loading ? (
           <div className="vendor-buyer__loading">Cargando clientes...</div>
@@ -111,9 +111,6 @@ const VendorBuyerSelector = ({ selectedBuyer, onBuyerChange, disabled = false, c
                 <div className="vendor-buyer__trigger-selected">
                   <span className="vendor-buyer__trigger-name">
                     {selectedBuyer.first_name} {selectedBuyer.last_name}
-                  </span>
-                  <span className={`vendor-buyer__trigger-badge vendor-buyer__trigger-badge--${selectedBuyer.seller_category}`}>
-                    {selectedBuyer.seller_category === 'oro' ? 'Oro' : 'Diamante'}
                   </span>
                 </div>
               ) : (
@@ -159,9 +156,6 @@ const VendorBuyerSelector = ({ selectedBuyer, onBuyerChange, disabled = false, c
                             {(b.email || b.phone) && <span>{b.email || b.phone}</span>}
                           </div>
                         </div>
-                        <span className={`vendor-buyer__option-badge vendor-buyer__option-badge--${b.seller_category}`}>
-                          {b.seller_category === 'oro' ? 'Oro' : 'Diamante'}
-                        </span>
                       </div>
                     ))
                   )}

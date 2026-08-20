@@ -1640,7 +1640,8 @@ const CartDetailsPage = () => {
         <div className="cart-details__content">
           <div className="cart-details__products-col">
             {/* Alertas de descuento y envío - Mostrar por encima de los productos */}
-            {allAlerts.length > 0 && (
+            {/* Ocultas para vendedores para simplificar el proceso de pedido */}
+            {!isVendor && allAlerts.length > 0 && (
               <div className="cart-details__alerts">
                 {allAlerts.map((alert, index) => (
                   <div 
@@ -1687,12 +1688,15 @@ const CartDetailsPage = () => {
               deliveryType={deliveryType}
               isFreeShipping={isFreeShippingApplied}
             />
-            {/* Datos del comprador: para vendor muestra selector, para clientes normales muestra sus datos */}
-            <BuyerInfo
-              className="cart-details__buyer-info"
-              selectedBuyer={selectedBuyer}
-              onBuyerChange={handleBuyerChange}
-            />
+            {/* Datos del comprador: para clientes normales muestra sus datos.
+                Para vendedores el selector móvil ya se muestra arriba (evita duplicado en móvil) */}
+            {!isVendor && (
+              <BuyerInfo
+                className="cart-details__buyer-info"
+                selectedBuyer={selectedBuyer}
+                onBuyerChange={handleBuyerChange}
+              />
+            )}
             
             {/* Opciones de entrega */}
             <div className="cart-details__delivery-options">
