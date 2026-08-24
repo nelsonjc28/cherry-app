@@ -112,6 +112,32 @@
   left: 150px;
 }
 
+/* Quick benefits row */
+.register-quick-benefits {
+  background-color: #fff;
+  padding: 24px 0;
+}
+
+.register-quick-benefits__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  align-items: center;
+  justify-items: center;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.register-quick-benefits__icon {
+  width: 100%;
+  height: auto;
+  max-height: 140px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+
 /* How It Works Section */
 .how-it-works {
   background-color: #fff;
@@ -123,7 +149,7 @@
   text-align: center;
   font-size: 25px;
   font-weight: 400;
-  color: #373737;
+  color: #EA2630;
   margin-bottom: 20px;
 }
 
@@ -199,6 +225,88 @@
   line-height: 1.5;
   max-width: 280px;
   margin: 0;
+}
+
+/* New season section */
+.register-season {
+  background-color: #fff;
+}
+
+.register-season__container {
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: 32px 16px;
+}
+
+.register-season__title {
+  margin: 0 0 16px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #EA2630;
+  line-height: 1.3;
+}
+
+.register-season__catalog-link {
+  display: block;
+}
+
+.register-season__catalog-image {
+  width: 100%;
+  height: auto;
+  max-height: 500px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  object-fit: cover;
+  display: block;
+}
+
+.register-season__subtitle {
+  margin: 24px 0 16px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1.3;
+}
+
+.register-season__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.register-season__card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+
+.register-season__card-image {
+  width: 100%;
+  height: 420px;
+  aspect-ratio: 9 / 16;
+  object-fit: cover;
+  object-position: top center;
+  display: block;
+}
+
+.register-season__card-label {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 16px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #1f2937;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.25;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 }
 
 /* Register Includes Section */
@@ -428,7 +536,7 @@
 
 .register-form-header {
   text-align: start;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0;
 }
 
 .register-logo {
@@ -447,6 +555,7 @@
   font-size: 25px;
   color: #373737;
   font-weight: 400;
+  margin: 0;
 }
 
 .white-divider {
@@ -457,12 +566,14 @@
 .register-form {
   display: flex;
   flex-direction: column;
-  margin-top: 20px;
+  margin-top: 16px;
+  gap: 12px;
 }
 
 .register-form-row {
   display: flex;
   flex-direction: column;
+  gap: 12px;
 }
 
 .register-form-group {
@@ -470,21 +581,18 @@
   flex-direction: column;
 }
 
-.register-form-group:nth-child(2) {
-  margin-top: 10px;
-}
-
 .register-form-group label {
   color: #373737;
   font-size: 16px;
   font-weight: 400;
+  margin-bottom: 6px;
 }
 
 .register-form-group input,
 .register-form-group select {
   padding: 12px 16px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   background-color: #fff;
   font-size: 16px;
   font-weight: 400;
@@ -512,7 +620,7 @@
   width: 100%;
   padding: 12px 45px 12px 16px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   background-color: #fff;
   font-size: 16px;
   font-weight: 400;
@@ -597,8 +705,7 @@
   font-size: 14px;
   font-weight: 400;
   line-height: 1.4;
-  margin-top: -10px;
-  margin-bottom: 10px;
+  margin: 0;
 }
 
 .register-checkbox-group {
@@ -670,6 +777,18 @@
 }
 
 @media (min-width: 768px) {
+  .register-quick-benefits {
+    padding: 40px 0;
+  }
+
+  .register-quick-benefits__grid {
+    gap: 24px;
+  }
+
+  .register-quick-benefits__icon {
+    max-height: 160px;
+  }
+
   .register-banner {
     flex-direction: row-reverse;
     height: 356px;
@@ -785,6 +904,35 @@
   .how-it-works__step-description {
     font-size: 16px;
     max-width: 300px;
+  }
+
+  .register-season__container {
+    max-width: 42rem;
+    padding: 32px 16px;
+  }
+
+  .register-season__title {
+    font-size: 30px;
+  }
+
+  .register-season__catalog-image {
+    aspect-ratio: 4 / 3;
+  }
+
+  .register-season__subtitle {
+    font-size: 24px;
+  }
+
+  .register-season__grid {
+    gap: 24px;
+  }
+
+  .register-season__card-image {
+    height: 500px;
+  }
+
+  .register-season__card-label {
+    font-size: 14px;
   }
 
   .register-includes {
@@ -930,6 +1078,10 @@
     font-size: 1.4rem;
   }
 
+  .register-form {
+    gap: 16px;
+  }
+
   .register-form-row {
     flex-direction: row;
     gap: 1rem;
@@ -937,10 +1089,6 @@
 
   .register-form-group {
     flex: 1;
-  }
-
-  .register-form-group:nth-child(2) {
-    margin-top: 0;
   }
 
   .register-date-selectors {
@@ -952,8 +1100,13 @@
     align-items: center;
   }
 
-  .register-button-container>* {
-    width: 200px;
+  .register-button-container > button {
+    width: auto;
+    min-width: 200px;
+  }
+
+  .register-button-container .register-terms-text {
+    width: 100%;
   }
 }
 

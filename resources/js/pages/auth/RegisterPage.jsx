@@ -2,11 +2,11 @@ import { Helmet } from 'react-helmet-async';
 import { useState, useRef } from "react";
 import { useNavigate } from 'react-router-dom';
 import "./RegisterPage.css";
-import { getIconPath, getImagePath, getHeroIconPath } from '../../utils/assetPaths';
-import { Link } from 'react-router-dom';
+import { getIconPath } from '../../utils/assetPaths';
 import CustomButton from '../../components/CustomButton';
 import useUserStore from '../../store/userStore';
 import TestimonialsSlider from '../../components/TestimonialsSlider/TestimonialsSlider';
+import AffiliateFaq from '../../components/AffiliateFaq/AffiliateFaq';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -375,6 +375,31 @@ const RegisterPage = () => {
         </div>
       </section>
 
+      <section className="register-quick-benefits" aria-label="Beneficios de afiliación">
+        <div className="register-quick-benefits__grid">
+          <img
+            src="/icons/benefits/icono-registro.png"
+            alt="Registro 100% gratuito"
+            className="register-quick-benefits__icon"
+          />
+          <img
+            src="/icons/benefits/icono-envio.png"
+            alt="Envíos a toda la República"
+            className="register-quick-benefits__icon"
+          />
+          <img
+            src="/icons/benefits/icono-precios.png"
+            alt="Precios de mayoreo"
+            className="register-quick-benefits__icon"
+          />
+          <img
+            src="/icons/benefits/icono-catalogos.png"
+            alt="Catálogo digital"
+            className="register-quick-benefits__icon"
+          />
+        </div>
+      </section>
+
       {/* Sección ¿Cómo funciona? */}
       <section className="how-it-works">
         <div className="how-it-works__container">
@@ -386,9 +411,9 @@ const RegisterPage = () => {
                 <span>1</span>
               </div>
               <div className="how-it-works__title-wrapper">
-                <div className="how-it-works__icon">
+                {/* <div className="how-it-works__icon">
                   <img src={getIconPath('Share Alt.svg')} alt="Compartir" />
-                </div>
+                </div> */}
                 <h3 className="how-it-works__step-title">Regístrate y comparte</h3>
               </div>
               <p className="how-it-works__step-description">
@@ -401,9 +426,9 @@ const RegisterPage = () => {
                 <span>2</span>
               </div>
               <div className="how-it-works__title-wrapper">
-                <div className="how-it-works__icon">
+                {/* <div className="how-it-works__icon">
                   <img src={getIconPath('Shopping Cart.svg')} alt="Carrito de compras" />
-                </div>
+                </div> */}
                 <h3 className="how-it-works__step-title">Haz tu pedido</h3>
               </div>
               <p className="how-it-works__step-description">
@@ -416,15 +441,52 @@ const RegisterPage = () => {
                 <span>3</span>
               </div>
               <div className="how-it-works__title-wrapper">
-                <div className="how-it-works__icon">
+                {/* <div className="how-it-works__icon">
                   <img src={getIconPath('Clock.svg')} alt="Reloj" />
-                </div>
+                </div> */}
                 <h3 className="how-it-works__step-title">Recibe y gana</h3>
               </div>
               <p className="how-it-works__step-description">
                 Entrega tu mercancía y empieza a generar tus propias ganancias.
               </p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="register-season" aria-labelledby="register-season-heading">
+        <div className="register-season__container">
+          <h2 id="register-season-heading" className="register-season__title">
+            Conoce la nueva Temporada
+          </h2>
+
+          <a href="/catalogos" className="register-season__catalog-link">
+            <img
+              src="/icons/benefits/imagen-catalogo.png"
+              alt="Catálogo Temporada"
+              className="register-season__catalog-image"
+            />
+          </a>
+
+          <h3 className="register-season__subtitle">Tendencias</h3>
+
+          <div className="register-season__grid">
+            <article className="register-season__card">
+              <img
+                src="/icons/benefits/catalogo-ejemplo1.jpeg"
+                alt="Los favoritos"
+                className="register-season__card-image"
+              />
+              <span className="register-season__card-label">Los favoritos</span>
+            </article>
+            <article className="register-season__card">
+              <img
+                src="/icons/benefits/catalogo-ejemplo2.jpg"
+                alt="Primavera - Verano"
+                className="register-season__card-image"
+              />
+              <span className="register-season__card-label">Primavera - Verano</span>
+            </article>
           </div>
         </div>
       </section>
@@ -532,22 +594,13 @@ const RegisterPage = () => {
       <div className="register-page-form">
               <div className="register-form-container">
                 <div className="register-form-header">
-                  <Link to="/">
-                    <img src={getImagePath('logo.svg')} alt="Cherry" />
-                  </Link>
                   {currentStep === 1 ? (
-                    <>
-                      <h2 className="register-subtitle">Afíliate a nosotros</h2>
-                      <div className="white-divider"></div>
-                    </>
+                    <h2 className="register-subtitle">Afíliate</h2>
                   ) : (
-                    <>
-                      <div style={{ marginTop: '20px' }}>
-                        <h3 style={{ color: 'white', marginBottom: '10px' }}>Hola! {formData.firstName}</h3>
-                        <h4 style={{ color: 'white', marginBottom: '20px' }}>Paso 2. Completa tus datos</h4>
-                      </div>
-                      <div className="white-divider"></div>
-                    </>
+                    <div style={{ marginTop: '20px' }}>
+                      <h3 style={{ color: 'white', marginBottom: '10px' }}>Hola! {formData.firstName}</h3>
+                      <h4 style={{ color: 'white', marginBottom: '20px' }}>Paso 2. Completa tus datos</h4>
+                    </div>
                   )}
                 </div>
 
@@ -556,9 +609,10 @@ const RegisterPage = () => {
                 <form onSubmit={handleSubmit} className="register-form">
                   <div className="register-form-row">
                     <div className="register-form-group">
-                      <label>Nombre</label>
+                      <label htmlFor="firstName">Nombre</label>
                       <input
-                  ref={firstNameInputRef}
+                        ref={firstNameInputRef}
+                        id="firstName"
                         type="text"
                         name="firstName"
                         placeholder="Tu nombre"
@@ -569,8 +623,9 @@ const RegisterPage = () => {
                       {formErrors.firstName && <span className="error-message">{formErrors.firstName}</span>}
                     </div>
                     <div className="register-form-group">
-                      <label>Apellidos</label>
+                      <label htmlFor="lastName">Apellidos</label>
                       <input
+                        id="lastName"
                         type="text"
                         name="lastName"
                         placeholder="Tus apellidos"
@@ -584,8 +639,9 @@ const RegisterPage = () => {
 
                   <div className="register-form-row">
                     <div className="register-form-group">
-                      <label>Teléfono</label>
+                      <label htmlFor="phone">Teléfono</label>
                       <input
+                        id="phone"
                         type="tel"
                         name="phone"
                         placeholder="10 dígitos"
@@ -594,21 +650,22 @@ const RegisterPage = () => {
                         required
                         pattern="[0-9]{10}"
                         maxLength="10"
-                  onInput={(e) => {
-                    e.target.value = e.target.value.replace(/[^0-9]/g, '');
-                    if (e.target.value.length > 10) {
-                      e.target.value = e.target.value.slice(0, 10);
-                    }
-                  }}
+                        onInput={(e) => {
+                          e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                          if (e.target.value.length > 10) {
+                            e.target.value = e.target.value.slice(0, 10);
+                          }
+                        }}
                       />
                       {formErrors.phone && <span className="error-message">{formErrors.phone}</span>}
                     </div>
                     <div className="register-form-group">
-                      <label>Correo electrónico</label>
+                      <label htmlFor="email">Correo electrónico</label>
                       <input
+                        id="email"
                         type="email"
                         name="email"
-                        placeholder="tu@email.com"
+                        placeholder="tu @email.com"
                         value={formData.email}
                         onChange={handleInputChange}
                         required
@@ -617,14 +674,12 @@ const RegisterPage = () => {
                     </div>
                   </div>
 
-            <div className="register-section-title register-section-title-hide-mobile" style={{ marginTop: '20px' }}>Contraseña</div>
-                  <div className="white-divider"></div>
-
                   <div className="register-form-row">
                     <div className="register-form-group">
-                      <label>Contraseña</label>
+                      <label htmlFor="password">Contraseña</label>
                       <div className="login-input-container">
                         <input
+                          id="password"
                           type={showPassword ? "text" : "password"}
                           name="password"
                           placeholder="Mínimo 8 caracteres"
@@ -637,6 +692,7 @@ const RegisterPage = () => {
                           type="button"
                           className={`login-password-toggle ${showPassword ? 'active' : ''}`}
                           onClick={togglePasswordVisibility}
+                          aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                         >
                           <img
                             src={getIconPath('Eye.svg')}
@@ -647,9 +703,10 @@ const RegisterPage = () => {
                       {formErrors.password && <span className="error-message">{formErrors.password}</span>}
                     </div>
                     <div className="register-form-group">
-                      <label>Confirmar contraseña</label>
+                      <label htmlFor="confirmPassword">Confirmar contraseña</label>
                       <div className="login-input-container">
                         <input
+                          id="confirmPassword"
                           type={showConfirmPassword ? "text" : "password"}
                           name="confirmPassword"
                           placeholder="Repite tu contraseña"
@@ -662,6 +719,7 @@ const RegisterPage = () => {
                           type="button"
                           className={`login-password-toggle ${showConfirmPassword ? 'active' : ''}`}
                           onClick={toggleConfirmPasswordVisibility}
+                          aria-label={showConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                         >
                           <img
                             src={getIconPath('Eye.svg')}
@@ -674,7 +732,7 @@ const RegisterPage = () => {
                   </div>
 
                   <p className="register-password-hint">
-                    Tu contraseña debe tener mínimo 8 caracteres y al menos una letra y un número
+                    Tu contraseña debe tener un mínimo de 8 caracteres y al menos una letra y un número
                   </p>
 
                   <div className="register-button-container">
@@ -865,6 +923,8 @@ const RegisterPage = () => {
                 {/* )} */}
         </div>
       </div>
+
+      <AffiliateFaq />
     </>
   );
 };
