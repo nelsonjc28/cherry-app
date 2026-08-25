@@ -199,7 +199,6 @@ class AdminCatalogController extends Controller
      */
     public function updateOrder(Request $request)
     {
-        /* dd($request->all()); */
         try {
             // Permitir arreglo vacío (limpia todas las posiciones)
             $payload = $request->input('catalogs', []);
@@ -699,6 +698,7 @@ class AdminCatalogController extends Controller
      */
     public function getCatalogProducts($id)
     {
+
         try {
             $catalog = Catalog::findOrFail($id);
 
@@ -806,8 +806,51 @@ class AdminCatalogController extends Controller
                     'productos.inventario',
                     'productos.sku',
                     'productos.stock_received_count'
-                ])
-                ->where('productos.catalogoId', $catalogCode);
+                ]);
+
+            // Catálogo FOLEY'S: detección ESTRICTA por nombre (name === 'FOLEY´S'),
+            // normalizando minúsculas y el apóstrofo para no depender del carácter.
+            // Solo cuando el catálogo es FOLEY'S se aplica el filtro top-2 del 4º dígito.
+            $catalogName = mb_strtolower(trim((string) ($catalog->name ?? '')));
+            $catalogNameNormalized = str_replace(["'", "´", "`"], '', $catalogName);
+            $isFoleysCatalog = $catalogNameNormalized === 'foleys';
+
+            if ($isFoleysCatalog) {
+                // 1) IDs de todos los productos FOLEYS
+                $foleysIds = DB::table('productos')
+                    ->where(function ($q) {
+                        $q->where('productos.marca', 'LIKE', 'FOLEY%')
+                            ->orWhere('productos.marca', 'LIKE', 'FOLEYS%');
+                    })
+                    ->pluck('id');
+
+                // 2) 4º dígito (índice 3), solo numéricos
+                $digits = $foleysIds
+                    ->map(fn ($id) => substr((string) $id, 3, 1))
+                    ->filter(fn ($d) => $d !== '' && ctype_digit($d))
+                    ->map(fn ($d) => (int) $d);
+
+                // 3) Los 2 dígitos más altos (dinámico)
+                $top2 = $digits->unique()->sortDesc()->take(2)->values();
+
+                // 4) Filtrar POR MARCA FOLEYS + cuarto dígito en el top-2.
+                // Ambos filtros combinados para NO traer productos de otras marcas.
+                $productosQuery->where(function ($q) use ($top2) {
+                    $q->where(function ($marca) {
+                        $marca->where('productos.marca', 'LIKE', 'FOLEY%')
+                            ->orWhere('productos.marca', 'LIKE', 'FOLEYS%');
+                    });
+                    $q->where(function ($digito) use ($top2) {
+                        foreach ($top2 as $d) {
+                            $digito->orWhere(DB::raw('SUBSTRING(productos.id, 4, 1)'), '=', (string) $d);
+                        }
+                    });
+                });
+
+            } else {
+                $productosQuery->where('productos.catalogoId', $catalogCode);
+            }
+
             // Solo ocultar agotados antiguos (>30 días) cuando el usuario pide solo con existencia
             if ($soloExistencia) {
                 Producto::applyFechaAgotadoVisibilityToProductosQuery($productosQuery);

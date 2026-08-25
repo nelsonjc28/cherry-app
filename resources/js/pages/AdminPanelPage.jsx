@@ -24,6 +24,7 @@ import AdminHistorial from './admin/AdminHistorial';
 import AdminOrderExternalApiHistorial from './admin/AdminOrderExternalApiHistorial';
 import AdminCronMailHistorial from './admin/AdminCronMailHistorial';
 import MailImageManager from '../components/admin/MailImageManager';
+import AdminAffiliateContentManager from '../components/AdminAffiliateContentManager/AdminAffiliateContentManager';
 
 import useUserStore from '../store/userStore';
 import '../index.css';
@@ -124,7 +125,8 @@ function AdminPanelPage() {
       'historial': 'Historial productos - Admin - Cherry Central',
       'order-api-historial': 'Historial envíos API - Admin - Cherry Central',
       'cron-mail-historial': 'Historial correos cron - Admin - Cherry Central',
-      'mail-images': 'Imágenes de correo - Admin - Cherry Central'
+      'mail-images': 'Imágenes de correo - Admin - Cherry Central',
+      'affiliate-content': 'Contenido Afiliación - Admin - Cherry Central'
     };
     
     const title = titleMap[selectedMenu] || 'Admin Panel - Cherry Central';
@@ -155,7 +157,8 @@ function AdminPanelPage() {
     '/admin/historial': 'historial',
     '/admin/historial-pedidos-api': 'order-api-historial',
     '/admin/historial-correos-cron': 'cron-mail-historial',
-    '/admin/imagenes-correo': 'mail-images'
+    '/admin/imagenes-correo': 'mail-images',
+    '/admin/contenido-afiliacion': 'affiliate-content'
   };
 
   // Mapeo de secciones a URLs
@@ -180,7 +183,8 @@ function AdminPanelPage() {
     'historial': '/admin/historial',
     'order-api-historial': '/admin/historial-pedidos-api',
     'cron-mail-historial': '/admin/historial-correos-cron',
-    'mail-images': '/admin/imagenes-correo'
+    'mail-images': '/admin/imagenes-correo',
+    'affiliate-content': '/admin/contenido-afiliacion'
   };
 
   // Función para cambiar de sección y actualizar URL
@@ -387,6 +391,7 @@ function AdminPanelPage() {
           {!isVendorUser() && (
             <>
               <button className={`admin-panel__sidebar-link${selectedMenu==='welcome-sections'?' active':''}`} onClick={()=>handleMenuChange('welcome-sections')}>Secciones de Bienvenida</button>
+              <button className={`admin-panel__sidebar-link${selectedMenu==='affiliate-content'?' active':''}`} onClick={()=>handleMenuChange('affiliate-content')}>Contenido Afiliación</button>
               <button className={`admin-panel__sidebar-link${selectedMenu==='reviews'?' active':''}`} onClick={()=>handleMenuChange('reviews')}>Reseñas</button>
               <button className={`admin-panel__sidebar-link${selectedMenu==='mail-images'?' active':''}`} onClick={()=>handleMenuChange('mail-images')}>Imágenes de correo</button>
               <button className={`admin-panel__sidebar-link${selectedMenu==='contact-info'?' active':''}`} onClick={()=>handleMenuChange('contact-info')}>Información de Contacto</button>
@@ -537,6 +542,12 @@ function AdminPanelPage() {
         {selectedMenu === 'mail-images' && isAdminOrOperatorRole && (
           <section>
             <MailImageManager />
+          </section>
+        )}
+
+        {selectedMenu === 'affiliate-content' && isAdminOrOperatorRole && (
+          <section>
+            <AdminAffiliateContentManager />
           </section>
         )}
 

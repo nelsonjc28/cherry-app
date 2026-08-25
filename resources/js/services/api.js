@@ -20,7 +20,8 @@ api.interceptors.request.use(
       '/welcome-sections',
       '/contact-info',
       '/privacy-policy',
-      '/terms-conditions'
+      '/terms-conditions',
+      '/affiliate-content'
     ];
     
     // Rutas que necesitan autenticación opcional (enviar token si existe, pero no requerirlo)
@@ -522,6 +523,320 @@ export const welcomeSectionService = {
       const response = await api.get('/admin/welcome-sections/stats', {
 
       });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+};
+
+// ============================================================
+// Servicios del módulo de afiliación (secciones dinámicas)
+// ============================================================
+
+// Banner superior editable de la página de afiliación
+export const affiliateBannerService = {
+  getAll: async () => {
+    try {
+      const response = await api.get('/admin/affiliate-banners');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+  getById: async (id) => {
+    try {
+      const response = await api.get(`/admin/affiliate-banners/${id}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+  create: async (formData) => {
+    try {
+      const response = await api.post('/admin/affiliate-banners', formData, {
+        headers: { 'Accept': 'application/json' },
+      });
+      return response;
+    } catch (error) {
+      if (error.response?.data?.message) throw new Error(error.response.data.message);
+      throw error;
+    }
+  },
+  update: async (id, formData) => {
+    try {
+      const response = await api.post(`/admin/affiliate-banners/${id}`, formData, {
+        headers: { 'Accept': 'application/json' },
+      });
+      return response;
+    } catch (error) {
+      if (error.response?.data?.message) throw new Error(error.response.data.message);
+      throw error;
+    }
+  },
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`/admin/affiliate-banners/${id}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+  toggleStatus: async (id) => {
+    try {
+      const response = await api.patch(`/admin/affiliate-banners/${id}/toggle`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+};
+
+// Sección "Conoce la nueva Temporada"
+export const affiliateSeasonService = {
+  getAll: async () => {
+    try {
+      const response = await api.get('/admin/affiliate-seasons');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+  getAvailableCatalogs: async () => {
+    try {
+      const response = await api.get('/admin/affiliate-seasons/catalogs');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+  getById: async (id) => {
+    try {
+      const response = await api.get(`/admin/affiliate-seasons/${id}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+  create: async (data) => {
+    try {
+      const response = await api.post('/admin/affiliate-seasons', data, {
+        headers: { 'Accept': 'application/json' },
+      });
+      return response;
+    } catch (error) {
+      if (error.response?.data?.message) throw new Error(error.response.data.message);
+      throw error;
+    }
+  },
+  update: async (id, data) => {
+    try {
+      const response = await api.post(`/admin/affiliate-seasons/${id}`, data, {
+        headers: { 'Accept': 'application/json' },
+      });
+      return response;
+    } catch (error) {
+      if (error.response?.data?.message) throw new Error(error.response.data.message);
+      throw error;
+    }
+  },
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`/admin/affiliate-seasons/${id}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+  toggleStatus: async (id) => {
+    try {
+      const response = await api.patch(`/admin/affiliate-seasons/${id}/toggle`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+};
+
+// Recuadros internos configurables de la sección temporada
+export const affiliateSeasonBoxService = {
+  getAll: async (seasonId) => {
+    try {
+      const response = await api.get(`/admin/affiliate-seasons/${seasonId}/boxes`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+  create: async (seasonId, formData) => {
+    try {
+      const response = await api.post(`/admin/affiliate-seasons/${seasonId}/boxes`, formData, {
+        headers: { 'Accept': 'application/json' },
+      });
+      return response;
+    } catch (error) {
+      if (error.response?.data?.message) throw new Error(error.response.data.message);
+      throw error;
+    }
+  },
+  update: async (seasonId, boxId, formData) => {
+    try {
+      const response = await api.post(`/admin/affiliate-seasons/${seasonId}/boxes/${boxId}`, formData, {
+        headers: { 'Accept': 'application/json' },
+      });
+      return response;
+    } catch (error) {
+      if (error.response?.data?.message) throw new Error(error.response.data.message);
+      throw error;
+    }
+  },
+  delete: async (seasonId, boxId) => {
+    try {
+      const response = await api.delete(`/admin/affiliate-seasons/${seasonId}/boxes/${boxId}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+  reorder: async (seasonId, boxes) => {
+    try {
+      const response = await api.post(`/admin/affiliate-seasons/${seasonId}/boxes/reorder`, { boxes });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+};
+
+// Banners promocionales e interactivos de campaña
+export const affiliatePromoBannerService = {
+  getAll: async () => {
+    try {
+      const response = await api.get('/admin/affiliate-promo-banners');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+  getById: async (id) => {
+    try {
+      const response = await api.get(`/admin/affiliate-promo-banners/${id}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+  create: async (formData) => {
+    try {
+      const response = await api.post('/admin/affiliate-promo-banners', formData, {
+        headers: { 'Accept': 'application/json' },
+      });
+      return response;
+    } catch (error) {
+      if (error.response?.data?.message) throw new Error(error.response.data.message);
+      throw error;
+    }
+  },
+  update: async (id, formData) => {
+    try {
+      const response = await api.post(`/admin/affiliate-promo-banners/${id}`, formData, {
+        headers: { 'Accept': 'application/json' },
+      });
+      return response;
+    } catch (error) {
+      if (error.response?.data?.message) throw new Error(error.response.data.message);
+      throw error;
+    }
+  },
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`/admin/affiliate-promo-banners/${id}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+  toggleStatus: async (id) => {
+    try {
+      const response = await api.patch(`/admin/affiliate-promo-banners/${id}/toggle`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+};
+
+// Preguntas Frecuentes (FAQ) del módulo de afiliación
+export const affiliateFaqService = {
+  getAll: async () => {
+    try {
+      const response = await api.get('/admin/affiliate-faqs');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+  getById: async (id) => {
+    try {
+      const response = await api.get(`/admin/affiliate-faqs/${id}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+  create: async (data) => {
+    try {
+      const response = await api.post('/admin/affiliate-faqs', data, {
+        headers: { 'Accept': 'application/json' },
+      });
+      return response;
+    } catch (error) {
+      if (error.response?.data?.message) throw new Error(error.response.data.message);
+      throw error;
+    }
+  },
+  update: async (id, data) => {
+    try {
+      const response = await api.post(`/admin/affiliate-faqs/${id}`, data, {
+        headers: { 'Accept': 'application/json' },
+      });
+      return response;
+    } catch (error) {
+      if (error.response?.data?.message) throw new Error(error.response.data.message);
+      throw error;
+    }
+  },
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`/admin/affiliate-faqs/${id}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+  toggleStatus: async (id) => {
+    try {
+      const response = await api.patch(`/admin/affiliate-faqs/${id}/toggle`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+  reorder: async (faqs) => {
+    try {
+      const response = await api.post('/admin/affiliate-faqs/reorder', { items: faqs });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+};
+
+// Contenido público del módulo de afiliación (vista pública)
+export const publicAffiliateContentService = {
+  getAll: async () => {
+    try {
+      const response = await api.get('/affiliate-content');
       return response;
     } catch (error) {
       throw error;

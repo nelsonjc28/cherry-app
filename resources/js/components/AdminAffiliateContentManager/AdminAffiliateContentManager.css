@@ -1,0 +1,586 @@
+/* ============================================================
+ * Módulo de Contenido de Afiliación
+ * Mismo aspecto visual que el módulo de Gestión de Clientes (ClientManager).
+ * ============================================================ */
+
+.affiliate-admin {
+  padding: 1rem;
+}
+
+/* ===== Header (idéntico a client-manager__header) ===== */
+.affiliate-admin__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border, #e0e0e0);
+}
+
+.affiliate-admin__header h2 {
+  margin: 0;
+  color: var(--color-text, #373737);
+  font-size: 1.5rem;
+}
+
+.affiliate-admin__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ===== Pestañas del módulo ===== */
+.affiliate-admin__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.affiliate-admin__tab {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.affiliate-admin__tab:hover {
+  border-color: #EA2630;
+  color: #EA2630;
+}
+
+.affiliate-admin__tab.active {
+  background: #EA2630;
+  border-color: #EA2630;
+  color: #fff;
+}
+
+/* ===== Search (idéntico a client-manager__search) ===== */
+.affiliate-admin__search {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.affiliate-admin__search-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.affiliate-admin__search-group label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.affiliate-admin__search-input {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.affiliate-admin__search-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+/* ===== List header (idéntico a client-manager__list-header) ===== */
+.affiliate-admin__list-header {
+  margin-bottom: 1rem;
+}
+
+.affiliate-admin__list-header h3 {
+  margin: 0;
+  color: var(--color-text, #373737);
+  font-size: 1.2rem;
+}
+
+.affiliate-admin__empty {
+  text-align: center;
+  padding: 3rem;
+  color: var(--color-text-secondary, #666);
+  font-style: italic;
+}
+
+/* ===== Tabla (base visual idéntica a admin-orders__table / client-manager__data-table) ===== */
+.admin-orders__table.affiliate-admin__data-table {
+  width: 95%;
+  margin: 0 auto;
+}
+
+.affiliate-admin__data-table th,
+.affiliate-admin__data-table td {
+  vertical-align: middle;
+}
+
+.affiliate-admin__preview {
+  max-width: 260px;
+  max-height: 140px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  margin-top: 8px;
+}
+
+.affiliate-admin__thumb {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+}
+
+.affiliate-admin__records-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 25px;
+}
+
+.affiliate-admin__record-card {
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.affiliate-admin__record-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+
+.affiliate-admin__record-card.is-expired {
+  opacity: 0.65;
+}
+
+.affiliate-admin__record-card.is-selected {
+  border-color: #EA2630;
+  box-shadow: 0 0 0 2px rgba(234, 38, 48, 0.15), 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+
+.affiliate-admin__record-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  overflow: hidden;
+  background: #f8f9fa;
+}
+
+.affiliate-admin__record-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.affiliate-admin__record-no-image {
+  color: #6c757d;
+  font-size: 14px;
+  text-align: center;
+}
+
+.affiliate-admin__record-info {
+  padding: 20px;
+}
+
+.affiliate-admin__record-info h4 {
+  margin: 0 0 8px;
+  color: #333;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.affiliate-admin__record-info p {
+  margin: 0 0 12px;
+  color: #6c757d;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.affiliate-admin__record-stats,
+.affiliate-admin__record-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.affiliate-admin__record-stats {
+  margin-bottom: 12px;
+  color: #6c757d;
+  font-size: 12px;
+}
+
+.affiliate-admin__status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.affiliate-admin__status-badge.active {
+  background: #d4edda;
+  color: #155724;
+}
+
+.affiliate-admin__status-badge.inactive {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.affiliate-admin__record-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 20px 20px;
+}
+
+.affiliate-admin .client-manager__table-icon-btn {
+  position: relative;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  height: 32px;
+  padding: 4px 8px;
+  transition: all 0.2s ease;
+  width: 32px;
+}
+
+.affiliate-admin .client-manager__table-icon-btn[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  z-index: 1200;
+  padding: 5px 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.2;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  white-space: nowrap;
+}
+
+.affiliate-admin .client-manager__table-icon-btn[data-tooltip]:hover::after,
+.affiliate-admin .client-manager__table-icon-btn[data-tooltip]:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.affiliate-admin .client-manager__table-icon-btn:hover {
+  background-color: rgba(0, 0, 0, 0.06);
+  transform: scale(1.1);
+}
+
+.affiliate-admin .client-manager__table-icon-btn--edit {
+  color: #e6a819;
+}
+
+.affiliate-admin .client-manager__table-icon-btn--edit:hover {
+  color: #9a7200;
+}
+
+.affiliate-admin .client-manager__table-icon-btn--delete {
+  color: #ea2630;
+}
+
+.affiliate-admin .client-manager__table-icon-btn--delete:hover {
+  color: #9e0f1c;
+}
+
+.affiliate-admin .affiliate-admin__toggle-btn {
+  color: #9a9a9a;
+}
+
+.affiliate-admin .affiliate-admin__toggle-btn.is-active {
+  color: #28a745;
+}
+
+.affiliate-admin .affiliate-admin__toggle-btn:hover {
+  color: #555;
+}
+
+.affiliate-admin .affiliate-admin__toggle-btn.is-active:hover {
+  color: #1e7e34;
+}
+
+.affiliate-admin .affiliate-admin__manage-btn {
+  color: #17a2b8;
+}
+
+.affiliate-admin .affiliate-admin__manage-btn:hover {
+  color: #0f6674;
+}
+
+/* ===== Modal (idéntico a client-manager__form-overlay/form) ===== */
+.affiliate-manager__form-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.affiliate-manager__form {
+  background: white;
+  border-radius: 8px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.affiliate-manager__form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border, #e0e0e0);
+}
+
+.affiliate-manager__form-header h3 {
+  margin: 0;
+  color: var(--color-text, #373737);
+}
+
+.affiliate-manager__form-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--color-text-secondary, #666);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.affiliate-manager__form-close:hover {
+  background: var(--color-background-light, #f5f5f5);
+}
+
+.affiliate-manager__form-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+}
+
+.affiliate-manager__form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.affiliate-manager__form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.affiliate-manager__form-group--switch {
+  align-items: flex-start;
+}
+
+.affiliate-manager__form-group--switch input[type="checkbox"] {
+  width: auto;
+  margin-top: 0.25rem;
+}
+
+.affiliate-manager__form-group label {
+  font-weight: 500;
+  color: var(--color-text, #373737);
+  font-size: 0.9rem;
+}
+
+.affiliate-manager__form-group input,
+.affiliate-manager__form-group select,
+.affiliate-manager__form-group textarea {
+  padding: 0.75rem;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.affiliate-manager__form-group input:focus,
+.affiliate-manager__form-group select:focus,
+.affiliate-manager__form-group textarea:focus {
+  outline: none;
+  border-color: var(--color-primary, #EA2630);
+}
+
+.affiliate-manager__select2 {
+  position: relative;
+}
+
+.affiliate-manager__select2-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 46px;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--color-text, #373737);
+  cursor: pointer;
+  font-size: 1rem;
+  text-align: left;
+}
+
+.affiliate-manager__select2-trigger:hover,
+.affiliate-manager__select2-trigger.is-open {
+  border-color: var(--color-primary, #EA2630);
+}
+
+.affiliate-manager__select2-placeholder {
+  color: #6c757d;
+}
+
+.affiliate-manager__select2-arrow {
+  color: #999;
+  font-size: 0.65rem;
+  margin-left: 0.5rem;
+}
+
+.affiliate-manager__select2-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 1100;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.affiliate-manager__select2-search {
+  width: calc(100% - 16px);
+  margin: 8px;
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.affiliate-manager__select2-options {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.affiliate-manager__select2-option {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid #f9f9f9;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+  font-size: 14px;
+  text-align: left;
+}
+
+.affiliate-manager__select2-option:hover,
+.affiliate-manager__select2-option.is-selected {
+  background: #fef2f4;
+}
+
+.affiliate-manager__select2-empty {
+  padding: 16px 12px;
+  color: #999;
+  font-size: 13px;
+  text-align: center;
+}
+
+.affiliate-manager__form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border, #e0e0e0);
+}
+
+.affiliate-manager__form-actions--modal-footer {
+  margin-top: 1.25rem;
+}
+
+/* ===== Botones rojos del sistema (color primario #EA2630) ===== */
+.affiliate-admin .btn-primary,
+.affiliate-admin .btn-primary:focus,
+.affiliate-admin .btn-primary:active {
+  background-color: #EA2630 !important;
+  border-color: #EA2630 !important;
+  color: #fff !important;
+}
+
+.affiliate-admin .btn-primary:hover {
+  background-color: #d41f21 !important;
+  border-color: #d41f21 !important;
+  color: #fff !important;
+}
+
+.affiliate-admin .btn-outline-primary {
+  color: #EA2630 !important;
+  border-color: #EA2630 !important;
+  background-color: transparent !important;
+}
+
+.affiliate-admin .btn-outline-primary:hover {
+  background-color: #EA2630 !important;
+  color: #fff !important;
+}
+
+@media (max-width: 768px) {
+  .affiliate-admin__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .affiliate-manager__form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .affiliate-admin__records-grid {
+    grid-template-columns: 1fr;
+  }
+}

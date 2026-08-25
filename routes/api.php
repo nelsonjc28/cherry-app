@@ -36,6 +36,12 @@ use App\Http\Controllers\Api\HistorialController;
 use App\Http\Controllers\Api\CronMailLogController;
 use App\Http\Controllers\Api\OrderExternalApiLogController;
 use App\Http\Controllers\Api\RecentProductController;
+use App\Http\Controllers\Api\PublicAffiliateContentController;
+use App\Http\Controllers\Api\AdminAffiliateBannerController;
+use App\Http\Controllers\Api\AdminAffiliateSeasonController;
+use App\Http\Controllers\Api\AdminAffiliateSeasonBoxController;
+use App\Http\Controllers\Api\AdminAffiliatePromoBannerController;
+use App\Http\Controllers\Api\AdminAffiliateFaqController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/complete-profile', [AuthController::class, 'completeProfile'])->middleware('auth:api');
@@ -321,6 +327,50 @@ Route::middleware(['auth:api'])->group(function () {
         Route::patch('/admin/welcome-sections/{id}/toggle', [AdminWelcomeSectionController::class, 'toggleStatus']);
     });
     
+    // Affiliate content routes - require authentication and admin role
+    Route::middleware(['auth:api', 'admin'])->group(function () {
+        // Banner superior editable
+        Route::get('/admin/affiliate-banners', [AdminAffiliateBannerController::class, 'index']);
+        Route::get('/admin/affiliate-banners/{id}', [AdminAffiliateBannerController::class, 'show']);
+        Route::post('/admin/affiliate-banners', [AdminAffiliateBannerController::class, 'store']);
+        Route::post('/admin/affiliate-banners/{id}', [AdminAffiliateBannerController::class, 'update']);
+        Route::delete('/admin/affiliate-banners/{id}', [AdminAffiliateBannerController::class, 'destroy']);
+        Route::patch('/admin/affiliate-banners/{id}/toggle', [AdminAffiliateBannerController::class, 'toggleStatus']);
+
+        // Sección "Conoce la nueva Temporada"
+        Route::get('/admin/affiliate-seasons', [AdminAffiliateSeasonController::class, 'index']);
+        Route::get('/admin/affiliate-seasons/catalogs', [AdminAffiliateSeasonController::class, 'catalogs']);
+        Route::get('/admin/affiliate-seasons/{id}', [AdminAffiliateSeasonController::class, 'show']);
+        Route::post('/admin/affiliate-seasons', [AdminAffiliateSeasonController::class, 'store']);
+        Route::post('/admin/affiliate-seasons/{id}', [AdminAffiliateSeasonController::class, 'update']);
+        Route::delete('/admin/affiliate-seasons/{id}', [AdminAffiliateSeasonController::class, 'destroy']);
+        Route::patch('/admin/affiliate-seasons/{id}/toggle', [AdminAffiliateSeasonController::class, 'toggleStatus']);
+
+        // Recuadros internos de la sección temporada
+        Route::get('/admin/affiliate-seasons/{seasonId}/boxes', [AdminAffiliateSeasonBoxController::class, 'index']);
+        Route::post('/admin/affiliate-seasons/{seasonId}/boxes', [AdminAffiliateSeasonBoxController::class, 'store']);
+        Route::post('/admin/affiliate-seasons/{seasonId}/boxes/reorder', [AdminAffiliateSeasonBoxController::class, 'reorder']);
+        Route::post('/admin/affiliate-seasons/{seasonId}/boxes/{boxId}', [AdminAffiliateSeasonBoxController::class, 'update']);
+        Route::delete('/admin/affiliate-seasons/{seasonId}/boxes/{boxId}', [AdminAffiliateSeasonBoxController::class, 'destroy']);
+
+        // Banners promocionales e interactivos
+        Route::get('/admin/affiliate-promo-banners', [AdminAffiliatePromoBannerController::class, 'index']);
+        Route::get('/admin/affiliate-promo-banners/{id}', [AdminAffiliatePromoBannerController::class, 'show']);
+        Route::post('/admin/affiliate-promo-banners', [AdminAffiliatePromoBannerController::class, 'store']);
+        Route::post('/admin/affiliate-promo-banners/{id}', [AdminAffiliatePromoBannerController::class, 'update']);
+        Route::delete('/admin/affiliate-promo-banners/{id}', [AdminAffiliatePromoBannerController::class, 'destroy']);
+        Route::patch('/admin/affiliate-promo-banners/{id}/toggle', [AdminAffiliatePromoBannerController::class, 'toggleStatus']);
+
+        // Preguntas Frecuentes (FAQ)
+        Route::get('/admin/affiliate-faqs', [AdminAffiliateFaqController::class, 'index']);
+        Route::get('/admin/affiliate-faqs/{id}', [AdminAffiliateFaqController::class, 'show']);
+        Route::post('/admin/affiliate-faqs', [AdminAffiliateFaqController::class, 'store']);
+        Route::post('/admin/affiliate-faqs/reorder', [AdminAffiliateFaqController::class, 'reorder']);
+        Route::post('/admin/affiliate-faqs/{id}', [AdminAffiliateFaqController::class, 'update']);
+        Route::delete('/admin/affiliate-faqs/{id}', [AdminAffiliateFaqController::class, 'destroy']);
+        Route::patch('/admin/affiliate-faqs/{id}/toggle', [AdminAffiliateFaqController::class, 'toggleStatus']);
+    });
+
     // Catalogs routes - require authentication and admin role
     Route::middleware(['auth:api', 'admin'])->group(function () {
         Route::get('/admin/catalogs', [AdminCatalogController::class, 'index']);
@@ -422,6 +472,9 @@ Route::middleware(['auth:api'])->group(function () {
 // Public welcome sections routes (no authentication required)
 Route::get('/welcome-sections/active', [WelcomeSectionController::class, 'getActiveSection']);
 Route::get('/welcome-sections', [WelcomeSectionController::class, 'getActiveSections']);
+
+// Public affiliate content routes (no authentication required)
+Route::get('/affiliate-content', [PublicAffiliateContentController::class, 'index']);
 
 // Public contact info routes (no authentication required)
 Route::get('/contact-info', [ContactInfoController::class, 'show']);
