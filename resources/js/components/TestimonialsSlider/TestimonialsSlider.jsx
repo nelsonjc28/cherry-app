@@ -190,10 +190,6 @@ const TestimonialsSlider = () => {
   return (
     <section className="testimonials-slider-section">
       <div className="testimonials-slider-container">
-        <div className="testimonials-header">
-          <h2 className="testimonials-title">Testimonios de nuestros usuarios</h2>
-        </div>
-
         <div className="testimonials-videos-carousel">
           <div className="testimonials-videos-stage">
             <div className="testimonials-videos-grid">

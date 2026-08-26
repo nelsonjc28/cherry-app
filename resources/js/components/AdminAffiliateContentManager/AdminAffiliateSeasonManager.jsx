@@ -4,10 +4,10 @@ import { affiliateSeasonService } from '../../services/api';
 import AdminAffiliateSeasonBoxManager from './AdminAffiliateSeasonBoxManager';
 import AffiliateModal from './AffiliateModal';
 
-const EMPTY = () => ({ title: '', catalog_id: '', is_active: true, display_order: '' });
+const EMPTY = () => ({ title: '', button_url: '', is_active: true, display_order: '' });
 const FROM_ITEM = (item) => ({
   title: item.title,
-  catalog_id: item.catalog_id ?? '',
+  button_url: item.button_url ?? '',
   is_active: item.is_active,
   display_order: item.display_order ?? ''
 });
@@ -197,8 +197,8 @@ const AdminAffiliateSeasonManager = () => {
                 <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
               </div>
               <div className="affiliate-manager__form-group">
-                <label>Catálogo</label>
-                <CatalogSelect catalogs={catalogs} value={form.catalog_id} onChange={(catalog_id) => setForm({ ...form, catalog_id })} />
+                <label>URL de redirección</label>
+                <input type="url" value={form.button_url} onChange={(e) => setForm({ ...form, button_url: e.target.value })} placeholder="https://..." />
               </div>
             </div>
             <div className="affiliate-manager__form-row">
@@ -239,16 +239,12 @@ const AdminAffiliateSeasonManager = () => {
             </div>
             <div className="affiliate-admin__record-info">
               <h4>{season.title}</h4>
-              <p>{season.catalog ? season.catalog.name : 'Sin catálogo asociado'}</p>
-              <div className="affiliate-admin__record-stats">
-                <span>📦 {season.boxes?.length ?? 0} recuadros</span>
-              </div>
+              <p>{season.button_url ? season.button_url : 'Sin URL asociada'}</p>
               <div className="affiliate-admin__record-status">
                 <span className={`affiliate-admin__status-badge ${season.is_active ? 'active' : 'inactive'}`}>{season.is_active ? 'Activa' : 'Inactiva'}</span>
               </div>
             </div>
             <div className="affiliate-admin__record-actions">
-                <button type="button" className="order-action-btn client-manager__table-icon-btn affiliate-admin__manage-btn" onClick={() => setSelectedSeasonId(season.id)} data-tooltip="Gestionar recuadros" title="Gestionar recuadros" aria-label="Gestionar recuadros">🧩</button>
                 <button type="button" className="order-action-btn client-manager__table-icon-btn client-manager__table-icon-btn--edit" onClick={() => handleEdit(season)} data-tooltip="Editar" title="Editar" aria-label="Editar">✏️</button>
                 <button type="button" className="order-action-btn client-manager__table-icon-btn client-manager__table-icon-btn--delete" onClick={() => handleDelete(season)} data-tooltip="Eliminar" title="Eliminar" aria-label="Eliminar">🗑️</button>
             </div>

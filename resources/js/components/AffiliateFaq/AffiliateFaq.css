@@ -45,6 +45,28 @@
   display: block;
 }
 
+@media (min-width: 768px) {
+  .affiliate-promo-banner {
+    height: auto !important;
+    aspect-ratio: auto !important;
+  }
+
+  .affiliate-promo-banner__image {
+    width: 100% !important;
+    height: auto !important;
+    max-height: none;
+    object-fit: contain;
+  }
+
+  /* Bottom banner: crop only from bottom, keep top intact */
+  .affiliate-promo-banner--bottom .affiliate-promo-banner__image {
+    height: 100%;
+    max-height: 400px;
+    object-fit: cover;
+    object-position: top;
+  }
+}
+
 .affiliate-faq__item {
   border-bottom: 1px solid #d1d5db;
 }

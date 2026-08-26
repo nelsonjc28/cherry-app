@@ -154,13 +154,17 @@
   text-align: center;
 }
 
-.register-intro h2 {
+.register-intro__heading {
   max-width: 680px;
   margin: 0 auto;
   color: #373737;
   font-size: clamp(2rem, 4vw, 2.75rem);
   font-weight: 400;
   line-height: 1.2;
+}
+
+.register-intro__heading--mobile {
+  display: none;
 }
 
 /* How It Works Section */
@@ -384,6 +388,24 @@
 }
 
 @media (max-width: 767px) {
+  .register-banner__image {
+    min-height: 280px;
+  }
+
+  .register-banner__image img {
+    height: 280px;
+    object-fit: cover;
+  }
+
+  .register-intro__heading--desktop {
+    display: none;
+  }
+
+  .register-intro__heading--mobile {
+    display: block;
+    font-size: 1.25rem;
+  }
+
   .register-trends .register-season__container {
     padding: 28px 16px 36px;
   }

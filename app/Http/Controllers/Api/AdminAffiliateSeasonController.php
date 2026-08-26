@@ -17,7 +17,7 @@ class AdminAffiliateSeasonController extends Controller
 
     protected $fields = [
         'title' => 'required|string|max:255',
-        'catalog_id' => 'nullable|exists:catalogs,id',
+        'button_url' => 'nullable|url|max:500',
         'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp',
         'is_active' => 'boolean',
         'display_order' => 'nullable|integer|min:0'

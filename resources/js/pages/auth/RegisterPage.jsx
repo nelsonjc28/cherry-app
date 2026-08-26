@@ -426,9 +426,12 @@ const RegisterPage = () => {
       </section>
 
       <section className="register-intro" aria-labelledby="register-intro-heading">
-        <h2 id="register-intro-heading">
+        <h2 id="register-intro-heading" className="register-intro__heading register-intro__heading--desktop">
           Vende ropa de moda desde tu celular. Cherry se encarga de todo lo demás.
         </h2>
+        <h6 className="register-intro__heading register-intro__heading--mobile">
+          Vende ropa de moda desde tu celular. Cherry se encarga de todo lo demás.
+        </h6>
       </section>
 
       <TestimonialsSlider />
@@ -495,7 +498,7 @@ const RegisterPage = () => {
             </h2>
 
             {(affiliateSeason.image_path || affiliateSeason.catalog?.image_url) && (
-              <a href="/catalogos" className="register-season__catalog-link">
+              <a href={affiliateSeason.button_url || '/catalogos'} className="register-season__catalog-link" target={affiliateSeason.button_url?.match(/^https?:\/\//i) ? '_blank' : undefined} rel={affiliateSeason.button_url?.match(/^https?:\/\//i) ? 'noreferrer' : undefined}>
                 <img
                   src={affiliateSeason.image_path ? `/${affiliateSeason.image_path}` : affiliateSeason.catalog.image_url}
                   alt={affiliateSeason.catalog?.name || affiliateSeason.title}

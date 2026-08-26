@@ -25,7 +25,7 @@ class AffiliateSeason extends Model
         static::updating($deactivateOthers);
     }
 
-    protected $fillable = ['title', 'catalog_id', 'image_path', 'is_active', 'display_order'];
+    protected $fillable = ['title', 'button_url', 'catalog_id', 'image_path', 'is_active', 'display_order'];
 
     protected $casts = ['is_active' => 'boolean', 'display_order' => 'integer'];
 

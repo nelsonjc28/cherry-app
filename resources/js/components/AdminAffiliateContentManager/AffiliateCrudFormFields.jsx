@@ -36,7 +36,7 @@ const renderField = (f, form, setField) => {
   );
 };
 
-const AffiliateCrudFormFields = ({ fields, form, setField, imageFile, setImageFile, preview, withImage, editing }) => {
+const AffiliateCrudFormFields = ({ fields, form, setField, imageFile, setImageFile, preview, withImage, editing, imageHelpText }) => {
   const rows = [];
   for (let i = 0; i < fields.length; i += 2) {
     rows.push(fields.slice(i, i + 2));
@@ -63,6 +63,7 @@ const AffiliateCrudFormFields = ({ fields, form, setField, imageFile, setImageFi
               setImageFile(file);
               setPreview(file ? URL.createObjectURL(file) : preview);
             }} />
+            {imageHelpText && <p style={{ color: '#dc3545', fontWeight: 600 }}>{imageHelpText}</p>}
           </div>
         </div>
       )}
