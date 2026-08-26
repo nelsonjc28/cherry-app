@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AffiliateBanner;
+use App\Models\AffiliateBottomBanner;
 use App\Models\AffiliateFaq;
 use App\Models\AffiliatePromoBanner;
 use App\Models\AffiliateSeason;
+use App\Models\AffiliateTrend;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 
@@ -28,7 +30,9 @@ class PublicAffiliateContentController extends Controller
             }
 
             $promoBanners = AffiliatePromoBanner::getActivePromoBanners();
+            $bottomBanner = AffiliateBottomBanner::getActiveBottomBanner();
             $faqs = AffiliateFaq::getActiveFaqs();
+            $trends = AffiliateTrend::active()->ordered()->get();
 
             return response()->json([
                 'success' => true,
@@ -36,7 +40,9 @@ class PublicAffiliateContentController extends Controller
                     'banner' => $banner,
                     'season' => $season,
                     'promo_banners' => $promoBanners,
-                    'faqs' => $faqs
+                    'bottom_banner' => $bottomBanner,
+                    'faqs' => $faqs,
+                    'trends' => $trends
                 ]
             ]);
         } catch (\Exception $e) {

@@ -14,13 +14,8 @@ class AdminAffiliatePromoBannerController extends Controller
     protected $imageDir = 'images/affiliate-promo-banners';
 
     protected $fields = [
-        'title' => 'required|string|max:255',
-        'description' => 'required|string',
-        'button_text' => 'nullable|string|max:255',
-        'button_url' => 'nullable|string|max:500',
-        'start_date' => 'nullable|date',
-        'end_date' => 'nullable|date|after_or_equal:start_date',
-        'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
+        'button_url' => 'required|string|max:500',
+        'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp',
         'is_active' => 'boolean',
         'display_order' => 'nullable|integer|min:0'
     ];

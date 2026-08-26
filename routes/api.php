@@ -42,6 +42,8 @@ use App\Http\Controllers\Api\AdminAffiliateSeasonController;
 use App\Http\Controllers\Api\AdminAffiliateSeasonBoxController;
 use App\Http\Controllers\Api\AdminAffiliatePromoBannerController;
 use App\Http\Controllers\Api\AdminAffiliateFaqController;
+use App\Http\Controllers\Api\AdminAffiliateTrendController;
+use App\Http\Controllers\Api\AdminAffiliateBottomBannerController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/complete-profile', [AuthController::class, 'completeProfile'])->middleware('auth:api');
@@ -361,6 +363,14 @@ Route::middleware(['auth:api'])->group(function () {
         Route::delete('/admin/affiliate-promo-banners/{id}', [AdminAffiliatePromoBannerController::class, 'destroy']);
         Route::patch('/admin/affiliate-promo-banners/{id}/toggle', [AdminAffiliatePromoBannerController::class, 'toggleStatus']);
 
+        // Banner inferior (debajo de preguntas frecuentes)
+        Route::get('/admin/affiliate-bottom-banners', [AdminAffiliateBottomBannerController::class, 'index']);
+        Route::get('/admin/affiliate-bottom-banners/{id}', [AdminAffiliateBottomBannerController::class, 'show']);
+        Route::post('/admin/affiliate-bottom-banners', [AdminAffiliateBottomBannerController::class, 'store']);
+        Route::post('/admin/affiliate-bottom-banners/{id}', [AdminAffiliateBottomBannerController::class, 'update']);
+        Route::delete('/admin/affiliate-bottom-banners/{id}', [AdminAffiliateBottomBannerController::class, 'destroy']);
+        Route::patch('/admin/affiliate-bottom-banners/{id}/toggle', [AdminAffiliateBottomBannerController::class, 'toggleStatus']);
+
         // Preguntas Frecuentes (FAQ)
         Route::get('/admin/affiliate-faqs', [AdminAffiliateFaqController::class, 'index']);
         Route::get('/admin/affiliate-faqs/{id}', [AdminAffiliateFaqController::class, 'show']);
@@ -369,6 +379,14 @@ Route::middleware(['auth:api'])->group(function () {
         Route::post('/admin/affiliate-faqs/{id}', [AdminAffiliateFaqController::class, 'update']);
         Route::delete('/admin/affiliate-faqs/{id}', [AdminAffiliateFaqController::class, 'destroy']);
         Route::patch('/admin/affiliate-faqs/{id}/toggle', [AdminAffiliateFaqController::class, 'toggleStatus']);
+
+        // Tendencias destacadas
+        Route::get('/admin/affiliate-trends', [AdminAffiliateTrendController::class, 'index']);
+        Route::get('/admin/affiliate-trends/{id}', [AdminAffiliateTrendController::class, 'show']);
+        Route::post('/admin/affiliate-trends', [AdminAffiliateTrendController::class, 'store']);
+        Route::post('/admin/affiliate-trends/{id}', [AdminAffiliateTrendController::class, 'update']);
+        Route::delete('/admin/affiliate-trends/{id}', [AdminAffiliateTrendController::class, 'destroy']);
+        Route::patch('/admin/affiliate-trends/{id}/toggle', [AdminAffiliateTrendController::class, 'toggleStatus']);
     });
 
     // Catalogs routes - require authentication and admin role

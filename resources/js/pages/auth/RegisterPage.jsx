@@ -1,5 +1,5 @@
 import { Helmet } from 'react-helmet-async';
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 import "./RegisterPage.css";
 import { getIconPath } from '../../utils/assetPaths';
@@ -7,6 +7,7 @@ import CustomButton from '../../components/CustomButton';
 import useUserStore from '../../store/userStore';
 import TestimonialsSlider from '../../components/TestimonialsSlider/TestimonialsSlider';
 import AffiliateFaq from '../../components/AffiliateFaq/AffiliateFaq';
+import { publicAffiliateContentService } from '../../services/api';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -14,6 +15,42 @@ const RegisterPage = () => {
   const firstNameInputRef = useRef(null);
 
   const [currentStep, setCurrentStep] = useState(1);
+  const [affiliateBanner, setAffiliateBanner] = useState(null);
+  const [affiliateSeason, setAffiliateSeason] = useState(null);
+  const [affiliateTrends, setAffiliateTrends] = useState([]);
+  const [promoBanners, setPromoBanners] = useState([]);
+  const [bottomBanner, setBottomBanner] = useState(null);
+  const [affiliateFaqs, setAffiliateFaqs] = useState([]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    publicAffiliateContentService.getAll()
+      .then((response) => {
+        if (mounted) {
+          setAffiliateBanner(response.data?.data?.banner || null);
+          setAffiliateSeason(response.data?.data?.season || null);
+          setAffiliateTrends(response.data?.data?.trends || []);
+          setPromoBanners(response.data?.data?.promo_banners || []);
+          setBottomBanner(response.data?.data?.bottom_banner || null);
+          setAffiliateFaqs(response.data?.data?.faqs || []);
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setAffiliateBanner(null);
+          setAffiliateSeason(null);
+          setAffiliateTrends([]);
+          setPromoBanners([]);
+          setBottomBanner(null);
+          setAffiliateFaqs([]);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -310,16 +347,6 @@ const RegisterPage = () => {
     setShowConfirmPassword(!showConfirmPassword);
   };
 
-  const scrollToFormAndFocus = () => {
-    if (firstNameInputRef.current) {
-      firstNameInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      // Pequeño delay para asegurar que el scroll termine antes de enfocar
-      setTimeout(() => {
-        firstNameInputRef.current.focus();
-      }, 500);
-    }
-  };
-
   const days = Array.from({ length: 31 }, (_, i) => i + 1)
   const months = [
     "Enero",
@@ -344,35 +371,33 @@ const RegisterPage = () => {
       </Helmet>
 
       {/* Banner de Afiliación */}
-      <section className="register-banner background-gradient" aria-labelledby="register-banner-heading">
+      <section className="register-banner" aria-label="Banner de afiliación">
         <div className="register-banner__image">
-          <img src={`${window.location.origin}/images/AuthPages/register-banner-girl.png`} alt="Affiliate Girl" />
-          <div className="register-banner__globes">
-            <div className="register-banner__globe register-banner__globe--big"></div>
-            <div className="register-banner__globe register-banner__globe--small"></div>
-          </div>
+          <img
+            src={affiliateBanner?.image_path ? `/${affiliateBanner.image_path}` : `${window.location.origin}/images/AuthPages/register-banner-girl.png`}
+            alt={affiliateBanner?.title || 'Affiliate Girl'}
+          />
         </div>
 
         <div className="register-banner__content">
-          <div className="register-banner__logo">
-            <img src={`${window.location.origin}/images/logo.svg`} alt="Cherry" width={150} />
-          </div>
           <h2 id="register-banner-heading" className="register-banner__title">
-            El momento es hoy: sé tu propia jefa, emprende con Cherry y transforma tu futuro
+            {affiliateBanner?.title || 'El momento es hoy: sé tu propia jefa, emprende con Cherry y transforma tu futuro'}
           </h2>
-          <button
-            type="button"
-            onClick={scrollToFormAndFocus}
+          {affiliateBanner?.subtitle && <p className="register-banner__subtitle">{affiliateBanner.subtitle}</p>}
+          <a
+            href={affiliateBanner?.button_url || '#registro-form'}
             className="register-banner__btn"
-            title="Únete a nuestro programa de afiliados y comienza tu negocio"
-            aria-label="Afiliate a Cherry Central y comienza tu negocio"
+            target={affiliateBanner?.button_url?.match(/^https?:\/\//i) ? '_blank' : undefined}
+            rel={affiliateBanner?.button_url?.match(/^https?:\/\//i) ? 'noreferrer' : undefined}
+            aria-label={affiliateBanner?.button_text || 'Afiliate a Cherry Central y comienza tu negocio'}
           >
-            Afiliate ahora
+            {affiliateBanner?.button_text || 'Afiliate ahora'}
             <svg width="5" height="9" viewBox="0 0 5 9" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M4.86328 4.39453C4.99349 4.26432 4.99349 4.08203 4.86328 3.95182L1.0612 0.0976563C0.93099 -0.0325521 0.722656 -0.0325521 0.61849 0.0976563L0.0976562 0.61849C-0.0325521 0.722656 -0.0325521 0.93099 0.0976562 1.0612L3.17057 4.16016L0.0976562 7.28516C-0.0325521 7.41536 -0.0325521 7.59766 0.0976562 7.72786L0.61849 8.2487C0.722656 8.37891 0.93099 8.37891 1.0612 8.2487L4.86328 4.39453Z" fill="#F5F5FF" />
             </svg>
-          </button>
+          </a>
         </div>
+
       </section>
 
       <section className="register-quick-benefits" aria-label="Beneficios de afiliación">
@@ -399,6 +424,14 @@ const RegisterPage = () => {
           />
         </div>
       </section>
+
+      <section className="register-intro" aria-labelledby="register-intro-heading">
+        <h2 id="register-intro-heading">
+          Vende ropa de moda desde tu celular. Cherry se encarga de todo lo demás.
+        </h2>
+      </section>
+
+      <TestimonialsSlider />
 
       {/* Sección ¿Cómo funciona? */}
       <section className="how-it-works">
@@ -454,141 +487,42 @@ const RegisterPage = () => {
         </div>
       </section>
 
-      <section className="register-season" aria-labelledby="register-season-heading">
-        <div className="register-season__container">
-          <h2 id="register-season-heading" className="register-season__title">
-            Conoce la nueva Temporada
-          </h2>
+      {affiliateSeason && (
+        <section className="register-season" aria-labelledby="register-season-heading">
+          <div className="register-season__container">
+            <h2 id="register-season-heading" className="register-season__title">
+              {affiliateSeason.title}
+            </h2>
 
-          <a href="/catalogos" className="register-season__catalog-link">
-            <img
-              src="/icons/benefits/imagen-catalogo.png"
-              alt="Catálogo Temporada"
-              className="register-season__catalog-image"
-            />
-          </a>
+            {(affiliateSeason.image_path || affiliateSeason.catalog?.image_url) && (
+              <a href="/catalogos" className="register-season__catalog-link">
+                <img
+                  src={affiliateSeason.image_path ? `/${affiliateSeason.image_path}` : affiliateSeason.catalog.image_url}
+                  alt={affiliateSeason.catalog?.name || affiliateSeason.title}
+                  className="register-season__catalog-image"
+                />
+              </a>
+            )}
 
-          <h3 className="register-season__subtitle">Tendencias</h3>
-
-          <div className="register-season__grid">
-            <article className="register-season__card">
-              <img
-                src="/icons/benefits/catalogo-ejemplo1.jpeg"
-                alt="Los favoritos"
-                className="register-season__card-image"
-              />
-              <span className="register-season__card-label">Los favoritos</span>
-            </article>
-            <article className="register-season__card">
-              <img
-                src="/icons/benefits/catalogo-ejemplo2.jpg"
-                alt="Primavera - Verano"
-                className="register-season__card-image"
-              />
-              <span className="register-season__card-label">Primavera - Verano</span>
-            </article>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* Sección Descubre tus beneficios */}
-      <section className="register-includes">
-        <div className="register-includes__container">
-          <h2 className="register-includes__title">Descubre tus beneficios:</h2>
-
-          <div className="register-includes__grid">
-            <div className="register-includes__column">
-              <div className="register-includes__item">
-                <div className="register-includes__check">
-                  <svg width="16" height="12" viewBox="0 0 16 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
-                  </svg>
-                </div>
-                <span>Acceso a tu panel personal fácil de usar y siempre disponible</span>
-              </div>
-
-              <div className="register-includes__item">
-                <div className="register-includes__check">
-                  <svg width="16" height="12" viewBox="0 0 16 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
-                  </svg>
-                </div>
-                <span>Productos exclusivos, solo para nuestros clientes</span>
-              </div>
-
-              <div className="register-includes__item">
-                <div className="register-includes__check">
-                  <svg width="16" height="12" viewBox="0 0 16 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
-                  </svg>
-                </div>
-                <span>Precios especiales de mayoreo que aumentan tus ganancias</span>
-              </div>
-
-              <div className="register-includes__item">
-                <div className="register-includes__check">
-                  <svg width="16" height="12" viewBox="0 0 16 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
-                  </svg>
-                </div>
-                <span>Catálogos digitales actualizados para vender siempre en tendencia</span>
-              </div>
-            </div>
-
-            <div className="register-includes__column">
-              <div className="register-includes__item">
-                <div className="register-includes__check">
-                  <svg width="16" height="12" viewBox="0 0 16 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
-                  </svg>
-                </div>
-                <span>Cambio de mercancía (Aplican restricciones.)</span>
-              </div>
-
-              <div className="register-includes__item">
-                <div className="register-includes__check">
-                  <svg width="16" height="12" viewBox="0 0 16 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
-                  </svg>
-                </div>
-                <span>Envíos a domicilio</span>
-              </div>
-
-              <div className="register-includes__item">
-                <div className="register-includes__check">
-                  <svg width="16" height="12" viewBox="0 0 16 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M14.7 0.3C14.3 -0.1 13.7 -0.1 13.3 0.3L5.5 8.1L2.7 5.3C2.3 4.9 1.7 4.9 1.3 5.3C0.9 5.7 0.9 6.3 1.3 6.7L4.8 10.2C5 10.4 5.3 10.5 5.5 10.5C5.7 10.5 6 10.4 6.2 10.2L14.7 1.7C15.1 1.3 15.1 0.7 14.7 0.3Z" fill="#EA2630" />
-                  </svg>
-                </div>
-                <span>En tus compras se incluye el catálogo físico de temporada</span>
-              </div>
+      {affiliateTrends.length > 0 && (
+        <section className="register-season register-trends" aria-labelledby="register-trends-heading">
+          <div className="register-season__container">
+            <h2 id="register-trends-heading" className="register-season__title">Tendencias</h2>
+            <div className="register-season__grid">
+              {affiliateTrends.map((trend) => (
+                <a className="register-season__card" key={trend.id} href={trend.button_url}>
+                  <img src={`/${trend.image_path}`} alt={trend.title} className="register-season__card-image" />
+                  <span className="register-season__card-label">{trend.title}</span>
+                </a>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Sección de Testimonios */}
-      <TestimonialsSlider />
-
-      {/* Banner de Afiliación 2 */}
-      <section className="register-banner-second" aria-labelledby="register-banner-bottom-heading">
-        <div className="register-banner-second__image">
-          <img src={`${window.location.origin}/images/AuthPages/phone-banner.png`} alt="Affiliate Phone" />
-          <div className="register-banner-second__globes">
-            <div className="register-banner-second__globe register-banner-second__globe--big"></div>
-            <div className="register-banner-second__globe register-banner-second__globe--small"></div>
-          </div>
-        </div>
-
-        <div className="register-banner-second__content">
-          <p className="register-banner-second__steps">
-            <span>¡Afíliate hoy mismo!</span>
-          </p>
-          <h2 id="register-banner-bottom-heading" className="register-banner-second__title">
-            Y sé parte de la familia Cherry y lidera tu futuro como empresario
-          </h2>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Sección del Formulario de Registro */}
       <div className="register-page-form">
@@ -924,7 +858,29 @@ const RegisterPage = () => {
         </div>
       </div>
 
-      <AffiliateFaq />
+      {/* Banners Promocionales */}
+      {promoBanners.length > 0 && (
+        <section className="register-promo-banners" style={{ padding: '0 20px', maxWidth: 900, margin: '0 auto' }}>
+          {promoBanners.map((banner) => (
+            <a
+              key={banner.id}
+              href={banner.button_url || '#'}
+              className="affiliate-promo-banner"
+              style={{ marginBottom: 16, display: 'block' }}
+              target={banner.button_url?.match(/^https?:\/\//i) ? '_blank' : undefined}
+              rel={banner.button_url?.match(/^https?:\/\//i) ? 'noreferrer' : undefined}
+            >
+              <img
+                className="affiliate-promo-banner__image"
+                src={banner.image_path ? `/${banner.image_path}` : `${window.location.origin}/images/AuthPages/phone-banner.png`}
+                alt="Promo Banner"
+              />
+            </a>
+          ))}
+        </section>
+      )}
+
+      <AffiliateFaq faqs={affiliateFaqs} bottomBanner={bottomBanner} />
     </>
   );
 };

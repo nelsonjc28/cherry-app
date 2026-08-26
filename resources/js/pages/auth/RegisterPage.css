@@ -2,10 +2,9 @@
   background: #fff4f5;
   width: 100%;
   color: black;
-  display: flex;
-  flex-direction: column-reverse;
   overflow: hidden;
-  height: 450px;
+  line-height: 0;
+  position: relative;
 }
 
 .background-gradient {
@@ -13,7 +12,8 @@
 }
 
 .register-banner__image {
-  height: 50%;
+  width: 100%;
+  height: auto;
   position: relative;
 }
 
@@ -21,47 +21,57 @@
   margin-bottom: 10px;
 }
 
-.register-banner__image img[alt="Affiliate Girl"] {
-  height: 100%;
+.register-banner__image img {
+  width: 100%;
+  height: auto;
   object-fit: cover;
   z-index: 1;
   position: relative;
 }
 
-.register-banner__title {
-  font-size: 20px;
-  color: #373737;
-  font-weight: 500;
-  margin-bottom: 20px;
-  line-height: 25px;
-}
-
 .register-banner__content {
+  position: absolute;
+  right: 5%;
+  bottom: 6%;
+  width: 48%;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  grid-column: 2;
+  align-items: center;
+  text-align: center;
   z-index: 1;
-  padding: 15px 17px 0;
+  line-height: 1.2;
+}
+
+.register-banner__title {
+  margin: 0 0 14px;
+  color: #fff;
+  font-size: clamp(1.35rem, 3.2vw, 2.4rem);
+  font-weight: 600;
+  line-height: 1.12;
+}
+
+.register-banner__subtitle {
+  margin: 0 0 18px;
+  color: #fff;
+  font-size: clamp(1rem, 2vw, 1.4rem);
+  line-height: 1.2;
 }
 
 .register-banner__btn {
-  width: 100%;
+  width: fit-content;
   background: var(--color-primary);
   color: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 10px 30px;
-  border-radius: 6px;
+  padding: 10px 24px;
+  border: 2px solid #fff;
+  border-radius: 28px;
   font-weight: 600;
   text-decoration: none;
   transition: all 0.3s ease;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;
-  font-family: inherit;
+  line-height: 1.2;
 }
 
 .register-banner__btn:hover {
@@ -136,6 +146,21 @@
   object-fit: contain;
   display: block;
   margin: 0 auto;
+}
+
+.register-intro {
+  padding: 34px 24px 28px;
+  background: #fff;
+  text-align: center;
+}
+
+.register-intro h2 {
+  max-width: 680px;
+  margin: 0 auto;
+  color: #373737;
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  font-weight: 400;
+  line-height: 1.2;
 }
 
 /* How It Works Section */
@@ -293,166 +318,111 @@
 }
 
 .register-season__card-label {
-  position: absolute;
-  bottom: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 6px 16px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.9);
+  display: block;
   color: #1f2937;
   font-size: 12px;
   font-weight: 600;
   text-align: center;
   line-height: 1.25;
-  white-space: nowrap;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 }
 
-/* Register Includes Section */
-.register-includes {
-  padding: 20px;
-  border-bottom: 1px solid rgba(249, 108, 115, 0.405);
-}
-
-.register-includes__title {
-  text-align: center;
-  font-size: 25px;
-  font-weight: 400;
-  color: #373737;
-  margin-bottom: 20px;
-}
-
-.register-includes__grid {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.register-includes__column {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.register-includes__column:first-child {
-  margin-bottom: 10px;
-}
-
-.register-includes__item {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.register-includes__check {
-  width: 35px;
-  height: 35px;
-  min-width: 35px;
-  border-radius: 50%;
+.register-trends {
   background: #fff;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.register-includes__check svg {
-  width: 16px;
-  height: 12px;
+.register-trends .register-season__container {
+  max-width: 730px;
+  padding: 28px 0 42px;
 }
 
-.register-includes__item span {
-  font-size: 16px;
-  font-weight: 400;
-  color: #373737;
-  line-height: 1.4;
-}
-
-/* Second Banner */
-.register-banner-second {
-  background: #fff4f5;
-  width: 100%;
-  color: black;
-  display: flex;
-  flex-direction: column-reverse;
-  overflow: hidden;
-  height: 460px;
-}
-
-.register-banner-second__image {
-  height: 300px;
-  position: relative;
-  display: flex;
-  justify-content: center;
-}
-
-.register-banner-second__image img {
-  height: 100%;
-  object-fit: cover;
-  z-index: 1;
-  position: relative;
-}
-
-.register-banner-second__content {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  z-index: 1;
-  padding: 10px 20px 0 20px;
-}
-
-.register-banner-second__title {
-  font-size: 20px;
-  color: #373737;
-  font-weight: 500;
-  margin-bottom: 20px;
-  line-height: 25px;
-}
-
-.register-banner-second__steps {
-  font-size: 25px;
-  font-weight: 500;
-  margin: 0;
-  color: #373737;
-}
-
-.register-banner-second__steps span {
-  color: #EA2630;
-  font-size: 30px;
+.register-trends .register-season__title {
+  margin: 0 0 38px;
+  color: #5b5b5f;
+  font-size: 44px;
   font-weight: 700;
   line-height: 1;
 }
 
-/* Second Banner Globes */
-.register-banner-second__globes {
-  position: absolute;
-  top: 40%;
-  left: 40%;
-  transform: translate(-50%, -50%);
+.register-trends .register-season__grid {
+  gap: 16px;
 }
 
-.register-banner-second__globe--big {
-  width: 200px;
-  aspect-ratio: 1;
-  background-color: #F73859;
-  border-radius: 100%;
-  z-index: 0;
+.register-trends .register-season__card {
+  display: block;
+  height: 430px;
+  border-radius: 0;
+  box-shadow: none;
+  text-decoration: none;
+}
+
+.register-trends .register-season__card-image {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  object-fit: cover;
+  object-position: center;
+}
+
+.register-trends .register-season__card-label {
   position: absolute;
-  top: -100px;
+  left: 50%;
+  bottom: 16px;
   transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 24px);
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #292929;
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 1.15;
+  white-space: nowrap;
 }
 
-.register-banner-second__globe--small {
-  width: 80px;
-  aspect-ratio: 1;
-  background-color: #F9738A;
-  border-radius: 100%;
-  z-index: 0;
-  position: absolute;
-  left: 150px;
+.register-trends .register-season__card:hover .register-season__card-image {
+  opacity: 0.92;
 }
 
+@media (max-width: 767px) {
+  .register-trends .register-season__container {
+    padding: 28px 16px 36px;
+  }
+
+  .register-trends .register-season__title {
+    margin-bottom: 28px;
+    font-size: 36px;
+  }
+
+  .register-trends .register-season__card {
+    height: 320px;
+  }
+
+  .register-trends .register-season__card-label {
+    bottom: 12px;
+    font-size: 18px;
+  }
+}
+
+.register-season__card-content {
+  padding: 12px;
+  background: #fff;
+}
+
+.register-season__card-action {
+  display: block;
+  width: fit-content;
+  margin: 10px auto 0;
+  padding: 7px 14px;
+  border-radius: 20px;
+  background: #ea2630;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+/* Register Includes Section */
 /* Error message styles */
 .error-message {
   color: #dc3545;
@@ -695,6 +665,18 @@
 }
 
 @media (max-width: 767px) {
+  .register-banner__content {
+    left: 50%;
+    right: auto;
+    bottom: 6%;
+    width: 90%;
+    transform: translateX(-50%);
+  }
+
+  .register-banner__btn {
+    align-self: center;
+  }
+
   .register-section-title-hide-mobile {
     display: none;
   }
@@ -790,12 +772,14 @@
   }
 
   .register-banner {
-    flex-direction: row-reverse;
-    height: 356px;
+    height: auto;
   }
 
   .register-banner__content {
-    padding: 35px 10px 30px 60px;
+    right: 5%;
+    bottom: 8%;
+    width: 48%;
+    padding: 0;
   }
 
   .register-banner__globes {
@@ -815,17 +799,18 @@
   }
 
   .register-banner__title {
-    font-size: 37px;
-    line-height: 45px;
+    font-size: clamp(1.6rem, 3.2vw, 2.4rem);
+    line-height: 1.12;
     margin-bottom: 30px;
   }
 
   .register-banner__image {
-    height: 100%;
+    height: auto;
   }
 
-  .register-banner__image img[alt="Affiliate Girl"] {
-    height: 100%;
+  .register-banner__image img {
+    height: auto;
+    width: 100%;
     margin-top: 0;
   }
 
@@ -933,101 +918,6 @@
 
   .register-season__card-label {
     font-size: 14px;
-  }
-
-  .register-includes {
-    padding: 50px 20px;
-  }
-
-  .register-includes__title {
-    font-size: 36px;
-    margin-bottom: 45px;
-  }
-
-  .register-includes__grid {
-    flex-direction: row;
-    justify-content: center;
-    gap: 150px;
-  }
-
-  .register-includes__column {
-    gap: 25px;
-  }
-
-  .register-includes__column:first-child {
-    margin-bottom: 0;
-  }
-
-  .register-includes__check {
-    width: 50px;
-    height: 50px;
-    min-width: 50px;
-  }
-
-  .register-includes__check svg {
-    width: 18px;
-    height: 14px;
-  }
-
-  .register-includes__item span {
-    font-size: 17px;
-  }
-
-  /* Second Banner Desktop */
-  .register-banner-second {
-    flex-direction: row-reverse;
-    height: 356px;
-    justify-content: center;
-    gap: 50px;
-  }
-
-  .register-banner-second__image {
-    height: 100%;
-  }
-
-  .register-banner-second__image img {
-    height: 100%;
-    margin-top: 0;
-  }
-
-  .register-banner-second__content {
-    width: 40%;
-    padding: 0px;
-  }
-
-  .register-banner-second__title {
-    font-size: 30px;
-    line-height: 40px;
-  }
-
-  .register-banner-second__steps {
-    font-size: 37px;
-    font-weight: 500;
-    margin: 0;
-    color: #373737;
-  }
-
-  .register-banner-second__steps span {
-    color: #EA2630;
-    font-size: 50px;
-    font-weight: 700;
-  }
-
-  .register-banner-second__globes {
-    top: 30%;
-    left: 45%;
-  }
-
-  .register-banner-second__globe--big {
-    width: 250px;
-    top: -50px;
-    transform: unset;
-  }
-
-  .register-banner-second__globe--small {
-    width: 140px;
-    left: 140px;
-    top: 90px;
   }
 
   /*Register page*/

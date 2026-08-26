@@ -3,6 +3,8 @@ import AdminAffiliateBannerManager from './AdminAffiliateBannerManager';
 import AdminAffiliateSeasonManager from './AdminAffiliateSeasonManager';
 import AdminAffiliatePromoBannerManager from './AdminAffiliatePromoBannerManager';
 import AdminAffiliateFaqManager from './AdminAffiliateFaqManager';
+import AdminAffiliateTrendManager from './AdminAffiliateTrendManager';
+import AdminAffiliateBottomBannerManager from './AdminAffiliateBottomBannerManager';
 import './AdminAffiliateContentManager.css';
 
 const AdminAffiliateContentManager = () => {
@@ -29,10 +31,16 @@ const AdminAffiliateContentManager = () => {
           Nueva Temporada
         </button>
         <button
+          className={`affiliate-admin__tab${activeTab === 'trends' ? ' active' : ''}`}
+          onClick={() => setActiveTab('trends')}
+        >
+          Tendencias
+        </button>
+        <button
           className={`affiliate-admin__tab${activeTab === 'promos' ? ' active' : ''}`}
           onClick={() => setActiveTab('promos')}
         >
-          Banners Promocionales
+          Banner Promocional
         </button>
         <button
           className={`affiliate-admin__tab${activeTab === 'faqs' ? ' active' : ''}`}
@@ -40,13 +48,21 @@ const AdminAffiliateContentManager = () => {
         >
           Preguntas Frecuentes
         </button>
+        <button
+          className={`affiliate-admin__tab${activeTab === 'bottom' ? ' active' : ''}`}
+          onClick={() => setActiveTab('bottom')}
+        >
+          Banner Inferior
+        </button>
       </div>
 
       <div className="affiliate-admin__content">
         {activeTab === 'banners' && <AdminAffiliateBannerManager />}
         {activeTab === 'seasons' && <AdminAffiliateSeasonManager />}
+        {activeTab === 'trends' && <AdminAffiliateTrendManager />}
         {activeTab === 'promos' && <AdminAffiliatePromoBannerManager />}
         {activeTab === 'faqs' && <AdminAffiliateFaqManager />}
+        {activeTab === 'bottom' && <AdminAffiliateBottomBannerManager />}
       </div>
     </div>
   );

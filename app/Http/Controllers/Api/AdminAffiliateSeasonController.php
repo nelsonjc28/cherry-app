@@ -13,10 +13,12 @@ class AdminAffiliateSeasonController extends Controller
 
     protected $modelClass = AffiliateSeason::class;
     protected $resourceKey = 'season';
+    protected $imageDir = 'images/affiliate-seasons';
 
     protected $fields = [
         'title' => 'required|string|max:255',
         'catalog_id' => 'nullable|exists:catalogs,id',
+        'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp',
         'is_active' => 'boolean',
         'display_order' => 'nullable|integer|min:0'
     ];

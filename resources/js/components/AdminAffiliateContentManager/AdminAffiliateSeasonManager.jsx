@@ -92,6 +92,8 @@ const AdminAffiliateSeasonManager = () => {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY());
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [selectedSeasonId, setSelectedSeasonId] = useState(null);
 
   const fetchAll = useCallback(async () => {
@@ -112,21 +114,36 @@ const AdminAffiliateSeasonManager = () => {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const resetForm = () => { setForm(EMPTY()); setEditing(null); setShowForm(false); };
+  const resetForm = () => {
+    setForm(EMPTY());
+    setImageFile(null);
+    setImagePreview(null);
+    setEditing(null);
+    setShowForm(false);
+  };
 
   const handleEdit = (season) => {
     setEditing(season);
     setForm(FROM_ITEM(season));
+    setImageFile(null);
+    setImagePreview(season.image_path ? `/${season.image_path}` : null);
     setShowForm(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      if (!editing && !imageFile) {
+        if (window.showToast) window.showToast('Selecciona una imagen para la temporada', 'error');
+        return;
+      }
+      const formData = new FormData();
+      Object.entries(form).forEach(([key, value]) => formData.append(key, value ?? ''));
+      if (imageFile) formData.append('image', imageFile);
       if (editing) {
-        await affiliateSeasonService.update(editing.id, form);
+        await affiliateSeasonService.update(editing.id, formData);
       } else {
-        await affiliateSeasonService.create(form);
+        await affiliateSeasonService.create(formData);
       }
       if (window.showToast) window.showToast(editing ? 'Sección actualizada' : 'Sección creada', 'success');
       fetchAll();
@@ -181,6 +198,15 @@ const AdminAffiliateSeasonManager = () => {
                 <label>Catálogo</label>
                 <CatalogSelect catalogs={catalogs} value={form.catalog_id} onChange={(catalog_id) => setForm({ ...form, catalog_id })} />
               </div>
+              <div className="affiliate-manager__form-group">
+                <label>Imagen de la temporada {!editing && '*'}</label>
+                <input type="file" accept="image/*" onChange={(event) => {
+                  const file = event.target.files[0];
+                  setImageFile(file || null);
+                  setImagePreview(file ? URL.createObjectURL(file) : (editing?.image_path ? `/${editing.image_path}` : null));
+                }} />
+                {imagePreview && <img src={imagePreview} alt="Vista previa de la temporada" className="affiliate-admin__preview" />}
+              </div>
             </div>
             <div className="affiliate-manager__form-row">
               <div className="affiliate-manager__form-group">
@@ -205,7 +231,7 @@ const AdminAffiliateSeasonManager = () => {
         {seasons.map((season) => (
           <div key={season.id} className={`affiliate-admin__record-card${selectedSeasonId === season.id ? ' is-selected' : ''}`}>
             <div className="affiliate-admin__record-image">
-              <div className="affiliate-admin__record-no-image">Temporada</div>
+              {season.image_path ? <img src={`/${season.image_path}`} alt={season.title} /> : <div className="affiliate-admin__record-no-image">Temporada</div>}
             </div>
             <div className="affiliate-admin__record-info">
               <h4>{season.title}</h4>

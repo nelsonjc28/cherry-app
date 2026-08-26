@@ -766,6 +766,15 @@ export const affiliatePromoBannerService = {
   },
 };
 
+// Banner inferior (debajo de preguntas frecuentes)
+export const affiliateBottomBannerService = {
+  getAll: () => api.get('/admin/affiliate-bottom-banners'),
+  create: (formData) => api.post('/admin/affiliate-bottom-banners', formData, { headers: { Accept: 'application/json' } }),
+  update: (id, formData) => api.post(`/admin/affiliate-bottom-banners/${id}`, formData, { headers: { Accept: 'application/json' } }),
+  delete: (id) => api.delete(`/admin/affiliate-bottom-banners/${id}`),
+  toggleStatus: (id) => api.patch(`/admin/affiliate-bottom-banners/${id}/toggle`),
+};
+
 // Preguntas Frecuentes (FAQ) del módulo de afiliación
 export const affiliateFaqService = {
   getAll: async () => {
@@ -842,6 +851,14 @@ export const publicAffiliateContentService = {
       throw error;
     }
   },
+};
+
+export const affiliateTrendService = {
+  getAll: () => api.get('/admin/affiliate-trends'),
+  create: (formData) => api.post('/admin/affiliate-trends', formData, { headers: { Accept: 'application/json' } }),
+  update: (id, formData) => api.post(`/admin/affiliate-trends/${id}`, formData, { headers: { Accept: 'application/json' } }),
+  delete: (id) => api.delete(`/admin/affiliate-trends/${id}`),
+  toggleStatus: (id) => api.patch(`/admin/affiliate-trends/${id}/toggle`),
 };
 
 // Servicios públicos para catálogos (sin autenticación requerida)

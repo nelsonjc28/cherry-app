@@ -9,6 +9,19 @@ class AffiliateBanner extends Model
 {
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        static::saving(function (self $banner) {
+            if ($banner->is_active) {
+                $query = self::query();
+                if ($banner->exists) {
+                    $query->where('id', '<>', $banner->getKey());
+                }
+                $query->update(['is_active' => false]);
+            }
+        });
+    }
+
     protected $fillable = [
         'title', 'subtitle', 'button_text', 'button_url', 'image_path', 'is_active', 'display_order'
     ];
