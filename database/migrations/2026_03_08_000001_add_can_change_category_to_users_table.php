@@ -19,7 +19,6 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->boolean('can_change_category')
                 ->default(false)
-                ->after('idvendedor')
                 ->comment('Permite que un vendedor cambie la categoría de sus clientes.');
         });
     }

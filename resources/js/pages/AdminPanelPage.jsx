@@ -41,9 +41,10 @@ function AdminPanelPage() {
   const [selectedMenu, setSelectedMenu] = useState('home');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState({
-    usuarios: true,
-    categorias: true,
-    catalogos: true
+    usuarios: false,
+    categorias: false,
+    catalogos: false,
+    logs: false
   });
   const { user } = useUserStore();
   
@@ -205,8 +206,10 @@ function AdminPanelPage() {
     const currentMenu = urlToMenuMap[location.pathname] || 'home';
     setSelectedMenu(currentMenu);
     
-    // Expandir automáticamente el submenú correspondiente
-    if (currentMenu === 'users' || currentMenu === 'operators' || currentMenu === 'vendors' || currentMenu === 'clients') {
+    // Mantener cerrados los grupos al entrar al dashboard.
+    if (currentMenu === 'home') {
+      setExpandedMenus({ usuarios: false, categorias: false, catalogos: false, logs: false });
+    } else if (currentMenu === 'users' || currentMenu === 'operators' || currentMenu === 'vendors' || currentMenu === 'clients') {
       setExpandedMenus(prev => ({ ...prev, usuarios: true }));
     } else if (currentMenu === 'category-products' || currentMenu === 'category-order' || currentMenu === 'menu-category-order') {
       setExpandedMenus(prev => ({ ...prev, categorias: true }));
@@ -400,13 +403,24 @@ function AdminPanelPage() {
             </>
           )}
 
-          {/* Solo admin: histórico de productos, envíos API, correos cron */}
+          {/* Solo admin: logs del sistema */}
           {isOnlyAdmin() && (
-            <>
-              <button className={`admin-panel__sidebar-link${selectedMenu==='historial'?' active':''}`} onClick={()=>handleMenuChange('historial')}>Historial productos</button>
-              <button className={`admin-panel__sidebar-link${selectedMenu==='order-api-historial'?' active':''}`} onClick={()=>handleMenuChange('order-api-historial')}>Historial envíos API</button>
-              <button className={`admin-panel__sidebar-link${selectedMenu==='cron-mail-historial'?' active':''}`} onClick={()=>handleMenuChange('cron-mail-historial')}>Historial correos cron</button>
-            </>
+            <div className="admin-panel__menu-group">
+              <button
+                className={`admin-panel__menu-group-header${expandedMenus.logs ? ' expanded' : ''}`}
+                onClick={() => toggleSubmenu('logs')}
+              >
+                <span>Logs</span>
+                <span className="admin-panel__menu-arrow">{expandedMenus.logs ? '▼' : '▶'}</span>
+              </button>
+              {expandedMenus.logs && (
+                <div className="admin-panel__submenu">
+                  <button className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='historial'?' active':''}`} onClick={()=>handleMenuChange('historial')}>Historial productos</button>
+                  <button className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='order-api-historial'?' active':''}`} onClick={()=>handleMenuChange('order-api-historial')}>Historial envíos API</button>
+                  <button className={`admin-panel__sidebar-link admin-panel__submenu-link${selectedMenu==='cron-mail-historial'?' active':''}`} onClick={()=>handleMenuChange('cron-mail-historial')}>Historial correos cron</button>
+                </div>
+              )}
+            </div>
           )}
 
           <button className="admin-panel__sidebar-link" onClick={handleLogout}>Volver al sitio</button>
