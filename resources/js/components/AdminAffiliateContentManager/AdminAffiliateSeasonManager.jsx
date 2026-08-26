@@ -138,7 +138,9 @@ const AdminAffiliateSeasonManager = () => {
         return;
       }
       const formData = new FormData();
-      Object.entries(form).forEach(([key, value]) => formData.append(key, value ?? ''));
+      Object.entries(form).forEach(([key, value]) => {
+        formData.append(key, key === 'is_active' ? (value ? '1' : '0') : (value ?? ''));
+      });
       if (imageFile) formData.append('image', imageFile);
       if (editing) {
         await affiliateSeasonService.update(editing.id, formData);
@@ -198,15 +200,6 @@ const AdminAffiliateSeasonManager = () => {
                 <label>Catálogo</label>
                 <CatalogSelect catalogs={catalogs} value={form.catalog_id} onChange={(catalog_id) => setForm({ ...form, catalog_id })} />
               </div>
-              <div className="affiliate-manager__form-group">
-                <label>Imagen de la temporada {!editing && '*'}</label>
-                <input type="file" accept="image/*" onChange={(event) => {
-                  const file = event.target.files[0];
-                  setImageFile(file || null);
-                  setImagePreview(file ? URL.createObjectURL(file) : (editing?.image_path ? `/${editing.image_path}` : null));
-                }} />
-                {imagePreview && <img src={imagePreview} alt="Vista previa de la temporada" className="affiliate-admin__preview" />}
-              </div>
             </div>
             <div className="affiliate-manager__form-row">
               <div className="affiliate-manager__form-group">
@@ -216,6 +209,17 @@ const AdminAffiliateSeasonManager = () => {
               <div className="affiliate-manager__form-group affiliate-manager__form-group--switch">
                 <label>Activa</label>
                 <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />
+              </div>
+            </div>
+            <div className="affiliate-manager__form-row">
+              <div className="affiliate-manager__form-group" style={{ gridColumn: 'span 2' }}>
+                <label>Imagen de la temporada {!editing && '*'}</label>
+                <input type="file" accept="image/*" onChange={(event) => {
+                  const file = event.target.files[0];
+                  setImageFile(file || null);
+                  setImagePreview(file ? URL.createObjectURL(file) : (editing?.image_path ? `/${editing.image_path}` : null));
+                }} />
+                {imagePreview && <img src={imagePreview} alt="Vista previa de la temporada" className="affiliate-admin__preview" />}
               </div>
             </div>
           </div>
