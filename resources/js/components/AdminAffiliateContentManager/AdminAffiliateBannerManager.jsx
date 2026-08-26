@@ -62,6 +62,7 @@ const AdminAffiliateBannerManager = () => {
             preview={crud.preview}
             withImage
             editing={crud.editing}
+            imageHelpText="La imagen debe tener un ancho de 2000 px y un alto de 685 px"
           />
           <div className="affiliate-manager__form-actions">
             <button type="submit" className="btn btn-primary btn-sm" disabled={crud.submitting}>{crud.submitting ? 'Guardando...' : 'Guardar'}</button>
