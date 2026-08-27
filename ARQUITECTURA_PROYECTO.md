@@ -53,7 +53,16 @@ app/
 │   │       ├── CategoryController.php
 │   │       ├── AdminCatalogController.php
 │   │       ├── UserOfferController.php
-│   │       └── HistorialController.php
+│   │       ├── HistorialController.php
+│   │       ├── PublicAffiliateContentController.php
+│   │       ├── AffiliateCrudTrait.php
+│   │       ├── AdminAffiliateBannerController.php
+│   │       ├── AdminAffiliateSeasonController.php
+│   │       ├── AdminAffiliateSeasonBoxController.php
+│   │       ├── AdminAffiliatePromoBannerController.php
+│   │       ├── AdminAffiliateBottomBannerController.php
+│   │       ├── AdminAffiliateFaqController.php
+│   │       └── AdminAffiliateTrendController.php
 │   ├── Middleware/
 │   │   ├── Authenticate.php           # Middleware JWT
 │   │   └── AdminMiddleware.php        # Verificación de rol admin
@@ -78,7 +87,14 @@ app/
 │   ├── Linea.php
 │   ├── Genero.php
 │   ├── Sector.php
-│   └── Historial.php
+│   ├── Historial.php
+│   ├── AffiliateBanner.php
+│   ├── AffiliateSeason.php
+│   ├── AffiliateSeasonBox.php
+│   ├── AffiliatePromoBanner.php
+│   ├── AffiliateBottomBanner.php
+│   ├── AffiliateFaq.php
+│   └── AffiliateTrend.php
 └── Services/                          # Servicios de negocio (si existen)
 ```
 
@@ -105,7 +121,10 @@ resources/js/
 │   ├── PromocionesPage.jsx
 │   ├── FavoritosPage.jsx
 │   ├── AdminPanelPage.jsx
+│   ├── auth/RegisterPage.jsx
 │   └── ...
+├── components/AffiliateFaq/          # FAQ y banners promocionales
+├── components/AdminAffiliateContentManager/ # CRUD administrativo de afiliación
 ├── store/                            # Zustand stores
 │   ├── cartStore.js
 │   └── userStore.js
@@ -165,6 +184,13 @@ resources/js/
 - **Historial**: Registro de ejecuciones del cronjob de sincronización de productos
 - **Filtros**: Por fecha de ejecución
 - **Estados**: Exitoso, Error
+
+### 3.9. Contenido de Afiliación
+- **Página pública**: `/registro` consume `GET /api/affiliate-content`.
+- **Contenido**: banner superior, temporada, recuadros de temporada, tendencias, banners promocionales, FAQ y banner inferior.
+- **Administración**: CRUD protegido para cada tipo mediante rutas `/api/admin/affiliate-*`.
+- **Enlaces**: `button_url` permite redirigir imágenes o botones; la temporada puede enlazar una URL sin depender de un catálogo.
+- **Estado**: banners superior, promocional e inferior controlan contenido activo; las tendencias admiten múltiples registros activos.
 
 ---
 
@@ -312,6 +338,27 @@ resources/js/
 - `id` (PK)
 - `name`
 
+**affiliate_banners**: Banner superior editable de `/registro`
+- `title`, `subtitle`, `button_text`, `button_url`, `image_path`, `is_active`, `display_order`
+
+**affiliate_seasons**: Sección de temporada
+- `title`, `button_url`, `catalog_id`, `image_path`, `is_active`, `display_order`
+
+**affiliate_season_boxes**: Recuadros asociados a una temporada
+- `affiliate_season_id`, `title`, `description`, `button_text`, `button_url`, `image_path`, `is_active`, `display_order`
+
+**affiliate_trends**: Tarjetas de tendencias
+- `title`, `button_url`, `image_path`, `is_active`, `display_order`
+
+**affiliate_promo_banners**: Banners promocionales de la sección FAQ
+- `image_path`, `button_url`, `is_active`, `display_order`
+
+**affiliate_bottom_banners**: Banner inferior de la sección FAQ
+- `image_path`, `button_url`, `is_active`, `display_order`
+
+**affiliate_faqs**: Preguntas frecuentes dinámicas
+- `question`, `answer`, `display_order`, `is_active`
+
 ### 5.2. Relaciones Clave
 
 - `Producto` hasMany `Detalle`
@@ -326,6 +373,8 @@ resources/js/
 - `Catalog` belongsToMany `Producto` (vía `catalog_products`)
 - `CatalogOffer` belongsTo `Catalog`
 - `UserOffer` belongsTo `User`
+- `AffiliateSeason` belongsTo `Catalog` y hasMany `AffiliateSeasonBox`
+- `AffiliateSeasonBox` belongsTo `AffiliateSeason`
 
 ---
 
@@ -375,6 +424,18 @@ resources/js/
 
 ### Historial
 - `GET /api/admin/historial`
+
+### Contenido público de afiliación
+- `GET /api/affiliate-content` - Devuelve `banner`, `season`, `promo_banners`, `bottom_banner`, `faqs` y `trends`.
+
+### Administración de afiliación
+- CRUD `/api/admin/affiliate-banners`
+- CRUD `/api/admin/affiliate-seasons`
+- CRUD `/api/admin/affiliate-seasons/{seasonId}/boxes`
+- CRUD `/api/admin/affiliate-promo-banners`
+- CRUD `/api/admin/affiliate-bottom-banners`
+- CRUD `/api/admin/affiliate-faqs`
+- CRUD `/api/admin/affiliate-trends`
 
 ---
 

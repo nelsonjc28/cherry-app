@@ -28,6 +28,13 @@ Cherry App es una plataforma de e-commerce desarrollada con Laravel 12 (PHP 8.2+
 18. **lineas**: Líneas de productos
 19. **generos**: Géneros
 20. **sectores**: Sectores
+21. **affiliate_banners**: Banner superior de `/registro`
+22. **affiliate_seasons**: Sección de temporada con URL, imagen y catálogo opcional
+23. **affiliate_season_boxes**: Recuadros configurables dentro de una temporada
+24. **affiliate_promo_banners**: Banners promocionales
+25. **affiliate_bottom_banners**: Banner inferior del módulo FAQ
+26. **affiliate_faqs**: Preguntas frecuentes dinámicas
+27. **affiliate_trends**: Tarjetas de tendencias
 
 ---
 
@@ -47,6 +54,13 @@ Cherry App es una plataforma de e-commerce desarrollada con Laravel 12 (PHP 8.2+
 
 ### 5. Imágenes de Productos
 - Producto tiene campo `imagen` → `productImageUtils.js` genera URL S3: `https://cherry-fotos.s3.amazonaws.com/shopify/{id}/{id}_{number}.jpg` → Si no existe, mostrar placeholder
+
+### 6. Contenido de Afiliación
+- `PublicAffiliateContentController` devuelve `banner`, `season`, `promo_banners`, `bottom_banner`, `faqs` y `trends`.
+- `RegisterPage.jsx` consume el contenido y renderiza la página pública `/registro`.
+- El banner superior usa una imagen por defecto de `2000 × 685 px` cuando no existe un banner configurado.
+- Los banners promocionales usan una medida recomendada de `1800 × 900 px`.
+- `button_url` controla la redirección de botones e imágenes de temporadas, tendencias y banners.
 
 ---
 
@@ -87,6 +101,8 @@ Cherry App es una plataforma de e-commerce desarrollada con Laravel 12 (PHP 8.2+
 18. **VALIDAR stock antes de crear pedido** → Verificar disponibilidad
 19. **ACTUALIZAR stock después de pedido** → Reducir inventario
 20. **REGISTRAR en Historial** → Todas las ejecuciones del cronjob
+21. **MANTENER el contrato de afiliación** → `GET /api/affiliate-content` conserva sus claves de respuesta
+22. **VALIDAR URLs de afiliación** → Validar `button_url` en los controladores administrativos
 
 ---
 
@@ -103,6 +119,10 @@ Cherry App es una plataforma de e-commerce desarrollada con Laravel 12 (PHP 8.2+
 - `app/Models/Order.php`
 - `app/Models/User.php`
 - `app/Console/Commands/SyncProductsCommand.php`
+- `app/Http/Controllers/Api/PublicAffiliateContentController.php`
+- `app/Http/Controllers/Api/AffiliateCrudTrait.php`
+- `app/Http/Controllers/Api/AdminAffiliateSeasonController.php`
+- `app/Http/Controllers/Api/AdminAffiliateSeasonBoxController.php`
 - `routes/api.php`
 
 **Frontend:**
@@ -115,6 +135,9 @@ Cherry App es una plataforma de e-commerce desarrollada con Laravel 12 (PHP 8.2+
 - `resources/js/pages/ProductPage.jsx`
 - `resources/js/pages/CartPage.jsx`
 - `resources/js/pages/CheckoutPage.jsx`
+- `resources/js/pages/auth/RegisterPage.jsx`
+- `resources/js/components/AffiliateFaq/AffiliateFaq.jsx`
+- `resources/js/components/AdminAffiliateContentManager/`
 
 ---
 

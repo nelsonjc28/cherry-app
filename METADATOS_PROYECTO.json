@@ -173,6 +173,55 @@
       "pk": "id",
       "campos_criticos": ["name"],
       "relaciones": []
+    },
+    {
+      "nombre": "AffiliateBanner",
+      "tabla": "affiliate_banners",
+      "pk": "id",
+      "campos_criticos": ["title", "subtitle", "button_text", "button_url", "image_path", "is_active", "display_order"],
+      "relaciones": []
+    },
+    {
+      "nombre": "AffiliateSeason",
+      "tabla": "affiliate_seasons",
+      "pk": "id",
+      "campos_criticos": ["title", "button_url", "catalog_id", "image_path", "is_active", "display_order"],
+      "relaciones": ["belongsTo Catalog", "hasMany AffiliateSeasonBox"]
+    },
+    {
+      "nombre": "AffiliateSeasonBox",
+      "tabla": "affiliate_season_boxes",
+      "pk": "id",
+      "campos_criticos": ["affiliate_season_id", "title", "description", "button_text", "button_url", "image_path", "is_active", "display_order"],
+      "relaciones": ["belongsTo AffiliateSeason"]
+    },
+    {
+      "nombre": "AffiliatePromoBanner",
+      "tabla": "affiliate_promo_banners",
+      "pk": "id",
+      "campos_criticos": ["image_path", "button_url", "is_active", "display_order"],
+      "relaciones": []
+    },
+    {
+      "nombre": "AffiliateBottomBanner",
+      "tabla": "affiliate_bottom_banners",
+      "pk": "id",
+      "campos_criticos": ["image_path", "button_url", "is_active", "display_order"],
+      "relaciones": []
+    },
+    {
+      "nombre": "AffiliateFaq",
+      "tabla": "affiliate_faqs",
+      "pk": "id",
+      "campos_criticos": ["question", "answer", "display_order", "is_active"],
+      "relaciones": []
+    },
+    {
+      "nombre": "AffiliateTrend",
+      "tabla": "affiliate_trends",
+      "pk": "id",
+      "campos_criticos": ["title", "button_url", "image_path", "is_active", "display_order"],
+      "relaciones": []
     }
   ],
   "rutas_principales": {
@@ -220,6 +269,18 @@
     ],
     "historial": [
       "GET /api/admin/historial"
+    ],
+    "afiliacion_publica": [
+      "GET /api/affiliate-content"
+    ],
+    "afiliacion_admin": [
+      "CRUD /api/admin/affiliate-banners",
+      "CRUD /api/admin/affiliate-seasons",
+      "CRUD /api/admin/affiliate-seasons/{seasonId}/boxes",
+      "CRUD /api/admin/affiliate-promo-banners",
+      "CRUD /api/admin/affiliate-bottom-banners",
+      "CRUD /api/admin/affiliate-faqs",
+      "CRUD /api/admin/affiliate-trends"
     ]
   },
   "archivos_criticos": {
@@ -234,6 +295,10 @@
       "app/Models/Producto.php",
       "app/Models/Order.php",
       "app/Models/User.php",
+      "app/Http/Controllers/Api/PublicAffiliateContentController.php",
+      "app/Http/Controllers/Api/AffiliateCrudTrait.php",
+      "app/Http/Controllers/Api/AdminAffiliateSeasonController.php",
+      "app/Http/Controllers/Api/AdminAffiliateSeasonBoxController.php",
       "app/Console/Commands/SyncProductsCommand.php",
       "routes/api.php"
     ],
@@ -248,7 +313,10 @@
       "resources/js/pages/CartPage.jsx",
       "resources/js/pages/CheckoutPage.jsx",
       "resources/js/pages/NuevosPage.jsx",
-      "resources/js/pages/ProximamentePage.jsx"
+      "resources/js/pages/ProximamentePage.jsx",
+      "resources/js/pages/auth/RegisterPage.jsx",
+      "resources/js/components/AffiliateFaq/AffiliateFaq.jsx",
+      "resources/js/components/AdminAffiliateContentManager/"
     ]
   },
   "modulos": [
@@ -296,6 +364,11 @@
       "nombre": "Historial",
       "descripcion": "Registro de ejecuciones del cronjob de sincronización",
       "archivos": ["app/Http/Controllers/Api/HistorialController.php", "app/Models/Historial.php"]
+    },
+    {
+      "nombre": "Contenido de Afiliación",
+      "descripcion": "Contenido dinámico de la página /registro: banner superior, temporada, tendencias, banners promocionales, FAQ y banner inferior",
+      "archivos": ["app/Http/Controllers/Api/PublicAffiliateContentController.php", "app/Http/Controllers/Api/AffiliateCrudTrait.php", "resources/js/pages/auth/RegisterPage.jsx", "resources/js/components/AffiliateFaq/AffiliateFaq.jsx"]
     }
   ],
   "flujos_criticos": [
@@ -323,6 +396,11 @@
       "nombre": "Imágenes de Productos",
       "descripcion": "Generar URLs S3 dinámicamente basadas en ID de producto",
       "archivos": ["resources/js/utils/productImageUtils.js"]
+    },
+    {
+      "nombre": "Contenido de Afiliación",
+      "descripcion": "Consultar GET /api/affiliate-content y renderizar contenido activo en /registro. Las imágenes de temporada, tendencias y banners pueden redirigir mediante button_url.",
+      "archivos": ["app/Http/Controllers/Api/PublicAffiliateContentController.php", "resources/js/pages/auth/RegisterPage.jsx", "resources/js/components/AffiliateFaq/AffiliateFaq.jsx"]
     }
   ],
   "dependencias_importantes": {
@@ -395,11 +473,11 @@
     }
   ],
   "estadisticas": {
-    "modelos": 20,
-    "controladores_api": 47,
-    "rutas_api": 232,
-    "paginas_frontend": 52,
-    "componentes_frontend": 114,
-    "migraciones": 30
+    "modelos": 48,
+    "controladores_api": 63,
+    "rutas_api": 322,
+    "paginas_frontend": 60,
+    "componentes_frontend": 178,
+    "migraciones": 139
   }
 }

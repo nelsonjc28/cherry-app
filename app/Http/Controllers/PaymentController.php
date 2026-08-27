@@ -902,11 +902,7 @@ class PaymentController extends Controller
             'buyer_id' => 'nullable|integer|exists:users,id',
         ];
 
-        if ($deliveryType === 'envio') {
-            $rules['address_id'] = 'required|exists:addresses,id';
-        } else {
-            $rules['address_id'] = 'nullable';
-        }
+        $rules['address_id'] = 'nullable|exists:addresses,id';
 
         $validator = Validator::make($request->all(), $rules);
 
@@ -977,6 +973,13 @@ class PaymentController extends Controller
             return $bronzeShippingError;
         }
 
+        if ($deliveryType === 'envio' && ! $isVendorOrder && ! $request->filled('address_id')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El envío a domicilio requiere una dirección de entrega.',
+            ], 422);
+        }
+
         // Para flujo no-vendor: validar premium
         if (! $isVendorOrder && ! $orderUser->isPremiumSeller()) {
             return response()->json([
@@ -998,7 +1001,7 @@ class PaymentController extends Controller
         }
 
         $addressId = null;
-        if ($deliveryType === 'envio') {
+        if ($deliveryType === 'envio' && $request->filled('address_id')) {
             // Si es vendedor, validar que la dirección pertenece al buyer
             $address = $orderUser->addresses()->find($request->address_id);
             if (! $address) {

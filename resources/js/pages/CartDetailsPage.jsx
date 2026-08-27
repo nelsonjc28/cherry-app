@@ -625,7 +625,7 @@ const CartDetailsPage = () => {
     const isDirectCategory = isOroDiamanteSeller(user) || isVendor;
 
     if (isDirectCategory) {
-      if (deliveryType === 'envio' && !selectedAddress) {
+      if (deliveryType === 'envio' && !selectedAddress && !isVendor) {
         if (window.showToast) {
           window.showToast('Por favor selecciona una dirección de entrega', 'warning');
         }
@@ -778,7 +778,7 @@ const CartDetailsPage = () => {
           ...buildOrderLinePayload(item),
           ...cartLineToApiEncargoFlags(item),
         })),
-        address_id: deliveryType === 'envio' ? selectedAddress.id : null,
+        address_id: deliveryType === 'envio' && selectedAddress ? selectedAddress.id : null,
         delivery_type: deliveryType,
         shipping_amount: parseFloat(regularShippingAmount || 0),
         total_amount: regularFinalTotal,

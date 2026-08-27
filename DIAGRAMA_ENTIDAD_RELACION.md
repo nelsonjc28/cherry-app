@@ -42,6 +42,9 @@ erDiagram
     catalog_image_groups ||--o{ catalog_images : "contiene"
     
     historials
+
+    affiliate_seasons ||--o{ affiliate_season_boxes : "contiene"
+    catalogs ||--o{ affiliate_seasons : "asociado"
     
     users {
         int id PK
@@ -307,6 +310,86 @@ erDiagram
         datetime created_at
         datetime updated_at
     }
+
+    affiliate_banners {
+        int id PK
+        string title
+        text subtitle
+        string button_text
+        string button_url
+        string image_path
+        boolean is_active
+        int display_order
+        datetime created_at
+        datetime updated_at
+    }
+
+    affiliate_seasons {
+        int id PK
+        string title
+        string button_url
+        int catalog_id FK
+        string image_path
+        boolean is_active
+        int display_order
+        datetime created_at
+        datetime updated_at
+    }
+
+    affiliate_season_boxes {
+        int id PK
+        int affiliate_season_id FK
+        string title
+        text description
+        string button_text
+        string button_url
+        string image_path
+        boolean is_active
+        int display_order
+        datetime created_at
+        datetime updated_at
+    }
+
+    affiliate_promo_banners {
+        int id PK
+        string image_path
+        string button_url
+        boolean is_active
+        int display_order
+        datetime created_at
+        datetime updated_at
+    }
+
+    affiliate_bottom_banners {
+        int id PK
+        string image_path
+        string button_url
+        boolean is_active
+        int display_order
+        datetime created_at
+        datetime updated_at
+    }
+
+    affiliate_faqs {
+        int id PK
+        string question
+        text answer
+        int display_order
+        boolean is_active
+        datetime created_at
+        datetime updated_at
+    }
+
+    affiliate_trends {
+        int id PK
+        string title
+        string button_url
+        string image_path
+        boolean is_active
+        int display_order
+        datetime created_at
+        datetime updated_at
+    }
 ```
 
 ---
@@ -478,6 +561,36 @@ erDiagram
 **Rol**: Registro de ejecuciones del cronjob de sincronización de productos.
 **Campos clave**: `ejecutado_at`, `estado` (exitoso/error), `mensaje`
 **Relaciones**: Ninguna
+
+### affiliate_banners
+**Rol**: Banner superior editable de la página `/registro`.
+**Campos clave**: `title`, `subtitle`, `button_text`, `button_url`, `image_path`, `is_active`, `display_order`
+
+### affiliate_seasons
+**Rol**: Sección de temporada visible en `/registro`.
+**Campos clave**: `title`, `button_url`, `catalog_id`, `image_path`, `is_active`, `display_order`
+**Relaciones**: Puede asociarse a un catálogo y contiene recuadros (`affiliate_season_boxes`).
+
+### affiliate_season_boxes
+**Rol**: Recuadros configurables dentro de una temporada.
+**Campos clave**: `affiliate_season_id`, `title`, `description`, `button_text`, `button_url`, `image_path`, `is_active`, `display_order`
+**Relaciones**: Pertenece a una temporada (`affiliate_seasons`).
+
+### affiliate_trends
+**Rol**: Tarjetas de tendencias de la página de afiliación.
+**Campos clave**: `title`, `button_url`, `image_path`, `is_active`, `display_order`
+
+### affiliate_promo_banners
+**Rol**: Banners promocionales mostrados en el módulo FAQ.
+**Campos clave**: `image_path`, `button_url`, `is_active`, `display_order`
+
+### affiliate_bottom_banners
+**Rol**: Banner inferior configurable del módulo FAQ.
+**Campos clave**: `image_path`, `button_url`, `is_active`, `display_order`
+
+### affiliate_faqs
+**Rol**: Preguntas frecuentes dinámicas de `/registro`.
+**Campos clave**: `question`, `answer`, `display_order`, `is_active`
 
 ---
 
